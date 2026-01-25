@@ -4,20 +4,15 @@ Bu proje **Frame** ile yönetilmektedir. Aşağıdaki kurallara uyarak döküman
 
 ---
 
-## ⚡ IMPORTANT: Token Efficiency Protocol
+## 🧭 Project Navigation
 
-**Before scanning any code, ALWAYS read these files first:**
+**Session başında şu dosyaları oku:**
 
-1. **STRUCTURE.json** - Contains the complete codebase map with modules, files, functions, and their relationships
-2. **tasks.json** - Current tasks and their status
+1. **STRUCTURE.json** - Modül haritası, hangi dosya nerede
+2. **PROJECT_NOTES.md** - Proje vizyonu, geçmiş kararlar, session notları
+3. **tasks.json** - Bekleyen işler
 
-**Workflow:**
-1. Read STRUCTURE.json to understand where relevant code is located
-2. Based on the task, identify which specific files you need to read
-3. Read ONLY those files - do NOT scan the entire codebase
-4. After making changes, update STRUCTURE.json if you added/removed/modified functions or files
-
-**Example:** If task is "fix bug in task panel", look at STRUCTURE.json → find `renderer/tasksPanel` module → read only that file.
+**Amaç:** Projeyi tanımak, context'i yakalamak. Kod okumayı engellemez - sadece nereye bakacağını bilirsin.
 
 ---
 
@@ -101,26 +96,18 @@ Bu proje **Frame** ile yönetilmektedir. Aşağıdaki kurallara uyarak döküman
 
 ## PROJECT_NOTES.md Kuralları
 
-### Ne Zaman Güncelle?
-- Önemli bir mimari karar alındığında
-- Teknoloji seçimi yapıldığında
-- Önemli bir problem çözüldüğünde ve çözüm yöntemi kayda değer olduğunda
-- Kullanıcıyla birlikte bir yaklaşım belirlendiğinde
+Proje vizyonu, kararlar ve session notları. Serbest format - formal şablon yok.
+
+### İçerik
+- **Project Vision** - Proje ne için var, kim için
+- **Session Notes** - Konuşmalar olduğu gibi, tarihle birlikte
 
 ### Format
+Serbest. Tarih + başlık yeterli:
 ```markdown
-## [Tarih] Karar/Not Başlığı
-
-**Bağlam:** Neden bu karara ihtiyaç duyuldu?
-**Karar:** Ne karar verildi?
-**Alternatifler:** Değerlendirilen diğer seçenekler (varsa)
-**Sonuç:** Bu kararın etkileri
+### [2026-01-26] Konu başlığı
+Konuşma/karar olduğu gibi...
 ```
-
-### Güncelleme Akışı
-- Karar alındıktan hemen sonra güncelle
-- Kullanıcıya sormadan ekleyebilirsin (önemli kararlar için)
-- Küçük kararları biriktirip toplu ekleyebilirsin
 
 ---
 
@@ -165,72 +152,37 @@ Sorun yok, devam et. Kullanıcı önemli gördüğü şeyleri kendisi de söyley
 
 ## STRUCTURE.json Kuralları
 
-**Bu dosya codebase'in haritasıdır. Token tasarrufu için kritik öneme sahiptir.**
+Codebase haritası. Hangi modül nerede, ne iş yapıyor.
 
 ### Ne Zaman Güncelle?
-- Yeni dosya/klasör oluşturulduğunda
-- Dosya/klasör silindiğinde veya taşındığında
-- Yeni fonksiyon/method eklendiğinde veya silindiğinde
-- Fonksiyon imzası (parametreler, return type) değiştiğinde
+- Yeni dosya/modül eklendiğinde
+- Dosya silindiğinde veya taşındığında
 - Modül bağımlılıkları değiştiğinde
-- IPC channel eklendiğinde veya değiştiğinde
+- Önemli bir architectural pattern eklendiğinde (architectureNotes)
 
-### Format (Detaylı)
+### Basit Format
 ```json
 {
-  "lastUpdated": "ISO date",
-  "overview": "Proje açıklaması",
-  "architecture": {
-    "pattern": "Electron (main + renderer)",
-    "entryPoints": {
-      "main": "src/main/index.js",
-      "renderer": "src/renderer/index.js"
-    }
-  },
   "modules": {
     "main/tasksManager": {
       "path": "src/main/tasksManager.js",
       "purpose": "Task CRUD operations",
       "exports": ["init", "loadTasks", "addTask"],
-      "functions": {
-        "loadTasks": {
-          "line": 20,
-          "purpose": "Load tasks from tasks.json",
-          "params": ["projectPath"],
-          "returns": "object"
-        },
-        "addTask": {
-          "line": 45,
-          "purpose": "Add new task to project",
-          "params": ["projectPath", "taskData"],
-          "emits": "IPC.TASK_UPDATED"
-        }
-      },
-      "ipcHandles": ["LOAD_TASKS", "ADD_TASK", "UPDATE_TASK"],
-      "dependencies": ["fs", "path", "../shared/ipcChannels"]
+      "depends": ["fs", "path", "shared/ipcChannels"]
     }
   },
-  "ipcChannels": {
-    "LOAD_TASKS": {
-      "direction": "renderer → main",
-      "sender": "renderer/tasksPanel.js",
-      "handler": "main/tasksManager.js",
-      "payload": "projectPath",
-      "response": "TASKS_DATA"
+  "architectureNotes": {
+    "circularDependencies": {
+      "issue": "Açıklama",
+      "solution": "Çözüm"
     }
-  },
-  "dataFlow": {
-    "taskCreation": "UI → tasksPanel.handleTaskFormSubmit → IPC.ADD_TASK → tasksManager.addTask → tasks.json → IPC.TASK_UPDATED → UI refresh"
   }
 }
 ```
 
-### Güncelleme Kuralları
-- Kod değişikliği yaptıktan sonra: `npm run structure:changed`
-- Veya tüm projeyi yeniden tara: `npm run structure`
-- Pre-commit hook otomatik olarak günceller (commit öncesi)
-- Manuel güncelleme gerekirse fonksiyon satır numaralarını (line) güncel tut
-- Yeni IPC channel eklediysen ipcChannels bölümünü kontrol et
+### Güncelleme
+- Pre-commit hook otomatik günceller
+- Manuel: `npm run structure`
 
 ---
 

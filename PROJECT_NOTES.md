@@ -387,22 +387,21 @@ mainWindow.webContents.openDevTools();
 
 ## Session Notes
 
-### [2026-01-25] Token Efficiency Protocol
+### [2026-01-25] Project Navigation System
 
-**Bağlam:** Claude Code projeye girdiğinde tüm codebase'i tarıyor ve ~70k token tüketiyor. Bu hem maliyetli hem de yavaş.
+**Bağlam:** Claude Code projeye girdiğinde context'i hızlı yakalaması gerekiyor.
 
-**Karar:** STRUCTURE.json'ı detaylı bir "codebase haritası" olarak kullanmak.
+**Karar:** STRUCTURE.json + PROJECT_NOTES.md + tasks.json üçlüsü.
 
 **Uygulama:**
-1. CLAUDE.md'ye "Token Efficiency Protocol" eklendi - Claude'a önce STRUCTURE.json okuması talimatı
-2. STRUCTURE.json formatı genişletildi:
-   - Fonksiyon seviyesinde detay (line, params, purpose)
-   - IPC channel mapping
-   - Data flow diagramları
-3. `scripts/update-structure.js` oluşturuldu - otomatik parser
-4. Pre-commit hook eklendi - her commit öncesi STRUCTURE.json güncellenir
+1. CLAUDE.md'ye "Project Navigation" bölümü - session başında okunacak dosyalar
+2. STRUCTURE.json - modül haritası, architectureNotes
+3. Pre-commit hook - STRUCTURE.json otomatik güncellenir
 
-**Sonuç:** Claude artık tüm projeyi taramak yerine STRUCTURE.json'dan ilgili dosyayı bulup sadece onu okuyacak. Beklenen token tasarrufu: %80-90.
+**[2026-01-26 Güncellemesi]:**
+- "Token Efficiency Protocol" iddiası kaldırıldı (gerçekçi değildi)
+- Line numbers kaldırıldı (sürekli değişiyor, bakımı zor)
+- Format sadeleştirildi - artık daha pratik
 
 ---
 

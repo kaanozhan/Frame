@@ -79,26 +79,18 @@ Bu proje **Frame** ile yönetilmektedir. Aşağıdaki kurallara uyarak döküman
 
 ## PROJECT_NOTES.md Kuralları
 
-### Ne Zaman Güncelle?
-- Önemli bir mimari karar alındığında
-- Teknoloji seçimi yapıldığında
-- Önemli bir problem çözüldüğünde ve çözüm yöntemi kayda değer olduğunda
-- Kullanıcıyla birlikte bir yaklaşım belirlendiğinde
+Proje vizyonu, kararlar ve session notları. Serbest format - formal şablon yok.
+
+### İçerik
+- **Project Vision** - Proje ne için var, kim için
+- **Session Notes** - Konuşmalar olduğu gibi, tarihle birlikte
 
 ### Format
+Serbest. Tarih + başlık yeterli:
 \`\`\`markdown
-## [Tarih] Karar/Not Başlığı
-
-**Bağlam:** Neden bu karara ihtiyaç duyuldu?
-**Karar:** Ne karar verildi?
-**Alternatifler:** Değerlendirilen diğer seçenekler (varsa)
-**Sonuç:** Bu kararın etkileri
+### [2026-01-26] Konu başlığı
+Konuşma/karar olduğu gibi...
 \`\`\`
-
-### Güncelleme Akışı
-- Karar alındıktan hemen sonra güncelle
-- Kullanıcıya sormadan ekleyebilirsin (önemli kararlar için)
-- Küçük kararları biriktirip toplu ekleyebilirsin
 
 ---
 
@@ -143,25 +135,23 @@ Sorun yok, devam et. Kullanıcı önemli gördüğü şeyleri kendisi de söyley
 
 ## STRUCTURE.json Kuralları
 
+Codebase haritası. Hangi modül nerede, ne iş yapıyor.
+
 ### Ne Zaman Güncelle?
-- Yeni dosya/klasör oluşturulduğunda
-- Dosya/klasör silindiğinde veya taşındığında
-- Modül yapısı değiştiğinde
-- Commit sonrası (yapısal değişiklik varsa)
+- Yeni dosya/modül eklendiğinde veya silindiğinde
+- Önemli architectural pattern eklendiğinde (architectureNotes)
 
 ### Format
 \`\`\`json
 {
-  "lastUpdated": "ISO date",
-  "overview": "Proje yapısının kısa açıklaması",
   "modules": {
     "moduleName": {
       "path": "src/module",
       "purpose": "Bu modül ne yapar",
-      "files": ["file1.js", "file2.js"],
-      "dependencies": ["otherModule"]
+      "depends": ["otherModule"]
     }
-  }
+  },
+  "architectureNotes": {}
 }
 \`\`\`
 
@@ -219,48 +209,18 @@ function getStructureTemplate(projectName) {
  */
 function getNotesTemplate(projectName) {
   const date = getDateString();
-  return `<!-- FRAME AUTO-GENERATED FILE -->
-<!-- Purpose: Project notes, decisions, and context for AI assistants -->
-<!-- For Claude: Read this to understand project history, decisions made, and current context. Update this file with important decisions, context, and notes during development sessions. -->
-<!-- Last Updated: ${date} -->
+  return `# ${projectName} - Project Notes
 
-# ${projectName} - Project Notes
+## Project Vision
 
-## Overview
-*Brief description of what this project does*
+*What is this project? Why does it exist? Who is it for?*
 
-## Current Status
-*What state is the project in? What's the current focus?*
+---
 
-## Key Decisions
-*Important architectural or design decisions and their rationale*
+## Session Notes
 
-| Decision | Rationale | Date |
-|----------|-----------|------|
-| | | |
-
-## Session Log
-*Brief notes from development sessions*
-
-### ${date}
-- Initial Frame project setup
-
-## Known Issues
-*Current bugs or limitations*
-
-- None yet
-
-## Next Steps
-*What should be worked on next*
-
-1.
-
-## Context for Claude
-*Special instructions or context for AI assistants*
-
-- Read STRUCTURE.json for module architecture
-- Check todos.json for pending tasks
-- Follow existing code patterns and conventions
+### [${date}] Initial Setup
+- Frame project initialized
 `;
 }
 

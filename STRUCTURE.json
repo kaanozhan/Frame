@@ -1486,35 +1486,35 @@
           "purpose": "CLAUDE.md template - Main instructions file for Claude Code"
         },
         "getStructureTemplate": {
-          "line": 196,
+          "line": 186,
           "params": [
             "projectName"
           ],
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 220,
+          "line": 210,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 270,
+          "line": 230,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 320,
+          "line": 280,
           "params": [
             "projectName"
           ],
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 386,
+          "line": 346,
           "params": [
             "projectName"
           ],
