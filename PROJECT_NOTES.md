@@ -1,5 +1,33 @@
 # Frame - Project Documentation
 
+## Project Vision
+
+**Problem:** Claude Code ile geliştirme yaparken VS Code veya Cursor gibi araçlara ihtiyaç yok - onlar kodu elle yazmaya yönelik. Ama terminalde kalınca:
+- Projeler dağınık kalıyor
+- Session'lar arası context kaybediliyor
+- Alınan kararlar unutuluyor
+- Standardizasyon yok
+
+**Solution:** Frame - terminal-merkezli bir geliştirme çerçevesi. Bir IDE değil, bir **framework**.
+
+**Why "Frame":** Kelime anlamı "çerçeve". Frame içinde "Frame projeleri" oluşturuyoruz - standart dökümanlar (CLAUDE.md, tasks.json, STRUCTURE.json) ile her proje aynı yapıya sahip oluyor.
+
+**Core Philosophy:**
+- **Terminal-first:** Merkez kod editörü değil, terminal. Hatta çoklu terminal (grid).
+- **Claude Code-native:** Bu araç Claude Code ile geliştirme yapanlar için.
+- **Standardization:** Her proje aynı yapıda, aynı dökümanlarla.
+- **Context preservation:** Session notları, kararlar, tasklar - hiçbir şey kaybolmasın.
+- **Manageability:** Tüm projeler tek yerden görülebilir ve yönetilebilir.
+
+**Target User:** Claude Code ile günlük geliştirme yapan, terminal-odaklı çalışan developerlar.
+
+**What Frame is NOT:**
+- Bir kod editörü değil (dosya editörü var ama merkezi değil)
+- VS Code/Cursor alternatifi değil
+- Manuel kod yazmak için optimize edilmemiş
+
+---
+
 ## Project Summary
 IDE-style desktop application for Claude Code. Features a 3-panel layout with project explorer, multi-terminal support (tabs/grid), file editor, and prompt history.
 
@@ -352,7 +380,7 @@ mainWindow.webContents.openDevTools();
 ---
 
 **Project Start:** 2026-01-21
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-01-26
 **Status:** Frame System + Task Management Complete
 
 ---
@@ -425,3 +453,40 @@ fi
 - Completed: ↺ Reopen
 
 **Ek:** Toast notification sistemi eklendi - "Task started", "Task completed" gibi geri bildirimler.
+
+---
+
+### [2026-01-26] Frame Vision & Context Preservation Feature
+
+**Kullanıcının açıklaması:**
+
+> "Benim sorunum şuydu, ben claude code ile geliştirme yapabiliyorum, evet. ama sadece terminalde kalıyorum. vs code veya cursor gibi bir platform kullanma ihtiyacı duymuyorum. çünkü onlar kodu elle yazmaya yönelik araçlar. benim böyle bir karmaşaya ihtiyacım yok. benim projelerim için standartizasyona, yönetilebilirliğe ihtiyacım var. terminal ve claude code odaklıyım. o yüzden frame'in merkezinde code editörü değil, terminal var, hatta grid yapısıyla çoklu terminal yapımız var. Frame ismi bu yüzden. bu bir çerçeve, o yüzden frame içerisinde bir frame projesi oluşturuyoruz, bu dökümanları yaratıyoruz ki bir standart koyalım. artık claude code ile geliştirdiğim projeleri derli toplu görebileyim. contexti kaybetmeyeyim, sessionlarda yazılanları not edeyim."
+
+**Frame'in Asıl Amacı:**
+- Terminal-merkezi (kod editörü değil)
+- Claude Code-native geliştirme
+- Projeler arası standardizasyon
+- Context kaybını önleme
+- Session notlarını ve kararları takip etme
+
+**Context Preservation Özelliği Tasarımı:**
+
+Kullanıcı: "end session yapmamalıyız... bir karara vardığımızda, yapalım dediğimizde belki de yapılan iş başarılı olduğunda kullanıcıya sormalıyız, bunu note'lara ekleyelim mi diye? çünkü önem mekanizmasını otomatik olarak karar vermek çok zor bir iş olur. önem derecesinin kararını kullanıcıya bırakabiliriz. sen sorarsın, ekle derse eklersin, ama oraya özet değil kullanıcıyla tam olarak konuşulduğu şekilde eklenmeli."
+
+**Alınan Kararlar:**
+1. "End session" butonu/akışı YOK - organik olmalı
+2. Task/karar tamamlandığında Claude soracak: "Bunu PROJECT_NOTES'a ekleyeyim mi?"
+3. Önem kararı kullanıcıda - Claude sadece öneriyor
+4. Özet DEĞİL, konuşma olduğu gibi eklenmeli (context korunmalı)
+5. Her küçük şeyde sorulmamalı (spam olur)
+
+**Tamamlanma Algılama:**
+- Kullanıcı onayı: "tamam", "oldu", "çalıştı", "güzel"
+- Konu değişikliği
+- Build/run başarısı
+
+**Uygulama:**
+- CLAUDE.md'ye "Context Preservation" bölümü eklendi
+- frameTemplates.js'teki template güncellendi (yeni projeler için)
+
+**İlk Uygulama:** Bu not, tam da bu özelliğin ilk kullanımı oldu. Claude sordu "ekleyeyim mi?", kullanıcı "evet" dedi, ve işte bu not eklendi.

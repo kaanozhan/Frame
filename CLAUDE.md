@@ -50,16 +50,46 @@ Bu proje **Frame** ile yönetilmektedir. Aşağıdaki kurallara uyarak döküman
 ```json
 {
   "id": "unique-id",
-  "title": "Kısa ve net başlık",
-  "description": "Detaylı açıklama",
+  "title": "Kısa ve net başlık (max 60 karakter)",
+  "description": "Claude'un detaylı açıklaması - ne yapılacak, nasıl yapılacak, hangi dosyalar etkilenecek",
+  "userRequest": "Kullanıcının orijinal isteği/promptu - aynen kopyala",
+  "acceptanceCriteria": "Bu task ne zaman tamamlanmış sayılır? Somut kriterler listesi",
+  "notes": "Tartışma sırasında çıkan önemli notlar, kararlar, alternatifler",
   "status": "pending | in_progress | completed",
   "priority": "high | medium | low",
-  "context": "Bu task nereden/nasıl çıktı",
+  "category": "feature | fix | refactor | docs | test",
+  "context": "Session tarihi ve bağlam",
   "createdAt": "ISO date",
   "updatedAt": "ISO date",
   "completedAt": "ISO date | null"
 }
 ```
+
+### Task İçerik Kuralları
+
+**title:** Kısa, aksiyona yönelik başlık
+- ✅ "Add tasks button to terminal toolbar"
+- ❌ "Tasks"
+
+**description:** Claude'un detaylı teknik açıklaması
+- Ne yapılacak (what)
+- Nasıl yapılacak (how) - kısa teknik yaklaşım
+- Hangi dosyalar etkilenecek
+- Minimum 2-3 cümle
+
+**userRequest:** Kullanıcının orijinal sözleri
+- Kullanıcının promptunu/isteğini aynen kopyala
+- Bağlamı korumak için önemli
+- "Kullanıcı dedi ki: ..." formatında
+
+**acceptanceCriteria:** Bitiş kriterleri
+- Somut, test edilebilir maddeler
+- "Bu olduğunda task tamamdır" listesi
+
+**notes:** Tartışma notları (opsiyonel)
+- Değerlendirilen alternatifler
+- Önemli kararlar ve nedenleri
+- "Sonra yaparız" denen bağımlılıklar
 
 ### Task Durum Güncellemeleri
 
@@ -91,6 +121,45 @@ Bu proje **Frame** ile yönetilmektedir. Aşağıdaki kurallara uyarak döküman
 - Karar alındıktan hemen sonra güncelle
 - Kullanıcıya sormadan ekleyebilirsin (önemli kararlar için)
 - Küçük kararları biriktirip toplu ekleyebilirsin
+
+---
+
+## 📝 Context Preservation (Otomatik Not Alma)
+
+Frame'in temel amacı context kaybını önlemek. Bu yüzden önemli anları yakala ve kullanıcıya sor.
+
+### Ne Zaman Sorulmalı?
+
+Aşağıdaki durumlardan biri gerçekleştiğinde kullanıcıya sor: **"Bu konuşmayı PROJECT_NOTES.md'ye ekleyeyim mi?"**
+
+- Bir task başarıyla tamamlandığında
+- Önemli bir mimari/teknik karar alındığında
+- Bir bug çözüldüğünde ve çözüm yöntemi kayda değer olduğunda
+- "Bunu sonra yapalım" denildiğinde (bu durumda tasks.json'a da ekle)
+- Yeni bir pattern veya best practice keşfedildiğinde
+
+### Tamamlanma Algılama
+
+Şu sinyallere dikkat et:
+- Kullanıcı onayı: "tamam", "oldu", "çalıştı", "güzel", "düzeldi", "evet"
+- Bir konuyu bitirip başka konuya geçilmesi
+- Build/run başarılı olduktan sonra kullanıcının devam etmesi
+
+### Nasıl Eklenmeli?
+
+1. **Özet YAZMA** - Konuşmayı olduğu gibi, context'iyle birlikte ekle
+2. **Tarih ekle** - `### [YYYY-MM-DD] Başlık` formatında
+3. **Session Notes bölümüne ekle** - PROJECT_NOTES.md'nin sonunda
+
+### Ne Zaman SORMA
+
+- Her küçük değişiklikte (spam olur)
+- Typo fix, basit düzeltmeler
+- Kullanıcı zaten "hayır" veya "gerek yok" demişse o session'da aynı konu için tekrar sorma
+
+### Kullanıcı "Hayır" Derse
+
+Sorun yok, devam et. Kullanıcı önemli gördüğü şeyleri kendisi de söyleyebilir: "bunu notlara ekle"
 
 ---
 

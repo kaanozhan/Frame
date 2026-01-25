@@ -1021,6 +1021,28 @@
       background: var(--bg-elevated);
     }
 
+    .btn-tasks-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-md) !important;
+      background: var(--bg-tertiary) !important;
+      border: 1px solid var(--border-subtle) !important;
+      font-size: 11px !important;
+      font-weight: 500;
+      margin-left: var(--space-sm);
+    }
+
+    .btn-tasks-toggle:hover {
+      background: var(--accent-subtle) !important;
+      border-color: var(--accent-primary) !important;
+      color: var(--accent-primary) !important;
+    }
+
+    .btn-tasks-toggle svg {
+      flex-shrink: 0;
+    }
+
     .terminal-content {
       flex: 1;
       overflow: hidden;
@@ -1247,6 +1269,25 @@
       height: 6px;
       background: var(--success);
       border-radius: 50%;
+    }
+
+    #tasks-collapse-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      padding: var(--space-xs);
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: var(--space-xs);
+    }
+
+    #tasks-collapse-btn:hover {
+      color: var(--accent-primary);
+      background: var(--accent-subtle);
     }
 
     .tasks-header-actions {
@@ -1760,6 +1801,22 @@
       border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     }
 
+    /* Panel slide animation */
+    #tasks-panel {
+      transition: transform var(--transition-normal), opacity var(--transition-normal);
+    }
+
+    #tasks-panel:not(.visible) {
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #tasks-panel.visible {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
     /* ==================== END TASKS PANEL STYLES ==================== */
   </style>
 </head>
@@ -1829,6 +1886,11 @@
     <!-- Tasks Panel -->
     <div id="tasks-panel">
       <div id="tasks-header">
+        <button id="tasks-collapse-btn" title="Collapse panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
         <h3>Tasks</h3>
         <div class="tasks-header-actions">
           <button id="tasks-add-btn" tabindex="-1">
@@ -1851,6 +1913,7 @@
         <!-- Tasks will be populated here -->
       </div>
     </div>
+
   </div>
 
   <!-- Editor Overlay -->

@@ -6,7 +6,6 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
-const terminal = require('./terminal');
 
 let isVisible = false;
 let currentFilter = 'all'; // all, pending, inProgress, completed
@@ -42,6 +41,12 @@ function setupEventListeners() {
   const closeBtn = document.getElementById('tasks-close');
   if (closeBtn) {
     closeBtn.addEventListener('click', hide);
+  }
+
+  // Collapse button
+  const collapseBtn = document.getElementById('tasks-collapse-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', hide);
   }
 
   // Add task button
@@ -398,16 +403,11 @@ function sendTaskToClaude(task) {
     prompt += ` (High priority)`;
   }
 
-  // If Claude Code not running, start it first
-  if (!claudeCodeRunning) {
-    terminal.sendCommand('claude');
-    claudeCodeRunning = true;
-    // Wait for Claude to start, then send the task
-    setTimeout(() => {
-      terminal.sendCommand(prompt);
-    }, 2000);
+  // Use global sendCommand to avoid circular dependency
+  if (typeof window.terminalSendCommand === 'function') {
+    window.terminalSendCommand(prompt);
   } else {
-    terminal.sendCommand(prompt);
+    console.error('Terminal sendCommand not available');
   }
 }
 

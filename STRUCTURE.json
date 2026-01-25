@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-01-24",
+  "lastUpdated": "2026-01-25",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -779,7 +779,7 @@
           "purpose": "Send command to active terminal"
         },
         "getMultiTerminalUI": {
-          "line": 87,
+          "line": 90,
           "purpose": "Get MultiTerminalUI instance"
         }
       }
@@ -1059,62 +1059,61 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "state",
-        "terminal"
+        "state"
       ],
       "functions": {
         "init": {
-          "line": 24,
+          "line": 23,
           "purpose": "Initialize tasks panel"
         },
         "setupEventListeners": {
-          "line": 40,
+          "line": 39,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 65,
+          "line": 70,
           "purpose": "Setup IPC listeners"
         },
         "loadTasks": {
-          "line": 87,
+          "line": 92,
           "purpose": "Load tasks for current project"
         },
         "show": {
-          "line": 97,
+          "line": 102,
           "purpose": "Show tasks panel"
         },
         "hide": {
-          "line": 108,
+          "line": 113,
           "purpose": "Hide tasks panel"
         },
         "toggle": {
-          "line": 118,
+          "line": 123,
           "purpose": "Toggle tasks panel visibility"
         },
         "setFilter": {
-          "line": 129,
+          "line": 134,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredTasks": {
-          "line": 143,
+          "line": 148,
           "purpose": "Get filtered tasks"
         },
         "render": {
-          "line": 168,
+          "line": 173,
           "purpose": "Render tasks list"
         },
         "renderTaskItem": {
-          "line": 214,
+          "line": 219,
           "params": [
             "task"
           ],
           "purpose": "Render single task item"
         },
         "handleTaskAction": {
-          "line": 291,
+          "line": 296,
           "params": [
             "taskId",
             "action"
@@ -1122,7 +1121,7 @@
           "purpose": "Handle task action buttons"
         },
         "showToast": {
-          "line": 340,
+          "line": 345,
           "params": [
             "message",
             "type = 'info'"
@@ -1130,14 +1129,14 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 375,
+          "line": 380,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
         "sendTaskToClaude": {
-          "line": 389,
+          "line": 394,
           "params": [
             "task"
           ],
@@ -1487,35 +1486,35 @@
           "purpose": "CLAUDE.md template - Main instructions file for Claude Code"
         },
         "getStructureTemplate": {
-          "line": 157,
+          "line": 196,
           "params": [
             "projectName"
           ],
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 181,
+          "line": 220,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 231,
+          "line": 270,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 265,
+          "line": 320,
           "params": [
             "projectName"
           ],
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 331,
+          "line": 386,
           "params": [
             "projectName"
           ],
@@ -1761,7 +1760,9 @@
       "exports": [
         "TerminalTabBar"
       ],
-      "depends": [],
+      "depends": [
+        "tasksPanel"
+      ],
       "functions": {}
     }
   },
@@ -2081,5 +2082,19 @@
     "fileNaming": "camelCase for JS files",
     "exportStyle": "named exports (not default)",
     "stateManagement": "centralized in renderer/state.js"
+  },
+  "architectureNotes": {
+    "circularDependencies": {
+      "issue": "esbuild bundler renames modules when circular dependencies exist (e.g., terminal → terminal2)",
+      "affected": [
+        "tasksPanel cannot import terminal directly"
+      ],
+      "solution": "Use window.terminalSendCommand global function instead of direct import",
+      "pattern": "Expose functions on window object for cross-module communication that would cause circular deps"
+    },
+    "ipcVsGlobal": {
+      "useIPC": "For main ↔ renderer communication",
+      "useGlobal": "For renderer ↔ renderer communication that would cause circular dependency"
+    }
   }
 }

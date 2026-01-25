@@ -81,6 +81,9 @@ function sendCommand(command) {
   }
 }
 
+// Expose sendCommand globally for modules that can't import terminal directly (circular dependency)
+window.terminalSendCommand = sendCommand;
+
 /**
  * Get MultiTerminalUI instance
  */

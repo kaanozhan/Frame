@@ -1,13 +1,29 @@
 {
   "_frame_metadata": {
     "purpose": "Task tracking for the project",
-    "forClaude": "Check this file to understand what tasks are pending, in progress, or completed. Update task status as you work. Add new tasks when discovered during development. Follow the task recognition rules in CLAUDE.md.",
-    "lastUpdated": "2026-01-24",
+    "forClaude": "Check this file to understand what tasks are pending, in progress, or completed. Update task status as you work. Add new tasks when discovered during development. Follow the task recognition rules in CLAUDE.md. IMPORTANT: Include userRequest (original user prompt), detailed description, and acceptanceCriteria for each task.",
+    "lastUpdated": "2026-01-25",
     "generatedBy": "Frame"
   },
   "project": "Frame",
-  "version": "1.0",
-  "lastUpdated": "2026-01-24T23:22:41.232Z",
+  "version": "1.1",
+  "lastUpdated": "2026-01-25T22:51:37.595Z",
+  "taskSchema": {
+    "_comment": "This schema shows the expected structure for each task",
+    "id": "unique-id (task-xxx format)",
+    "title": "Short actionable title (max 60 chars)",
+    "description": "Claude's detailed explanation - what, how, which files affected",
+    "userRequest": "Original user prompt/request - copy verbatim",
+    "acceptanceCriteria": "When is this task done? Concrete testable criteria",
+    "notes": "Discussion notes, alternatives considered, dependencies (optional)",
+    "status": "pending | in_progress | completed",
+    "priority": "high | medium | low",
+    "category": "feature | fix | refactor | docs | test",
+    "context": "Session date and context",
+    "createdAt": "ISO timestamp",
+    "updatedAt": "ISO timestamp",
+    "completedAt": "ISO timestamp | null"
+  },
   "tasks": {
     "pending": [
       {
@@ -70,7 +86,7 @@
         "updatedAt": "2026-01-24T16:30:00Z",
         "completedAt": null
       },
-            {
+      {
         "id": "task-rm",
         "title": "README.md kurallarini belirle",
         "description": "README.md icin guncelleme kurallari ve CLAUDE.md'ye eklenecek detayli talimatlari belirle",
@@ -80,18 +96,6 @@
         "context": "Session 2026-01-24 - Frame dokuman sistemi",
         "createdAt": "2026-01-24T16:00:00Z",
         "updatedAt": "2026-01-24T16:30:00Z",
-        "completedAt": null
-      },
-      {
-        "id": "task-sysprompt",
-        "title": "System prompt standardization",
-        "description": "Standardize all system-generated prompts (task delegation, automated commands) to English. Create a centralized prompt template system.",
-        "status": "pending",
-        "priority": "medium",
-        "category": "feature",
-        "context": "Session 2026-01-25 - Task delegation feature",
-        "createdAt": "2026-01-25T00:00:00Z",
-        "updatedAt": "2026-01-25T00:00:00Z",
         "completedAt": null
       },
       {
@@ -166,6 +170,18 @@
         "context": "todos.json - shortTerm",
         "createdAt": "2026-01-21T00:00:00Z",
         "updatedAt": "2026-01-24T23:22:41.232Z",
+        "completedAt": null
+      },
+      {
+        "id": "task-sysprompt",
+        "title": "System prompt standardization",
+        "description": "Standardize all system-generated prompts (task delegation, automated commands) to English. Create a centralized prompt template system. frame projesinde oluşturulan içerideki dökümanlarımız, claude md, readme, projectnotes md dosyaları ingilizce olmalı. şu an bu projede bulunan içerik türkçeyse içerik anlamını kaybetmeden ingilizceye çevrilmeli. bundan sonra initialize edilen projelerde bu dosyalarda hazırladığımız direktifler ise ingilizce olarak gelmeli.",
+        "status": "in_progress",
+        "priority": "medium",
+        "category": "feature",
+        "context": "Session 2026-01-25 - Task delegation feature",
+        "createdAt": "2026-01-25T00:00:00Z",
+        "updatedAt": "2026-01-25T22:51:37.595Z",
         "completedAt": null
       }
     ],
@@ -293,7 +309,7 @@
     ]
   },
   "metadata": {
-    "totalCreated": 19,
+    "totalCreated": 20,
     "totalCompleted": 9
   },
   "categories": {

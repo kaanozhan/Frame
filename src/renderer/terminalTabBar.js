@@ -3,6 +3,8 @@
  * Renders and manages the terminal tab bar UI
  */
 
+const tasksPanel = require('./tasksPanel');
+
 class TerminalTabBar {
   constructor(container, manager) {
     this.container = container;
@@ -26,6 +28,13 @@ class TerminalTabBar {
           <option value="3x2">3×2</option>
           <option value="3x3">3×3</option>
         </select>
+        <button class="btn-tasks-toggle" title="Toggle Tasks Panel (Ctrl+Shift+T)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Tasks
+        </button>
       </div>
     `;
 
@@ -104,6 +113,11 @@ class TerminalTabBar {
     // Grid layout selector
     this.element.querySelector('.grid-layout-select').addEventListener('change', (e) => {
       this.manager.setGridLayout(e.target.value);
+    });
+
+    // Tasks toggle button
+    this.element.querySelector('.btn-tasks-toggle').addEventListener('click', () => {
+      tasksPanel.toggle();
     });
   }
 
