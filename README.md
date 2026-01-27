@@ -62,6 +62,15 @@ This app does all of that in one window, with a clean VS Code-inspired interface
 - **Prompt History**: All commands saved with timestamps, viewable in side panel
 - **Cross-Platform**: Windows, macOS, Linux support
 
+### Frame Project Management
+- **Task Detection**: Claude Code automatically detects tasks from conversations and asks to add them to tasks.json
+- **Task Panel**: Visual task management with filters (All, Pending, In Progress, Completed)
+- **Manual Task Creation**: Add tasks manually through the UI
+- **Task Actions**: Start, complete, pause, or reopen tasks with one click
+- **Send to Claude**: Click play button to send a task directly to Claude Code terminal
+- **Plugins Panel**: Browse, enable/disable, and install Claude Code plugins
+- **Context Preservation**: Automatic prompts to save important decisions to PROJECT_NOTES.md
+
 ### Multi-Terminal Features
 - **Tab View**: Default view with terminal tabs
 - **Grid View**: 2x1, 2x2, 3x1, 3x2, 3x3 layouts
