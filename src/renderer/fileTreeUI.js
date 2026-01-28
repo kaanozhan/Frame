@@ -114,7 +114,7 @@ function renderFileTree(files, parentElement, indent = 0) {
       // File click handler - open in editor
       fileItem.addEventListener('click', () => {
         if (onFileClickCallback) {
-          onFileClickCallback(file.path);
+          onFileClickCallback(file.path, 'fileTree');
         }
       });
     }
@@ -165,14 +165,20 @@ function setupIPC() {
 function focus() {
   if (!fileTreeElement) return;
 
-  const items = fileTreeElement.querySelectorAll('.file-item');
+  const items = getVisibleItems();
   if (items.length === 0) return;
 
-  // Focus first item or previously focused
-  const firstItem = items[0];
-  firstItem.focus();
-  firstItem.classList.add('focused');
-  focusedItem = firstItem;
+  // If we have a previously focused item that's still in the DOM, use it
+  let targetItem = null;
+  if (focusedItem && fileTreeElement.contains(focusedItem)) {
+    targetItem = focusedItem;
+  } else {
+    targetItem = items[0];
+  }
+
+  targetItem.focus();
+  targetItem.classList.add('focused');
+  focusedItem = targetItem;
 
   // Setup keyboard navigation (one-time)
   if (!fileTreeElement.dataset.keyboardSetup) {
@@ -269,6 +275,9 @@ function blur() {
   focusedItem?.classList.remove('focused');
   focusedItem = null;
 }
+
+// Expose focus function globally for editor to restore focus
+window.fileTreeFocus = focus;
 
 module.exports = {
   init,

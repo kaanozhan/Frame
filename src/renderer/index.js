@@ -47,8 +47,8 @@ function init() {
   });
 
   // Connect file tree clicks to editor
-  fileTreeUI.setOnFileClick((filePath) => {
-    editor.openFile(filePath);
+  fileTreeUI.setOnFileClick((filePath, source) => {
+    editor.openFile(filePath, source);
   });
 
   // Initialize history panel with terminal resize callback
