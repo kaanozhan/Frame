@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-01-27",
+  "lastUpdated": "2026-01-28",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -29,23 +29,24 @@
         "frameProject",
         "fileEditor",
         "tasksManager",
-        "pluginsManager"
+        "pluginsManager",
+        "githubManager"
       ],
       "functions": {
         "createWindow": {
-          "line": 28,
+          "line": 29,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 69,
+          "line": 70,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 92,
+          "line": 94,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 103,
+          "line": 105,
           "params": [
             "window"
           ],
@@ -693,6 +694,7 @@
         "historyPanel",
         "tasksPanel",
         "pluginsPanel",
+        "githubPanel",
         "state",
         "projectListUI",
         "editor",
@@ -700,15 +702,15 @@
       ],
       "functions": {
         "init": {
-          "line": 19,
+          "line": 20,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 120,
+          "line": 124,
           "purpose": "Setup button click handlers"
         },
         "setupKeyboardShortcuts": {
-          "line": 166,
+          "line": 170,
           "purpose": "Setup keyboard shortcuts"
         }
       }
@@ -1764,7 +1766,8 @@
       ],
       "depends": [
         "tasksPanel",
-        "pluginsPanel"
+        "pluginsPanel",
+        "githubPanel"
       ],
       "functions": {}
     },
@@ -1973,6 +1976,216 @@
           "TOGGLE_PLUGINS_PANEL"
         ],
         "emits": []
+      }
+    },
+    "main/githubManager": {
+      "file": "src/main/githubManager.js",
+      "description": "G",
+      "exports": [
+        "init",
+        "setProjectPath",
+        "setupIPC",
+        "loadIssues",
+        "openIssue"
+      ],
+      "depends": [
+        "child_process",
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 16,
+          "params": [
+            "window"
+          ],
+          "purpose": "Initialize GitHub manager"
+        },
+        "setProjectPath": {
+          "line": 23,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Set current project path"
+        },
+        "checkGhCli": {
+          "line": 30,
+          "purpose": "Check if gh CLI is available"
+        },
+        "checkGitHubRepo": {
+          "line": 41,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Check if current directory is a git repo with GitHub remote"
+        },
+        "loadIssues": {
+          "line": 61,
+          "params": [
+            "projectPath",
+            "state = 'open'"
+          ],
+          "purpose": "Load GitHub issues for current project"
+        },
+        "openIssue": {
+          "line": 93,
+          "params": [
+            "url"
+          ],
+          "purpose": "Open issue in browser"
+        },
+        "setupIPC": {
+          "line": 102,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "Setup IPC handlers"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LOAD_GITHUB_ISSUES",
+          "OPEN_GITHUB_ISSUE"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/githubPanel": {
+      "file": "src/renderer/githubPanel.js",
+      "description": "G",
+      "exports": [
+        "init",
+        "show",
+        "hide",
+        "toggle",
+        "loadIssues",
+        "isVisible"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 22,
+          "purpose": "Initialize GitHub panel"
+        },
+        "setupEventListeners": {
+          "line": 38,
+          "purpose": "Setup event listeners"
+        },
+        "setupIPCListeners": {
+          "line": 77,
+          "purpose": "Setup IPC listeners"
+        },
+        "loadIssues": {
+          "line": 86,
+          "purpose": "Load GitHub issues"
+        },
+        "refreshIssues": {
+          "line": 119,
+          "purpose": "Refresh issues"
+        },
+        "show": {
+          "line": 141,
+          "purpose": "Show GitHub panel"
+        },
+        "hide": {
+          "line": 152,
+          "purpose": "Hide GitHub panel"
+        },
+        "toggle": {
+          "line": 162,
+          "purpose": "Toggle GitHub panel visibility"
+        },
+        "setTab": {
+          "line": 173,
+          "params": [
+            "tab"
+          ],
+          "purpose": "Set active tab"
+        },
+        "setFilter": {
+          "line": 192,
+          "params": [
+            "filter"
+          ],
+          "purpose": "Set filter"
+        },
+        "renderLoading": {
+          "line": 206,
+          "purpose": "Render loading state"
+        },
+        "renderError": {
+          "line": 220,
+          "params": [
+            "message"
+          ],
+          "purpose": "Render error state"
+        },
+        "renderComingSoon": {
+          "line": 248,
+          "params": [
+            "tab"
+          ],
+          "purpose": "Render coming soon state for unimplemented tabs"
+        },
+        "render": {
+          "line": 273,
+          "purpose": "Render issues list"
+        },
+        "renderIssueItem": {
+          "line": 315,
+          "params": [
+            "issue"
+          ],
+          "purpose": "Render single issue item"
+        },
+        "getContrastColor": {
+          "line": 354,
+          "params": [
+            "hexColor"
+          ],
+          "purpose": "Get contrasting text color for a background color"
+        },
+        "formatRelativeTime": {
+          "line": 365,
+          "params": [
+            "dateString"
+          ],
+          "purpose": "Format relative time"
+        },
+        "showToast": {
+          "line": 390,
+          "params": [
+            "message",
+            "type = 'info'"
+          ],
+          "purpose": "Show toast notification"
+        },
+        "getToastIcon": {
+          "line": 420,
+          "params": [
+            "type"
+          ],
+          "purpose": "Get toast icon based on type"
+        },
+        "escapeHtml": {
+          "line": 434,
+          "params": [
+            "text"
+          ],
+          "purpose": "Escape HTML for safe rendering"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TOGGLE_GITHUB_PANEL"
+        ],
+        "emits": [
+          "OPEN_GITHUB_ISSUE"
+        ]
       }
     }
   },

@@ -8,6 +8,7 @@ const fileTreeUI = require('./fileTreeUI');
 const historyPanel = require('./historyPanel');
 const tasksPanel = require('./tasksPanel');
 const pluginsPanel = require('./pluginsPanel');
+const githubPanel = require('./githubPanel');
 const state = require('./state');
 const projectListUI = require('./projectListUI');
 const editor = require('./editor');
@@ -60,6 +61,9 @@ function init() {
 
   // Initialize plugins panel
   pluginsPanel.init();
+
+  // Initialize GitHub panel
+  githubPanel.init();
 
   // Initialize sidebar resize
   sidebarResize.init(() => {
@@ -179,6 +183,11 @@ function setupKeyboardShortcuts() {
     if (e.ctrlKey && e.shiftKey && e.key === 'P') {
       e.preventDefault();
       pluginsPanel.toggle();
+    }
+    // Ctrl+Shift+G - Toggle GitHub panel
+    if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+      e.preventDefault();
+      githubPanel.toggle();
     }
   });
 }
