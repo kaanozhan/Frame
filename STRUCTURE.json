@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-01-27",
+  "lastUpdated": "2026-01-28",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -1769,7 +1769,7 @@
       "functions": {}
     },
     "main/pluginsManager": {
-      "file": "src/main/pluginsManager.js",
+      "file": "src\\main\\pluginsManager.js",
       "description": "P",
       "exports": [
         "init",
@@ -1835,7 +1835,7 @@
           "purpose": "Refresh marketplace plugins (git pull)"
         },
         "setupIPC": {
-          "line": 180,
+          "line": 198,
           "params": [
             "ipcMain"
           ],

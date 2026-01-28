@@ -158,7 +158,25 @@ function refreshMarketplace() {
   const officialMarketplace = path.join(MARKETPLACES_DIR, 'claude-plugins-official');
 
   if (!fs.existsSync(officialMarketplace)) {
-    return { success: false, error: 'Marketplace not found' };
+    console.log('Marketplace not found, attempting to clone...');
+    try {
+      // Ensure marketplaces directory exists
+      if (!fs.existsSync(MARKETPLACES_DIR)) {
+        fs.mkdirSync(MARKETPLACES_DIR, { recursive: true });
+      }
+
+      // Clone the repository
+      execSync('git clone https://github.com/anthropics/claude-plugins-official.git', {
+        cwd: MARKETPLACES_DIR,
+        stdio: 'pipe',
+        timeout: 60000
+      });
+      
+      return { success: true };
+    } catch (err) {
+      console.error('Error cloning marketplace:', err);
+      return { success: false, error: 'Failed to clone marketplace: ' + err.message };
+    }
   }
 
   try {
