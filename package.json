@@ -12,6 +12,7 @@
     "structure": "node scripts/update-structure.js",
     "structure:changed": "node scripts/update-structure.js --changed",
     "prepare": "git config core.hooksPath .githooks || true",
+    "postinstall": "electron-builder install-app-deps",
     "dist": "npm run build && electron-builder --mac --dir"
   },
   "keywords": [
@@ -25,7 +26,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0",
+    "electron": "^40.0.0",
     "electron-builder": "^26.4.0",
     "esbuild": "^0.27.2"
   },
