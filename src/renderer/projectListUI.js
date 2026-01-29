@@ -102,12 +102,48 @@ function createProjectItem(project, index) {
     item.appendChild(badge);
   }
 
+  // Remove button (visible on hover)
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'project-remove-btn';
+  removeBtn.title = 'Remove from list';
+  removeBtn.innerHTML = '&times;';
+  removeBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent project selection
+    confirmRemoveProject(project.path, project.name);
+  });
+  item.appendChild(removeBtn);
+
   // Click handler
   item.addEventListener('click', () => {
     selectProject(project.path);
   });
 
   return item;
+}
+
+/**
+ * Show confirmation dialog and remove project
+ */
+function confirmRemoveProject(projectPath, projectName) {
+  const confirmed = window.confirm(
+    `Remove "${projectName}" from the project list?\n\nThis will only remove it from Frame's list. The project files will not be deleted.`
+  );
+
+  if (confirmed) {
+    // If removing the active project, select another one
+    if (projectPath === activeProjectPath) {
+      const otherProject = projects.find(p => p.path !== projectPath);
+      if (otherProject) {
+        selectProject(otherProject.path);
+      } else {
+        activeProjectPath = null;
+        if (onProjectSelectCallback) {
+          onProjectSelectCallback(null);
+        }
+      }
+    }
+    removeProject(projectPath);
+  }
 }
 
 /**

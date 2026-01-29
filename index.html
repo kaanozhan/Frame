@@ -677,6 +677,31 @@
       letter-spacing: 0.3px;
     }
 
+    .project-item .project-remove-btn {
+      opacity: 0;
+      visibility: hidden;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px 6px;
+      margin-left: var(--space-xs);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+    }
+
+    .project-item:hover .project-remove-btn {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .project-item .project-remove-btn:hover {
+      background: var(--error);
+      color: white;
+    }
+
     .no-projects-message {
       color: var(--text-muted);
       font-size: 12px;
