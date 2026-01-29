@@ -64,11 +64,13 @@ function startTerminal() {
 }
 
 /**
- * Restart terminal with new path (creates new terminal in path)
+ * Restart terminal with new path (creates new terminal in path for current project)
  */
 function restartTerminal(projectPath) {
   if (multiTerminalUI) {
-    multiTerminalUI.getManager().createTerminal({ cwd: projectPath });
+    // Set the project first, then create terminal
+    multiTerminalUI.setCurrentProject(projectPath);
+    multiTerminalUI.createTerminalForCurrentProject();
   }
 }
 
@@ -83,6 +85,26 @@ function sendCommand(command) {
 
 // Expose sendCommand globally for modules that can't import terminal directly (circular dependency)
 window.terminalSendCommand = sendCommand;
+
+// Expose focus function globally for returning focus from other panels
+window.terminalFocus = function() {
+  if (multiTerminalUI) {
+    const manager = multiTerminalUI.getManager();
+    if (manager && manager.activeTerminalId) {
+      const instance = manager.terminals.get(manager.activeTerminalId);
+      if (instance) {
+        instance.terminal.focus();
+      }
+    }
+  }
+};
+
+// Handle RUN_COMMAND IPC from menu accelerators (Cmd+K, Cmd+I, etc.)
+ipcRenderer.on(IPC.RUN_COMMAND, (event, command) => {
+  if (multiTerminalUI) {
+    multiTerminalUI.sendCommand(command);
+  }
+});
 
 /**
  * Get MultiTerminalUI instance

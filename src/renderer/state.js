@@ -11,6 +11,7 @@ let isCurrentProjectFrame = false;
 let onProjectChangeCallbacks = [];
 let onFrameStatusChangeCallbacks = [];
 let onFrameInitializedCallbacks = [];
+let multiTerminalUI = null; // Reference to MultiTerminalUI instance
 
 // UI Elements
 let pathElement = null;
@@ -38,11 +39,25 @@ function getProjectPath() {
 }
 
 /**
- * Set project path
+ * Set MultiTerminalUI reference for terminal session management
+ */
+function setMultiTerminalUI(ui) {
+  multiTerminalUI = ui;
+}
+
+/**
+ * Set project path and switch terminal session
  */
 function setProjectPath(path) {
+  const previousPath = currentProjectPath;
   currentProjectPath = path;
   updateProjectUI();
+
+  // Switch terminal session if MultiTerminalUI is available
+  if (multiTerminalUI) {
+    // Switch to the new project's terminals
+    multiTerminalUI.setCurrentProject(path);
+  }
 
   // Check if it's a Frame project
   if (path) {
@@ -52,7 +67,7 @@ function setProjectPath(path) {
   }
 
   // Notify listeners
-  onProjectChangeCallbacks.forEach(cb => cb(path));
+  onProjectChangeCallbacks.forEach(cb => cb(path, previousPath));
 }
 
 /**
@@ -170,10 +185,7 @@ function createNewProject() {
 function setupIPC() {
   ipcRenderer.on(IPC.PROJECT_SELECTED, (event, projectPath) => {
     setProjectPath(projectPath);
-    // Change terminal directory to selected project
-    if (typeof window.terminalSendCommand === 'function') {
-      window.terminalSendCommand(`cd "${projectPath}"`);
-    }
+    // Terminal session switching is now handled by setProjectPath via multiTerminalUI
   });
 
   ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame }) => {
@@ -195,6 +207,7 @@ module.exports = {
   init,
   getProjectPath,
   setProjectPath,
+  setMultiTerminalUI,
   onProjectChange,
   updateProjectUI,
   selectProjectFolder,

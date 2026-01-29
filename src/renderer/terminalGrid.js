@@ -4,6 +4,9 @@
  */
 
 const GRID_LAYOUTS = {
+  '1x2': { rows: 1, cols: 2 },
+  '1x3': { rows: 1, cols: 3 },
+  '1x4': { rows: 1, cols: 4 },
   '2x1': { rows: 2, cols: 1 },
   '2x2': { rows: 2, cols: 2 },
   '3x1': { rows: 3, cols: 1 },

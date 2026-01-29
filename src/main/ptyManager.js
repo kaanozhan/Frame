@@ -7,7 +7,7 @@ const pty = require('node-pty');
 const { IPC } = require('../shared/ipcChannels');
 
 // Store multiple PTY instances
-const ptyInstances = new Map(); // Map<terminalId, {pty, cwd}>
+const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
 let mainWindow = null;
 let terminalCounter = 0;
 const MAX_TERMINALS = 9;
@@ -38,9 +38,10 @@ function getShell() {
 /**
  * Create a new terminal instance
  * @param {string|null} workingDir - Working directory (defaults to HOME)
+ * @param {string|null} projectPath - Associated project path (null = global)
  * @returns {string} Terminal ID
  */
-function createTerminal(workingDir = null) {
+function createTerminal(workingDir = null, projectPath = null) {
   if (ptyInstances.size >= MAX_TERMINALS) {
     throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached`);
   }
@@ -78,10 +79,38 @@ function createTerminal(workingDir = null) {
     }
   });
 
-  ptyInstances.set(terminalId, { pty: ptyProcess, cwd });
-  console.log(`Created terminal ${terminalId} in ${cwd}`);
+  ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath });
+  console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
+}
+
+/**
+ * Get terminals for a specific project
+ * @param {string|null} projectPath - Project path or null for global
+ * @returns {string[]} Array of terminal IDs
+ */
+function getTerminalsByProject(projectPath) {
+  const result = [];
+  for (const [terminalId, instance] of ptyInstances) {
+    if (instance.projectPath === projectPath) {
+      result.push(terminalId);
+    }
+  }
+  return result;
+}
+
+/**
+ * Get terminal info
+ * @param {string} terminalId - Terminal ID
+ * @returns {Object|null} Terminal info (cwd, projectPath)
+ */
+function getTerminalInfo(terminalId) {
+  const instance = ptyInstances.get(terminalId);
+  if (instance) {
+    return { cwd: instance.cwd, projectPath: instance.projectPath };
+  }
+  return null;
 }
 
 /**
@@ -153,9 +182,22 @@ function hasTerminal(terminalId) {
  */
 function setupIPC(ipcMain) {
   // Create new terminal
-  ipcMain.on(IPC.TERMINAL_CREATE, (event, workingDir) => {
+  ipcMain.on(IPC.TERMINAL_CREATE, (event, data) => {
     try {
-      const terminalId = createTerminal(workingDir);
+      // Support both old format (string) and new format (object)
+      let workingDir = null;
+      let projectPath = null;
+
+      if (typeof data === 'string') {
+        // Legacy format: just working directory
+        workingDir = data;
+      } else if (data && typeof data === 'object') {
+        // New format: { cwd, projectPath }
+        workingDir = data.cwd;
+        projectPath = data.projectPath;
+      }
+
+      const terminalId = createTerminal(workingDir, projectPath);
       event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true });
     } catch (error) {
       event.reply(IPC.TERMINAL_CREATED, { success: false, error: error.message });
@@ -188,5 +230,7 @@ module.exports = {
   getTerminalCount,
   getTerminalIds,
   hasTerminal,
+  getTerminalsByProject,
+  getTerminalInfo,
   setupIPC
 };

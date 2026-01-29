@@ -9,6 +9,8 @@ const { IPC } = require('../shared/ipcChannels');
 let projectsListElement = null;
 let activeProjectPath = null;
 let onProjectSelectCallback = null;
+let projects = []; // Store projects list for navigation
+let focusedIndex = -1; // Currently focused project index
 
 /**
  * Initialize project list UI
@@ -29,12 +31,13 @@ function loadProjects() {
 /**
  * Render project list
  */
-function renderProjects(projects) {
+function renderProjects(projectsList) {
   if (!projectsListElement) return;
 
   projectsListElement.innerHTML = '';
 
-  if (!projects || projects.length === 0) {
+  if (!projectsList || projectsList.length === 0) {
+    projects = [];
     const noProjectsMsg = document.createElement('div');
     noProjectsMsg.className = 'no-projects-message';
     noProjectsMsg.textContent = 'No projects yet. Add a project to get started.';
@@ -43,7 +46,7 @@ function renderProjects(projects) {
   }
 
   // Sort by lastOpenedAt (most recent first), then by name
-  const sortedProjects = [...projects].sort((a, b) => {
+  const sortedProjects = [...projectsList].sort((a, b) => {
     if (a.lastOpenedAt && b.lastOpenedAt) {
       return new Date(b.lastOpenedAt) - new Date(a.lastOpenedAt);
     }
@@ -52,19 +55,27 @@ function renderProjects(projects) {
     return a.name.localeCompare(b.name);
   });
 
-  sortedProjects.forEach(project => {
-    const projectItem = createProjectItem(project);
+  // Store sorted projects for navigation
+  projects = sortedProjects;
+
+  sortedProjects.forEach((project, index) => {
+    const projectItem = createProjectItem(project, index);
     projectsListElement.appendChild(projectItem);
   });
+
+  // Update focused index based on active project
+  focusedIndex = projects.findIndex(p => p.path === activeProjectPath);
 }
 
 /**
  * Create a project item element
  */
-function createProjectItem(project) {
+function createProjectItem(project, index) {
   const item = document.createElement('div');
   item.className = 'project-item';
   item.dataset.path = project.path;
+  item.dataset.index = index;
+  item.tabIndex = 0; // Make focusable
 
   if (project.path === activeProjectPath) {
     item.classList.add('active');
@@ -91,6 +102,17 @@ function createProjectItem(project) {
     item.appendChild(badge);
   }
 
+  // Remove button (visible on hover)
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'project-remove-btn';
+  removeBtn.title = 'Remove from list';
+  removeBtn.innerHTML = '&times;';
+  removeBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent project selection
+    confirmRemoveProject(project.path, project.name);
+  });
+  item.appendChild(removeBtn);
+
   // Click handler
   item.addEventListener('click', () => {
     selectProject(project.path);
@@ -100,15 +122,36 @@ function createProjectItem(project) {
 }
 
 /**
+ * Show confirmation dialog and remove project
+ */
+function confirmRemoveProject(projectPath, projectName) {
+  const confirmed = window.confirm(
+    `Remove "${projectName}" from the project list?\n\nThis will only remove it from Frame's list. The project files will not be deleted.`
+  );
+
+  if (confirmed) {
+    // If removing the active project, select another one
+    if (projectPath === activeProjectPath) {
+      const otherProject = projects.find(p => p.path !== projectPath);
+      if (otherProject) {
+        selectProject(otherProject.path);
+      } else {
+        activeProjectPath = null;
+        if (onProjectSelectCallback) {
+          onProjectSelectCallback(null);
+        }
+      }
+    }
+    removeProject(projectPath);
+  }
+}
+
+/**
  * Select a project
+ * Terminal session switching is handled by state.js via multiTerminalUI
  */
 function selectProject(projectPath) {
   setActiveProject(projectPath);
-
-  // Change terminal directory to selected project
-  if (typeof window.terminalSendCommand === 'function') {
-    window.terminalSendCommand(`cd "${projectPath}"`);
-  }
 
   if (onProjectSelectCallback) {
     onProjectSelectCallback(projectPath);
@@ -172,6 +215,94 @@ function setupIPC() {
   });
 }
 
+/**
+ * Select next project in list
+ */
+function selectNextProject() {
+  if (projects.length === 0) return;
+
+  const currentIndex = projects.findIndex(p => p.path === activeProjectPath);
+  const nextIndex = currentIndex < projects.length - 1 ? currentIndex + 1 : 0;
+  selectProject(projects[nextIndex].path);
+}
+
+/**
+ * Select previous project in list
+ */
+function selectPrevProject() {
+  if (projects.length === 0) return;
+
+  const currentIndex = projects.findIndex(p => p.path === activeProjectPath);
+  const prevIndex = currentIndex > 0 ? currentIndex - 1 : projects.length - 1;
+  selectProject(projects[prevIndex].path);
+}
+
+/**
+ * Focus project list for keyboard navigation
+ */
+function focus() {
+  if (!projectsListElement || projects.length === 0) return;
+
+  // Focus current active project or first project
+  const currentIndex = projects.findIndex(p => p.path === activeProjectPath);
+  focusedIndex = currentIndex >= 0 ? currentIndex : 0;
+
+  const items = projectsListElement.querySelectorAll('.project-item');
+  if (items[focusedIndex]) {
+    items[focusedIndex].focus();
+    items[focusedIndex].classList.add('focused');
+  }
+
+  // Setup keyboard navigation (one-time)
+  if (!projectsListElement.dataset.keyboardSetup) {
+    projectsListElement.dataset.keyboardSetup = 'true';
+    projectsListElement.addEventListener('keydown', handleKeydown);
+  }
+}
+
+/**
+ * Handle keyboard navigation in project list
+ */
+function handleKeydown(e) {
+  const items = projectsListElement.querySelectorAll('.project-item');
+
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    items[focusedIndex]?.classList.remove('focused');
+
+    if (e.key === 'ArrowDown') {
+      focusedIndex = focusedIndex < projects.length - 1 ? focusedIndex + 1 : 0;
+    } else {
+      focusedIndex = focusedIndex > 0 ? focusedIndex - 1 : projects.length - 1;
+    }
+
+    items[focusedIndex]?.focus();
+    items[focusedIndex]?.classList.add('focused');
+  }
+
+  if (e.key === 'Enter' && focusedIndex >= 0) {
+    e.preventDefault();
+    selectProject(projects[focusedIndex].path);
+  }
+
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    items[focusedIndex]?.classList.remove('focused');
+    // Return focus to terminal
+    if (typeof window.terminalFocus === 'function') {
+      window.terminalFocus();
+    }
+  }
+}
+
+/**
+ * Blur/unfocus project list
+ */
+function blur() {
+  const items = projectsListElement?.querySelectorAll('.project-item');
+  items?.forEach(item => item.classList.remove('focused'));
+}
+
 module.exports = {
   init,
   loadProjects,
@@ -180,5 +311,9 @@ module.exports = {
   setActiveProject,
   getActiveProject,
   addProject,
-  removeProject
+  removeProject,
+  selectNextProject,
+  selectPrevProject,
+  focus,
+  blur
 };

@@ -19,6 +19,7 @@ const frameProject = require('./frameProject');
 const fileEditor = require('./fileEditor');
 const tasksManager = require('./tasksManager');
 const pluginsManager = require('./pluginsManager');
+const githubManager = require('./githubManager');
 
 let mainWindow = null;
 
@@ -39,8 +40,10 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
 
-  // Open DevTools for debugging
-  mainWindow.webContents.openDevTools();
+  // Open DevTools only in development mode
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.openDevTools();
+  }
 
   mainWindow.on('closed', () => {
     pty.killPTY();
@@ -78,6 +81,7 @@ function setupAllIPC() {
   fileEditor.setupIPC(ipcMain);
   tasksManager.setupIPC(ipcMain);
   pluginsManager.setupIPC(ipcMain);
+  githubManager.setupIPC(ipcMain);
 
   // Terminal input handler (needs prompt logger integration)
   ipcMain.on(IPC.TERMINAL_INPUT, (event, data) => {
@@ -106,6 +110,7 @@ function initModulesWithWindow(window) {
   fileEditor.init(window);
   tasksManager.init(window);
   pluginsManager.init(window);
+  githubManager.init(window);
 }
 
 // App lifecycle

@@ -4,11 +4,14 @@
  */
 
 const STORAGE_KEY = 'sidebar-width';
+const HIDDEN_KEY = 'sidebar-hidden';
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 500;
 const DEFAULT_WIDTH = 260;
 
 let sidebar = null;
+let isHidden = false;
+let widthBeforeHide = DEFAULT_WIDTH;
 let resizeHandle = null;
 let isResizing = false;
 let startX = 0;
@@ -35,7 +38,15 @@ function init(onResize) {
     const width = parseInt(savedWidth, 10);
     if (width >= MIN_WIDTH && width <= MAX_WIDTH) {
       sidebar.style.width = `${width}px`;
+      widthBeforeHide = width;
     }
+  }
+
+  // Restore hidden state
+  const savedHidden = localStorage.getItem(HIDDEN_KEY);
+  if (savedHidden === 'true') {
+    isHidden = true;
+    sidebar.style.display = 'none';
   }
 
   // Setup event listeners
@@ -134,9 +145,65 @@ function setWidth(width) {
   }
 }
 
+/**
+ * Toggle sidebar visibility
+ */
+function toggle() {
+  if (!sidebar) return;
+
+  if (isHidden) {
+    show();
+  } else {
+    hide();
+  }
+}
+
+/**
+ * Hide sidebar
+ */
+function hide() {
+  if (!sidebar || isHidden) return;
+
+  widthBeforeHide = sidebar.offsetWidth;
+  sidebar.style.display = 'none';
+  isHidden = true;
+  localStorage.setItem(HIDDEN_KEY, 'true');
+
+  if (onResizeCallback) {
+    onResizeCallback(0);
+  }
+}
+
+/**
+ * Show sidebar
+ */
+function show() {
+  if (!sidebar || !isHidden) return;
+
+  sidebar.style.display = '';
+  sidebar.style.width = `${widthBeforeHide}px`;
+  isHidden = false;
+  localStorage.setItem(HIDDEN_KEY, 'false');
+
+  if (onResizeCallback) {
+    onResizeCallback(widthBeforeHide);
+  }
+}
+
+/**
+ * Check if sidebar is hidden
+ */
+function isVisible() {
+  return !isHidden;
+}
+
 module.exports = {
   init,
   getWidth,
   setWidth,
-  resetWidth
+  resetWidth,
+  toggle,
+  hide,
+  show,
+  isVisible
 };

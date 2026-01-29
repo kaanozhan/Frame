@@ -362,6 +362,13 @@
       color: var(--text-primary);
     }
 
+    .file-item.focused,
+    .file-item:focus {
+      outline: 1px solid var(--accent-primary);
+      outline-offset: -1px;
+      background: var(--bg-elevated);
+    }
+
     .file-item.folder {
       font-weight: 500;
       color: var(--text-primary);
@@ -636,6 +643,13 @@
       border-color: var(--accent-primary);
     }
 
+    .project-item.focused,
+    .project-item:focus {
+      outline: 1px solid var(--accent-primary);
+      outline-offset: -1px;
+      background: var(--bg-elevated);
+    }
+
     .project-item .project-icon {
       margin-right: var(--space-sm);
       font-size: 14px;
@@ -661,6 +675,31 @@
       text-transform: uppercase;
       font-weight: 700;
       letter-spacing: 0.3px;
+    }
+
+    .project-item .project-remove-btn {
+      opacity: 0;
+      visibility: hidden;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px 6px;
+      margin-left: var(--space-xs);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+    }
+
+    .project-item:hover .project-remove-btn {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .project-item .project-remove-btn:hover {
+      background: var(--error);
+      color: white;
     }
 
     .no-projects-message {
@@ -1058,6 +1097,42 @@
     .terminal-instance {
       height: 100%;
       width: 100%;
+    }
+
+    /* Terminal Empty State */
+    .terminal-empty-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      background: var(--bg-primary);
+    }
+
+    .terminal-empty-state .empty-state-content {
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    .terminal-empty-state p {
+      margin-bottom: var(--space-sm);
+      font-size: 14px;
+    }
+
+    .terminal-empty-state .shortcut-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .terminal-empty-state kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      margin: 0 2px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      color: var(--text-secondary);
     }
 
     /* Grid View Styles */
@@ -2288,6 +2363,428 @@
     }
 
     /* ==================== END PLUGINS PANEL STYLES ==================== */
+
+    /* ==================== GITHUB PANEL STYLES ==================== */
+    #github-panel {
+      width: 400px;
+      background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-left: 1px solid var(--border-subtle);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      transition: transform var(--transition-normal), opacity var(--transition-normal);
+    }
+
+    #github-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg, rgba(212, 165, 116, 0.2) 0%, transparent 50%, rgba(212, 165, 116, 0.2) 100%);
+      pointer-events: none;
+    }
+
+    #github-panel.visible {
+      display: flex;
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    #github-panel:not(.visible) {
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #github-header {
+      padding: var(--space-lg);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #github-header h3 {
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    #github-header h3::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent-primary);
+      border-radius: 50%;
+    }
+
+    #github-collapse-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      padding: var(--space-xs);
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: var(--space-xs);
+    }
+
+    #github-collapse-btn:hover {
+      color: var(--accent-primary);
+      background: var(--accent-subtle);
+    }
+
+    .github-header-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+
+    #github-refresh-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      padding: var(--space-xs);
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+    }
+
+    #github-refresh-btn:hover {
+      color: var(--accent-primary);
+      background: var(--accent-subtle);
+    }
+
+    #github-refresh-btn.spinning svg {
+      animation: spin 1s linear infinite;
+    }
+
+    #github-close {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+    }
+
+    #github-close:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+
+    #github-repo-name {
+      display: none;
+      padding: var(--space-sm) var(--space-lg);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+    }
+
+    /* GitHub Tabs */
+    .github-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 var(--space-lg);
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-tertiary);
+    }
+
+    .github-tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-tertiary);
+      padding: var(--space-sm) var(--space-md);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .github-tab-btn:hover {
+      color: var(--text-secondary);
+    }
+
+    .github-tab-btn.active {
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+    }
+
+    /* GitHub Filter */
+    .github-filter {
+      display: flex;
+      gap: var(--space-xs);
+      padding: var(--space-sm) var(--space-lg);
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-secondary);
+    }
+
+    .github-filter-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .github-filter-btn:hover {
+      color: var(--text-secondary);
+      background: var(--bg-hover);
+    }
+
+    .github-filter-btn.active {
+      color: var(--accent-primary);
+      background: var(--accent-subtle);
+    }
+
+    /* GitHub Content */
+    #github-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-md);
+    }
+
+    /* GitHub Issue Item */
+    .github-issue-item {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-sm);
+      padding: var(--space-md);
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: var(--space-sm);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .github-issue-item:hover {
+      border-color: var(--border-default);
+      background: var(--bg-elevated);
+    }
+
+    .github-issue-state {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .github-issue-state.open {
+      color: var(--success);
+    }
+
+    .github-issue-state.closed {
+      color: #8b5cf6;
+    }
+
+    .github-issue-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .github-issue-header {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xs);
+    }
+
+    .github-issue-number {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+    }
+
+    .github-issue-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    .github-issue-labels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      margin-bottom: var(--space-sm);
+    }
+
+    .github-label {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+
+    .github-issue-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* GitHub Empty State */
+    .github-empty,
+    .github-error,
+    .github-loading,
+    .github-coming-soon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: var(--space-xl);
+      text-align: center;
+    }
+
+    .github-empty-icon,
+    .github-error-icon,
+    .github-coming-soon-icon {
+      color: var(--text-muted);
+      margin-bottom: var(--space-md);
+    }
+
+    .github-empty p,
+    .github-error p,
+    .github-coming-soon p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: var(--space-xs);
+    }
+
+    .github-empty span,
+    .github-error span,
+    .github-coming-soon span {
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+
+    .github-error span a {
+      color: var(--accent-primary);
+      text-decoration: none;
+    }
+
+    .github-error span a:hover {
+      text-decoration: underline;
+    }
+
+    /* GitHub Loading */
+    .github-loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border-default);
+      border-top-color: var(--accent-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: var(--space-md);
+    }
+
+    /* GitHub Toast */
+    .github-toast {
+      position: absolute;
+      bottom: var(--space-lg);
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transition: all var(--transition-normal);
+      z-index: 100;
+    }
+
+    .github-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .github-toast .toast-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .github-toast .toast-message {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .github-toast-success .toast-icon {
+      color: var(--success);
+    }
+
+    .github-toast-info .toast-icon {
+      color: var(--info);
+    }
+
+    .github-toast-error .toast-icon {
+      color: var(--error);
+    }
+
+    /* GitHub Toggle Button in Tab Bar */
+    .btn-github-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-md) !important;
+      background: var(--bg-tertiary) !important;
+      border: 1px solid var(--border-subtle) !important;
+      font-size: 11px !important;
+      font-weight: 500;
+      margin-left: var(--space-xs);
+    }
+
+    .btn-github-toggle:hover {
+      background: var(--accent-subtle) !important;
+      border-color: var(--accent-primary) !important;
+      color: var(--accent-primary) !important;
+    }
+
+    .btn-github-toggle svg {
+      flex-shrink: 0;
+    }
+
+    /* ==================== END GITHUB PANEL STYLES ==================== */
   </style>
 </head>
 <body>
@@ -2409,6 +2906,40 @@
       </div>
       <div id="plugins-content">
         <!-- Plugins will be populated here -->
+      </div>
+    </div>
+
+    <!-- GitHub Panel -->
+    <div id="github-panel">
+      <div id="github-header">
+        <button id="github-collapse-btn" title="Collapse panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+        <h3>GitHub</h3>
+        <div class="github-header-actions">
+          <button id="github-refresh-btn" tabindex="-1" title="Refresh">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+          </button>
+          <button id="github-close" tabindex="-1">✕</button>
+        </div>
+      </div>
+      <div id="github-repo-name"></div>
+      <div class="github-tabs">
+        <button class="github-tab-btn active" data-tab="issues">Issues</button>
+        <button class="github-tab-btn" data-tab="prs">Pull Requests</button>
+        <button class="github-tab-btn" data-tab="actions">Actions</button>
+      </div>
+      <div class="github-filter">
+        <button class="github-filter-btn active" data-filter="open">Open</button>
+        <button class="github-filter-btn" data-filter="closed">Closed</button>
+        <button class="github-filter-btn" data-filter="all">All</button>
+      </div>
+      <div id="github-content">
+        <!-- GitHub content will be populated here -->
       </div>
     </div>
 

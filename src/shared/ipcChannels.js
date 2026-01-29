@@ -74,7 +74,13 @@ const IPC = {
   TOGGLE_PLUGIN: 'toggle-plugin',
   PLUGIN_TOGGLED: 'plugin-toggled',
   TOGGLE_PLUGINS_PANEL: 'toggle-plugins-panel',
-  REFRESH_PLUGINS: 'refresh-plugins'
+  REFRESH_PLUGINS: 'refresh-plugins',
+
+  // GitHub Panel
+  LOAD_GITHUB_ISSUES: 'load-github-issues',
+  GITHUB_ISSUES_DATA: 'github-issues-data',
+  TOGGLE_GITHUB_PANEL: 'toggle-github-panel',
+  OPEN_GITHUB_ISSUE: 'open-github-issue'
 };
 
 module.exports = { IPC };

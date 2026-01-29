@@ -17,6 +17,7 @@ let currentEditingFile = null;
 let originalContent = '';
 let isModified = false;
 let onFileTreeRefreshCallback = null;
+let openedFromSource = null; // Track where the file was opened from ('fileTree', 'terminal', etc.)
 
 /**
  * Initialize editor module
@@ -36,8 +37,11 @@ function init(onRefreshFileTree) {
 
 /**
  * Open file in editor
+ * @param {string} filePath - Path to the file
+ * @param {string} source - Where the file was opened from ('fileTree', 'terminal', etc.)
  */
-function openFile(filePath) {
+function openFile(filePath, source = 'terminal') {
+  openedFromSource = source;
   ipcRenderer.send(IPC.READ_FILE, filePath);
 }
 
@@ -52,9 +56,18 @@ function closeEditor() {
   }
 
   editorOverlay.classList.remove('visible');
+
+  // Restore focus to where the file was opened from
+  if (openedFromSource === 'fileTree' && typeof window.fileTreeFocus === 'function') {
+    window.fileTreeFocus();
+  } else if (typeof window.terminalFocus === 'function') {
+    window.terminalFocus();
+  }
+
   currentEditingFile = null;
   originalContent = '';
   isModified = false;
+  openedFromSource = null;
 }
 
 /**
