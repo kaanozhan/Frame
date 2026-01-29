@@ -315,6 +315,7 @@ class TerminalManager {
       this.setActiveTerminal(terminalId);
     }
 
+    this._renumberTerminals(state.projectPath);
     this._notifyStateChange();
     return terminalId;
   }
@@ -396,7 +397,6 @@ class TerminalManager {
       this.terminals.delete(terminalId);
       ipcRenderer.send(IPC.TERMINAL_DESTROY, terminalId);
 
-      // Switch to another terminal if closing active
       if (this.activeTerminalId === terminalId) {
         const remaining = Array.from(this.terminals.keys());
         this.activeTerminalId = remaining.length > 0 ? remaining[remaining.length - 1] : null;
@@ -405,6 +405,7 @@ class TerminalManager {
         }
       }
 
+      this._renumberTerminals(instance.state.projectPath);
       this._notifyStateChange();
     }
   }
@@ -561,6 +562,27 @@ class TerminalManager {
         this.closeTerminal(terminalId);
       }
     });
+  }
+
+  /**
+   * Renumber terminals for a project to ensure sequential naming (Terminal 1, Terminal 2, ...)
+   * Only affects terminals without custom names.
+   */
+  _renumberTerminals(projectPath) {
+    const terminals = this.getTerminalsByProject(projectPath);
+    
+    terminals.forEach((tState, index) => {
+      const instance = this.terminals.get(tState.id);
+      if (instance && !instance.state.customName) {
+        const newName = `Terminal ${index + 1}`;
+        if (instance.state.name !== newName) {
+          instance.state.name = newName;
+        }
+      }
+    });
+    
+    // Notify change since names might have changed
+    this._notifyStateChange();
   }
 }
 
