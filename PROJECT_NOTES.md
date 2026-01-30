@@ -356,6 +356,7 @@ mainWindow.webContents.openDevTools();
 - Auto-documentation (SESSION_LOG.md, DECISIONS.md)
 - Claude API integration for context optimization
 - Session timeline view
+- **Frame Server (Web App mode)** - Run Frame on headless server, access via browser (like code-server)
 
 ---
 
@@ -380,8 +381,8 @@ mainWindow.webContents.openDevTools();
 ---
 
 **Project Start:** 2026-01-21
-**Last Updated:** 2026-01-26
-**Status:** Frame System + Task Management Complete
+**Last Updated:** 2026-01-30
+**Status:** Frame System + Task Management + GitHub Panel Complete
 
 ---
 
@@ -516,3 +517,30 @@ The user warned: "actually everything you deleted in the claude.md file was impo
 3. All other content preserved
 
 **Lesson:** Simplification ≠ deleting content. Do only what the user asked. Don't delete extra things thinking "I think this is also unnecessary".
+
+---
+
+### [2026-01-30] Frame Server Feature Request (Web App Mode)
+
+**Context:** GitHub issue request - user has Windows PC for display and headless Debian machine for development.
+
+**User's request:**
+> "I have this requirement too. I have a Windows PC that I want to run this on, but my development machine is a headless debian machine. Come to think of it, exposing it as a web app (like code-server) would be useful too - then I can install this on my headless linux dev box and open it on any browser anywhere and start working. Should be doable since this is electron based, no?"
+
+**Analysis:**
+- Frame is Electron-based (Chromium + Node.js) - already web technologies
+- xterm.js is web-native, works in browser
+- Main change needed: IPC → WebSocket communication
+- Pattern proven by code-server (VS Code in browser)
+
+**Proposed Architecture:**
+```
+Electron App                    Web App (Frame Server)
+─────────────                   ─────────────────────
+ipcMain/ipcRenderer    →        Express + WebSocket
+Electron window        →        Static HTML server
+node-pty (same)                 node-pty (same)
+xterm.js (same)                 xterm.js (same)
+```
+
+**Decision:** Added to roadmap as "Frame Server" - will consider for future development based on community interest.
