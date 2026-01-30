@@ -58,6 +58,8 @@ const IPC = {
   TERMINAL_OUTPUT_ID: 'terminal-output-id',
   TERMINAL_RESIZE_ID: 'terminal-resize-id',
   TERMINAL_FOCUS: 'terminal-focus',
+  GET_AVAILABLE_SHELLS: 'get-available-shells',
+  AVAILABLE_SHELLS_DATA: 'available-shells-data',
 
   // Tasks Panel
   LOAD_TASKS: 'load-tasks',

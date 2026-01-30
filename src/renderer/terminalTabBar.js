@@ -13,9 +13,13 @@ class TerminalTabBar {
     this.manager = manager;
     this.element = null;
     this.contextMenu = null;
+    this.shellMenu = null;
+    this.availableShells = [];
     this._injectStyles();
     this._render();
     this._createContextMenu();
+    this._createShellMenu();
+    this._loadAvailableShells();
   }
 
   _injectStyles() {
@@ -56,6 +60,29 @@ class TerminalTabBar {
         .terminal-context-menu-item svg {
           opacity: 0.7;
         }
+        .terminal-context-menu-item.default {
+          font-weight: 500;
+        }
+        .terminal-context-menu-item .shell-default-badge {
+          font-size: 10px;
+          color: var(--text-secondary);
+          margin-left: auto;
+        }
+        .terminal-context-menu-divider {
+          height: 1px;
+          background: var(--border-subtle);
+          margin: 4px 0;
+        }
+        .shell-menu {
+          min-width: 160px;
+        }
+        .shell-menu-header {
+          padding: 6px 12px;
+          font-size: 11px;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
       `;
       document.head.appendChild(style);
     }
@@ -83,7 +110,7 @@ class TerminalTabBar {
     this.element.innerHTML = `
       <div class="terminal-tabs"></div>
       <div class="terminal-tab-actions">
-        <button class="btn-new-terminal" title="New Terminal (Ctrl+Shift+T)">+</button>
+        <button class="btn-new-terminal" title="New Terminal - Click to select shell, Right-click for default">+</button>
         <button class="btn-view-toggle" title="Toggle Grid View">⊞</button>
         <select class="grid-layout-select" title="Grid Layout">
           <option value="1x2">1×2</option>
@@ -217,10 +244,18 @@ class TerminalTabBar {
       }
     });
 
-    // New terminal button
+    // New terminal button - click to show shell selection, or right-click for default shell
+    const newTerminalBtn = this.element.querySelector('.btn-new-terminal');
+    newTerminalBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rect = newTerminalBtn.getBoundingClientRect();
+      this._showShellMenu(rect.left, rect.bottom + 4);
+    });
 
-    // New terminal button
-    this.element.querySelector('.btn-new-terminal').addEventListener('click', () => {
+    // Right-click on + button to create terminal with default shell quickly
+    newTerminalBtn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       this.manager.createTerminal();
     });
 
@@ -358,6 +393,119 @@ class TerminalTabBar {
     if (this.contextMenu) {
       this.contextMenu.classList.remove('visible');
     }
+  }
+
+  _createShellMenu() {
+    this.shellMenu = document.createElement('div');
+    this.shellMenu.className = 'terminal-context-menu shell-menu';
+    document.body.appendChild(this.shellMenu);
+
+    // Hide menu on click elsewhere
+    document.addEventListener('click', (e) => {
+      if (!this.shellMenu.contains(e.target) && !e.target.classList.contains('btn-new-terminal')) {
+        this._hideShellMenu();
+      }
+    });
+
+    // Hide menu on scroll
+    document.addEventListener('scroll', () => {
+      this._hideShellMenu();
+    }, true);
+  }
+
+  async _loadAvailableShells() {
+    try {
+      this.availableShells = await this.manager.getAvailableShells();
+    } catch (err) {
+      console.error('Failed to load available shells:', err);
+      this.availableShells = [];
+    }
+  }
+
+  _showShellMenu(x, y) {
+    // Clear previous items
+    this.shellMenu.innerHTML = '';
+
+    // Add header
+    const header = document.createElement('div');
+    header.className = 'shell-menu-header';
+    header.textContent = 'Select Shell';
+    this.shellMenu.appendChild(header);
+
+    // Add shell options
+    if (this.availableShells.length === 0) {
+      const noShells = document.createElement('div');
+      noShells.className = 'terminal-context-menu-item';
+      noShells.textContent = 'Loading...';
+      noShells.style.opacity = '0.5';
+      this.shellMenu.appendChild(noShells);
+
+      // Try to reload shells
+      this._loadAvailableShells().then(() => {
+        if (this.shellMenu.classList.contains('visible')) {
+          this._showShellMenu(x, y);
+        }
+      });
+    } else {
+      this.availableShells.forEach((shell, index) => {
+        const item = document.createElement('div');
+        item.className = 'terminal-context-menu-item';
+        if (shell.isDefault) {
+          item.classList.add('default');
+        }
+
+        // Shell icon based on type
+        const icon = this._getShellIcon(shell.id);
+        item.innerHTML = `
+          ${icon}
+          <span>${shell.name}</span>
+          ${shell.isDefault ? '<span class="shell-default-badge">default</span>' : ''}
+        `;
+
+        item.addEventListener('click', () => {
+          this._hideShellMenu();
+          this.manager.createTerminal({ shell: shell.path });
+        });
+
+        this.shellMenu.appendChild(item);
+      });
+    }
+
+    // Position and show
+    this.shellMenu.style.left = `${x}px`;
+    this.shellMenu.style.top = `${y}px`;
+    this.shellMenu.classList.add('visible');
+
+    // Adjust position if out of bounds
+    const rect = this.shellMenu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+      this.shellMenu.style.left = `${window.innerWidth - rect.width - 5}px`;
+    }
+    if (rect.bottom > window.innerHeight) {
+      this.shellMenu.style.top = `${y - rect.height}px`;
+    }
+  }
+
+  _hideShellMenu() {
+    if (this.shellMenu) {
+      this.shellMenu.classList.remove('visible');
+    }
+  }
+
+  _getShellIcon(shellId) {
+    const icons = {
+      'zsh': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>',
+      'bash': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>',
+      'fish': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path><path d="M8 12h8"></path></svg>',
+      'nu': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>',
+      'powershell': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"></rect><polyline points="6 9 10 12 6 15"></polyline></svg>',
+      'pwsh': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"></rect><polyline points="6 9 10 12 6 15"></polyline></svg>',
+      'cmd': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"></rect><line x1="6" y1="12" x2="18" y2="12"></line></svg>',
+      'gitbash': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>',
+      'wsl': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>',
+      'sh': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>'
+    };
+    return icons[shellId] || icons['sh'];
   }
 }
 

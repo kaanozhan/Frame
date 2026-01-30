@@ -78,6 +78,7 @@ class MultiTerminalUI {
   /**
    * Create a new terminal for the current project
    * @param {Object} options - Terminal options
+   * @param {string} options.shell - Shell path to use (optional)
    */
   async createTerminalForCurrentProject(options = {}) {
     const projectPath = this.manager.getCurrentProject();
@@ -85,6 +86,14 @@ class MultiTerminalUI {
       ...options,
       projectPath
     });
+  }
+
+  /**
+   * Get available shells
+   * @returns {Promise<Array<{id: string, name: string, path: string}>>}
+   */
+  async getAvailableShells() {
+    return this.manager.getAvailableShells();
   }
 
   /**

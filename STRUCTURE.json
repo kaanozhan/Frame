@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-01-29",
+  "lastUpdated": "2026-01-30",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -1479,7 +1479,7 @@
       }
     },
     "renderer/multiTerminalUI": {
-      "file": "src\\renderer\\multiTerminalUI.js",
+      "file": "src/renderer/multiTerminalUI.js",
       "description": "M",
       "exports": [
         "MultiTerminalUI"
@@ -1492,7 +1492,7 @@
       "functions": {}
     },
     "renderer/terminalManager": {
-      "file": "src\\renderer\\terminalManager.js",
+      "file": "src/renderer/terminalManager.js",
       "description": "T",
       "exports": [
         "TerminalManager"
@@ -1507,11 +1507,13 @@
       "ipc": {
         "listens": [
           "TERMINAL_CREATED",
+          "AVAILABLE_SHELLS_DATA",
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED"
         ],
         "emits": [
           "TERMINAL_CREATE",
+          "GET_AVAILABLE_SHELLS",
           "TERMINAL_INPUT_ID",
           "TERMINAL_DESTROY",
           "TERMINAL_INPUT_ID",
@@ -1685,12 +1687,14 @@
         "hasTerminal",
         "getTerminalsByProject",
         "getTerminalInfo",
+        "getAvailableShells",
         "setupIPC"
       ],
       "depends": [
         "node-pty",
         "shared/ipcChannels",
-        "child_process"
+        "child_process",
+        "fs"
       ],
       "functions": {
         "init": {
@@ -1700,34 +1704,38 @@
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
-        "getShell": {
+        "getDefaultShell": {
           "line": 25,
-          "purpose": "Get shell based on platform"
+          "purpose": "Get default shell based on platform"
+        },
+        "getAvailableShells": {
+          "line": 42,
+          "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 44,
+          "line": 128,
           "params": [
             "workingDir = null",
-            "projectPath = null"
-          ],
-          "purpose": "Create a new terminal instance"
+            "projectPath = null",
+            "shellPath = null"
+          ]
         },
         "getTerminalsByProject": {
-          "line": 93,
+          "line": 190,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 108,
+          "line": 205,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "writeToTerminal": {
-          "line": 119,
+          "line": 216,
           "params": [
             "terminalId",
             "data"
@@ -1735,7 +1743,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 129,
+          "line": 226,
           "params": [
             "terminalId",
             "cols",
@@ -1744,33 +1752,33 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 139,
+          "line": 236,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 151,
+          "line": 248,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 162,
+          "line": 259,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 169,
+          "line": 266,
           "purpose": "Get all terminal IDs"
         },
         "hasTerminal": {
-          "line": 176,
+          "line": 273,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 183,
+          "line": 280,
           "params": [
             "ipcMain"
           ],
@@ -1779,6 +1787,7 @@
       },
       "ipc": {
         "listens": [
+          "GET_AVAILABLE_SHELLS",
           "TERMINAL_CREATE",
           "TERMINAL_DESTROY",
           "TERMINAL_INPUT_ID",
@@ -1877,7 +1886,7 @@
       "functions": {}
     },
     "renderer/terminalTabBar": {
-      "file": "src\\renderer\\terminalTabBar.js",
+      "file": "src/renderer/terminalTabBar.js",
       "description": "T",
       "exports": [
         "TerminalTabBar"

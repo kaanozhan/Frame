@@ -179,6 +179,7 @@ class TerminalManager {
    * @param {string} options.cwd - Working directory
    * @param {string} options.projectPath - Associated project path (undefined = use current)
    * @param {string} options.name - Custom terminal name
+   * @param {string} options.shell - Shell path to use (optional)
    */
   async createTerminal(options = {}) {
     if (this.terminals.size >= this.maxTerminals) {
@@ -212,8 +213,29 @@ class TerminalManager {
       ipcRenderer.on(IPC.TERMINAL_CREATED, handler);
       ipcRenderer.send(IPC.TERMINAL_CREATE, {
         cwd: workingDir,
-        projectPath
+        projectPath,
+        shell: options.shell || null
       });
+    });
+  }
+
+  /**
+   * Get available shells from main process
+   * @returns {Promise<Array<{id: string, name: string, path: string}>>}
+   */
+  async getAvailableShells() {
+    return new Promise((resolve, reject) => {
+      const handler = (event, response) => {
+        ipcRenderer.removeListener(IPC.AVAILABLE_SHELLS_DATA, handler);
+        if (response.success) {
+          resolve(response.shells);
+        } else {
+          reject(new Error(response.error || 'Failed to get available shells'));
+        }
+      };
+
+      ipcRenderer.on(IPC.AVAILABLE_SHELLS_DATA, handler);
+      ipcRenderer.send(IPC.GET_AVAILABLE_SHELLS);
     });
   }
 

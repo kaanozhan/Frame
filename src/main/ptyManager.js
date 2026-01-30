@@ -20,9 +20,9 @@ function init(window) {
 }
 
 /**
- * Get shell based on platform
+ * Get default shell based on platform
  */
-function getShell() {
+function getDefaultShell() {
   if (process.platform === 'win32') {
     try {
       require('child_process').execSync('where pwsh', { stdio: 'ignore' });
@@ -36,20 +36,117 @@ function getShell() {
 }
 
 /**
+ * Get available shells on the system
+ * @returns {Array<{id: string, name: string, path: string}>}
+ */
+function getAvailableShells() {
+  const shells = [];
+  const { execSync } = require('child_process');
+  const fs = require('fs');
+  const defaultShell = getDefaultShell();
+
+  if (process.platform === 'win32') {
+    // Windows shells
+    const windowsShells = [
+      { id: 'powershell', name: 'PowerShell', path: 'powershell.exe' },
+      { id: 'cmd', name: 'Command Prompt', path: 'cmd.exe' }
+    ];
+
+    // Check for PowerShell Core (pwsh)
+    try {
+      execSync('where pwsh', { stdio: 'ignore' });
+      windowsShells.unshift({ id: 'pwsh', name: 'PowerShell Core', path: 'pwsh.exe' });
+    } catch {}
+
+    // Check for Git Bash
+    const gitBashPaths = [
+      'C:\\Program Files\\Git\\bin\\bash.exe',
+      'C:\\Program Files (x86)\\Git\\bin\\bash.exe'
+    ];
+    for (const gitBash of gitBashPaths) {
+      if (fs.existsSync(gitBash)) {
+        windowsShells.push({ id: 'gitbash', name: 'Git Bash', path: gitBash });
+        break;
+      }
+    }
+
+    // Check for WSL
+    try {
+      execSync('where wsl', { stdio: 'ignore' });
+      windowsShells.push({ id: 'wsl', name: 'WSL', path: 'wsl.exe' });
+    } catch {}
+
+    shells.push(...windowsShells);
+  } else {
+    // Unix-like shells (macOS, Linux)
+    const unixShells = [
+      { id: 'zsh', name: 'Zsh', path: '/bin/zsh' },
+      { id: 'bash', name: 'Bash', path: '/bin/bash' },
+      { id: 'sh', name: 'Shell', path: '/bin/sh' }
+    ];
+
+    // Check for fish shell
+    try {
+      execSync('which fish', { stdio: 'ignore' });
+      const fishPath = execSync('which fish', { encoding: 'utf8' }).trim();
+      unixShells.push({ id: 'fish', name: 'Fish', path: fishPath });
+    } catch {}
+
+    // Check for nushell
+    try {
+      execSync('which nu', { stdio: 'ignore' });
+      const nuPath = execSync('which nu', { encoding: 'utf8' }).trim();
+      unixShells.push({ id: 'nu', name: 'Nushell', path: nuPath });
+    } catch {}
+
+    // Filter to only existing shells and mark default
+    for (const shell of unixShells) {
+      if (fs.existsSync(shell.path)) {
+        shell.isDefault = shell.path === defaultShell;
+        shells.push(shell);
+      }
+    }
+  }
+
+  // Sort so default shell is first
+  shells.sort((a, b) => {
+    if (a.isDefault) return -1;
+    if (b.isDefault) return 1;
+    return 0;
+  });
+
+  return shells;
+}
+
+/**
  * Create a new terminal instance
  * @param {string|null} workingDir - Working directory (defaults to HOME)
  * @param {string|null} projectPath - Associated project path (null = global)
+ * @param {string|null} shellPath - Shell to use (defaults to system default)
  * @returns {string} Terminal ID
  */
-function createTerminal(workingDir = null, projectPath = null) {
+function createTerminal(workingDir = null, projectPath = null, shellPath = null) {
   if (ptyInstances.size >= MAX_TERMINALS) {
     throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached`);
   }
 
   const terminalId = `term-${++terminalCounter}`;
   const cwd = workingDir || process.env.HOME || process.env.USERPROFILE;
-  const shell = getShell();
-  const shellArgs = process.platform === 'win32' ? [] : ['-i', '-l'];
+  const shell = shellPath || getDefaultShell();
+
+  // Determine shell arguments based on shell type
+  let shellArgs = [];
+  if (process.platform !== 'win32') {
+    // For Unix shells, use interactive login shell
+    const shellName = shell.split('/').pop();
+    if (shellName === 'fish') {
+      shellArgs = ['-i'];
+    } else if (shellName === 'nu') {
+      shellArgs = ['-l'];
+    } else {
+      shellArgs = ['-i', '-l'];
+    }
+  }
 
   const ptyProcess = pty.spawn(shell, shellArgs, {
     name: 'xterm-256color',
@@ -181,23 +278,35 @@ function hasTerminal(terminalId) {
  * Setup IPC handlers for multi-terminal
  */
 function setupIPC(ipcMain) {
+  // Get available shells
+  ipcMain.on(IPC.GET_AVAILABLE_SHELLS, (event) => {
+    try {
+      const shells = getAvailableShells();
+      event.reply(IPC.AVAILABLE_SHELLS_DATA, { shells, success: true });
+    } catch (error) {
+      event.reply(IPC.AVAILABLE_SHELLS_DATA, { shells: [], success: false, error: error.message });
+    }
+  });
+
   // Create new terminal
   ipcMain.on(IPC.TERMINAL_CREATE, (event, data) => {
     try {
       // Support both old format (string) and new format (object)
       let workingDir = null;
       let projectPath = null;
+      let shellPath = null;
 
       if (typeof data === 'string') {
         // Legacy format: just working directory
         workingDir = data;
       } else if (data && typeof data === 'object') {
-        // New format: { cwd, projectPath }
+        // New format: { cwd, projectPath, shell }
         workingDir = data.cwd;
         projectPath = data.projectPath;
+        shellPath = data.shell;
       }
 
-      const terminalId = createTerminal(workingDir, projectPath);
+      const terminalId = createTerminal(workingDir, projectPath, shellPath);
       event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true });
     } catch (error) {
       event.reply(IPC.TERMINAL_CREATED, { success: false, error: error.message });
@@ -232,5 +341,6 @@ module.exports = {
   hasTerminal,
   getTerminalsByProject,
   getTerminalInfo,
+  getAvailableShells,
   setupIPC
 };
