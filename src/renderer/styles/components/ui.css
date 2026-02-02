@@ -1,0 +1,143 @@
+/* Toast Notifications */
+.tasks-toast {
+  position: absolute;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transition: all var(--transition-normal);
+  z-index: 100;
+}
+
+.tasks-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tasks-toast .toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tasks-toast .toast-message {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.tasks-toast-success .toast-icon {
+  color: var(--success);
+}
+
+.tasks-toast-info .toast-icon {
+  color: var(--info);
+}
+
+.tasks-toast-error .toast-icon {
+  color: var(--error);
+}
+
+/* Plugins Toast */
+.plugins-toast {
+  position: absolute;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transition: all var(--transition-normal);
+  z-index: 100;
+}
+
+.plugins-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.plugins-toast .toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plugins-toast .toast-message {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.plugins-toast-success .toast-icon {
+  color: var(--success);
+}
+
+.plugins-toast-info .toast-icon {
+  color: var(--info);
+}
+
+.plugins-toast-error .toast-icon {
+  color: var(--error);
+}
+
+/* GitHub Toast */
+.github-toast {
+  position: absolute;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transition: all var(--transition-normal);
+  z-index: 100;
+}
+
+.github-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.github-toast .toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.github-toast .toast-message {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.github-toast-success .toast-icon {
+  color: var(--success);
+}
+
+.github-toast-info .toast-icon {
+  color: var(--info);
+}
+
+.github-toast-error .toast-icon {
+  color: var(--error);
+}

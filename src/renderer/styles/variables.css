@@ -1,0 +1,63 @@
+/* ==================== DESIGN SYSTEM - FRAME ==================== */
+:root {
+  /* Color Palette - Warm Neutrals with Amber Accent */
+  --bg-deep: #0f0f10;
+  --bg-primary: #151516;
+  --bg-secondary: #1a1a1c;
+  --bg-tertiary: #222225;
+  --bg-elevated: #28282c;
+  --bg-hover: #2e2e33;
+
+  /* Text Colors */
+  --text-primary: #e8e6e3;
+  --text-secondary: #a09b94;
+  --text-tertiary: #6b6660;
+  --text-muted: #4a4642;
+
+  /* Accent Colors */
+  --accent-primary: #d4a574;
+  --accent-secondary: #c9956a;
+  --accent-subtle: rgba(212, 165, 116, 0.15);
+  --accent-glow: rgba(212, 165, 116, 0.08);
+
+  /* Semantic Colors */
+  --success: #7cb382;
+  --success-subtle: rgba(124, 179, 130, 0.15);
+  --warning: #e0a458;
+  --error: #d47878;
+  --error-subtle: rgba(212, 120, 120, 0.15);
+  --info: #78a5d4;
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Typography */
+  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+}

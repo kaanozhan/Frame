@@ -1,0 +1,90 @@
+/* ==================== SIDEBAR ==================== */
+#sidebar {
+  width: 260px;
+  min-width: 180px;
+  max-width: 500px;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg);
+  position: relative;
+  flex-shrink: 0;
+}
+
+#sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, var(--accent-glow) 0%, transparent 50%, var(--accent-glow) 100%);
+  pointer-events: none;
+}
+
+/* Sidebar resize handle */
+#sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 100;
+  background: transparent;
+  transition: background var(--transition-fast);
+}
+
+#sidebar-resize-handle:hover,
+#sidebar-resize-handle.dragging {
+  background: var(--accent-primary);
+}
+
+#sidebar-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 40px;
+  background: var(--border-default);
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+#sidebar-resize-handle:hover::before,
+#sidebar-resize-handle.dragging::before {
+  opacity: 1;
+  background: var(--accent-primary);
+}
+
+body.sidebar-resizing {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.sidebar-resizing * {
+  cursor: col-resize !important;
+}
+
+/* ==================== MAIN CONTENT ==================== */
+#main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+#terminal-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  padding: var(--space-md);
+  min-width: 400px;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  margin: var(--space-sm) 0 var(--space-sm) var(--space-sm);
+}
