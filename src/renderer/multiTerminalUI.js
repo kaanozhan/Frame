@@ -6,6 +6,7 @@
 const { TerminalManager } = require('./terminalManager');
 const { TerminalTabBar } = require('./terminalTabBar');
 const { TerminalGrid } = require('./terminalGrid');
+const overviewPanel = require('./overviewPanel');
 
 class MultiTerminalUI {
   constructor(containerId) {
@@ -16,6 +17,7 @@ class MultiTerminalUI {
     this.contentContainer = null;
     this.initialized = false;
     this.autoCreateInitialTerminal = true; // Flag to control initial terminal creation
+    this.isOverviewVisible = false; // Track if overview is shown
 
     this._setup();
   }
@@ -41,6 +43,12 @@ class MultiTerminalUI {
     // Initialize components
     this.tabBar = new TerminalTabBar(tabBarContainer, this.manager);
     this.grid = new TerminalGrid(this.contentContainer, this.manager);
+
+    // Initialize overview panel (creates structure map overlay)
+    overviewPanel.init();
+
+    // Wire up overview toggle callback
+    this.tabBar.onOverviewToggle = () => this.toggleOverview();
 
     // Listen for state changes
     this.manager.onStateChange = (state) => this._onStateChange(state);
@@ -284,6 +292,54 @@ class MultiTerminalUI {
    */
   getManager() {
     return this.manager;
+  }
+
+  /**
+   * Show overview panel
+   */
+  showOverview() {
+    this.isOverviewVisible = true;
+    this.contentContainer.innerHTML = '';
+    this.contentContainer.className = 'terminal-content overview-view';
+    this.contentContainer.style.display = '';
+    this.contentContainer.style.gridTemplateRows = '';
+    this.contentContainer.style.gridTemplateColumns = '';
+    this.contentContainer.style.gap = '';
+    this.contentContainer.style.backgroundColor = '';
+
+    // Render overview
+    overviewPanel.render(this.contentContainer);
+
+    // Update tab bar to show overview as active
+    this.tabBar.setOverviewActive(true);
+  }
+
+  /**
+   * Hide overview panel and return to terminals
+   */
+  hideOverview() {
+    this.isOverviewVisible = false;
+    this.tabBar.setOverviewActive(false);
+
+    // Re-render terminal view
+    this._onStateChange({
+      terminals: this.manager.getTerminalStates(),
+      activeTerminalId: this.manager.activeTerminalId,
+      viewMode: this.manager.viewMode,
+      gridLayout: this.manager.gridLayout,
+      currentProjectPath: this.manager.getCurrentProject()
+    });
+  }
+
+  /**
+   * Toggle overview panel
+   */
+  toggleOverview() {
+    if (this.isOverviewVisible) {
+      this.hideOverview();
+    } else {
+      this.showOverview();
+    }
   }
 }
 

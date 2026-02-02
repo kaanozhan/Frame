@@ -17,6 +17,7 @@ class TerminalTabBar {
     this.contextMenu = null;
     this.shellMenu = null;
     this.availableShells = [];
+    this.onOverviewToggle = null; // Callback for overview toggle
     this._injectStyles();
     this._render();
     this._createContextMenu();
@@ -160,6 +161,15 @@ class TerminalTabBar {
             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
           </svg>
           GitHub
+        </button>
+        <button class="btn-overview-toggle" title="Project Overview">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Overview
         </button>
       </div>
     `;
@@ -308,6 +318,13 @@ class TerminalTabBar {
     // Usage bars click to refresh
     this.element.querySelector('.claude-usage-bars').addEventListener('click', () => {
       ipcRenderer.send(IPC.REFRESH_CLAUDE_USAGE);
+    });
+
+    // Overview toggle button
+    this.element.querySelector('.btn-overview-toggle').addEventListener('click', () => {
+      if (this.onOverviewToggle) {
+        this.onOverviewToggle();
+      }
     });
 
     // Setup usage bar IPC listener
@@ -642,6 +659,21 @@ class TerminalTabBar {
       'sh': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>'
     };
     return icons[shellId] || icons['sh'];
+  }
+
+  /**
+   * Set overview button active state
+   * @param {boolean} active - Whether overview is active
+   */
+  setOverviewActive(active) {
+    const btn = this.element.querySelector('.btn-overview-toggle');
+    if (btn) {
+      if (active) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
   }
 }
 

@@ -87,7 +87,12 @@ const IPC = {
   // Claude Usage
   LOAD_CLAUDE_USAGE: 'load-claude-usage',
   CLAUDE_USAGE_DATA: 'claude-usage-data',
-  REFRESH_CLAUDE_USAGE: 'refresh-claude-usage'
+  REFRESH_CLAUDE_USAGE: 'refresh-claude-usage',
+
+  // Overview Panel
+  LOAD_OVERVIEW: 'load-overview',
+  OVERVIEW_DATA: 'overview-data',
+  GET_FILE_GIT_HISTORY: 'get-file-git-history'
 };
 
 module.exports = { IPC };

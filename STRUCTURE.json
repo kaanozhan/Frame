@@ -31,23 +31,24 @@
         "tasksManager",
         "pluginsManager",
         "githubManager",
-        "claudeUsageManager"
+        "claudeUsageManager",
+        "overviewManager"
       ],
       "functions": {
         "createWindow": {
-          "line": 30,
+          "line": 31,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 73,
+          "line": 74,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 98,
+          "line": 100,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 109,
+          "line": 111,
           "params": [
             "window"
           ],
@@ -1503,7 +1504,8 @@
       "depends": [
         "terminalManager",
         "terminalTabBar",
-        "terminalGrid"
+        "terminalGrid",
+        "overviewPanel"
       ],
       "functions": {}
     },
@@ -2413,6 +2415,381 @@
         "emits": [
           "CLAUDE_USAGE_DATA"
         ]
+      }
+    },
+    "main/overviewManager": {
+      "file": "src/main/overviewManager.js",
+      "description": "O",
+      "exports": [
+        "init",
+        "loadOverview",
+        "getFileGitHistory",
+        "setupIPC"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 16,
+          "params": [
+            "window"
+          ],
+          "purpose": "Initialize overview manager"
+        },
+        "loadOverview": {
+          "line": 23,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Load overview data for a project"
+        },
+        "loadStructure": {
+          "line": 55,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Load structure from STRUCTURE.json"
+        },
+        "loadTasks": {
+          "line": 95,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Load tasks from tasks.json"
+        },
+        "loadDecisions": {
+          "line": 127,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Load decisions from PROJECT_NOTES.md"
+        },
+        "loadStats": {
+          "line": 166,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Load project stats (lines of code, files, git info)"
+        },
+        "countLinesOfCode": {
+          "line": 188,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Count lines of code in src directory"
+        },
+        "countFiles": {
+          "line": 212,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Count files in src directory"
+        },
+        "getGitInfo": {
+          "line": 235,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Get git information"
+        },
+        "getFileGitHistory": {
+          "line": 265,
+          "params": [
+            "projectPath",
+            "filePath"
+          ],
+          "purpose": "Get file git history (contributors, commits, blame)"
+        },
+        "getFileCommits": {
+          "line": 302,
+          "params": [
+            "projectPath",
+            "filePath"
+          ],
+          "purpose": "Get recent commits for a file"
+        },
+        "getFileContributors": {
+          "line": 333,
+          "params": [
+            "projectPath",
+            "filePath"
+          ],
+          "purpose": "Get contributors for a file"
+        },
+        "getFileBlame": {
+          "line": 366,
+          "params": [
+            "projectPath",
+            "filePath"
+          ],
+          "purpose": "Get blame summary for a file (who wrote how many lines)"
+        },
+        "setupIPC": {
+          "line": 398,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "Setup IPC handlers"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LOAD_OVERVIEW",
+          "GET_FILE_GIT_HISTORY"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/overviewPanel": {
+      "file": "src/renderer/overviewPanel.js",
+      "description": "O",
+      "exports": [
+        "init",
+        "render",
+        "refresh",
+        "loadOverview",
+        "isVisible"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "structureMap",
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 17,
+          "purpose": "Initialize overview panel"
+        },
+        "loadOverview": {
+          "line": 25,
+          "purpose": "Load overview data"
+        },
+        "render": {
+          "line": 45,
+          "params": [
+            "container"
+          ],
+          "purpose": "Render overview in container"
+        },
+        "renderLoading": {
+          "line": 65,
+          "purpose": "Render loading state"
+        },
+        "renderError": {
+          "line": 77,
+          "params": [
+            "message"
+          ],
+          "purpose": "Render error state"
+        },
+        "renderOverview": {
+          "line": 89,
+          "params": [
+            "data"
+          ],
+          "purpose": "Render overview dashboard"
+        },
+        "renderStructureCard": {
+          "line": 115,
+          "params": [
+            "structure"
+          ],
+          "purpose": "Render structure card"
+        },
+        "renderProgressCard": {
+          "line": 156,
+          "params": [
+            "tasks"
+          ],
+          "purpose": "Render progress card"
+        },
+        "renderDecisionsCard": {
+          "line": 195,
+          "params": [
+            "decisions"
+          ],
+          "purpose": "Render decisions card"
+        },
+        "renderStatsCard": {
+          "line": 235,
+          "params": [
+            "stats"
+          ],
+          "purpose": "Render stats card"
+        },
+        "setupCardInteractions": {
+          "line": 288,
+          "params": [
+            "container",
+            "data"
+          ],
+          "purpose": "Setup card click interactions"
+        },
+        "refresh": {
+          "line": 304,
+          "purpose": "Refresh overview"
+        },
+        "formatTime": {
+          "line": 316,
+          "params": [
+            "isoString"
+          ],
+          "purpose": "Format time for display"
+        },
+        "formatNumber": {
+          "line": 324,
+          "params": [
+            "num"
+          ],
+          "purpose": "Format number with commas"
+        },
+        "escapeHtml": {
+          "line": 331,
+          "params": [
+            "text"
+          ],
+          "purpose": "Escape HTML"
+        }
+      }
+    },
+    "renderer/structureMap": {
+      "file": "src/renderer/structureMap.js",
+      "description": "S",
+      "exports": [
+        "init",
+        "show",
+        "hide",
+        "isVisible"
+      ],
+      "depends": [
+        "electron",
+        "fs",
+        "path",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 30,
+          "purpose": "Initialize structure map"
+        },
+        "createOverlay": {
+          "line": 37,
+          "purpose": "Create overlay element"
+        },
+        "show": {
+          "line": 87,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Show structure map"
+        },
+        "hide": {
+          "line": 104,
+          "purpose": "Hide structure map"
+        },
+        "loadStructure": {
+          "line": 117,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Load structure data"
+        },
+        "showError": {
+          "line": 138,
+          "params": [
+            "message"
+          ],
+          "purpose": "Show error in info panel"
+        },
+        "structureToGraph": {
+          "line": 146,
+          "params": [
+            "data"
+          ],
+          "purpose": "Convert structure data to graph format"
+        },
+        "renderGraph": {
+          "line": 220,
+          "params": [
+            "structureData"
+          ],
+          "purpose": "Render force-directed graph"
+        },
+        "showModuleInfo": {
+          "line": 381,
+          "params": [
+            "module",
+            "showGitButton = true"
+          ],
+          "purpose": "Show module info in panel"
+        },
+        "selectNode": {
+          "line": 461,
+          "params": [
+            "d",
+            "nodeSelection"
+          ],
+          "purpose": "Select a node (visual indicator)"
+        },
+        "loadAndShowGitHistory": {
+          "line": 469,
+          "params": [
+            "module"
+          ],
+          "purpose": "Load and show git history for a module"
+        },
+        "renderGitHistory": {
+          "line": 557,
+          "params": [
+            "history"
+          ],
+          "purpose": "Render git history HTML"
+        },
+        "getInitials": {
+          "line": 640,
+          "params": [
+            "name"
+          ],
+          "purpose": "Get initials from name"
+        },
+        "escapeHtml": {
+          "line": 647,
+          "params": [
+            "text"
+          ],
+          "purpose": "Escape HTML"
+        },
+        "showPlaceholder": {
+          "line": 657,
+          "purpose": "Show placeholder in info panel"
+        },
+        "highlightConnections": {
+          "line": 666,
+          "params": [
+            "d",
+            "links",
+            "nodeSelection",
+            "linkSelection"
+          ],
+          "purpose": "Highlight connections for a node"
+        },
+        "resetHighlight": {
+          "line": 684,
+          "params": [
+            "nodeSelection",
+            "linkSelection"
+          ],
+          "purpose": "Reset highlight"
+        },
+        "isMapVisible": {
+          "line": 692,
+          "purpose": "Check if visible"
+        }
       }
     }
   },
