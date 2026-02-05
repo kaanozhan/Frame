@@ -23,6 +23,7 @@ const githubManager = require('./githubManager');
 const claudeUsageManager = require('./claudeUsageManager');
 const overviewManager = require('./overviewManager');
 const gitBranchesManager = require('./gitBranchesManager');
+const aiToolManager = require('./aiToolManager');
 
 let mainWindow = null;
 
@@ -57,7 +58,8 @@ function createWindow() {
   // Initialize modules with window reference
   pty.init(mainWindow);
   ptyManager.init(mainWindow);
-  menu.init(mainWindow, app);
+  aiToolManager.init(mainWindow, app);
+  menu.init(mainWindow, app, aiToolManager);
   dialogs.init(mainWindow, (projectPath) => {
     pty.setProjectPath(projectPath);
   });

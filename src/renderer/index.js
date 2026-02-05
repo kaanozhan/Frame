@@ -13,6 +13,7 @@ const state = require('./state');
 const projectListUI = require('./projectListUI');
 const editor = require('./editor');
 const sidebarResize = require('./sidebarResize');
+const aiToolSelector = require('./aiToolSelector');
 
 /**
  * Initialize all modules
@@ -24,9 +25,14 @@ function init() {
   // Initialize state management
   state.init({
     pathElement: document.getElementById('project-path'),
-    startClaudeBtn: document.getElementById('btn-start-claude'),
+    startClaudeBtn: document.getElementById('btn-start-ai'),
     fileExplorerHeader: document.getElementById('file-explorer-header'),
     initializeFrameBtn: document.getElementById('btn-initialize-frame')
+  });
+
+  // Initialize AI tool selector
+  aiToolSelector.init((tool) => {
+    console.log('AI tool changed to:', tool.name);
   });
 
   // Connect state with multiTerminalUI for project-terminal session management
@@ -134,19 +140,20 @@ function setupButtonHandlers() {
     state.createNewProject();
   });
 
-  // Start Claude Code
-  document.getElementById('btn-start-claude').addEventListener('click', async () => {
+  // Start AI Tool (Claude Code / Codex CLI / etc.)
+  document.getElementById('btn-start-ai').addEventListener('click', async () => {
     const projectPath = state.getProjectPath();
     if (projectPath) {
       const newTerminalId = await terminal.restartTerminal(projectPath);
-      
+
       if (newTerminalId) {
         // Ensure the new terminal is focused
         terminal.setActiveTerminal(newTerminalId);
-        
-        // Send command specifically to the new terminal
+
+        // Send start command for the selected AI tool
+        const startCommand = aiToolSelector.getStartCommand();
         setTimeout(() => {
-          terminal.sendCommand('claude', newTerminalId);
+          terminal.sendCommand(startCommand, newTerminalId);
         }, 1000);
       }
     }
