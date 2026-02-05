@@ -35,7 +35,13 @@
     <div id="project-actions">
       <button id="btn-select-project" class="btn" tabindex="-1">Select Project Folder</button>
       <button id="btn-create-project" class="btn btn-secondary" tabindex="-1">Create New Project</button>
-      <button id="btn-start-claude" class="btn btn-success" tabindex="-1" disabled>Start Claude Code</button>
+      <div class="ai-tool-row">
+        <button id="btn-start-ai" class="btn btn-success" tabindex="-1" disabled>Start Claude Code</button>
+        <select id="ai-tool-selector" class="ai-tool-select" tabindex="-1">
+          <option value="claude">Claude</option>
+          <option value="codex">Codex</option>
+        </select>
+      </div>
       <button id="btn-initialize-frame" class="btn btn-secondary" tabindex="-1" style="display: none;">Initialize as Frame Project</button>
     </div>
 

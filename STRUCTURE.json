@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-02-04",
+  "lastUpdated": "2026-02-05",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -33,23 +33,24 @@
         "githubManager",
         "claudeUsageManager",
         "overviewManager",
-        "gitBranchesManager"
+        "gitBranchesManager",
+        "aiToolManager"
       ],
       "functions": {
         "createWindow": {
-          "line": 32,
+          "line": 33,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 75,
+          "line": 77,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 102,
+          "line": 104,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 113,
+          "line": 115,
           "params": [
             "window"
           ],
@@ -170,34 +171,46 @@
       ],
       "functions": {
         "init": {
-          "line": 17,
+          "line": 19,
           "params": [
             "window",
-            "app"
+            "app",
+            "toolManager"
           ],
           "purpose": "Initialize menu module"
         },
         "getMenuTemplate": {
-          "line": 25,
-          "purpose": "Get menu template"
+          "line": 28,
+          "purpose": "Get menu template based on active AI tool"
+        },
+        "buildAICommandsSubmenu": {
+          "line": 93,
+          "params": [
+            "tool"
+          ],
+          "purpose": "Build AI commands submenu based on active tool"
+        },
+        "buildToolSwitcherSubmenu": {
+          "line": 181,
+          "purpose": "Build tool switcher submenu"
         },
         "sendCommand": {
-          "line": 114,
+          "line": 200,
           "params": [
             "command"
           ],
           "purpose": "Send command to terminal"
         },
         "toggleHistoryPanel": {
-          "line": 123,
+          "line": 209,
           "purpose": "Toggle history panel"
         },
         "openHistoryFile": {
-          "line": 132,
+          "line": 218,
           "purpose": "Open history file in default editor"
         },
         "createMenu": {
-          "line": 146,
+          "line": 232,
           "purpose": "Create and set application menu"
         }
       },
@@ -716,19 +729,20 @@
         "state",
         "projectListUI",
         "editor",
-        "sidebarResize"
+        "sidebarResize",
+        "aiToolSelector"
       ],
       "functions": {
         "init": {
-          "line": 20,
+          "line": 21,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 126,
+          "line": 132,
           "purpose": "Setup button click handlers"
         },
         "setupKeyboardShortcuts": {
-          "line": 179,
+          "line": 186,
           "purpose": "Setup keyboard shortcuts"
         }
       }
@@ -3041,6 +3055,163 @@
         "emits": [
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
+      }
+    },
+    "main/aiToolManager": {
+      "file": "src/main/aiToolManager.js",
+      "description": "A",
+      "exports": [
+        "init",
+        "getAvailableTools",
+        "getActiveTool",
+        "setActiveTool",
+        "getConfig",
+        "getCommand",
+        "getStartCommand",
+        "addCustomTool",
+        "removeCustomTool",
+        "AI_TOOLS"
+      ],
+      "depends": [
+        "electron",
+        "fs",
+        "path",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 55,
+          "params": [
+            "window",
+            "app"
+          ],
+          "purpose": "Initialize the AI Tool Manager"
+        },
+        "loadConfig": {
+          "line": 65,
+          "purpose": "Load configuration from file"
+        },
+        "saveConfig": {
+          "line": 80,
+          "purpose": "Save configuration to file"
+        },
+        "getAvailableTools": {
+          "line": 91,
+          "purpose": "Get all available AI tools"
+        },
+        "getActiveTool": {
+          "line": 98,
+          "purpose": "Get the currently active tool"
+        },
+        "setActiveTool": {
+          "line": 106,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "Set the active AI tool"
+        },
+        "getConfig": {
+          "line": 125,
+          "purpose": "Get full configuration for renderer"
+        },
+        "addCustomTool": {
+          "line": 135,
+          "params": [
+            "tool"
+          ],
+          "purpose": "Add a custom AI tool"
+        },
+        "removeCustomTool": {
+          "line": 152,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "Remove a custom AI tool"
+        },
+        "setupIPC": {
+          "line": 167,
+          "purpose": "Setup IPC handlers"
+        },
+        "getCommand": {
+          "line": 180,
+          "params": [
+            "action"
+          ],
+          "purpose": "Get command for specific action"
+        },
+        "getStartCommand": {
+          "line": 188,
+          "purpose": "Get the start command for active tool"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GET_AI_TOOL_CONFIG",
+          "SET_AI_TOOL"
+        ],
+        "emits": [
+          "AI_TOOL_CHANGED"
+        ]
+      }
+    },
+    "renderer/aiToolSelector": {
+      "file": "src/renderer/aiToolSelector.js",
+      "description": "A",
+      "exports": [
+        "init",
+        "getCurrentTool",
+        "getStartCommand",
+        "getCommand",
+        "supportsFeature"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 16,
+          "params": [
+            "onToolChange"
+          ],
+          "purpose": "Initialize the AI tool selector"
+        },
+        "setupSelector": {
+          "line": 41,
+          "purpose": "Setup the selector dropdown"
+        },
+        "updateUI": {
+          "line": 73,
+          "purpose": "Update UI to reflect current tool"
+        },
+        "getCurrentTool": {
+          "line": 98,
+          "purpose": "Get the current active tool"
+        },
+        "getStartCommand": {
+          "line": 105,
+          "purpose": "Get the start command for current tool"
+        },
+        "getCommand": {
+          "line": 112,
+          "params": [
+            "action"
+          ],
+          "purpose": "Get a specific command for current tool"
+        },
+        "supportsFeature": {
+          "line": 120,
+          "params": [
+            "feature"
+          ],
+          "purpose": "Check if current tool supports a feature"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "AI_TOOL_CHANGED"
+        ],
+        "emits": []
       }
     }
   },
