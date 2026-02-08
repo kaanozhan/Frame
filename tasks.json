@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "1.1",
-  "lastUpdated": "2026-01-25T22:51:37.595Z",
+  "lastUpdated": "2026-02-03T14:56:22.087Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -44,18 +44,6 @@
         "description": "Show git status, diff in the UI",
         "status": "pending",
         "priority": "high",
-        "category": "feature",
-        "context": "todos.json - mediumTerm",
-        "createdAt": "2026-01-21T00:00:00Z",
-        "updatedAt": "2026-01-24T16:30:00Z",
-        "completedAt": null
-      },
-      {
-        "id": "task-m5",
-        "title": "Settings panel",
-        "description": "UI for configuring preferences",
-        "status": "pending",
-        "priority": "medium",
         "category": "feature",
         "context": "todos.json - mediumTerm",
         "createdAt": "2026-01-21T00:00:00Z",
@@ -182,6 +170,18 @@
         "context": "Session 2026-01-25 - Task delegation feature",
         "createdAt": "2026-01-25T00:00:00Z",
         "updatedAt": "2026-01-25T22:51:37.595Z",
+        "completedAt": null
+      },
+      {
+        "id": "task-m5",
+        "title": "Settings panel",
+        "description": "UI for configuring preferences",
+        "status": "in_progress",
+        "priority": "medium",
+        "category": "feature",
+        "context": "todos.json - mediumTerm",
+        "createdAt": "2026-01-21T00:00:00Z",
+        "updatedAt": "2026-02-03T14:56:22.087Z",
         "completedAt": null
       }
     ],

@@ -41,6 +41,22 @@ const AI_TOOLS = {
     },
     menuLabel: 'Codex Commands',
     supportsPlugins: false
+  },
+  gemini: {
+    id: 'gemini',
+    name: 'Gemini CLI',
+    command: 'gemini',
+    description: 'Google Gemini CLI (reads GEMINI.md natively)',
+    commands: {
+      init: '/init',
+      model: '/model',
+      memory: '/memory',
+      compress: '/compress',
+      settings: '/settings',
+      help: '/help'
+    },
+    menuLabel: 'Gemini Commands',
+    supportsPlugins: false
   }
 };
 

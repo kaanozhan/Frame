@@ -132,6 +132,28 @@ function buildAICommandsSubmenu(tool) {
     });
   }
 
+  // Gemini-specific commands
+  if (tool.commands.memory) {
+    submenu.push({
+      label: `Memory (${tool.commands.memory})`,
+      click: () => sendCommand(tool.commands.memory)
+    });
+  }
+
+  if (tool.commands.compress) {
+    submenu.push({
+      label: `Compress Context (${tool.commands.compress})`,
+      click: () => sendCommand(tool.commands.compress)
+    });
+  }
+
+  if (tool.commands.settings) {
+    submenu.push({
+      label: `Settings (${tool.commands.settings})`,
+      click: () => sendCommand(tool.commands.settings)
+    });
+  }
+
   if (tool.commands.help) {
     submenu.push({
       label: `Help (${tool.commands.help})`,

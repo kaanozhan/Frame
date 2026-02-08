@@ -19,6 +19,7 @@ const WORKSPACE_FILE = 'workspaces.json';
 const FRAME_FILES = {
   AGENTS: 'AGENTS.md',
   CLAUDE_SYMLINK: 'CLAUDE.md',
+  GEMINI_SYMLINK: 'GEMINI.md',
   STRUCTURE: 'STRUCTURE.json',
   NOTES: 'PROJECT_NOTES.md',
   TASKS: 'tasks.json',

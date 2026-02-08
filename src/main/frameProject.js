@@ -193,6 +193,12 @@ function initializeFrameProject(projectPath, projectName) {
     path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK)
   );
 
+  // GEMINI.md - Symlink to AGENTS.md for Gemini CLI compatibility
+  createSymlinkSafe(
+    FRAME_FILES.AGENTS,
+    path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK)
+  );
+
   createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.STRUCTURE),
     templates.getStructureTemplate(name)

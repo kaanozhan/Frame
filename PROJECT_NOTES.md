@@ -576,3 +576,30 @@ xterm.js (same)                 xterm.js (same)
 **Key insight:** Instead of trying to pass system prompts via flags (which vary per tool), simply ask the AI to read the AGENTS.md file. This approach is tool-agnostic and works with any AI coding assistant.
 
 **Result:** Codex CLI now reads AGENTS.md on startup, maintaining context preservation across different AI tools.
+
+---
+
+### [2026-02-08] Gemini CLI Integration & Node.js Version Upgrade
+
+**Context:** Frame already supported Claude Code and Codex CLI. We reviewed the Codex integration pattern and added Gemini CLI to the same multi-tool infrastructure.
+
+**Architectural decision — Symlink vs Wrapper:**
+- Codex CLI required a **wrapper script** (no native file reading support, AGENTS.md is injected via `.frame/bin/codex`)
+- Gemini CLI reads `GEMINI.md` **natively** (just like Claude Code reads CLAUDE.md)
+- Therefore no wrapper script was needed for Gemini — we used the same **symlink approach** as CLAUDE.md: `GEMINI.md → AGENTS.md`
+
+**Files changed:**
+- `src/shared/frameConstants.js` - Added `GEMINI_SYMLINK: 'GEMINI.md'`
+- `src/main/aiToolManager.js` - Added Gemini CLI tool definition (commands: `/init`, `/model`, `/memory`, `/compress`, `/settings`, `/help`)
+- `src/main/frameProject.js` - Creates `GEMINI.md → AGENTS.md` symlink on Frame init
+- `src/main/menu.js` - Added Gemini-specific menu commands: Memory, Compress Context, Settings
+- `README.md` - Updated to include Gemini CLI support
+
+**Node.js version issue (important):**
+Gemini CLI's dependency `string-width` uses the `/v` regex flag which requires Node.js 20+. With Node.js 18, it threw `SyntaxError: Invalid regular expression flags`.
+
+- Before: Node.js v18.20.8 → Gemini CLI crashed on startup
+- After: Node.js v20.20.0 → Issue resolved
+- Commands: `nvm install 20` + `nvm alias default 20` + `npm install`
+- Impact on Frame: None — Electron 28, node-pty, xterm.js all compatible with Node 20
+- `nvm alias default 20` is critical — without it, terminals spawned by Frame still use the old default version
