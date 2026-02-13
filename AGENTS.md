@@ -6,6 +6,20 @@ This project is managed with **Frame**. AI assistants should follow the rules be
 
 ---
 
+## Core Working Principle
+
+**Only do what the user asks.** Do not go beyond the scope of the request.
+
+- Implement exactly what the user requested — nothing more, nothing less.
+- Do not change business logic, flow, or architecture unless the user explicitly asks for it.
+- If a user asks for a design change, only change the design. Do not refactor, restructure, or modify functionality alongside it.
+- If you have additional suggestions or improvements, **present them as suggestions** to the user. Never implement them without approval.
+- The user's request must be completed first. Additional ideas come after, as proposals.
+
+**Example:** If the user asks for a modal design change, only change the visual appearance. Do not add new IPC channels, modify event flows, or restructure code.
+
+---
+
 ## 🧭 Project Navigation
 
 **Read these files at the start of each session:**
