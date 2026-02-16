@@ -110,7 +110,7 @@
       </div>
     </div>
 
-    <!-- Plugins Panel -->
+    <!-- Claude Panel -->
     <div id="plugins-panel">
       <div id="plugins-header">
         <button id="plugins-collapse-btn" title="Collapse panel">
@@ -118,7 +118,7 @@
             <polyline points="9 18 15 12 9 6"/>
           </svg>
         </button>
-        <h3>Plugins</h3>
+        <h3>Claude</h3>
         <div class="plugins-header-actions">
           <button id="plugins-refresh-btn" tabindex="-1" title="Refresh plugin list">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -128,13 +128,18 @@
           <button id="plugins-close" tabindex="-1">✕</button>
         </div>
       </div>
-      <div class="plugins-filter">
-        <button class="plugins-filter-btn active" data-filter="all">All</button>
-        <button class="plugins-filter-btn" data-filter="installed">Installed</button>
-        <button class="plugins-filter-btn" data-filter="enabled">Enabled</button>
+      <div class="claude-tabs">
+        <button class="claude-tab-btn active" data-tab="plugins">Plugins</button>
       </div>
-      <div id="plugins-content">
-        <!-- Plugins will be populated here -->
+      <div data-tab-content="plugins">
+        <div class="plugins-filter">
+          <button class="plugins-filter-btn active" data-filter="all">All</button>
+          <button class="plugins-filter-btn" data-filter="installed">Installed</button>
+          <button class="plugins-filter-btn" data-filter="enabled">Enabled</button>
+        </div>
+        <div id="plugins-content">
+          <!-- Plugins will be populated here -->
+        </div>
       </div>
     </div>
 

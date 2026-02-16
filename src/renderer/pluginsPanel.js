@@ -9,6 +9,7 @@ const { IPC } = require('../shared/ipcChannels');
 let isVisible = false;
 let pluginsData = [];
 let currentFilter = 'all'; // all, installed, enabled
+let currentTab = 'plugins';
 
 // DOM Elements
 let panelElement = null;
@@ -57,6 +58,14 @@ function setupEventListeners() {
     btn.addEventListener('click', (e) => {
       const filter = e.target.dataset.filter;
       setFilter(filter);
+    });
+  });
+
+  // Tab buttons
+  document.querySelectorAll('.claude-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const tab = e.target.dataset.tab;
+      setTab(tab);
     });
   });
 }
@@ -163,6 +172,23 @@ function toggle() {
   } else {
     show();
   }
+}
+
+/**
+ * Set active tab
+ */
+function setTab(tab) {
+  currentTab = tab;
+
+  // Update active tab button
+  document.querySelectorAll('.claude-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+
+  // Show/hide tab content
+  document.querySelectorAll('[data-tab-content]').forEach(el => {
+    el.style.display = el.dataset.tabContent === tab ? '' : 'none';
+  });
 }
 
 /**

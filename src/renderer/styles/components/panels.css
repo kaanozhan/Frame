@@ -747,6 +747,36 @@
   background: var(--bg-hover);
 }
 
+/* Claude Tabs */
+.claude-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.claude-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-tertiary);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.claude-tab-btn:hover {
+  color: var(--text-secondary);
+}
+
+.claude-tab-btn.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
 /* Plugins Filter */
 .plugins-filter {
   display: flex;

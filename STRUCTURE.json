@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-02-13",
+  "lastUpdated": "2026-02-16",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -2087,82 +2087,89 @@
       ],
       "functions": {
         "init": {
-          "line": 20,
+          "line": 21,
           "purpose": "Initialize plugins panel"
         },
         "setupEventListeners": {
-          "line": 36,
+          "line": 37,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 67,
+          "line": 76,
           "purpose": "Setup IPC listeners"
         },
         "loadPlugins": {
-          "line": 91,
+          "line": 100,
           "purpose": "Load plugins"
         },
         "refreshPlugins": {
-          "line": 105,
+          "line": 114,
           "purpose": "Refresh plugins from marketplace"
         },
         "show": {
-          "line": 139,
+          "line": 148,
           "purpose": "Show plugins panel"
         },
         "hide": {
-          "line": 150,
+          "line": 159,
           "purpose": "Hide plugins panel"
         },
         "toggle": {
-          "line": 160,
+          "line": 169,
           "purpose": "Toggle plugins panel visibility"
         },
+        "setTab": {
+          "line": 180,
+          "params": [
+            "tab"
+          ],
+          "purpose": "Set active tab"
+        },
         "setFilter": {
-          "line": 171,
+          "line": 197,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredPlugins": {
-          "line": 185,
+          "line": 211,
           "purpose": "Get filtered plugins"
         },
         "render": {
-          "line": 201,
+          "line": 227,
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 245,
+          "line": 271,
           "params": [
             "plugin"
           ],
           "purpose": "Render single plugin item"
         },
         "getPluginIcon": {
-          "line": 291,
+          "line": 317,
           "params": [
             "name"
           ],
           "purpose": "Get icon for plugin based on name"
         },
         "togglePlugin": {
-          "line": 330,
+          "line": 356,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled"
         },
         "installPlugin": {
-          "line": 342,
+          "line": 368,
           "params": [
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
         },
         "showToast": {
-          "line": 359,
+          "line": 385,
           "params": [
             "message",
             "type = 'info'"
@@ -2170,14 +2177,14 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 394,
+          "line": 420,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
         "escapeHtml": {
-          "line": 408,
+          "line": 434,
           "params": [
             "text"
           ],
