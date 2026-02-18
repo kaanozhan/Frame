@@ -628,3 +628,33 @@ Gemini CLI's dependency `string-width` uses the `/v` regex flag which requires N
 - Refresh button with spinner animation
 - Sidechain sessions marked with a warning-color left border
 - "No project selected" empty state when no project is active
+
+---
+
+### [2026-02-16] Frame Server — Browser Mode Technical Planning
+
+**Context:** Discussion about making Frame run in the browser so it can be deployed on a remote server and accessed from any device.
+
+**Why it's feasible:**
+- UI is already web technologies (HTML/CSS/JS)
+- xterm.js is a native browser component
+- node-pty stays server-side, unchanged
+- Pattern proven by code-server (VS Code in browser)
+
+**What changes:**
+- Electron window → Express/Fastify HTTP server
+- IPC (`ipcMain`/`ipcRenderer`) → WebSocket
+- Terminal I/O streams over WebSocket
+- File system, tasks, etc. stay server-side — only the transport layer changes
+
+**Approach decided:** Transport layer abstraction — create a middle layer that works with both Electron IPC and WebSocket. Single codebase, two modes (desktop + web). This avoids maintaining two separate codebases.
+
+**Deployment model:** Frame Server + SSH tunnel is the most practical approach. Frame runs on the server, SSH tunnel provides security, browser provides the UI. No separate authentication needed since SSH handles it.
+
+**Steps:**
+1. Abstract IPC into a transport layer (supports both Electron IPC and WebSocket)
+2. Create Express server that serves the UI and handles WebSocket connections
+3. SSH tunnel for secure remote access
+4. (Optional) Authentication, HTTPS, multi-user support
+
+**Status:** Planned as the next major feature. Not started yet.
