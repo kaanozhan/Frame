@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Frame — AI-Native Code Editor</title>
-  <meta name="description" content="Frame is an AI-native development environment powered by Claude. Write better code, faster.">
+  <title>Frame — AI-Native Development Environment</title>
+  <meta name="description" content="Frame is a terminal-first development environment for AI coding tools. Supports Claude Code, Codex CLI, and Gemini CLI.">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -857,6 +857,87 @@
       }
     }
 
+    /* ===== FAQ ===== */
+    .faq {
+      padding: var(--space-4xl) 0;
+    }
+
+    .faq-grid {
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: border-color var(--transition-fast);
+    }
+
+    .faq-item:hover {
+      border-color: var(--border-hover);
+    }
+
+    .faq-item.open {
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    .faq-question {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-lg);
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: color var(--transition-fast);
+    }
+
+    .faq-question:hover {
+      color: var(--accent);
+    }
+
+    .faq-chevron {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+      transition: transform var(--transition-base);
+    }
+
+    .faq-item.open .faq-chevron {
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height var(--transition-slow);
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 300px;
+    }
+
+    .faq-answer p {
+      padding: 0 var(--space-lg) var(--space-lg);
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .faq-answer strong {
+      color: var(--text-primary);
+    }
+
     /* ===== SCROLL ANIMATIONS ===== */
     .fade-in {
       opacity: 0;
@@ -882,7 +963,7 @@
       <div class="nav-links">
         <a href="#features">Features</a>
         <a href="#showcase">Showcase</a>
-        <a href="https://github.com/anthropics/claude-code" target="_blank">Docs</a>
+        <a href="#faq">FAQ</a>
         <a href="https://github.com/kaanozhan/Frame" target="_blank">GitHub</a>
       </div>
 
@@ -903,7 +984,7 @@
     <div class="container">
       <div class="hero-content">
         <div class="hero-badge">
-          <span>Powered by Claude</span>
+          <span>Claude · Codex · Gemini</span>
         </div>
 
         <h1 class="hero-title">
@@ -911,8 +992,8 @@
         </h1>
 
         <p class="hero-subtitle">
-          Frame is an AI-native development environment.
-          Write better code, understand complex systems, and ship faster with Claude by your side.
+          Frame is a terminal-first development environment for AI coding tools.
+          Supports Claude Code, Codex CLI, and Gemini CLI — all in one place.
         </p>
 
         <div class="hero-actions">
@@ -974,7 +1055,7 @@
       <div class="section-label fade-in">Features</div>
       <h2 class="section-title fade-in">Everything you need<br>to build faster</h2>
       <p class="section-subtitle fade-in">
-        Frame combines the power of a modern IDE with Claude's intelligence, giving you superpowers for understanding and writing code.
+        Frame combines a terminal-first workflow with your favorite AI coding tool, giving you superpowers for understanding and writing code.
       </p>
 
       <div class="features-grid">
@@ -1050,9 +1131,9 @@
               <rect x="3" y="14" width="7" height="7"/>
             </svg>
           </div>
-          <h3 class="feature-title">Project Overview</h3>
+          <h3 class="feature-title">Multi-AI Support</h3>
           <p class="feature-description">
-            Dashboard showing project stats, recent decisions, task progress, and codebase health at a glance.
+            Switch between Claude Code, Codex CLI, and Gemini CLI with a single click. Use the best AI tool for each task.
           </p>
         </div>
       </div>
@@ -1135,8 +1216,78 @@
           <div class="stat-label">Possibilities</div>
         </div>
         <div class="stat-item fade-in">
-          <div class="stat-value">1</div>
-          <div class="stat-label">Claude</div>
+          <div class="stat-value">3</div>
+          <div class="stat-label">AI Tools</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="section-label fade-in">FAQ</div>
+      <h2 class="section-title fade-in">Frequently asked<br>questions</h2>
+
+      <div class="faq-grid">
+        <div class="faq-item fade-in">
+          <button class="faq-question">
+            <span>What is Frame?</span>
+            <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Frame is a terminal-first development environment built for AI coding tools. It's not a code editor like VS Code or Cursor — the center is the terminal, not a text editor. Frame standardizes your projects with AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, and tasks.json so you never lose context between sessions.</p>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question">
+            <span>How is Frame different from VS Code or Cursor?</span>
+            <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>VS Code and Cursor are designed for writing code manually. Frame is designed for developers who primarily code through AI tools in the terminal. The terminal is the center — with multi-terminal support (tabs and grid), project standardization, context preservation, and task tracking built in.</p>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question">
+            <span>Which AI tools are supported?</span>
+            <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Frame supports <strong>Claude Code</strong>, <strong>Codex CLI</strong>, and <strong>Gemini CLI</strong>. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code reads CLAUDE.md natively, Gemini CLI reads GEMINI.md natively, and Codex CLI uses a wrapper script that injects AGENTS.md automatically.</p>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question">
+            <span>What is context preservation?</span>
+            <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>As projects grow, context gets lost between AI sessions — decisions are forgotten, tasks slip through the cracks. Frame solves this with a standardized structure: PROJECT_NOTES.md captures decisions as they happen, tasks.json tracks work, and STRUCTURE.json maps your codebase. The AI reads these at the start of each session, so it always knows the full context.</p>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question">
+            <span>Can I run Frame on Windows and Linux?</span>
+            <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Yes. Frame is built with Electron, so it runs on macOS, Windows, and Linux. On Windows it uses PowerShell Core (or falls back to Windows PowerShell), and on macOS/Linux it uses your default shell (zsh, bash, fish, etc.).</p>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question">
+            <span>Can I run Frame as a web app on a remote server?</span>
+            <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Not yet, but it's on the roadmap as "Frame Server". Since Frame uses web technologies (xterm.js, HTML/CSS), converting to a web app (like code-server) is technically feasible. The main change would be replacing Electron IPC with WebSocket communication. Stay tuned!</p>
+          </div>
         </div>
       </div>
     </div>
@@ -1184,11 +1335,12 @@
         <div class="footer-links">
           <a href="https://github.com/kaanozhan/Frame" target="_blank">GitHub</a>
           <a href="https://github.com/anthropics/claude-code" target="_blank">Claude Code</a>
-          <a href="https://anthropic.com" target="_blank">Anthropic</a>
+          <a href="https://github.com/openai/codex" target="_blank">Codex CLI</a>
+          <a href="https://github.com/google-gemini/gemini-cli" target="_blank">Gemini CLI</a>
         </div>
 
         <div class="footer-copy">
-          Built with Claude · Open Source
+          Built for AI-native development · Open Source
         </div>
       </div>
     </div>
@@ -1211,6 +1363,22 @@
 
     document.querySelectorAll('.fade-in').forEach(el => {
       observer.observe(el);
+    });
+
+    // FAQ accordion
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.parentElement;
+        const isOpen = item.classList.contains('open');
+
+        // Close all
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+
+        // Toggle clicked
+        if (!isOpen) {
+          item.classList.add('open');
+        }
+      });
     });
 
     // Smooth scroll for anchor links
