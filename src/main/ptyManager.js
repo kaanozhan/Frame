@@ -5,6 +5,7 @@
 
 const pty = require('node-pty');
 const { IPC } = require('../shared/ipcChannels');
+const promptLogger = require('./promptLogger');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
@@ -321,6 +322,7 @@ function setupIPC(ipcMain) {
   // Input to specific terminal
   ipcMain.on(IPC.TERMINAL_INPUT_ID, (event, { terminalId, data }) => {
     writeToTerminal(terminalId, data);
+    promptLogger.logInput(data);
   });
 
   // Resize specific terminal

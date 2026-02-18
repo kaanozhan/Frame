@@ -41,8 +41,8 @@ function logInput(data) {
     } else if (char === '\x7f' || char === '\b') {
       // Backspace - remove last char
       inputBuffer = inputBuffer.slice(0, -1);
-    } else if (char >= ' ' && char <= '~') {
-      // Printable character
+    } else if (char.charCodeAt(0) >= 32 && char !== '\x7f') {
+      // Printable character (including Unicode)
       inputBuffer += char;
     }
   }

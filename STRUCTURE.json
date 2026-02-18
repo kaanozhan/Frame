@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-02-16",
+  "lastUpdated": "2026-02-18",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -1766,27 +1766,28 @@
       "depends": [
         "node-pty",
         "shared/ipcChannels",
+        "promptLogger",
         "child_process",
         "fs"
       ],
       "functions": {
         "init": {
-          "line": 18,
+          "line": 19,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getDefaultShell": {
-          "line": 25,
+          "line": 26,
           "purpose": "Get default shell based on platform"
         },
         "getAvailableShells": {
-          "line": 42,
+          "line": 43,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 128,
+          "line": 129,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -1794,21 +1795,21 @@
           ]
         },
         "getTerminalsByProject": {
-          "line": 190,
+          "line": 191,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 205,
+          "line": 206,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "writeToTerminal": {
-          "line": 216,
+          "line": 217,
           "params": [
             "terminalId",
             "data"
@@ -1816,7 +1817,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 226,
+          "line": 227,
           "params": [
             "terminalId",
             "cols",
@@ -1825,33 +1826,33 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 236,
+          "line": 237,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 248,
+          "line": 249,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 259,
+          "line": 260,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 266,
+          "line": 267,
           "purpose": "Get all terminal IDs"
         },
         "hasTerminal": {
-          "line": 273,
+          "line": 274,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 280,
+          "line": 281,
           "params": [
             "ipcMain"
           ],
