@@ -11,7 +11,7 @@
   "modules": {
     "main/index": {
       "file": "src/main/index.js",
-      "description": "M",
+      "description": "Main Process Entry Point",
       "exports": [
         "createWindow"
       ],
@@ -67,7 +67,7 @@
     },
     "main/pty": {
       "file": "src/main/pty.js",
-      "description": "P",
+      "description": "PTY Management Module",
       "exports": [
         "init",
         "startPTY",
@@ -158,7 +158,7 @@
     },
     "main/menu": {
       "file": "src/main/menu.js",
-      "description": "A",
+      "description": "Application Menu Module",
       "exports": [
         "init",
         "createMenu",
@@ -225,7 +225,7 @@
     },
     "main/dialogs": {
       "file": "src/main/dialogs.js",
-      "description": "D",
+      "description": "Dialogs Module",
       "exports": [
         "init",
         "showFolderPicker",
@@ -279,7 +279,7 @@
     },
     "main/fileTree": {
       "file": "src/main/fileTree.js",
-      "description": "F",
+      "description": "File Tree Module",
       "exports": [
         "getFileTree",
         "setupIPC"
@@ -317,7 +317,7 @@
     },
     "main/promptLogger": {
       "file": "src/main/promptLogger.js",
-      "description": "P",
+      "description": "Prompt Logger Module",
       "exports": [
         "init",
         "logInput",
@@ -372,7 +372,7 @@
     },
     "main/tasksManager": {
       "file": "src/main/tasksManager.js",
-      "description": "T",
+      "description": "Tasks Manager Module",
       "exports": [
         "init",
         "setProjectPath",
@@ -478,7 +478,7 @@
     },
     "main/frameProject": {
       "file": "src/main/frameProject.js",
-      "description": "F",
+      "description": "Frame Project Module",
       "exports": [
         "init",
         "isFrameProject",
@@ -623,7 +623,7 @@
     },
     "main/workspace": {
       "file": "src/main/workspace.js",
-      "description": "W",
+      "description": "Workspace Module",
       "exports": [
         "init",
         "loadWorkspace",
@@ -726,7 +726,7 @@
     },
     "renderer/index": {
       "file": "src/renderer/index.js",
-      "description": "R",
+      "description": "Renderer Entry Point",
       "exports": [],
       "depends": [
         "terminal",
@@ -758,7 +758,7 @@
     },
     "renderer/terminal": {
       "file": "src/renderer/terminal.js",
-      "description": "T",
+      "description": "Terminal UI Module",
       "exports": [
         "initTerminal",
         "writeToTerminal",
@@ -846,7 +846,7 @@
     },
     "renderer/fileTreeUI": {
       "file": "src/renderer/fileTreeUI.js",
-      "description": "F",
+      "description": "File Tree UI Module",
       "exports": [
         "init",
         "setProjectPathGetter",
@@ -948,7 +948,7 @@
     },
     "renderer/historyPanel": {
       "file": "src/renderer/historyPanel.js",
-      "description": "H",
+      "description": "History Panel Module",
       "exports": [
         "init",
         "isHistoryVisible",
@@ -1015,7 +1015,7 @@
     },
     "renderer/state": {
       "file": "src/renderer/state.js",
-      "description": "A",
+      "description": "Application State Module",
       "exports": [
         "init",
         "getProjectPath",
@@ -1150,7 +1150,7 @@
     },
     "renderer/tasksPanel": {
       "file": "src/renderer/tasksPanel.js",
-      "description": "T",
+      "description": "Tasks Panel Module",
       "exports": [
         "init",
         "show",
@@ -1327,7 +1327,7 @@
     },
     "renderer/editor": {
       "file": "src/renderer/editor.js",
-      "description": "F",
+      "description": "File Editor Module",
       "exports": [
         "init",
         "openFile",
@@ -1406,7 +1406,7 @@
     },
     "renderer/projectListUI": {
       "file": "src/renderer/projectListUI.js",
-      "description": "P",
+      "description": "Project List UI Module",
       "exports": [
         "init",
         "loadProjects",
@@ -1537,7 +1537,7 @@
     },
     "renderer/multiTerminalUI": {
       "file": "src/renderer/multiTerminalUI.js",
-      "description": "M",
+      "description": "Multi-Terminal UI Module",
       "exports": [
         "MultiTerminalUI"
       ],
@@ -1551,7 +1551,7 @@
     },
     "renderer/terminalManager": {
       "file": "src/renderer/terminalManager.js",
-      "description": "T",
+      "description": "Terminal Manager Module",
       "exports": [
         "TerminalManager"
       ],
@@ -1581,7 +1581,7 @@
     },
     "shared/ipcChannels": {
       "file": "src/shared/ipcChannels.js",
-      "description": "I",
+      "description": "IPC Channel Constants",
       "exports": [
         "IPC"
       ],
@@ -1590,7 +1590,7 @@
     },
     "shared/frameConstants": {
       "file": "src/shared/frameConstants.js",
-      "description": "F",
+      "description": "Frame Constants",
       "exports": [
         "FRAME_DIR",
         "FRAME_CONFIG_FILE",
@@ -1605,7 +1605,7 @@
     },
     "shared/frameTemplates": {
       "file": "src/shared/frameTemplates.js",
-      "description": "F",
+      "description": "Frame Templates",
       "exports": [
         "getAgentsTemplate",
         "getStructureTemplate",
@@ -1684,7 +1684,7 @@
     },
     "main/fileEditor": {
       "file": "src/main/fileEditor.js",
-      "description": "F",
+      "description": "File Editor Module",
       "exports": [
         "init",
         "readFile",
@@ -1747,7 +1747,7 @@
     },
     "main/ptyManager": {
       "file": "src/main/ptyManager.js",
-      "description": "P",
+      "description": "PTY Manager Module",
       "exports": [
         "init",
         "createTerminal",
@@ -1875,7 +1875,7 @@
     },
     "renderer/sidebarResize": {
       "file": "src/renderer/sidebarResize.js",
-      "description": "S",
+      "description": "Sidebar Resize Module",
       "exports": [
         "init",
         "getWidth",
@@ -1951,7 +1951,7 @@
     },
     "renderer/terminalGrid": {
       "file": "src/renderer/terminalGrid.js",
-      "description": "T",
+      "description": "Terminal Grid Module",
       "exports": [
         "TerminalGrid",
         "GRID_LAYOUTS"
@@ -1961,7 +1961,7 @@
     },
     "renderer/terminalTabBar": {
       "file": "src/renderer/terminalTabBar.js",
-      "description": "T",
+      "description": "Terminal Tab Bar Module",
       "exports": [
         "TerminalTabBar"
       ],
@@ -1985,7 +1985,7 @@
     },
     "main/pluginsManager": {
       "file": "src/main/pluginsManager.js",
-      "description": "P",
+      "description": "Plugins Manager Module",
       "exports": [
         "init",
         "setupIPC",
@@ -2074,7 +2074,7 @@
     },
     "renderer/pluginsPanel": {
       "file": "src/renderer/pluginsPanel.js",
-      "description": "P",
+      "description": "Plugins Panel Module",
       "exports": [
         "init",
         "show",
@@ -2244,7 +2244,7 @@
     },
     "main/githubManager": {
       "file": "src/main/githubManager.js",
-      "description": "G",
+      "description": "GitHub Manager Module",
       "exports": [
         "init",
         "setProjectPath",
@@ -2316,7 +2316,7 @@
     },
     "renderer/githubPanel": {
       "file": "src/renderer/githubPanel.js",
-      "description": "G",
+      "description": "GitHub Panel Module",
       "exports": [
         "init",
         "show",
@@ -2556,7 +2556,7 @@
     },
     "main/claudeUsageManager": {
       "file": "src/main/claudeUsageManager.js",
-      "description": "C",
+      "description": "Claude Usage Manager Module",
       "exports": [
         "init",
         "setupIPC",
@@ -2625,7 +2625,7 @@
     },
     "main/overviewManager": {
       "file": "src/main/overviewManager.js",
-      "description": "O",
+      "description": "Overview Manager Module",
       "exports": [
         "init",
         "loadOverview",
@@ -2752,7 +2752,7 @@
     },
     "renderer/overviewPanel": {
       "file": "src/renderer/overviewPanel.js",
-      "description": "O",
+      "description": "Overview Panel Module",
       "exports": [
         "init",
         "render",
@@ -2865,7 +2865,7 @@
     },
     "renderer/structureMap": {
       "file": "src/renderer/structureMap.js",
-      "description": "S",
+      "description": "Structure Map Module",
       "exports": [
         "init",
         "show",
@@ -3022,7 +3022,7 @@
     },
     "main/gitBranchesManager": {
       "file": "src/main/gitBranchesManager.js",
-      "description": "G",
+      "description": "Git Branches Manager Module",
       "exports": [
         "init",
         "loadBranches",
@@ -3148,7 +3148,7 @@
     },
     "main/aiToolManager": {
       "file": "src/main/aiToolManager.js",
-      "description": "A",
+      "description": "AI Tool Manager",
       "exports": [
         "init",
         "getAvailableTools",
@@ -3245,7 +3245,7 @@
     },
     "renderer/aiToolSelector": {
       "file": "src/renderer/aiToolSelector.js",
-      "description": "A",
+      "description": "AI Tool Selector Module",
       "exports": [
         "init",
         "getCurrentTool",
@@ -3305,7 +3305,7 @@
     },
     "main/claudeSessionsManager": {
       "file": "src/main/claudeSessionsManager.js",
-      "description": "C",
+      "description": "Claude Sessions Manager Module",
       "exports": [
         "init",
         "setupIPC",
@@ -3686,5 +3686,251 @@
       "useIPC": "For main ↔ renderer communication",
       "useGlobal": "For renderer ↔ renderer communication that would cause circular dependency"
     }
+  },
+  "intentIndex": {
+    "ai-tool": [
+      {
+        "module": "main/aiToolManager",
+        "file": "src/main/aiToolManager.js",
+        "description": "AI Tool Manager"
+      },
+      {
+        "module": "renderer/aiToolSelector",
+        "file": "src/renderer/aiToolSelector.js",
+        "description": "AI Tool Selector Module"
+      }
+    ],
+    "claude-sessions": [
+      {
+        "module": "main/claudeSessionsManager",
+        "file": "src/main/claudeSessionsManager.js",
+        "description": "Claude Sessions Manager Module"
+      }
+    ],
+    "claude-usage": [
+      {
+        "module": "main/claudeUsageManager",
+        "file": "src/main/claudeUsageManager.js",
+        "description": "Claude Usage Manager Module"
+      }
+    ],
+    "dialogs": [
+      {
+        "module": "main/dialogs",
+        "file": "src/main/dialogs.js",
+        "description": "Dialogs Module"
+      }
+    ],
+    "editor": [
+      {
+        "module": "main/editor",
+        "file": "src/main/editor.js",
+        "description": "File reading/writing for editor overlay"
+      },
+      {
+        "module": "renderer/editor",
+        "file": "src/renderer/editor.js",
+        "description": "File Editor Module"
+      }
+    ],
+    "file-editor": [
+      {
+        "module": "main/fileEditor",
+        "file": "src/main/fileEditor.js",
+        "description": "File Editor Module"
+      }
+    ],
+    "file-tree": [
+      {
+        "module": "main/fileTree",
+        "file": "src/main/fileTree.js",
+        "description": "File Tree Module"
+      },
+      {
+        "module": "renderer/fileTreeUI",
+        "file": "src/renderer/fileTreeUI.js",
+        "description": "File Tree UI Module"
+      }
+    ],
+    "frame-config": [
+      {
+        "module": "main/frameProject",
+        "file": "src/main/frameProject.js",
+        "description": "Frame Project Module"
+      },
+      {
+        "module": "shared/frameConstants",
+        "file": "src/shared/frameConstants.js",
+        "description": "Frame Constants"
+      },
+      {
+        "module": "shared/frameTemplates",
+        "file": "src/shared/frameTemplates.js",
+        "description": "Frame Templates"
+      }
+    ],
+    "git-branches": [
+      {
+        "module": "main/gitBranchesManager",
+        "file": "src/main/gitBranchesManager.js",
+        "description": "Git Branches Manager Module"
+      }
+    ],
+    "github": [
+      {
+        "module": "main/githubManager",
+        "file": "src/main/githubManager.js",
+        "description": "GitHub Manager Module"
+      },
+      {
+        "module": "renderer/githubPanel",
+        "file": "src/renderer/githubPanel.js",
+        "description": "GitHub Panel Module"
+      }
+    ],
+    "history": [
+      {
+        "module": "main/promptLogger",
+        "file": "src/main/promptLogger.js",
+        "description": "Prompt Logger Module"
+      },
+      {
+        "module": "renderer/historyPanel",
+        "file": "src/renderer/historyPanel.js",
+        "description": "History Panel Module"
+      }
+    ],
+    "index": [
+      {
+        "module": "main/index",
+        "file": "src/main/index.js",
+        "description": "Main Process Entry Point"
+      },
+      {
+        "module": "renderer/index",
+        "file": "src/renderer/index.js",
+        "description": "Renderer Entry Point"
+      }
+    ],
+    "ipc": [
+      {
+        "module": "shared/ipcChannels",
+        "file": "src/shared/ipcChannels.js",
+        "description": "IPC Channel Constants"
+      }
+    ],
+    "menu": [
+      {
+        "module": "main/menu",
+        "file": "src/main/menu.js",
+        "description": "Application Menu Module"
+      }
+    ],
+    "overview": [
+      {
+        "module": "main/overviewManager",
+        "file": "src/main/overviewManager.js",
+        "description": "Overview Manager Module"
+      },
+      {
+        "module": "renderer/overviewPanel",
+        "file": "src/renderer/overviewPanel.js",
+        "description": "Overview Panel Module"
+      }
+    ],
+    "plugins": [
+      {
+        "module": "main/pluginsManager",
+        "file": "src/main/pluginsManager.js",
+        "description": "Plugins Manager Module"
+      },
+      {
+        "module": "renderer/pluginsPanel",
+        "file": "src/renderer/pluginsPanel.js",
+        "description": "Plugins Panel Module"
+      }
+    ],
+    "sidebar": [
+      {
+        "module": "renderer/projectListUI",
+        "file": "src/renderer/projectListUI.js",
+        "description": "Project List UI Module"
+      },
+      {
+        "module": "renderer/sidebarResize",
+        "file": "src/renderer/sidebarResize.js",
+        "description": "Sidebar Resize Module"
+      }
+    ],
+    "state": [
+      {
+        "module": "renderer/state",
+        "file": "src/renderer/state.js",
+        "description": "Application State Module"
+      }
+    ],
+    "structure": [
+      {
+        "module": "renderer/structureMap",
+        "file": "src/renderer/structureMap.js",
+        "description": "Structure Map Module"
+      }
+    ],
+    "tasks": [
+      {
+        "module": "main/tasksManager",
+        "file": "src/main/tasksManager.js",
+        "description": "Tasks Manager Module"
+      },
+      {
+        "module": "renderer/tasksPanel",
+        "file": "src/renderer/tasksPanel.js",
+        "description": "Tasks Panel Module"
+      }
+    ],
+    "terminal": [
+      {
+        "module": "main/pty",
+        "file": "src/main/pty.js",
+        "description": "PTY Management Module"
+      },
+      {
+        "module": "main/ptyManager",
+        "file": "src/main/ptyManager.js",
+        "description": "PTY Manager Module"
+      },
+      {
+        "module": "renderer/multiTerminalUI",
+        "file": "src/renderer/multiTerminalUI.js",
+        "description": "Multi-Terminal UI Module"
+      },
+      {
+        "module": "renderer/terminal",
+        "file": "src/renderer/terminal.js",
+        "description": "Terminal UI Module"
+      },
+      {
+        "module": "renderer/terminalGrid",
+        "file": "src/renderer/terminalGrid.js",
+        "description": "Terminal Grid Module"
+      },
+      {
+        "module": "renderer/terminalManager",
+        "file": "src/renderer/terminalManager.js",
+        "description": "Terminal Manager Module"
+      },
+      {
+        "module": "renderer/terminalTabBar",
+        "file": "src/renderer/terminalTabBar.js",
+        "description": "Terminal Tab Bar Module"
+      }
+    ],
+    "workspace": [
+      {
+        "module": "main/workspace",
+        "file": "src/main/workspace.js",
+        "description": "Workspace Module"
+      }
+    ]
   }
 }

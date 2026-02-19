@@ -33,6 +33,15 @@ This project is managed with **Frame**. AI assistants should follow the rules be
 2. Identify relevant files based on the task
 3. Update STRUCTURE.json after making changes (if new modules/files are added)
 
+**Fast File Lookup:** When searching for files related to a feature or concept, run:
+```bash
+node scripts/find-module.js <keyword>
+```
+This searches STRUCTURE.json's intentIndex and returns the exact files you need. Use this **before** doing manual grep/glob searches. Examples:
+- `node scripts/find-module.js github` → finds githubManager.js + githubPanel.js
+- `node scripts/find-module.js terminal` → finds all terminal-related files
+- `node scripts/find-module.js --list` → lists all features and their files
+
 **Note:** This system doesn't prevent reading code - it just helps you know where to look.
 
 ---

@@ -12,6 +12,7 @@
     "dev": "npm run watch & electron .",
     "structure": "node scripts/update-structure.js",
     "structure:changed": "node scripts/update-structure.js --changed",
+    "find-module": "node scripts/find-module.js",
     "prepare": "git config core.hooksPath .githooks || true",
     "dist": "npm run build && electron-builder --mac --dir",
     "dist:mac": "npm run build && electron-builder --mac",

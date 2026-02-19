@@ -54,7 +54,7 @@ function parseJSFile(filePath) {
  */
 function extractDescription(content) {
   // Match JSDoc style comment at top
-  const match = content.match(/^\/\*\*[\s\S]*?\*\s*(.+?)[\s\S]*?\*\//);
+  const match = content.match(/^\/\*\*\s*\n\s*\*\s*([^\n]+)/);
   if (match) {
     return match[1].trim();
   }
@@ -412,7 +412,90 @@ function main() {
     }
   }
 
+  // Generate intent index from modules
+  generateIntentIndex(structure);
+
   saveStructure(structure);
+}
+
+/**
+ * Generate intentIndex from module keys
+ * Groups related modules by feature name (e.g. githubManager + githubPanel → "github")
+ */
+function generateIntentIndex(structure) {
+  const modules = structure.modules;
+  const groups = {};
+
+  // Suffixes to strip for grouping
+  const suffixes = ['Manager', 'Panel', 'UI', 'Selector', 'TabBar', 'Grid'];
+
+  // Special aliases: module base name → intent name
+  const aliases = {
+    'pty': 'terminal',
+    'ptyManager': 'terminal',
+    'terminal': 'terminal',
+    'terminalManager': 'terminal',
+    'terminalGrid': 'terminal',
+    'terminalTabBar': 'terminal',
+    'multiTerminalUI': 'terminal',
+    'promptLogger': 'history',
+    'historyPanel': 'history',
+    'fileTree': 'file-tree',
+    'fileTreeUI': 'file-tree',
+    'ipcChannels': 'ipc',
+    'frameConstants': 'frame-config',
+    'frameTemplates': 'frame-config',
+    'frameProject': 'frame-config',
+    'sidebarResize': 'sidebar',
+    'projectListUI': 'sidebar',
+    'structureMap': 'structure',
+    'claudeUsageManager': 'claude-usage',
+    'claudeSessionsManager': 'claude-sessions',
+    'gitBranchesManager': 'git-branches',
+    'aiToolManager': 'ai-tool',
+    'aiToolSelector': 'ai-tool'
+  };
+
+  for (const [key, mod] of Object.entries(modules)) {
+    const parts = key.split('/');
+    const baseName = parts[parts.length - 1]; // e.g. "githubManager"
+
+    let intentName;
+
+    // Check aliases first
+    if (aliases[baseName]) {
+      intentName = aliases[baseName];
+    } else {
+      // Strip known suffixes to get the feature name
+      intentName = baseName;
+      for (const suffix of suffixes) {
+        if (intentName.endsWith(suffix) && intentName.length > suffix.length) {
+          intentName = intentName.slice(0, -suffix.length);
+          break;
+        }
+      }
+      // Convert camelCase to kebab-case
+      intentName = intentName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+    }
+
+    if (!groups[intentName]) {
+      groups[intentName] = [];
+    }
+
+    groups[intentName].push({
+      module: key,
+      file: mod.file,
+      description: mod.description || ''
+    });
+  }
+
+  // Sort groups alphabetically and sort modules within each group
+  const sorted = {};
+  for (const key of Object.keys(groups).sort()) {
+    sorted[key] = groups[key].sort((a, b) => a.module.localeCompare(b.module));
+  }
+
+  structure.intentIndex = sorted;
 }
 
 main();
