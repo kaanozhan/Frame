@@ -3986,3 +3986,122 @@
   cursor: pointer;
 }
 
+/* ==================== SPOTLIGHT TOUR ==================== */
+.spotlight-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 900;
+  display: none;
+  pointer-events: none;
+}
+
+.spotlight-overlay.visible {
+  display: block;
+  pointer-events: auto;
+  animation: spotlightFadeIn 0.3s ease-out;
+}
+
+.spotlight-backdrop {
+  position: absolute;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.spotlight-card {
+  position: absolute;
+  width: 300px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+.spotlight-overlay.visible .spotlight-card {
+  animation: spotlightCardIn 0.3s ease-out 0.15s forwards;
+}
+
+.spotlight-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.spotlight-icon {
+  color: var(--accent-primary);
+  font-size: 16px;
+}
+
+.spotlight-card-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.spotlight-card-body {
+  margin: 0 0 var(--space-md) 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.spotlight-card-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-lg);
+}
+
+.spotlight-card-files span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 3px 8px;
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  border-radius: var(--radius-sm);
+}
+
+.spotlight-card-btn {
+  width: 100%;
+  padding: 8px 0;
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.spotlight-card-btn:hover {
+  opacity: 0.9;
+}
+
+@keyframes spotlightFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spotlightCardIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+

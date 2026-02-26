@@ -38,7 +38,30 @@
             <option value="codex">Codex</option>
           </select>
         </div>
-        <button id="btn-initialize-frame" class="btn btn-secondary" tabindex="-1" style="display: none;">Initialize as Frame Project</button>
+        <div class="init-frame-wrapper">
+          <button id="btn-initialize-frame" class="btn btn-frame-init" tabindex="-1" style="display: none;">Initialize as Frame Project</button>
+        </div>
+
+    <!-- Hover tooltip for Initialize Frame button (fixed position, escapes overflow) -->
+    <div id="init-frame-tooltip" class="init-frame-tooltip">
+      <div class="spotlight-card-header">
+        <span class="spotlight-icon">&#10022;</span>
+        <h4>Initialize as Frame Project</h4>
+      </div>
+      <p class="spotlight-card-body">
+        Frame standardizes your project for AI-assisted development.
+        This creates configuration files that help AI tools understand
+        your project structure, preserve context between sessions,
+        and track decisions.
+      </p>
+      <div class="spotlight-card-files">
+        <span>AGENTS.md</span>
+        <span>STRUCTURE.json</span>
+        <span>PROJECT_NOTES.md</span>
+        <span>tasks.json</span>
+        <span>+ more</span>
+      </div>
+    </div>
       </div>
 
       <!-- Projects Section -->
@@ -211,6 +234,30 @@
       </div>
       <div id="github-content">
         <!-- GitHub content will be populated here -->
+      </div>
+    </div>
+
+    <!-- Spotlight Tour: Initialize Frame -->
+    <div id="spotlight-overlay" class="spotlight-overlay">
+      <div id="spotlight-card" class="spotlight-card">
+        <div class="spotlight-card-header">
+          <span class="spotlight-icon">&#10022;</span>
+          <h4>Initialize as Frame Project</h4>
+        </div>
+        <p class="spotlight-card-body">
+          Frame standardizes your project for AI-assisted development.
+          This creates configuration files that help AI tools understand
+          your project structure, preserve context between sessions,
+          and track decisions.
+        </p>
+        <div class="spotlight-card-files">
+          <span>AGENTS.md</span>
+          <span>STRUCTURE.json</span>
+          <span>PROJECT_NOTES.md</span>
+          <span>tasks.json</span>
+          <span>+ more</span>
+        </div>
+        <button id="spotlight-dismiss" class="spotlight-card-btn">Got it</button>
       </div>
     </div>
 
