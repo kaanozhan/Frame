@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-02-19",
+  "lastUpdated": "2026-02-26",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -1037,100 +1037,112 @@
       ],
       "functions": {
         "init": {
-          "line": 25,
+          "line": 27,
           "params": [
             "elements"
           ],
           "purpose": "Initialize state module"
         },
         "getProjectPath": {
-          "line": 38,
+          "line": 41,
           "purpose": "Get current project path"
         },
         "setMultiTerminalUI": {
-          "line": 45,
+          "line": 48,
           "params": [
             "ui"
           ],
           "purpose": "Set MultiTerminalUI reference for terminal session management"
         },
         "setProjectPath": {
-          "line": 52,
+          "line": 55,
           "params": [
             "path"
           ],
           "purpose": "Set project path and switch terminal session"
         },
         "onProjectChange": {
-          "line": 77,
+          "line": 80,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for project change"
         },
         "getIsFrameProject": {
-          "line": 84,
+          "line": 87,
           "purpose": "Get Frame project status"
         },
         "setIsFrameProject": {
-          "line": 91,
+          "line": 94,
           "params": [
             "isFrame"
           ],
           "purpose": "Set Frame project status"
         },
         "onFrameStatusChange": {
-          "line": 102,
+          "line": 105,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame status change"
         },
         "onFrameInitialized": {
-          "line": 109,
+          "line": 112,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame project initialized"
         },
         "updateFrameUI": {
-          "line": 116,
+          "line": 119,
           "purpose": "Update Frame-related UI"
         },
         "initializeAsFrameProject": {
-          "line": 130,
+          "line": 134,
           "purpose": "Initialize current project as Frame project"
         },
         "showInitializeFrameModal": {
-          "line": 139,
+          "line": 143,
           "purpose": "Show custom initialize Frame modal"
         },
         "hideInitializeFrameModal": {
-          "line": 149,
+          "line": 153,
           "purpose": "Hide initialize Frame modal"
         },
         "handleInitializeFrame": {
-          "line": 159,
+          "line": 163,
           "purpose": "Handle initialize Frame confirmation"
         },
         "setupInitFrameModalListeners": {
-          "line": 174,
+          "line": 178,
           "purpose": "Setup initialize Frame modal listeners"
         },
+        "showInitSpotlight": {
+          "line": 204,
+          "purpose": "Show spotlight tour for the initialize button (first time only)"
+        },
+        "dismissSpotlight": {
+          "line": 242,
+          "purpose": "Dismiss spotlight and mark as seen"
+        },
+        "setupSpotlightListeners": {
+          "line": 253,
+          "purpose": "Setup spotlight tour listeners"
+        },
         "updateProjectUI": {
-          "line": 200,
+          "line": 295,
           "purpose": "Update project UI elements"
         },
         "selectProjectFolder": {
-          "line": 233,
+          "line": 328,
           "purpose": "Request folder selection"
         },
         "createNewProject": {
-          "line": 240,
+          "line": 335,
           "purpose": "Request new project creation"
         },
         "setupIPC": {
-          "line": 247,
+          "line": 342,
           "purpose": "Setup IPC listeners"
         }
       },

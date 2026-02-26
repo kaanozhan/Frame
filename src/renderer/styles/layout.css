@@ -324,11 +324,42 @@ body.sidebar-resizing * {
   font-style: italic;
 }
 
-#btn-initialize-frame {
+.init-frame-wrapper {
+  position: relative;
   margin-top: var(--space-xl);
   padding-top: var(--space-lg);
   border-top: 1px dashed var(--border-default);
+}
+
+#btn-initialize-frame {
   width: 100%;
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+  border-color: var(--accent-primary);
+  font-weight: 600;
+}
+
+#btn-initialize-frame:hover {
+  opacity: 0.9;
+}
+
+/* Hover tooltip (fixed position to escape sidebar overflow) */
+.init-frame-tooltip {
+  display: none;
+  position: fixed;
+  width: 280px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.init-frame-tooltip.visible {
+  display: block;
+  animation: spotlightCardIn 0.2s ease-out forwards;
 }
 
 /* ==================== MAIN CONTENT ==================== */
