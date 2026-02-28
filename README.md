@@ -4,7 +4,10 @@ A lightweight, IDE-style desktop application built specifically for working with
 
 Update : Frame now supports Codex CLI and Gemini CLI too.
 
-<img width="1464" height="852" alt="Screenshot 2026-01-28 at 01 00 37" src="https://github.com/user-attachments/assets/8699c91f-35ea-4c3d-b871-56962e427017" />
+
+
+https://github.com/user-attachments/assets/6fe108d1-70c8-441e-a913-b34583c803b0
+
 
 ## What is this?
 
