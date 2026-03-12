@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-02-26",
+  "lastUpdated": "2026-03-12",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -1573,7 +1573,12 @@
         "xterm-addon-fit",
         "shared/ipcChannels"
       ],
-      "functions": {},
+      "functions": {
+        "getTerminalTheme": {
+          "line": 12,
+          "purpose": "Terminal theme based on current app theme"
+        }
+      },
       "ipc": {
         "listens": [
           "TERMINAL_CREATED",

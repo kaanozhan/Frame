@@ -23,6 +23,7 @@ class TerminalTabBar {
     this._createContextMenu();
     this._createShellMenu();
     this._loadAvailableShells();
+    this._initTheme();
   }
 
   _injectStyles() {
@@ -170,6 +171,22 @@ class TerminalTabBar {
             <rect x="3" y="14" width="7" height="7"></rect>
           </svg>
           Overview
+        </button>
+        <button class="btn-theme-toggle" title="Toggle Light/Dark Theme">
+          <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
         </button>
       </div>
     `;
@@ -325,6 +342,11 @@ class TerminalTabBar {
       if (this.onOverviewToggle) {
         this.onOverviewToggle();
       }
+    });
+
+    // Theme toggle button
+    this.element.querySelector('.btn-theme-toggle').addEventListener('click', () => {
+      this._toggleTheme();
     });
 
     // Setup usage bar IPC listener
@@ -659,6 +681,43 @@ class TerminalTabBar {
       'sh': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>'
     };
     return icons[shellId] || icons['sh'];
+  }
+
+  /**
+   * Initialize theme from localStorage
+   */
+  _initTheme() {
+    const saved = localStorage.getItem('frame-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    this._updateThemeButton(saved);
+  }
+
+  /**
+   * Toggle between dark and light theme
+   */
+  _toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('frame-theme', next);
+    this._updateThemeButton(next);
+  }
+
+  /**
+   * Update theme button icon based on current theme
+   */
+  _updateThemeButton(theme) {
+    const btn = this.element.querySelector('.btn-theme-toggle');
+    if (!btn) return;
+    const sun = btn.querySelector('.icon-sun');
+    const moon = btn.querySelector('.icon-moon');
+    if (theme === 'light') {
+      sun.style.display = 'none';
+      moon.style.display = 'block';
+    } else {
+      sun.style.display = 'block';
+      moon.style.display = 'none';
+    }
   }
 
   /**

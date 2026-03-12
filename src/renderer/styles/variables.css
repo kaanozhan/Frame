@@ -1,5 +1,6 @@
 /* ==================== DESIGN SYSTEM - FRAME ==================== */
-:root {
+:root,
+[data-theme="dark"] {
   /* Color Palette - Warm Neutrals with Amber Accent */
   --bg-deep: #0f0f10;
   --bg-primary: #151516;
@@ -60,4 +61,40 @@
   /* Typography */
   --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+}
+
+/* ==================== LIGHT THEME ==================== */
+[data-theme="light"] {
+  --bg-deep: #f0ede8;
+  --bg-primary: #f7f5f2;
+  --bg-secondary: #ede9e3;
+  --bg-tertiary: #e5e0d8;
+  --bg-elevated: #dbd5cb;
+  --bg-hover: #d4cdc2;
+
+  --text-primary: #1c1a18;
+  --text-secondary: #5a5550;
+  --text-tertiary: #8a8480;
+  --text-muted: #b0aba5;
+
+  --accent-primary: #b5722a;
+  --accent-secondary: #a06020;
+  --accent-subtle: rgba(181, 114, 42, 0.12);
+  --accent-glow: rgba(181, 114, 42, 0.08);
+
+  --success: #4a7c50;
+  --success-subtle: rgba(74, 124, 80, 0.12);
+  --warning: #c07820;
+  --error: #b84040;
+  --error-subtle: rgba(184, 64, 64, 0.12);
+  --info: #4070a8;
+
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-default: rgba(0, 0, 0, 0.10);
+  --border-strong: rgba(0, 0, 0, 0.15);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  --shadow-glow: 0 0 20px var(--accent-glow);
 }

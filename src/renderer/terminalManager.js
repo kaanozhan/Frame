@@ -8,28 +8,54 @@ const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { IPC } = require('../shared/ipcChannels');
 
-// Terminal theme (VS Code dark)
-const terminalTheme = {
-  background: '#1e1e1e',
-  foreground: '#d4d4d4',
-  cursor: '#ffffff',
-  black: '#000000',
-  red: '#cd3131',
-  green: '#0dbc79',
-  yellow: '#e5e510',
-  blue: '#2472c8',
-  magenta: '#bc3fbc',
-  cyan: '#11a8cd',
-  white: '#e5e5e5',
-  brightBlack: '#666666',
-  brightRed: '#f14c4c',
-  brightGreen: '#23d18b',
-  brightYellow: '#f5f543',
-  brightBlue: '#3b8eea',
-  brightMagenta: '#d670d6',
-  brightCyan: '#29b8db',
-  brightWhite: '#e5e5e5'
-};
+// Terminal theme based on current app theme
+function getTerminalTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    return {
+      background: '#f7f5f2',
+      foreground: '#1c1a18',
+      cursor: '#1c1a18',
+      black: '#1c1a18',
+      red: '#b84040',
+      green: '#4a7c50',
+      yellow: '#c07820',
+      blue: '#4070a8',
+      magenta: '#8b4b8b',
+      cyan: '#2a7a8a',
+      white: '#5a5550',
+      brightBlack: '#8a8480',
+      brightRed: '#d45555',
+      brightGreen: '#5a9e62',
+      brightYellow: '#d49030',
+      brightBlue: '#5588c8',
+      brightMagenta: '#a060a0',
+      brightCyan: '#3a9aaa',
+      brightWhite: '#1c1a18'
+    };
+  }
+  return {
+    background: '#151516',
+    foreground: '#d4d4d4',
+    cursor: '#ffffff',
+    black: '#000000',
+    red: '#cd3131',
+    green: '#0dbc79',
+    yellow: '#e5e510',
+    blue: '#2472c8',
+    magenta: '#bc3fbc',
+    cyan: '#11a8cd',
+    white: '#e5e5e5',
+    brightBlack: '#666666',
+    brightRed: '#f14c4c',
+    brightGreen: '#23d18b',
+    brightYellow: '#f5f543',
+    brightBlue: '#3b8eea',
+    brightMagenta: '#d670d6',
+    brightCyan: '#29b8db',
+    brightWhite: '#e5e5e5'
+  };
+}
 
 // Session storage key
 const SESSION_STORAGE_KEY = 'frame-terminal-sessions';
@@ -46,6 +72,7 @@ class TerminalManager {
     this.onStateChange = null;
     this.currentProjectPath = null; // Current active project (null = global)
     this._setupIPC();
+    this._setupThemeObserver();
   }
 
   /**
@@ -247,7 +274,7 @@ class TerminalManager {
       cursorBlink: true,
       fontSize: 14,
       fontFamily: 'Consolas, "Courier New", monospace',
-      theme: terminalTheme,
+      theme: getTerminalTheme(),
       allowTransparency: false,
       scrollback: 10000
     });
@@ -601,6 +628,16 @@ class TerminalManager {
     } catch (err) {
       console.error('Failed to clear terminal session:', err);
     }
+  }
+
+  _setupThemeObserver() {
+    const observer = new MutationObserver(() => {
+      const theme = getTerminalTheme();
+      for (const instance of this.terminals.values()) {
+        instance.terminal.options.theme = theme;
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   }
 
   _setupIPC() {

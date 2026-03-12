@@ -37,7 +37,7 @@ class TerminalGrid {
     this.container.style.gridTemplateColumns = `repeat(${config.cols}, 1fr)`;
     this.container.style.gap = '2px';
     this.container.style.height = '100%';
-    this.container.style.backgroundColor = '#3e3e42';
+    this.container.style.backgroundColor = '';
 
     // Calculate max cells
     const maxCells = config.rows * config.cols;
