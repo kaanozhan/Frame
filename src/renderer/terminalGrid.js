@@ -52,6 +52,30 @@ class TerminalGrid {
       const contentArea = cell.querySelector('.grid-cell-content');
       this.manager.mountTerminal(terminal.id, contentArea);
     });
+
+    // Add dashed divider lines between cells
+    this._renderDividers(config);
+  }
+
+  /**
+   * Render dashed divider lines between grid cells
+   */
+  _renderDividers(config) {
+    // Vertical dividers (between columns)
+    for (let c = 1; c < config.cols; c++) {
+      const divider = document.createElement('div');
+      divider.className = 'grid-divider grid-divider-vertical';
+      divider.style.left = `calc(${c} / ${config.cols} * 100%)`;
+      this.container.appendChild(divider);
+    }
+
+    // Horizontal dividers (between rows)
+    for (let r = 1; r < config.rows; r++) {
+      const divider = document.createElement('div');
+      divider.className = 'grid-divider grid-divider-horizontal';
+      divider.style.top = `calc(${r} / ${config.rows} * 100%)`;
+      this.container.appendChild(divider);
+    }
   }
 
   /**

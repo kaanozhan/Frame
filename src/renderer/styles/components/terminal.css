@@ -312,26 +312,66 @@
 /* Grid View Styles */
 .terminal-grid {
   height: 100%;
-  background: var(--bg-tertiary);
-  gap: 2px;
+  background: var(--bg-primary);
+  gap: 0;
+  position: relative;
+}
+
+.grid-divider {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.grid-divider-vertical {
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  transform: translateX(-50%);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--border-strong) 0px,
+    var(--border-strong) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+  background-size: 1px 10px;
+  background-position: center;
+  background-repeat: repeat-y;
+}
+
+.grid-divider-horizontal {
+  left: 0;
+  right: 0;
+  height: 8px;
+  transform: translateY(-50%);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--border-strong) 0px,
+    var(--border-strong) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+  background-size: 10px 1px;
+  background-position: center;
+  background-repeat: repeat-x;
 }
 
 .grid-cell {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
+  border: none;
   position: relative;
   min-width: 200px;
   min-height: 100px;
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   transition: border-color var(--transition-fast);
 }
 
 .grid-cell.active {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 1px var(--accent-subtle);
+  box-shadow: inset 0 0 0 1px var(--accent-primary);
 }
 
 .grid-cell-header {
@@ -363,6 +403,7 @@
 .grid-cell-content {
   flex: 1;
   overflow: hidden;
+  padding: 2px;
 }
 
 .grid-cell-actions {
