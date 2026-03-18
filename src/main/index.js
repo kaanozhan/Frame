@@ -63,6 +63,7 @@ function createWindow() {
   menu.init(mainWindow, app, aiToolManager);
   dialogs.init(mainWindow, (projectPath) => {
     pty.setProjectPath(projectPath);
+    promptLogger.setProject(projectPath);
   });
   initModulesWithWindow(mainWindow);
 

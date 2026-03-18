@@ -353,6 +353,86 @@ function saveStructure(structure) {
 }
 
 /**
+ * Parse all IPC channels from ipcChannels.js and sync into STRUCTURE.json
+ * Preserves existing rich data (direction, payload, description) for known channels.
+ * Adds skeleton entries for new channels discovered in ipcChannels.js.
+ */
+function syncIPCChannels(structure) {
+  const ipcFile = path.join(SRC_DIR, 'shared', 'ipcChannels.js');
+  if (!fs.existsSync(ipcFile)) return;
+
+  const content = fs.readFileSync(ipcFile, 'utf-8');
+
+  // Extract all KEY: 'value' pairs from the IPC object
+  const channelMap = {}; // KEY → 'channel-string'
+  const matches = content.matchAll(/^\s+(\w+):\s*'([^']+)'/gm);
+  for (const match of matches) {
+    channelMap[match[1]] = match[2];
+  }
+
+  const totalChannels = Object.keys(channelMap).length;
+
+  // Group channel keys by category prefix
+  const categoryRules = [
+    { prefix: ['TERMINAL_CREATE', 'TERMINAL_CREATED', 'TERMINAL_DESTROY', 'TERMINAL_DESTROYED', 'TERMINAL_INPUT_ID', 'TERMINAL_OUTPUT_ID', 'TERMINAL_RESIZE_ID', 'TERMINAL_FOCUS', 'GET_AVAILABLE_SHELLS', 'AVAILABLE_SHELLS_DATA'], category: 'multiTerminal' },
+    { prefix: ['START_TERMINAL', 'RESTART_TERMINAL', 'TERMINAL_INPUT', 'TERMINAL_OUTPUT', 'TERMINAL_RESIZE'], category: 'terminal' },
+    { prefix: ['SELECT_PROJECT_FOLDER', 'CREATE_NEW_PROJECT', 'PROJECT_SELECTED'], category: 'project' },
+    { prefix: ['LOAD_FILE_TREE', 'FILE_TREE_DATA'], category: 'fileTree' },
+    { prefix: ['LOAD_PROMPT_HISTORY', 'PROMPT_HISTORY_DATA', 'TOGGLE_HISTORY_PANEL'], category: 'history' },
+    { prefix: ['RUN_COMMAND'], category: 'commands' },
+    { prefix: ['LOAD_WORKSPACE', 'WORKSPACE_DATA', 'WORKSPACE_UPDATED', 'ADD_PROJECT_TO_WORKSPACE', 'REMOVE_PROJECT_FROM_WORKSPACE'], category: 'workspace' },
+    { prefix: ['INITIALIZE_FRAME_PROJECT', 'FRAME_PROJECT_INITIALIZED', 'CHECK_IS_FRAME_PROJECT', 'IS_FRAME_PROJECT_RESULT', 'GET_FRAME_CONFIG', 'FRAME_CONFIG_DATA'], category: 'frame' },
+    { prefix: ['READ_FILE', 'FILE_CONTENT', 'WRITE_FILE', 'FILE_SAVED'], category: 'editor' },
+    { prefix: ['LOAD_TASKS', 'TASKS_DATA', 'ADD_TASK', 'UPDATE_TASK', 'DELETE_TASK', 'TASK_UPDATED', 'TOGGLE_TASKS_PANEL'], category: 'tasks' },
+    { prefix: ['LOAD_PLUGINS', 'PLUGINS_DATA', 'TOGGLE_PLUGIN', 'PLUGIN_TOGGLED', 'TOGGLE_PLUGINS_PANEL', 'REFRESH_PLUGINS'], category: 'plugins' },
+    { prefix: ['LOAD_CLAUDE_SESSIONS', 'REFRESH_CLAUDE_SESSIONS'], category: 'claudeSessions' },
+    { prefix: ['LOAD_GITHUB_ISSUES', 'GITHUB_ISSUES_DATA', 'TOGGLE_GITHUB_PANEL', 'OPEN_GITHUB_ISSUE'], category: 'github' },
+    { prefix: ['LOAD_CLAUDE_USAGE', 'CLAUDE_USAGE_DATA', 'REFRESH_CLAUDE_USAGE'], category: 'claudeUsage' },
+    { prefix: ['LOAD_OVERVIEW', 'OVERVIEW_DATA', 'GET_FILE_GIT_HISTORY'], category: 'overview' },
+    { prefix: ['LOAD_GIT_BRANCHES', 'SWITCH_GIT_BRANCH', 'CREATE_GIT_BRANCH', 'DELETE_GIT_BRANCH', 'LOAD_GIT_WORKTREES', 'ADD_GIT_WORKTREE', 'REMOVE_GIT_WORKTREE', 'TOGGLE_GIT_BRANCHES_PANEL'], category: 'gitBranches' },
+    { prefix: ['GET_AI_TOOL_CONFIG', 'AI_TOOL_CONFIG_DATA', 'SET_AI_TOOL', 'AI_TOOL_CHANGED'], category: 'aiTool' },
+  ];
+
+  // Build lookup: KEY → category
+  const keyToCategory = {};
+  for (const rule of categoryRules) {
+    for (const key of rule.prefix) {
+      keyToCategory[key] = rule.category;
+    }
+  }
+
+  // Build new ipcChannels, preserving existing rich data
+  const existing = structure.ipcChannels || {};
+  const updated = {};
+
+  // Seed updated with all existing categories/channels
+  for (const [cat, channels] of Object.entries(existing)) {
+    updated[cat] = { ...channels };
+  }
+
+  // Add any missing channels from ipcChannels.js
+  let added = 0;
+  for (const [key, value] of Object.entries(channelMap)) {
+    const category = keyToCategory[key] || 'other';
+    if (!updated[category]) updated[category] = {};
+
+    if (!updated[category][key]) {
+      updated[category][key] = {
+        name: value,
+        direction: '',
+        description: ''
+      };
+      added++;
+    }
+  }
+
+  structure.ipcChannels = updated;
+
+  const total = Object.values(updated).reduce((sum, cat) => sum + Object.keys(cat).length, 0);
+  console.log(`  ✓ IPC channels: ${total} total (${added} new) — parsed from ipcChannels.js`);
+}
+
+/**
  * Main function
  */
 function main() {
@@ -411,6 +491,9 @@ function main() {
       console.error(`  ✗ ${file}: ${e.message}`);
     }
   }
+
+  // Sync IPC channels from ipcChannels.js
+  syncIPCChannels(structure);
 
   // Generate intent index from modules
   generateIntentIndex(structure);

@@ -9,12 +9,30 @@ const { IPC } = require('../shared/ipcChannels');
 
 let logFilePath = null;
 let inputBuffer = '';
+let framePromptsDir = null;
 
 /**
  * Initialize prompt logger
  */
 function init(app) {
+  // Global fallback: userData/prompts-history.txt (backward compat)
   logFilePath = path.join(app.getPath('userData'), 'prompts-history.txt');
+
+  // Project-based logs go to ~/.frame/prompts/
+  framePromptsDir = path.join(app.getPath('home'), '.frame', 'prompts');
+  if (!fs.existsSync(framePromptsDir)) {
+    fs.mkdirSync(framePromptsDir, { recursive: true });
+  }
+}
+
+/**
+ * Set active project — switches log file to project-specific path
+ * @param {string} projectPath - Absolute path of the selected project
+ */
+function setProject(projectPath) {
+  if (!framePromptsDir || !projectPath) return;
+  const projectName = path.basename(projectPath);
+  logFilePath = path.join(framePromptsDir, `${projectName}.log`);
 }
 
 /**
@@ -75,6 +93,7 @@ function setupIPC(ipcMain) {
 
 module.exports = {
   init,
+  setProject,
   logInput,
   getHistory,
   getLogFilePath,

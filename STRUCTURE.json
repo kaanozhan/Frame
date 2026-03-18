@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-03-12",
+  "lastUpdated": "2026-03-18",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -43,15 +43,15 @@
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 78,
+          "line": 79,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 106,
+          "line": 107,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 117,
+          "line": 118,
           "params": [
             "window"
           ],
@@ -320,6 +320,7 @@
       "description": "Prompt Logger Module",
       "exports": [
         "init",
+        "setProject",
         "logInput",
         "getHistory",
         "getLogFilePath",
@@ -332,29 +333,36 @@
       ],
       "functions": {
         "init": {
-          "line": 16,
+          "line": 17,
           "params": [
             "app"
           ],
           "purpose": "Initialize prompt logger"
         },
+        "setProject": {
+          "line": 32,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Set active project — switches log file to project-specific path"
+        },
         "getLogFilePath": {
-          "line": 23,
+          "line": 41,
           "purpose": "Get log file path"
         },
         "logInput": {
-          "line": 31,
+          "line": 49,
           "params": [
             "data"
           ],
           "purpose": "Process and log input data"
         },
         "getHistory": {
-          "line": 55,
+          "line": 73,
           "purpose": "Get prompt history"
         },
         "setupIPC": {
-          "line": 69,
+          "line": 87,
           "params": [
             "ipcMain"
           ],
@@ -3536,6 +3544,36 @@
         "direction": "main → renderer",
         "payload": "string (projectPath)",
         "description": "Frame initialization complete"
+      },
+      "INITIALIZE_FRAME_PROJECT": {
+        "name": "initialize-frame-project",
+        "direction": "",
+        "description": ""
+      },
+      "FRAME_PROJECT_INITIALIZED": {
+        "name": "frame-project-initialized",
+        "direction": "",
+        "description": ""
+      },
+      "CHECK_IS_FRAME_PROJECT": {
+        "name": "check-is-frame-project",
+        "direction": "",
+        "description": ""
+      },
+      "IS_FRAME_PROJECT_RESULT": {
+        "name": "is-frame-project-result",
+        "direction": "",
+        "description": ""
+      },
+      "GET_FRAME_CONFIG": {
+        "name": "get-frame-config",
+        "direction": "",
+        "description": ""
+      },
+      "FRAME_CONFIG_DATA": {
+        "name": "frame-config-data",
+        "direction": "",
+        "description": ""
       }
     },
     "editor": {
@@ -3562,6 +3600,249 @@
         "direction": "main → renderer",
         "payload": "{ filePath, success, error? }",
         "description": "File save result"
+      }
+    },
+    "workspace": {
+      "LOAD_WORKSPACE": {
+        "name": "load-workspace",
+        "direction": "",
+        "description": ""
+      },
+      "WORKSPACE_DATA": {
+        "name": "workspace-data",
+        "direction": "",
+        "description": ""
+      },
+      "WORKSPACE_UPDATED": {
+        "name": "workspace-updated",
+        "direction": "",
+        "description": ""
+      },
+      "ADD_PROJECT_TO_WORKSPACE": {
+        "name": "add-project-to-workspace",
+        "direction": "",
+        "description": ""
+      },
+      "REMOVE_PROJECT_FROM_WORKSPACE": {
+        "name": "remove-project-from-workspace",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "multiTerminal": {
+      "TERMINAL_CREATE": {
+        "name": "terminal-create",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_CREATED": {
+        "name": "terminal-created",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_DESTROY": {
+        "name": "terminal-destroy",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_DESTROYED": {
+        "name": "terminal-destroyed",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_INPUT_ID": {
+        "name": "terminal-input-id",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_OUTPUT_ID": {
+        "name": "terminal-output-id",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_RESIZE_ID": {
+        "name": "terminal-resize-id",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_FOCUS": {
+        "name": "terminal-focus",
+        "direction": "",
+        "description": ""
+      },
+      "GET_AVAILABLE_SHELLS": {
+        "name": "get-available-shells",
+        "direction": "",
+        "description": ""
+      },
+      "AVAILABLE_SHELLS_DATA": {
+        "name": "available-shells-data",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "plugins": {
+      "LOAD_PLUGINS": {
+        "name": "load-plugins",
+        "direction": "",
+        "description": ""
+      },
+      "PLUGINS_DATA": {
+        "name": "plugins-data",
+        "direction": "",
+        "description": ""
+      },
+      "TOGGLE_PLUGIN": {
+        "name": "toggle-plugin",
+        "direction": "",
+        "description": ""
+      },
+      "PLUGIN_TOGGLED": {
+        "name": "plugin-toggled",
+        "direction": "",
+        "description": ""
+      },
+      "TOGGLE_PLUGINS_PANEL": {
+        "name": "toggle-plugins-panel",
+        "direction": "",
+        "description": ""
+      },
+      "REFRESH_PLUGINS": {
+        "name": "refresh-plugins",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "claudeSessions": {
+      "LOAD_CLAUDE_SESSIONS": {
+        "name": "load-claude-sessions",
+        "direction": "",
+        "description": ""
+      },
+      "REFRESH_CLAUDE_SESSIONS": {
+        "name": "refresh-claude-sessions",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "github": {
+      "LOAD_GITHUB_ISSUES": {
+        "name": "load-github-issues",
+        "direction": "",
+        "description": ""
+      },
+      "GITHUB_ISSUES_DATA": {
+        "name": "github-issues-data",
+        "direction": "",
+        "description": ""
+      },
+      "TOGGLE_GITHUB_PANEL": {
+        "name": "toggle-github-panel",
+        "direction": "",
+        "description": ""
+      },
+      "OPEN_GITHUB_ISSUE": {
+        "name": "open-github-issue",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "claudeUsage": {
+      "LOAD_CLAUDE_USAGE": {
+        "name": "load-claude-usage",
+        "direction": "",
+        "description": ""
+      },
+      "CLAUDE_USAGE_DATA": {
+        "name": "claude-usage-data",
+        "direction": "",
+        "description": ""
+      },
+      "REFRESH_CLAUDE_USAGE": {
+        "name": "refresh-claude-usage",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "overview": {
+      "LOAD_OVERVIEW": {
+        "name": "load-overview",
+        "direction": "",
+        "description": ""
+      },
+      "OVERVIEW_DATA": {
+        "name": "overview-data",
+        "direction": "",
+        "description": ""
+      },
+      "GET_FILE_GIT_HISTORY": {
+        "name": "get-file-git-history",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "gitBranches": {
+      "LOAD_GIT_BRANCHES": {
+        "name": "load-git-branches",
+        "direction": "",
+        "description": ""
+      },
+      "SWITCH_GIT_BRANCH": {
+        "name": "switch-git-branch",
+        "direction": "",
+        "description": ""
+      },
+      "CREATE_GIT_BRANCH": {
+        "name": "create-git-branch",
+        "direction": "",
+        "description": ""
+      },
+      "DELETE_GIT_BRANCH": {
+        "name": "delete-git-branch",
+        "direction": "",
+        "description": ""
+      },
+      "LOAD_GIT_WORKTREES": {
+        "name": "load-git-worktrees",
+        "direction": "",
+        "description": ""
+      },
+      "ADD_GIT_WORKTREE": {
+        "name": "add-git-worktree",
+        "direction": "",
+        "description": ""
+      },
+      "REMOVE_GIT_WORKTREE": {
+        "name": "remove-git-worktree",
+        "direction": "",
+        "description": ""
+      },
+      "TOGGLE_GIT_BRANCHES_PANEL": {
+        "name": "toggle-git-branches-panel",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "aiTool": {
+      "GET_AI_TOOL_CONFIG": {
+        "name": "get-ai-tool-config",
+        "direction": "",
+        "description": ""
+      },
+      "AI_TOOL_CONFIG_DATA": {
+        "name": "ai-tool-config-data",
+        "direction": "",
+        "description": ""
+      },
+      "SET_AI_TOOL": {
+        "name": "set-ai-tool",
+        "direction": "",
+        "description": ""
+      },
+      "AI_TOOL_CHANGED": {
+        "name": "ai-tool-changed",
+        "direction": "",
+        "description": ""
       }
     }
   },
