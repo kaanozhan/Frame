@@ -237,6 +237,29 @@
       </div>
     </div>
 
+    <!-- Prompts Panel -->
+    <div id="prompts-panel">
+      <div id="prompts-header">
+        <button id="prompts-collapse-btn" title="Collapse panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+        <h3>Prompts</h3>
+        <button id="prompts-close" tabindex="-1">✕</button>
+      </div>
+      <div id="prompts-search-bar">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="prompts-search" type="text" placeholder="Search prompts…" autocomplete="off" spellcheck="false" />
+      </div>
+      <div id="prompts-list">
+        <!-- Prompt cards will be populated here -->
+      </div>
+    </div>
+
     <!-- Spotlight Tour: Initialize Frame -->
     <div id="spotlight-overlay" class="spotlight-overlay">
       <div id="spotlight-card" class="spotlight-card">

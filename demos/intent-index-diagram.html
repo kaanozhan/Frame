@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>intentIndex — How It Works</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0f14;
+      color: #e2e4e9;
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 48px 32px;
+    }
+
+    h1 {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #4b5563;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: #e2e4e9;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 64px;
+      text-align: center;
+      max-width: 520px;
+      line-height: 1.6;
+    }
+
+    /* ── TOP DIAGRAM ── */
+    .diagram {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 1080px;
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .col-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #374151;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .node {
+      background: #161a22;
+      border: 1px solid #1e2530;
+      border-radius: 7px;
+      padding: 8px 13px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    .node.dim { opacity: 0.35; }
+
+    /* Process block */
+    .process-block {
+      background: #10131a;
+      border: 1px solid #1e2530;
+      border-radius: 12px;
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 240px;
+    }
+
+    .block-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #374151;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+    }
+
+    .step-num {
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      background: #1a1f2b;
+      border: 1px solid #252d3a;
+      font-size: 10px;
+      font-weight: 600;
+      color: #4b5563;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.55;
+    }
+
+    .step-text strong { color: #d1d5db; font-weight: 600; }
+
+    .step-text code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #93c5fd;
+      background: #0f1929;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #1a1f2b;
+    }
+
+    /* Center JSON block */
+    .json-block {
+      background: #161a22;
+      border: 1px solid #1e2530;
+      border-radius: 12px;
+      padding: 20px 22px;
+      min-width: 270px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .jk  { color: #7c3aed; font-family: monospace; font-size: 11.5px; }
+    .jv  { color: #6b7280; font-family: monospace; font-size: 11.5px; }
+    .ja  { color: #3b82f6; font-family: monospace; font-size: 11.5px; }
+    .ind { padding-left: 14px; }
+
+    /* Arrow */
+    .arrow {
+      flex: 1;
+      min-width: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .arrow-line {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #2d4a6b, transparent);
+      position: relative;
+    }
+
+    .arrow-line::after {
+      content: '▶';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 7px;
+      color: #3b82f6;
+    }
+
+    .arrow-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #2d4a6b;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* Phase labels above columns */
+    .phase-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .phase-build {
+      background: #1a1f2b;
+      color: #4b5563;
+      border: 1px solid #252d3a;
+    }
+
+    .phase-query {
+      background: #09130f;
+      color: #16a34a;
+      border: 1px solid #16a34a33;
+    }
+
+    /* Output */
+    .output-block {
+      background: #09130f;
+      border: 1px solid #16a34a33;
+      border-radius: 12px;
+      padding: 20px 22px;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .output-title {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #16a34a;
+    }
+
+    .output-file {
+      font-family: monospace;
+      font-size: 12px;
+      color: #4ade80;
+      line-height: 1.7;
+    }
+
+    .output-file span { color: #86efac; opacity: 0.5; }
+
+    .output-ipc {
+      font-family: monospace;
+      font-size: 11px;
+      color: #6b7280;
+      line-height: 1.7;
+    }
+
+    .output-ipc::before {
+      content: 'IPC: ';
+      color: #374151;
+    }
+
+    /* ── BOTTOM ROW: 3-tier search ── */
+    .tier-section {
+      width: 100%;
+      max-width: 1080px;
+      margin-top: 40px;
+    }
+
+    .tier-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #374151;
+      margin-bottom: 16px;
+    }
+
+    .tier-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .tier {
+      flex: 1;
+      background: #161a22;
+      border: 1px solid #1e2530;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tier:first-child { border-radius: 10px 0 0 10px; }
+    .tier:last-child  { border-radius: 0 10px 10px 0; border-left: none; }
+    .tier + .tier     { border-left: none; }
+
+    .tier-num {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #374151;
+    }
+
+    .tier-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #d1d5db;
+    }
+
+    .tier-desc {
+      font-size: 12px;
+      color: #4b5563;
+      line-height: 1.5;
+      margin-top: 2px;
+    }
+
+    .tier-example {
+      font-family: monospace;
+      font-size: 11px;
+      margin-top: 6px;
+      padding: 6px 10px;
+      background: #0d0f14;
+      border-radius: 5px;
+    }
+
+    .tier-example .q  { color: #3b82f6; }
+    .tier-example .op { color: #374151; }
+    .tier-example .r  { color: #4ade80; }
+
+    /* Footer */
+    .footer {
+      margin-top: 52px;
+      font-size: 11px;
+      color: #1f2937;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>intentIndex</h1>
+  <h2>The codebase that maps itself</h2>
+  <p class="subtitle">
+    Heavy work happens once, at commit time. At query time, AI agents read
+    a pre-built semantic map — no grep, no guessing, no scanning.
+  </p>
+
+  <!-- TOP: data flow diagram -->
+  <div style="width:100%; max-width:1080px;">
+
+    <!-- Phase labels -->
+    <div style="display:flex; gap:0; margin-bottom:0; width:100%;">
+      <div style="flex:2.1; display:flex; flex-direction:column; align-items:center;">
+        <div class="phase-label phase-build">⚙ Build time — runs once per commit</div>
+      </div>
+      <div style="flex:0.5;"></div>
+      <div style="flex:1.4; display:flex; flex-direction:column; align-items:center;">
+        <div class="phase-label phase-query">⚡ Query time — always instant</div>
+      </div>
+    </div>
+
+    <div class="diagram">
+
+      <!-- SOURCE FILES -->
+      <div class="col" style="min-width: 155px;">
+        <div class="col-label">Your codebase</div>
+        <div class="node">authService.js</div>
+        <div class="node">authController.js</div>
+        <div class="node">userModel.js</div>
+        <div class="node">userRoutes.js</div>
+        <div class="node dim">paymentService.js</div>
+        <div class="node dim">emailManager.js</div>
+        <div class="node dim">+ N more files</div>
+      </div>
+
+      <!-- ARROW 1 -->
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-label">reads once<br>on commit</div>
+      </div>
+
+      <!-- PROCESS -->
+      <div class="process-block">
+        <div class="block-label">update-structure</div>
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            Read each file once. Extract <strong>exports</strong> and
+            <strong>API/event channels</strong> per module.
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            Strip naming suffixes (<code>Service</code>, <code>Controller</code>, <code>Manager</code>).
+            Group related modules under a single <strong>feature name</strong>.
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            Write the pre-built semantic map into <strong>STRUCTURE.json</strong>.
+            Source files are never read again.
+          </div>
+        </div>
+      </div>
+
+      <!-- ARROW 2 -->
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-label">cached<br>to disk</div>
+      </div>
+
+      <!-- STRUCTURE.JSON -->
+      <div class="json-block" style="border-color: #3b82f633; background: #0d1220;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div class="block-label">STRUCTURE.json</div>
+          <div style="font-size:9px; color:#3b82f6; font-weight:600; letter-spacing:1px;">CACHED MAP</div>
+        </div>
+
+        <div>
+          <div class="jk">"intentIndex": {</div>
+          <div class="ind">
+            <div class="ja">"auth": [</div>
+            <div class="ind">
+              <div class="jv">{ authService.js },</div>
+              <div class="jv">{ authController.js }</div>
+            </div>
+            <div class="ja">],</div>
+            <div class="ja">"user": [</div>
+            <div class="ind">
+              <div class="jv">{ userModel.js },</div>
+              <div class="jv">{ userRoutes.js }</div>
+            </div>
+            <div class="ja">],</div>
+            <div class="jv">"payment": [ ... ],</div>
+            <div class="jv">"email":   [ ... ]</div>
+          </div>
+          <div class="jk">}</div>
+        </div>
+
+        <hr class="divider">
+
+        <div style="font-size: 11px; color: #374151; line-height: 1.5;">
+          Committed alongside the code.<br>Always in sync. AI reads only this file.
+        </div>
+      </div>
+
+      <!-- ARROW 3 -->
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-label">AI reads<br>only this</div>
+      </div>
+
+      <!-- OUTPUT -->
+      <div class="output-block">
+        <div class="output-title">Result in &lt;1ms</div>
+        <div class="output-file">
+          <span>→ </span>authService.js<br>
+          <span>→ </span>authController.js
+        </div>
+        <hr class="divider" style="border-color: #16a34a22;">
+        <div class="output-ipc">
+          LOGIN, LOGOUT,<br>REFRESH_TOKEN
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM: 3-tier search cascade -->
+  <div class="tier-section">
+    <div class="tier-label">3-tier search cascade</div>
+    <div class="tier-row">
+
+      <div class="tier">
+        <div class="tier-num">Tier 1</div>
+        <div class="tier-title">Exact match</div>
+        <div class="tier-desc">Query matches an intentIndex key directly.</div>
+        <div class="tier-example">
+          <span class="q">"auth"</span>
+          <span class="op"> == </span>
+          <span class="r">"auth" ✓</span>
+        </div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-num">Tier 2</div>
+        <div class="tier-title">Partial match</div>
+        <div class="tier-desc">Query is a substring of a key, or vice versa.</div>
+        <div class="tier-example">
+          <span class="q">"pay"</span>
+          <span class="op"> ⊂ </span>
+          <span class="r">"payment" ✓</span>
+        </div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-num">Tier 3</div>
+        <div class="tier-title">Deep search</div>
+        <div class="tier-desc">
+          Full-text across module names, descriptions, exports, and API channel names.
+        </div>
+        <div class="tier-example">
+          <span class="q">"token"</span>
+          <span class="op"> found in exports of </span>
+          <span class="r">authService ✓</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">intentIndex — part of the Frame platform</div>
+
+</body>
+</html>

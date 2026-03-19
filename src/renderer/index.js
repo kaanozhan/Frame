@@ -9,6 +9,7 @@ const historyPanel = require('./historyPanel');
 const tasksPanel = require('./tasksPanel');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
+const promptsPanel = require('./promptsPanel');
 const state = require('./state');
 const projectListUI = require('./projectListUI');
 const editor = require('./editor');
@@ -73,6 +74,9 @@ function init() {
 
   // Initialize GitHub panel
   githubPanel.init();
+
+  // Initialize prompts panel
+  promptsPanel.init();
 
   // Initialize sidebar resize
   sidebarResize.init(() => {
@@ -248,6 +252,11 @@ function setupKeyboardShortcuts() {
     if (modKey && !e.shiftKey && key === 't') {
       e.preventDefault();
       tasksPanel.toggle()
+    }
+    // Ctrl/Cmd+Shift+L - Toggle prompts panel
+    if (modKey && e.shiftKey && key === 'l') {
+      e.preventDefault();
+      promptsPanel.toggle();
     }
   });
 }

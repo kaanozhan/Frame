@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-03-18",
+  "lastUpdated": "2026-03-19",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -743,6 +743,7 @@
         "tasksPanel",
         "pluginsPanel",
         "githubPanel",
+        "promptsPanel",
         "state",
         "projectListUI",
         "editor",
@@ -751,15 +752,15 @@
       ],
       "functions": {
         "init": {
-          "line": 21,
+          "line": 22,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 132,
+          "line": 136,
           "purpose": "Setup button click handlers"
         },
         "setupKeyboardShortcuts": {
-          "line": 199,
+          "line": 203,
           "purpose": "Setup keyboard shortcuts"
         }
       }
@@ -1995,7 +1996,8 @@
         "shared/ipcChannels",
         "tasksPanel",
         "pluginsPanel",
-        "githubPanel"
+        "githubPanel",
+        "promptsPanel"
       ],
       "functions": {},
       "ipc": {
@@ -3379,6 +3381,88 @@
         ],
         "emits": []
       }
+    },
+    "renderer/promptsPanel": {
+      "file": "src/renderer/promptsPanel.js",
+      "description": "Prompts Panel Module",
+      "exports": [
+        "init",
+        "toggle",
+        "show",
+        "hide",
+        "getIsVisible"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 18,
+          "purpose": "Initialize prompts panel"
+        },
+        "setupEventListeners": {
+          "line": 32,
+          "purpose": "Setup DOM event listeners"
+        },
+        "setupIPC": {
+          "line": 49,
+          "purpose": "Setup IPC listeners"
+        },
+        "parseHistory": {
+          "line": 65,
+          "params": [
+            "raw"
+          ],
+          "purpose": "Parse raw history text into prompt objects"
+        },
+        "renderList": {
+          "line": 86,
+          "params": [
+            "query"
+          ],
+          "purpose": "Render prompt list with optional search filter"
+        },
+        "createCard": {
+          "line": 110,
+          "params": [
+            "prompt"
+          ],
+          "purpose": "Create a single prompt card element"
+        },
+        "formatTimestamp": {
+          "line": 151,
+          "params": [
+            "iso"
+          ],
+          "purpose": "Format ISO timestamp to readable string"
+        },
+        "toggle": {
+          "line": 166,
+          "purpose": "Toggle panel visibility"
+        },
+        "show": {
+          "line": 173,
+          "purpose": "Show the panel and load data"
+        },
+        "hide": {
+          "line": 183,
+          "purpose": "Hide the panel"
+        },
+        "getIsVisible": {
+          "line": 192,
+          "purpose": "Whether the panel is currently visible"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "PROMPT_HISTORY_DATA",
+          "TOGGLE_HISTORY_PANEL"
+        ],
+        "emits": [
+          "LOAD_PROMPT_HISTORY"
+        ]
+      }
     }
   },
   "ipcChannels": {
@@ -4146,6 +4230,13 @@
         "module": "renderer/pluginsPanel",
         "file": "src/renderer/pluginsPanel.js",
         "description": "Plugins Panel Module"
+      }
+    ],
+    "prompts": [
+      {
+        "module": "renderer/promptsPanel",
+        "file": "src/renderer/promptsPanel.js",
+        "description": "Prompts Panel Module"
       }
     ],
     "sidebar": [
