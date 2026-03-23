@@ -5,13 +5,17 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
+const { marked } = require('marked');
 
 let editorOverlay = null;
 let editorTextarea = null;
+let editorPreview = null;
+let editorPreviewBtn = null;
 let editorFilename = null;
 let editorExt = null;
 let editorPath = null;
 let editorStatus = null;
+let isPreviewMode = false;
 
 let currentEditingFile = null;
 let originalContent = '';
@@ -25,6 +29,8 @@ let openedFromSource = null; // Track where the file was opened from ('fileTree'
 function init(onRefreshFileTree) {
   editorOverlay = document.getElementById('editor-overlay');
   editorTextarea = document.getElementById('editor-textarea');
+  editorPreview = document.getElementById('editor-preview');
+  editorPreviewBtn = document.getElementById('btn-editor-preview');
   editorFilename = document.getElementById('editor-filename');
   editorExt = document.getElementById('editor-ext');
   editorPath = document.getElementById('editor-path');
@@ -56,6 +62,12 @@ function closeEditor() {
   }
 
   editorOverlay.classList.remove('visible');
+
+  // Reset markdown preview state
+  isPreviewMode = false;
+  if (editorPreview) editorPreview.style.display = 'none';
+  if (editorTextarea) editorTextarea.style.display = '';
+  if (editorPreviewBtn) editorPreviewBtn.style.display = 'none';
 
   // Restore focus to where the file was opened from
   if (openedFromSource === 'fileTree' && typeof window.fileTreeFocus === 'function') {
@@ -108,9 +120,31 @@ function checkModified() {
 }
 
 /**
+ * Toggle between raw text and rendered markdown preview
+ */
+function togglePreview() {
+  isPreviewMode = !isPreviewMode;
+  if (isPreviewMode) {
+    editorPreview.innerHTML = marked.parse(editorTextarea.value);
+    editorPreview.style.display = '';
+    editorTextarea.style.display = 'none';
+    editorPreviewBtn.textContent = 'Edit';
+  } else {
+    editorPreview.style.display = 'none';
+    editorTextarea.style.display = '';
+    editorPreviewBtn.textContent = 'Preview';
+  }
+}
+
+/**
  * Setup event handlers
  */
 function setupEventHandlers() {
+  // Preview toggle button
+  if (editorPreviewBtn) {
+    editorPreviewBtn.addEventListener('click', togglePreview);
+  }
+
   // Close button
   const closeBtn = document.getElementById('btn-editor-close');
   if (closeBtn) {
@@ -180,11 +214,27 @@ function setupIPC() {
       if (editorPath) editorPath.textContent = result.filePath;
       updateStatus('Ready', '');
 
+      // Markdown: show preview by default, show toggle button
+      const isMd = result.extension.toLowerCase() === 'md';
+      if (isMd) {
+        isPreviewMode = true;
+        editorPreview.innerHTML = marked.parse(result.content);
+        editorPreview.style.display = '';
+        editorTextarea.style.display = 'none';
+        editorPreviewBtn.textContent = 'Edit';
+        editorPreviewBtn.style.display = '';
+      } else {
+        isPreviewMode = false;
+        editorPreview.style.display = 'none';
+        editorTextarea.style.display = '';
+        editorPreviewBtn.style.display = 'none';
+      }
+
       // Show overlay
       editorOverlay.classList.add('visible');
 
-      // Focus textarea
-      if (editorTextarea) editorTextarea.focus();
+      // Focus textarea (only in edit mode)
+      if (editorTextarea && !isMd) editorTextarea.focus();
     } else {
       console.error('Error opening file:', result.error);
     }

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-03-20",
+  "lastUpdated": "2026-03-23",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -1359,18 +1359,19 @@
       ],
       "depends": [
         "electron",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "marked"
       ],
       "functions": {
         "init": {
-          "line": 25,
+          "line": 29,
           "params": [
             "onRefreshFileTree"
           ],
           "purpose": "Initialize editor module"
         },
         "openFile": {
-          "line": 43,
+          "line": 49,
           "params": [
             "filePath",
             "source = 'terminal'"
@@ -1378,15 +1379,15 @@
           "purpose": "Open file in editor"
         },
         "closeEditor": {
-          "line": 51,
+          "line": 57,
           "purpose": "Close editor"
         },
         "saveFile": {
-          "line": 76,
+          "line": 88,
           "purpose": "Save file"
         },
         "updateStatus": {
-          "line": 89,
+          "line": 101,
           "params": [
             "status",
             "className = ''"
@@ -1394,23 +1395,27 @@
           "purpose": "Update editor status"
         },
         "checkModified": {
-          "line": 99,
+          "line": 111,
           "purpose": "Check if content is modified"
         },
+        "togglePreview": {
+          "line": 125,
+          "purpose": "Toggle between raw text and rendered markdown preview"
+        },
         "setupEventHandlers": {
-          "line": 113,
+          "line": 142,
           "purpose": "Setup event handlers"
         },
         "setupIPC": {
-          "line": 168,
+          "line": 202,
           "purpose": "Setup IPC listeners"
         },
         "isEditorOpen": {
-          "line": 220,
+          "line": 270,
           "purpose": "Check if editor is open"
         },
         "getCurrentFile": {
-          "line": 227,
+          "line": 277,
           "purpose": "Get currently editing file path"
         }
       },
