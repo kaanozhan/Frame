@@ -44,6 +44,22 @@ This standard works with any AI tool. Claude Code and Gemini CLI read these file
 
 The result: any developer (or AI agent) who opens a Frame project immediately knows where everything is and what's been decided. Onboarding a new AI session to a large project takes seconds, not minutes.
 
+### Git Commit as the Context Anchor
+
+One of the hardest problems in agentic development is knowing *when* to capture context. Session boundaries are fuzzy — you might stay in the same session for hours. Task completion is ambiguous — agents don't always signal clearly when something is done. Trying to detect "important moments" mid-session is unreliable.
+
+Frame's approach: **use git commits as the single reliable boundary.**
+
+When you commit, something real happened. It's intentional, it's deterministic, and it's a natural checkpoint you're already making. Frame builds its entire context system around this moment:
+
+- **STRUCTURE.json** — auto-updated via pre-commit hook, always reflects the current architecture
+- **tasks.json** — task state syncs at commit time
+- **PROJECT_NOTES.md** — the right moment to capture what changed and why
+
+When the next session starts, these files are read automatically. The agent picks up exactly where things left off — not from a vague session transcript, but from structured, up-to-date context written at the one moment you can be certain something real was completed.
+
+> **The practical implication:** commit often. Small, intentional commits aren't just good git hygiene — in Frame, they're how context stays accurate and agents stay oriented.
+
 ### Fast File Lookup
 
 Instead of scanning the entire codebase, Frame's `intentIndex` maps concepts to files:
