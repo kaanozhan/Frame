@@ -380,6 +380,20 @@ class TerminalManager {
       if (text) terminal.paste(text);
     });
 
+    // File/image drag-and-drop — write absolute path(s) to terminal input
+    element.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    element.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        const paths = files.map(f => f.path).join(' ');
+        terminal.paste(paths);
+        terminal.focus();
+      }
+    });
+
     // Handle input
     terminal.onData((data) => {
       ipcRenderer.send(IPC.TERMINAL_INPUT_ID, { terminalId, data });
