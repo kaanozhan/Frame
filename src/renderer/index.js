@@ -3,6 +3,8 @@
  * Initializes all UI modules and sets up event handlers
  */
 
+const { ipcRenderer } = require('electron');
+const { IPC } = require('../shared/ipcChannels');
 const terminal = require('./terminal');
 const fileTreeUI = require('./fileTreeUI');
 const historyPanel = require('./historyPanel');
@@ -142,6 +144,45 @@ function setupButtonHandlers() {
   // Create new project
   document.getElementById('btn-create-project').addEventListener('click', () => {
     state.createNewProject();
+  });
+
+  // Clone GitHub repo
+  const cloneInputRow = document.getElementById('clone-github-input-row');
+  const cloneUrlInput = document.getElementById('clone-github-url');
+
+  document.getElementById('btn-clone-github').addEventListener('click', () => {
+    cloneInputRow.style.display = 'flex';
+    cloneUrlInput.focus();
+  });
+
+  document.getElementById('btn-clone-github-cancel').addEventListener('click', () => {
+    cloneInputRow.style.display = 'none';
+    cloneUrlInput.value = '';
+  });
+
+  document.getElementById('btn-clone-github-confirm').addEventListener('click', () => {
+    const url = cloneUrlInput.value.trim();
+    if (!url) return;
+    cloneInputRow.style.display = 'none';
+    cloneUrlInput.value = '';
+    ipcRenderer.send(IPC.CLONE_GITHUB_REPO, url);
+  });
+
+  cloneUrlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('btn-clone-github-confirm').click();
+    } else if (e.key === 'Escape') {
+      document.getElementById('btn-clone-github-cancel').click();
+    }
+  });
+
+  ipcRenderer.on(IPC.CLONE_GITHUB_REPO_RESULT, (event, result) => {
+    if (result.cancelled) return;
+    if (!result.success) {
+      alert('Clone failed:\n' + result.error);
+      return;
+    }
+    state.setProjectPath(result.projectPath);
   });
 
   // Start AI Tool (Claude Code / Codex CLI / etc.)

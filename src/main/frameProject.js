@@ -129,6 +129,10 @@ function checkExistingFrameFiles(projectPath) {
 async function showInitializeConfirmation(projectPath) {
   const existingFiles = checkExistingFrameFiles(projectPath);
 
+  // Check if CLAUDE.md exists as a real file (not symlink) — existing project scenario
+  const claudeMdPath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);
+  const hasExistingClaudeMd = fs.existsSync(claudeMdPath) && !fs.lstatSync(claudeMdPath).isSymbolicLink();
+
   let message = 'This will create the following files in your project:\n\n';
   message += '  • .frame/ (config directory)\n';
   message += '  • .frame/bin/ (AI tool wrappers)\n';
@@ -138,6 +142,10 @@ async function showInitializeConfirmation(projectPath) {
   message += '  • PROJECT_NOTES.md (session notes)\n';
   message += '  • tasks.json (task tracking)\n';
   message += '  • QUICKSTART.md (getting started)\n';
+
+  if (hasExistingClaudeMd) {
+    message += '\n📎 An existing CLAUDE.md was found. Its content will be preserved and appended to AGENTS.md. CLAUDE.md will then become a symlink to AGENTS.md.\n';
+  }
 
   if (existingFiles.length > 0) {
     message += '\n⚠️ These files already exist and will NOT be overwritten:\n';
@@ -181,10 +189,58 @@ function initializeFrameProject(projectPath, projectName) {
 
   // Create root-level Frame files (only if they don't exist)
 
-  // AGENTS.md - Main instructions file for AI assistants
+  // Detect if this was already a Frame project before this init
+  // .frame/config.json presence is the canonical indicator
+  const wasAlreadyFrameProject = isFrameProject(projectPath);
+
+  // Collect existing MD content to merge into AGENTS.md
+  // Only for files that Frame will convert to symlinks (CLAUDE.md, GEMINI.md)
+  // or for AGENTS.md if the project was never a Frame project
+  let existingInstructions = [];
+
+  // Check CLAUDE.md — real file means existing project directives
+  const claudeMdPath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);
+  if (fs.existsSync(claudeMdPath)) {
+    const stats = fs.lstatSync(claudeMdPath);
+    if (!stats.isSymbolicLink()) {
+      existingInstructions.push({ label: 'CLAUDE.md', content: fs.readFileSync(claudeMdPath, 'utf8') });
+      fs.unlinkSync(claudeMdPath);
+    }
+  }
+
+  // Check .claude/CLAUDE.md and .claude/claude.md — Claude Code's subfolder convention
+  const claudeDirCandidates = [
+    path.join(projectPath, '.claude', 'CLAUDE.md'),
+    path.join(projectPath, '.claude', 'claude.md')
+  ];
+  for (const candidate of claudeDirCandidates) {
+    if (fs.existsSync(candidate)) {
+      existingInstructions.push({ label: '.claude/CLAUDE.md', content: fs.readFileSync(candidate, 'utf8') });
+      break; // Only read one
+    }
+  }
+
+  // Check AGENTS.md — if project was not previously a Frame project, merge its content
+  const agentsMdPath = path.join(projectPath, FRAME_FILES.AGENTS);
+  let existingAgentsContent = null;
+  if (!wasAlreadyFrameProject && fs.existsSync(agentsMdPath)) {
+    existingAgentsContent = fs.readFileSync(agentsMdPath, 'utf8');
+    existingInstructions.push({ label: 'AGENTS.md', content: existingAgentsContent });
+    fs.unlinkSync(agentsMdPath);
+  }
+
+  // Build AGENTS.md content: Frame template + any existing instructions appended
+  let agentsContent = templates.getAgentsTemplate(name);
+  if (existingInstructions.length > 0) {
+    const merged = existingInstructions
+      .map(({ label, content }) => `## Existing Instructions (from ${label})\n\n${content}`)
+      .join('\n\n---\n\n');
+    agentsContent += '\n\n---\n\n' + merged;
+  }
+
   createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.AGENTS),
-    templates.getAgentsTemplate(name)
+    agentsContent
   );
 
   // CLAUDE.md - Symlink to AGENTS.md for Claude Code compatibility
@@ -194,6 +250,18 @@ function initializeFrameProject(projectPath, projectName) {
   );
 
   // GEMINI.md - Symlink to AGENTS.md for Gemini CLI compatibility
+  // If it exists as a real file, append its content to AGENTS.md then remove it so the symlink can be created
+  const geminiMdPath = path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK);
+  if (fs.existsSync(geminiMdPath)) {
+    const geminiStats = fs.lstatSync(geminiMdPath);
+    if (!geminiStats.isSymbolicLink()) {
+      const geminiContent = fs.readFileSync(geminiMdPath, 'utf8');
+      const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
+      const current = fs.readFileSync(agentsPath, 'utf8');
+      fs.writeFileSync(agentsPath, current + '\n\n---\n\n## Existing Instructions (from GEMINI.md)\n\n' + geminiContent, 'utf8');
+      fs.unlinkSync(geminiMdPath);
+    }
+  }
   createSymlinkSafe(
     FRAME_FILES.AGENTS,
     path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK)
@@ -243,7 +311,9 @@ function initializeFrameProject(projectPath, projectName) {
 function setupIPC(ipcMain) {
   ipcMain.on(IPC.CHECK_IS_FRAME_PROJECT, (event, projectPath) => {
     const isFrame = isFrameProject(projectPath);
+    workspace.updateProjectFrameStatus(projectPath, isFrame);
     event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame });
+    event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
   });
 
   ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed }) => {

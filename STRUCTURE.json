@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-03-23",
+  "lastUpdated": "2026-03-26",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -234,11 +234,13 @@
       ],
       "depends": [
         "electron",
+        "child_process",
+        "path",
         "shared/ipcChannels"
       ],
       "functions": {
         "init": {
-          "line": 15,
+          "line": 17,
           "params": [
             "window",
             "callback"
@@ -246,21 +248,29 @@
           "purpose": "Initialize dialogs module"
         },
         "showFolderPicker": {
-          "line": 23,
+          "line": 25,
           "params": [
             "event"
           ],
           "purpose": "Show folder picker dialog"
         },
         "showNewProjectDialog": {
-          "line": 46,
+          "line": 48,
           "params": [
             "event"
           ],
           "purpose": "Show new project dialog"
         },
+        "cloneGithubRepo": {
+          "line": 72,
+          "params": [
+            "event",
+            "repoUrl"
+          ],
+          "purpose": "Clone a GitHub repo and initialize it as a Frame project"
+        },
         "setupIPC": {
-          "line": 70,
+          "line": 117,
           "params": [
             "ipcMain"
           ],
@@ -270,10 +280,12 @@
       "ipc": {
         "listens": [
           "SELECT_PROJECT_FOLDER",
-          "CREATE_NEW_PROJECT"
+          "CREATE_NEW_PROJECT",
+          "CLONE_GITHUB_REPO"
         ],
         "emits": [
-          "PROJECT_SELECTED"
+          "PROJECT_SELECTED",
+          "CLONE_GITHUB_REPO_RESULT"
         ]
       }
     },
@@ -556,7 +568,7 @@
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 165,
+          "line": 173,
           "params": [
             "projectPath",
             "projectName"
@@ -564,7 +576,7 @@
           "purpose": "Initialize a project as Frame project"
         },
         "setupIPC": {
-          "line": 243,
+          "line": 311,
           "params": [
             "ipcMain"
           ],
@@ -579,8 +591,8 @@
         ],
         "emits": [
           "IS_FRAME_PROJECT_RESULT",
-          "FRAME_PROJECT_INITIALIZED",
           "WORKSPACE_UPDATED",
+          "FRAME_PROJECT_INITIALIZED",
           "FRAME_CONFIG_DATA"
         ]
       }
@@ -737,6 +749,8 @@
       "description": "Renderer Entry Point",
       "exports": [],
       "depends": [
+        "electron",
+        "shared/ipcChannels",
         "terminal",
         "fileTreeUI",
         "historyPanel",
@@ -752,17 +766,25 @@
       ],
       "functions": {
         "init": {
-          "line": 22,
+          "line": 24,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 136,
+          "line": 138,
           "purpose": "Setup button click handlers"
         },
         "setupKeyboardShortcuts": {
-          "line": 203,
+          "line": 244,
           "purpose": "Setup keyboard shortcuts"
         }
+      },
+      "ipc": {
+        "listens": [
+          "CLONE_GITHUB_REPO_RESULT"
+        ],
+        "emits": [
+          "CLONE_GITHUB_REPO"
+        ]
       }
     },
     "renderer/terminal": {
@@ -3939,6 +3961,18 @@
       },
       "AI_TOOL_CHANGED": {
         "name": "ai-tool-changed",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "other": {
+      "CLONE_GITHUB_REPO": {
+        "name": "clone-github-repo",
+        "direction": "",
+        "description": ""
+      },
+      "CLONE_GITHUB_REPO_RESULT": {
+        "name": "clone-github-repo-result",
         "direction": "",
         "description": ""
       }

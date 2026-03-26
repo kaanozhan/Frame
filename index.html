@@ -31,6 +31,12 @@
       <div id="project-actions">
         <button id="btn-select-project" class="btn" tabindex="-1">Select Project Folder</button>
         <button id="btn-create-project" class="btn btn-secondary" tabindex="-1">Create New Project</button>
+        <button id="btn-clone-github" class="btn btn-secondary" tabindex="-1">Clone GitHub Repo</button>
+        <div id="clone-github-input-row" style="display:none; gap:4px; margin-top:4px;">
+          <input id="clone-github-url" type="text" placeholder="https://github.com/user/repo" tabindex="-1" style="flex:1; font-size:11px; padding:4px 8px; border-radius:4px; border:1px solid var(--border-color); background:var(--input-bg, #2a2a2a); color:var(--text-color); outline:none;" />
+          <button id="btn-clone-github-confirm" class="btn btn-success" tabindex="-1" style="font-size:11px; padding:4px 8px;">Clone</button>
+          <button id="btn-clone-github-cancel" class="btn btn-secondary" tabindex="-1" style="font-size:11px; padding:4px 8px;">✕</button>
+        </div>
         <div class="ai-tool-row">
           <button id="btn-start-ai" class="btn btn-success" tabindex="-1" disabled>Start Claude Code</button>
           <select id="ai-tool-selector" class="ai-tool-select" tabindex="-1">

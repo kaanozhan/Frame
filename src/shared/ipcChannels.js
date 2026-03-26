@@ -14,6 +14,8 @@ const IPC = {
   // Project
   SELECT_PROJECT_FOLDER: 'select-project-folder',
   CREATE_NEW_PROJECT: 'create-new-project',
+  CLONE_GITHUB_REPO: 'clone-github-repo',
+  CLONE_GITHUB_REPO_RESULT: 'clone-github-repo-result',
   PROJECT_SELECTED: 'project-selected',
 
   // File Tree
