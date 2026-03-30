@@ -11,18 +11,49 @@ const FRAME_SESSION_PREFIX = 'frame-';
 let tmuxPath = null;
 
 /**
- * Build a UTF-8 locale environment to pass to tmux processes
- * @returns {Object}
+ * Detect the system UTF-8 locale.
+ * When Frame is launched from /Applications (not a terminal), Electron inherits
+ * a minimal environment where LANG may be unset or "C". We query macOS directly.
+ * @returns {string} e.g. "fr_FR.UTF-8"
+ */
+function detectUtf8Lang() {
+  // 1. Trust process.env if it already points to a UTF-8 locale
+  for (const key of ['LANG', 'LC_ALL', 'LC_CTYPE']) {
+    const val = process.env[key] || '';
+    if (val && val.toLowerCase().includes('utf')) return val;
+  }
+
+  // 2. macOS: derive from AppleLocale (works even in packaged apps)
+  if (process.platform === 'darwin') {
+    try {
+      const locale = execFileSync('defaults', ['read', '-g', 'AppleLocale'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).trim();
+      if (locale) return `${locale}.UTF-8`;
+    } catch {}
+  }
+
+  // 3. Try the `locale` command
+  try {
+    const out = execFileSync('locale', { encoding: 'utf8' });
+    const m = out.match(/LANG="?([^"\n]+)"?/);
+    if (m && m[1] && m[1] !== 'C' && m[1] !== 'POSIX') return m[1];
+  } catch {}
+
+  // 4. Safe fallback
+  return 'UTF-8';
+}
+
+/**
+ * Return env vars that guarantee UTF-8 in tmux and the shell it spawns.
+ * Always returns an explicit LANG and LC_ALL — never an empty object —
+ * so callers can spread it into any env without guessing.
+ * @returns {{ LANG: string, LC_ALL: string }}
  */
 function utf8Env() {
-  const lang = process.env.LANG || '';
-  const hasUtf8 = lang.toLowerCase().includes('utf-8') || lang.toLowerCase().includes('utf8');
-  if (hasUtf8) return {};
-  // Keep the user's language/territory, just switch the charset to UTF-8
-  // e.g. "fr_FR.ISO-8859-1" → "fr_FR.UTF-8"
-  const base = lang.split('.')[0] || 'fr_FR';
-  const utf8Lang = `${base}.UTF-8`;
-  return { LANG: utf8Lang, LC_ALL: utf8Lang };
+  const lang = detectUtf8Lang();
+  return { LANG: lang, LC_ALL: lang };
 }
 
 /**
@@ -85,7 +116,9 @@ function exec(args) {
  * @param {string} cwd - Working directory
  */
 function createSession(sessionName, cwd) {
-  exec(['new-session', '-d', '-s', sessionName, '-c', cwd]);
+  const { LANG } = utf8Env();
+  // -e passes env vars into the shell spawned inside the tmux session
+  exec(['new-session', '-d', '-s', sessionName, '-c', cwd, '-e', `LANG=${LANG}`, '-e', `LC_ALL=${LANG}`]);
 }
 
 /**

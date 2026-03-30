@@ -3585,27 +3585,31 @@
         "fs"
       ],
       "functions": {
+        "detectUtf8Lang": {
+          "line": 19,
+          "purpose": "a minimal environment where LANG may be unset or \"C\". We query macOS directly."
+        },
         "utf8Env": {
-          "line": 17,
-          "purpose": "Build a UTF-8 locale environment to pass to tmux processes"
+          "line": 54,
+          "purpose": "so callers can spread it into any env without guessing."
         },
         "findTmux": {
-          "line": 32,
+          "line": 63,
           "purpose": "Find tmux binary path"
         },
         "isTmuxAvailable": {
-          "line": 63,
+          "line": 94,
           "purpose": "Check if tmux is available on this system"
         },
         "exec": {
-          "line": 73,
+          "line": 104,
           "params": [
             "args"
           ],
           "purpose": "Always passes -u to enable UTF-8 mode"
         },
         "createSession": {
-          "line": 87,
+          "line": 118,
           "params": [
             "sessionName",
             "cwd"
@@ -3613,25 +3617,25 @@
           "purpose": "Create a new detached tmux session"
         },
         "sessionExists": {
-          "line": 96,
+          "line": 129,
           "params": [
             "sessionName"
           ],
           "purpose": "Check if a tmux session exists"
         },
         "killSession": {
-          "line": 109,
+          "line": 142,
           "params": [
             "sessionName"
           ],
           "purpose": "Kill a tmux session"
         },
         "listFrameSessions": {
-          "line": 121,
+          "line": 154,
           "purpose": "List all active Frame tmux sessions"
         },
         "sessionNameFor": {
-          "line": 138,
+          "line": 171,
           "params": [
             "terminalId"
           ],
