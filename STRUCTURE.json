@@ -3590,22 +3590,22 @@
           "purpose": "Build a UTF-8 locale environment to pass to tmux processes"
         },
         "findTmux": {
-          "line": 28,
+          "line": 32,
           "purpose": "Find tmux binary path"
         },
         "isTmuxAvailable": {
-          "line": 59,
+          "line": 63,
           "purpose": "Check if tmux is available on this system"
         },
         "exec": {
-          "line": 69,
+          "line": 73,
           "params": [
             "args"
           ],
           "purpose": "Always passes -u to enable UTF-8 mode"
         },
         "createSession": {
-          "line": 83,
+          "line": 87,
           "params": [
             "sessionName",
             "cwd"
@@ -3613,25 +3613,25 @@
           "purpose": "Create a new detached tmux session"
         },
         "sessionExists": {
-          "line": 92,
+          "line": 96,
           "params": [
             "sessionName"
           ],
           "purpose": "Check if a tmux session exists"
         },
         "killSession": {
-          "line": 105,
+          "line": 109,
           "params": [
             "sessionName"
           ],
           "purpose": "Kill a tmux session"
         },
         "listFrameSessions": {
-          "line": 117,
+          "line": 121,
           "purpose": "List all active Frame tmux sessions"
         },
         "sessionNameFor": {
-          "line": 134,
+          "line": 138,
           "params": [
             "terminalId"
           ],

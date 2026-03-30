@@ -18,7 +18,11 @@ function utf8Env() {
   const lang = process.env.LANG || '';
   const hasUtf8 = lang.toLowerCase().includes('utf-8') || lang.toLowerCase().includes('utf8');
   if (hasUtf8) return {};
-  return { LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' };
+  // Keep the user's language/territory, just switch the charset to UTF-8
+  // e.g. "fr_FR.ISO-8859-1" → "fr_FR.UTF-8"
+  const base = lang.split('.')[0] || 'fr_FR';
+  const utf8Lang = `${base}.UTF-8`;
+  return { LANG: utf8Lang, LC_ALL: utf8Lang };
 }
 
 /**
