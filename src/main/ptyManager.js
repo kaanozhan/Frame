@@ -6,6 +6,8 @@
 const pty = require('node-pty');
 const { IPC } = require('../shared/ipcChannels');
 const promptLogger = require('./promptLogger');
+const tmuxManager = require('./tmuxManager');
+const terminalPersistence = require('./terminalPersistence');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
@@ -133,33 +135,50 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null)
 
   const terminalId = `term-${++terminalCounter}`;
   const cwd = workingDir || process.env.HOME || process.env.USERPROFILE;
-  const shell = shellPath || getDefaultShell();
 
-  // Determine shell arguments based on shell type
-  let shellArgs = [];
-  if (process.platform !== 'win32') {
-    // For Unix shells, use interactive login shell
-    const shellName = shell.split('/').pop();
-    if (shellName === 'fish') {
-      shellArgs = ['-i'];
-    } else if (shellName === 'nu') {
-      shellArgs = ['-l'];
-    } else {
-      shellArgs = ['-i', '-l'];
+  let ptyProcess;
+
+  if (tmuxManager.isTmuxAvailable()) {
+    // Create a tmux session so the terminal survives app restarts
+    const sessionName = tmuxManager.sessionNameFor(terminalId);
+    tmuxManager.createSession(sessionName, cwd);
+
+    const tmuxBin = tmuxManager.findTmux();
+    ptyProcess = pty.spawn(tmuxBin, ['attach-session', '-t', sessionName], {
+      name: 'xterm-256color',
+      cols: 80,
+      rows: 24,
+      cwd,
+      env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' }
+    });
+
+    terminalPersistence.add(terminalId, { sessionName, cwd, projectPath: projectPath || null, customName: null });
+    console.log(`Created terminal ${terminalId} via tmux session ${sessionName} in ${cwd}`);
+  } else {
+    // Fallback: plain PTY (no persistence)
+    const shell = shellPath || getDefaultShell();
+    let shellArgs = [];
+    if (process.platform !== 'win32') {
+      const shellName = shell.split('/').pop();
+      if (shellName === 'fish') {
+        shellArgs = ['-i'];
+      } else if (shellName === 'nu') {
+        shellArgs = ['-l'];
+      } else {
+        shellArgs = ['-i', '-l'];
+      }
     }
+
+    ptyProcess = pty.spawn(shell, shellArgs, {
+      name: 'xterm-256color',
+      cols: 80,
+      rows: 24,
+      cwd,
+      env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' }
+    });
+
+    console.log(`Created terminal ${terminalId} (plain PTY, tmux unavailable) in ${cwd}`);
   }
-
-  const ptyProcess = pty.spawn(shell, shellArgs, {
-    name: 'xterm-256color',
-    cols: 80,
-    rows: 24,
-    cwd: cwd,
-    env: {
-      ...process.env,
-      TERM: 'xterm-256color',
-      COLORTERM: 'truecolor'
-    }
-  });
 
   // Handle PTY output - send with terminal ID
   ptyProcess.onData((data) => {
@@ -178,9 +197,65 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null)
   });
 
   ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath });
-  console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
+}
+
+/**
+ * Restore terminals from persisted tmux sessions
+ * @returns {Array<{terminalId, cwd, projectPath, customName}>} Restored terminal metadata
+ */
+function restoreTerminals() {
+  if (!tmuxManager.isTmuxAvailable()) return [];
+
+  const sessions = terminalPersistence.load();
+  const restored = [];
+  const tmuxBin = tmuxManager.findTmux();
+
+  for (const [terminalId, data] of Object.entries(sessions)) {
+    const { sessionName, cwd, projectPath, customName } = data;
+
+    if (!tmuxManager.sessionExists(sessionName)) {
+      // Session no longer exists, clean up
+      terminalPersistence.remove(terminalId);
+      continue;
+    }
+
+    // Update terminalCounter so new terminals don't collide with restored IDs
+    const match = terminalId.match(/term-(\d+)/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > terminalCounter) terminalCounter = num;
+    }
+
+    const ptyProcess = pty.spawn(tmuxBin, ['attach-session', '-t', sessionName], {
+      name: 'xterm-256color',
+      cols: 80,
+      rows: 24,
+      cwd,
+      env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' }
+    });
+
+    ptyProcess.onData((d) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC.TERMINAL_OUTPUT_ID, { terminalId, data: d });
+      }
+    });
+
+    ptyProcess.onExit(({ exitCode }) => {
+      console.log(`Terminal ${terminalId} (restored) exited:`, exitCode);
+      ptyInstances.delete(terminalId);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC.TERMINAL_DESTROYED, { terminalId, exitCode });
+      }
+    });
+
+    ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath: projectPath || null });
+    restored.push({ terminalId, cwd, projectPath: projectPath || null, customName: customName || null });
+    console.log(`Restored terminal ${terminalId} from tmux session ${sessionName}`);
+  }
+
+  return restored;
 }
 
 /**
@@ -239,6 +314,14 @@ function destroyTerminal(terminalId) {
   if (instance) {
     instance.pty.kill();
     ptyInstances.delete(terminalId);
+
+    // Kill associated tmux session and remove from persistence
+    if (tmuxManager.isTmuxAvailable()) {
+      const sessionName = tmuxManager.sessionNameFor(terminalId);
+      tmuxManager.killSession(sessionName);
+      terminalPersistence.remove(terminalId);
+    }
+
     console.log(`Destroyed terminal ${terminalId}`);
   }
 }
@@ -329,11 +412,23 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.TERMINAL_RESIZE_ID, (event, { terminalId, cols, rows }) => {
     resizeTerminal(terminalId, cols, rows);
   });
+
+  // Restore persisted terminals from tmux sessions
+  ipcMain.on(IPC.TERMINALS_RESTORE, (event) => {
+    try {
+      const restored = restoreTerminals();
+      event.reply(IPC.TERMINALS_RESTORED, { success: true, terminals: restored });
+    } catch (error) {
+      console.error('[ptyManager] Failed to restore terminals:', error);
+      event.reply(IPC.TERMINALS_RESTORED, { success: false, terminals: [], error: error.message });
+    }
+  });
 }
 
 module.exports = {
   init,
   createTerminal,
+  restoreTerminals,
   writeToTerminal,
   resizeTerminal,
   destroyTerminal,

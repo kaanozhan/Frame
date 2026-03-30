@@ -62,6 +62,8 @@ const IPC = {
   TERMINAL_FOCUS: 'terminal-focus',
   GET_AVAILABLE_SHELLS: 'get-available-shells',
   AVAILABLE_SHELLS_DATA: 'available-shells-data',
+  TERMINALS_RESTORE: 'terminals-restore',
+  TERMINALS_RESTORED: 'terminals-restored',
 
   // Tasks Panel
   LOAD_TASKS: 'load-tasks',

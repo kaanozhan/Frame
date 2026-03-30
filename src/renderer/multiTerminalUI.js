@@ -57,9 +57,13 @@ class MultiTerminalUI {
     // Setup keyboard shortcuts
     this._setupKeyboardShortcuts();
 
-    // Create first terminal (global terminal for initial state)
+    // Try to restore persisted terminals first; create a new one only if none restored
     if (this.autoCreateInitialTerminal) {
-      this.manager.createTerminal({ projectPath: null }).then(() => {
+      this.manager.restorePersistedTerminals().then((restoredIds) => {
+        if (restoredIds.length === 0) {
+          return this.manager.createTerminal({ projectPath: null });
+        }
+      }).then(() => {
         this.initialized = true;
       });
     } else {

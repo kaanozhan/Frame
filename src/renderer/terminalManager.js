@@ -247,6 +247,39 @@ class TerminalManager {
   }
 
   /**
+   * Restore terminals from persisted tmux sessions
+   * @returns {Promise<string[]>} Array of restored terminal IDs
+   */
+  async restorePersistedTerminals() {
+    return new Promise((resolve) => {
+      const handler = (event, response) => {
+        ipcRenderer.removeListener(IPC.TERMINALS_RESTORED, handler);
+
+        if (!response.success || !response.terminals || response.terminals.length === 0) {
+          resolve([]);
+          return;
+        }
+
+        const restoredIds = [];
+        for (const data of response.terminals) {
+          const { terminalId, cwd, projectPath, customName } = data;
+          this._initializeTerminal(terminalId, {
+            cwd,
+            projectPath,
+            name: customName || null
+          });
+          restoredIds.push(terminalId);
+        }
+
+        resolve(restoredIds);
+      };
+
+      ipcRenderer.on(IPC.TERMINALS_RESTORED, handler);
+      ipcRenderer.send(IPC.TERMINALS_RESTORE);
+    });
+  }
+
+  /**
    * Get available shells from main process
    * @returns {Promise<Array<{id: string, name: string, path: string}>>}
    */
@@ -298,7 +331,7 @@ class TerminalManager {
     const state = {
       id: terminalId,
       name: options.name || `Terminal ${++this.terminalCounter}`,
-      customName: null,
+      customName: options.name || null,
       isActive: false,
       createdAt: Date.now(),
       projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath
