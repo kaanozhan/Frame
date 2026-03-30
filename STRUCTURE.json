@@ -3573,6 +3573,7 @@
       "exports": [
         "findTmux",
         "isTmuxAvailable",
+        "utf8Env",
         "createSession",
         "sessionExists",
         "killSession",
@@ -3584,23 +3585,27 @@
         "fs"
       ],
       "functions": {
-        "findTmux": {
+        "utf8Env": {
           "line": 17,
+          "purpose": "Build a UTF-8 locale environment to pass to tmux processes"
+        },
+        "findTmux": {
+          "line": 28,
           "purpose": "Find tmux binary path"
         },
         "isTmuxAvailable": {
-          "line": 48,
+          "line": 59,
           "purpose": "Check if tmux is available on this system"
         },
         "exec": {
-          "line": 57,
+          "line": 69,
           "params": [
             "args"
           ],
-          "purpose": "Execute a tmux command"
+          "purpose": "Always passes -u to enable UTF-8 mode"
         },
         "createSession": {
-          "line": 68,
+          "line": 83,
           "params": [
             "sessionName",
             "cwd"
@@ -3608,25 +3613,25 @@
           "purpose": "Create a new detached tmux session"
         },
         "sessionExists": {
-          "line": 77,
+          "line": 92,
           "params": [
             "sessionName"
           ],
           "purpose": "Check if a tmux session exists"
         },
         "killSession": {
-          "line": 90,
+          "line": 105,
           "params": [
             "sessionName"
           ],
           "purpose": "Kill a tmux session"
         },
         "listFrameSessions": {
-          "line": 102,
+          "line": 117,
           "purpose": "List all active Frame tmux sessions"
         },
         "sessionNameFor": {
-          "line": 119,
+          "line": 134,
           "params": [
             "terminalId"
           ],

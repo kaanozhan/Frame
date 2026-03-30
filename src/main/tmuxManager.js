@@ -11,6 +11,17 @@ const FRAME_SESSION_PREFIX = 'frame-';
 let tmuxPath = null;
 
 /**
+ * Build a UTF-8 locale environment to pass to tmux processes
+ * @returns {Object}
+ */
+function utf8Env() {
+  const lang = process.env.LANG || '';
+  const hasUtf8 = lang.toLowerCase().includes('utf-8') || lang.toLowerCase().includes('utf8');
+  if (hasUtf8) return {};
+  return { LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' };
+}
+
+/**
  * Find tmux binary path
  * @returns {string|null}
  */
@@ -51,13 +62,17 @@ function isTmuxAvailable() {
 
 /**
  * Execute a tmux command
+ * Always passes -u to enable UTF-8 mode
  * @param {string[]} args
  * @returns {string}
  */
 function exec(args) {
   const bin = findTmux();
   if (!bin) throw new Error('tmux not found on this system');
-  return execFileSync(bin, args, { encoding: 'utf8' });
+  return execFileSync(bin, ['-u', ...args], {
+    encoding: 'utf8',
+    env: { ...process.env, ...utf8Env() }
+  });
 }
 
 /**
@@ -123,6 +138,7 @@ function sessionNameFor(terminalId) {
 module.exports = {
   findTmux,
   isTmuxAvailable,
+  utf8Env,
   createSession,
   sessionExists,
   killSession,

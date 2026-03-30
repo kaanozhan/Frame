@@ -144,12 +144,12 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null)
     tmuxManager.createSession(sessionName, cwd);
 
     const tmuxBin = tmuxManager.findTmux();
-    ptyProcess = pty.spawn(tmuxBin, ['attach-session', '-t', sessionName], {
+    ptyProcess = pty.spawn(tmuxBin, ['-u', 'attach-session', '-t', sessionName], {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
       cwd,
-      env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' }
+      env: { ...process.env, ...tmuxManager.utf8Env(), TERM: 'xterm-256color', COLORTERM: 'truecolor' }
     });
 
     terminalPersistence.add(terminalId, { sessionName, cwd, projectPath: projectPath || null, customName: null });
@@ -228,12 +228,12 @@ function restoreTerminals() {
       if (num > terminalCounter) terminalCounter = num;
     }
 
-    const ptyProcess = pty.spawn(tmuxBin, ['attach-session', '-t', sessionName], {
+    const ptyProcess = pty.spawn(tmuxBin, ['-u', 'attach-session', '-t', sessionName], {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
       cwd,
-      env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' }
+      env: { ...process.env, ...tmuxManager.utf8Env(), TERM: 'xterm-256color', COLORTERM: 'truecolor' }
     });
 
     ptyProcess.onData((d) => {
