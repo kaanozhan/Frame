@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-03-26",
+  "lastUpdated": "2026-03-31",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",

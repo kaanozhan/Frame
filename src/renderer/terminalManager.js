@@ -322,9 +322,8 @@ class TerminalManager {
         }
 
         // Paste: Ctrl+Shift+V (Win/Linux) or Cmd+V (macOS)
+        // Block key event only — xterm handles paste natively via DOM paste event
         if ((event.ctrlKey && event.shiftKey && key === 'v') || (event.metaKey && key === 'v')) {
-          const text = clipboard.readText();
-          if (text) terminal.paste(text);
           return false;
         }
       }
