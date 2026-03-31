@@ -6,6 +6,7 @@
 const pty = require('node-pty');
 const { IPC } = require('../shared/ipcChannels');
 const promptLogger = require('./promptLogger');
+const terminalPersistence = require('./terminalPersistence');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
@@ -178,9 +179,72 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null)
   });
 
   ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath });
+  terminalPersistence.add(terminalId, { cwd, projectPath: projectPath || null, customName: null });
   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
+}
+
+/**
+ * Restore terminals from persisted sessions (plain PTY, no tmux)
+ * @returns {Array<{terminalId, cwd, projectPath, customName}>} Restored terminal metadata
+ */
+function restoreTerminals() {
+  const sessions = terminalPersistence.load();
+  const restored = [];
+
+  for (const [terminalId, data] of Object.entries(sessions)) {
+    const { cwd, projectPath, customName } = data;
+
+    // Update counter so new terminals don't collide with restored IDs
+    const match = terminalId.match(/term-(\d+)/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > terminalCounter) terminalCounter = num;
+    }
+
+    const shell = getDefaultShell();
+    let shellArgs = [];
+    if (process.platform !== 'win32') {
+      const shellName = shell.split('/').pop();
+      if (shellName === 'fish') {
+        shellArgs = ['-i'];
+      } else if (shellName === 'nu') {
+        shellArgs = ['-l'];
+      } else {
+        shellArgs = ['-i', '-l'];
+      }
+    }
+
+    const ptyProcess = pty.spawn(shell, shellArgs, {
+      name: 'xterm-256color',
+      cols: 80,
+      rows: 24,
+      cwd,
+      env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' }
+    });
+
+    ptyProcess.onData((d) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC.TERMINAL_OUTPUT_ID, { terminalId, data: d });
+      }
+    });
+
+    ptyProcess.onExit(({ exitCode }) => {
+      console.log(`Terminal ${terminalId} (restored) exited:`, exitCode);
+      ptyInstances.delete(terminalId);
+      terminalPersistence.remove(terminalId);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC.TERMINAL_DESTROYED, { terminalId, exitCode });
+      }
+    });
+
+    ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath: projectPath || null });
+    restored.push({ terminalId, cwd, projectPath: projectPath || null, customName: customName || null });
+    console.log(`Restored terminal ${terminalId} in ${cwd}`);
+  }
+
+  return restored;
 }
 
 /**
@@ -239,6 +303,7 @@ function destroyTerminal(terminalId) {
   if (instance) {
     instance.pty.kill();
     ptyInstances.delete(terminalId);
+    terminalPersistence.remove(terminalId);
     console.log(`Destroyed terminal ${terminalId}`);
   }
 }
@@ -329,11 +394,23 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.TERMINAL_RESIZE_ID, (event, { terminalId, cols, rows }) => {
     resizeTerminal(terminalId, cols, rows);
   });
+
+  // Restore persisted terminals
+  ipcMain.on(IPC.TERMINALS_RESTORE, (event) => {
+    try {
+      const restored = restoreTerminals();
+      event.reply(IPC.TERMINALS_RESTORED, { success: true, terminals: restored });
+    } catch (error) {
+      console.error('[ptyManager] Failed to restore terminals:', error);
+      event.reply(IPC.TERMINALS_RESTORED, { success: false, terminals: [], error: error.message });
+    }
+  });
 }
 
 module.exports = {
   init,
   createTerminal,
+  restoreTerminals,
   writeToTerminal,
   resizeTerminal,
   destroyTerminal,

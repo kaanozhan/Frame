@@ -1618,12 +1618,14 @@
       "ipc": {
         "listens": [
           "TERMINAL_CREATED",
+          "TERMINALS_RESTORED",
           "AVAILABLE_SHELLS_DATA",
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED"
         ],
         "emits": [
           "TERMINAL_CREATE",
+          "TERMINALS_RESTORE",
           "GET_AVAILABLE_SHELLS",
           "TERMINAL_INPUT_ID",
           "TERMINAL_DESTROY",
@@ -1804,6 +1806,7 @@
       "exports": [
         "init",
         "createTerminal",
+        "restoreTerminals",
         "writeToTerminal",
         "resizeTerminal",
         "destroyTerminal",
@@ -1820,49 +1823,54 @@
         "node-pty",
         "shared/ipcChannels",
         "promptLogger",
+        "terminalPersistence",
         "child_process",
         "fs"
       ],
       "functions": {
         "init": {
-          "line": 19,
+          "line": 20,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getDefaultShell": {
-          "line": 26,
+          "line": 27,
           "purpose": "Get default shell based on platform"
         },
         "getAvailableShells": {
-          "line": 43,
+          "line": 44,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 129,
+          "line": 130,
           "params": [
             "workingDir = null",
             "projectPath = null",
             "shellPath = null"
           ]
         },
+        "restoreTerminals": {
+          "line": 192,
+          "purpose": "Restore terminals from persisted sessions (plain PTY, no tmux)"
+        },
         "getTerminalsByProject": {
-          "line": 191,
+          "line": 255,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 206,
+          "line": 270,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "writeToTerminal": {
-          "line": 217,
+          "line": 281,
           "params": [
             "terminalId",
             "data"
@@ -1870,7 +1878,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 227,
+          "line": 291,
           "params": [
             "terminalId",
             "cols",
@@ -1879,33 +1887,33 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 237,
+          "line": 301,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 249,
+          "line": 314,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 260,
+          "line": 325,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 267,
+          "line": 332,
           "purpose": "Get all terminal IDs"
         },
         "hasTerminal": {
-          "line": 274,
+          "line": 339,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 281,
+          "line": 346,
           "params": [
             "ipcMain"
           ],
@@ -1918,9 +1926,12 @@
           "TERMINAL_CREATE",
           "TERMINAL_DESTROY",
           "TERMINAL_INPUT_ID",
-          "TERMINAL_RESIZE_ID"
+          "TERMINAL_RESIZE_ID",
+          "TERMINALS_RESTORE"
         ],
         "emits": [
+          "TERMINAL_OUTPUT_ID",
+          "TERMINAL_DESTROYED",
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED"
         ]
@@ -3499,6 +3510,61 @@
           "LOAD_PROMPT_HISTORY"
         ]
       }
+    },
+    "main/terminalPersistence": {
+      "file": "src/main/terminalPersistence.js",
+      "description": "Terminal Persistence Module",
+      "exports": [
+        "load",
+        "save",
+        "add",
+        "remove",
+        "update"
+      ],
+      "depends": [
+        "path",
+        "fs",
+        "electron"
+      ],
+      "functions": {
+        "getStoragePath": {
+          "line": 10
+        },
+        "load": {
+          "line": 18,
+          "purpose": "Load all persisted terminal sessions"
+        },
+        "save": {
+          "line": 34,
+          "params": [
+            "sessions"
+          ],
+          "purpose": "Persist all terminal sessions to disk"
+        },
+        "add": {
+          "line": 47,
+          "params": [
+            "terminalId",
+            "data"
+          ],
+          "purpose": "Add or update a terminal session entry"
+        },
+        "remove": {
+          "line": 56,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Remove a terminal session entry"
+        },
+        "update": {
+          "line": 67,
+          "params": [
+            "terminalId",
+            "patch"
+          ],
+          "purpose": "Update a specific field of a terminal session"
+        }
+      }
     }
   },
   "ipcChannels": {
@@ -3975,6 +4041,16 @@
         "name": "clone-github-repo-result",
         "direction": "",
         "description": ""
+      },
+      "TERMINALS_RESTORE": {
+        "name": "terminals-restore",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINALS_RESTORED": {
+        "name": "terminals-restored",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -4360,6 +4436,13 @@
         "module": "renderer/terminalTabBar",
         "file": "src/renderer/terminalTabBar.js",
         "description": "Terminal Tab Bar Module"
+      }
+    ],
+    "terminal-persistence": [
+      {
+        "module": "main/terminalPersistence",
+        "file": "src/main/terminalPersistence.js",
+        "description": "Terminal Persistence Module"
       }
     ],
     "workspace": [
