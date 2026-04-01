@@ -146,8 +146,10 @@ class MultiTerminalUI {
     this.contentContainer.style.gap = '';
     this.contentContainer.style.backgroundColor = '';
 
-    // If the active terminal hasn't changed, skip remount to preserve scroll position
-    if (this._mountedTerminalId === state.activeTerminalId && state.terminals.length > 0) {
+    // If the active terminal hasn't changed and we're not switching from grid, skip remount
+    const switchingFromGrid = this._lastViewMode === 'grid';
+    this._lastViewMode = 'tabs';
+    if (!switchingFromGrid && this._mountedTerminalId === state.activeTerminalId && state.terminals.length > 0) {
       return;
     }
 
@@ -161,13 +163,6 @@ class MultiTerminalUI {
     contentArea.style.width = '100%';
     contentArea.style.position = 'relative';
     this.contentContainer.appendChild(contentArea);
-
-    const scrollBtn = document.createElement('button');
-    scrollBtn.className = 'btn-scroll-bottom-overlay';
-    scrollBtn.title = 'Scroll to bottom';
-    scrollBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-    scrollBtn.addEventListener('click', () => this.manager.scrollActiveToBottom());
-    contentArea.appendChild(scrollBtn);
 
     // Check if there are any terminals for current project
     if (state.terminals.length === 0) {
@@ -188,6 +183,14 @@ class MultiTerminalUI {
       this.manager.mountTerminal(state.activeTerminalId, contentArea);
     }
 
+    // Add scroll-to-bottom button after mount (mountTerminal clears container)
+    const scrollBtn = document.createElement('button');
+    scrollBtn.className = 'btn-scroll-bottom-overlay';
+    scrollBtn.title = 'Scroll to bottom';
+    scrollBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    scrollBtn.addEventListener('click', () => this.manager.scrollActiveToBottom());
+    contentArea.appendChild(scrollBtn);
+
     setTimeout(() => this.manager.fitAll(), 100);
   }
 
@@ -195,6 +198,7 @@ class MultiTerminalUI {
    * Render grid view (multiple terminals)
    */
   _renderGridView(state) {
+    this._lastViewMode = 'grid';
     this.contentContainer.className = 'terminal-content grid-view';
     this.grid.render(state.terminals, state.gridLayout);
 
