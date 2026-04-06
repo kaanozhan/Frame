@@ -82,6 +82,13 @@ body.sidebar-resizing * {
   gap: var(--space-sm);
 }
 
+#app-version {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  letter-spacing: 0;
+}
+
 #sidebar-header::before {
   content: '';
   width: 8px;

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-04-01",
+  "lastUpdated": "2026-04-06",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -35,23 +35,24 @@
         "overviewManager",
         "gitBranchesManager",
         "aiToolManager",
-        "claudeSessionsManager"
+        "claudeSessionsManager",
+        "updateChecker"
       ],
       "functions": {
         "createWindow": {
-          "line": 34,
+          "line": 35,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 79,
+          "line": 86,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 107,
+          "line": 115,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 118,
+          "line": 126,
           "params": [
             "window"
           ],
@@ -762,7 +763,8 @@
         "projectListUI",
         "editor",
         "sidebarResize",
-        "aiToolSelector"
+        "aiToolSelector",
+        "../package.json"
       ],
       "functions": {
         "init": {
@@ -770,11 +772,11 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 138,
+          "line": 143,
           "purpose": "Setup button click handlers"
         },
         "setupKeyboardShortcuts": {
-          "line": 244,
+          "line": 249,
           "purpose": "Setup keyboard shortcuts"
         }
       },
@@ -2038,6 +2040,7 @@
       },
       "ipc": {
         "listens": [
+          "UPDATE_AVAILABLE",
           "CLAUDE_USAGE_DATA"
         ],
         "emits": [
@@ -3499,6 +3502,51 @@
           "LOAD_PROMPT_HISTORY"
         ]
       }
+    },
+    "main/updateChecker": {
+      "file": "src/main/updateChecker.js",
+      "description": "Update Checker Module",
+      "exports": [
+        "init",
+        "setupIPC",
+        "checkForUpdate"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "https",
+        "../package.json"
+      ],
+      "functions": {
+        "init": {
+          "line": 15,
+          "params": [
+            "window"
+          ]
+        },
+        "setupIPC": {
+          "line": 19
+        },
+        "checkForUpdate": {
+          "line": 25
+        },
+        "isNewerVersion": {
+          "line": 76,
+          "params": [
+            "current",
+            "latest"
+          ],
+          "purpose": "Compare semver: returns true if latest > current"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "CHECK_FOR_UPDATE"
+        ],
+        "emits": [
+          "UPDATE_AVAILABLE"
+        ]
+      }
     }
   },
   "ipcChannels": {
@@ -3975,6 +4023,16 @@
         "name": "clone-github-repo-result",
         "direction": "",
         "description": ""
+      },
+      "CHECK_FOR_UPDATE": {
+        "name": "check-for-update",
+        "direction": "",
+        "description": ""
+      },
+      "UPDATE_AVAILABLE": {
+        "name": "update-available",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -4360,6 +4418,13 @@
         "module": "renderer/terminalTabBar",
         "file": "src/renderer/terminalTabBar.js",
         "description": "Terminal Tab Bar Module"
+      }
+    ],
+    "update-checker": [
+      {
+        "module": "main/updateChecker",
+        "file": "src/main/updateChecker.js",
+        "description": "Update Checker Module"
       }
     ],
     "workspace": [

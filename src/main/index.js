@@ -25,6 +25,7 @@ const overviewManager = require('./overviewManager');
 const gitBranchesManager = require('./gitBranchesManager');
 const aiToolManager = require('./aiToolManager');
 const claudeSessionsManager = require('./claudeSessionsManager');
+const updateChecker = require('./updateChecker');
 
 let mainWindow = null;
 
@@ -65,10 +66,16 @@ function createWindow() {
     pty.setProjectPath(projectPath);
     promptLogger.setProject(projectPath);
   });
+  updateChecker.init(mainWindow);
   initModulesWithWindow(mainWindow);
 
   // Create application menu
   menu.createMenu();
+
+  // Check for updates after window is ready
+  mainWindow.webContents.on('did-finish-load', () => {
+    updateChecker.checkForUpdate();
+  });
 
   return mainWindow;
 }
@@ -93,6 +100,7 @@ function setupAllIPC() {
   overviewManager.setupIPC(ipcMain);
   gitBranchesManager.setupIPC(ipcMain);
   claudeSessionsManager.setupIPC(ipcMain);
+  updateChecker.setupIPC();
 
   // Terminal input handler (needs prompt logger integration)
   ipcMain.on(IPC.TERMINAL_INPUT, (event, data) => {

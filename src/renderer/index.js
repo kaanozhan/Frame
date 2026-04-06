@@ -22,6 +22,11 @@ const aiToolSelector = require('./aiToolSelector');
  * Initialize all modules
  */
 function init() {
+  // Show app version
+  const version = require('../../package.json').version;
+  const versionEl = document.getElementById('app-version');
+  if (versionEl) versionEl.textContent = `v${version}`;
+
   // Initialize terminal
   const multiTerminalUI = terminal.initTerminal('terminal');
 

@@ -9,7 +9,7 @@ const tasksPanel = require('./tasksPanel');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
-const { Plus, LayoutGrid, MoreHorizontal, Square } = require('lucide');
+const { Plus, LayoutGrid, MoreHorizontal, Square, Bell } = require('lucide');
 
 function lucideIcon(data, size = 18) {
   const children = data.map(([tag, attrs]) => {
@@ -201,6 +201,10 @@ class TerminalTabBar {
           <option value="3x2">3×2</option>
           <option value="3x3">3×3</option>
         </select>
+        <button class="btn-update-notify" title="Check for updates" style="display:none;position:relative;">
+          ${lucideIcon(Bell)}
+          <span class="update-badge"></span>
+        </button>
         <button class="btn-more-toggle" title="More panels">
           ${lucideIcon(MoreHorizontal)}
         </button>
@@ -354,6 +358,23 @@ class TerminalTabBar {
           this.moreMenu.style.left = `${rect.right - menuRect.width}px`;
         });
       }
+    });
+
+    // Update notification button
+    const updateBtn = this.element.querySelector('.btn-update-notify');
+    updateBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this._updateInfo) {
+        const { shell } = require('electron');
+        shell.openExternal(this._updateInfo.releaseUrl);
+      }
+    });
+
+    // Listen for update available from main process
+    ipcRenderer.on(IPC.UPDATE_AVAILABLE, (event, info) => {
+      this._updateInfo = info;
+      updateBtn.style.display = '';
+      updateBtn.title = `New version available: v${info.latestVersion}`;
     });
 
     // Setup usage bar IPC listener

@@ -175,6 +175,23 @@
   background: var(--bg-elevated);
 }
 
+/* Update Notification */
+.btn-update-notify .update-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-primary, #f59e0b);
+  border-radius: 50%;
+  animation: update-pulse 2s ease-in-out infinite;
+}
+
+@keyframes update-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* Claude Usage Bars */
 .claude-usage-bars {
   display: flex;

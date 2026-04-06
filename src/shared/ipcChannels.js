@@ -110,6 +110,10 @@ const IPC = {
   REMOVE_GIT_WORKTREE: 'remove-git-worktree',
   TOGGLE_GIT_BRANCHES_PANEL: 'toggle-git-branches-panel',
 
+  // Update Check
+  CHECK_FOR_UPDATE: 'check-for-update',
+  UPDATE_AVAILABLE: 'update-available',
+
   // AI Tool Settings
   GET_AI_TOOL_CONFIG: 'get-ai-tool-config',
   AI_TOOL_CONFIG_DATA: 'ai-tool-config-data',
