@@ -51,7 +51,8 @@
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "identity": "KAAN OZHAN (WU73QKZJ64)"
+      "identity": "KAAN OZHAN (WU73QKZJ64)",
+      "notarize": true
     },
     "dmg": {
       "title": "${productName} ${version}",

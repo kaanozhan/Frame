@@ -35,4 +35,4 @@ __pycache__/
 release/
 
 #Walkthroughs
-WALKTHROUGH/
+WALKTHROUGH/*.p8
