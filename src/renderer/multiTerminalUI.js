@@ -54,8 +54,9 @@ class MultiTerminalUI {
     // Listen for state changes
     this.manager.onStateChange = (state) => this._onStateChange(state);
 
-    // Setup keyboard shortcuts
-    this._setupKeyboardShortcuts();
+    // Keyboard shortcuts are now registered centrally via commandRegistry
+    // (see src/renderer/index.js). Terminal actions are exposed as public
+    // methods on this class for the registry to invoke.
 
     // Create first terminal (global terminal for initial state)
     if (this.autoCreateInitialTerminal) {
@@ -207,61 +208,39 @@ class MultiTerminalUI {
   }
 
   /**
-   * Setup keyboard shortcuts
+   * Switch to next/previous terminal. Public so command registry can call it.
    */
-  _setupKeyboardShortcuts() {
-    document.addEventListener('keydown', (e) => {
-      const modKey = e.ctrlKey || e.metaKey; // Support both Ctrl (Windows/Linux) and Cmd (macOS)
-      const key = e.key.toLowerCase(); // Normalize key to lowercase
-
-      // Ctrl/Cmd+Shift+T - New terminal for current project
-      if (modKey && e.shiftKey && key === 't') {
-        e.preventDefault();
-        this.createTerminalForCurrentProject();
-      }
-
-      // Ctrl/Cmd+Shift+W - Close current terminal
-      if (modKey && e.shiftKey && key === 'w') {
-        e.preventDefault();
-        if (this.manager.activeTerminalId && this.manager.terminals.size > 1) {
-          this.manager.closeTerminal(this.manager.activeTerminalId);
-        }
-      }
-
-      // Ctrl/Cmd+Tab - Next terminal
-      if (modKey && e.key === 'Tab' && !e.shiftKey) {
-        e.preventDefault();
-        this._switchTerminal(1);
-      }
-
-      // Ctrl/Cmd+Shift+Tab - Previous terminal
-      if (modKey && e.shiftKey && e.key === 'Tab') {
-        e.preventDefault();
-        this._switchTerminal(-1);
-      }
-
-      // Ctrl/Cmd+1-9 - Switch to terminal by number
-      if (modKey && e.key >= '1' && e.key <= '9') {
-        e.preventDefault();
-        const index = parseInt(e.key) - 1;
-        const terminals = this.manager.getTerminalStates();
-        if (index < terminals.length) {
-          this.manager.setActiveTerminal(terminals[index].id);
-        }
-      }
-
-      // Ctrl/Cmd+Shift+G - Toggle grid view
-      if (modKey && e.shiftKey && key === 'g') {
-        e.preventDefault();
-        const newMode = this.manager.viewMode === 'tabs' ? 'grid' : 'tabs';
-        this.manager.setViewMode(newMode);
-      }
-    });
+  switchTerminal(direction) {
+    return this._switchTerminal(direction);
   }
 
   /**
-   * Switch to next/previous terminal
+   * Switch to terminal at index (0-based). No-op if out of range.
    */
+  setActiveTerminalByIndex(index) {
+    const terminals = this.manager.getTerminalStates();
+    if (index >= 0 && index < terminals.length) {
+      this.manager.setActiveTerminal(terminals[index].id);
+    }
+  }
+
+  /**
+   * Close currently active terminal (only if more than one exists).
+   */
+  closeActiveTerminal() {
+    if (this.manager.activeTerminalId && this.manager.terminals.size > 1) {
+      this.manager.closeTerminal(this.manager.activeTerminalId);
+    }
+  }
+
+  /**
+   * Toggle between tabs and grid view modes.
+   */
+  toggleViewMode() {
+    const newMode = this.manager.viewMode === 'tabs' ? 'grid' : 'tabs';
+    this.manager.setViewMode(newMode);
+  }
+
   _switchTerminal(direction) {
     const terminals = this.manager.getTerminalStates();
     if (terminals.length <= 1) return;

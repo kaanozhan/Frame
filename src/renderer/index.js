@@ -17,6 +17,8 @@ const projectListUI = require('./projectListUI');
 const editor = require('./editor');
 const sidebarResize = require('./sidebarResize');
 const aiToolSelector = require('./aiToolSelector');
+const commandRegistry = require('./commandRegistry');
+const commandPalette = require('./commandPalette');
 
 /**
  * Initialize all modules
@@ -128,8 +130,10 @@ function init() {
   // Setup button handlers
   setupButtonHandlers();
 
-  // Setup keyboard shortcuts
-  setupKeyboardShortcuts();
+  // Initialize command palette + register all commands, then bind keyboard
+  commandPalette.init();
+  registerCommands();
+  commandRegistry.bindKeyboard();
 
   // Setup window resize handler
   window.addEventListener('resize', () => {
@@ -244,65 +248,235 @@ function setupButtonHandlers() {
 }
 
 /**
- * Setup keyboard shortcuts
+ * Show the sidebar (if hidden) and switch to the given tab. Used by focus
+ * commands so they don't try to focus an element inside a hidden container.
  */
-function setupKeyboardShortcuts() {
-  document.addEventListener('keydown', (e) => {
-    const modKey = e.ctrlKey || e.metaKey; // Support both Ctrl (Windows/Linux) and Cmd (macOS)
-    const key = e.key.toLowerCase(); // Normalize key to lowercase
+function revealSidebarTab(tabName) {
+  if (!sidebarResize.isVisible()) {
+    sidebarResize.show();
+    terminal.fitTerminal();
+  }
+  document.querySelectorAll('.sidebar-tab-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.sidebarTab === tabName);
+  });
+  document.querySelectorAll('[data-sidebar-tab-content]').forEach((el) => {
+    el.style.display = el.dataset.sidebarTabContent === tabName ? '' : 'none';
+  });
+}
 
-    // Ctrl/Cmd+Shift+H - Toggle history panel
-    if (modKey && e.shiftKey && key === 'h') {
-      e.preventDefault();
-      historyPanel.toggleHistoryPanel();
-    }
-    // Ctrl/Cmd+Shift+P - Toggle plugins panel
-    if (modKey && e.shiftKey && key === 'p') {
-      e.preventDefault();
-      pluginsPanel.toggle();
-    }
-    // Ctrl/Cmd+Shift+G - Toggle GitHub panel
-    if (modKey && e.shiftKey && key === 'g') {
-      e.preventDefault();
-      githubPanel.toggle();
-    }
-    // Ctrl/Cmd+B - Toggle sidebar
-    if (modKey && !e.shiftKey && key === 'b') {
-      e.preventDefault();
+/**
+ * Register every app command with the central registry. Commands are the
+ * single source of truth for title, shortcut, and behavior — consumed by the
+ * Command Palette and the global keyboard handler.
+ */
+function registerCommands() {
+  const r = commandRegistry.register;
+
+  // ---------- Command Palette ----------
+  r({
+    id: 'palette.toggle',
+    title: 'Show All Commands',
+    category: 'Palette',
+    shortcut: 'CmdOrCtrl+Shift+P',
+    run: () => commandPalette.toggle()
+  });
+  r({
+    id: 'palette.open',
+    title: 'Command Palette',
+    category: 'Palette',
+    shortcut: 'CmdOrCtrl+P',
+    run: () => commandPalette.open()
+  });
+
+  // ---------- Sidebar / Panels ----------
+  r({
+    id: 'panel.toggleSidebar',
+    title: 'Toggle Sidebar (Projects & Files)',
+    category: 'Panel',
+    shortcut: 'CmdOrCtrl+B',
+    run: () => {
       sidebarResize.toggle();
       terminal.fitTerminal();
     }
-    // Ctrl/Cmd+Shift+[ - Previous project
-    if (modKey && e.shiftKey && e.key === '[') {
-      e.preventDefault();
-      projectListUI.selectPrevProject();
+  });
+  r({
+    id: 'panel.showSidebar',
+    title: 'Show Sidebar',
+    category: 'Panel',
+    run: () => {
+      sidebarResize.show();
+      terminal.fitTerminal();
     }
-    // Ctrl/Cmd+Shift+] - Next project
-    if (modKey && e.shiftKey && e.key === ']') {
-      e.preventDefault();
-      projectListUI.selectNextProject();
-    }
-    // Ctrl/Cmd+E - Focus project list
-    if (modKey && !e.shiftKey && key === 'e') {
-      e.preventDefault();
+  });
+  r({
+    id: 'panel.toggleHistory',
+    title: 'Toggle Prompt History Panel',
+    category: 'Panel',
+    shortcut: 'CmdOrCtrl+Shift+H',
+    run: () => historyPanel.toggleHistoryPanel()
+  });
+  r({
+    id: 'panel.toggleTasks',
+    title: 'Toggle Tasks Panel',
+    category: 'Panel',
+    shortcut: 'CmdOrCtrl+T',
+    run: () => tasksPanel.toggle()
+  });
+  r({
+    id: 'panel.togglePlugins',
+    title: 'Toggle Plugins Panel',
+    category: 'Panel',
+    shortcut: 'CmdOrCtrl+Shift+X',
+    run: () => pluginsPanel.toggle()
+  });
+  r({
+    id: 'panel.toggleGitHub',
+    title: 'Toggle GitHub Panel',
+    category: 'Panel',
+    shortcut: 'CmdOrCtrl+Shift+G',
+    run: () => githubPanel.toggle()
+  });
+  r({
+    id: 'panel.togglePrompts',
+    title: 'Toggle Prompts Panel',
+    category: 'Panel',
+    shortcut: 'CmdOrCtrl+Shift+L',
+    run: () => promptsPanel.toggle()
+  });
+
+  // ---------- Focus ----------
+  r({
+    id: 'focus.projectList',
+    title: 'Focus Project List',
+    category: 'Focus',
+    shortcut: 'CmdOrCtrl+E',
+    run: () => {
+      revealSidebarTab('projects');
       fileTreeUI.blur();
       projectListUI.focus();
     }
-    // Ctrl/Cmd+Shift+E - Focus file tree
-    if (modKey && e.shiftKey && key === 'e') {
-      e.preventDefault();
+  });
+  r({
+    id: 'focus.fileTree',
+    title: 'Focus File Tree',
+    category: 'Focus',
+    shortcut: 'CmdOrCtrl+Shift+E',
+    run: () => {
+      revealSidebarTab('files');
       projectListUI.blur();
       fileTreeUI.focus();
     }
-    // Ctrl/Cmd+T - Toggle tasks panel
-    if (modKey && !e.shiftKey && key === 't') {
-      e.preventDefault();
-      tasksPanel.toggle()
+  });
+
+  // ---------- Project Navigation ----------
+  r({
+    id: 'project.next',
+    title: 'Next Project',
+    category: 'Project',
+    shortcut: 'CmdOrCtrl+Shift+]',
+    run: () => projectListUI.selectNextProject()
+  });
+  r({
+    id: 'project.prev',
+    title: 'Previous Project',
+    category: 'Project',
+    shortcut: 'CmdOrCtrl+Shift+[',
+    run: () => projectListUI.selectPrevProject()
+  });
+  r({
+    id: 'project.add',
+    title: 'Add Project to Workspace…',
+    category: 'Project',
+    run: () => state.selectProjectFolder()
+  });
+  r({
+    id: 'project.create',
+    title: 'Create New Project…',
+    category: 'Project',
+    run: () => state.createNewProject()
+  });
+  r({
+    id: 'project.initializeFrame',
+    title: 'Initialize as Frame Project',
+    category: 'Project',
+    when: () => !!state.getProjectPath() && !state.getIsFrameProject(),
+    run: () => state.initializeAsFrameProject()
+  });
+
+  // ---------- Terminal ----------
+  r({
+    id: 'terminal.new',
+    title: 'New Terminal',
+    category: 'Terminal',
+    shortcut: 'CmdOrCtrl+Shift+T',
+    run: () => {
+      const ui = terminal.getMultiTerminalUI();
+      if (ui) ui.createTerminalForCurrentProject();
     }
-    // Ctrl/Cmd+Shift+L - Toggle prompts panel
-    if (modKey && e.shiftKey && key === 'l') {
-      e.preventDefault();
-      promptsPanel.toggle();
+  });
+  r({
+    id: 'terminal.close',
+    title: 'Close Terminal',
+    category: 'Terminal',
+    shortcut: 'CmdOrCtrl+Shift+W',
+    run: () => {
+      const ui = terminal.getMultiTerminalUI();
+      if (ui) ui.closeActiveTerminal();
+    }
+  });
+  r({
+    id: 'terminal.next',
+    title: 'Next Terminal',
+    category: 'Terminal',
+    shortcut: 'CmdOrCtrl+Tab',
+    run: () => {
+      const ui = terminal.getMultiTerminalUI();
+      if (ui) ui.switchTerminal(1);
+    }
+  });
+  r({
+    id: 'terminal.prev',
+    title: 'Previous Terminal',
+    category: 'Terminal',
+    shortcut: 'CmdOrCtrl+Shift+Tab',
+    run: () => {
+      const ui = terminal.getMultiTerminalUI();
+      if (ui) ui.switchTerminal(-1);
+    }
+  });
+  for (let i = 1; i <= 9; i++) {
+    r({
+      id: `terminal.switch.${i}`,
+      title: `Switch to Terminal ${i}`,
+      category: 'Terminal',
+      shortcut: `CmdOrCtrl+${i}`,
+      run: () => {
+        const ui = terminal.getMultiTerminalUI();
+        if (ui) ui.setActiveTerminalByIndex(i - 1);
+      }
+    });
+  }
+  r({
+    id: 'terminal.toggleGridView',
+    title: 'Toggle Terminal Grid View',
+    category: 'Terminal',
+    // Cmd+Shift+G previously bound here too — moved to Panel:GitHub.
+    // Grid view is reachable via tab bar and palette.
+    run: () => {
+      const ui = terminal.getMultiTerminalUI();
+      if (ui) ui.toggleViewMode();
+    }
+  });
+
+  // ---------- AI Tool ----------
+  r({
+    id: 'ai.startSession',
+    title: 'Start AI Session',
+    category: 'AI',
+    when: () => !!state.getProjectPath(),
+    run: () => {
+      const btn = document.getElementById('btn-start-ai');
+      if (btn) btn.click();
     }
   });
 }
