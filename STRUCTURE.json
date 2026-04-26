@@ -766,26 +766,27 @@
         "aiToolSelector",
         "commandRegistry",
         "commandPalette",
+        "cheatSheet",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 26,
+          "line": 27,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 147,
+          "line": 149,
           "purpose": "Setup button click handlers"
         },
         "revealSidebarTab": {
-          "line": 254,
+          "line": 256,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 272,
+          "line": 274,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -3711,6 +3712,49 @@
           "purpose": "Check whether a KeyboardEvent matches an accelerator string."
         }
       }
+    },
+    "renderer/cheatSheet": {
+      "file": "src/renderer/cheatSheet.js",
+      "description": "Keyboard Shortcut Cheat Sheet",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "toggle"
+      ],
+      "depends": [
+        "platform",
+        "commandRegistry"
+      ],
+      "functions": {
+        "init": {
+          "line": 17
+        },
+        "open": {
+          "line": 39
+        },
+        "close": {
+          "line": 48
+        },
+        "toggle": {
+          "line": 57
+        },
+        "render": {
+          "line": 62
+        },
+        "groupShortcuts": {
+          "line": 97,
+          "params": [
+            "query"
+          ]
+        },
+        "escapeHtml": {
+          "line": 129,
+          "params": [
+            "s"
+          ]
+        }
+      }
     }
   },
   "ipcChannels": {
@@ -4350,6 +4394,13 @@
         "module": "renderer/aiToolSelector",
         "file": "src/renderer/aiToolSelector.js",
         "description": "AI Tool Selector Module"
+      }
+    ],
+    "cheat-sheet": [
+      {
+        "module": "renderer/cheatSheet",
+        "file": "src/renderer/cheatSheet.js",
+        "description": "Keyboard Shortcut Cheat Sheet"
       }
     ],
     "claude-sessions": [

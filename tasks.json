@@ -150,6 +150,21 @@
         "completedAt": null
       },
       {
+        "id": "task-refactor-panels-css",
+        "title": "Split panels.css into per-panel files",
+        "description": "src/renderer/styles/components/panels.css has grown to 4339 lines and now contains styles for every panel (history, tasks, plugins, github, overview, structure map, prompts, spotlight). Split into per-panel files (e.g. tasks-panel.css, github-panel.css, plugins-panel.css, history-panel.css, overview-panel.css, structure-map.css, prompts-panel.css, spotlight.css) and import them from main.css. Shared panel chrome (headers, collapse buttons, common modal patterns) stays in a smaller panels-shared.css.",
+        "userRequest": "User asked for total LOC of the project on 2026-04-26; in the report panels.css stood out as a 4339-line monolith and the user said: tasklara ekleyebilir misin? — referring to the suggestion of splitting it.",
+        "acceptanceCriteria": "panels.css is replaced by ~7 panel-scoped CSS files plus a panels-shared.css; main.css imports all of them in a sensible order; no visual regressions in any panel; total CSS line count is roughly the same (no dead code introduced).",
+        "notes": "Pure structural refactor, zero behavior change. Good candidate to do alongside the microcopy/string-extraction task since both are sweeps across the renderer surface. Should NOT be bundled with feature work.",
+        "status": "pending",
+        "priority": "low",
+        "category": "refactor",
+        "context": "Session 2026-04-26 - LOC review surfaced panels.css as a monolith",
+        "createdAt": "2026-04-26T14:30:00Z",
+        "updatedAt": "2026-04-26T14:30:00Z",
+        "completedAt": null
+      },
+      {
         "id": "task-prod-onboarding",
         "title": "First-run onboarding flow",
         "description": "Guided welcome experience for users opening Frame for the first time: explain core concepts (terminal-first, Frame project standard, AI selector), select first project, optionally initialize Frame docs, pick AI tool. Replaces the current cold 'Select Project Folder' empty screen. Files: new welcomeOverlay.js in renderer, first-run flag in main settings.",
@@ -158,21 +173,6 @@
         "notes": "Should set tone of voice for the whole product — also a chance to land Frame's 'why' message.",
         "status": "pending",
         "priority": "high",
-        "category": "feature",
-        "context": "Session 2026-04-26 - Frame product readiness audit",
-        "createdAt": "2026-04-26T12:00:00Z",
-        "updatedAt": "2026-04-26T12:00:00Z",
-        "completedAt": null
-      },
-      {
-        "id": "task-prod-shortcuts-cheatsheet",
-        "title": "In-app keyboard shortcut cheat sheet",
-        "description": "Cmd+/ (or ?) overlay showing every shortcut grouped by area (Terminal, Panels, Project, AI). Currently shortcuts are buried in README. Implementation: shortcuts registered in the same registry as Command Palette, rendered as a categorized modal.",
-        "userRequest": "User said: çok güzel öneriler, bence hepsini tasks.json a ekleyelim — 2026-04-26 product audit.",
-        "acceptanceCriteria": "Cmd+/ opens overlay; categories visible; searchable; OS-correct symbols (⌘ vs Ctrl); reachable from Help menu.",
-        "notes": "Share the action registry with Command Palette so shortcuts stay in sync automatically.",
-        "status": "pending",
-        "priority": "medium",
         "category": "feature",
         "context": "Session 2026-04-26 - Frame product readiness audit",
         "createdAt": "2026-04-26T12:00:00Z",
@@ -501,6 +501,21 @@
       }
     ],
     "completed": [
+      {
+        "id": "task-prod-shortcuts-cheatsheet",
+        "title": "In-app keyboard shortcut cheat sheet",
+        "description": "Cmd+Shift+K overlay listing every registered shortcut grouped by category (AI, Focus, Help, Palette, Panel, Project, Terminal). Reads from commandRegistry so it stays in sync with the Command Palette automatically. Filter input matches title, category, and rendered shortcut. Layout-independent binding (avoids the TR-keyboard issue with Cmd+/).",
+        "userRequest": "User said: tamam devam edelim — after recommending the cheat sheet as the highest-leverage follow-up to the command palette work.",
+        "acceptanceCriteria": "Cmd+Shift+K opens overlay; categories visible; searchable; OS-correct symbols (⌘ vs Ctrl); reachable via Command Palette (help.shortcuts entry).",
+        "notes": "Originally proposed Cmd+/ but on TR-Q keyboards / requires Shift+7, making the combo awkward and our matcher refuses Shift modifier — so binding moved to Cmd+Shift+K (mnemonic: Keyboard, layout-independent on TR/US/UK/DE).",
+        "status": "completed",
+        "priority": "medium",
+        "category": "feature",
+        "context": "Session 2026-04-26 - Frame product readiness audit",
+        "createdAt": "2026-04-26T12:00:00Z",
+        "updatedAt": "2026-04-26T15:00:00Z",
+        "completedAt": "2026-04-26T15:00:00Z"
+      },
       {
         "id": "task-prod-cmdpalette",
         "title": "Command Palette (Cmd+P / Cmd+Shift+P)",
