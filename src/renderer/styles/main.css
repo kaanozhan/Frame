@@ -19,3 +19,6 @@
 
 /* 5. Panels (History, Tasks, Plugins, GitHub, Overview, Structure Map) */
 @import 'components/panels.css';
+
+/* 6. Command Palette */
+@import 'components/command-palette.css';

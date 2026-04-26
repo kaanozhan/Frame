@@ -23,6 +23,13 @@ Thumbs.db
 .env
 .env.local
 
+# Secrets / signing keys (NEVER commit)
+*.p8
+*.pem
+*.p12
+*.mobileprovision
+AuthKey_*.p8
+
 # Python (old POC)
 __pycache__/
 *.pyc
@@ -36,3 +43,4 @@ release/
 
 #Walkthroughs
 WALKTHROUGH/*.p8
+RELEASE.local.md

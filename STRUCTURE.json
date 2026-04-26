@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-04-06",
+  "lastUpdated": "2026-04-26",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -764,20 +764,29 @@
         "editor",
         "sidebarResize",
         "aiToolSelector",
+        "commandRegistry",
+        "commandPalette",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 24,
+          "line": 26,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 143,
+          "line": 147,
           "purpose": "Setup button click handlers"
         },
-        "setupKeyboardShortcuts": {
-          "line": 249,
-          "purpose": "Setup keyboard shortcuts"
+        "revealSidebarTab": {
+          "line": 254,
+          "params": [
+            "tabName"
+          ],
+          "purpose": "commands so they don't try to focus an element inside a hidden container."
+        },
+        "registerCommands": {
+          "line": 272,
+          "purpose": "Command Palette and the global keyboard handler."
         }
       },
       "ipc": {
@@ -3547,6 +3556,161 @@
           "UPDATE_AVAILABLE"
         ]
       }
+    },
+    "renderer/commandPalette": {
+      "file": "src/renderer/commandPalette.js",
+      "description": "Command Palette",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "toggle"
+      ],
+      "depends": [
+        "platform",
+        "commandRegistry"
+      ],
+      "functions": {
+        "init": {
+          "line": 18
+        },
+        "open": {
+          "line": 35
+        },
+        "close": {
+          "line": 45
+        },
+        "toggle": {
+          "line": 54
+        },
+        "render": {
+          "line": 59
+        },
+        "updateSelection": {
+          "line": 106
+        },
+        "scrollSelectedIntoView": {
+          "line": 114
+        },
+        "onInputKeydown": {
+          "line": 119,
+          "params": [
+            "e"
+          ]
+        },
+        "runAt": {
+          "line": 139,
+          "params": [
+            "idx"
+          ]
+        },
+        "escapeHtml": {
+          "line": 148,
+          "params": [
+            "s"
+          ]
+        }
+      }
+    },
+    "renderer/commandRegistry": {
+      "file": "src/renderer/commandRegistry.js",
+      "description": "Command Registry",
+      "exports": [
+        "register",
+        "unregister",
+        "getById",
+        "getAll",
+        "runById",
+        "search",
+        "bindKeyboard"
+      ],
+      "depends": [
+        "platform"
+      ],
+      "functions": {
+        "register": {
+          "line": 27,
+          "params": [
+            "cmd"
+          ]
+        },
+        "unregister": {
+          "line": 41,
+          "params": [
+            "id"
+          ]
+        },
+        "getById": {
+          "line": 45,
+          "params": [
+            "id"
+          ]
+        },
+        "getAll": {
+          "line": 49
+        },
+        "runById": {
+          "line": 53,
+          "params": [
+            "id"
+          ]
+        },
+        "search": {
+          "line": 69,
+          "params": [
+            "query"
+          ],
+          "purpose": "Search commands. Empty query → recents first, then alphabetical by category/title."
+        },
+        "fuzzyScore": {
+          "line": 100,
+          "params": [
+            "query",
+            "cmd"
+          ],
+          "purpose": "consecutive characters. Score 0 means no match."
+        },
+        "pushRecent": {
+          "line": 127,
+          "params": [
+            "id"
+          ]
+        },
+        "getRecent": {
+          "line": 136
+        },
+        "bindKeyboard": {
+          "line": 149,
+          "purpose": "registered shortcut. Idempotent."
+        }
+      }
+    },
+    "renderer/platform": {
+      "file": "src/renderer/platform.js",
+      "description": "Platform helpers",
+      "exports": [
+        "isMac",
+        "formatShortcut",
+        "matchesShortcut"
+      ],
+      "depends": [],
+      "functions": {
+        "formatShortcut": {
+          "line": 35,
+          "params": [
+            "accelerator"
+          ],
+          "purpose": "platform-appropriate display string."
+        },
+        "matchesShortcut": {
+          "line": 51,
+          "params": [
+            "e",
+            "accelerator"
+          ],
+          "purpose": "Check whether a KeyboardEvent matches an accelerator string."
+        }
+      }
     }
   },
   "ipcChannels": {
@@ -4202,6 +4366,20 @@
         "description": "Claude Usage Manager Module"
       }
     ],
+    "command-palette": [
+      {
+        "module": "renderer/commandPalette",
+        "file": "src/renderer/commandPalette.js",
+        "description": "Command Palette"
+      }
+    ],
+    "command-registry": [
+      {
+        "module": "renderer/commandRegistry",
+        "file": "src/renderer/commandRegistry.js",
+        "description": "Command Registry"
+      }
+    ],
     "dialogs": [
       {
         "module": "main/dialogs",
@@ -4324,6 +4502,13 @@
         "module": "renderer/overviewPanel",
         "file": "src/renderer/overviewPanel.js",
         "description": "Overview Panel Module"
+      }
+    ],
+    "platform": [
+      {
+        "module": "renderer/platform",
+        "file": "src/renderer/platform.js",
+        "description": "Platform helpers"
       }
     ],
     "plugins": [
