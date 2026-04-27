@@ -1,0 +1,45 @@
+/* App Loader (boot splash) */
+
+.app-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: var(--bg-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  transition: opacity 0.28s ease-out;
+}
+
+.app-loader.app-loader-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-loader-mark {
+  font-size: 48px;
+  color: var(--accent-primary);
+  line-height: 1;
+  animation: app-loader-pulse 1.6s ease-in-out infinite;
+  text-shadow: 0 0 24px var(--accent-glow);
+}
+
+.app-loader-text {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@keyframes app-loader-pulse {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -20,6 +20,8 @@ const aiToolSelector = require('./aiToolSelector');
 const commandRegistry = require('./commandRegistry');
 const commandPalette = require('./commandPalette');
 const cheatSheet = require('./cheatSheet');
+const welcomeOverlay = require('./welcomeOverlay');
+const appLoader = require('./appLoader');
 
 /**
  * Initialize all modules
@@ -132,8 +134,13 @@ function init() {
   setupButtonHandlers();
 
   // Initialize command palette + cheat sheet, register all commands, then bind keyboard
+  // App loader registers its WORKSPACE_DATA listener first so it fades out
+  // before welcomeOverlay's listener can open the welcome modal.
+  appLoader.init();
+
   commandPalette.init();
   cheatSheet.init();
+  welcomeOverlay.init();
   registerCommands();
   commandRegistry.bindKeyboard();
 
@@ -297,6 +304,12 @@ function registerCommands() {
     category: 'Help',
     shortcut: 'CmdOrCtrl+Shift+K',
     run: () => cheatSheet.toggle()
+  });
+  r({
+    id: 'help.welcome',
+    title: 'Show Welcome Screen',
+    category: 'Help',
+    run: () => welcomeOverlay.reopen()
   });
 
   // ---------- Sidebar / Panels ----------

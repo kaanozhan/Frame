@@ -118,7 +118,11 @@ const IPC = {
   GET_AI_TOOL_CONFIG: 'get-ai-tool-config',
   AI_TOOL_CONFIG_DATA: 'ai-tool-config-data',
   SET_AI_TOOL: 'set-ai-tool',
-  AI_TOOL_CHANGED: 'ai-tool-changed'
+  AI_TOOL_CHANGED: 'ai-tool-changed',
+
+  // User Settings (renderer-side preferences persisted to userData JSON)
+  GET_USER_SETTING: 'get-user-setting',
+  SET_USER_SETTING: 'set-user-setting'
 };
 
 module.exports = { IPC };
