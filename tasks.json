@@ -165,21 +165,6 @@
         "completedAt": null
       },
       {
-        "id": "task-prod-onboarding",
-        "title": "First-run onboarding flow",
-        "description": "Guided welcome experience for users opening Frame for the first time: explain core concepts (terminal-first, Frame project standard, AI selector), select first project, optionally initialize Frame docs, pick AI tool. Replaces the current cold 'Select Project Folder' empty screen. Files: new welcomeOverlay.js in renderer, first-run flag in main settings.",
-        "userRequest": "User said: çok güzel öneriler, bence hepsini tasks.json a ekleyelim — 2026-04-26 product audit.",
-        "acceptanceCriteria": "On first launch, welcome flow appears; user can finish in <60s; flag is persisted so it never appears again unless reset; reachable later via Help menu.",
-        "notes": "Should set tone of voice for the whole product — also a chance to land Frame's 'why' message.",
-        "status": "pending",
-        "priority": "high",
-        "category": "feature",
-        "context": "Session 2026-04-26 - Frame product readiness audit",
-        "createdAt": "2026-04-26T12:00:00Z",
-        "updatedAt": "2026-04-26T12:00:00Z",
-        "completedAt": null
-      },
-      {
         "id": "task-prod-keybinding-remap",
         "title": "Custom keybinding remap UI",
         "description": "Allow users to remap any registered shortcut from a Settings > Keybindings screen. Persist to a keybindings.json. Conflict detection. Builds on the central action registry from Command Palette.",
@@ -501,6 +486,36 @@
       }
     ],
     "completed": [
+      {
+        "id": "task-prod-onboarding",
+        "title": "First-run welcome flow with persistent dismiss",
+        "description": "Single-screen welcome modal shown on every launch unless user opts out via 'Don't show this again' checkbox. Pitches Frame's value prop (terminal-first, AI-native), offers three primary actions (Open Folder / Create New / Clone GitHub), embeds AI tool radio picker synced with sidebar via SET_AI_TOOL IPC, has Close primary button + Skip secondary. Reachable later via Command Palette (help.welcome). Persistence moved from localStorage to userData JSON via new userSettings module + IPC channels because Electron renderer localStorage didn't survive launches in dev. Checkbox state persists immediately on change so Cmd+Q while modal open is still captured.",
+        "userRequest": "User said: first-run welcome flow u entegre etmeliyiz bence, önemli bir ux iyileştirmesi olur — followed by: ben modali çok beğendim. ilk açılışta her zaman açılsın. dont show this again seçeneği koyalım — followed by: belki bir de close diye bi buton da koyalım modalin alt orta kısmına.",
+        "acceptanceCriteria": "Modal opens on every launch by default; AI tool radio cards in sync with sidebar selector; checkbox state persisted instantly to userData JSON; Close / Skip / Esc / outside-click all dismiss; Cmd+Q while open still saves; reachable via Command Palette > Show Welcome Screen with flag reset.",
+        "notes": "Discovered and fixed an Electron localStorage persistence quirk during testing — switched to a generic userSettings IPC pattern that mirrors aiToolManager's userData JSON approach. New IPC channels GET_USER_SETTING / SET_USER_SETTING are reusable for future renderer-side preferences (telemetry consent, theme, etc.).",
+        "status": "completed",
+        "priority": "high",
+        "category": "feature",
+        "context": "Session 2026-04-26 / 2026-04-27 - Frame product readiness audit",
+        "createdAt": "2026-04-26T12:00:00Z",
+        "updatedAt": "2026-04-27T17:00:00Z",
+        "completedAt": "2026-04-27T17:00:00Z"
+      },
+      {
+        "id": "task-prod-app-loader",
+        "title": "App boot loader splash",
+        "description": "Full-screen centered loader shown on app boot until the first WORKSPACE_DATA IPC arrives (or a 10s failsafe). Pulsing brand mark (sparkle ✦) + 'Loading workspace…' caption, fades out with CSS transition then removes itself from DOM. Avoids the brief flash of empty sidebar / unmounted terminal users with many projects experience during initial workspace load. Listener registered before welcomeOverlay's so the loader fades out before the welcome modal can appear behind it.",
+        "userRequest": "User said: bir ilk açılışta mesela benim artık bir sürü projem olduğu için bir kaç saniye projelerin dolmasını bekliyorum. acaba bu bekleme zamanı için bir loading animasyonu gibi bişey ekleyebilir miyiz? — followed by: sidebarda değil aslında, tam ortada görmek istiyorum.",
+        "acceptanceCriteria": "Loader visible on boot covering the whole window; fades out within ~280ms once workspace data arrives; never traps user (10s failsafe); welcome modal opens cleanly behind it.",
+        "notes": "Initially tried a sidebar skeleton placeholder, but user preferred a centered full-screen approach. Z-index 100000 layers above all panels; failsafe handles the unlikely case where WORKSPACE_DATA never arrives.",
+        "status": "completed",
+        "priority": "medium",
+        "category": "feature",
+        "context": "Session 2026-04-27 - Welcome flow polish",
+        "createdAt": "2026-04-27T16:00:00Z",
+        "updatedAt": "2026-04-27T17:00:00Z",
+        "completedAt": "2026-04-27T17:00:00Z"
+      },
       {
         "id": "task-prod-shortcuts-cheatsheet",
         "title": "In-app keyboard shortcut cheat sheet",

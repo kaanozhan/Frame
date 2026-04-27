@@ -26,6 +26,7 @@ const gitBranchesManager = require('./gitBranchesManager');
 const aiToolManager = require('./aiToolManager');
 const claudeSessionsManager = require('./claudeSessionsManager');
 const updateChecker = require('./updateChecker');
+const userSettings = require('./userSettings');
 
 let mainWindow = null;
 
@@ -102,6 +103,10 @@ function setupAllIPC() {
   claudeSessionsManager.setupIPC(ipcMain);
   updateChecker.setupIPC();
 
+  // User settings (renderer-side preferences persisted to userData JSON)
+  ipcMain.handle(IPC.GET_USER_SETTING, (event, key) => userSettings.get(key));
+  ipcMain.handle(IPC.SET_USER_SETTING, (event, key, value) => userSettings.set(key, value));
+
   // Terminal input handler (needs prompt logger integration)
   ipcMain.on(IPC.TERMINAL_INPUT, (event, data) => {
     pty.writeToPTY(data);
@@ -115,6 +120,9 @@ function setupAllIPC() {
 function init() {
   // Initialize prompt logger with app paths
   promptLogger.init(app);
+
+  // Initialize user settings (must run after app is ready so userData path resolves)
+  userSettings.init();
 
   // Setup IPC handlers
   setupAllIPC();

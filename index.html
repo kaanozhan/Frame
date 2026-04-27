@@ -11,6 +11,12 @@
   <link rel="stylesheet" href="src/renderer/styles/main.css">
 </head>
 <body>
+  <!-- App Loader (boot splash, hidden once workspace data arrives) -->
+  <div id="app-loader" class="app-loader">
+    <div class="app-loader-mark">&#10022;</div>
+    <div class="app-loader-text">Loading workspace…</div>
+  </div>
+
   <!-- Sidebar -->
   <div id="sidebar">
     <div id="sidebar-resize-handle"></div>
@@ -299,6 +305,65 @@
         <div class="cheat-sheet-footer">
           <span>Press <kbd>Esc</kbd> to close</span>
           <span>Open the Command Palette to run an action</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Welcome Overlay (First-run Onboarding) -->
+    <div id="welcome-overlay" class="welcome-overlay">
+      <div class="welcome-card" role="dialog" aria-label="Welcome to Frame">
+        <div class="welcome-header">
+          <div class="welcome-mark">&#10022;</div>
+          <h2 class="welcome-title">Welcome to Frame</h2>
+          <p class="welcome-subtitle">
+            The terminal-first IDE for agentic development. One standard for every
+            project, every AI tool. Context that survives sessions.
+          </p>
+        </div>
+
+        <div class="welcome-section">
+          <h4 class="welcome-section-title">Get started</h4>
+          <div class="welcome-actions">
+            <button id="welcome-open-folder" class="welcome-action">
+              <span class="welcome-action-icon">&#128193;</span>
+              <span class="welcome-action-text">
+                <span class="welcome-action-title">Open Project Folder</span>
+                <span class="welcome-action-desc">Pick an existing folder on your machine</span>
+              </span>
+            </button>
+            <button id="welcome-create-project" class="welcome-action">
+              <span class="welcome-action-icon">&#10010;</span>
+              <span class="welcome-action-text">
+                <span class="welcome-action-title">Create New Project</span>
+                <span class="welcome-action-desc">Start a fresh Frame project from scratch</span>
+              </span>
+            </button>
+            <button id="welcome-clone-github" class="welcome-action">
+              <span class="welcome-action-icon">&#8623;</span>
+              <span class="welcome-action-text">
+                <span class="welcome-action-title">Clone from GitHub</span>
+                <span class="welcome-action-desc">Pull a repo and open it as a project</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="welcome-section">
+          <h4 class="welcome-section-title">Default AI tool</h4>
+          <div id="welcome-tool-options" class="welcome-tool-options"></div>
+        </div>
+
+        <div class="welcome-tip">
+          Tip: press <kbd>⌘⇧K</kbd> any time to see all keyboard shortcuts.
+        </div>
+
+        <div class="welcome-footer">
+          <label class="welcome-dont-show-label">
+            <input type="checkbox" id="welcome-dont-show" />
+            <span>Don&rsquo;t show this again</span>
+          </label>
+          <button id="welcome-close" class="welcome-close-btn">Close</button>
+          <button id="welcome-skip" class="welcome-skip">Skip for now</button>
         </div>
       </div>
     </div>

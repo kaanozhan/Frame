@@ -25,3 +25,9 @@
 
 /* 7. Cheat Sheet */
 @import 'components/cheat-sheet.css';
+
+/* 8. Welcome Overlay */
+@import 'components/welcome-overlay.css';
+
+/* 9. App Loader (boot splash) */
+@import 'components/app-loader.css';

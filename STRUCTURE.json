@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-04-26",
+  "lastUpdated": "2026-04-27",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -36,23 +36,24 @@
         "gitBranchesManager",
         "aiToolManager",
         "claudeSessionsManager",
-        "updateChecker"
+        "updateChecker",
+        "userSettings"
       ],
       "functions": {
         "createWindow": {
-          "line": 35,
+          "line": 36,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 86,
+          "line": 87,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 115,
+          "line": 120,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 126,
+          "line": 134,
           "params": [
             "window"
           ],
@@ -61,6 +62,8 @@
       },
       "ipc": {
         "listens": [
+          "GET_USER_SETTING",
+          "SET_USER_SETTING",
           "TERMINAL_INPUT"
         ],
         "emits": []
@@ -767,26 +770,28 @@
         "commandRegistry",
         "commandPalette",
         "cheatSheet",
+        "welcomeOverlay",
+        "appLoader",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 29,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 149,
+          "line": 156,
           "purpose": "Setup button click handlers"
         },
         "revealSidebarTab": {
-          "line": 256,
+          "line": 263,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 274,
+          "line": 281,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -3755,6 +3760,133 @@
           ]
         }
       }
+    },
+    "main/userSettings": {
+      "file": "src/main/userSettings.js",
+      "description": "User Settings",
+      "exports": [
+        "init",
+        "get",
+        "set"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "electron"
+      ],
+      "functions": {
+        "init": {
+          "line": 21
+        },
+        "load": {
+          "line": 26
+        },
+        "get": {
+          "line": 40,
+          "params": [
+            "key"
+          ]
+        },
+        "set": {
+          "line": 44,
+          "params": [
+            "key",
+            "value"
+          ]
+        }
+      }
+    },
+    "renderer/appLoader": {
+      "file": "src/renderer/appLoader.js",
+      "description": "App Loader",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 19
+        },
+        "hide": {
+          "line": 38
+        }
+      },
+      "ipc": {
+        "listens": [
+          "WORKSPACE_DATA"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/welcomeOverlay": {
+      "file": "src/renderer/welcomeOverlay.js",
+      "description": "Welcome Overlay (Launch Greeting)",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "reopen"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 23
+        },
+        "loadAITools": {
+          "line": 53
+        },
+        "maybeShowOnLaunch": {
+          "line": 64
+        },
+        "setupListeners": {
+          "line": 71
+        },
+        "persistDismissPreference": {
+          "line": 120
+        },
+        "renderToolOptions": {
+          "line": 128
+        },
+        "updateToolSelection": {
+          "line": 163
+        },
+        "open": {
+          "line": 174
+        },
+        "close": {
+          "line": 180
+        },
+        "reopen": {
+          "line": 194,
+          "purpose": "the checkbox state from a prior session would silently re-dismiss)."
+        },
+        "escapeHtml": {
+          "line": 202,
+          "params": [
+            "s"
+          ]
+        },
+        "escapeAttr": {
+          "line": 211,
+          "params": [
+            "s"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "WORKSPACE_DATA",
+          "AI_TOOL_CHANGED"
+        ],
+        "emits": []
+      }
     }
   },
   "ipcChannels": {
@@ -4241,6 +4373,16 @@
         "name": "update-available",
         "direction": "",
         "description": ""
+      },
+      "GET_USER_SETTING": {
+        "name": "get-user-setting",
+        "direction": "",
+        "description": ""
+      },
+      "SET_USER_SETTING": {
+        "name": "set-user-setting",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -4394,6 +4536,13 @@
         "module": "renderer/aiToolSelector",
         "file": "src/renderer/aiToolSelector.js",
         "description": "AI Tool Selector Module"
+      }
+    ],
+    "app-loader": [
+      {
+        "module": "renderer/appLoader",
+        "file": "src/renderer/appLoader.js",
+        "description": "App Loader"
       }
     ],
     "cheat-sheet": [
@@ -4661,6 +4810,20 @@
         "module": "main/updateChecker",
         "file": "src/main/updateChecker.js",
         "description": "Update Checker Module"
+      }
+    ],
+    "user-settings": [
+      {
+        "module": "main/userSettings",
+        "file": "src/main/userSettings.js",
+        "description": "User Settings"
+      }
+    ],
+    "welcome-overlay": [
+      {
+        "module": "renderer/welcomeOverlay",
+        "file": "src/renderer/welcomeOverlay.js",
+        "description": "Welcome Overlay (Launch Greeting)"
       }
     ],
     "workspace": [
