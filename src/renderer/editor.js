@@ -125,7 +125,7 @@ function checkModified() {
 function togglePreview() {
   isPreviewMode = !isPreviewMode;
   if (isPreviewMode) {
-    editorPreview.innerHTML = marked.parse(editorTextarea.value);
+    editorPreview.innerHTML = marked.parse(editorTextarea.value).replace(/<script/gi, '&lt;script').replace(/on\w+=/gi, 'data-safe-');
     editorPreview.style.display = '';
     editorTextarea.style.display = 'none';
     editorPreviewBtn.textContent = 'Edit';
@@ -218,7 +218,7 @@ function setupIPC() {
       const isMd = result.extension.toLowerCase() === 'md';
       if (isMd) {
         isPreviewMode = true;
-        editorPreview.innerHTML = marked.parse(result.content);
+        editorPreview.innerHTML = marked.parse(result.content).replace(/<script/gi, '&lt;script').replace(/on\w+=/gi, 'data-safe-');
         editorPreview.style.display = '';
         editorTextarea.style.display = 'none';
         editorPreviewBtn.textContent = 'Edit';

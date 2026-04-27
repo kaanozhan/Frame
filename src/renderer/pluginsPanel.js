@@ -390,7 +390,7 @@ async function togglePlugin(pluginId) {
  * Install plugin via terminal command
  */
 function installPlugin(pluginName) {
-  const command = `claude plugin install ${pluginName}`;
+  const command = `/plugin install ${pluginName}`;
 
   // Send command to terminal
   if (typeof window.terminalSendCommand === 'function') {
