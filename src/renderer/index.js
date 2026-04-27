@@ -19,6 +19,7 @@ const sidebarResize = require('./sidebarResize');
 const aiToolSelector = require('./aiToolSelector');
 const commandRegistry = require('./commandRegistry');
 const commandPalette = require('./commandPalette');
+const cheatSheet = require('./cheatSheet');
 
 /**
  * Initialize all modules
@@ -130,8 +131,9 @@ function init() {
   // Setup button handlers
   setupButtonHandlers();
 
-  // Initialize command palette + register all commands, then bind keyboard
+  // Initialize command palette + cheat sheet, register all commands, then bind keyboard
   commandPalette.init();
+  cheatSheet.init();
   registerCommands();
   commandRegistry.bindKeyboard();
 
@@ -286,6 +288,15 @@ function registerCommands() {
     category: 'Palette',
     shortcut: 'CmdOrCtrl+P',
     run: () => commandPalette.open()
+  });
+
+  // ---------- Help ----------
+  r({
+    id: 'help.shortcuts',
+    title: 'Keyboard Shortcuts',
+    category: 'Help',
+    shortcut: 'CmdOrCtrl+Shift+K',
+    run: () => cheatSheet.toggle()
   });
 
   // ---------- Sidebar / Panels ----------

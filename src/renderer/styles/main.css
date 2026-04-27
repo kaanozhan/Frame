@@ -22,3 +22,6 @@
 
 /* 6. Command Palette */
 @import 'components/command-palette.css';
+
+/* 7. Cheat Sheet */
+@import 'components/cheat-sheet.css';
