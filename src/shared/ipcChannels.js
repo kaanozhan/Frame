@@ -122,7 +122,12 @@ const IPC = {
 
   // User Settings (renderer-side preferences persisted to userData JSON)
   GET_USER_SETTING: 'get-user-setting',
-  SET_USER_SETTING: 'set-user-setting'
+  SET_USER_SETTING: 'set-user-setting',
+
+  // Git Status (file tree decoration)
+  WATCH_GIT_STATUS: 'watch-git-status',
+  UNWATCH_GIT_STATUS: 'unwatch-git-status',
+  GIT_STATUS_DATA: 'git-status-data'
 };
 
 module.exports = { IPC };

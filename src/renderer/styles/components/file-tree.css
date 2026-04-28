@@ -103,3 +103,66 @@
   outline: none;
   background: var(--accent-subtle);
 }
+
+/* ───────── Git status decoration ───────── */
+
+/* Color tokens — reused for both file-item and inherited folder rollup */
+.file-item.git-modified .file-icon + span {
+  color: #d4a85e; /* warm amber — modified */
+}
+
+.file-item.git-added .file-icon + span {
+  color: #6fbf73; /* green — staged add */
+}
+
+.file-item.git-untracked .file-icon + span {
+  color: #5a9c6e; /* muted green — new untracked */
+}
+
+.file-item.git-deleted .file-icon + span {
+  color: #c97070; /* dim red — deleted */
+  text-decoration: line-through;
+  text-decoration-color: rgba(201, 112, 112, 0.5);
+}
+
+.file-item.git-renamed .file-icon + span {
+  color: #7da9d4; /* blue — renamed */
+}
+
+.file-item.git-conflict .file-icon + span {
+  color: #e26565; /* strong red — conflict */
+  font-weight: 600;
+}
+
+/* Folder rollup — softer hint that something changed inside */
+.file-item.folder.git-has-changes > .folder-arrow,
+.file-item.folder.git-has-changes > .file-icon,
+.file-item.folder.git-has-changes > span:last-child {
+  color: #d4a85e;
+}
+
+/* Light theme overrides — slightly darker so contrast survives */
+body.light-theme .file-item.git-modified .file-icon + span,
+body.theme-light .file-item.git-modified .file-icon + span {
+  color: #b07820;
+}
+body.light-theme .file-item.git-untracked .file-icon + span,
+body.theme-light .file-item.git-untracked .file-icon + span {
+  color: #2f7a4a;
+}
+body.light-theme .file-item.git-added .file-icon + span,
+body.theme-light .file-item.git-added .file-icon + span {
+  color: #2a8d3a;
+}
+body.light-theme .file-item.git-deleted .file-icon + span,
+body.theme-light .file-item.git-deleted .file-icon + span {
+  color: #a23b3b;
+}
+body.light-theme .file-item.git-conflict .file-icon + span,
+body.theme-light .file-item.git-conflict .file-icon + span {
+  color: #b62a2a;
+}
+body.light-theme .file-item.folder.git-has-changes > span:last-child,
+body.theme-light .file-item.folder.git-has-changes > span:last-child {
+  color: #b07820;
+}
