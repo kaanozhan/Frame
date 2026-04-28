@@ -38,23 +38,24 @@
         "claudeSessionsManager",
         "updateChecker",
         "userSettings",
-        "gitStatusManager"
+        "gitStatusManager",
+        "telemetry"
       ],
       "functions": {
         "createWindow": {
-          "line": 37,
+          "line": 38,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 88,
+          "line": 89,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 124,
+          "line": 130,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 138,
+          "line": 149,
           "params": [
             "window"
           ],
@@ -65,6 +66,7 @@
         "listens": [
           "GET_USER_SETTING",
           "SET_USER_SETTING",
+          "TELEMETRY_SET_ENABLED",
           "TERMINAL_INPUT"
         ],
         "emits": []
@@ -189,40 +191,44 @@
           "line": 28,
           "purpose": "Get menu template based on active AI tool"
         },
+        "openSettings": {
+          "line": 110
+        },
         "buildAICommandsSubmenu": {
-          "line": 93,
+          "line": 119,
           "params": [
             "tool"
           ],
           "purpose": "Build AI commands submenu based on active tool"
         },
         "buildToolSwitcherSubmenu": {
-          "line": 203,
+          "line": 229,
           "purpose": "Build tool switcher submenu"
         },
         "sendCommand": {
-          "line": 222,
+          "line": 248,
           "params": [
             "command"
           ],
           "purpose": "Send command to terminal"
         },
         "toggleHistoryPanel": {
-          "line": 231,
+          "line": 257,
           "purpose": "Toggle history panel"
         },
         "openHistoryFile": {
-          "line": 240,
+          "line": 266,
           "purpose": "Open history file in default editor"
         },
         "createMenu": {
-          "line": 254,
+          "line": 280,
           "purpose": "Create and set application menu"
         }
       },
       "ipc": {
         "listens": [],
         "emits": [
+          "OPEN_SETTINGS",
           "RUN_COMMAND",
           "TOGGLE_HISTORY_PANEL"
         ]
@@ -773,32 +779,39 @@
         "cheatSheet",
         "welcomeOverlay",
         "appLoader",
+        "settingsModal",
+        "telemetryNotice",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 29,
+          "line": 31,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 156,
+          "line": 161,
           "purpose": "Setup button click handlers"
         },
+        "setupUpdateDot": {
+          "line": 270,
+          "purpose": "existing terminal tab bell which opens the GitHub release page directly."
+        },
         "revealSidebarTab": {
-          "line": 263,
+          "line": 293,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 281,
+          "line": 311,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
       "ipc": {
         "listens": [
-          "CLONE_GITHUB_REPO_RESULT"
+          "CLONE_GITHUB_REPO_RESULT",
+          "UPDATE_AVAILABLE"
         ],
         "emits": [
           "CLONE_GITHUB_REPO"
@@ -3578,19 +3591,22 @@
       ],
       "functions": {
         "init": {
-          "line": 15,
+          "line": 28,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 19
+          "line": 33
+        },
+        "startPeriodicRecheck": {
+          "line": 44
         },
         "checkForUpdate": {
-          "line": 25
+          "line": 51
         },
         "isNewerVersion": {
-          "line": 76,
+          "line": 106,
           "params": [
             "current",
             "latest"
@@ -3600,7 +3616,8 @@
       },
       "ipc": {
         "listens": [
-          "CHECK_FOR_UPDATE"
+          "CHECK_FOR_UPDATE",
+          "GET_UPDATE_STATUS"
         ],
         "emits": [
           "UPDATE_AVAILABLE"
@@ -3998,6 +4015,139 @@
         "emits": [
           "GIT_STATUS_DATA"
         ]
+      }
+    },
+    "main/telemetry": {
+      "file": "src/main/telemetry.js",
+      "description": "Telemetry",
+      "exports": [
+        "init",
+        "trackAppStarted",
+        "setEnabled",
+        "isEnabled"
+      ],
+      "depends": [
+        "@aptabase/electron/main",
+        "userSettings"
+      ],
+      "functions": {
+        "init": {
+          "line": 26,
+          "purpose": "boot — no events are sent until trackAppStarted() runs."
+        },
+        "trackAppStarted": {
+          "line": 41,
+          "purpose": "or not initialized."
+        },
+        "setEnabled": {
+          "line": 54,
+          "params": [
+            "enabled"
+          ],
+          "purpose": "initializes Aptabase if the user just turned it on."
+        },
+        "isEnabled": {
+          "line": 67,
+          "purpose": "touched (opt-out semantics)."
+        }
+      }
+    },
+    "renderer/settingsModal": {
+      "file": "src/renderer/settingsModal.js",
+      "description": "Settings Modal",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "toggle"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "../package.json"
+      ],
+      "functions": {
+        "init": {
+          "line": 30
+        },
+        "initAboutSection": {
+          "line": 85
+        },
+        "runCheck": {
+          "line": 148,
+          "params": [
+            "userInitiated"
+          ]
+        },
+        "renderUpdateState": {
+          "line": 178,
+          "params": [
+            "{ checked",
+            "found",
+            "info",
+            "checkedAt",
+            "userInitiated }"
+          ]
+        },
+        "showUpdateBanner": {
+          "line": 194,
+          "params": [
+            "info"
+          ]
+        },
+        "hideUpdateBanner": {
+          "line": 205
+        },
+        "hideSidebarDot": {
+          "line": 209
+        },
+        "formatRelative": {
+          "line": 214,
+          "params": [
+            "date"
+          ]
+        },
+        "syncToggleFromSettings": {
+          "line": 225
+        },
+        "open": {
+          "line": 232
+        },
+        "close": {
+          "line": 239
+        },
+        "toggle": {
+          "line": 246
+        }
+      },
+      "ipc": {
+        "listens": [
+          "OPEN_SETTINGS",
+          "UPDATE_AVAILABLE"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/telemetryNotice": {
+      "file": "src/renderer/telemetryNotice.js",
+      "description": "Telemetry Notice Banner",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 21,
+          "params": [
+            "openSettings"
+          ]
+        },
+        "dismiss": {
+          "line": 48
+        }
       }
     }
   },
@@ -4510,6 +4660,21 @@
         "name": "git-status-data",
         "direction": "",
         "description": ""
+      },
+      "GET_UPDATE_STATUS": {
+        "name": "get-update-status",
+        "direction": "",
+        "description": ""
+      },
+      "TELEMETRY_SET_ENABLED": {
+        "name": "telemetry-set-enabled",
+        "direction": "",
+        "description": ""
+      },
+      "OPEN_SETTINGS": {
+        "name": "open-settings",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -4864,6 +5029,13 @@
         "description": "Prompts Panel Module"
       }
     ],
+    "settings-modal": [
+      {
+        "module": "renderer/settingsModal",
+        "file": "src/renderer/settingsModal.js",
+        "description": "Settings Modal"
+      }
+    ],
     "sidebar": [
       {
         "module": "renderer/projectListUI",
@@ -4900,6 +5072,20 @@
         "module": "renderer/tasksPanel",
         "file": "src/renderer/tasksPanel.js",
         "description": "Tasks Panel Module"
+      }
+    ],
+    "telemetry": [
+      {
+        "module": "main/telemetry",
+        "file": "src/main/telemetry.js",
+        "description": "Telemetry"
+      }
+    ],
+    "telemetry-notice": [
+      {
+        "module": "renderer/telemetryNotice",
+        "file": "src/renderer/telemetryNotice.js",
+        "description": "Telemetry Notice Banner"
       }
     ],
     "terminal": [

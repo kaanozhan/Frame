@@ -1,0 +1,90 @@
+/* Telemetry Notice Banner — one-time disclosure at top of app */
+
+.telemetry-notice {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9000;
+  background: var(--accent-subtle);
+  border-bottom: 1px solid var(--border-strong);
+  padding: 8px 14px;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.telemetry-notice.visible {
+  display: flex;
+}
+
+.telemetry-notice-icon {
+  font-size: 14px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.telemetry-notice-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.telemetry-notice-text a {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.telemetry-notice-text a:hover {
+  text-decoration: underline;
+}
+
+.telemetry-notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.telemetry-notice-ack {
+  background: var(--accent-primary);
+  color: var(--bg-secondary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 5px;
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.telemetry-notice-ack:hover {
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+}
+
+.telemetry-notice-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+}
+
+.telemetry-notice-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* When the banner is visible, push the rest of the app down so it doesn't
+   cover content. We use a body class set via JS so existing layouts don't
+   need to know about telemetry. Optional polish — keeping disabled for
+   simplicity in v1: banner overlays the top, but is so thin it's unobtrusive. */

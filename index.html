@@ -11,6 +11,19 @@
   <link rel="stylesheet" href="src/renderer/styles/main.css">
 </head>
 <body>
+  <!-- Telemetry Notice (one-time, dismissable) -->
+  <div id="telemetry-notice" class="telemetry-notice" role="status">
+    <span class="telemetry-notice-icon">&#10022;</span>
+    <span class="telemetry-notice-text">
+      Frame sends anonymous usage stats (app version + OS only) to count active users — no code or file paths.
+      <a href="#" id="telemetry-notice-settings-link">Manage in Settings</a>.
+    </span>
+    <span class="telemetry-notice-actions">
+      <button type="button" id="telemetry-notice-ack" class="telemetry-notice-ack">Got it</button>
+      <button type="button" id="telemetry-notice-close" class="telemetry-notice-close" aria-label="Dismiss">&#x2715;</button>
+    </span>
+  </div>
+
   <!-- App Loader (boot splash, hidden once workspace data arrives) -->
   <div id="app-loader" class="app-loader">
     <div class="app-loader-mark">&#10022;</div>
@@ -20,7 +33,17 @@
   <!-- Sidebar -->
   <div id="sidebar">
     <div id="sidebar-resize-handle"></div>
-    <div id="sidebar-header">Frame <span id="app-version"></span></div>
+    <div id="sidebar-header">
+      <span class="sidebar-header-text">Frame <span id="app-version"></span></span>
+      <button
+        type="button"
+        id="update-dot"
+        class="update-dot"
+        style="display:none;"
+        title="A new version is available — click for details"
+        aria-label="Update available"
+      ></button>
+    </div>
 
     <div class="sidebar-tabs">
       <button class="sidebar-tab-btn active" data-sidebar-tab="projects">Projects</button>
@@ -545,6 +568,58 @@
   <!-- File Tree Context Menu -->
   <div id="file-tree-context-menu" class="context-menu" role="menu">
     <button class="context-menu-item" data-action="copy-path" type="button">Copy Filepath</button>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-overlay" class="settings-overlay">
+    <div class="settings-modal" role="dialog" aria-label="Settings">
+      <div class="settings-header">
+        <h3 class="settings-title">Settings</h3>
+        <button type="button" class="settings-close" data-settings-close aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-section">
+          <h4 class="settings-section-title">Privacy &amp; Analytics</h4>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-telemetry-toggle">Send anonymous usage stats</label>
+              <p class="settings-row-desc">
+                Frame collects only your app version and OS to count active users.
+                No code, file paths, prompts, or personal data — ever.
+              </p>
+            </div>
+            <label class="settings-switch">
+              <input type="checkbox" id="settings-telemetry-toggle" />
+              <span class="settings-switch-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h4 class="settings-section-title">About</h4>
+          <div class="settings-about">
+            <div class="settings-about-row">
+              <div class="settings-about-version">
+                Frame <strong id="settings-version">v0.0.0</strong>
+              </div>
+              <button type="button" id="settings-check-updates" class="settings-about-btn">Check for Updates</button>
+            </div>
+            <p id="settings-update-status" class="settings-about-status">Checking for updates…</p>
+
+            <div id="settings-update-available" class="settings-update-banner" style="display:none;">
+              <div class="settings-update-banner-text">
+                <strong>New version available: <span id="settings-update-latest">v0.0.0</span></strong>
+                <span id="settings-update-released" class="settings-update-released"></span>
+              </div>
+              <div class="settings-update-banner-actions">
+                <a id="settings-update-link" href="#" target="_blank" rel="noopener" class="settings-about-btn settings-about-btn-primary">View Release Notes</a>
+                <button type="button" id="settings-update-dismiss" class="settings-about-btn">Dismiss this version</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="dist/renderer.js"></script>

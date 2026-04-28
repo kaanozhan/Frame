@@ -73,6 +73,12 @@ function getMenuTemplate() {
       submenu: [
         { role: 'about' },
         { type: 'separator' },
+        {
+          label: 'Preferences…',
+          accelerator: 'CmdOrCtrl+,',
+          click: openSettings
+        },
+        { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },
         { role: 'hide' },
@@ -82,9 +88,29 @@ function getMenuTemplate() {
         { role: 'quit' }
       ]
     });
+  } else {
+    // Windows / Linux: add a File menu with Settings entry
+    template.unshift({
+      label: 'File',
+      submenu: [
+        {
+          label: 'Settings…',
+          accelerator: 'CmdOrCtrl+,',
+          click: openSettings
+        },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    });
   }
 
   return template;
+}
+
+function openSettings() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC.OPEN_SETTINGS);
+  }
 }
 
 /**

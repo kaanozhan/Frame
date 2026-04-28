@@ -22,6 +22,8 @@ const commandPalette = require('./commandPalette');
 const cheatSheet = require('./cheatSheet');
 const welcomeOverlay = require('./welcomeOverlay');
 const appLoader = require('./appLoader');
+const settingsModal = require('./settingsModal');
+const telemetryNotice = require('./telemetryNotice');
 
 /**
  * Initialize all modules
@@ -141,6 +143,9 @@ function init() {
   commandPalette.init();
   cheatSheet.init();
   welcomeOverlay.init();
+  settingsModal.init();
+  telemetryNotice.init(() => settingsModal.open());
+  setupUpdateDot();
   registerCommands();
   commandRegistry.bindKeyboard();
 
@@ -257,6 +262,31 @@ function setupButtonHandlers() {
 }
 
 /**
+ * Show a small notification dot in the sidebar header when an update is
+ * available. Hidden when the user has dismissed the same version. Click
+ * opens Settings — sidebar dot routes to About details, complementing the
+ * existing terminal tab bell which opens the GitHub release page directly.
+ */
+function setupUpdateDot() {
+  const dot = document.getElementById('update-dot');
+  if (!dot) return;
+
+  ipcRenderer.on(IPC.UPDATE_AVAILABLE, async (event, info) => {
+    if (!info || !info.latestVersion) return;
+    const dismissed = await ipcRenderer.invoke(
+      IPC.GET_USER_SETTING,
+      'dismissedUpdateVersion'
+    );
+    if (dismissed === info.latestVersion) return;
+    dot.style.display = '';
+  });
+
+  dot.addEventListener('click', () => {
+    settingsModal.open();
+  });
+}
+
+/**
  * Show the sidebar (if hidden) and switch to the given tab. Used by focus
  * commands so they don't try to focus an element inside a hidden container.
  */
@@ -310,6 +340,25 @@ function registerCommands() {
     title: 'Show Welcome Screen',
     category: 'Help',
     run: () => welcomeOverlay.reopen()
+  });
+  r({
+    id: 'settings.open',
+    title: 'Open Settings',
+    category: 'Help',
+    shortcut: 'CmdOrCtrl+,',
+    run: () => settingsModal.open()
+  });
+  r({
+    id: 'app.checkForUpdate',
+    title: 'Check for Updates',
+    category: 'Help',
+    run: async () => {
+      settingsModal.open();
+      // Settings modal's own check button can be triggered via the IPC handler
+      // that already exists; opening Settings is sufficient because the About
+      // section auto-runs a check if no cached status is available.
+      await ipcRenderer.invoke(IPC.CHECK_FOR_UPDATE);
+    }
   });
 
   // ---------- Sidebar / Panels ----------
