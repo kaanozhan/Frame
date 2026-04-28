@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-04-27",
+  "lastUpdated": "2026-04-28",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -912,7 +912,7 @@
       ],
       "functions": {
         "init": {
-          "line": 17,
+          "line": 27,
           "params": [
             "elementId",
             "getProjectPath"
@@ -920,21 +920,21 @@
           "purpose": "Initialize file tree UI"
         },
         "setProjectPathGetter": {
-          "line": 31,
+          "line": 43,
           "params": [
             "getter"
           ],
           "purpose": "Set project path getter"
         },
         "setOnFileClick": {
-          "line": 38,
+          "line": 50,
           "params": [
             "callback"
           ],
           "purpose": "Set file click callback"
         },
         "renderFileTree": {
-          "line": 45,
+          "line": 57,
           "params": [
             "files",
             "parentElement",
@@ -943,45 +943,81 @@
           "purpose": "Render file tree recursively"
         },
         "clearFileTree": {
-          "line": 129,
+          "line": 148,
           "purpose": "Clear file tree"
         },
         "refreshFileTree": {
-          "line": 138,
+          "line": 157,
           "params": [
             "projectPath"
           ],
           "purpose": "Refresh file tree"
         },
         "loadFileTree": {
-          "line": 148,
+          "line": 167,
           "params": [
             "projectPath"
           ],
           "purpose": "Load file tree for path"
         },
         "setupIPC": {
-          "line": 155,
+          "line": 174,
           "purpose": "Setup IPC listeners"
         },
         "focus": {
-          "line": 165,
+          "line": 186,
           "purpose": "Focus file tree for keyboard navigation"
         },
         "getVisibleItems": {
-          "line": 193,
-          "purpose": "Get all visible file items (for navigation)"
+          "line": 216,
+          "purpose": "inside collapsed folders."
         },
         "handleKeydown": {
-          "line": 212,
+          "line": 225,
           "params": [
             "e"
           ],
           "purpose": "Handle keyboard navigation in file tree"
         },
         "blur": {
-          "line": 274,
+          "line": 287,
           "purpose": "Blur/unfocus file tree"
+        },
+        "setupSearch": {
+          "line": 297
+        },
+        "applyFilter": {
+          "line": 325,
+          "params": [
+            "query"
+          ]
+        },
+        "filterWrapper": {
+          "line": 338,
+          "params": [
+            "wrapper",
+            "query"
+          ]
+        },
+        "setupContextMenu": {
+          "line": 374
+        },
+        "showContextMenu": {
+          "line": 398,
+          "params": [
+            "x",
+            "y",
+            "path"
+          ]
+        },
+        "hideContextMenu": {
+          "line": 415
+        },
+        "handleContextMenuAction": {
+          "line": 421,
+          "params": [
+            "action"
+          ]
         }
       },
       "ipc": {

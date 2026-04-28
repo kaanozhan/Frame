@@ -31,3 +31,6 @@
 
 /* 9. App Loader (boot splash) */
 @import 'components/app-loader.css';
+
+/* 10. File Tree (search + context menu) */
+@import 'components/file-tree.css';

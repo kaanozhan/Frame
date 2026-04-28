@@ -101,6 +101,17 @@
             </svg>
           </button>
         </div>
+        <div class="file-tree-search">
+          <input
+            id="file-tree-search"
+            type="text"
+            placeholder="Filter files…"
+            autocomplete="off"
+            spellcheck="false"
+            tabindex="-1"
+          />
+          <button id="file-tree-search-clear" class="file-tree-search-clear" tabindex="-1" title="Clear filter" type="button">&#x2715;</button>
+        </div>
       </div>
 
       <div id="file-tree">
@@ -529,6 +540,11 @@
         </div>
       </form>
     </div>
+  </div>
+
+  <!-- File Tree Context Menu -->
+  <div id="file-tree-context-menu" class="context-menu" role="menu">
+    <button class="context-menu-item" data-action="copy-path" type="button">Copy Filepath</button>
   </div>
 
   <script src="dist/renderer.js"></script>
