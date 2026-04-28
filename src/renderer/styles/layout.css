@@ -120,6 +120,80 @@ body.sidebar-resizing * {
   50% { opacity: 0.45; }
 }
 
+/* Update banner — sidebar footer card, primary signal when an update is available */
+.sidebar-update-banner {
+  flex-shrink: 0;
+  margin-top: var(--space-md);
+  padding: 10px 12px;
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.14s, border-color 0.14s, transform 0.08s;
+  animation: sidebar-update-pulse 2.6s ease-in-out infinite;
+}
+
+.sidebar-update-banner:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent-secondary);
+}
+
+.sidebar-update-banner:active {
+  transform: scale(0.98);
+}
+
+.sidebar-update-banner-icon {
+  font-size: 14px;
+  color: var(--accent-primary);
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.sidebar-update-banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.sidebar-update-banner-title {
+  font-size: 12px;
+  color: var(--accent-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-update-banner-version {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.sidebar-update-banner-arrow {
+  font-size: 14px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+@keyframes sidebar-update-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 14px 2px var(--accent-glow); }
+}
+
 #sidebar-header::before {
   content: '';
   width: 8px;

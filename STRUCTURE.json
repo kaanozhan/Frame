@@ -793,18 +793,18 @@
           "purpose": "Setup button click handlers"
         },
         "setupUpdateDot": {
-          "line": 270,
-          "purpose": "existing terminal tab bell which opens the GitHub release page directly."
+          "line": 272,
+          "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 293,
+          "line": 303,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 311,
+          "line": 321,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -4102,22 +4102,22 @@
           "line": 209
         },
         "formatRelative": {
-          "line": 214,
+          "line": 216,
           "params": [
             "date"
           ]
         },
         "syncToggleFromSettings": {
-          "line": 225
+          "line": 227
         },
         "open": {
-          "line": 232
+          "line": 234
         },
         "close": {
-          "line": 239
+          "line": 241
         },
         "toggle": {
-          "line": 246
+          "line": 248
         }
       },
       "ipc": {

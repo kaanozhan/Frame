@@ -209,6 +209,8 @@ function hideUpdateBanner() {
 function hideSidebarDot() {
   const dot = document.getElementById('update-dot');
   if (dot) dot.style.display = 'none';
+  const banner = document.getElementById('sidebar-update-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 function formatRelative(date) {
