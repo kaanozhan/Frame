@@ -34,3 +34,9 @@
 
 /* 10. File Tree (search + context menu) */
 @import 'components/file-tree.css';
+
+/* 11. Settings Modal */
+@import 'components/settings-modal.css';
+
+/* 12. Telemetry Notice (one-time disclosure banner) */
+@import 'components/telemetry-notice.css';

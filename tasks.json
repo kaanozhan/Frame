@@ -213,36 +213,6 @@
         "completedAt": null
       },
       {
-        "id": "task-prod-telemetry",
-        "title": "Opt-in usage telemetry",
-        "description": "Anonymous, opt-in event tracking (PostHog or Plausible-style). Track: feature usage (which panels open, which AI tools chosen, terminal counts, grid layouts used), session duration, retention. No prompt content, no file paths, no user data.",
-        "userRequest": "User said: çok güzel öneriler, bence hepsini tasks.json a ekleyelim — 2026-04-26 product audit.",
-        "acceptanceCriteria": "Telemetry off by default; clear opt-in; events documented in PRIVACY.md; dashboard answers 'which features are used vs dead'.",
-        "notes": "Critical for data-driven roadmap decisions. Combined with crash reporting it forms the operational visibility layer.",
-        "status": "pending",
-        "priority": "medium",
-        "category": "feature",
-        "context": "Session 2026-04-26 - Frame product readiness audit",
-        "createdAt": "2026-04-26T12:00:00Z",
-        "updatedAt": "2026-04-26T12:00:00Z",
-        "completedAt": null
-      },
-      {
-        "id": "task-prod-autoupdate-ux",
-        "title": "Auto-update UX polish",
-        "description": "On top of existing electron-updater (or equivalent) flow: in-app 'update available' banner, release notes shown before install, restart prompt, version badge in UI tied to changelog. Currently version is shown but the update flow is invisible.",
-        "userRequest": "User said: çok güzel öneriler, bence hepsini tasks.json a ekleyelim — 2026-04-26 product audit.",
-        "acceptanceCriteria": "User sees update banner with release notes; can defer; restart-to-install works; failed updates surface clearly; no silent failures.",
-        "notes": "Pairs with in-app changelog / What's New.",
-        "status": "pending",
-        "priority": "low",
-        "category": "feature",
-        "context": "Session 2026-04-26 - Frame product readiness audit",
-        "createdAt": "2026-04-26T12:00:00Z",
-        "updatedAt": "2026-04-26T12:00:00Z",
-        "completedAt": null
-      },
-      {
         "id": "task-prod-diagnostic-export",
         "title": "Diagnostic / log bundle export",
         "description": "Help > Export Diagnostics generates a zip with main+renderer logs, app version, OS, settings (sans secrets), recent error events. Pre-attached when the user files a bug.",
@@ -446,18 +416,6 @@
         "completedAt": null
       },
       {
-        "id": "task-m5",
-        "title": "Settings panel",
-        "description": "UI for configuring preferences",
-        "status": "in_progress",
-        "priority": "medium",
-        "category": "feature",
-        "context": "todos.json - mediumTerm",
-        "createdAt": "2026-01-21T00:00:00Z",
-        "updatedAt": "2026-02-03T14:56:22.087Z",
-        "completedAt": null
-      },
-      {
         "id": "task-reverse-deps",
         "title": "Add reverse dependency analysis to intentIndex",
         "description": "Extend update-structure.js to track which modules import each file (reverse dependencies). Currently the 'depends' field only captures outgoing imports. Adding reverse lookups would let the intentIndex surface implicit coupling between differently-named modules — e.g. a React component and the API route it calls. Implementation: after parsing all modules, build a reverse map (file → who imports it) and store it as 'usedBy' per module in STRUCTURE.json.",
@@ -474,6 +432,51 @@
       }
     ],
     "completed": [
+      {
+        "id": "task-prod-autoupdate-ux",
+        "title": "Update notification UX (sidebar dot + About panel)",
+        "description": "v1 polish on top of the existing GitHub-Releases update checker (kept untouched). Adds: (1) periodic recheck every 6h while app is open, (2) sidebar header pulsing dot when update available, click opens Settings, (3) About section in Settings with current version, last-checked timestamp, manual 'Check for Updates' button, release notes link (opens GitHub), and 'Dismiss this version' (suppresses sidebar dot for that version), (4) Command Palette 'Check for Updates' entry. Existing terminal-tab bell mechanism preserved as a complementary signal.",
+        "userRequest": "User said: ya bir de bildirim mekanızması eklemiştik … onu bir inceler misin? — followed by: senin about eklemeni de ekleyelim. yeni versiyon varsa bir de bildirim ışığı gibi bişey ekleyelim mi?",
+        "acceptanceCriteria": "Sidebar dot appears on update available; click opens Settings; About section shows version + last-checked + status; Check Now triggers manual check; Dismiss persists per version and hides the dot for that version; periodic recheck runs every 6h; Command Palette entry works.",
+        "notes": "Real auto-update (electron-updater style: download in background + restart-to-install) is a separate larger feature that requires code-signing infra; explicitly out of scope here. The bell in terminal tab bar still opens the GitHub release page directly — kept untouched per user request.",
+        "status": "completed",
+        "priority": "low",
+        "category": "feature",
+        "context": "Session 2026-04-28 - Telemetry + Settings + Update UX",
+        "createdAt": "2026-04-26T12:00:00Z",
+        "updatedAt": "2026-04-28T17:00:00Z",
+        "completedAt": "2026-04-28T17:00:00Z"
+      },
+      {
+        "id": "task-prod-telemetry",
+        "title": "Anonymous launch telemetry (Aptabase)",
+        "description": "v1: count active users via a single anonymous `app_started` event per launch. Backend gateway is Aptabase (open source, EU region, write-only public key hardcoded as design intends). Default ON (opt-out). User can disable from a new Settings panel; a one-time top-of-app banner explains what's collected. Auto-attached props by Aptabase: app version, OS, anonymous device ID. We send no PII, no file paths, no prompt content, no code.",
+        "userRequest": "User said: ben pr atıyorum 20 unique clone geliyor … bu 35 kişi kullanıyor anlamına gelmiyor — followed by: bence b yapalım, ne yağtığımızı söyleyelim, settingsten isterse kapatabileceğini söyleyelim. yukarı menüye settings item ı da ekleyelim.",
+        "acceptanceCriteria": "App sends app_started on launch when enabled; Settings toggle persists state via userSettings + IPC + telemetry.setEnabled; one-time banner shown on first launch and dismissable; Aptabase dashboard shows DAU/MAU/retention; PRIVACY.md documents what's collected.",
+        "notes": "Approach is opt-out with explicit disclosure (not strict opt-in) so we can see actual user counts; user has full control via Settings. Aptabase EU app key A-EU-5590504973 hardcoded — public identifier with write-only permissions, sector standard. Crash reporting (task-prod-crash-reporting) deliberately stays separate.",
+        "status": "completed",
+        "priority": "medium",
+        "category": "feature",
+        "context": "Session 2026-04-28 - Telemetry v1",
+        "createdAt": "2026-04-26T12:00:00Z",
+        "updatedAt": "2026-04-28T16:00:00Z",
+        "completedAt": "2026-04-28T16:00:00Z"
+      },
+      {
+        "id": "task-m5",
+        "title": "Settings panel (v1: minimal)",
+        "description": "Minimal Settings modal as the home for renderer-side preferences. v1 ships one section (Privacy & Analytics) with the telemetry toggle. Triggered by macOS Frame > Preferences (Cmd+,), Windows/Linux File > Settings (Ctrl+,), and Command Palette `settings.open`. Future settings (theme, AI tool defaults, keybinding remap) plug into the same modal.",
+        "userRequest": "User said: yukarı menüye settings item ı da ekleyelim. oradan kapatabilsin — captured during 2026-04-28 telemetry conversation.",
+        "acceptanceCriteria": "Cmd+, opens Settings; toggle persists via userSettings; menu item works on macOS and Windows/Linux; reachable via Command Palette.",
+        "notes": "Built alongside telemetry because that toggle is the first real setting. Skeleton is in place — adding theme/AI defaults/etc later is a few extra rows in the same modal.",
+        "status": "completed",
+        "priority": "medium",
+        "category": "feature",
+        "context": "Session 2026-04-28 - Settings UI v1",
+        "createdAt": "2026-01-21T00:00:00Z",
+        "updatedAt": "2026-04-28T16:00:00Z",
+        "completedAt": "2026-04-28T16:00:00Z"
+      },
       {
         "id": "task-m2",
         "title": "Git status integration (file tree decoration)",

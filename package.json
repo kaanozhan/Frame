@@ -35,6 +35,7 @@
     "esbuild": "^0.27.2"
   },
   "dependencies": {
+    "@aptabase/electron": "^0.3.1",
     "lucide": "^0.577.0",
     "marked": "^17.0.5",
     "node-pty": "^1.0.0",

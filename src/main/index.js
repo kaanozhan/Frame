@@ -28,6 +28,7 @@ const claudeSessionsManager = require('./claudeSessionsManager');
 const updateChecker = require('./updateChecker');
 const userSettings = require('./userSettings');
 const gitStatusManager = require('./gitStatusManager');
+const telemetry = require('./telemetry');
 
 let mainWindow = null;
 
@@ -111,6 +112,11 @@ function setupAllIPC() {
   // Git status (file tree decoration polling)
   gitStatusManager.setupIPC(ipcMain);
 
+  // Telemetry — toggle from Settings
+  ipcMain.handle(IPC.TELEMETRY_SET_ENABLED, (event, enabled) =>
+    telemetry.setEnabled(enabled)
+  );
+
   // Terminal input handler (needs prompt logger integration)
   ipcMain.on(IPC.TERMINAL_INPUT, (event, data) => {
     pty.writeToPTY(data);
@@ -127,6 +133,11 @@ function init() {
 
   // Initialize user settings (must run after app is ready so userData path resolves)
   userSettings.init();
+
+  // Initialize telemetry (no-op if user has opted out). Must run after
+  // userSettings so the enabled check has accurate state.
+  telemetry.init();
+  telemetry.trackAppStarted();
 
   // Setup IPC handlers
   setupAllIPC();

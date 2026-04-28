@@ -113,6 +113,7 @@ const IPC = {
   // Update Check
   CHECK_FOR_UPDATE: 'check-for-update',
   UPDATE_AVAILABLE: 'update-available',
+  GET_UPDATE_STATUS: 'get-update-status',
 
   // AI Tool Settings
   GET_AI_TOOL_CONFIG: 'get-ai-tool-config',
@@ -127,7 +128,13 @@ const IPC = {
   // Git Status (file tree decoration)
   WATCH_GIT_STATUS: 'watch-git-status',
   UNWATCH_GIT_STATUS: 'unwatch-git-status',
-  GIT_STATUS_DATA: 'git-status-data'
+  GIT_STATUS_DATA: 'git-status-data',
+
+  // Telemetry (Aptabase, opt-out via Settings)
+  TELEMETRY_SET_ENABLED: 'telemetry-set-enabled',
+
+  // Settings UI (open settings modal from menu)
+  OPEN_SETTINGS: 'open-settings'
 };
 
 module.exports = { IPC };

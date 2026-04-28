@@ -89,6 +89,37 @@ body.sidebar-resizing * {
   letter-spacing: 0;
 }
 
+.sidebar-header-text {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.update-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: update-dot-pulse 2.2s ease-in-out infinite;
+  transition: transform 0.12s;
+}
+
+.update-dot:hover {
+  transform: scale(1.2);
+}
+
+@keyframes update-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
 #sidebar-header::before {
   content: '';
   width: 8px;
