@@ -134,9 +134,9 @@ function init() {
   // Initialize user settings (must run after app is ready so userData path resolves)
   userSettings.init();
 
-  // Initialize telemetry (no-op if user has opted out). Must run after
-  // userSettings so the enabled check has accurate state.
-  telemetry.init();
+  // Send the launch event after userSettings is loaded so the opt-out
+  // check uses the correct state. Aptabase itself was initialized earlier
+  // (before app.whenReady) — see app lifecycle below.
   telemetry.trackAppStarted();
 
   // Setup IPC handlers
@@ -159,6 +159,12 @@ function initModulesWithWindow(window) {
   claudeSessionsManager.init(window);
   gitStatusManager.init(window);
 }
+
+// Aptabase MUST be initialized before app.whenReady() because the SDK
+// internally calls protocol.registerSchemesAsPrivileged, which is only
+// allowed pre-ready. Initialization itself doesn't send anything; the
+// actual app_started event is fired from init() after userSettings loads.
+telemetry.init();
 
 // App lifecycle
 app.whenReady().then(() => {

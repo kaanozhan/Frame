@@ -1,7 +1,7 @@
 {
   "name": "frame",
   "productName": "Frame",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Frame - Project Management IDE for Claude Code",
   "main": "src/main/index.js",
   "scripts": {

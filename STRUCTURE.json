@@ -4032,22 +4032,22 @@
       ],
       "functions": {
         "init": {
-          "line": 26,
-          "purpose": "boot — no events are sent until trackAppStarted() runs."
+          "line": 31,
+          "purpose": "the chicken-and-egg with userSettings (which loads after app.whenReady)."
         },
         "trackAppStarted": {
-          "line": 41,
+          "line": 45,
           "purpose": "or not initialized."
         },
         "setEnabled": {
-          "line": 54,
+          "line": 58,
           "params": [
             "enabled"
           ],
-          "purpose": "initializes Aptabase if the user just turned it on."
+          "purpose": "already initialized on boot; flipping this flag just gates trackEvent."
         },
         "isEnabled": {
-          "line": 67,
+          "line": 68,
           "purpose": "touched (opt-out semantics)."
         }
       }
