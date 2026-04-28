@@ -20,11 +20,15 @@ const ENABLED_KEY = 'telemetryEnabled';
 let initialized = false;
 
 /**
- * Initialize Aptabase if telemetry is enabled. Safe to call once on app
- * boot — no events are sent until trackAppStarted() runs.
+ * Initialize Aptabase. MUST be called before app.whenReady() because the
+ * SDK uses protocol.registerSchemesAsPrivileged internally.
+ *
+ * We always initialize (regardless of opt-out state) because the call has
+ * no network side-effects on its own — events only go out when trackEvent
+ * runs, and that path is gated by isEnabled(). Initializing eagerly avoids
+ * the chicken-and-egg with userSettings (which loads after app.whenReady).
  */
 function init() {
-  if (!isEnabled()) return;
   if (initialized) return;
   try {
     aptabase.initialize(APTABASE_APP_KEY);
@@ -48,15 +52,12 @@ function trackAppStarted() {
 }
 
 /**
- * Toggle telemetry from Settings. Persists the new state and lazily
- * initializes Aptabase if the user just turned it on.
+ * Toggle telemetry from Settings. Persists the new state. Aptabase is
+ * already initialized on boot; flipping this flag just gates trackEvent.
  */
 function setEnabled(enabled) {
   const value = enabled === true;
   userSettings.set(ENABLED_KEY, value);
-  if (value && !initialized) {
-    init();
-  }
   return value;
 }
 
