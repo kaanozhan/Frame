@@ -262,14 +262,17 @@ function setupButtonHandlers() {
 }
 
 /**
- * Show a small notification dot in the sidebar header when an update is
- * available. Hidden when the user has dismissed the same version. Click
- * opens Settings — sidebar dot routes to About details, complementing the
- * existing terminal tab bell which opens the GitHub release page directly.
+ * Show update indicators when a new version is available:
+ * - Small pulsing dot in the sidebar header (peripheral signal)
+ * - Sidebar footer banner with version + arrow (primary, click-to-act signal)
+ *
+ * Both are hidden when the user has dismissed that same version (Settings
+ * → About → "Dismiss this version"). Both click open Settings → About.
  */
 function setupUpdateDot() {
   const dot = document.getElementById('update-dot');
-  if (!dot) return;
+  const banner = document.getElementById('sidebar-update-banner');
+  const bannerVersionEl = document.getElementById('sidebar-update-banner-version');
 
   ipcRenderer.on(IPC.UPDATE_AVAILABLE, async (event, info) => {
     if (!info || !info.latestVersion) return;
@@ -278,12 +281,19 @@ function setupUpdateDot() {
       'dismissedUpdateVersion'
     );
     if (dismissed === info.latestVersion) return;
-    dot.style.display = '';
+    if (dot) dot.style.display = '';
+    if (banner) {
+      if (bannerVersionEl) bannerVersionEl.textContent = `v${info.latestVersion}`;
+      banner.style.display = '';
+    }
   });
 
-  dot.addEventListener('click', () => {
-    settingsModal.open();
-  });
+  if (dot) {
+    dot.addEventListener('click', () => settingsModal.open());
+  }
+  if (banner) {
+    banner.addEventListener('click', () => settingsModal.open());
+  }
 }
 
 /**
