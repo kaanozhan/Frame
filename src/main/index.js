@@ -27,6 +27,7 @@ const aiToolManager = require('./aiToolManager');
 const claudeSessionsManager = require('./claudeSessionsManager');
 const updateChecker = require('./updateChecker');
 const userSettings = require('./userSettings');
+const gitStatusManager = require('./gitStatusManager');
 
 let mainWindow = null;
 
@@ -107,6 +108,9 @@ function setupAllIPC() {
   ipcMain.handle(IPC.GET_USER_SETTING, (event, key) => userSettings.get(key));
   ipcMain.handle(IPC.SET_USER_SETTING, (event, key, value) => userSettings.set(key, value));
 
+  // Git status (file tree decoration polling)
+  gitStatusManager.setupIPC(ipcMain);
+
   // Terminal input handler (needs prompt logger integration)
   ipcMain.on(IPC.TERMINAL_INPUT, (event, data) => {
     pty.writeToPTY(data);
@@ -142,6 +146,7 @@ function initModulesWithWindow(window) {
   overviewManager.init(window);
   gitBranchesManager.init(window);
   claudeSessionsManager.init(window);
+  gitStatusManager.init(window);
 }
 
 // App lifecycle

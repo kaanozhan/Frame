@@ -37,23 +37,24 @@
         "aiToolManager",
         "claudeSessionsManager",
         "updateChecker",
-        "userSettings"
+        "userSettings",
+        "gitStatusManager"
       ],
       "functions": {
         "createWindow": {
-          "line": 36,
+          "line": 37,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 87,
+          "line": 88,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 120,
+          "line": 124,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 134,
+          "line": 138,
           "params": [
             "window"
           ],
@@ -912,7 +913,7 @@
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 41,
           "params": [
             "elementId",
             "getProjectPath"
@@ -920,21 +921,21 @@
           "purpose": "Initialize file tree UI"
         },
         "setProjectPathGetter": {
-          "line": 43,
+          "line": 57,
           "params": [
             "getter"
           ],
           "purpose": "Set project path getter"
         },
         "setOnFileClick": {
-          "line": 50,
+          "line": 64,
           "params": [
             "callback"
           ],
           "purpose": "Set file click callback"
         },
         "renderFileTree": {
-          "line": 57,
+          "line": 71,
           "params": [
             "files",
             "parentElement",
@@ -943,67 +944,67 @@
           "purpose": "Render file tree recursively"
         },
         "clearFileTree": {
-          "line": 148,
+          "line": 162,
           "purpose": "Clear file tree"
         },
         "refreshFileTree": {
-          "line": 157,
+          "line": 174,
           "params": [
             "projectPath"
           ],
           "purpose": "Refresh file tree"
         },
         "loadFileTree": {
-          "line": 167,
+          "line": 184,
           "params": [
             "projectPath"
           ],
           "purpose": "Load file tree for path"
         },
         "setupIPC": {
-          "line": 174,
+          "line": 192,
           "purpose": "Setup IPC listeners"
         },
         "focus": {
-          "line": 186,
+          "line": 213,
           "purpose": "Focus file tree for keyboard navigation"
         },
         "getVisibleItems": {
-          "line": 216,
+          "line": 243,
           "purpose": "inside collapsed folders."
         },
         "handleKeydown": {
-          "line": 225,
+          "line": 252,
           "params": [
             "e"
           ],
           "purpose": "Handle keyboard navigation in file tree"
         },
         "blur": {
-          "line": 287,
+          "line": 314,
           "purpose": "Blur/unfocus file tree"
         },
         "setupSearch": {
-          "line": 297
+          "line": 324
         },
         "applyFilter": {
-          "line": 325,
+          "line": 352,
           "params": [
             "query"
           ]
         },
         "filterWrapper": {
-          "line": 338,
+          "line": 365,
           "params": [
             "wrapper",
             "query"
           ]
         },
         "setupContextMenu": {
-          "line": 374
+          "line": 401
         },
         "showContextMenu": {
-          "line": 398,
+          "line": 425,
           "params": [
             "x",
             "y",
@@ -1011,22 +1012,29 @@
           ]
         },
         "hideContextMenu": {
-          "line": 415
+          "line": 442
         },
         "handleContextMenuAction": {
-          "line": 421,
+          "line": 448,
           "params": [
             "action"
           ]
+        },
+        "applyGitStatusDecoration": {
+          "line": 465,
+          "purpose": "via a simple second pass."
         }
       },
       "ipc": {
         "listens": [
-          "FILE_TREE_DATA"
+          "FILE_TREE_DATA",
+          "GIT_STATUS_DATA"
         ],
         "emits": [
+          "UNWATCH_GIT_STATUS",
           "LOAD_FILE_TREE",
-          "LOAD_FILE_TREE"
+          "LOAD_FILE_TREE",
+          "WATCH_GIT_STATUS"
         ]
       }
     },
@@ -3923,6 +3931,74 @@
         ],
         "emits": []
       }
+    },
+    "main/gitStatusManager": {
+      "file": "src/main/gitStatusManager.js",
+      "description": "Git Status Manager",
+      "exports": [
+        "init",
+        "setupIPC"
+      ],
+      "depends": [
+        "child_process",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 23,
+          "params": [
+            "window"
+          ]
+        },
+        "setupIPC": {
+          "line": 27,
+          "params": [
+            "ipcMain"
+          ]
+        },
+        "startWatching": {
+          "line": 37,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "stopWatching": {
+          "line": 48
+        },
+        "pushStatus": {
+          "line": 55
+        },
+        "readGitStatus": {
+          "line": 73,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "parsePorcelainV1": {
+          "line": 94,
+          "params": [
+            "stdout"
+          ],
+          "purpose": "Format: \"XY <path>\\0\" with renamed/copied entries adding \"<oldpath>\\0\" after."
+        },
+        "classify": {
+          "line": 131,
+          "params": [
+            "index",
+            "worktree"
+          ],
+          "purpose": "Order matters: conflicts and stages take precedence over modifications."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "WATCH_GIT_STATUS",
+          "UNWATCH_GIT_STATUS"
+        ],
+        "emits": [
+          "GIT_STATUS_DATA"
+        ]
+      }
     }
   },
   "ipcChannels": {
@@ -4419,6 +4495,21 @@
         "name": "set-user-setting",
         "direction": "",
         "description": ""
+      },
+      "WATCH_GIT_STATUS": {
+        "name": "watch-git-status",
+        "direction": "",
+        "description": ""
+      },
+      "UNWATCH_GIT_STATUS": {
+        "name": "unwatch-git-status",
+        "direction": "",
+        "description": ""
+      },
+      "GIT_STATUS_DATA": {
+        "name": "git-status-data",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -4676,6 +4767,13 @@
         "module": "main/gitBranchesManager",
         "file": "src/main/gitBranchesManager.js",
         "description": "Git Branches Manager Module"
+      }
+    ],
+    "git-status": [
+      {
+        "module": "main/gitStatusManager",
+        "file": "src/main/gitStatusManager.js",
+        "description": "Git Status Manager"
       }
     ],
     "github": [

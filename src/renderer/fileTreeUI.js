@@ -21,6 +21,20 @@ let currentQuery = '';
 let contextMenuEl = null;
 let contextMenuPath = null;
 
+// Git status decoration cache (relative path -> classification)
+let gitStatusFiles = {};
+let gitStatusProjectPath = null;
+const GIT_STATUS_CLASSES = [
+  'git-modified',
+  'git-added',
+  'git-untracked',
+  'git-deleted',
+  'git-renamed',
+  'git-conflict',
+  'git-ignored',
+  'git-has-changes'
+];
+
 /**
  * Initialize file tree UI
  */
@@ -149,6 +163,9 @@ function clearFileTree() {
   if (fileTreeElement) {
     fileTreeElement.innerHTML = '';
   }
+  gitStatusFiles = {};
+  gitStatusProjectPath = null;
+  ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
 }
 
 /**
@@ -166,6 +183,7 @@ function refreshFileTree(projectPath) {
  */
 function loadFileTree(projectPath) {
   ipcRenderer.send(IPC.LOAD_FILE_TREE, projectPath);
+  ipcRenderer.send(IPC.WATCH_GIT_STATUS, projectPath);
 }
 
 /**
@@ -177,6 +195,15 @@ function setupIPC() {
     renderFileTree(files, fileTreeElement);
     // Re-apply any active search filter to the new tree
     if (currentQuery) applyFilter(currentQuery);
+    // Re-apply git decoration to the new tree
+    applyGitStatusDecoration();
+  });
+
+  ipcRenderer.on(IPC.GIT_STATUS_DATA, (event, payload) => {
+    if (!payload) return;
+    gitStatusProjectPath = payload.projectPath;
+    gitStatusFiles = payload.isRepo ? (payload.files || {}) : {};
+    applyGitStatusDecoration();
   });
 }
 
@@ -426,6 +453,59 @@ function handleContextMenuAction(action) {
       console.error('Failed to copy filepath', e);
     }
   }
+}
+
+/* ──────────────────────── Git status decoration ──────────────────────── */
+
+/**
+ * Walk every rendered .file-item and apply the git status class matching its
+ * path in the cached status map. Then roll changes up to ancestor folders
+ * via a simple second pass.
+ */
+function applyGitStatusDecoration() {
+  if (!fileTreeElement) return;
+
+  const items = fileTreeElement.querySelectorAll('.file-item');
+  // First pass: clear old classes and apply file-level classification
+  items.forEach((item) => {
+    GIT_STATUS_CLASSES.forEach((cls) => item.classList.remove(cls));
+  });
+
+  if (!gitStatusProjectPath || Object.keys(gitStatusFiles).length === 0) {
+    return;
+  }
+
+  const projectPrefix = gitStatusProjectPath.endsWith('/')
+    ? gitStatusProjectPath
+    : gitStatusProjectPath + '/';
+
+  items.forEach((item) => {
+    if (item.classList.contains('folder')) return;
+    const abs = item.dataset.path;
+    if (!abs || !abs.startsWith(projectPrefix)) return;
+    const rel = abs.substring(projectPrefix.length);
+    const entry = gitStatusFiles[rel];
+    if (!entry) return;
+    const cls = `git-${entry.classification}`;
+    if (GIT_STATUS_CLASSES.includes(cls)) {
+      item.classList.add(cls);
+    }
+  });
+
+  // Second pass: roll up changes to ancestor folder items.
+  const changedItems = fileTreeElement.querySelectorAll(
+    '.file-item.git-modified, .file-item.git-added, .file-item.git-untracked, .file-item.git-deleted, .file-item.git-renamed, .file-item.git-conflict'
+  );
+  changedItems.forEach((item) => {
+    let parent = item.parentElement; // wrapper
+    while (parent && parent !== fileTreeElement) {
+      if (parent.classList && parent.classList.contains('file-wrapper')) {
+        const folderItem = parent.querySelector(':scope > .file-item.folder');
+        if (folderItem) folderItem.classList.add('git-has-changes');
+      }
+      parent = parent.parentElement;
+    }
+  });
 }
 
 module.exports = {

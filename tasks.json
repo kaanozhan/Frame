@@ -39,18 +39,6 @@
         "completedAt": null
       },
       {
-        "id": "task-m2",
-        "title": "Git status integration",
-        "description": "Show git status, diff in the UI",
-        "status": "pending",
-        "priority": "high",
-        "category": "feature",
-        "context": "todos.json - mediumTerm",
-        "createdAt": "2026-01-21T00:00:00Z",
-        "updatedAt": "2026-01-24T16:30:00Z",
-        "completedAt": null
-      },
-      {
         "id": "task-m6",
         "title": "Claude Code chat sidebar",
         "description": "Dedicated UI for Claude Code interactions",
@@ -486,6 +474,21 @@
       }
     ],
     "completed": [
+      {
+        "id": "task-m2",
+        "title": "Git status integration (file tree decoration)",
+        "description": "v1: decorate the sidebar file tree with git status colors. New gitStatusManager (main) runs `git status --porcelain=v1 -z` for the active project on a 5s poll, parses output, pushes to renderer via GIT_STATUS_DATA. Renderer maps each file's relative path to a status classification (modified / added / untracked / deleted / renamed / conflict / ignored) and applies a CSS class to the .file-item. Folders containing any changed descendant get a 'git-has-changes' rollup class. Diff viewer, staged-files panel, and stage/discard actions are explicitly out of scope for v1 — they are v2.",
+        "userRequest": "User said: task m2 çok eklenmesi gerekli bir özellik ya, istersen onları da ekleyelim — 2026-04-28.",
+        "acceptanceCriteria": "File tree shows colored decorations matching git status; folder rollup works; status refreshes every ~5s; non-git projects render unchanged; switching projects updates the watch target.",
+        "notes": "Polling chosen over fs.watch for v1 simplicity. Diff viewer + Changes panel deferred to v2. Visual style is colored text only (VSCode pattern), no badges, to keep tree clean. Identical pushes are de-duplicated to avoid renderer churn.",
+        "status": "completed",
+        "priority": "high",
+        "category": "feature",
+        "context": "Session 2026-04-28 - Git status integration v1",
+        "createdAt": "2026-01-21T00:00:00Z",
+        "updatedAt": "2026-04-28T13:00:00Z",
+        "completedAt": "2026-04-28T13:00:00Z"
+      },
       {
         "id": "task-filetree-search",
         "title": "Filter input in file tree (substring match)",
