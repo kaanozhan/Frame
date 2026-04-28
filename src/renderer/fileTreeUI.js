@@ -3,13 +3,23 @@
  * Renders collapsible file tree in sidebar
  */
 
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, clipboard } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 
 let fileTreeElement = null;
 let currentProjectPath = null;
 let onFileClickCallback = null;
 let focusedItem = null;
+
+// Search filter state
+let searchInput = null;
+let searchClearBtn = null;
+let searchWrapper = null;
+let currentQuery = '';
+
+// Context menu state
+let contextMenuEl = null;
+let contextMenuPath = null;
 
 /**
  * Initialize file tree UI
@@ -23,6 +33,8 @@ function init(elementId, getProjectPath) {
   }
 
   setupIPC();
+  setupSearch();
+  setupContextMenu();
 }
 
 /**
@@ -85,6 +97,13 @@ function renderFileTree(files, parentElement, indent = 0) {
     fileItem.appendChild(icon);
     fileItem.appendChild(name);
     wrapper.appendChild(fileItem);
+
+    // Context menu (right-click) — works for both files and folders
+    fileItem.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showContextMenu(e.clientX, e.clientY, file.path);
+    });
 
     // Create children container for folders
     if (file.isDirectory && file.children && file.children.length > 0) {
@@ -156,6 +175,8 @@ function setupIPC() {
   ipcRenderer.on(IPC.FILE_TREE_DATA, (event, files) => {
     clearFileTree();
     renderFileTree(files, fileTreeElement);
+    // Re-apply any active search filter to the new tree
+    if (currentQuery) applyFilter(currentQuery);
   });
 }
 
@@ -188,22 +209,14 @@ function focus() {
 }
 
 /**
- * Get all visible file items (for navigation)
+ * Get all visible file items (for navigation). Uses offsetParent so it
+ * naturally skips items hidden by the search filter as well as items
+ * inside collapsed folders.
  */
 function getVisibleItems() {
   if (!fileTreeElement) return [];
   const allItems = fileTreeElement.querySelectorAll('.file-item');
-  return Array.from(allItems).filter(item => {
-    // Check if parent folder is expanded
-    let parent = item.parentElement;
-    while (parent && parent !== fileTreeElement) {
-      if (parent.classList.contains('folder-children') && parent.style.display === 'none') {
-        return false;
-      }
-      parent = parent.parentElement;
-    }
-    return true;
-  });
+  return Array.from(allItems).filter((item) => item.offsetParent !== null);
 }
 
 /**
@@ -278,6 +291,142 @@ function blur() {
 
 // Expose focus function globally for editor to restore focus
 window.fileTreeFocus = focus;
+
+/* ──────────────────────── Search filter ──────────────────────── */
+
+function setupSearch() {
+  searchInput = document.getElementById('file-tree-search');
+  searchClearBtn = document.getElementById('file-tree-search-clear');
+  searchWrapper = searchInput ? searchInput.parentElement : null;
+  if (!searchInput) return;
+
+  searchInput.addEventListener('input', () => {
+    applyFilter(searchInput.value);
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      searchInput.value = '';
+      applyFilter('');
+      searchInput.blur();
+    }
+  });
+
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      applyFilter('');
+      searchInput.focus();
+    });
+  }
+}
+
+function applyFilter(query) {
+  currentQuery = (query || '').trim().toLowerCase();
+  if (searchWrapper) {
+    searchWrapper.classList.toggle('has-query', currentQuery.length > 0);
+  }
+  if (!fileTreeElement) return;
+
+  // Top-level wrappers walk recursively; each call returns whether the
+  // subtree contains any matching item so ancestors can be revealed.
+  const topWrappers = fileTreeElement.querySelectorAll(':scope > .file-wrapper');
+  topWrappers.forEach((w) => filterWrapper(w, currentQuery));
+}
+
+function filterWrapper(wrapper, query) {
+  const item = wrapper.querySelector(':scope > .file-item');
+  const childContainer = wrapper.querySelector(':scope > .folder-children');
+  if (!item) return false;
+
+  // Last span is the name (after the optional arrow + icon)
+  const nameEl = item.querySelector('span:last-child');
+  const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+  const selfMatches = !query || name.includes(query);
+
+  let descendantMatches = false;
+  if (childContainer) {
+    const childWrappers = childContainer.querySelectorAll(':scope > .file-wrapper');
+    childWrappers.forEach((c) => {
+      if (filterWrapper(c, query)) descendantMatches = true;
+    });
+  }
+
+  const visible = !query || selfMatches || descendantMatches;
+  wrapper.style.display = visible ? '' : 'none';
+
+  // Auto-expand folders with descendant matches while filtering;
+  // restore display state when query is cleared.
+  if (childContainer) {
+    if (query && descendantMatches) {
+      childContainer.style.display = 'block';
+      const arrow = item.querySelector('.folder-arrow');
+      if (arrow) arrow.style.transform = 'rotate(90deg)';
+    }
+  }
+
+  return visible;
+}
+
+/* ──────────────────────── Context menu ──────────────────────── */
+
+function setupContextMenu() {
+  contextMenuEl = document.getElementById('file-tree-context-menu');
+  if (!contextMenuEl) return;
+
+  contextMenuEl.querySelectorAll('.context-menu-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      handleContextMenuAction(btn.dataset.action);
+      hideContextMenu();
+    });
+  });
+
+  // Dismiss on outside click / scroll / Esc / window blur
+  document.addEventListener('mousedown', (e) => {
+    if (!contextMenuEl.contains(e.target)) hideContextMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && contextMenuEl.classList.contains('visible')) {
+      hideContextMenu();
+    }
+  });
+  window.addEventListener('blur', hideContextMenu);
+  window.addEventListener('scroll', hideContextMenu, true);
+}
+
+function showContextMenu(x, y, path) {
+  if (!contextMenuEl) return;
+  contextMenuPath = path;
+
+  // Position first off-screen so we can measure its actual size,
+  // then clamp to viewport to avoid overflow on right/bottom edges.
+  contextMenuEl.style.left = '-9999px';
+  contextMenuEl.style.top = '-9999px';
+  contextMenuEl.classList.add('visible');
+
+  const rect = contextMenuEl.getBoundingClientRect();
+  const maxX = window.innerWidth - rect.width - 4;
+  const maxY = window.innerHeight - rect.height - 4;
+  contextMenuEl.style.left = `${Math.min(x, maxX)}px`;
+  contextMenuEl.style.top = `${Math.min(y, maxY)}px`;
+}
+
+function hideContextMenu() {
+  if (!contextMenuEl) return;
+  contextMenuEl.classList.remove('visible');
+  contextMenuPath = null;
+}
+
+function handleContextMenuAction(action) {
+  if (action === 'copy-path' && contextMenuPath) {
+    try {
+      clipboard.writeText(contextMenuPath);
+    } catch (e) {
+      console.error('Failed to copy filepath', e);
+    }
+  }
+}
 
 module.exports = {
   init,

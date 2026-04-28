@@ -1,0 +1,105 @@
+/* File Tree — search filter + context menu */
+
+.file-tree-search {
+  position: relative;
+  margin: var(--space-sm) 0 var(--space-sm);
+  flex-shrink: 0;
+}
+
+.file-tree-search input {
+  width: 100%;
+  padding: 6px 26px 6px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.file-tree-search input:focus {
+  border-color: var(--accent-primary);
+  background: var(--bg-elevated);
+}
+
+.file-tree-search input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.file-tree-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+  line-height: 1;
+  display: none;
+  border-radius: 3px;
+  transition: color 0.12s, background 0.12s;
+}
+
+.file-tree-search-clear:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.file-tree-search.has-query .file-tree-search-clear {
+  display: block;
+}
+
+/* Context Menu (file tree right-click) */
+
+.context-menu {
+  position: fixed;
+  z-index: 99999;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  display: none;
+}
+
+.context-menu.visible {
+  display: block;
+  animation: context-menu-fade 0.08s ease-out;
+}
+
+@keyframes context-menu-fade {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.context-menu-item:hover {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+.context-menu-item:focus {
+  outline: none;
+  background: var(--accent-subtle);
+}

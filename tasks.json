@@ -487,6 +487,36 @@
     ],
     "completed": [
       {
+        "id": "task-filetree-search",
+        "title": "Filter input in file tree (substring match)",
+        "description": "Search box above the file tree that filters visible items as the user types. Substring (case-insensitive) match against file/folder names. Folders containing matches auto-expand to surface results. Clearing the input restores full visibility. Keyboard navigation (ArrowUp/Down) automatically skips hidden items via offsetParent check. Filter is re-applied automatically when the tree reloads (project switch / refresh).",
+        "userRequest": "User said: bir de search box koyalım. dosyalarda arama yapılabilsin — 2026-04-28 file tree polish.",
+        "acceptanceCriteria": "Input above tree filters in real-time; substring match (case-insensitive); folders with matching descendants auto-expand; clearing input restores tree; keyboard nav skips hidden items.",
+        "notes": "Substring chosen over fuzzy because fuzzy match in a file tree filter occasionally surprises users. A fuzzy 'Quick Open' (Cmd+P style file finder across all files) is a separate future feature.",
+        "status": "completed",
+        "priority": "medium",
+        "category": "feature",
+        "context": "Session 2026-04-28 - File tree polish",
+        "createdAt": "2026-04-28T10:00:00Z",
+        "updatedAt": "2026-04-28T11:30:00Z",
+        "completedAt": "2026-04-28T11:30:00Z"
+      },
+      {
+        "id": "task-filetree-copy-path",
+        "title": "Right-click → Copy Filepath in file tree",
+        "description": "Custom HTML context menu that appears on right-click of file or folder items. Single menu item: 'Copy Filepath' which writes the absolute path to the clipboard via Electron's clipboard module. Menu dismisses on outside click, Esc, scroll, window blur, or after action. Auto-clamps to viewport on right/bottom edges.",
+        "userRequest": "User said: filetree de bir dosyaya sağ tıkladığımda copy filepath olsun mesela, bu güzel bir özellik — 2026-04-28 file tree polish.",
+        "acceptanceCriteria": "Right-click on any file or folder shows context menu at cursor; 'Copy Filepath' writes absolute path to clipboard; menu closes on outside-click / Esc / after action.",
+        "notes": "Custom HTML menu (not Electron native Menu.popup) so future items can match Frame's design tokens. Works for both files and folders for consistency.",
+        "status": "completed",
+        "priority": "medium",
+        "category": "feature",
+        "context": "Session 2026-04-28 - File tree polish",
+        "createdAt": "2026-04-28T10:00:00Z",
+        "updatedAt": "2026-04-28T11:30:00Z",
+        "completedAt": "2026-04-28T11:30:00Z"
+      },
+      {
         "id": "task-prod-onboarding",
         "title": "First-run welcome flow with persistent dismiss",
         "description": "Single-screen welcome modal shown on every launch unless user opts out via 'Don't show this again' checkbox. Pitches Frame's value prop (terminal-first, AI-native), offers three primary actions (Open Folder / Create New / Clone GitHub), embeds AI tool radio picker synced with sidebar via SET_AI_TOOL IPC, has Close primary button + Skip secondary. Reachable later via Command Palette (help.welcome). Persistence moved from localStorage to userData JSON via new userSettings module + IPC channels because Electron renderer localStorage didn't survive launches in dev. Checkbox state persists immediately on change so Cmd+Q while modal open is still captured.",
