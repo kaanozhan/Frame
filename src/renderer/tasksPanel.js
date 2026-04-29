@@ -148,20 +148,20 @@ function setFilter(filter) {
 function getFilteredTasks() {
   if (!tasksData || !tasksData.tasks) return [];
 
-  const allTasks = [
-    ...tasksData.tasks.pending.map(t => ({ ...t, status: 'pending' })),
-    ...tasksData.tasks.inProgress.map(t => ({ ...t, status: 'in_progress' })),
-    ...tasksData.tasks.completed.map(t => ({ ...t, status: 'completed' }))
-  ];
+  const allTasks = Array.isArray(tasksData.tasks)
+    ? tasksData.tasks
+    : [
+        ...(tasksData.tasks.pending || []).map(t => ({ ...t, status: 'pending' })),
+        ...(tasksData.tasks.inProgress || []).map(t => ({ ...t, status: 'in_progress' })),
+        ...(tasksData.tasks.completed || []).map(t => ({ ...t, status: 'completed' }))
+      ];
 
-  if (currentFilter === 'all') {
-    return allTasks;
-  }
+  if (currentFilter === 'all') return allTasks;
 
   const statusMap = {
-    'pending': 'pending',
-    'inProgress': 'in_progress',
-    'completed': 'completed'
+    pending: 'pending',
+    inProgress: 'in_progress',
+    completed: 'completed'
   };
 
   return allTasks.filter(t => t.status === statusMap[currentFilter]);
