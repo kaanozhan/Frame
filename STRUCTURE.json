@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-04-28",
+  "lastUpdated": "2026-04-29",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -412,7 +412,8 @@
         "addTask",
         "updateTask",
         "deleteTask",
-        "setupIPC"
+        "setupIPC",
+        "stopWatching"
       ],
       "depends": [
         "fs",
@@ -422,76 +423,90 @@
       ],
       "functions": {
         "init": {
-          "line": 17,
+          "line": 27,
           "params": [
             "window"
-          ],
-          "purpose": "Initialize tasks manager"
+          ]
         },
         "setProjectPath": {
-          "line": 24,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Set current project path"
-        },
-        "getTasksFilePath": {
           "line": 31,
           "params": [
             "projectPath"
+          ]
+        },
+        "getTasksFilePath": {
+          "line": 35,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "flattenLegacyTasks": {
+          "line": 46,
+          "params": [
+            "legacy"
           ],
-          "purpose": "Get tasks file path for a project"
+          "purpose": "latest updatedAt."
+        },
+        "dedupById": {
+          "line": 59,
+          "params": [
+            "tasks"
+          ]
         },
         "loadTasks": {
-          "line": 38,
+          "line": 80,
           "params": [
             "projectPath"
           ],
-          "purpose": "Load tasks from project"
+          "purpose": "the file becomes self-healing."
         },
         "saveTasks": {
-          "line": 56,
+          "line": 126,
           "params": [
             "projectPath",
             "tasksData"
-          ],
-          "purpose": "Save tasks to project"
+          ]
         },
         "generateTaskId": {
-          "line": 72,
-          "purpose": "Generate unique task ID"
+          "line": 139
         },
         "addTask": {
-          "line": 79,
+          "line": 143,
           "params": [
             "projectPath",
             "task"
-          ],
-          "purpose": "Add a new task"
+          ]
         },
         "updateTask": {
-          "line": 108,
+          "line": 167,
           "params": [
             "projectPath",
             "taskId",
             "updates"
-          ],
-          "purpose": "Update an existing task"
+          ]
         },
         "deleteTask": {
-          "line": 157,
+          "line": 189,
           "params": [
             "projectPath",
             "taskId"
+          ]
+        },
+        "startWatching": {
+          "line": 213,
+          "params": [
+            "projectPath"
           ],
-          "purpose": "Delete a task"
+          "purpose": "saveTasks() call to avoid a feedback loop."
+        },
+        "stopWatching": {
+          "line": 239
         },
         "setupIPC": {
-          "line": 176,
+          "line": 249,
           "params": [
             "ipcMain"
-          ],
-          "purpose": "Setup IPC handlers"
+          ]
         }
       },
       "ipc": {
@@ -1782,25 +1797,25 @@
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 292,
+          "line": 288,
           "params": [
             "projectName"
           ],
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 358,
+          "line": 354,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 390,
+          "line": 386,
           "purpose": "Instructs Codex to read AGENTS.md as initial prompt"
         },
         "getGenericWrapperTemplate": {
-          "line": 427,
+          "line": 423,
           "params": [
             "toolCommand",
             "promptFlag = ''"

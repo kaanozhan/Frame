@@ -243,18 +243,14 @@ function getTasksTemplate(projectName) {
   return {
     _frame_metadata: {
       purpose: "Task tracking for the project",
-      forAI: "Check this file to understand what tasks are pending, in progress, or completed. Update task status as you work. Add new tasks when discovered during development. Follow the task recognition rules in AGENTS.md. IMPORTANT: Include userRequest (original user prompt), detailed description, and acceptanceCriteria for each task.",
+      forAI: "Check this file to understand what tasks are pending, in progress, or completed. Update task status as you work. Add new tasks when discovered during development. Follow the task recognition rules in AGENTS.md. IMPORTANT: Tasks live in a single flat 'tasks' array; the per-task 'status' field ('pending' | 'in_progress' | 'completed') is the single source of truth — to change a task's state, only update its status field (do not move or duplicate it). Include userRequest (original user prompt), detailed description, and acceptanceCriteria for each task.",
       lastUpdated: getDateString(),
       generatedBy: "Frame"
     },
     project: projectName,
-    version: "1.1",
+    version: "1.2",
     lastUpdated: getISOTimestamp(),
-    tasks: {
-      pending: [],
-      inProgress: [],
-      completed: []
-    },
+    tasks: [],
     taskSchema: {
       _comment: "This schema shows the expected structure for each task",
       id: "unique-id (task-xxx format)",
