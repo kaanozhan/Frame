@@ -1,0 +1,2 @@
+Codex CLI prompt templates land here in Slice 3 (multi-AI polish).
+The structure mirrors `../claude-code/`: `spec.new.md`, `spec.plan.md`, `spec.tasks.md`.

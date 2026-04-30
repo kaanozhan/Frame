@@ -136,7 +136,18 @@ const IPC = {
   TELEMETRY_SET_ENABLED: 'telemetry-set-enabled',
 
   // Settings UI (open settings modal from menu)
-  OPEN_SETTINGS: 'open-settings'
+  OPEN_SETTINGS: 'open-settings',
+
+  // Spec-Driven Development (Slice 1) — .frame/specs/<slug>/ lifecycle
+  LIST_SPECS: 'list-specs',
+  GET_SPEC: 'get-spec',
+  CREATE_SPEC: 'create-spec',
+  UPDATE_SPEC_STATUS: 'update-spec-status',
+  WATCH_SPECS: 'watch-specs',
+  UNWATCH_SPECS: 'unwatch-specs',
+  SPEC_DATA: 'spec-data',
+  TOGGLE_SPECS_PANEL: 'toggle-specs-panel',
+  GET_SPEC_PROMPT: 'get-spec-prompt'
 };
 
 module.exports = { IPC };

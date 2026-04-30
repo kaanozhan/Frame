@@ -15,6 +15,7 @@ const taskInfoModal = require('./taskInfoModal');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
+const specPanel = require('./specPanel');
 const state = require('./state');
 const projectListUI = require('./projectListUI');
 const editor = require('./editor');
@@ -104,6 +105,9 @@ function init() {
   // Initialize prompts panel
   promptsPanel.init();
 
+  // Initialize specs panel (spec-driven development)
+  specPanel.init();
+
   // Initialize sidebar resize
   sidebarResize.init(() => {
     terminal.fitTerminal();
@@ -123,8 +127,12 @@ function init() {
       if (tasksPanel.isVisible()) {
         tasksPanel.loadTasks();
       }
+
+      // Start watching .frame/specs/ for the new project
+      specPanel.startWatchingForProject(projectPath);
     } else {
       fileTreeUI.clearFileTree();
+      specPanel.stopWatching();
     }
   });
 
@@ -423,6 +431,13 @@ function registerCommands() {
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+D',
     run: () => tasksDashboard.toggle()
+  });
+  r({
+    id: 'panel.toggleSpecs',
+    title: 'Toggle Specs Panel',
+    category: 'Panel',
+    shortcut: 'CmdOrCtrl+Shift+S',
+    run: () => specPanel.toggle()
   });
   r({
     id: 'panel.togglePlugins',

@@ -1,0 +1,17 @@
+{
+  "slug": "share-button",
+  "title": "Add Share button to ProductPage",
+  "phase": "implementing",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [
+    "task-spec-share-button-T01",
+    "task-spec-share-button-T02",
+    "task-spec-share-button-T03",
+    "task-spec-share-button-T04",
+    "task-spec-share-button-T05",
+    "task-spec-share-button-T06"
+  ],
+  "created_at": "2026-04-29T10:00:00.000Z",
+  "updated_at": "2026-04-29T11:30:00.000Z",
+  "last_phase_at": "2026-04-29T11:00:00.000Z"
+}

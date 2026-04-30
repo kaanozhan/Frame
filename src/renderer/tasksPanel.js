@@ -293,6 +293,7 @@ function renderTaskItem(task) {
         <div class="task-meta">
           <span class="task-priority ${priorityClass}">${priorityLabel}</span>
           ${task.category ? `<span class="task-category">${task.category}</span>` : ''}
+          ${renderSourceChip(task.source)}
           <span class="task-date">${formatDate(task.createdAt)}</span>
         </div>
       </div>
@@ -602,6 +603,19 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Render a small attribution chip for tasks that came from a Frame spec.
+ * `source` looks like `spec:<slug>:T<n>`. We surface just the slug since
+ * that's the actionable identifier the user knows.
+ */
+function renderSourceChip(source) {
+  if (!source || typeof source !== 'string') return '';
+  const m = source.match(/^spec:([^:]+):/);
+  if (!m) return '';
+  const slug = escapeHtml(m[1]);
+  return `<span class="task-source-chip" title="From spec: ${slug}">spec · ${slug}</span>`;
 }
 
 /**

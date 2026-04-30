@@ -658,3 +658,61 @@ Gemini CLI's dependency `string-width` uses the `/v` regex flag which requires N
 4. (Optional) Authentication, HTTPS, multi-user support
 
 **Status:** Planned as the next major feature. Not started yet.
+
+### [2026-04-29] Spec-Driven Development — data model
+
+Frame is gaining native spec-driven development as a core feature (4-slice plan tracked under `spec-driven-dev` in `tasks.json`). Slice 1 designs the on-disk layout below. Format is **Frame's own**, not Spec Kit compatible — the brand call was full UX control over compatibility.
+
+**File layout** (per project, alongside `tasks.json` / `AGENTS.md` / `STRUCTURE.json`):
+
+```
+.frame/
+  specs/
+    <slug>/
+      spec.md       ← what we're building (Problem, Goal, Constraints, Success Criteria, Out of Scope)
+      plan.md       ← how (architecture, files touched, dependencies, sequencing)
+      tasks.md      ← broken-down tasks (markdown bullets parsed into tasks.json)
+      status.json   ← metadata (phase, ai_tool, generated_task_ids, timestamps)
+  templates/
+    specs/
+      <name>.md     ← project-level overrides (optional)
+```
+
+`<slug>` is kebab-case derived from the spec title. Conflicts get a `-2`, `-3` suffix (e.g., `share-button`, `share-button-2`).
+
+**`status.json` schema:**
+
+```json
+{
+  "slug": "share-button",
+  "title": "Add Share button to ProductPage",
+  "phase": "implementing",
+  "ai_tool": "claude-code",
+  "generated_task_ids": ["task-spec-share-button-T01", "..."],
+  "created_at": "2026-04-29T10:00:00.000Z",
+  "updated_at": "2026-04-29T11:30:00.000Z",
+  "last_phase_at": "2026-04-29T11:00:00.000Z"
+}
+```
+
+**Lifecycle phases** (linear, no skipping):
+- `draft` — folder exists, no `spec.md` yet (created but not described)
+- `specified` — `spec.md` written
+- `planned` — `plan.md` written
+- `tasks_generated` — `tasks.md` written, tasks synced to `tasks.json`
+- `implementing` — at least one generated task moved to `in_progress`
+- `done` — all generated tasks `completed`
+
+**`tasks.json` linkage:** every generated task carries `source: "spec:<slug>:T<n>"`. `status.generated_task_ids` is the back-reference. Re-running `/spec.tasks` updates titles/descriptions in place but **never** clobbers user-set status — pending → in_progress → completed transitions belong to the user, not the import.
+
+**AI tool field** (`ai_tool`): `"claude-code"` | `"codex"` | `"gemini"`. Recorded so prompt formatting stays consistent across resumes (panel can re-issue slash commands the same way).
+
+**Slug rules**:
+- Lowercase, kebab-case, alphanumeric + hyphen
+- Max 48 chars (truncate)
+- Strip leading/trailing hyphens
+- Conflict resolution: append `-2`, `-3`, etc.
+
+**Validator**: `validateSpecStatus(obj)` lives in `src/main/specManager.js`. Shape check only — phase enum, required fields, ISO date strings. No deep semantic validation.
+
+**Watcher**: `fs.watch` with `recursive: true` on `.frame/specs/`. Debounced 250ms. On any change, re-scans the directory and pushes `SPEC_DATA` to the renderer with the changed slug + fresh content.
