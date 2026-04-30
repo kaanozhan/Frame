@@ -147,7 +147,12 @@ const IPC = {
   UNWATCH_SPECS: 'unwatch-specs',
   SPEC_DATA: 'spec-data',
   TOGGLE_SPECS_PANEL: 'toggle-specs-panel',
-  GET_SPEC_PROMPT: 'get-spec-prompt'
+  GET_SPEC_PROMPT: 'get-spec-prompt',
+  BUILD_SPEC_COMMAND_FILE: 'build-spec-command-file',
+
+  // Spec-Driven Development opt-in (Slice 1.5)
+  IS_SPEC_DRIVEN_ENABLED: 'is-spec-driven-enabled',
+  ENABLE_SPEC_DRIVEN: 'enable-spec-driven'
 };
 
 module.exports = { IPC };

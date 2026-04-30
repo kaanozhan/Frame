@@ -19,10 +19,67 @@ function getISOTimestamp() {
 }
 
 /**
+ * Spec-Driven Development section — markdown content shipped to AGENTS.md
+ * when the user enables the feature. Held as a constant so both the full
+ * AGENTS.md template and the standalone "append-only" helper share one
+ * source of truth.
+ */
+const SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)
+
+Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`tasks.json\` in sync.
+
+### File layout
+
+Each spec lives in its own folder:
+
+\`\`\`
+.frame/specs/<slug>/
+  spec.md       — what we're building (Problem, Goal, Constraints, Success Criteria, Out of Scope)
+  plan.md       — how (Architecture, Files, Dependencies, Sequencing)
+  tasks.md      — flat bullet list, "- T01 · description"
+  status.json   — phase + metadata
+\`\`\`
+
+\`<slug>\` is kebab-case, derived from the spec title.
+
+### Lifecycle phases
+
+\`draft\` → \`specified\` → \`planned\` → \`tasks_generated\` → \`implementing\` → \`done\`
+
+Frame auto-advances phase from filesystem state (file presence). After writing each artifact, update \`status.json\` so \`phase\`, \`updated_at\`, and \`last_phase_at\` reflect reality — Frame's watcher will reconcile if you forget.
+
+### Slash commands
+
+When the user types a Frame slash command, write **exactly one file** and then update \`status.json\`:
+
+- \`/spec.new <description>\` → write \`spec.md\` (sections: Problem, Goal, Constraints, Success Criteria, Out of Scope). Phase → \`specified\`.
+- \`/spec.plan\` → read \`spec.md\`, write \`plan.md\` (sections: Architecture, Files, Dependencies, Sequencing). Phase → \`planned\`.
+- \`/spec.tasks\` → read \`spec.md\` + \`plan.md\`, write \`tasks.md\` as a flat \`- T01 · ...\` bullet list (5–12 tasks, imperative voice). Phase → \`tasks_generated\`.
+
+After \`/spec.tasks\`, **do not** also write entries to \`tasks.json\` — Frame's watcher imports them automatically with \`source: "spec:<slug>:T<n>"\` markers.
+
+### tasks.json linkage
+
+Spec-generated tasks carry a \`source\` field. Treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.
+
+### When to suggest a spec
+
+If the user describes work bigger than a one-shot edit (a new feature, a multi-file refactor, a cross-cutting fix), suggest a spec first: *"This sounds like a spec — want me to draft \`.frame/specs/<slug>/spec.md\`?"*
+
+For one-line typo fixes, build errors, or clarifying questions, skip the spec — go direct.`;
+
+/**
  * AGENTS.md template - Main instructions file for AI assistants
  * This file is read by AI coding tools (Claude Code, Codex CLI, etc.)
+ *
+ * options:
+ *   specDriven: include the Spec-Driven Development section. Off by default —
+ *               the user opts in via the suggestion modal or Settings, after
+ *               which we re-emit AGENTS.md (or append the section to it).
  */
-function getAgentsTemplate(projectName) {
+function getAgentsTemplate(projectName, options) {
+  const opts = options || {};
+  const specDriven = opts.specDriven === true;
   const date = getDateString();
   return `# ${projectName} - Frame Project
 
@@ -76,7 +133,11 @@ This project is managed with **Frame**. AI assistants should follow the rules be
 - When task is completed: \`status: "completed"\`, update \`completedAt\`
 - After commit: Check and update the status of related tasks
 
----
+${specDriven ? `---
+
+${SPEC_DRIVEN_SECTION}
+
+` : ''}---
 
 ## PROJECT_NOTES.md Rules
 
@@ -363,6 +424,13 @@ function getFrameConfigTemplate(projectName) {
       autoUpdateNotes: false,
       taskRecognition: true
     },
+    features: {
+      // Spec-Driven Development is opt-in. The user enables it via the
+      // suggestion modal that appears the first time they click the Specs
+      // panel; toggling this flag also re-emits AGENTS.md with the spec
+      // section so AI tools learn the workflow.
+      specDriven: false
+    },
     files: {
       agents: "AGENTS.md",
       claudeSymlink: "CLAUDE.md",
@@ -459,6 +527,7 @@ module.exports = {
   getTasksTemplate,
   getQuickstartTemplate,
   getFrameConfigTemplate,
+  SPEC_DRIVEN_SECTION,
   getCodexWrapperTemplate,
   getGenericWrapperTemplate
 };

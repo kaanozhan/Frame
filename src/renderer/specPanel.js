@@ -69,9 +69,23 @@ function hide() {
   isVisible = false;
 }
 
-function toggle() {
-  if (isVisible) hide();
-  else show();
+// Public toggle. The first time the user invokes this on a project where
+// Spec-Driven Development isn't enabled yet, we show a suggestion modal
+// instead of opening the panel — keeping the workflow opt-in.
+async function toggle() {
+  if (isVisible) {
+    hide();
+    return;
+  }
+  const projectPath = state.getProjectPath();
+  if (projectPath) {
+    const enabled = await ipcRenderer.invoke(IPC.IS_SPEC_DRIVEN_ENABLED, projectPath);
+    if (!enabled) {
+      showSuggestionModal(projectPath);
+      return;
+    }
+  }
+  show();
 }
 
 // ─── Watch lifecycle ────────────────────────────────
@@ -240,24 +254,26 @@ async function runSpecCommand(command) {
     showInlineError('Open a project first.');
     return;
   }
-  const result = await ipcRenderer.invoke(IPC.GET_SPEC_PROMPT, {
+  // Write the interpolated prompt to .frame/runtime/prompts/<slug>__<command>.md
+  // and send a short instruction to the terminal. This dodges Claude Code's
+  // paste compression (which collapses long pastes to "[Pasted text +N lines]"
+  // placeholders) — Claude reads the full prompt back from disk via its Read
+  // tool.
+  const result = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
     projectPath,
     slug: activeSlug,
     command,
     aiTool: 'claude-code'
   });
-  if (!result || result.error) {
-    showInlineError('Could not build prompt: ' + (result?.error || 'unknown error'));
+  if (!result || !result.success) {
+    showInlineError('Could not stage prompt: ' + (result?.error || 'unknown error'));
     return;
   }
   if (typeof window.terminalSendCommand !== 'function') {
     showInlineError('No terminal available. Open a terminal first.');
     return;
   }
-  // Send the full prompt body to the active terminal. The user must already
-  // have an AI session running there (e.g. `claude`); a future enhancement
-  // could detect that and warn if not.
-  window.terminalSendCommand(result.prompt);
+  window.terminalSendCommand(result.instruction);
 }
 
 function renderTabButton(tab, label, hasContent) {
@@ -409,6 +425,74 @@ function deriveSlugPreview(title) {
     .replace(/^-+|-+$/g, '')
     .substring(0, 48)
     .replace(/^-+|-+$/g, '');
+}
+
+// ─── Spec-Driven Development opt-in suggestion ─────────────
+//
+// Shown the first time the user clicks the Specs panel on a project where
+// the feature isn't enabled. Explains what the workflow does, then lets
+// them turn it on or skip. Maximum friction: a one-time, dismissable modal.
+
+function showSuggestionModal(projectPath) {
+  const overlay = document.createElement('div');
+  overlay.className = 'spec-modal-overlay';
+  overlay.innerHTML = `
+    <div class="spec-modal spec-modal-suggestion" role="dialog" aria-modal="true" aria-labelledby="spec-suggest-title">
+      <h3 id="spec-suggest-title">Try Spec-Driven Development?</h3>
+      <p class="spec-suggest-lead">
+        Frame can structure your AI work into <strong>specs → plans → tasks</strong>.
+        Talk to Claude in plain English; Frame turns it into structured artifacts that
+        flow back into your tasks.json.
+      </p>
+      <ul class="spec-suggest-bullets">
+        <li>One folder per spec under <code>.frame/specs/&lt;slug&gt;/</code></li>
+        <li>Slash commands (<code>/spec.new</code>, <code>/spec.plan</code>, <code>/spec.tasks</code>) drive Claude through the lifecycle</li>
+        <li>Generated tasks land in your existing tasks.json with a <code>spec · slug</code> chip</li>
+        <li>Off by default — you stay in control</li>
+      </ul>
+      <p class="spec-suggest-fineprint">
+        Enabling adds a "Spec-Driven Development" section to AGENTS.md and creates an empty
+        <code>.frame/specs/</code> folder. You can disable later by editing those files directly.
+      </p>
+      <div class="spec-modal-error" role="alert"></div>
+      <div class="spec-modal-actions">
+        <button type="button" class="btn btn-secondary spec-suggest-skip">Maybe later</button>
+        <button type="button" class="btn btn-primary spec-suggest-enable">Enable</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const errorEl = overlay.querySelector('.spec-modal-error');
+  const skipBtn = overlay.querySelector('.spec-suggest-skip');
+  const enableBtn = overlay.querySelector('.spec-suggest-enable');
+
+  setTimeout(() => enableBtn.focus(), 30);
+
+  const close = () => overlay.remove();
+  const enable = async () => {
+    enableBtn.disabled = true;
+    skipBtn.disabled = true;
+    const result = await ipcRenderer.invoke(IPC.ENABLE_SPEC_DRIVEN, projectPath);
+    if (!result || !result.success) {
+      errorEl.textContent = 'Could not enable: ' + (result?.error || 'unknown error');
+      enableBtn.disabled = false;
+      skipBtn.disabled = false;
+      return;
+    }
+    close();
+    // Open the panel right away so the user lands somewhere productive
+    show();
+  };
+
+  skipBtn.addEventListener('click', close);
+  enableBtn.addEventListener('click', enable);
+  overlay.addEventListener('keydown', e => {
+    if (e.key === 'Escape') close();
+  });
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) close();
+  });
 }
 
 function showInlineError(message) {

@@ -718,13 +718,13 @@
       "description": "Extend the project init flow (current Initialize Frame flow) to offer a template choice: Standard | Spec-Driven Development. Selecting Spec-Driven creates .frame/specs/.gitkeep, copies default templates from src/templates/specs/ to .frame/templates/specs/, and appends a 'Spec-Driven Development' section to AGENTS.md. Existing projects can opt-in via a 'Enable Spec-Driven mode' button in project settings.",
       "userRequest": "User said: ben bir projeye başladığımda bir seçenek olarak spec driven dev özelliğimizle başlayabileceğim.",
       "acceptanceCriteria": "Project init modal shows template selector. Spec-Driven template creates folders, copies templates, updates AGENTS.md. Opt-in path works for already-initialized projects without disrupting existing structure.",
-      "status": "pending",
+      "status": "completed",
       "priority": "high",
       "category": "feature",
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
-      "updatedAt": "2026-04-29T00:00:00Z",
-      "completedAt": null
+      "updatedAt": "2026-04-30T00:00:00Z",
+      "completedAt": "2026-04-30T00:00:00Z"
     },
     {
       "id": "spec-1.9",
@@ -732,13 +732,13 @@
       "description": "Add a 'Spec-Driven Development' section to Frame's default AGENTS.md template. Documents: .frame/specs/ folder convention, expected contents of spec.md / plan.md / tasks.md, how to respond to /spec.new /spec.plan /spec.tasks invocations, exact file output format (path, headers, structure). Format strict enough that Claude / Codex / Gemini can all reliably follow it. Same content reused as the AI-prompt template body in Slice 1.6.",
       "userRequest": "Subtask of spec-driven-dev (User-approved 4-slice plan, Session 2026-04-29).",
       "acceptanceCriteria": "AGENTS.md template updated. Section is unambiguous (tested by reading it cold). Claude Code follows the format on first attempt without coaching. Codex and Gemini variations validated at least once each.",
-      "status": "pending",
+      "status": "completed",
       "priority": "high",
       "category": "feature",
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
-      "updatedAt": "2026-04-29T00:00:00Z",
-      "completedAt": null
+      "updatedAt": "2026-04-30T00:00:00Z",
+      "completedAt": "2026-04-30T00:00:00Z"
     },
     {
       "id": "spec-driven-dev",

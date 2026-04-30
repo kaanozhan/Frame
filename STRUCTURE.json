@@ -397,6 +397,8 @@
         "isFrameProject",
         "getFrameConfig",
         "initializeFrameProject",
+        "isSpecDrivenEnabled",
+        "enableSpecDriven",
         "setupIPC"
       ],
       "depends": [
@@ -468,8 +470,28 @@
           ],
           "purpose": "Initialize a project as Frame project"
         },
+        "isSpecDrivenEnabled": {
+          "line": 319,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "edits — slice 1 doesn't ship a \"disable\" path."
+        },
+        "enableSpecDriven": {
+          "line": 324,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "ensureSpecDrivenArtifacts": {
+          "line": 349,
+          "params": [
+            "projectPath",
+            "config"
+          ]
+        },
         "setupIPC": {
-          "line": 311,
+          "line": 399,
           "params": [
             "ipcMain"
           ],
@@ -480,7 +502,9 @@
         "listens": [
           "CHECK_IS_FRAME_PROJECT",
           "INITIALIZE_FRAME_PROJECT",
-          "GET_FRAME_CONFIG"
+          "GET_FRAME_CONFIG",
+          "IS_SPEC_DRIVEN_ENABLED",
+          "ENABLE_SPEC_DRIVEN"
         ],
         "emits": [
           "IS_FRAME_PROJECT_RESULT",
@@ -1403,6 +1427,7 @@
         "deleteSpec",
         "derivePhase",
         "getCommandPrompt",
+        "buildSpecCommandFile",
         "parseTasksMarkdown",
         "syncTasksFromMarkdown"
       ],
@@ -1541,48 +1566,57 @@
             "aiTool"
           ]
         },
+        "buildSpecCommandFile": {
+          "line": 250,
+          "params": [
+            "projectPath",
+            "slug",
+            "command",
+            "aiTool"
+          ]
+        },
         "parseTasksMarkdown": {
-          "line": 251,
+          "line": 278,
           "params": [
             "content"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 264,
+          "line": 291,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 344,
+          "line": 371,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 351,
+          "line": 378,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 368,
+          "line": 395,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "createSpec": {
-          "line": 381,
+          "line": 408,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 417,
+          "line": 444,
           "params": [
             "projectPath",
             "slug",
@@ -1590,37 +1624,37 @@
           ]
         },
         "deleteSpec": {
-          "line": 435,
+          "line": 462,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "startWatching": {
-          "line": 448,
+          "line": 475,
           "params": [
             "projectPath"
           ],
           "purpose": "across all three platforms — if that ever changes, swap in a poller."
         },
         "stopWatching": {
-          "line": 473
+          "line": 500
         },
         "pushSpecData": {
-          "line": 485,
+          "line": 512,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 496,
+          "line": 523,
           "params": [
             "window"
           ],
           "purpose": "─── Init + IPC ────────────────────────────────────────────"
         },
         "setupIPC": {
-          "line": 500,
+          "line": 527,
           "params": [
             "ipcMain"
           ]
@@ -1633,6 +1667,7 @@
           "CREATE_SPEC",
           "UPDATE_SPEC_STATUS",
           "GET_SPEC_PROMPT",
+          "BUILD_SPEC_COMMAND_FILE",
           "WATCH_SPECS",
           "UNWATCH_SPECS"
         ],
@@ -3578,62 +3613,63 @@
           "line": 66
         },
         "toggle": {
-          "line": 72
+          "line": 75,
+          "purpose": "instead of opening the panel — keeping the workflow opt-in."
         },
         "startWatchingForProject": {
-          "line": 79,
+          "line": 93,
           "params": [
             "projectPath"
           ],
           "purpose": "─── Watch lifecycle ────────────────────────────────"
         },
         "stopWatching": {
-          "line": 84
+          "line": 98
         },
         "renderList": {
-          "line": 90,
+          "line": 104,
           "purpose": "─── List view ──────────────────────────────────────"
         },
         "renderSpecRow": {
-          "line": 121,
+          "line": 135,
           "params": [
             "spec"
           ]
         },
         "openDetail": {
-          "line": 141,
+          "line": 155,
           "params": [
             "slug"
           ],
           "purpose": "─── Detail view ────────────────────────────────────"
         },
         "reloadDetail": {
-          "line": 147
+          "line": 161
         },
         "renderDetail": {
-          "line": 155
+          "line": 169
         },
         "nextActionForPhase": {
-          "line": 209,
+          "line": 223,
           "params": [
             "phase"
           ],
           "purpose": "AI tool is running) can produce the next artifact."
         },
         "renderNextActionBar": {
-          "line": 222,
+          "line": 236,
           "params": [
             "action"
           ]
         },
         "runSpecCommand": {
-          "line": 236,
+          "line": 250,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 263,
+          "line": 279,
           "params": [
             "tab",
             "label",
@@ -3641,59 +3677,66 @@
           ]
         },
         "renderTabBody": {
-          "line": 269,
+          "line": 285,
           "params": [
             "tab"
           ]
         },
         "switchTab": {
-          "line": 276,
+          "line": 292,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 285
+          "line": 301
         },
         "showNewSpecPrompt": {
-          "line": 300,
+          "line": 316,
           "purpose": "`window.prompt` is blocked in Electron's renderer."
         },
         "parseTitleAndBody": {
-          "line": 388,
+          "line": 404,
           "params": [
             "raw"
           ],
           "purpose": "matter."
         },
         "deriveSlugPreview": {
-          "line": 402,
+          "line": 418,
           "params": [
             "title"
           ],
           "purpose": "can preview without a roundtrip. Keep in sync if the canonical changes."
         },
+        "showSuggestionModal": {
+          "line": 436,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "them turn it on or skip. Maximum friction: a one-time, dismissable modal."
+        },
         "showInlineError": {
-          "line": 414,
+          "line": 498,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 434,
+          "line": 518,
           "params": [
             "md"
           ],
           "purpose": "─── Helpers ────────────────────────────────────────"
         },
         "escapeHtml": {
-          "line": 444,
+          "line": 528,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 454,
+          "line": 538,
           "params": [
             "iso"
           ]
@@ -4738,6 +4781,7 @@
         "getTasksTemplate",
         "getQuickstartTemplate",
         "getFrameConfigTemplate",
+        "SPEC_DRIVEN_SECTION",
         "getCodexWrapperTemplate",
         "getGenericWrapperTemplate"
       ],
@@ -4752,53 +4796,54 @@
           "purpose": "Get current ISO timestamp"
         },
         "getAgentsTemplate": {
-          "line": 25,
+          "line": 80,
           "params": [
-            "projectName"
+            "projectName",
+            "options"
           ],
-          "purpose": "This file is read by AI coding tools (Claude Code, Codex CLI, etc.)"
+          "purpose": "which we re-emit AGENTS.md (or append the section to it)."
         },
         "getStructureTemplate": {
-          "line": 198,
+          "line": 259,
           "params": [
             "projectName"
           ],
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 222,
+          "line": 283,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 242,
+          "line": 303,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 288,
+          "line": 349,
           "params": [
             "projectName"
           ],
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 354,
+          "line": 415,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 386,
+          "line": 454,
           "purpose": "Instructs Codex to read AGENTS.md as initial prompt"
         },
         "getGenericWrapperTemplate": {
-          "line": 423,
+          "line": 491,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -4975,6 +5020,21 @@
       },
       "GET_SPEC_PROMPT": {
         "name": "get-spec-prompt",
+        "direction": "",
+        "description": ""
+      },
+      "IS_SPEC_DRIVEN_ENABLED": {
+        "name": "is-spec-driven-enabled",
+        "direction": "",
+        "description": ""
+      },
+      "ENABLE_SPEC_DRIVEN": {
+        "name": "enable-spec-driven",
+        "direction": "",
+        "description": ""
+      },
+      "BUILD_SPEC_COMMAND_FILE": {
+        "name": "build-spec-command-file",
         "direction": "",
         "description": ""
       }
