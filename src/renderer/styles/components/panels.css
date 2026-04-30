@@ -4979,3 +4979,69 @@
   gap: var(--space-sm);
 }
 
+/* Suggestion (opt-in) modal — softer presentation than the New Spec modal */
+.spec-modal-suggestion {
+  width: 540px;
+}
+
+.spec-suggest-lead {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.spec-suggest-lead strong {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.spec-suggest-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.spec-suggest-bullets li {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding-left: var(--space-md);
+  position: relative;
+  line-height: 1.5;
+}
+
+.spec-suggest-bullets li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.spec-suggest-bullets code {
+  font-family: var(--font-mono);
+  background: var(--bg-tertiary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--accent-primary);
+  font-size: 11px;
+}
+
+.spec-suggest-fineprint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.55;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--border-subtle);
+}
+
+.spec-suggest-fineprint code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+

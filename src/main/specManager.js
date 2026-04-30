@@ -236,6 +236,33 @@ function getCommandPrompt(projectPath, slug, command, aiTool) {
   return { prompt };
 }
 
+// ─── Prompt file writer ──────────────────────────────────────
+//
+// Claude Code's terminal paste handler collapses large pastes into
+// `[Pasted text #N +M lines]` placeholders, swallowing prompt bodies. To
+// route around that, we write the interpolated prompt to a file under
+// .frame/runtime/prompts/ and hand the renderer a short instruction it
+// can safely send to the terminal. Claude's Read tool then fetches the
+// file directly — full prompt arrives intact.
+
+const RUNTIME_PROMPTS_DIR = path.join(FRAME_DIR, 'runtime', 'prompts');
+
+function buildSpecCommandFile(projectPath, slug, command, aiTool) {
+  const result = getCommandPrompt(projectPath, slug, command, aiTool);
+  if (result.error) return result;
+  const promptsDir = path.join(projectPath, RUNTIME_PROMPTS_DIR);
+  fs.mkdirSync(promptsDir, { recursive: true });
+  const filename = `${slug}__${command}.md`;
+  const absPath = path.join(promptsDir, filename);
+  fs.writeFileSync(absPath, result.prompt, 'utf8');
+  const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
+  return {
+    success: true,
+    relPath,
+    instruction: `Read ${relPath} and follow its instructions exactly.`
+  };
+}
+
 // ─── tasks.md → tasks.json sync (Slice 1.8) ────────────────
 //
 // When a spec advances to phase `tasks_generated`, parse its tasks.md and
@@ -513,6 +540,9 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool }) =>
     getCommandPrompt(projectPath, slug, command, aiTool)
   );
+  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool }) =>
+    buildSpecCommandFile(projectPath, slug, command, aiTool)
+  );
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
   });
@@ -534,6 +564,7 @@ module.exports = {
   deleteSpec,
   derivePhase,
   getCommandPrompt,
+  buildSpecCommandFile,
   parseTasksMarkdown,
   syncTasksFromMarkdown
 };

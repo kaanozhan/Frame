@@ -229,8 +229,11 @@ function initializeFrameProject(projectPath, projectName) {
     fs.unlinkSync(agentsMdPath);
   }
 
-  // Build AGENTS.md content: Frame template + any existing instructions appended
-  let agentsContent = templates.getAgentsTemplate(name);
+  // Build AGENTS.md content: Frame template + any existing instructions appended.
+  // Spec-Driven Development section is OFF by default — user opts in via the
+  // suggestion modal, which calls enableSpecDriven() to re-emit AGENTS.md
+  // with the section.
+  let agentsContent = templates.getAgentsTemplate(name, { specDriven: false });
   if (existingInstructions.length > 0) {
     const merged = existingInstructions
       .map(({ label, content }) => `## Existing Instructions (from ${label})\n\n${content}`)
@@ -305,6 +308,91 @@ function initializeFrameProject(projectPath, projectName) {
   return config;
 }
 
+// ─── Spec-Driven Development opt-in (Slice 1.5) ──────────────
+//
+// Reads/writes the `features.specDriven` flag in .frame/config.json.
+// Enabling also re-emits AGENTS.md with the spec section appended (so AI
+// tools learn the workflow) and creates an empty .frame/specs/ folder
+// tracked by .gitkeep. Designed to be reversible by the user via direct
+// edits — slice 1 doesn't ship a "disable" path.
+
+function isSpecDrivenEnabled(projectPath) {
+  const config = getFrameConfig(projectPath);
+  return Boolean(config && config.features && config.features.specDriven);
+}
+
+function enableSpecDriven(projectPath) {
+  if (!isFrameProject(projectPath)) {
+    return { success: false, error: 'not a Frame project' };
+  }
+
+  const config = getFrameConfig(projectPath) || {};
+  config.features = config.features || {};
+  if (config.features.specDriven === true) {
+    // Already enabled — make sure the artifacts exist anyway (handles the
+    // case where someone deleted .frame/specs/ manually) and short-circuit.
+    ensureSpecDrivenArtifacts(projectPath, config);
+    return { success: true, alreadyEnabled: true };
+  }
+
+  config.features.specDriven = true;
+  fs.writeFileSync(
+    path.join(projectPath, FRAME_DIR, FRAME_CONFIG_FILE),
+    JSON.stringify(config, null, 2),
+    'utf8'
+  );
+
+  ensureSpecDrivenArtifacts(projectPath, config);
+  return { success: true };
+}
+
+function ensureSpecDrivenArtifacts(projectPath, config) {
+  const name = (config && config.name) || path.basename(projectPath);
+
+  // Make sure .frame/specs/ exists with a .gitkeep so it's version-tracked
+  const specsDir = path.join(projectPath, FRAME_DIR, 'specs');
+  fs.mkdirSync(specsDir, { recursive: true });
+  const gitkeepPath = path.join(specsDir, '.gitkeep');
+  if (!fs.existsSync(gitkeepPath)) {
+    fs.writeFileSync(gitkeepPath, '', 'utf8');
+  }
+
+  // Make sure AGENTS.md has the Spec-Driven Development section so AI
+  // tools learn the workflow. We never rewrite the whole file — projects
+  // routinely customize their AGENTS.md with their own conventions, and
+  // blowing those away on enable would be hostile. Three branches:
+  //   1. AGENTS.md doesn't exist → write the full template (specDriven on).
+  //   2. AGENTS.md exists, no spec section → APPEND the section just before
+  //      the trailing footer marker (or at the very end if no footer).
+  //   3. AGENTS.md already has the section → no-op.
+  const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
+  let existing = '';
+  try {
+    existing = fs.readFileSync(agentsPath, 'utf8');
+  } catch (err) {
+    existing = '';
+  }
+  if (!existing) {
+    fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true }), 'utf8');
+  } else if (!existing.includes('Spec-Driven Development')) {
+    const sectionBlock = `\n\n---\n\n${templates.SPEC_DRIVEN_SECTION}\n`;
+    const footerMarker = '*This file was automatically created by Frame.';
+    const footerIdx = existing.indexOf(footerMarker);
+    let updated;
+    if (footerIdx >= 0) {
+      // Insert just before the footer (and any preceding "---" / blank lines)
+      // so the footer remains the literal last block.
+      const head = existing.slice(0, footerIdx).replace(/\n*-{3,}\n*$/, '');
+      const tail = existing.slice(footerIdx);
+      updated = head + sectionBlock + '\n---\n\n' + tail;
+    } else {
+      updated = existing.replace(/\n*$/, '') + sectionBlock;
+    }
+    fs.writeFileSync(agentsPath, updated, 'utf8');
+  }
+  // else: section already present, leave file alone
+}
+
 /**
  * Setup IPC handlers
  */
@@ -355,6 +443,14 @@ function setupIPC(ipcMain) {
     const config = getFrameConfig(projectPath);
     event.sender.send(IPC.FRAME_CONFIG_DATA, { projectPath, config });
   });
+
+  // Spec-Driven Development opt-in
+  ipcMain.handle(IPC.IS_SPEC_DRIVEN_ENABLED, (event, projectPath) =>
+    isSpecDrivenEnabled(projectPath)
+  );
+  ipcMain.handle(IPC.ENABLE_SPEC_DRIVEN, (event, projectPath) =>
+    enableSpecDriven(projectPath)
+  );
 }
 
 module.exports = {
@@ -362,5 +458,7 @@ module.exports = {
   isFrameProject,
   getFrameConfig,
   initializeFrameProject,
+  isSpecDrivenEnabled,
+  enableSpecDriven,
   setupIPC
 };

@@ -16,5 +16,8 @@
     "notes": "PROJECT_NOTES.md",
     "tasks": "tasks.json",
     "quickstart": "QUICKSTART.md"
+  },
+  "features": {
+    "specDriven": true
   }
 }
