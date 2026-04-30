@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Claude Code IDE - Module structure and IPC communication map",
-  "lastUpdated": "2026-04-29",
+  "lastUpdated": "2026-04-30",
   "architecture": {
     "type": "electron",
     "mainProcess": "src/main/index.js",
@@ -412,6 +412,7 @@
         "addTask",
         "updateTask",
         "deleteTask",
+        "reorderTasks",
         "setupIPC",
         "stopWatching"
       ],
@@ -492,18 +493,26 @@
             "taskId"
           ]
         },
+        "reorderTasks": {
+          "line": 208,
+          "params": [
+            "projectPath",
+            "order"
+          ],
+          "purpose": "flow but keeps any concurrent additions from being dropped)."
+        },
         "startWatching": {
-          "line": 213,
+          "line": 260,
           "params": [
             "projectPath"
           ],
           "purpose": "saveTasks() call to avoid a feedback loop."
         },
         "stopWatching": {
-          "line": 239
+          "line": 286
         },
         "setupIPC": {
-          "line": 249,
+          "line": 296,
           "params": [
             "ipcMain"
           ]
@@ -514,7 +523,8 @@
           "LOAD_TASKS",
           "ADD_TASK",
           "UPDATE_TASK",
-          "DELETE_TASK"
+          "DELETE_TASK",
+          "REORDER_TASKS"
         ],
         "emits": [
           "TASKS_DATA",
@@ -781,6 +791,9 @@
         "fileTreeUI",
         "historyPanel",
         "tasksPanel",
+        "tasksDashboard",
+        "taskConfirmModal",
+        "taskInfoModal",
         "pluginsPanel",
         "githubPanel",
         "promptsPanel",
@@ -800,26 +813,26 @@
       ],
       "functions": {
         "init": {
-          "line": 31,
+          "line": 34,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 161,
+          "line": 173,
           "purpose": "Setup button click handlers"
         },
         "setupUpdateDot": {
-          "line": 272,
+          "line": 284,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 303,
+          "line": 315,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 321,
+          "line": 333,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -1296,7 +1309,10 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "state"
+        "state",
+        "tasksDashboard",
+        "taskInfoModal",
+        "taskConfirmModal"
       ],
       "functions": {
         "init": {
@@ -1308,49 +1324,49 @@
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 70,
+          "line": 81,
           "purpose": "Setup IPC listeners"
         },
         "loadTasks": {
-          "line": 92,
+          "line": 103,
           "purpose": "Load tasks for current project"
         },
         "show": {
-          "line": 102,
-          "purpose": "Show tasks panel"
+          "line": 114,
+          "purpose": "instead of opening an empty panel — there's nothing to show without one."
         },
         "hide": {
-          "line": 113,
+          "line": 131,
           "purpose": "Hide tasks panel"
         },
         "toggle": {
-          "line": 123,
+          "line": 141,
           "purpose": "Toggle tasks panel visibility"
         },
         "setFilter": {
-          "line": 134,
+          "line": 152,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredTasks": {
-          "line": 148,
+          "line": 166,
           "purpose": "Get filtered tasks"
         },
         "render": {
-          "line": 173,
+          "line": 191,
           "purpose": "Render tasks list"
         },
         "renderTaskItem": {
-          "line": 219,
+          "line": 237,
           "params": [
             "task"
           ],
           "purpose": "Render single task item"
         },
         "handleTaskAction": {
-          "line": 296,
+          "line": 314,
           "params": [
             "taskId",
             "action"
@@ -1358,7 +1374,7 @@
           "purpose": "Handle task action buttons"
         },
         "showToast": {
-          "line": 345,
+          "line": 363,
           "params": [
             "message",
             "type = 'info'"
@@ -1366,79 +1382,79 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 380,
+          "line": 398,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
         "sendTaskToClaude": {
-          "line": 394,
+          "line": 412,
           "params": [
             "task"
           ],
           "purpose": "Send task to Claude Code via terminal"
         },
         "setClaudeRunning": {
-          "line": 417,
+          "line": 435,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 424,
+          "line": 442,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 431,
+          "line": 451,
           "params": [
             "taskId"
           ],
-          "purpose": "Delete task"
+          "purpose": "load order ever shifts."
         },
         "showAddTaskModal": {
-          "line": 443,
+          "line": 468,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 462,
+          "line": 487,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 488,
+          "line": 513,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 498,
+          "line": 523,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 536,
+          "line": 561,
           "purpose": "Setup modal event listeners"
         },
         "escapeHtml": {
-          "line": 567,
+          "line": 601,
           "params": [
             "text"
           ],
           "purpose": "Escape HTML for safe rendering"
         },
         "formatDate": {
-          "line": 576,
+          "line": 610,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 593,
+          "line": 627,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -4164,6 +4180,260 @@
           "line": 48
         }
       }
+    },
+    "renderer/taskConfirmModal": {
+      "file": "src/renderer/taskConfirmModal.js",
+      "description": "Task Confirm-Delete Modal",
+      "exports": [
+        "init",
+        "open"
+      ],
+      "depends": [],
+      "functions": {
+        "init": {
+          "line": 18
+        },
+        "open": {
+          "line": 60,
+          "params": [
+            "opts = {}"
+          ]
+        },
+        "close": {
+          "line": 82
+        },
+        "confirm": {
+          "line": 89
+        },
+        "cancel": {
+          "line": 95
+        }
+      }
+    },
+    "renderer/taskInfoModal": {
+      "file": "src/renderer/taskInfoModal.js",
+      "description": "Task Info Modal",
+      "exports": [
+        "init",
+        "open"
+      ],
+      "depends": [],
+      "functions": {
+        "init": {
+          "line": 16
+        },
+        "open": {
+          "line": 44,
+          "params": [
+            "opts = {}"
+          ]
+        },
+        "close": {
+          "line": 55
+        }
+      }
+    },
+    "renderer/tasksDashboard": {
+      "file": "src/renderer/tasksDashboard.js",
+      "description": "Tasks Dashboard Module",
+      "exports": [
+        "init",
+        "show",
+        "hide",
+        "toggle",
+        "isVisible"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "taskInfoModal",
+        "taskConfirmModal"
+      ],
+      "functions": {
+        "init": {
+          "line": 64
+        },
+        "flatten": {
+          "line": 129,
+          "params": [
+            "data"
+          ]
+        },
+        "show": {
+          "line": 140
+        },
+        "hide": {
+          "line": 162
+        },
+        "toggle": {
+          "line": 171
+        },
+        "render": {
+          "line": 175
+        },
+        "renderCard": {
+          "line": 242,
+          "params": [
+            "task"
+          ]
+        },
+        "setupDropTargets": {
+          "line": 290
+        },
+        "onDragStart": {
+          "line": 329,
+          "params": [
+            "e",
+            "task"
+          ]
+        },
+        "onDragEnd": {
+          "line": 341
+        },
+        "getCardAfterY": {
+          "line": 355,
+          "params": [
+            "container",
+            "y"
+          ],
+          "purpose": "vertical midpoint. Returns null when the drop should land at the end."
+        },
+        "commitOrder": {
+          "line": 371,
+          "purpose": "rewrites tasks.json and pushes a fresh TASKS_DATA, which re-renders the UI."
+        },
+        "selectTask": {
+          "line": 387,
+          "params": [
+            "taskId"
+          ]
+        },
+        "clearSelection": {
+          "line": 401
+        },
+        "isFormOpen": {
+          "line": 413
+        },
+        "setupForm": {
+          "line": 417
+        },
+        "showForm": {
+          "line": 431
+        },
+        "hideForm": {
+          "line": 446
+        },
+        "requestDeleteSelected": {
+          "line": 462
+        },
+        "submitForm": {
+          "line": 480
+        },
+        "renderDetail": {
+          "line": 498,
+          "params": [
+            "task"
+          ]
+        },
+        "appendMetaPill": {
+          "line": 550,
+          "params": [
+            "container",
+            "text",
+            "cls"
+          ]
+        },
+        "setSection": {
+          "line": 557,
+          "params": [
+            "textEl",
+            "sectionEl",
+            "value"
+          ]
+        },
+        "formatDate": {
+          "line": 568,
+          "params": [
+            "isoString"
+          ]
+        },
+        "isFilterActive": {
+          "line": 582
+        },
+        "filterMatches": {
+          "line": 586,
+          "params": [
+            "task"
+          ]
+        },
+        "setupFilter": {
+          "line": 592
+        },
+        "isFilterPopoverOpen": {
+          "line": 630
+        },
+        "toggleFilterPopover": {
+          "line": 634
+        },
+        "openFilterPopover": {
+          "line": 640
+        },
+        "closeFilterPopover": {
+          "line": 646
+        },
+        "clearFilters": {
+          "line": 652
+        },
+        "updateFilterUI": {
+          "line": 664
+        },
+        "compareTasks": {
+          "line": 681,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "setupSort": {
+          "line": 697
+        },
+        "isSortPopoverOpen": {
+          "line": 742
+        },
+        "toggleSortPopover": {
+          "line": 746
+        },
+        "openSortPopover": {
+          "line": 752
+        },
+        "closeSortPopover": {
+          "line": 758
+        },
+        "resetSort": {
+          "line": 764
+        },
+        "updateSortUI": {
+          "line": 777
+        },
+        "commitSortToFile": {
+          "line": 802,
+          "purpose": "resulting array is coherent. Backend's reorderTasks rewrites the file."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TASKS_DATA",
+          "TOGGLE_TASKS_DASHBOARD"
+        ],
+        "emits": [
+          "LOAD_TASKS",
+          "REORDER_TASKS",
+          "DELETE_TASK",
+          "ADD_TASK",
+          "REORDER_TASKS"
+        ]
+      }
     }
   },
   "ipcChannels": {
@@ -4690,6 +4960,16 @@
         "name": "open-settings",
         "direction": "",
         "description": ""
+      },
+      "REORDER_TASKS": {
+        "name": "reorder-tasks",
+        "direction": "",
+        "description": ""
+      },
+      "TOGGLE_TASKS_DASHBOARD": {
+        "name": "toggle-tasks-dashboard",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -5077,6 +5357,20 @@
         "description": "Structure Map Module"
       }
     ],
+    "task-confirm-modal": [
+      {
+        "module": "renderer/taskConfirmModal",
+        "file": "src/renderer/taskConfirmModal.js",
+        "description": "Task Confirm-Delete Modal"
+      }
+    ],
+    "task-info-modal": [
+      {
+        "module": "renderer/taskInfoModal",
+        "file": "src/renderer/taskInfoModal.js",
+        "description": "Task Info Modal"
+      }
+    ],
     "tasks": [
       {
         "module": "main/tasksManager",
@@ -5087,6 +5381,13 @@
         "module": "renderer/tasksPanel",
         "file": "src/renderer/tasksPanel.js",
         "description": "Tasks Panel Module"
+      }
+    ],
+    "tasks-dashboard": [
+      {
+        "module": "renderer/tasksDashboard",
+        "file": "src/renderer/tasksDashboard.js",
+        "description": "Tasks Dashboard Module"
       }
     ],
     "telemetry": [

@@ -9,7 +9,7 @@ const tasksPanel = require('./tasksPanel');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
-const { Plus, LayoutGrid, MoreHorizontal, Square, Bell } = require('lucide');
+const { Plus, LayoutGrid, MoreHorizontal, Square, Bell, CheckSquare } = require('lucide');
 
 function lucideIcon(data, size = 18) {
   const children = data.map(([tag, attrs]) => {
@@ -205,6 +205,9 @@ class TerminalTabBar {
           ${lucideIcon(Bell)}
           <span class="update-badge"></span>
         </button>
+        <button class="btn-tasks-toggle" title="Toggle Tasks panel">
+          ${lucideIcon(CheckSquare)}
+        </button>
         <button class="btn-more-toggle" title="More panels">
           ${lucideIcon(MoreHorizontal)}
         </button>
@@ -341,6 +344,15 @@ class TerminalTabBar {
     this.element.querySelector('.claude-usage-bars').addEventListener('click', () => {
       ipcRenderer.send(IPC.REFRESH_CLAUDE_USAGE);
     });
+
+    // Standalone Tasks toggle button (lives directly in the tab bar, no menu)
+    const tasksBtn = this.element.querySelector('.btn-tasks-toggle');
+    if (tasksBtn) {
+      tasksBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        tasksPanel.toggle();
+      });
+    }
 
     // More menu toggle button
     const moreBtn = this.element.querySelector('.btn-more-toggle');
@@ -636,12 +648,6 @@ class TerminalTabBar {
     this.moreMenu.innerHTML = '';
 
     const items = [
-      {
-        label: 'Tasks',
-        icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
-        action: () => tasksPanel.toggle(),
-        key: 'tasks'
-      },
       {
         label: 'Claude',
         icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,

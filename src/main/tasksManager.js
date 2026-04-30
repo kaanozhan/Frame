@@ -198,6 +198,53 @@ function deleteTask(projectPath, taskId) {
 }
 
 /**
+ * Reorder tasks (used by the Kanban dashboard for drag-and-drop). The renderer
+ * sends an ordered list of { id, status } describing the new arrangement.
+ * The backend rebuilds tasks.json so array position reflects column order, and
+ * each task's status is updated to its new column. Tasks not present in the
+ * order list are appended at the end (defensive — should not happen in normal
+ * flow but keeps any concurrent additions from being dropped).
+ */
+function reorderTasks(projectPath, order) {
+  const tasksData = loadTasks(projectPath);
+  if (!tasksData || !Array.isArray(order)) return false;
+
+  const byId = new Map(tasksData.tasks.map(t => [t.id, t]));
+  const seen = new Set();
+  const reordered = [];
+  const now = new Date().toISOString();
+
+  for (const entry of order) {
+    if (!entry || !entry.id) continue;
+    const task = byId.get(entry.id);
+    if (!task) continue;
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
+
+    const newStatus = VALID_STATUSES.includes(entry.status) ? entry.status : task.status;
+    if (newStatus !== task.status) {
+      task.status = newStatus;
+      task.updatedAt = now;
+      if (newStatus === 'completed' && !task.completedAt) {
+        task.completedAt = now;
+        tasksData.metadata = tasksData.metadata || {};
+        tasksData.metadata.totalCompleted = (tasksData.metadata.totalCompleted || 0) + 1;
+      } else if (newStatus !== 'completed') {
+        task.completedAt = null;
+      }
+    }
+    reordered.push(task);
+  }
+
+  for (const task of tasksData.tasks) {
+    if (!seen.has(task.id)) reordered.push(task);
+  }
+
+  tasksData.tasks = reordered;
+  return saveTasks(projectPath, tasksData);
+}
+
+/**
  * Watch the active project's directory for tasks.json changes. External
  * edits (CLI / manual edit) trigger a re-read and a TASKS_DATA push to the
  * renderer so the UI stays in sync without requiring the panel to be reopened.
@@ -288,6 +335,17 @@ function setupIPC(ipcMain) {
     const tasks = loadTasks(projectPath);
     event.sender.send(IPC.TASKS_DATA, { projectPath, tasks });
   });
+
+  ipcMain.on(IPC.REORDER_TASKS, (event, { projectPath, order }) => {
+    const success = reorderTasks(projectPath, order);
+    event.sender.send(IPC.TASK_UPDATED, {
+      projectPath,
+      action: 'reorder',
+      success
+    });
+    const tasks = loadTasks(projectPath);
+    event.sender.send(IPC.TASKS_DATA, { projectPath, tasks });
+  });
 }
 
 module.exports = {
@@ -298,6 +356,7 @@ module.exports = {
   addTask,
   updateTask,
   deleteTask,
+  reorderTasks,
   setupIPC,
   stopWatching
 };

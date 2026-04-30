@@ -69,8 +69,10 @@ const IPC = {
   ADD_TASK: 'add-task',
   UPDATE_TASK: 'update-task',
   DELETE_TASK: 'delete-task',
+  REORDER_TASKS: 'reorder-tasks',
   TASK_UPDATED: 'task-updated',
   TOGGLE_TASKS_PANEL: 'toggle-tasks-panel',
+  TOGGLE_TASKS_DASHBOARD: 'toggle-tasks-dashboard',
 
   // Plugins Panel
   LOAD_PLUGINS: 'load-plugins',

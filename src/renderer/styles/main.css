@@ -40,3 +40,6 @@
 
 /* 12. Telemetry Notice (one-time disclosure banner) */
 @import 'components/telemetry-notice.css';
+
+/* 13. Tasks Dashboard (Kanban-style overlay) */
+@import 'components/tasks-dashboard.css';
