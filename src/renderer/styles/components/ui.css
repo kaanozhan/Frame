@@ -561,10 +561,13 @@ select:focus-visible {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 1001;
+  /* Light translucent tint so the blur (not a black overlay) is what sets the
+     mood. Whatever is behind — terminal, dashboard, panels — shows through
+     softened. Sits above the dashboard (z-index 9000). */
+  background: rgba(15, 15, 16, 0.25);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  z-index: 9500;
   justify-content: center;
   align-items: center;
 }

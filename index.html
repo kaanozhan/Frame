@@ -187,12 +187,13 @@
         </button>
         <h3>Tasks</h3>
         <div class="tasks-header-actions">
-          <button id="tasks-add-btn" tabindex="-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
+          <button id="tasks-dashboard-btn" tabindex="-1" title="Open task dashboard">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="6" height="18" rx="1"/>
+              <rect x="11" y="3" width="6" height="12" rx="1"/>
+              <rect x="19" y="3" width="2" height="8" rx="1"/>
             </svg>
-            Add
+            Dashboard
           </button>
           <button id="tasks-close" tabindex="-1">✕</button>
         </div>
@@ -202,6 +203,13 @@
         <button class="tasks-filter-btn" data-filter="pending">Pending</button>
         <button class="tasks-filter-btn" data-filter="inProgress">In Progress</button>
         <button class="tasks-filter-btn" data-filter="completed">Completed</button>
+        <button id="tasks-add-btn" class="tasks-quick-add-btn" tabindex="-1" title="Quick add a task">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span class="tasks-quick-add-label">Quick Add</span>
+        </button>
       </div>
       <div id="tasks-content">
         <!-- Tasks will be populated here -->
@@ -474,6 +482,291 @@
       </div>
     </div>
 
+    <!-- Tasks Dashboard (Kanban) -->
+    <div id="tasks-dashboard" class="tasks-dashboard">
+      <div class="tasks-dashboard-header">
+        <div class="tasks-dashboard-title">
+          <span class="tasks-dashboard-mark">&#9783;</span>
+          <h2>Task Board</h2>
+          <span id="tasks-dashboard-project" class="tasks-dashboard-project"></span>
+        </div>
+        <div class="tasks-dashboard-actions">
+          <div class="tasks-dashboard-filter-wrap">
+            <button id="tasks-dashboard-filter-btn" class="tasks-dashboard-toolbar-btn" tabindex="-1" title="Filter tasks">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+              Filter
+              <span id="tasks-dashboard-filter-badge" class="tasks-dashboard-toolbar-badge" hidden>0</span>
+            </button>
+            <div id="tasks-dashboard-filter-popover" class="tasks-dashboard-popover" hidden>
+              <div class="tasks-dashboard-popover-header">
+                <h5 class="tasks-dashboard-popover-title">Filter</h5>
+                <button type="button" id="tasks-dashboard-filter-clear" class="tasks-dashboard-popover-clear">Clear all</button>
+              </div>
+              <div class="tasks-dashboard-popover-section">
+                <h5>Issue type</h5>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="categories" value="feature">
+                  <span>Feature</span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="categories" value="fix">
+                  <span>Bug Fix</span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="categories" value="refactor">
+                  <span>Refactor</span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="categories" value="docs">
+                  <span>Documentation</span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="categories" value="test">
+                  <span>Testing</span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="categories" value="research">
+                  <span>Research</span>
+                </label>
+              </div>
+              <div class="tasks-dashboard-popover-section">
+                <h5>Priority</h5>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="priorities" value="high">
+                  <span class="tasks-dashboard-popover-priority-dot priority-high"></span>
+                  <span>High</span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="priorities" value="medium">
+                  <span class="tasks-dashboard-popover-priority-dot priority-medium"></span>
+                  <span>Medium</span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="checkbox" data-filter-dim="priorities" value="low">
+                  <span class="tasks-dashboard-popover-priority-dot priority-low"></span>
+                  <span>Low</span>
+                </label>
+              </div>
+              <div class="tasks-dashboard-popover-info">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span>Dashboard only — won't apply to tasks.json</span>
+              </div>
+            </div>
+          </div>
+          <div class="tasks-dashboard-filter-wrap">
+            <button id="tasks-dashboard-sort-btn" class="tasks-dashboard-toolbar-btn" tabindex="-1" title="Sort tasks">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h13"/>
+                <path d="M3 12h9"/>
+                <path d="M3 18h5"/>
+                <path d="M17 8l4-4 4 4" transform="translate(-3 0)"/>
+                <path d="M18 4v16"/>
+              </svg>
+              Sort
+              <span id="tasks-dashboard-sort-label" class="tasks-dashboard-toolbar-sort-label" hidden></span>
+            </button>
+            <div id="tasks-dashboard-sort-popover" class="tasks-dashboard-popover" hidden>
+              <div class="tasks-dashboard-popover-header">
+                <h5 class="tasks-dashboard-popover-title">Sort</h5>
+                <button type="button" id="tasks-dashboard-sort-reset" class="tasks-dashboard-popover-clear">Reset</button>
+              </div>
+              <div class="tasks-dashboard-popover-section">
+                <h5>Sort by</h5>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="radio" name="tasks-dashboard-sort" data-sort-mode="default" checked>
+                  <span>
+                    <span class="tasks-dashboard-popover-option-title">Task ID (default)</span>
+                    <span class="tasks-dashboard-popover-option-sub">Original order in tasks.json</span>
+                  </span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="radio" name="tasks-dashboard-sort" data-sort-mode="category">
+                  <span>
+                    <span class="tasks-dashboard-popover-option-title">Issue type</span>
+                    <span class="tasks-dashboard-popover-option-sub">Feature, Bug Fix, Refactor…</span>
+                  </span>
+                </label>
+                <label class="tasks-dashboard-popover-option">
+                  <input type="radio" name="tasks-dashboard-sort" data-sort-mode="priority">
+                  <span>
+                    <span class="tasks-dashboard-popover-option-title">Priority</span>
+                    <span class="tasks-dashboard-popover-option-sub">High → Medium → Low</span>
+                  </span>
+                </label>
+              </div>
+              <div class="tasks-dashboard-popover-toggle-row">
+                <div class="tasks-dashboard-popover-toggle-text">
+                  <span class="tasks-dashboard-popover-toggle-title">Permanent Save</span>
+                  <span class="tasks-dashboard-popover-toggle-sub" id="tasks-dashboard-sort-apply-sub">Off — dashboard only</span>
+                </div>
+                <label class="tasks-dashboard-switch">
+                  <input type="checkbox" id="tasks-dashboard-sort-apply">
+                  <span class="tasks-dashboard-switch-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <button id="tasks-dashboard-add" class="tasks-dashboard-btn-primary" tabindex="-1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            New Task
+          </button>
+          <button id="tasks-dashboard-close" class="tasks-dashboard-btn-icon" tabindex="-1" title="Close dashboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="tasks-dashboard-body">
+        <div class="tasks-dashboard-columns">
+          <div class="tasks-dashboard-column" data-column="pending">
+            <div class="tasks-dashboard-column-header">
+              <span class="tasks-dashboard-column-dot status-pending"></span>
+              <span class="tasks-dashboard-column-title">Pending</span>
+              <span class="tasks-dashboard-column-count" data-count-for="pending">0</span>
+            </div>
+            <div class="tasks-dashboard-cards" data-drop-status="pending"></div>
+          </div>
+          <div class="tasks-dashboard-column" data-column="in_progress">
+            <div class="tasks-dashboard-column-header">
+              <span class="tasks-dashboard-column-dot status-in-progress"></span>
+              <span class="tasks-dashboard-column-title">In Progress</span>
+              <span class="tasks-dashboard-column-count" data-count-for="in_progress">0</span>
+            </div>
+            <div class="tasks-dashboard-cards" data-drop-status="in_progress"></div>
+          </div>
+          <div class="tasks-dashboard-column" data-column="completed">
+            <div class="tasks-dashboard-column-header">
+              <span class="tasks-dashboard-column-dot status-completed"></span>
+              <span class="tasks-dashboard-column-title">Completed</span>
+              <span class="tasks-dashboard-column-count" data-count-for="completed">0</span>
+            </div>
+            <div class="tasks-dashboard-cards" data-drop-status="completed"></div>
+          </div>
+        </div>
+        <aside id="tasks-dashboard-detail" class="tasks-dashboard-detail">
+          <div class="tasks-dashboard-detail-empty">
+            <button id="tasks-dashboard-detail-add" class="tasks-dashboard-detail-add" tabindex="-1">
+              <span class="tasks-dashboard-detail-add-icon" aria-hidden="true">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </span>
+              <span class="tasks-dashboard-detail-add-title">Add a new task</span>
+              <span class="tasks-dashboard-detail-add-sub">Quickly capture something to do — it lands in Pending and is ready to drag.</span>
+            </button>
+            <p class="tasks-dashboard-detail-empty-hint">Or click any card to see its details.</p>
+          </div>
+          <form id="tasks-dashboard-form" class="tasks-dashboard-form" style="display:none;">
+            <div class="tasks-dashboard-form-header">
+              <h3>New task</h3>
+              <button type="button" class="tasks-dashboard-form-close tasks-dashboard-btn-icon" tabindex="-1" title="Close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div class="tasks-dashboard-form-body">
+              <div class="tasks-dashboard-form-group">
+                <label for="tasks-dashboard-form-title">Title</label>
+                <input type="text" id="tasks-dashboard-form-title" placeholder="What needs to be done?" autocomplete="off" required>
+              </div>
+              <div class="tasks-dashboard-form-group">
+                <label for="tasks-dashboard-form-description">Description</label>
+                <textarea id="tasks-dashboard-form-description" placeholder="Add more detail (optional)"></textarea>
+              </div>
+              <div class="tasks-dashboard-form-row">
+                <div class="tasks-dashboard-form-group">
+                  <label for="tasks-dashboard-form-priority">Priority</label>
+                  <select id="tasks-dashboard-form-priority">
+                    <option value="high">High</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div class="tasks-dashboard-form-group">
+                  <label for="tasks-dashboard-form-category">Category</label>
+                  <select id="tasks-dashboard-form-category">
+                    <option value="feature">Feature</option>
+                    <option value="fix">Bug Fix</option>
+                    <option value="refactor">Refactor</option>
+                    <option value="docs">Documentation</option>
+                    <option value="test">Testing</option>
+                    <option value="research">Research</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="tasks-dashboard-form-footer">
+              <button type="button" class="tasks-dashboard-form-cancel">Cancel</button>
+              <button type="submit" class="tasks-dashboard-form-save">Save Task</button>
+            </div>
+          </form>
+          <div class="tasks-dashboard-detail-content" style="display:none;">
+            <div class="tasks-dashboard-detail-header">
+              <div class="tasks-dashboard-detail-status-pill"></div>
+              <div class="tasks-dashboard-detail-header-actions">
+                <button class="tasks-dashboard-detail-delete" tabindex="-1" title="Delete task">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6"/>
+                    <path d="M14 11v6"/>
+                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                  Delete
+                </button>
+                <button class="tasks-dashboard-detail-close tasks-dashboard-btn-icon" tabindex="-1" title="Close details">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <h3 class="tasks-dashboard-detail-title"></h3>
+            <div class="tasks-dashboard-detail-meta"></div>
+            <div class="tasks-dashboard-detail-section">
+              <h4>Description</h4>
+              <p class="tasks-dashboard-detail-description"></p>
+            </div>
+            <div class="tasks-dashboard-detail-section tasks-dashboard-detail-userrequest" style="display:none;">
+              <h4>Original request</h4>
+              <p class="tasks-dashboard-detail-userrequest-text"></p>
+            </div>
+            <div class="tasks-dashboard-detail-section tasks-dashboard-detail-criteria" style="display:none;">
+              <h4>Acceptance criteria</h4>
+              <p class="tasks-dashboard-detail-criteria-text"></p>
+            </div>
+            <div class="tasks-dashboard-detail-section tasks-dashboard-detail-notes" style="display:none;">
+              <h4>Notes</h4>
+              <p class="tasks-dashboard-detail-notes-text"></p>
+            </div>
+            <div class="tasks-dashboard-detail-section tasks-dashboard-detail-context" style="display:none;">
+              <h4>Context</h4>
+              <p class="tasks-dashboard-detail-context-text"></p>
+            </div>
+            <div class="tasks-dashboard-detail-footer">
+              <span class="tasks-dashboard-detail-id"></span>
+              <span class="tasks-dashboard-detail-dates"></span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
     <!-- Create Branch Modal -->
     <div id="create-branch-modal" class="modal-overlay">
       <div class="modal-container">
@@ -578,6 +871,49 @@
           <button type="submit" class="btn btn-success">Save Task</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Generic Task Info Modal (e.g. "no project selected") -->
+  <div id="task-info-modal" class="task-info-modal">
+    <div class="task-info-modal-container">
+      <div class="task-info-modal-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+      </div>
+      <div class="task-info-modal-body">
+        <h3 id="task-info-modal-title">No project selected</h3>
+        <p id="task-info-modal-message">Select a project from the sidebar to see and manage its tasks.</p>
+      </div>
+      <div class="task-info-modal-footer">
+        <button type="button" id="task-info-modal-ok" class="task-info-modal-ok">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Task Modal -->
+  <div id="task-confirm-delete-modal" class="task-confirm-modal">
+    <div class="task-confirm-modal-container">
+      <div class="task-confirm-modal-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6"/>
+          <path d="M14 11v6"/>
+          <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+        </svg>
+      </div>
+      <div class="task-confirm-modal-body">
+        <h3>Delete task?</h3>
+        <p id="task-confirm-delete-message">This task will be removed permanently. This action can't be undone.</p>
+      </div>
+      <div class="task-confirm-modal-footer">
+        <button type="button" id="task-confirm-cancel" class="task-confirm-modal-cancel">Cancel</button>
+        <button type="button" id="task-confirm-delete" class="task-confirm-modal-delete">Delete</button>
+      </div>
     </div>
   </div>
 

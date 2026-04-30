@@ -9,6 +9,9 @@ const terminal = require('./terminal');
 const fileTreeUI = require('./fileTreeUI');
 const historyPanel = require('./historyPanel');
 const tasksPanel = require('./tasksPanel');
+const tasksDashboard = require('./tasksDashboard');
+const taskConfirmModal = require('./taskConfirmModal');
+const taskInfoModal = require('./taskInfoModal');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
@@ -82,6 +85,15 @@ function init() {
 
   // Initialize tasks panel
   tasksPanel.init();
+
+  // Initialize tasks dashboard (Kanban view triggered from tasks panel header)
+  tasksDashboard.init();
+
+  // Initialize the shared task delete-confirm modal
+  taskConfirmModal.init();
+
+  // Initialize the shared task info modal (no-project guards, etc.)
+  taskInfoModal.init();
 
   // Initialize plugins panel
   pluginsPanel.init();
@@ -404,6 +416,13 @@ function registerCommands() {
     category: 'Panel',
     shortcut: 'CmdOrCtrl+T',
     run: () => tasksPanel.toggle()
+  });
+  r({
+    id: 'panel.toggleTasksDashboard',
+    title: 'Toggle Task Dashboard',
+    category: 'Panel',
+    shortcut: 'CmdOrCtrl+Shift+D',
+    run: () => tasksDashboard.toggle()
   });
   r({
     id: 'panel.togglePlugins',

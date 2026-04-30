@@ -49,10 +49,21 @@ function setupEventListeners() {
     collapseBtn.addEventListener('click', hide);
   }
 
-  // Add task button
+  // Add task button — opens the modal in place. The modal's transparent
+  // blurred backdrop makes whatever is behind (terminal / dashboard / etc.)
+  // serve as the visible context.
   const addBtn = document.getElementById('tasks-add-btn');
   if (addBtn) {
     addBtn.addEventListener('click', showAddTaskModal);
+  }
+
+  // Show Dashboard button — opens the full-page Kanban view. Lazy-required to
+  // sidestep the circular dependency between tasksPanel and tasksDashboard.
+  const dashboardBtn = document.getElementById('tasks-dashboard-btn');
+  if (dashboardBtn) {
+    dashboardBtn.addEventListener('click', () => {
+      require('./tasksDashboard').show();
+    });
   }
 
   // Filter buttons
@@ -97,14 +108,21 @@ function loadTasks() {
 }
 
 /**
- * Show tasks panel
+ * Show tasks panel. If there's no active project, surface an info modal
+ * instead of opening an empty panel — there's nothing to show without one.
  */
 function show() {
-  if (panelElement) {
-    panelElement.classList.add('visible');
-    isVisible = true;
-    loadTasks();
+  if (!panelElement) return;
+  if (!state.getProjectPath()) {
+    require('./taskInfoModal').open({
+      title: 'No project selected',
+      message: 'Select a project from the sidebar to see and manage its tasks.'
+    });
+    return;
   }
+  panelElement.classList.add('visible');
+  isVisible = true;
+  loadTasks();
 }
 
 /**
@@ -426,15 +444,22 @@ function isClaudeRunning() {
 }
 
 /**
- * Delete task
+ * Delete task — opens the shared confirm modal first; only dispatches the IPC
+ * if the user explicitly confirms. Lazy-required to avoid a hard cycle if
+ * load order ever shifts.
  */
 function deleteTask(taskId) {
   const projectPath = state.getProjectPath();
   if (!projectPath) return;
 
-  if (confirm('Delete this task?')) {
-    ipcRenderer.send(IPC.DELETE_TASK, { projectPath, taskId });
-  }
+  const task = getFilteredTasks().find(t => t.id === taskId);
+  const confirmModal = require('./taskConfirmModal');
+  confirmModal.open({
+    title: task ? task.title : null,
+    onConfirm: () => {
+      ipcRenderer.send(IPC.DELETE_TASK, { projectPath, taskId });
+    }
+  });
 }
 
 /**
@@ -559,6 +584,15 @@ function setupModalListeners() {
       }
     });
   }
+
+  // Close on Escape (capture phase so we beat any other Esc handlers — e.g.
+  // the dashboard's — when the modal is the topmost layer).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!modal || !modal.classList.contains('visible')) return;
+    e.stopPropagation();
+    hideTaskModal();
+  }, true);
 }
 
 /**

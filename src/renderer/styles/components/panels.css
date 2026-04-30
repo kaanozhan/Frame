@@ -155,8 +155,10 @@
   padding: var(--space-lg);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  /* Collapse arrow and "Tasks" title sit together on the left; actions get
+     pushed to the right via margin-left: auto on .tasks-header-actions. */
+  gap: var(--space-xs);
 }
 
 #tasks-header h3 {
@@ -189,7 +191,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: var(--space-xs);
 }
 
 #tasks-collapse-btn:hover {
@@ -201,26 +202,65 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  margin-left: auto;
 }
 
-#tasks-add-btn {
-  background: var(--accent-subtle);
+#tasks-dashboard-btn {
+  background: var(--accent-primary);
   border: 1px solid var(--accent-primary);
-  color: var(--accent-primary);
-  padding: var(--space-xs) var(--space-sm);
+  color: var(--bg-deep);
+  padding: var(--space-xs) 10px;
   border-radius: var(--radius-sm);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
-#tasks-add-btn:hover {
+#tasks-dashboard-btn:hover {
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px var(--accent-glow), var(--shadow-sm);
+}
+
+/* Quick Add button (inside the filter row, right-aligned) */
+#tasks-add-btn.tasks-quick-add-btn {
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-primary);
+  color: var(--accent-primary);
+  padding: 3px var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+}
+
+#tasks-add-btn.tasks-quick-add-btn:hover {
   background: var(--accent-primary);
   color: var(--bg-deep);
+}
+
+/* Narrow viewports: collapse Quick Add to just its + icon. The text label
+   is the first thing to drop because the filter row gets cramped once the
+   window is small enough that other panels are competing for space. */
+@media (max-width: 1280px) {
+  #tasks-add-btn.tasks-quick-add-btn .tasks-quick-add-label {
+    display: none;
+  }
+  #tasks-add-btn.tasks-quick-add-btn {
+    padding: 3px 6px;
+    gap: 0;
+  }
 }
 
 #tasks-close {
@@ -247,10 +287,16 @@
 /* Tasks Filter */
 .tasks-filter {
   display: flex;
+  align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-lg);
+  padding: 11px var(--space-lg);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-tertiary);
+}
+
+/* Push the Quick Add button to the right edge of the filter row */
+.tasks-filter .tasks-quick-add-btn {
+  margin-left: auto;
 }
 
 .tasks-filter-btn {
