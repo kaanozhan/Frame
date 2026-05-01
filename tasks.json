@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-04-30T15:56:06.717Z",
+  "lastUpdated": "2026-05-01T00:00:00Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -858,13 +858,13 @@
       "title": "Add `src/templates/roles/AGENTS.md` starter template with Purpose / Steps / Commands / Notes sections and an inline behavior protocol covering session-start read, first-run capture, follow-up delta-only mode, and capture-only-with-approval.",
       "description": "",
       "source": "spec:agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
       "createdAt": "2026-04-30T15:56:06.716Z",
-      "updatedAt": "2026-04-30T15:56:06.716Z",
-      "completedAt": null
+      "updatedAt": "2026-05-01T14:15:03.484Z",
+      "completedAt": "2026-05-01T14:15:03.484Z"
     },
     {
       "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T02",
@@ -917,11 +917,86 @@
       "createdAt": "2026-04-30T15:56:06.716Z",
       "updatedAt": "2026-04-30T15:56:06.716Z",
       "completedAt": null
+    },
+    {
+      "id": "spec-2.1",
+      "title": "Interactive Tasks subview + Specs Dashboard + resizable panel",
+      "description": "Side-panel Tasks tab now renders the live tasks.json subset (filtered by source: spec:<slug>:*) as an interactive list with hover-revealed Start/Complete/Pause/Reopen actions. Phase auto-advance now considers task statuses (any in_progress/completed → 'implementing'; all completed → 'done'; reopen rewinds). Second fs.watch on tasks.json so flips from the standalone Tasks panel propagate. Full-page Specs Dashboard (card grid + filter chips + 480px detail aside) opened from a Dashboard button in the panel header — symmetric with Tasks Dashboard. Drag handle on panel's left edge (360-1000px, persisted) plus one-tap Expand/Compact toggle (420 ↔ 800).",
+      "userRequest": "User said: bu spec'in tasklarını nerede göreceğim? bunları bir yerde görmek istiyorum. plus: panel görünümünden dashboarda mı geçirsek + paneli büyütebilelim.",
+      "acceptanceCriteria": "Done: Tasks tab renders interactive list with X/Y count. Status flips work and auto-advance phase. Dashboard button opens full-page card grid; cards show progress bar, phase badge, AI tool, time. Card click slides in 480px detail aside with same Spec/Plan/Tasks tabs and interactive task list. Side panel resizable via left-edge drag handle (persisted) and Expand toggle. Side panel auto-hides when dashboard opens.",
+      "notes": "Shipped via PR #72 (commit 670670d).",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "context": "Session 2026-04-30 - Slice 2.1",
+      "createdAt": "2026-04-30T00:00:00Z",
+      "updatedAt": "2026-05-01T00:00:00Z",
+      "completedAt": "2026-05-01T00:00:00Z"
+    },
+    {
+      "id": "spec-2.2",
+      "title": "/spec.implement loop + outcome.md capture",
+      "description": "Wire the implementation phase: a 'Run /spec.implement' next-action button (visible when phase is 'tasks_generated' or 'implementing' with pending tasks) sends a prompt that asks Claude to (1) read spec/plan/tasks, (2) take the next pending task, (3) implement it, (4) flip the task to completed in tasks.json via the existing UPDATE_TASK channel, AND (5) — critical — append a 2-3 sentence outcome to .frame/specs/<slug>/outcome.md under heading '## T<n> — <title>'. Outcome captures what was actually done, deviations from plan, files touched, followups. Lives in the same .frame/specs/<slug>/ folder. Per-task, append-only. Plant the capture step as the FINAL instruction in the prompt template so the agent writes while context is fresh.",
+      "userRequest": "User said: tasklar execute edildiğinde ve tamamlandığında ne yapıldığını da kayıt altına almak istiyorum. yani planda aslında ne yapılacağı var ama task bittikten sonra farklı şeyler olduysa kayıt altına alınabilir mi?",
+      "acceptanceCriteria": "/spec.implement button visible at the right phase; click sends interpolated prompt to terminal via existing BUILD_SPEC_COMMAND_FILE pipeline; Claude completes one task per click and appends entry to outcome.md; status.json phase auto-advances via task-status driven derivePhase (already shipped). Template enforces brevity (max 3 sentences, no marketing tone). Tested round-trip with at least one task in this codebase's own .frame/specs/.",
+      "notes": "Outcome capture is the answer to the spec-drift problem we discussed. Lives in /spec.implement template (Slice 2.2), separate Outcome UI tab is Slice 2.3.",
+      "status": "pending",
+      "priority": "high",
+      "category": "feature",
+      "context": "Session 2026-05-01 - Slice 2 design + outcome capture",
+      "createdAt": "2026-05-01T00:00:00Z",
+      "updatedAt": "2026-05-01T00:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "spec-2.3",
+      "title": "Outcome tab in spec detail (side panel + dashboard)",
+      "description": "Render outcome.md in a new 'Outcome' tab next to Spec/Plan/Tasks. Same markdown rendering pipeline as the other tabs. Empty state: 'Outcomes capture as tasks complete via /spec.implement'. Tab label shows entry count when present. Available in both the side panel detail view and the dashboard detail aside (same render helper either way).",
+      "userRequest": "Subtask of outcome capture flow (Slice 2.2 design).",
+      "acceptanceCriteria": "Outcome tab appears in detail view when outcome.md exists. Renders entries in newest-first order. Each entry shows title, captured date, and the summary paragraph. Live-updates via SPEC_DATA push when /spec.implement appends a new entry.",
+      "notes": "After 2.2 lands and outcome.md starts being written, this tab gives users the readable surface for it.",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "Session 2026-05-01 - Slice 2",
+      "createdAt": "2026-05-01T00:00:00Z",
+      "updatedAt": "2026-05-01T00:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "spec-2.4",
+      "title": "Branch automation per spec",
+      "description": "First /spec.implement run for a spec creates a feat/<slug> branch and switches to it (uses existing CREATE_GIT_BRANCH IPC). Subsequent runs assume already on that branch. status.json gets a `branch` field tracking the linkage. UI surface: small branch chip on spec detail header showing the linked branch. Avoid creating branches when one with the same name already exists or when there are uncommitted changes — surface a soft warning instead.",
+      "userRequest": "Subtask of Slice 2 implementation loop (per meta task spec-driven-dev).",
+      "acceptanceCriteria": "Fresh /spec.implement on a spec → feat/<slug> branch created and active. status.json.branch reflects it. Re-running /spec.implement on the same spec → no new branch, just continues. Conflict cases (branch exists, dirty tree) handled with a clear modal warning.",
+      "notes": "Optional add-on; some users may prefer manual branching. Could ship behind a per-project setting if it gets pushback.",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "Session 2026-05-01 - Slice 2",
+      "createdAt": "2026-05-01T00:00:00Z",
+      "updatedAt": "2026-05-01T00:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "spec-2.5",
+      "title": "Multi-spec switcher (active spec context)",
+      "description": "When multiple specs are 'implementing' simultaneously, give the user a quick way to switch which spec /spec.implement targets. Likely a small selector chip in the spec panel header showing the 'active spec' for implementation, plus the same indicator in the dashboard. Avoids accidentally implementing a different spec when more than one is in flight.",
+      "userRequest": "Subtask of Slice 2 implementation loop (per meta task spec-driven-dev).",
+      "acceptanceCriteria": "When >1 spec is in 'implementing' phase, a switcher appears in panel header with the active spec selected. /spec.implement button always operates on the active one. Switcher persists across reloads.",
+      "notes": "Lower priority than 2.2/2.3 since most users will work on one spec at a time. Listed for completeness from the meta task plan.",
+      "status": "pending",
+      "priority": "low",
+      "category": "feature",
+      "context": "Session 2026-05-01 - Slice 2",
+      "createdAt": "2026-05-01T00:00:00Z",
+      "updatedAt": "2026-05-01T00:00:00Z",
+      "completedAt": null
     }
   ],
   "metadata": {
-    "totalCreated": 56,
-    "totalCompleted": 16
+    "totalCreated": 61,
+    "totalCompleted": 17
   },
   "categories": {
     "feature": "New features",

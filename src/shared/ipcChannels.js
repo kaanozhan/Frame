@@ -143,6 +143,7 @@ const IPC = {
   GET_SPEC: 'get-spec',
   CREATE_SPEC: 'create-spec',
   UPDATE_SPEC_STATUS: 'update-spec-status',
+  RENAME_SPEC: 'rename-spec',
   WATCH_SPECS: 'watch-specs',
   UNWATCH_SPECS: 'unwatch-specs',
   SPEC_DATA: 'spec-data',

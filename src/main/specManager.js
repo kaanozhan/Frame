@@ -22,6 +22,7 @@ const STATUS_FILE = 'status.json';
 const SPEC_FILE = 'spec.md';
 const PLAN_FILE = 'plan.md';
 const TASKS_FILE = 'tasks.md';
+const OUTCOME_FILE = 'outcome.md';
 
 const PHASES = ['draft', 'specified', 'planned', 'tasks_generated', 'implementing', 'done'];
 const AI_TOOLS = ['claude-code', 'codex', 'gemini'];
@@ -230,7 +231,7 @@ function reconcilePhase(projectPath, slug, tasksDataOrNull) {
 // are substituted via a simple regex — no expression evaluation.
 
 const FRAME_TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
-const SUPPORTED_COMMANDS = ['spec.new', 'spec.plan', 'spec.tasks'];
+const SUPPORTED_COMMANDS = ['spec.new', 'spec.plan', 'spec.tasks', 'spec.implement'];
 
 function getDefaultTemplatePath(aiTool, command) {
   return path.join(FRAME_TEMPLATES_DIR, 'commands', aiTool, `${command}.md`);
@@ -434,7 +435,8 @@ function getSpec(projectPath, slug) {
     status,
     spec: readFileSafe(path.join(dir, SPEC_FILE)),
     plan: readFileSafe(path.join(dir, PLAN_FILE)),
-    tasks: readFileSafe(path.join(dir, TASKS_FILE))
+    tasks: readFileSafe(path.join(dir, TASKS_FILE)),
+    outcome: readFileSafe(path.join(dir, OUTCOME_FILE))
   };
 }
 
@@ -497,6 +499,117 @@ function deleteSpec(projectPath, slug) {
   if (!fs.existsSync(dir)) return false;
   fs.rmSync(dir, { recursive: true, force: true });
   return true;
+}
+
+// Rename a spec: moves the folder, updates status.json's slug field, and
+// rewrites every spec-derived task's `source` marker in tasks.json so the
+// linkage is preserved. Optionally also updates the display title.
+//
+// Validation rules for the new slug:
+//   - kebab-case [a-z0-9-]+, no leading/trailing hyphens, no double hyphens
+//   - max length SLUG_MAX_LEN
+//   - must not collide with another spec in the project
+//
+// Returns { success: true, slug, status } on success, { error } on failure.
+function renameSpec(projectPath, oldSlug, opts) {
+  const next = opts || {};
+  const wantSlug = next.slug != null;
+  const wantTitle = next.title != null && typeof next.title === 'string';
+
+  if (!wantSlug && !wantTitle) return { error: 'nothing to rename' };
+
+  // Resolve current spec
+  const oldDir = getSpecDir(projectPath, oldSlug);
+  if (!fs.existsSync(oldDir)) return { error: 'spec not found' };
+  const status = readStatus(projectPath, oldSlug);
+  if (!status) return { error: 'status.json missing' };
+
+  let newSlug = oldSlug;
+  let folderRenamed = false;
+
+  if (wantSlug) {
+    const candidate = String(next.slug).trim();
+    const slugRe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+    if (!candidate || !slugRe.test(candidate)) {
+      return { error: 'invalid slug — use kebab-case (a-z, 0-9, single hyphens)' };
+    }
+    if (candidate.length > SLUG_MAX_LEN) {
+      return { error: `slug too long (max ${SLUG_MAX_LEN} chars)` };
+    }
+    if (candidate !== oldSlug) {
+      const collidingDir = getSpecDir(projectPath, candidate);
+      if (fs.existsSync(collidingDir)) return { error: 'slug already in use' };
+
+      // Move folder first; if anything fails after this, we still have data
+      try {
+        fs.renameSync(oldDir, collidingDir);
+        folderRenamed = true;
+        newSlug = candidate;
+      } catch (err) {
+        return { error: 'could not rename folder: ' + err.message };
+      }
+    }
+  }
+
+  const now = new Date().toISOString();
+  const newStatus = {
+    ...status,
+    slug: newSlug,
+    title: wantTitle ? String(next.title).trim() || status.title : status.title,
+    updated_at: now
+  };
+  writeStatus(projectPath, newSlug, newStatus);
+
+  // Update every spec-derived task's source marker if the slug changed.
+  // Keep going even if this fails — folder rename is the canonical change.
+  if (folderRenamed) {
+    try {
+      const tasksData = tasksManager.loadTasks(projectPath);
+      if (tasksData && Array.isArray(tasksData.tasks)) {
+        const oldPrefix = `spec:${oldSlug}:`;
+        const newPrefix = `spec:${newSlug}:`;
+        const oldIdPrefix = `task-spec-${oldSlug}-`;
+        const newIdPrefix = `task-spec-${newSlug}-`;
+        let touched = 0;
+        for (const task of tasksData.tasks) {
+          if (task && typeof task.source === 'string' && task.source.startsWith(oldPrefix)) {
+            task.source = newPrefix + task.source.slice(oldPrefix.length);
+            // Also rewrite the deterministic id so it stays in sync
+            if (task.id && task.id.startsWith(oldIdPrefix)) {
+              task.id = newIdPrefix + task.id.slice(oldIdPrefix.length);
+            }
+            // Keep context field readable too
+            if (task.context === `From spec: ${oldSlug}`) {
+              task.context = `From spec: ${newSlug}`;
+            }
+            task.updatedAt = now;
+            touched++;
+          }
+        }
+        if (touched > 0) {
+          tasksManager.saveTasks(projectPath, tasksData);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks: tasksData });
+          }
+        }
+
+        // Also update generated_task_ids in status.json so back-references stay valid
+        if (Array.isArray(newStatus.generated_task_ids) && newStatus.generated_task_ids.length > 0) {
+          newStatus.generated_task_ids = newStatus.generated_task_ids.map(id =>
+            id.startsWith(oldIdPrefix) ? newIdPrefix + id.slice(oldIdPrefix.length) : id
+          );
+          writeStatus(projectPath, newSlug, newStatus);
+        }
+      }
+    } catch (err) {
+      console.error('specManager: tasks.json source-marker update failed', err);
+    }
+  }
+
+  // Trigger a fresh SPEC_DATA push so the panel reflects the new slug
+  pushSpecData(projectPath);
+
+  return { success: true, slug: newSlug, status: newStatus };
 }
 
 // ─── Watcher ───────────────────────────────────────────────
@@ -595,6 +708,9 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.UPDATE_SPEC_STATUS, (event, { projectPath, slug, partial }) =>
     updateSpecStatus(projectPath, slug, partial)
   );
+  ipcMain.handle(IPC.RENAME_SPEC, (event, { projectPath, oldSlug, opts }) =>
+    renameSpec(projectPath, oldSlug, opts)
+  );
   ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool }) =>
     getCommandPrompt(projectPath, slug, command, aiTool)
   );
@@ -619,6 +735,7 @@ module.exports = {
   getSpec,
   createSpec,
   updateSpecStatus,
+  renameSpec,
   deleteSpec,
   derivePhase,
   getCommandPrompt,

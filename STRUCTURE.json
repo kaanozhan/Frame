@@ -1424,6 +1424,7 @@
         "getSpec",
         "createSpec",
         "updateSpecStatus",
+        "renameSpec",
         "deleteSpec",
         "derivePhase",
         "getCommandPrompt",
@@ -1440,56 +1441,56 @@
       ],
       "functions": {
         "getSpecsRoot": {
-          "line": 41,
+          "line": 42,
           "params": [
             "projectPath"
           ],
           "purpose": "─── Path helpers ──────────────────────────────────────────"
         },
         "getSpecDir": {
-          "line": 45,
+          "line": 46,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "generateSlug": {
-          "line": 54,
+          "line": 55,
           "params": [
             "title"
           ],
           "purpose": "`-2`, `-3`, ... suffixes. See PROJECT_NOTES.md for the canonical rules."
         },
         "uniqueSlug": {
-          "line": 67,
+          "line": 68,
           "params": [
             "projectPath",
             "baseSlug"
           ]
         },
         "validateSpecStatus": {
-          "line": 80,
+          "line": 81,
           "params": [
             "obj"
           ],
           "purpose": "Returns null when valid, or a human-readable reason string."
         },
         "readFileSafe": {
-          "line": 99,
+          "line": 100,
           "params": [
             "p"
           ],
           "purpose": "─── Filesystem helpers ────────────────────────────────────"
         },
         "readStatus": {
-          "line": 108,
+          "line": 109,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 119,
+          "line": 120,
           "params": [
             "projectPath",
             "slug",
@@ -1497,14 +1498,14 @@
           ]
         },
         "listSpecs": {
-          "line": 127,
+          "line": 128,
           "params": [
             "projectPath"
           ],
           "purpose": "─── Public API ────────────────────────────────────────────"
         },
         "fileExists": {
-          "line": 182,
+          "line": 183,
           "params": [
             "projectPath",
             "slug",
@@ -1513,7 +1514,7 @@
           "purpose": "rely on that — defense in depth."
         },
         "derivePhase": {
-          "line": 186,
+          "line": 187,
           "params": [
             "projectPath",
             "slug",
@@ -1522,14 +1523,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 205,
+          "line": 206,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 211,
+          "line": 212,
           "params": [
             "projectPath",
             "slug",
@@ -1537,14 +1538,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 235,
+          "line": 236,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 239,
+          "line": 240,
           "params": [
             "projectPath",
             "aiTool",
@@ -1552,7 +1553,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 243,
+          "line": 244,
           "params": [
             "projectPath",
             "aiTool",
@@ -1560,14 +1561,14 @@
           ]
         },
         "interpolate": {
-          "line": 249,
+          "line": 250,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 256,
+          "line": 257,
           "params": [
             "projectPath",
             "slug",
@@ -1576,7 +1577,7 @@
           ]
         },
         "buildSpecCommandFile": {
-          "line": 283,
+          "line": 284,
           "params": [
             "projectPath",
             "slug",
@@ -1585,47 +1586,47 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 311,
+          "line": 312,
           "params": [
             "content"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 324,
+          "line": 325,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 404,
+          "line": 405,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 411,
+          "line": 412,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 428,
+          "line": 429,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "createSpec": {
-          "line": 441,
+          "line": 443,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 477,
+          "line": 479,
           "params": [
             "projectPath",
             "slug",
@@ -1633,37 +1634,46 @@
           ]
         },
         "deleteSpec": {
-          "line": 495,
+          "line": 497,
           "params": [
             "projectPath",
             "slug"
           ]
         },
+        "renameSpec": {
+          "line": 514,
+          "params": [
+            "projectPath",
+            "oldSlug",
+            "opts"
+          ],
+          "purpose": "Returns { success: true, slug, status } on success, { error } on failure."
+        },
         "startWatching": {
-          "line": 508,
+          "line": 621,
           "params": [
             "projectPath"
           ],
           "purpose": "across all three platforms — if that ever changes, swap in a poller."
         },
         "stopWatching": {
-          "line": 550
+          "line": 663
         },
         "pushSpecData": {
-          "line": 570,
+          "line": 683,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 581,
+          "line": 694,
           "params": [
             "window"
           ],
           "purpose": "─── Init + IPC ────────────────────────────────────────────"
         },
         "setupIPC": {
-          "line": 585,
+          "line": 698,
           "params": [
             "ipcMain"
           ]
@@ -1675,12 +1685,14 @@
           "GET_SPEC",
           "CREATE_SPEC",
           "UPDATE_SPEC_STATUS",
+          "RENAME_SPEC",
           "GET_SPEC_PROMPT",
           "BUILD_SPEC_COMMAND_FILE",
           "WATCH_SPECS",
           "UNWATCH_SPECS"
         ],
         "emits": [
+          "TASKS_DATA",
           "TASKS_DATA",
           "SPEC_DATA"
         ]
@@ -3599,7 +3611,8 @@
         "toggle",
         "startWatchingForProject",
         "stopWatching",
-        "showNewSpecPrompt"
+        "showNewSpecPrompt",
+        "showRenameModal"
       ],
       "depends": [
         "electron",
@@ -3663,26 +3676,26 @@
           "line": 195
         },
         "nextActionForPhase": {
-          "line": 250,
+          "line": 260,
           "params": [
             "phase"
           ],
           "purpose": "AI tool is running) can produce the next artifact."
         },
         "renderNextActionBar": {
-          "line": 263,
+          "line": 276,
           "params": [
             "action"
           ]
         },
         "runSpecCommand": {
-          "line": 277,
+          "line": 290,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 306,
+          "line": 319,
           "params": [
             "tab",
             "label",
@@ -3690,94 +3703,94 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 312
+          "line": 325
         },
         "tasksTabLabel": {
-          "line": 318,
+          "line": 331,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 327,
+          "line": 340,
           "params": [
             "tab"
           ]
         },
         "renderTasksTabBody": {
-          "line": 340
+          "line": 356
         },
         "renderSpecTaskRow": {
-          "line": 380,
+          "line": 396,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 429
+          "line": 445
         },
         "handleSpecTaskAction": {
-          "line": 442,
+          "line": 458,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 461,
+          "line": 477,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 471
+          "line": 487
         },
         "showNewSpecPrompt": {
-          "line": 486,
+          "line": 502,
           "purpose": "`window.prompt` is blocked in Electron's renderer."
         },
-        "parseTitleAndBody": {
-          "line": 574,
-          "params": [
-            "raw"
-          ],
-          "purpose": "matter."
-        },
         "deriveSlugPreview": {
-          "line": 588,
+          "line": 604,
           "params": [
             "title"
           ],
           "purpose": "can preview without a roundtrip. Keep in sync if the canonical changes."
         },
         "showSuggestionModal": {
-          "line": 606,
+          "line": 622,
           "params": [
             "projectPath"
           ],
           "purpose": "them turn it on or skip. Maximum friction: a one-time, dismissable modal."
         },
+        "showRenameModal": {
+          "line": 689,
+          "params": [
+            "status"
+          ],
+          "purpose": "status.json — all atomic from the user's perspective."
+        },
         "showInlineError": {
-          "line": 668,
+          "line": 782,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 688,
+          "line": 802,
           "params": [
             "md"
           ],
           "purpose": "─── Helpers ────────────────────────────────────────"
         },
         "escapeHtml": {
-          "line": 698,
+          "line": 812,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 708,
+          "line": 822,
           "params": [
             "iso"
           ]
@@ -4975,8 +4988,26 @@
         "renderDetailHeader": {
           "line": 269
         },
+        "nextActionForPhase": {
+          "line": 340,
+          "params": [
+            "phase"
+          ]
+        },
+        "renderNextActionBar": {
+          "line": 356,
+          "params": [
+            "action"
+          ]
+        },
+        "runSpecCommand": {
+          "line": 370,
+          "params": [
+            "command"
+          ]
+        },
         "tabBtn": {
-          "line": 303,
+          "line": 389,
           "params": [
             "tab",
             "label",
@@ -4984,57 +5015,57 @@
           ]
         },
         "renderDetailBody": {
-          "line": 309
+          "line": 395
         },
         "renderTasksTabBody": {
-          "line": 328
+          "line": 416
         },
         "renderSpecTaskRow": {
-          "line": 365,
+          "line": 453,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 414
+          "line": 502
         },
         "handleSpecTaskAction": {
-          "line": 427,
+          "line": 515,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 438,
+          "line": 526,
           "purpose": "─── Helpers ────────────────────────────────────────────"
         },
         "tasksTabLabel": {
-          "line": 444,
+          "line": 532,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 453,
+          "line": 541,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 458,
+          "line": 546,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 464,
+          "line": 552,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 475,
+          "line": 563,
           "params": [
             "projectPath"
           ]
@@ -5044,7 +5075,8 @@
         "listens": [
           "SPEC_DATA",
           "TASKS_DATA",
-          "TOGGLE_SPECS_DASHBOARD"
+          "TOGGLE_SPECS_DASHBOARD",
+          "SPEC_DATA"
         ],
         "emits": [
           "WATCH_SPECS",
@@ -5272,6 +5304,11 @@
       },
       "TOGGLE_SPECS_DASHBOARD": {
         "name": "toggle-specs-dashboard",
+        "direction": "",
+        "description": ""
+      },
+      "RENAME_SPEC": {
+        "name": "rename-spec",
         "direction": "",
         "description": ""
       }

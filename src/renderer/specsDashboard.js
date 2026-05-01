@@ -268,24 +268,33 @@ async function reloadDetail() {
 
 function renderDetailHeader() {
   if (!detailContentEl || !selectedSpec) return;
-  const { status, spec, plan, tasks } = selectedSpec;
+  const { status, spec, plan, tasks, outcome } = selectedSpec;
   const phaseLabel = status.phase.replace(/_/g, ' ');
   const aiLabel = status.ai_tool || '';
+  const nextAction = nextActionForPhase(status.phase);
 
   detailContentEl.innerHTML = `
     <div class="specs-dashboard-detail-head">
       <div class="specs-dashboard-detail-meta">
         <span class="specs-dashboard-detail-slug">${escapeHtml(status.slug)}</span>
+        <button class="spec-rename-btn" id="spec-rename-btn" title="Rename spec" aria-label="Rename spec">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
         ${aiLabel ? `<span class="specs-detail-ai">${escapeHtml(aiLabel)}</span>` : ''}
       </div>
       <h3 class="specs-dashboard-detail-title">${escapeHtml(status.title)}</h3>
       <div class="specs-dashboard-detail-meta">
         <span class="spec-phase-badge phase-${status.phase}">${phaseLabel}</span>
       </div>
+      ${nextAction ? renderNextActionBar(nextAction) : ''}
       <div class="specs-dashboard-detail-tabs">
         ${tabBtn('spec',  'Spec',  !!spec)}
         ${tabBtn('plan',  'Plan',  !!plan)}
         ${tabBtn('tasks', tasksTabLabel(!!tasks), !!tasks || hasSpecTasks())}
+        ${tabBtn('outcome', 'Outcome', !!outcome)}
       </div>
     </div>
     <div class="specs-dashboard-detail-body" id="specs-dashboard-detail-body"></div>
@@ -298,6 +307,83 @@ function renderDetailHeader() {
       attachTaskActionHandlers();
     });
   });
+  detailContentEl.querySelector('#spec-action-btn')?.addEventListener('click', () => {
+    if (nextAction) runSpecCommand(nextAction.command);
+  });
+  detailContentEl.querySelector('#spec-rename-btn')?.addEventListener('click', () => {
+    if (selectedSpec) {
+      // Reuse the side panel's rename modal for consistency. After a successful
+      // rename, the slug change propagates via SPEC_DATA push so we sync our
+      // selection too.
+      const oldSlug = selectedSpec.status.slug;
+      require('./specPanel').showRenameModal?.(selectedSpec.status);
+      // Fallback: poll for slug change via the next SPEC_DATA push and re-select.
+      // (specPanel's modal will reload its own detail; we react when the rename
+      // completes by checking the cached specs list on the next push.)
+      const onceListener = (event, payload) => {
+        const renamedSlug = (payload?.specs || []).find(s =>
+          s.title === selectedSpec.status.title && s.slug !== oldSlug
+        )?.slug;
+        if (renamedSlug) {
+          selectedSlug = renamedSlug;
+          reloadDetail();
+        }
+        ipcRenderer.removeListener(IPC.SPEC_DATA, onceListener);
+      };
+      ipcRenderer.on(IPC.SPEC_DATA, onceListener);
+      // Auto-cleanup after 30s in case rename was cancelled
+      setTimeout(() => ipcRenderer.removeListener(IPC.SPEC_DATA, onceListener), 30000);
+    }
+  });
+}
+
+function nextActionForPhase(phase) {
+  switch (phase) {
+    case 'draft':
+      return { command: 'spec.new',  label: 'Run /spec.new', hint: 'Have Claude write spec.md from your description.' };
+    case 'specified':
+      return { command: 'spec.plan', label: 'Run /spec.plan', hint: 'Generate plan.md from the spec.' };
+    case 'planned':
+      return { command: 'spec.tasks', label: 'Run /spec.tasks', hint: 'Break the plan into discrete tasks.' };
+    case 'tasks_generated':
+    case 'implementing':
+      return { command: 'spec.implement', label: 'Run /spec.implement', hint: 'Implement the next pending task — one per click.' };
+    default:
+      return null;
+  }
+}
+
+function renderNextActionBar(action) {
+  return `
+    <div class="spec-next-action">
+      <div class="spec-next-action-text">
+        <strong>${escapeHtml(action.label)}</strong>
+        <span>${escapeHtml(action.hint)}</span>
+      </div>
+      <button class="btn btn-primary spec-action-btn" id="spec-action-btn">
+        ${escapeHtml(action.label)}
+      </button>
+    </div>
+  `;
+}
+
+async function runSpecCommand(command) {
+  if (!selectedSlug) return;
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return;
+  const result = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
+    projectPath,
+    slug: selectedSlug,
+    command,
+    aiTool: 'claude-code'
+  });
+  if (!result || !result.success) {
+    console.error('specsDashboard: BUILD_SPEC_COMMAND_FILE failed', result?.error);
+    return;
+  }
+  if (typeof window.terminalSendCommand === 'function') {
+    window.terminalSendCommand(result.instruction);
+  }
 }
 
 function tabBtn(tab, label, hasContent) {
@@ -319,6 +405,8 @@ function renderDetailBody() {
   const md = selectedSpec[selectedTab];
   if (md) {
     body.innerHTML = renderMarkdown(md);
+  } else if (selectedTab === 'outcome') {
+    body.innerHTML = `<div class="spec-empty-tab">No outcomes yet — they're captured automatically as <code>/spec.implement</code> completes each task.</div>`;
   } else {
     const cmdMap = { spec: '/spec.new', plan: '/spec.plan', tasks: '/spec.tasks' };
     body.innerHTML = `<div class="spec-empty-tab">No <code>${selectedTab}.md</code> yet — run <code>${cmdMap[selectedTab]}</code> from the terminal.</div>`;
