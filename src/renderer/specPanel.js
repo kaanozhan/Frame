@@ -198,7 +198,7 @@ function renderDetail() {
     contentEl.innerHTML = '<div class="specs-empty"><p>Spec not found.</p></div>';
     return;
   }
-  const { status, spec, plan, tasks } = activeSpec;
+  const { status, spec, plan, tasks, outcome } = activeSpec;
   const phaseLabel = status.phase.replace(/_/g, ' ');
   const aiLabel = status.ai_tool || '';
   const nextAction = nextActionForPhase(status.phase);
@@ -211,6 +211,12 @@ function renderDetail() {
           Back
         </button>
         <span class="spec-detail-slug">${escapeHtml(status.slug)}</span>
+        <button class="spec-rename-btn" id="spec-rename-btn" title="Rename spec" aria-label="Rename spec">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
       </div>
       <div class="spec-detail-header">
         <h3 class="spec-detail-title">${escapeHtml(status.title)}</h3>
@@ -224,6 +230,7 @@ function renderDetail() {
         ${renderTabButton('spec', 'Spec', !!spec)}
         ${renderTabButton('plan', 'Plan', !!plan)}
         ${renderTabButton('tasks', tasksTabLabel(!!tasks), !!tasks || hasSpecTasks())}
+        ${renderTabButton('outcome', 'Outcome', !!outcome)}
       </div>
       <div class="spec-detail-body" id="spec-detail-body">
         ${renderTabBody(activeTab)}
@@ -237,6 +244,9 @@ function renderDetail() {
   });
   contentEl.querySelector('#spec-action-btn')?.addEventListener('click', () => {
     if (nextAction) runSpecCommand(nextAction.command);
+  });
+  contentEl.querySelector('#spec-rename-btn')?.addEventListener('click', () => {
+    if (activeSpec) showRenameModal(activeSpec.status);
   });
   if (activeTab === 'tasks') attachTaskActionHandlers();
 }
@@ -255,8 +265,11 @@ function nextActionForPhase(phase) {
       return { command: 'spec.plan', label: 'Run /spec.plan', hint: 'Generate plan.md from the spec.' };
     case 'planned':
       return { command: 'spec.tasks', label: 'Run /spec.tasks', hint: 'Break the plan into discrete tasks.' };
+    case 'tasks_generated':
+    case 'implementing':
+      return { command: 'spec.implement', label: 'Run /spec.implement', hint: 'Implement the next pending task — one per click.' };
     default:
-      return null; // tasks_generated / implementing / done — Slice 2 wires /spec.implement
+      return null; // 'done' or unknown
   }
 }
 
@@ -333,6 +346,9 @@ function renderTabBody(tab) {
 
   const md = activeSpec?.[tab];
   if (md) return renderMarkdown(md);
+  if (tab === 'outcome') {
+    return `<div class="spec-empty-tab">No outcomes yet — they're captured automatically as <code>/spec.implement</code> completes each task.</div>`;
+  }
   const cmdMap = { spec: '/spec.new', plan: '/spec.plan', tasks: '/spec.tasks' };
   return `<div class="spec-empty-tab">No <code>${tab}.md</code> yet — run <code>${cmdMap[tab]}</code> from the terminal.</div>`;
 }
@@ -495,18 +511,28 @@ function showNewSpecPrompt() {
   overlay.innerHTML = `
     <div class="spec-modal spec-modal-wide" role="dialog" aria-modal="true" aria-labelledby="spec-modal-title">
       <h3 id="spec-modal-title">New Spec</h3>
-      <p>Describe what you want to build. The first line becomes the title; the rest seeds <code>spec.md</code>.</p>
+      <p>Give your spec a short, action-oriented title. Description is optional and seeds <code>spec.md</code> if provided.</p>
+
+      <label class="spec-modal-field-label" for="spec-modal-title-input">Title</label>
+      <input
+        id="spec-modal-title-input"
+        type="text"
+        class="spec-modal-input"
+        placeholder="Add Share button to ProductPage"
+        autocomplete="off"
+        spellcheck="false"
+      />
+
+      <label class="spec-modal-field-label" for="spec-modal-desc-input">Description <span class="spec-modal-field-optional">(optional)</span></label>
       <textarea
+        id="spec-modal-desc-input"
         class="spec-modal-textarea"
-        rows="10"
-        placeholder="Add Share button to ProductPage&#10;&#10;Customers viewing a product page have no quick way to share it on social media. The current flow requires copying the URL and pasting it manually into Twitter/X. We want a Share button next to the cart CTA that opens a Twitter intent URL prefilled with the product title and canonical URL."
+        rows="6"
+        placeholder="Customers viewing a product page have no quick way to share it on social media. We want a Share button next to the cart CTA that opens a Twitter intent URL prefilled with the product title and canonical URL."
         autocomplete="off"
         spellcheck="false"
       ></textarea>
-      <div class="spec-modal-meta">
-        <span class="spec-modal-slug-label">Slug:</span>
-        <code class="spec-modal-slug">—</code>
-      </div>
+
       <div class="spec-modal-error" role="alert"></div>
       <div class="spec-modal-actions">
         <button type="button" class="btn btn-secondary spec-modal-cancel">Cancel</button>
@@ -516,26 +542,28 @@ function showNewSpecPrompt() {
   `;
   document.body.appendChild(overlay);
 
-  const input = overlay.querySelector('.spec-modal-textarea');
-  const slugEl = overlay.querySelector('.spec-modal-slug');
+  const titleInput = overlay.querySelector('#spec-modal-title-input');
+  const descInput = overlay.querySelector('#spec-modal-desc-input');
   const errorEl = overlay.querySelector('.spec-modal-error');
   const cancelBtn = overlay.querySelector('.spec-modal-cancel');
   const createBtn = overlay.querySelector('.spec-modal-create');
 
-  setTimeout(() => input.focus(), 30);
-
-  // Live slug preview from the first line
-  const updateSlugPreview = () => {
-    const { title } = parseTitleAndBody(input.value);
-    slugEl.textContent = title ? deriveSlugPreview(title) : '—';
-  };
-  input.addEventListener('input', updateSlugPreview);
+  setTimeout(() => titleInput.focus(), 30);
 
   const close = () => overlay.remove();
   const submit = async () => {
-    const { title, description } = parseTitleAndBody(input.value);
+    const title = titleInput.value.trim();
+    const description = descInput.value.trim();
     if (!title) {
-      input.focus();
+      titleInput.focus();
+      return;
+    }
+    // If the title is all symbols / non-Latin characters, the auto-derived
+    // slug ends up empty. Surface that as a friendly message instead of
+    // exposing the word "slug" to the user.
+    if (!deriveSlugPreview(title)) {
+      errorEl.textContent = 'Title needs at least one letter or number.';
+      titleInput.focus();
       return;
     }
     createBtn.disabled = true;
@@ -549,14 +577,17 @@ function showNewSpecPrompt() {
       return;
     }
     close();
-    // SPEC_DATA push refreshes the list. /spec.new (Slice 1.7) will deep-link
-    // straight into the new detail view; for now the user lands on the list.
   };
 
   cancelBtn.addEventListener('click', close);
   createBtn.addEventListener('click', submit);
-  input.addEventListener('keydown', e => {
-    // Cmd/Ctrl+Enter submits — bare Enter inserts a newline (textarea default)
+  // Title input: Enter submits
+  titleInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    if (e.key === 'Escape') close();
+  });
+  // Description: Cmd/Ctrl+Enter submits, bare Enter inserts newline
+  descInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       submit();
@@ -566,21 +597,6 @@ function showNewSpecPrompt() {
   overlay.addEventListener('click', e => {
     if (e.target === overlay) close();
   });
-}
-
-// First non-empty line is the title; remaining text (after a blank line) is
-// the description. Trims aggressively so a stray trailing newline doesn't
-// matter.
-function parseTitleAndBody(raw) {
-  const text = String(raw || '').trim();
-  if (!text) return { title: '', description: '' };
-  const lines = text.split(/\r?\n/);
-  const title = lines[0].trim();
-  // Skip the title line and any blank lines after it
-  let i = 1;
-  while (i < lines.length && lines[i].trim() === '') i++;
-  const description = lines.slice(i).join('\n').trim();
-  return { title, description };
 }
 
 // Same shape as specManager.generateSlug — duplicated here so the renderer
@@ -665,6 +681,104 @@ function showSuggestionModal(projectPath) {
   });
 }
 
+// Rename modal — lets the user fix an ugly auto-derived slug or rename a
+// spec post-hoc. Renaming is non-trivial: backend moves the folder, rewrites
+// every spec-derived task's `source` marker in tasks.json, and updates
+// status.json — all atomic from the user's perspective.
+
+function showRenameModal(status) {
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'spec-modal-overlay';
+  overlay.innerHTML = `
+    <div class="spec-modal" role="dialog" aria-modal="true" aria-labelledby="spec-rename-title">
+      <h3 id="spec-rename-title">Rename Spec</h3>
+      <p>Both the folder and every task's <code>source</code> marker will update.</p>
+
+      <label class="spec-modal-field-label" for="spec-rename-title-input">Title</label>
+      <input
+        id="spec-rename-title-input"
+        type="text"
+        class="spec-modal-input"
+        autocomplete="off"
+        spellcheck="false"
+      />
+
+      <label class="spec-modal-field-label" for="spec-rename-slug-input">Slug <span class="spec-modal-field-optional">(folder name, kebab-case)</span></label>
+      <input
+        id="spec-rename-slug-input"
+        type="text"
+        class="spec-modal-input"
+        autocomplete="off"
+        spellcheck="false"
+        pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+      />
+
+      <div class="spec-modal-error" role="alert"></div>
+      <div class="spec-modal-actions">
+        <button type="button" class="btn btn-secondary spec-rename-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary spec-rename-save">Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const titleInput = overlay.querySelector('#spec-rename-title-input');
+  const slugInput = overlay.querySelector('#spec-rename-slug-input');
+  const errorEl = overlay.querySelector('.spec-modal-error');
+  const cancelBtn = overlay.querySelector('.spec-rename-cancel');
+  const saveBtn = overlay.querySelector('.spec-rename-save');
+
+  titleInput.value = status.title || '';
+  slugInput.value = status.slug || '';
+  setTimeout(() => slugInput.select(), 30);
+
+  const close = () => overlay.remove();
+  const submit = async () => {
+    const newTitle = titleInput.value.trim();
+    const newSlug = slugInput.value.trim();
+    if (!newTitle) {
+      errorEl.textContent = 'Title cannot be empty.';
+      titleInput.focus();
+      return;
+    }
+    if (!newSlug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(newSlug)) {
+      errorEl.textContent = 'Slug must be kebab-case (a-z, 0-9, single hyphens).';
+      slugInput.focus();
+      return;
+    }
+    saveBtn.disabled = true;
+    const result = await ipcRenderer.invoke(IPC.RENAME_SPEC, {
+      projectPath,
+      oldSlug: status.slug,
+      opts: { slug: newSlug, title: newTitle }
+    });
+    if (!result || result.error) {
+      errorEl.textContent = result?.error || 'Rename failed.';
+      saveBtn.disabled = false;
+      return;
+    }
+    // Slug changed → swap our active reference so the next reload hits the new folder
+    if (result.slug && result.slug !== status.slug) {
+      activeSlug = result.slug;
+    }
+    close();
+    reloadDetail();
+  };
+
+  cancelBtn.addEventListener('click', close);
+  saveBtn.addEventListener('click', submit);
+  [titleInput, slugInput].forEach(el => el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    if (e.key === 'Escape') close();
+  }));
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) close();
+  });
+}
+
 function showInlineError(message) {
   // Lightweight toast — same overlay shell as the modal, info-only
   const overlay = document.createElement('div');
@@ -723,5 +837,6 @@ module.exports = {
   toggle,
   startWatchingForProject,
   stopWatching,
-  showNewSpecPrompt
+  showNewSpecPrompt,
+  showRenameModal
 };

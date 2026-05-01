@@ -4773,6 +4773,25 @@
   color: var(--text-muted);
 }
 
+.spec-rename-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  margin-left: 4px;
+}
+
+.spec-rename-btn:hover {
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
 .spec-detail-header {
   border-bottom: 1px solid var(--border-subtle);
   padding-bottom: var(--space-md);
@@ -5135,6 +5154,24 @@
 
 .spec-modal-input:focus {
   border-color: var(--accent-primary);
+}
+
+.spec-modal-field-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  margin-bottom: -4px;
+  margin-top: var(--space-xs);
+}
+
+.spec-modal-field-optional {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 10px;
 }
 
 .spec-modal-textarea {
