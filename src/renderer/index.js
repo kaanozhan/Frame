@@ -16,6 +16,8 @@ const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
 const specPanel = require('./specPanel');
+const specPanelResize = require('./specPanelResize');
+const specsDashboard = require('./specsDashboard');
 const state = require('./state');
 const projectListUI = require('./projectListUI');
 const editor = require('./editor');
@@ -107,6 +109,10 @@ function init() {
 
   // Initialize specs panel (spec-driven development)
   specPanel.init();
+  specPanelResize.init();
+
+  // Initialize specs dashboard (full-page card grid, opened from panel header)
+  specsDashboard.init();
 
   // Initialize sidebar resize
   sidebarResize.init(() => {
@@ -438,6 +444,12 @@ function registerCommands() {
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+S',
     run: () => specPanel.toggle()
+  });
+  r({
+    id: 'panel.toggleSpecsDashboard',
+    title: 'Toggle Specs Dashboard',
+    category: 'Panel',
+    run: () => specsDashboard.toggle()
   });
   r({
     id: 'panel.togglePlugins',

@@ -147,6 +147,7 @@ const IPC = {
   UNWATCH_SPECS: 'unwatch-specs',
   SPEC_DATA: 'spec-data',
   TOGGLE_SPECS_PANEL: 'toggle-specs-panel',
+  TOGGLE_SPECS_DASHBOARD: 'toggle-specs-dashboard',
   GET_SPEC_PROMPT: 'get-spec-prompt',
   BUILD_SPEC_COMMAND_FILE: 'build-spec-command-file',
 

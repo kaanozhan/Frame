@@ -218,6 +218,7 @@
 
     <!-- Specs Panel (spec-driven development, Slice 1) -->
     <div id="specs-panel">
+      <div id="specs-panel-resize-handle"></div>
       <div id="specs-header">
         <button id="specs-collapse-btn" title="Collapse panel">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -226,6 +227,28 @@
         </button>
         <h3>Specs</h3>
         <div class="specs-header-actions">
+          <button id="specs-wide-toggle" tabindex="-1" title="Expand panel" aria-label="Expand panel">
+            <svg class="specs-wide-icon-expand" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 3 21 3 21 9"/>
+              <polyline points="9 21 3 21 3 15"/>
+              <line x1="21" y1="3" x2="14" y2="10"/>
+              <line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+            <svg class="specs-wide-icon-compact" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 14 10 14 10 20"/>
+              <polyline points="20 10 14 10 14 4"/>
+              <line x1="14" y1="10" x2="21" y2="3"/>
+              <line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+          </button>
+          <button id="specs-dashboard-btn" tabindex="-1" title="Open spec dashboard">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="6" height="18" rx="1"/>
+              <rect x="11" y="3" width="6" height="12" rx="1"/>
+              <rect x="19" y="3" width="2" height="8" rx="1"/>
+            </svg>
+            Dashboard
+          </button>
           <button id="specs-new-btn" tabindex="-1" title="New Spec">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/>
@@ -788,6 +811,32 @@
               <span class="tasks-dashboard-detail-dates"></span>
             </div>
           </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Specs Dashboard (full-page card grid view) -->
+    <div id="specs-dashboard" class="specs-dashboard">
+      <div class="specs-dashboard-header">
+        <div class="specs-dashboard-title">
+          <span class="specs-dashboard-mark">&#10022;</span>
+          <h2>Specs</h2>
+          <span id="specs-dashboard-project" class="specs-dashboard-project"></span>
+        </div>
+        <div class="specs-dashboard-actions">
+          <button id="specs-dashboard-new" class="btn btn-primary specs-dashboard-new" tabindex="-1">+ New Spec</button>
+          <button id="specs-dashboard-close" class="specs-dashboard-close" tabindex="-1" aria-label="Close dashboard">&#x2715;</button>
+        </div>
+      </div>
+      <div id="specs-dashboard-filters" class="specs-dashboard-filters"></div>
+      <div class="specs-dashboard-body">
+        <div id="specs-dashboard-grid" class="specs-dashboard-grid"></div>
+        <aside id="specs-dashboard-detail" class="specs-dashboard-detail">
+          <button class="specs-dashboard-detail-close" aria-label="Close detail">&#x2715;</button>
+          <div class="specs-dashboard-detail-empty">
+            <p>Select a spec to see its details, plan, and tasks.</p>
+          </div>
+          <div class="specs-dashboard-detail-content"></div>
         </aside>
       </div>
     </div>

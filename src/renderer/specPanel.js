@@ -25,6 +25,7 @@ let specs = [];           // list cache from SPEC_DATA push
 let activeSlug = null;    // null = list view; slug = detail view
 let activeSpec = null;    // full payload for detail view
 let activeTab = 'spec';   // 'spec' | 'plan' | 'tasks'
+let allTasks = [];        // flat tasks.json cache (for filtering by spec source)
 
 function init() {
   panelEl = document.getElementById('specs-panel');
@@ -41,6 +42,9 @@ function setupEventListeners() {
   document.getElementById('specs-close')?.addEventListener('click', hide);
   document.getElementById('specs-collapse-btn')?.addEventListener('click', hide);
   document.getElementById('specs-new-btn')?.addEventListener('click', showNewSpecPrompt);
+  document.getElementById('specs-dashboard-btn')?.addEventListener('click', () => {
+    require('./specsDashboard').show();
+  });
 }
 
 function setupIPCListeners() {
@@ -48,6 +52,23 @@ function setupIPCListeners() {
     specs = incoming || [];
     if (activeSlug) reloadDetail();
     else renderList();
+  });
+
+  // Mirror the Tasks panel subscription so we can render an interactive
+  // task list inside the spec detail view (filtered to source: spec:<slug>:*).
+  // tasksManager broadcasts TASKS_DATA on every save/migration/external edit.
+  ipcRenderer.on(IPC.TASKS_DATA, (event, { tasks }) => {
+    if (tasks && Array.isArray(tasks.tasks)) {
+      allTasks = tasks.tasks;
+    } else {
+      allTasks = [];
+    }
+    // Re-render in detail view so the Tasks tab updates live
+    if (activeSlug && isVisible && activeTab === 'tasks') {
+      const body = contentEl?.querySelector('#spec-detail-body');
+      if (body) body.innerHTML = renderTabBody('tasks');
+      attachTaskActionHandlers();
+    }
   });
 
   ipcRenderer.on(IPC.TOGGLE_SPECS_PANEL, () => toggle());
@@ -93,10 +114,15 @@ async function toggle() {
 function startWatchingForProject(projectPath) {
   if (!projectPath) return;
   ipcRenderer.send(IPC.WATCH_SPECS, projectPath);
+  // Also kick a one-off LOAD_TASKS so the Tasks subview has data even
+  // before the user opens the standalone Tasks panel. Subsequent changes
+  // arrive via TASKS_DATA pushes.
+  ipcRenderer.send(IPC.LOAD_TASKS, projectPath);
 }
 
 function stopWatching() {
   ipcRenderer.send(IPC.UNWATCH_SPECS);
+  allTasks = [];
 }
 
 // ─── List view ──────────────────────────────────────
@@ -197,7 +223,7 @@ function renderDetail() {
       <div class="spec-detail-tabs">
         ${renderTabButton('spec', 'Spec', !!spec)}
         ${renderTabButton('plan', 'Plan', !!plan)}
-        ${renderTabButton('tasks', 'Tasks', !!tasks)}
+        ${renderTabButton('tasks', tasksTabLabel(!!tasks), !!tasks || hasSpecTasks())}
       </div>
       <div class="spec-detail-body" id="spec-detail-body">
         ${renderTabBody(activeTab)}
@@ -212,6 +238,7 @@ function renderDetail() {
   contentEl.querySelector('#spec-action-btn')?.addEventListener('click', () => {
     if (nextAction) runSpecCommand(nextAction.command);
   });
+  if (activeTab === 'tasks') attachTaskActionHandlers();
 }
 
 // ─── Next-action bar ────────────────────────────────
@@ -282,11 +309,153 @@ function renderTabButton(tab, label, hasContent) {
   return `<button class="spec-tab-btn ${active} ${empty}" data-tab="${tab}">${label}${hasContent ? '' : ' <span class="spec-tab-empty-dot">·</span>'}</button>`;
 }
 
+function hasSpecTasks() {
+  if (!activeSlug) return false;
+  const prefix = `spec:${activeSlug}:`;
+  return allTasks.some(t => t && typeof t.source === 'string' && t.source.startsWith(prefix));
+}
+
+function tasksTabLabel(hasMarkdown) {
+  if (!activeSlug) return 'Tasks';
+  const prefix = `spec:${activeSlug}:`;
+  const items = allTasks.filter(t => t && typeof t.source === 'string' && t.source.startsWith(prefix));
+  if (items.length === 0) return 'Tasks';
+  const completed = items.filter(t => t.status === 'completed').length;
+  return `Tasks <span class="spec-tab-count">${completed}/${items.length}</span>`;
+}
+
 function renderTabBody(tab) {
+  // The Tasks tab gets the interactive list view (Slice 2.1) — pulled
+  // from tasks.json with the spec source marker filter. Falls back to
+  // the raw tasks.md markdown if the import hasn't run yet (e.g., user
+  // is mid-/spec.tasks generation).
+  if (tab === 'tasks') return renderTasksTabBody();
+
   const md = activeSpec?.[tab];
   if (md) return renderMarkdown(md);
   const cmdMap = { spec: '/spec.new', plan: '/spec.plan', tasks: '/spec.tasks' };
   return `<div class="spec-empty-tab">No <code>${tab}.md</code> yet — run <code>${cmdMap[tab]}</code> from the terminal.</div>`;
+}
+
+function renderTasksTabBody() {
+  if (!activeSlug) return '';
+  const prefix = `spec:${activeSlug}:`;
+  const items = allTasks
+    .filter(t => t && typeof t.source === 'string' && t.source.startsWith(prefix))
+    // Stable order by the T<n> identifier suffix on `source`
+    .sort((a, b) => (a.source || '').localeCompare(b.source || '', undefined, { numeric: true }));
+
+  if (items.length === 0) {
+    if (activeSpec?.tasks) {
+      // tasks.md exists but nothing imported yet (user mid-flight or empty file)
+      return `
+        <div class="spec-empty-tab">
+          Waiting for <code>/spec.tasks</code> output to sync into tasks.json.
+          The raw <code>tasks.md</code> follows:
+        </div>
+        ${renderMarkdown(activeSpec.tasks)}
+      `;
+    }
+    return `<div class="spec-empty-tab">No tasks yet — run <code>/spec.tasks</code> from the terminal.</div>`;
+  }
+
+  const total = items.length;
+  const completed = items.filter(t => t.status === 'completed').length;
+  const inProgress = items.filter(t => t.status === 'in_progress').length;
+  const pct = Math.round((completed / total) * 100);
+
+  return `
+    <div class="spec-tasks-progress">
+      <div class="spec-tasks-progress-text">
+        <strong>${completed} / ${total}</strong> done${inProgress ? ` · ${inProgress} in progress` : ''}
+      </div>
+      <div class="spec-tasks-progress-bar"><div class="spec-tasks-progress-fill" style="width: ${pct}%"></div></div>
+    </div>
+    <div class="spec-tasks-list">
+      ${items.map(renderSpecTaskRow).join('')}
+    </div>
+  `;
+}
+
+function renderSpecTaskRow(task) {
+  const taskNum = (task.source || '').split(':').pop() || '—';
+  const isCompleted = task.status === 'completed';
+  const isInProgress = task.status === 'in_progress';
+  const isPending = task.status === 'pending';
+
+  const statusIcon = isCompleted
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+    : isInProgress
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`;
+
+  let actions = '';
+  if (isPending) {
+    actions = `
+      <button class="spec-task-action-btn" data-action="start" title="Start working">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </button>
+      <button class="spec-task-action-btn" data-action="complete" title="Mark complete">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+    `;
+  } else if (isInProgress) {
+    actions = `
+      <button class="spec-task-action-btn" data-action="complete" title="Mark complete">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+      <button class="spec-task-action-btn" data-action="pause" title="Move back to pending">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+    `;
+  } else {
+    actions = `
+      <button class="spec-task-action-btn" data-action="reopen" title="Reopen">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+    `;
+  }
+
+  return `
+    <div class="spec-task-row status-${task.status}" data-task-id="${escapeHtml(task.id)}">
+      <span class="spec-task-status">${statusIcon}</span>
+      <span class="spec-task-num">${escapeHtml(taskNum)}</span>
+      <span class="spec-task-title">${escapeHtml(task.title)}</span>
+      <span class="spec-task-actions">${actions}</span>
+    </div>
+  `;
+}
+
+function attachTaskActionHandlers() {
+  if (!contentEl) return;
+  contentEl.querySelectorAll('.spec-task-row').forEach(row => {
+    const taskId = row.dataset.taskId;
+    row.querySelectorAll('.spec-task-action-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleSpecTaskAction(taskId, btn.dataset.action);
+      });
+    });
+  });
+}
+
+function handleSpecTaskAction(taskId, action) {
+  const projectPath = state.getProjectPath();
+  if (!projectPath || !taskId) return;
+  const statusMap = {
+    start: 'in_progress',
+    complete: 'completed',
+    pause: 'pending',
+    reopen: 'pending'
+  };
+  const status = statusMap[action];
+  if (!status) return;
+  ipcRenderer.send(IPC.UPDATE_TASK, {
+    projectPath,
+    taskId,
+    updates: { status }
+  });
+  // tasksManager pushes TASKS_DATA back on save → our listener re-renders.
 }
 
 function switchTab(tab) {
@@ -296,6 +465,7 @@ function switchTab(tab) {
   });
   const body = contentEl.querySelector('#spec-detail-body');
   if (body) body.innerHTML = renderTabBody(tab);
+  if (tab === 'tasks') attachTaskActionHandlers();
 }
 
 function backToList() {
@@ -552,5 +722,6 @@ module.exports = {
   hide,
   toggle,
   startWatchingForProject,
-  stopWatching
+  stopWatching,
+  showNewSpecPrompt
 };
