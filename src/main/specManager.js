@@ -31,8 +31,10 @@ const SLUG_MAX_LEN = 48;
 
 let mainWindow = null;
 let activeWatcher = null;
+let activeTasksWatcher = null;
 let activeWatchedProject = null;
 let watchDebounce = null;
+let tasksWatchDebounce = null;
 
 // ─── Path helpers ──────────────────────────────────────────
 
@@ -132,21 +134,37 @@ function listSpecs(projectPath) {
     console.error('specManager: listSpecs readdir failed', err);
     return [];
   }
+
+  // Load tasks once so reconcilePhase can look at task statuses (the
+  // implementing → done transition is task-driven). Cheap on the order
+  // of dozens of specs; if this ever becomes a hot path we can cache.
+  let tasksData = null;
+  try {
+    tasksData = tasksManager.loadTasks(projectPath);
+  } catch (err) {
+    tasksData = null;
+  }
+
   const specs = [];
   for (const ent of entries) {
     if (!ent.isDirectory()) continue;
-    // Reconcile phase from filesystem state — catches the case where the AI
-    // wrote a plan.md / tasks.md but didn't (or couldn't) update status.json.
-    reconcilePhase(projectPath, ent.name);
+    // Reconcile phase from filesystem state + task statuses — catches the
+    // case where the AI wrote a plan.md / tasks.md but didn't (or couldn't)
+    // update status.json, and also flips to implementing/done as the user
+    // moves spec tasks through their lifecycle.
+    reconcilePhase(projectPath, ent.name, tasksData);
     const status = readStatus(projectPath, ent.name);
     if (!status) continue;
     if (validateSpecStatus(status)) continue; // silently skip malformed
+    const specTasks = collectSpecTasks(status.slug, tasksData);
+    const completedCount = specTasks.filter(t => t.status === 'completed').length;
     specs.push({
       slug: status.slug,
       title: status.title,
       phase: status.phase,
       ai_tool: status.ai_tool || null,
-      task_count: status.generated_task_ids.length,
+      task_count: specTasks.length || status.generated_task_ids.length,
+      completed_count: completedCount,
       created_at: status.created_at || null,
       updated_at: status.updated_at || null
     });
@@ -165,20 +183,35 @@ function fileExists(projectPath, slug, name) {
   return fs.existsSync(path.join(getSpecDir(projectPath, slug), name));
 }
 
-function derivePhase(projectPath, slug, currentPhase) {
-  // Once the user has manually moved into implementing / done, leave it
-  // alone — those phases are owned by the user, not the filesystem.
-  if (currentPhase === 'implementing' || currentPhase === 'done') return currentPhase;
+function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
+  // Once spec-derived tasks exist, their statuses drive the implementing →
+  // done transition. This overrides the file-based check so flipping a task
+  // back to pending automatically rewinds the phase too.
+  const specTasks = collectSpecTasks(slug, tasksDataOrNull);
+  if (specTasks.length > 0) {
+    const allCompleted = specTasks.every(t => t.status === 'completed');
+    const anyStarted = specTasks.some(t => t.status === 'in_progress' || t.status === 'completed');
+    if (allCompleted) return 'done';
+    if (anyStarted) return 'implementing';
+    // No started tasks → fall through to file-based check
+  }
+
   if (fileExists(projectPath, slug, TASKS_FILE)) return 'tasks_generated';
   if (fileExists(projectPath, slug, PLAN_FILE)) return 'planned';
   if (fileExists(projectPath, slug, SPEC_FILE)) return 'specified';
   return 'draft';
 }
 
-function reconcilePhase(projectPath, slug) {
+function collectSpecTasks(slug, tasksData) {
+  if (!tasksData || !Array.isArray(tasksData.tasks)) return [];
+  const prefix = `spec:${slug}:`;
+  return tasksData.tasks.filter(t => t && typeof t.source === 'string' && t.source.startsWith(prefix));
+}
+
+function reconcilePhase(projectPath, slug, tasksDataOrNull) {
   const status = readStatus(projectPath, slug);
   if (!status) return;
-  const newPhase = derivePhase(projectPath, slug, status.phase);
+  const newPhase = derivePhase(projectPath, slug, status.phase, tasksDataOrNull);
   if (newPhase === status.phase) return;
   const now = new Date().toISOString();
   writeStatus(projectPath, slug, {
@@ -493,6 +526,23 @@ function startWatching(projectPath) {
     console.error('specManager: fs.watch failed', err);
     return;
   }
+
+  // Also watch tasks.json — spec phase transitions to "implementing" /
+  // "done" are driven by spec-derived task statuses, so a status flip in
+  // the Tasks panel needs to refresh SPEC_DATA too. Independent watcher
+  // so we don't depend on tasksManager's internal pub/sub.
+  const tasksJsonPath = path.join(projectPath, 'tasks.json');
+  if (fs.existsSync(tasksJsonPath)) {
+    try {
+      activeTasksWatcher = fs.watch(tasksJsonPath, () => {
+        if (tasksWatchDebounce) clearTimeout(tasksWatchDebounce);
+        tasksWatchDebounce = setTimeout(() => pushSpecData(projectPath), WATCH_DEBOUNCE_MS);
+      });
+    } catch (err) {
+      console.error('specManager: tasks.json watch failed', err);
+    }
+  }
+
   // Initial snapshot so the panel paints something immediately
   pushSpecData(projectPath);
 }
@@ -502,10 +552,18 @@ function stopWatching() {
     try { activeWatcher.close(); } catch (err) { /* ignore */ }
   }
   activeWatcher = null;
+  if (activeTasksWatcher) {
+    try { activeTasksWatcher.close(); } catch (err) { /* ignore */ }
+  }
+  activeTasksWatcher = null;
   activeWatchedProject = null;
   if (watchDebounce) {
     clearTimeout(watchDebounce);
     watchDebounce = null;
+  }
+  if (tasksWatchDebounce) {
+    clearTimeout(tasksWatchDebounce);
+    tasksWatchDebounce = null;
   }
 }
 

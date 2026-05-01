@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-04-30T00:00:00Z",
+  "lastUpdated": "2026-04-30T15:56:06.717Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -852,10 +852,75 @@
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-29T00:00:00Z",
       "completedAt": "2026-04-29T00:00:00Z"
+    },
+    {
+      "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T01",
+      "title": "Add `src/templates/roles/AGENTS.md` starter template with Purpose / Steps / Commands / Notes sections and an inline behavior protocol covering session-start read, first-run capture, follow-up delta-only mode, and capture-only-with-approval.",
+      "description": "",
+      "source": "spec:agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f:T01",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
+      "createdAt": "2026-04-30T15:56:06.716Z",
+      "updatedAt": "2026-04-30T15:56:06.716Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T02",
+      "title": "Add `scripts/create-role.js` CLI that validates a kebab-case role name, creates `roles/<name>/`, copies the template into `AGENTS.md`, and creates a `CLAUDE.md → AGENTS.md` symlink; refuse if `roles/<name>/` already exists.",
+      "description": "",
+      "source": "spec:agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f:T02",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
+      "createdAt": "2026-04-30T15:56:06.716Z",
+      "updatedAt": "2026-04-30T15:56:06.716Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T03",
+      "title": "Wire `\"role:new\": \"node scripts/create-role.js\"` into the `scripts` block of `package.json`.",
+      "description": "",
+      "source": "spec:agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f:T03",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
+      "createdAt": "2026-04-30T15:56:06.716Z",
+      "updatedAt": "2026-04-30T15:56:06.716Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T04",
+      "title": "Add a \"Roles\" section to the project root `AGENTS.md` covering when to create a role, the `npm run role:new <name>` command, the per-role protocol summary, and the capture-with-approval rule; cross-reference that specs/tasks remain for product work.",
+      "description": "",
+      "source": "spec:agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f:T04",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
+      "createdAt": "2026-04-30T15:56:06.716Z",
+      "updatedAt": "2026-04-30T15:56:06.716Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T05",
+      "title": "Run `npm run structure` to refresh `STRUCTURE.json` so the new template and CLI land in the intentIndex.",
+      "description": "",
+      "source": "spec:agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f:T05",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
+      "createdAt": "2026-04-30T15:56:06.716Z",
+      "updatedAt": "2026-04-30T15:56:06.716Z",
+      "completedAt": null
     }
   ],
   "metadata": {
-    "totalCreated": 51,
+    "totalCreated": 56,
     "totalCompleted": 16
   },
   "categories": {
