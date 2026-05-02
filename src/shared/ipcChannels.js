@@ -122,6 +122,7 @@ const IPC = {
   AI_TOOL_CONFIG_DATA: 'ai-tool-config-data',
   SET_AI_TOOL: 'set-ai-tool',
   AI_TOOL_CHANGED: 'ai-tool-changed',
+  CHECK_AI_TOOL_AVAILABLE: 'check-ai-tool-available',
 
   // User Settings (renderer-side preferences persisted to userData JSON)
   GET_USER_SETTING: 'get-user-setting',

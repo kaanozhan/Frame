@@ -573,23 +573,26 @@
   color: var(--error);
 }
 
-/* Toast Notifications */
+/* Toast Notifications — viewport-fixed, slides down from the top so
+   important messages (especially errors) aren't tucked into a narrow
+   side panel where they'd be easy to miss. */
 .tasks-toast {
-  position: absolute;
-  bottom: var(--space-lg);
+  position: fixed;
+  top: 16px;
   left: 50%;
-  transform: translateX(-50%) translateY(20px);
+  transform: translateX(-50%) translateY(-24px);
+  width: min(560px, calc(100vw - 32px));
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   box-shadow: var(--shadow-lg);
   opacity: 0;
-  transition: all var(--transition-normal);
-  z-index: 100;
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  z-index: 10000;
 }
 
 .tasks-toast.visible {
@@ -601,12 +604,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .tasks-toast .toast-message {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .tasks-toast-success .toast-icon {
@@ -617,7 +623,22 @@
   color: var(--info);
 }
 
+/* Error variant: louder background tint, accent border, larger text
+   so a missed-CLI / failure message can't slip past the user. */
+.tasks-toast-error {
+  background: var(--error-subtle);
+  border-color: var(--error);
+  padding: 14px 18px;
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--error);
+}
+
 .tasks-toast-error .toast-icon {
+  color: var(--error);
+}
+
+.tasks-toast-error .toast-message {
+  font-size: 14px;
+  font-weight: 600;
   color: var(--error);
 }
 

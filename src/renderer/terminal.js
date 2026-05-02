@@ -96,6 +96,46 @@ function setActiveTerminal(terminalId) {
 // Expose sendCommand globally for modules that can't import terminal directly (circular dependency)
 window.terminalSendCommand = sendCommand;
 
+// Expose new-terminal orchestration so tasksPanel can spawn a fresh terminal
+// and (optionally) launch an AI CLI inside it without importing terminal.js
+// directly. Returns the new terminal id, or null on failure.
+window.terminalCreateAndStart = async function(projectPath, toolStartCommand) {
+  if (!multiTerminalUI) return null;
+  if (projectPath) multiTerminalUI.setCurrentProject(projectPath);
+  const newTerminalId = await multiTerminalUI.createTerminalForCurrentProject();
+  if (!newTerminalId) return null;
+  multiTerminalUI.setActiveTerminal(newTerminalId);
+  if (toolStartCommand) {
+    setTimeout(() => {
+      multiTerminalUI.sendCommand(toolStartCommand, newTerminalId);
+    }, 1000);
+  }
+  return newTerminalId;
+};
+
+// Send a prompt as raw text first, then a separate Enter keystroke after
+// a short delay. AI CLIs (Claude Code, Codex, Gemini) buffer pasted
+// chunks differently from real keyboard input — a trailing \r in the
+// same write often gets absorbed into the input buffer instead of
+// submitting. Splitting the two writes mirrors how a human would type
+// then press Enter, and reliably triggers submit.
+window.terminalSendPromptThenEnter = function(prompt, terminalId = null) {
+  if (!multiTerminalUI) return;
+  const manager = multiTerminalUI.getManager();
+  const targetId = terminalId || (manager && manager.activeTerminalId);
+  if (!targetId) return;
+  ipcRenderer.send(IPC.TERMINAL_INPUT_ID, {
+    terminalId: targetId,
+    data: prompt
+  });
+  setTimeout(() => {
+    ipcRenderer.send(IPC.TERMINAL_INPUT_ID, {
+      terminalId: targetId,
+      data: '\r'
+    });
+  }, 300);
+};
+
 // Expose focus function globally for returning focus from other panels
 window.terminalFocus = function() {
   if (multiTerminalUI) {

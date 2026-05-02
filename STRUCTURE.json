@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-05-01",
+  "lastUpdated": "2026-05-02",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -23,11 +23,12 @@
         "electron",
         "fs",
         "path",
+        "child_process",
         "shared/ipcChannels"
       ],
       "functions": {
         "init": {
-          "line": 72,
+          "line": 73,
           "params": [
             "window",
             "app"
@@ -35,66 +36,81 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "loadConfig": {
-          "line": 82,
+          "line": 83,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 97,
+          "line": 98,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 108,
+          "line": 109,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 115,
+          "line": 116,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 123,
+          "line": 124,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 142,
+          "line": 143,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 152,
+          "line": 153,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 169,
+          "line": 170,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
+        "isPathLike": {
+          "line": 182,
+          "params": [
+            "command"
+          ]
+        },
+        "isCommandAvailable": {
+          "line": 196,
+          "params": [
+            "command",
+            "projectPath"
+          ],
+          "purpose": "shell. Tries the tool's primary command first, then its fallback."
+        },
         "setupIPC": {
-          "line": 184,
+          "line": 250,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 199,
+          "line": 299,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 207,
+          "line": 307,
           "purpose": "Get the start command for active tool"
         }
       },
       "ipc": {
         "listens": [
           "GET_AI_TOOL_CONFIG",
-          "SET_AI_TOOL"
+          "SET_AI_TOOL",
+          "CHECK_AI_TOOL_AVAILABLE"
         ],
         "emits": [
           "AI_TOOL_CHANGED"
@@ -2057,6 +2073,7 @@
       "exports": [
         "init",
         "getCurrentTool",
+        "getAvailableTools",
         "getStartCommand",
         "getCommand",
         "supportsFeature"
@@ -2085,19 +2102,23 @@
           "line": 98,
           "purpose": "Get the current active tool"
         },
-        "getStartCommand": {
+        "getAvailableTools": {
           "line": 105,
+          "purpose": "Get all available AI tools (keyed by id)."
+        },
+        "getStartCommand": {
+          "line": 112,
           "purpose": "Get the start command for current tool"
         },
         "getCommand": {
-          "line": 112,
+          "line": 119,
           "params": [
             "action"
           ],
           "purpose": "Get a specific command for current tool"
         },
         "supportsFeature": {
-          "line": 120,
+          "line": 127,
           "params": [
             "feature"
           ],
@@ -2857,6 +2878,7 @@
         "tasksDashboard",
         "taskConfirmModal",
         "taskInfoModal",
+        "taskRunModal",
         "pluginsPanel",
         "githubPanel",
         "promptsPanel",
@@ -2879,26 +2901,26 @@
       ],
       "functions": {
         "init": {
-          "line": 37,
+          "line": 38,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 187,
+          "line": 191,
           "purpose": "Setup button click handlers"
         },
         "setupUpdateDot": {
-          "line": 298,
+          "line": 302,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 329,
+          "line": 333,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 347,
+          "line": 351,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -4387,6 +4409,7 @@
         "state",
         "tasksDashboard",
         "taskInfoModal",
+        "taskRunModal",
         "taskConfirmModal"
       ],
       "functions": {
@@ -4449,7 +4472,7 @@
           "purpose": "Handle task action buttons"
         },
         "showToast": {
-          "line": 364,
+          "line": 376,
           "params": [
             "message",
             "type = 'info'"
@@ -4457,86 +4480,95 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 399,
+          "line": 412,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
-        "sendTaskToClaude": {
-          "line": 413,
+        "buildTaskPrompt": {
+          "line": 432,
           "params": [
-            "task"
+            "task",
+            "opts = {}"
           ],
-          "purpose": "Send task to Claude Code via terminal"
+          "purpose": "never made on top of an unresolved working tree."
+        },
+        "runTaskWithOptions": {
+          "line": 459,
+          "params": [
+            "task",
+            "opts = {}"
+          ],
+          "purpose": "the caller can decide whether to flip status / show \"sent\" toast."
         },
         "setClaudeRunning": {
-          "line": 436,
+          "line": 532,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 443,
+          "line": 539,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 452,
+          "line": 548,
           "params": [
             "taskId"
           ],
           "purpose": "load order ever shifts."
         },
         "showAddTaskModal": {
-          "line": 469,
+          "line": 565,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 488,
+          "line": 584,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 514,
+          "line": 610,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 524,
+          "line": 620,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 562,
+          "line": 658,
           "purpose": "Setup modal event listeners"
         },
         "escapeHtml": {
-          "line": 602,
+          "line": 698,
           "params": [
             "text"
           ],
           "purpose": "Escape HTML for safe rendering"
         },
         "renderSourceChip": {
-          "line": 613,
+          "line": 709,
           "params": [
             "source"
           ],
           "purpose": "that's the actionable identifier the user knows."
         },
         "formatDate": {
-          "line": 624,
+          "line": 720,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 641,
+          "line": 737,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -4548,6 +4580,7 @@
         ],
         "emits": [
           "LOAD_TASKS",
+          "UPDATE_TASK",
           "UPDATE_TASK",
           "DELETE_TASK",
           "ADD_TASK",
@@ -4654,7 +4687,7 @@
           "purpose": "Set active terminal"
         },
         "getMultiTerminalUI": {
-          "line": 122,
+          "line": 162,
           "purpose": "Get MultiTerminalUI instance"
         }
       },
@@ -4662,7 +4695,10 @@
         "listens": [
           "RUN_COMMAND"
         ],
-        "emits": []
+        "emits": [
+          "TERMINAL_INPUT_ID",
+          "TERMINAL_INPUT_ID"
+        ]
       }
     },
     "renderer/terminalGrid": {
@@ -5124,6 +5160,68 @@
           "line": 97
         }
       }
+    },
+    "renderer/taskRunModal": {
+      "file": "src/renderer/taskRunModal.js",
+      "description": "Task Run Modal",
+      "exports": [
+        "init",
+        "open"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "aiToolSelector",
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 37
+        },
+        "updateTerminalChoiceUI": {
+          "line": 85
+        },
+        "updateBranchChoiceUI": {
+          "line": 91
+        },
+        "getTerminalChoice": {
+          "line": 99
+        },
+        "getBranchChoice": {
+          "line": 104
+        },
+        "getCliChoice": {
+          "line": 109
+        },
+        "populateCliOptions": {
+          "line": 114
+        },
+        "loadCurrentBranch": {
+          "line": 144
+        },
+        "open": {
+          "line": 164,
+          "params": [
+            "task",
+            "opts = {}"
+          ]
+        },
+        "close": {
+          "line": 190
+        },
+        "confirm": {
+          "line": 198
+        },
+        "cancel": {
+          "line": 210
+        },
+        "escapeHtml": {
+          "line": 216,
+          "params": [
+            "s"
+          ]
+        }
+      }
     }
   },
   "ipcChannels": {
@@ -5309,6 +5407,11 @@
       },
       "RENAME_SPEC": {
         "name": "rename-spec",
+        "direction": "",
+        "description": ""
+      },
+      "CHECK_AI_TOOL_AVAILABLE": {
+        "name": "check-ai-tool-available",
         "direction": "",
         "description": ""
       }
@@ -5965,6 +6068,13 @@
         "module": "renderer/taskInfoModal",
         "file": "src/renderer/taskInfoModal.js",
         "description": "Task Info Modal"
+      }
+    ],
+    "task-run-modal": [
+      {
+        "module": "renderer/taskRunModal",
+        "file": "src/renderer/taskRunModal.js",
+        "description": "Task Run Modal"
       }
     ],
     "tasks": [

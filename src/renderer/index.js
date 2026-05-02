@@ -12,6 +12,7 @@ const tasksPanel = require('./tasksPanel');
 const tasksDashboard = require('./tasksDashboard');
 const taskConfirmModal = require('./taskConfirmModal');
 const taskInfoModal = require('./taskInfoModal');
+const taskRunModal = require('./taskRunModal');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
@@ -97,6 +98,9 @@ function init() {
 
   // Initialize the shared task info modal (no-project guards, etc.)
   taskInfoModal.init();
+
+  // Initialize the play-button run-config modal
+  taskRunModal.init();
 
   // Initialize plugins panel
   pluginsPanel.init();
