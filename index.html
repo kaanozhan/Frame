@@ -991,6 +991,56 @@
     </div>
   </div>
 
+  <!-- Run Task Modal -->
+  <div id="task-run-modal" class="task-run-modal">
+    <div class="task-run-modal-container">
+      <div class="task-run-modal-header">
+        <h3>Run task</h3>
+        <p id="task-run-modal-task-title"></p>
+      </div>
+      <div class="task-run-modal-body">
+        <div class="task-run-section">
+          <label class="task-run-section-label">Terminal</label>
+          <div class="task-run-segmented" role="radiogroup" aria-label="Terminal">
+            <label class="task-run-segment">
+              <input type="radio" name="task-run-terminal" value="current" checked>
+              <span>Use current</span>
+            </label>
+            <label class="task-run-segment">
+              <input type="radio" name="task-run-terminal" value="new">
+              <span>New terminal</span>
+            </label>
+          </div>
+          <p id="task-run-current-hint" class="task-run-hint">Make sure your AI CLI is running in the active terminal.</p>
+        </div>
+
+        <div id="task-run-cli-section" class="task-run-section" style="display:none;">
+          <label class="task-run-section-label">CLI</label>
+          <div id="task-run-cli-options" class="task-run-radio-list" role="radiogroup" aria-label="CLI"></div>
+        </div>
+
+        <div class="task-run-section">
+          <label class="task-run-section-label">Branch</label>
+          <div class="task-run-radio-list" role="radiogroup" aria-label="Branch">
+            <label class="task-run-radio">
+              <input type="radio" name="task-run-branch" value="current" checked>
+              <span>Stay on <strong id="task-run-current-branch">current branch</strong></span>
+            </label>
+            <label class="task-run-radio">
+              <input type="radio" name="task-run-branch" value="new">
+              <span>Create new branch</span>
+            </label>
+          </div>
+          <input type="text" id="task-run-new-branch-name" class="task-run-input" placeholder="Optional — leave blank to pick a name with AI" disabled>
+        </div>
+      </div>
+      <div class="task-run-modal-footer">
+        <button type="button" id="task-run-cancel" class="task-run-btn task-run-btn-cancel">Cancel</button>
+        <button type="button" id="task-run-confirm" class="task-run-btn task-run-btn-primary">Run</button>
+      </div>
+    </div>
+  </div>
+
   <!-- File Tree Context Menu -->
   <div id="file-tree-context-menu" class="context-menu" role="menu">
     <button class="context-menu-item" data-action="copy-path" type="button">Copy Filepath</button>

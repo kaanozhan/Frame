@@ -100,6 +100,13 @@ function getCurrentTool() {
 }
 
 /**
+ * Get all available AI tools (keyed by id).
+ */
+function getAvailableTools() {
+  return availableTools;
+}
+
+/**
  * Get the start command for current tool
  */
 function getStartCommand() {
@@ -135,6 +142,7 @@ function supportsFeature(feature) {
 module.exports = {
   init,
   getCurrentTool,
+  getAvailableTools,
   getStartCommand,
   getCommand,
   supportsFeature

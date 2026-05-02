@@ -6,6 +6,7 @@
 const { ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 const { IPC } = require('../shared/ipcChannels');
 
 let mainWindow = null;
@@ -178,6 +179,71 @@ function removeCustomTool(toolId) {
   return false;
 }
 
+function isPathLike(command) {
+  return !!command && (
+    command.startsWith('./') ||
+    command.startsWith('../') ||
+    command.startsWith('/')
+  );
+}
+
+/**
+ * Check whether a CLI command can actually be launched on this system.
+ * Used as a pre-flight before spawning a terminal so we don't hand the
+ * user a "command not found" + an injected prompt sitting in a bare
+ * shell. Tries the tool's primary command first, then its fallback.
+ */
+async function isCommandAvailable(command, projectPath) {
+  if (!command) return false;
+
+  // Path-based command: check the binary actually exists & is executable.
+  if (isPathLike(command)) {
+    const target = command.startsWith('/')
+      ? command
+      : (projectPath ? path.resolve(projectPath, command) : command);
+    try {
+      fs.accessSync(target, fs.constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // PATH-based command: probe via the user's login shell so PATH
+  // additions from .zshrc/.bashrc and shim managers (asdf, nvm, brew)
+  // are visible — same reason we run the PTY shell with -l.
+  const isWin = process.platform === 'win32';
+  const shell = isWin
+    ? (process.env.COMSPEC || 'cmd.exe')
+    : (process.env.SHELL || '/bin/sh');
+  const args = isWin
+    ? ['/c', `where ${command}`]
+    : ['-lc', `command -v ${command}`];
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    let child;
+    try {
+      child = spawn(shell, args, { stdio: 'ignore' });
+    } catch {
+      resolve(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      try { child.kill('SIGTERM'); } catch {}
+      finish(false);
+    }, 3000);
+    child.on('exit', (code) => finish(code === 0));
+    child.on('error', () => finish(false));
+  });
+}
+
 /**
  * Setup IPC handlers
  */
@@ -190,6 +256,40 @@ function setupIPC() {
   ipcMain.removeHandler(IPC.SET_AI_TOOL);
   ipcMain.handle(IPC.SET_AI_TOOL, (event, toolId) => {
     return setActiveTool(toolId);
+  });
+
+  ipcMain.removeHandler(IPC.CHECK_AI_TOOL_AVAILABLE);
+  ipcMain.handle(IPC.CHECK_AI_TOOL_AVAILABLE, async (event, payload = {}) => {
+    const { toolId, projectPath } = payload;
+    const tools = getAvailableTools();
+    const tool = tools[toolId];
+    if (!tool) {
+      return { available: false, resolvedCommand: null, name: toolId || null };
+    }
+
+    const primaryOk = await isCommandAvailable(tool.command, projectPath);
+
+    // When the primary is a path-based wrapper script and the tool
+    // declares a fallback, the wrapper almost always `exec`s the
+    // fallback (see .frame/bin/codex). Treat the fallback as a hard
+    // dependency in that case — wrapper presence alone isn't enough.
+    if (primaryOk && tool.fallbackCommand && isPathLike(tool.command)) {
+      const fallbackOk = await isCommandAvailable(tool.fallbackCommand, projectPath);
+      if (fallbackOk) {
+        return { available: true, resolvedCommand: tool.command, name: tool.name };
+      }
+      return { available: false, resolvedCommand: null, name: tool.name };
+    }
+
+    if (primaryOk) {
+      return { available: true, resolvedCommand: tool.command, name: tool.name };
+    }
+
+    if (tool.fallbackCommand && await isCommandAvailable(tool.fallbackCommand, projectPath)) {
+      return { available: true, resolvedCommand: tool.fallbackCommand, name: tool.name };
+    }
+
+    return { available: false, resolvedCommand: null, name: tool.name };
   });
 }
 

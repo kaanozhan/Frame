@@ -324,11 +324,23 @@ function handleTaskAction(taskId, action) {
 
   switch (action) {
     case 'start':
-      newStatus = 'in_progress';
-      toastMessage = 'Task sent to Claude';
-      // Send task to Claude Code via terminal
-      sendTaskToClaude(task);
-      break;
+      // Open the run-config modal first; status flips and prompt is sent
+      // only after the user confirms AND the launch actually succeeds
+      // (e.g. the chosen CLI is installed). Lazy-required to avoid
+      // load-order coupling with the rest of the renderer wiring.
+      require('./taskRunModal').open(task, {
+        onRun: async (opts) => {
+          const ok = await runTaskWithOptions(task, opts);
+          if (!ok) return;
+          ipcRenderer.send(IPC.UPDATE_TASK, {
+            projectPath,
+            taskId,
+            updates: { status: 'in_progress' }
+          });
+          showToast('Task sent', 'info');
+        }
+      });
+      return;
     case 'complete':
       newStatus = 'completed';
       toastMessage = 'Task completed';
@@ -376,21 +388,22 @@ function showToast(message, type = 'info') {
     <span class="toast-message">${message}</span>
   `;
 
-  // Add to panel
-  if (panelElement) {
-    panelElement.appendChild(toast);
-  }
+  // Mount on body so the toast lives in the viewport's coordinate space
+  // rather than inside the narrow side panel — otherwise errors sit
+  // bottom-right where they're easy to miss.
+  document.body.appendChild(toast);
 
   // Animate in
   requestAnimationFrame(() => {
     toast.classList.add('visible');
   });
 
-  // Remove after delay
+  // Errors stay longer because they require user attention.
+  const visibleMs = type === 'error' ? 4000 : 2000;
   setTimeout(() => {
     toast.classList.remove('visible');
     setTimeout(() => toast.remove(), 300);
-  }, 2000);
+  }, visibleMs);
 }
 
 /**
@@ -408,26 +421,109 @@ function getToastIcon(type) {
 }
 
 /**
- * Send task to Claude Code via terminal
+ * Build the task prompt that gets injected into the AI CLI. If the user
+ * asked for a new branch, instruct the AI to (1) surface any uncommitted
+ * changes for an explicit decision rather than silently carrying or
+ * discarding them, and (2) either use the user-provided branch name or
+ * — when none was given — suggest one and wait for confirmation before
+ * creating it. Uncommitted-check comes first so the branch decision is
+ * never made on top of an unresolved working tree.
  */
-function sendTaskToClaude(task) {
-  // Build the prompt for Claude
+function buildTaskPrompt(task, opts = {}) {
   let prompt = `Work on this task: ${task.title}`;
+  if (task.description) prompt += `. ${task.description}`;
+  if (task.priority === 'high') prompt += ` (High priority)`;
 
-  if (task.description) {
-    prompt += `. ${task.description}`;
+  if (opts.branchMode === 'new') {
+    const branchStep = opts.newBranchName
+      ? `create and switch to a new branch named "${opts.newBranchName}"`
+      : `suggest an appropriate branch name based on this task, wait for my confirmation, and then create and switch to that branch`;
+
+    prompt += `. Before starting, do the following in order:`
+      + ` First, check for uncommitted changes on the current branch — if any exist, ask me what to do with them (commit, stash, or discard) and act on my decision before continuing.`
+      + ` Then, ${branchStep}.`;
   }
+  return prompt;
+}
 
-  if (task.priority === 'high') {
-    prompt += ` (High priority)`;
-  }
+/**
+ * Send the task to a terminal according to the user's choices in the
+ * run modal. For "use current" we just write into the active terminal.
+ * For "new terminal" we pre-flight that the chosen CLI is actually
+ * installed, then spawn a terminal, launch the CLI, and inject the
+ * prompt once the CLI has had a moment to come up.
+ *
+ * Returns true on success, false if we aborted (e.g. CLI missing) so
+ * the caller can decide whether to flip status / show "sent" toast.
+ */
+async function runTaskWithOptions(task, opts = {}) {
+  const prompt = buildTaskPrompt(task, opts);
 
-  // Use global sendCommand to avoid circular dependency
-  if (typeof window.terminalSendCommand === 'function') {
-    window.terminalSendCommand(prompt);
-  } else {
+  if (!opts.useNewTerminal) {
+    // Same text-then-Enter trick as the new-terminal flow: AI CLI input
+    // boxes (Claude/Codex/Gemini) buffer text+\r in one chunk as paste
+    // content, so the trailing \r ends up in the input instead of
+    // submitting. Splitting the writes makes submit reliable.
+    if (typeof window.terminalSendPromptThenEnter === 'function') {
+      window.terminalSendPromptThenEnter(prompt);
+      return true;
+    }
+    if (typeof window.terminalSendCommand === 'function') {
+      window.terminalSendCommand(prompt);
+      return true;
+    }
     console.error('Terminal sendCommand not available');
+    return false;
   }
+
+  if (typeof window.terminalCreateAndStart !== 'function') {
+    console.error('Terminal createAndStart not available');
+    return false;
+  }
+
+  const projectPath = state.getProjectPath();
+
+  // Pre-flight: confirm the chosen CLI is installed. Without this we'd
+  // happily hand the user a "command not found" followed by the task
+  // prompt sitting in a bare shell.
+  let startCommand = null;
+  if (opts.toolId) {
+    let check;
+    try {
+      check = await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, {
+        toolId: opts.toolId,
+        projectPath
+      });
+    } catch (err) {
+      console.error('Failed to verify AI tool availability', err);
+      showToast('Could not verify AI CLI availability', 'error');
+      return false;
+    }
+    if (!check || !check.available) {
+      const name = (check && check.name) || opts.toolId;
+      showToast(`${name} CLI not found on your system`, 'error');
+      return false;
+    }
+    startCommand = check.resolvedCommand;
+  }
+
+  const newTerminalId = await window.terminalCreateAndStart(projectPath, startCommand);
+  if (!newTerminalId) return false;
+
+  // Give the CLI a few seconds to boot before injecting the prompt.
+  // window.terminalCreateAndStart already waits 1s before sending the
+  // start command, so we add another 4s on top of that. Use the
+  // text-then-Enter helper so the prompt actually submits — sending
+  // text+\r in a single chunk often gets buffered as paste content by
+  // AI CLI input boxes.
+  setTimeout(() => {
+    if (typeof window.terminalSendPromptThenEnter === 'function') {
+      window.terminalSendPromptThenEnter(prompt, newTerminalId);
+    } else if (typeof window.terminalSendCommand === 'function') {
+      window.terminalSendCommand(prompt, newTerminalId);
+    }
+  }, 5000);
+  return true;
 }
 
 /**
