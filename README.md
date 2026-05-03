@@ -1,6 +1,20 @@
-# Frame
+<p align="center">
+  <img src="assets/logo.png" alt="Frame" width="180" />
+</p>
 
-**The platform for agentic development.**
+<h1 align="center">Frame</h1>
+
+<p align="center"><strong>The platform for agentic development.</strong></p>
+
+<p align="center">
+  <a href="https://frame.cool"><img src="https://img.shields.io/badge/website-frame.cool-d4a574" alt="Website"></a>
+  <a href="https://www.linkedin.com/company/120884589/"><img src="https://img.shields.io/badge/LinkedIn-Frame-0A66C2?logo=linkedin&logoColor=white" alt="LinkedIn"></a>
+  <a href="https://github.com/kaanozhan/Frame/releases"><img src="https://img.shields.io/github/v/release/kaanozhan/Frame?color=d4a574" alt="Latest release"></a>
+  <a href="https://github.com/kaanozhan/Frame/releases"><img src="https://img.shields.io/github/downloads/kaanozhan/Frame/total?color=d4a574" alt="Total downloads"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/kaanozhan/Frame?color=d4a574" alt="License"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platforms">
+  <a href="https://github.com/kaanozhan/Frame/stargazers"><img src="https://img.shields.io/github/stars/kaanozhan/Frame?style=social" alt="Stars"></a>
+</p>
 
 Frame started as a lightweight terminal-first IDE. It's evolving into a full platform for developing and managing larger projects with AI agents — bringing structure, context, and organization to the way you work with Claude Code, Codex CLI, and Gemini CLI.
 
