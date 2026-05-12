@@ -1,0 +1,93 @@
+{
+  "_comment": "Module map for TaskFlow. Frame's pre-commit hook regenerates this from source files in your own projects.",
+  "project": "TaskFlow",
+  "version": "1.0",
+  "lastUpdated": "2026-04-12T00:00:00Z",
+  "modules": {
+    "src/index": {
+      "path": "src/index.js",
+      "purpose": "Application entry — wires Express, DB, and auth",
+      "exports": ["start"],
+      "depends": ["src/api/server", "src/db/client", "src/auth/oauth"]
+    },
+    "src/auth/oauth": {
+      "path": "src/auth/oauth.js",
+      "purpose": "Google OAuth integration via Passport.js",
+      "exports": ["configureOAuth", "googleStrategy"],
+      "depends": ["passport", "passport-google-oauth20", "src/db/client"]
+    },
+    "src/auth/session": {
+      "path": "src/auth/session.js",
+      "purpose": "Session middleware + serialize/deserialize hooks",
+      "exports": ["sessionMiddleware", "requireAuth"],
+      "depends": ["express-session", "src/db/client"]
+    },
+    "src/db/client": {
+      "path": "src/db/client.js",
+      "purpose": "Postgres connection pool — canonical DB access point",
+      "exports": ["pool", "query", "tx"],
+      "depends": ["pg"]
+    },
+    "src/db/migrations": {
+      "path": "src/db/migrations/",
+      "purpose": "Forward-only SQL migrations, numbered",
+      "exports": [],
+      "depends": []
+    },
+    "src/api/server": {
+      "path": "src/api/server.js",
+      "purpose": "Express app setup, route mounting, error handlers",
+      "exports": ["createApp"],
+      "depends": ["express", "src/api/tasks", "src/api/users", "src/auth/session"]
+    },
+    "src/api/tasks": {
+      "path": "src/api/tasks.js",
+      "purpose": "Task CRUD endpoints: list, create, update, complete",
+      "exports": ["router"],
+      "depends": ["src/db/client", "src/auth/session"]
+    },
+    "src/api/users": {
+      "path": "src/api/users.js",
+      "purpose": "User profile + team membership endpoints",
+      "exports": ["router"],
+      "depends": ["src/db/client", "src/auth/session"]
+    },
+    "src/ui/App": {
+      "path": "src/ui/App.jsx",
+      "purpose": "React root — sets up routing and auth context",
+      "exports": ["App"],
+      "depends": ["react-router-dom", "src/ui/components/TaskList"]
+    },
+    "src/ui/components/TaskList": {
+      "path": "src/ui/components/TaskList.jsx",
+      "purpose": "Renders the user's tasks with status filters",
+      "exports": ["TaskList"],
+      "depends": ["react"]
+    }
+  },
+  "intentIndex": {
+    "auth": ["src/auth/oauth.js", "src/auth/session.js"],
+    "oauth": ["src/auth/oauth.js"],
+    "google": ["src/auth/oauth.js"],
+    "session": ["src/auth/session.js"],
+    "database": ["src/db/client.js", "src/db/migrations/"],
+    "postgres": ["src/db/client.js"],
+    "migration": ["src/db/migrations/"],
+    "api": ["src/api/server.js", "src/api/tasks.js", "src/api/users.js"],
+    "routes": ["src/api/server.js"],
+    "tasks": ["src/api/tasks.js", "src/ui/components/TaskList.jsx"],
+    "users": ["src/api/users.js"],
+    "ui": ["src/ui/App.jsx", "src/ui/components/TaskList.jsx"],
+    "react": ["src/ui/App.jsx", "src/ui/components/TaskList.jsx"]
+  },
+  "architectureNotes": {
+    "dbAccess": {
+      "rule": "API handlers never write raw SQL — go through src/db/client query helpers",
+      "rationale": "Single place to add logging, metrics, retries"
+    },
+    "authProvider": {
+      "rule": "OAuth code is intentionally not provider-abstracted in v1",
+      "rationale": "Premature abstraction — see PROJECT_NOTES.md 2026-02-19"
+    }
+  }
+}

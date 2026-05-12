@@ -31,6 +31,7 @@ const welcomeOverlay = require('./welcomeOverlay');
 const appLoader = require('./appLoader');
 const settingsModal = require('./settingsModal');
 const telemetryNotice = require('./telemetryNotice');
+const sampleBanner = require('./sampleBanner');
 
 /**
  * Initialize all modules
@@ -175,6 +176,7 @@ function init() {
   welcomeOverlay.init();
   settingsModal.init();
   telemetryNotice.init(() => settingsModal.open());
+  sampleBanner.init();
   setupUpdateDot();
   registerCommands();
   commandRegistry.bindKeyboard();

@@ -1,0 +1,63 @@
+/* Sample Banner — top strip shown while the bundled sample project is open */
+
+.sample-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9000;
+  background: var(--accent-subtle);
+  border-bottom: 1px solid var(--accent-primary);
+  padding: 8px 14px;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.sample-banner.visible {
+  display: flex;
+}
+
+.sample-banner-icon {
+  font-size: 14px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.sample-banner-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.sample-banner-text strong {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.sample-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sample-banner-open {
+  background: var(--accent-primary);
+  color: var(--bg-secondary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 5px;
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.sample-banner-open:hover {
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+}

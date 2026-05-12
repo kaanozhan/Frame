@@ -70,6 +70,13 @@ async function maybeShowOnLaunch() {
 
 function setupListeners() {
   document
+    .getElementById('welcome-try-sample')
+    .addEventListener('click', () => {
+      close();
+      state.openSampleProject();
+    });
+
+  document
     .getElementById('welcome-open-folder')
     .addEventListener('click', () => {
       close();

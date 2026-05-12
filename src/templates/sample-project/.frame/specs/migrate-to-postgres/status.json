@@ -1,0 +1,10 @@
+{
+  "slug": "migrate-to-postgres",
+  "title": "Migrate from SQLite to PostgreSQL",
+  "phase": "implementing",
+  "ai_tool": "claude-code",
+  "generated_task_ids": ["task-009", "task-010", "task-011", "task-012", "task-013", "task-014", "task-015", "task-016"],
+  "created_at": "2026-03-07T16:00:00Z",
+  "updated_at": "2026-03-11T16:00:00Z",
+  "last_phase_at": "2026-03-09T17:00:00Z"
+}

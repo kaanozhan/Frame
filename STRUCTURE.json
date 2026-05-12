@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-05-05",
+  "lastUpdated": "2026-05-12",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -245,17 +245,20 @@
         "init",
         "showFolderPicker",
         "showNewProjectDialog",
+        "openSampleProject",
+        "getSampleProjectPath",
         "setupIPC"
       ],
       "depends": [
         "electron",
         "child_process",
+        "fs",
         "path",
         "shared/ipcChannels"
       ],
       "functions": {
         "init": {
-          "line": 17,
+          "line": 18,
           "params": [
             "window",
             "callback"
@@ -263,29 +266,48 @@
           "purpose": "Initialize dialogs module"
         },
         "showFolderPicker": {
-          "line": 25,
+          "line": 26,
           "params": [
             "event"
           ],
           "purpose": "Show folder picker dialog"
         },
         "showNewProjectDialog": {
-          "line": 48,
+          "line": 49,
           "params": [
             "event"
           ],
           "purpose": "Show new project dialog"
         },
         "cloneGithubRepo": {
-          "line": 72,
+          "line": 73,
           "params": [
             "event",
             "repoUrl"
           ],
           "purpose": "Clone a GitHub repo and initialize it as a Frame project"
         },
+        "copyDirRecursive": {
+          "line": 121,
+          "params": [
+            "src",
+            "dst"
+          ],
+          "purpose": "transparent asar layer and works in both dev and packaged builds."
+        },
+        "openSampleProject": {
+          "line": 143,
+          "params": [
+            "event"
+          ],
+          "purpose": "a pristine demo that resets every launch."
+        },
+        "getSampleProjectPath": {
+          "line": 172,
+          "purpose": "the banner / read-only hints can show. Exposed via IPC.invoke."
+        },
         "setupIPC": {
-          "line": 117,
+          "line": 179,
           "params": [
             "ipcMain"
           ],
@@ -296,7 +318,9 @@
         "listens": [
           "SELECT_PROJECT_FOLDER",
           "CREATE_NEW_PROJECT",
-          "CLONE_GITHUB_REPO"
+          "CLONE_GITHUB_REPO",
+          "OPEN_SAMPLE_PROJECT",
+          "GET_SAMPLE_PROJECT_PATH"
         ],
         "emits": [
           "PROJECT_SELECTED",
@@ -2897,30 +2921,31 @@
         "appLoader",
         "settingsModal",
         "telemetryNotice",
+        "sampleBanner",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 38,
+          "line": 39,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 191,
+          "line": 193,
           "purpose": "Setup button click handlers"
         },
         "setupUpdateDot": {
-          "line": 302,
+          "line": 304,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 333,
+          "line": 335,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 351,
+          "line": 353,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -3849,6 +3874,9 @@
         "updateProjectUI",
         "selectProjectFolder",
         "createNewProject",
+        "openSampleProject",
+        "getIsSampleProject",
+        "onSampleChange",
         "getIsFrameProject",
         "setIsFrameProject",
         "onFrameStatusChange",
@@ -3861,112 +3889,127 @@
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 30,
           "params": [
             "elements"
           ],
           "purpose": "Initialize state module"
         },
         "getProjectPath": {
-          "line": 41,
+          "line": 55,
           "purpose": "Get current project path"
         },
         "setMultiTerminalUI": {
-          "line": 48,
+          "line": 62,
           "params": [
             "ui"
           ],
           "purpose": "Set MultiTerminalUI reference for terminal session management"
         },
         "setProjectPath": {
-          "line": 55,
+          "line": 69,
           "params": [
             "path"
           ],
           "purpose": "Set project path and switch terminal session"
         },
         "onProjectChange": {
-          "line": 80,
+          "line": 104,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for project change"
         },
         "getIsFrameProject": {
-          "line": 87,
+          "line": 111,
           "purpose": "Get Frame project status"
         },
         "setIsFrameProject": {
-          "line": 94,
+          "line": 118,
           "params": [
             "isFrame"
           ],
           "purpose": "Set Frame project status"
         },
         "onFrameStatusChange": {
-          "line": 105,
+          "line": 129,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame status change"
         },
         "onFrameInitialized": {
-          "line": 112,
+          "line": 136,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame project initialized"
         },
         "updateFrameUI": {
-          "line": 119,
+          "line": 143,
           "purpose": "Update Frame-related UI"
         },
         "initializeAsFrameProject": {
-          "line": 134,
+          "line": 158,
           "purpose": "Initialize current project as Frame project"
         },
         "showInitializeFrameModal": {
-          "line": 143,
+          "line": 167,
           "purpose": "Show custom initialize Frame modal"
         },
         "hideInitializeFrameModal": {
-          "line": 153,
+          "line": 177,
           "purpose": "Hide initialize Frame modal"
         },
         "handleInitializeFrame": {
-          "line": 163,
+          "line": 187,
           "purpose": "Handle initialize Frame confirmation"
         },
         "setupInitFrameModalListeners": {
-          "line": 178,
+          "line": 202,
           "purpose": "Setup initialize Frame modal listeners"
         },
         "showInitSpotlight": {
-          "line": 204,
+          "line": 228,
           "purpose": "Show spotlight tour for the initialize button (first time only)"
         },
         "dismissSpotlight": {
-          "line": 242,
+          "line": 266,
           "purpose": "Dismiss spotlight and mark as seen"
         },
         "setupSpotlightListeners": {
-          "line": 253,
+          "line": 277,
           "purpose": "Setup spotlight tour listeners"
         },
         "updateProjectUI": {
-          "line": 295,
+          "line": 319,
           "purpose": "Update project UI elements"
         },
         "selectProjectFolder": {
-          "line": 328,
+          "line": 352,
           "purpose": "Request folder selection"
         },
         "createNewProject": {
-          "line": 335,
+          "line": 359,
           "purpose": "Request new project creation"
         },
+        "openSampleProject": {
+          "line": 369,
+          "purpose": "specs) is reused unchanged."
+        },
+        "getIsSampleProject": {
+          "line": 376,
+          "purpose": "Check whether the current project is the bundled sample."
+        },
+        "onSampleChange": {
+          "line": 384,
+          "params": [
+            "callback"
+          ],
+          "purpose": "\"is sample\" flag changes (opens or leaves the sample)."
+        },
         "setupIPC": {
-          "line": 342,
+          "line": 391,
           "purpose": "Setup IPC listeners"
         }
       },
@@ -3980,7 +4023,8 @@
           "CHECK_IS_FRAME_PROJECT",
           "INITIALIZE_FRAME_PROJECT",
           "SELECT_PROJECT_FOLDER",
-          "CREATE_NEW_PROJECT"
+          "CREATE_NEW_PROJECT",
+          "OPEN_SAMPLE_PROJECT"
         ]
       }
     },
@@ -4815,32 +4859,32 @@
           "line": 71
         },
         "persistDismissPreference": {
-          "line": 120
+          "line": 127
         },
         "renderToolOptions": {
-          "line": 128
+          "line": 135
         },
         "updateToolSelection": {
-          "line": 163
+          "line": 170
         },
         "open": {
-          "line": 174
+          "line": 181
         },
         "close": {
-          "line": 180
+          "line": 187
         },
         "reopen": {
-          "line": 194,
+          "line": 201,
           "purpose": "the checkbox state from a prior session would silently re-dismiss)."
         },
         "escapeHtml": {
-          "line": 202,
+          "line": 209,
           "params": [
             "s"
           ]
         },
         "escapeAttr": {
-          "line": 211,
+          "line": 218,
           "params": [
             "s"
           ]
@@ -5227,6 +5271,163 @@
           ]
         }
       }
+    },
+    "renderer/sampleBanner": {
+      "file": "src/renderer/sampleBanner.js",
+      "description": "Sample Banner",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 16
+        },
+        "setVisible": {
+          "line": 34,
+          "params": [
+            "visible"
+          ]
+        }
+      }
+    },
+    "templates/sample-project/src/api/server": {
+      "file": "src/templates/sample-project/src/api/server.js",
+      "description": "Express server — app factory",
+      "exports": [
+        "createApp"
+      ],
+      "depends": [
+        "express",
+        "auth/session",
+        "tasks",
+        "users"
+      ],
+      "functions": {
+        "createApp": {
+          "line": 13
+        }
+      }
+    },
+    "templates/sample-project/src/api/tasks": {
+      "file": "src/templates/sample-project/src/api/tasks.js",
+      "description": "Task CRUD endpoints",
+      "exports": [],
+      "depends": [
+        "express",
+        "db/client",
+        "auth/session"
+      ],
+      "functions": {}
+    },
+    "templates/sample-project/src/api/users": {
+      "file": "src/templates/sample-project/src/api/users.js",
+      "description": "User + team membership endpoints",
+      "exports": [],
+      "depends": [
+        "express",
+        "db/client",
+        "auth/session"
+      ],
+      "functions": {}
+    },
+    "templates/sample-project/src/auth/oauth": {
+      "file": "src/templates/sample-project/src/auth/oauth.js",
+      "description": "Google OAuth — Passport strategy + routes",
+      "exports": [
+        "configureOAuth",
+        "googleStrategy"
+      ],
+      "depends": [
+        "passport",
+        "passport-google-oauth20",
+        "db/client"
+      ],
+      "functions": {
+        "googleStrategy": {
+          "line": 15
+        },
+        "findOrCreateUser": {
+          "line": 33,
+          "params": [
+            "profile"
+          ]
+        },
+        "configureOAuth": {
+          "line": 53,
+          "params": [
+            "app"
+          ]
+        }
+      }
+    },
+    "templates/sample-project/src/auth/session": {
+      "file": "src/templates/sample-project/src/auth/session.js",
+      "description": "Session middleware + requireAuth guard",
+      "exports": [
+        "sessionMiddleware",
+        "requireAuth"
+      ],
+      "depends": [
+        "express-session"
+      ],
+      "functions": {
+        "sessionMiddleware": {
+          "line": 10
+        },
+        "requireAuth": {
+          "line": 24,
+          "params": [
+            "req",
+            "res",
+            "next"
+          ]
+        }
+      }
+    },
+    "templates/sample-project/src/db/client": {
+      "file": "src/templates/sample-project/src/db/client.js",
+      "description": "Database client — Postgres connection pool",
+      "exports": [
+        "pool",
+        "query",
+        "tx"
+      ],
+      "depends": [
+        "pg"
+      ],
+      "functions": {
+        "query": {
+          "line": 20,
+          "params": [
+            "sql",
+            "params"
+          ]
+        },
+        "tx": {
+          "line": 30,
+          "params": [
+            "fn"
+          ]
+        }
+      }
+    },
+    "templates/sample-project/src/index": {
+      "file": "src/templates/sample-project/src/index.js",
+      "description": "TaskFlow — Application entry",
+      "exports": [],
+      "depends": [
+        "api/server",
+        "auth/oauth",
+        "db/client"
+      ],
+      "functions": {
+        "start": {
+          "line": 12
+        }
+      }
     }
   },
   "ipcChannels": {
@@ -5417,6 +5618,16 @@
       },
       "CHECK_AI_TOOL_AVAILABLE": {
         "name": "check-ai-tool-available",
+        "direction": "",
+        "description": ""
+      },
+      "OPEN_SAMPLE_PROJECT": {
+        "name": "open-sample-project",
+        "direction": "",
+        "description": ""
+      },
+      "GET_SAMPLE_PROJECT_PATH": {
+        "name": "get-sample-project-path",
         "direction": "",
         "description": ""
       }
@@ -5836,6 +6047,13 @@
         "description": "Claude Usage Manager Module"
       }
     ],
+    "client": [
+      {
+        "module": "templates/sample-project/src/db/client",
+        "file": "src/templates/sample-project/src/db/client.js",
+        "description": "Database client — Postgres connection pool"
+      }
+    ],
     "command-palette": [
       {
         "module": "renderer/commandPalette",
@@ -5948,6 +6166,11 @@
         "module": "renderer/index",
         "file": "src/renderer/index.js",
         "description": "Renderer Entry Point"
+      },
+      {
+        "module": "templates/sample-project/src/index",
+        "file": "src/templates/sample-project/src/index.js",
+        "description": "TaskFlow — Application entry"
       }
     ],
     "ipc": [
@@ -5962,6 +6185,13 @@
         "module": "main/menu",
         "file": "src/main/menu.js",
         "description": "Application Menu Module"
+      }
+    ],
+    "oauth": [
+      {
+        "module": "templates/sample-project/src/auth/oauth",
+        "file": "src/templates/sample-project/src/auth/oauth.js",
+        "description": "Google OAuth — Passport strategy + routes"
       }
     ],
     "overview": [
@@ -6000,6 +6230,27 @@
         "module": "renderer/promptsPanel",
         "file": "src/renderer/promptsPanel.js",
         "description": "Prompts Panel Module"
+      }
+    ],
+    "sample-banner": [
+      {
+        "module": "renderer/sampleBanner",
+        "file": "src/renderer/sampleBanner.js",
+        "description": "Sample Banner"
+      }
+    ],
+    "server": [
+      {
+        "module": "templates/sample-project/src/api/server",
+        "file": "src/templates/sample-project/src/api/server.js",
+        "description": "Express server — app factory"
+      }
+    ],
+    "session": [
+      {
+        "module": "templates/sample-project/src/auth/session",
+        "file": "src/templates/sample-project/src/auth/session.js",
+        "description": "Session middleware + requireAuth guard"
       }
     ],
     "settings-modal": [
@@ -6092,6 +6343,11 @@
         "module": "renderer/tasksPanel",
         "file": "src/renderer/tasksPanel.js",
         "description": "Tasks Panel Module"
+      },
+      {
+        "module": "templates/sample-project/src/api/tasks",
+        "file": "src/templates/sample-project/src/api/tasks.js",
+        "description": "Task CRUD endpoints"
       }
     ],
     "tasks-dashboard": [
@@ -6164,6 +6420,13 @@
         "module": "main/userSettings",
         "file": "src/main/userSettings.js",
         "description": "User Settings"
+      }
+    ],
+    "users": [
+      {
+        "module": "templates/sample-project/src/api/users",
+        "file": "src/templates/sample-project/src/api/users.js",
+        "description": "User + team membership endpoints"
       }
     ],
     "welcome-overlay": [

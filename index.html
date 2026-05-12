@@ -24,6 +24,17 @@
     </span>
   </div>
 
+  <!-- Sample-project banner (only visible while inside the bundled sample) -->
+  <div id="sample-banner" class="sample-banner" role="status">
+    <span class="sample-banner-icon">&#9733;</span>
+    <span class="sample-banner-text">
+      You're exploring the <strong>sample project</strong>. Poke around freely — when you're ready, open your own project to start real work.
+    </span>
+    <span class="sample-banner-actions">
+      <button type="button" id="sample-banner-open" class="sample-banner-open">Open My Project</button>
+    </span>
+  </div>
+
   <!-- App Loader (boot splash, hidden once workspace data arrives) -->
   <div id="app-loader" class="app-loader">
     <div class="app-loader-mark">&#10022;</div>
@@ -437,6 +448,13 @@
         <div class="welcome-section">
           <h4 class="welcome-section-title">Get started</h4>
           <div class="welcome-actions">
+            <button id="welcome-try-sample" class="welcome-action welcome-action-featured">
+              <span class="welcome-action-icon">&#9733;</span>
+              <span class="welcome-action-text">
+                <span class="welcome-action-title">Try a Sample Project</span>
+                <span class="welcome-action-desc">Explore Frame on a fictional codebase — specs, tasks, notes already populated</span>
+              </span>
+            </button>
             <button id="welcome-open-folder" class="welcome-action">
               <span class="welcome-action-icon">&#128193;</span>
               <span class="welcome-action-text">

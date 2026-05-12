@@ -120,6 +120,23 @@
   transform: scale(0.99);
 }
 
+/* Featured action — the sample-project entry. Marked visually so first-
+   time users have a low-friction option that doesn't require picking a
+   folder. */
+.welcome-action-featured {
+  background: var(--accent-subtle);
+  border-color: var(--accent-primary);
+}
+
+.welcome-action-featured:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent-secondary);
+}
+
+.welcome-action-featured .welcome-action-icon {
+  color: var(--accent-primary);
+}
+
 .welcome-action-icon {
   width: 22px;
   height: 22px;

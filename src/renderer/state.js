@@ -10,9 +10,12 @@ const SPOTLIGHT_SEEN_KEY = 'frame-init-spotlight-seen';
 
 let currentProjectPath = null;
 let isCurrentProjectFrame = false;
+let sampleProjectPath = null;     // cached from main on init
+let isCurrentProjectSample = false;
 let onProjectChangeCallbacks = [];
 let onFrameStatusChangeCallbacks = [];
 let onFrameInitializedCallbacks = [];
+let onSampleChangeCallbacks = [];
 let multiTerminalUI = null; // Reference to MultiTerminalUI instance
 
 // UI Elements
@@ -33,6 +36,17 @@ function init(elements) {
   setupIPC();
   setupInitFrameModalListeners();
   setupSpotlightListeners();
+
+  // Cache the sample project path so we can detect when the user is
+  // inside the sample without an IPC round-trip on every project switch.
+  ipcRenderer
+    .invoke(IPC.GET_SAMPLE_PROJECT_PATH)
+    .then((p) => {
+      sampleProjectPath = p || null;
+    })
+    .catch(() => {
+      sampleProjectPath = null;
+    });
 }
 
 /**
@@ -55,6 +69,16 @@ function setMultiTerminalUI(ui) {
 function setProjectPath(path) {
   const previousPath = currentProjectPath;
   currentProjectPath = path;
+
+  // Detect sample-project mode. Compared as strings — main resolved the
+  // canonical path on startup, so any project opened at exactly that path
+  // is the bundled sample.
+  const wasSample = isCurrentProjectSample;
+  isCurrentProjectSample = !!(path && sampleProjectPath && path === sampleProjectPath);
+  if (wasSample !== isCurrentProjectSample) {
+    onSampleChangeCallbacks.forEach((cb) => cb(isCurrentProjectSample));
+  }
+
   updateProjectUI();
 
   // Switch terminal session if MultiTerminalUI is available
@@ -337,6 +361,31 @@ function createNewProject() {
 }
 
 /**
+ * Open the bundled sample project. Main copies it into the user-data
+ * directory on first use, then emits PROJECT_SELECTED — the same flow
+ * the folder-picker uses, so all downstream wiring (file tree, tasks,
+ * specs) is reused unchanged.
+ */
+function openSampleProject() {
+  ipcRenderer.send(IPC.OPEN_SAMPLE_PROJECT);
+}
+
+/**
+ * Check whether the current project is the bundled sample.
+ */
+function getIsSampleProject() {
+  return isCurrentProjectSample;
+}
+
+/**
+ * Register a callback fired whenever the current project's
+ * "is sample" flag changes (opens or leaves the sample).
+ */
+function onSampleChange(callback) {
+  onSampleChangeCallbacks.push(callback);
+}
+
+/**
  * Setup IPC listeners
  */
 function setupIPC() {
@@ -369,6 +418,9 @@ module.exports = {
   updateProjectUI,
   selectProjectFolder,
   createNewProject,
+  openSampleProject,
+  getIsSampleProject,
+  onSampleChange,
   getIsFrameProject,
   setIsFrameProject,
   onFrameStatusChange,

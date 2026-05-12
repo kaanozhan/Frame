@@ -1,0 +1,199 @@
+{
+  "_comment": "Sample tasks demonstrating mixed states + spec-derived tasks. The `source` field links tasks to their parent spec.",
+  "project": "TaskFlow",
+  "version": "2.0",
+  "lastUpdated": "2026-04-12T00:00:00Z",
+  "tasks": [
+    {
+      "id": "task-001",
+      "title": "Add migration for google_id + google_refresh_token columns",
+      "description": "Schema change: users table gains google_id (text, unique, nullable) and google_refresh_token (text, nullable, encrypted at rest). Reversible.",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:add-google-oauth:T1",
+      "createdAt": "2026-02-19T10:00:00Z",
+      "completedAt": "2026-02-19T14:22:00Z"
+    },
+    {
+      "id": "task-002",
+      "title": "Run migration in dev; verify roll-back works",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:add-google-oauth:T2",
+      "createdAt": "2026-02-19T10:00:00Z",
+      "completedAt": "2026-02-19T15:10:00Z"
+    },
+    {
+      "id": "task-003",
+      "title": "Provision OAuth client in Google Cloud + add env credentials",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:add-google-oauth:T3",
+      "createdAt": "2026-02-19T10:00:00Z",
+      "completedAt": "2026-02-19T16:00:00Z"
+    },
+    {
+      "id": "task-004",
+      "title": "Install passport-google-oauth20 dependency",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "source": "spec:add-google-oauth:T4",
+      "createdAt": "2026-02-20T09:00:00Z",
+      "completedAt": "2026-02-20T09:15:00Z"
+    },
+    {
+      "id": "task-005",
+      "title": "Implement src/auth/oauth.js Passport strategy",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:add-google-oauth:T5",
+      "createdAt": "2026-02-20T09:00:00Z",
+      "completedAt": "2026-02-20T15:30:00Z"
+    },
+    {
+      "id": "task-006",
+      "title": "Wire oauth into Express app + session middleware",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:add-google-oauth:T6",
+      "createdAt": "2026-02-20T09:00:00Z",
+      "completedAt": "2026-02-21T11:00:00Z"
+    },
+    {
+      "id": "task-007",
+      "title": "Add /auth/google/start + /auth/google/callback routes",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:add-google-oauth:T7",
+      "createdAt": "2026-02-20T09:00:00Z",
+      "completedAt": "2026-02-21T16:00:00Z"
+    },
+    {
+      "id": "task-008",
+      "title": "End-to-end test: full OAuth round-trip",
+      "status": "completed",
+      "priority": "medium",
+      "category": "test",
+      "source": "spec:add-google-oauth:T8",
+      "createdAt": "2026-02-21T09:00:00Z",
+      "completedAt": "2026-02-22T10:00:00Z"
+    },
+    {
+      "id": "task-009",
+      "title": "Audit current SQLite schema; map every table to a Postgres equivalent",
+      "status": "completed",
+      "priority": "high",
+      "category": "refactor",
+      "source": "spec:migrate-to-postgres:T1",
+      "createdAt": "2026-03-08T09:00:00Z",
+      "completedAt": "2026-03-09T17:00:00Z"
+    },
+    {
+      "id": "task-010",
+      "title": "Stand up Postgres in docker-compose for local dev",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:migrate-to-postgres:T2",
+      "createdAt": "2026-03-09T09:00:00Z",
+      "completedAt": "2026-03-09T12:00:00Z"
+    },
+    {
+      "id": "task-011",
+      "title": "Port src/db/client.js from sqlite3 to pg with connection pooling",
+      "status": "completed",
+      "priority": "high",
+      "category": "refactor",
+      "source": "spec:migrate-to-postgres:T3",
+      "createdAt": "2026-03-09T13:00:00Z",
+      "completedAt": "2026-03-10T18:00:00Z"
+    },
+    {
+      "id": "task-012",
+      "title": "Migrate users + sessions tables (queries, FK constraints)",
+      "status": "completed",
+      "priority": "high",
+      "category": "refactor",
+      "source": "spec:migrate-to-postgres:T4",
+      "createdAt": "2026-03-10T09:00:00Z",
+      "completedAt": "2026-03-11T16:00:00Z"
+    },
+    {
+      "id": "task-013",
+      "title": "Migrate tasks + teams tables; add UUID primary keys",
+      "status": "in_progress",
+      "priority": "high",
+      "category": "refactor",
+      "source": "spec:migrate-to-postgres:T5",
+      "createdAt": "2026-03-11T09:00:00Z"
+    },
+    {
+      "id": "task-014",
+      "title": "Backfill data: copy SQLite production data to Postgres staging",
+      "status": "pending",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:migrate-to-postgres:T6",
+      "createdAt": "2026-03-11T09:00:00Z"
+    },
+    {
+      "id": "task-015",
+      "title": "Add transaction support via tx() helper in db/client.js",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "source": "spec:migrate-to-postgres:T7",
+      "createdAt": "2026-03-11T09:00:00Z"
+    },
+    {
+      "id": "task-016",
+      "title": "Production cutover plan + dry-run on staging",
+      "status": "pending",
+      "priority": "high",
+      "category": "feature",
+      "source": "spec:migrate-to-postgres:T8",
+      "createdAt": "2026-03-11T09:00:00Z"
+    },
+    {
+      "id": "task-017",
+      "title": "Update README with new docker-compose dev setup instructions",
+      "description": "After Postgres migration shipped to dev, the README still references SQLite. Fix.",
+      "status": "pending",
+      "priority": "low",
+      "category": "docs",
+      "createdAt": "2026-03-12T09:00:00Z"
+    },
+    {
+      "id": "task-018",
+      "title": "Fix flaky test in src/api/tasks.test.js — race condition on task ordering",
+      "status": "pending",
+      "priority": "medium",
+      "category": "fix",
+      "createdAt": "2026-04-02T11:00:00Z"
+    },
+    {
+      "id": "task-019",
+      "title": "Investigate slow query on /api/users/:id/tasks (>500ms p95)",
+      "description": "Index on tasks.assigned_to_user_id might be missing post-migration. Check.",
+      "status": "in_progress",
+      "priority": "high",
+      "category": "fix",
+      "createdAt": "2026-04-08T15:00:00Z"
+    },
+    {
+      "id": "task-020",
+      "title": "Add rate limiting to /auth/google/* endpoints",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "createdAt": "2026-04-10T09:00:00Z"
+    }
+  ]
+}
