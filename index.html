@@ -30,9 +30,7 @@
     <span class="sample-banner-text">
       You're exploring the <strong>sample project</strong>. Poke around freely — when you're ready, open your own project to start real work.
     </span>
-    <span class="sample-banner-actions">
-      <button type="button" id="sample-banner-open" class="sample-banner-open">Open My Project</button>
-    </span>
+    <button type="button" id="sample-banner-close" class="sample-banner-close" aria-label="Dismiss">&#x2715;</button>
   </div>
 
   <!-- App Loader (boot splash, hidden once workspace data arrives) -->
@@ -493,8 +491,10 @@
             <input type="checkbox" id="welcome-dont-show" />
             <span>Don&rsquo;t show this again</span>
           </label>
-          <button id="welcome-close" class="welcome-close-btn">Close</button>
-          <button id="welcome-skip" class="welcome-skip">Skip for now</button>
+          <div class="welcome-footer-actions">
+            <button id="welcome-close" class="welcome-close-btn">Close</button>
+            <button id="welcome-start" class="welcome-start-btn">Start &rarr;</button>
+          </div>
         </div>
       </div>
     </div>

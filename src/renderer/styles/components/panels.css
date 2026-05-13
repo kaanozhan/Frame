@@ -4604,6 +4604,32 @@
   color: var(--accent-primary);
 }
 
+#specs-refresh-btn {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+#specs-refresh-btn:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+#specs-refresh-btn:active svg {
+  transform: rotate(180deg);
+  transition: transform 0.4s ease-out;
+}
+
 #specs-wide-toggle.is-wide {
   background: var(--accent-subtle);
   border-color: var(--accent-primary);

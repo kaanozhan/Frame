@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-05-12",
+  "lastUpdated": "2026-05-13",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -859,15 +859,15 @@
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 90,
+          "line": 92,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 134,
+          "line": 136,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 153,
+          "line": 155,
           "params": [
             "window"
           ],
@@ -4859,32 +4859,32 @@
           "line": 71
         },
         "persistDismissPreference": {
-          "line": 127
+          "line": 132
         },
         "renderToolOptions": {
-          "line": 135
+          "line": 140
         },
         "updateToolSelection": {
-          "line": 170
+          "line": 175
         },
         "open": {
-          "line": 181
+          "line": 186
         },
         "close": {
-          "line": 187
+          "line": 192
         },
         "reopen": {
-          "line": 201,
+          "line": 206,
           "purpose": "the checkbox state from a prior session would silently re-dismiss)."
         },
         "escapeHtml": {
-          "line": 209,
+          "line": 214,
           "params": [
             "s"
           ]
         },
         "escapeAttr": {
-          "line": 218,
+          "line": 223,
           "params": [
             "s"
           ]
@@ -5274,19 +5274,21 @@
     },
     "renderer/sampleBanner": {
       "file": "src/renderer/sampleBanner.js",
-      "description": "Sample Banner",
+      "description": "Sample Mode (banner + auto-opened side panels)",
       "exports": [
         "init"
       ],
       "depends": [
-        "state"
+        "state",
+        "tasksPanel",
+        "specPanel"
       ],
       "functions": {
         "init": {
-          "line": 16
+          "line": 24
         },
         "setVisible": {
-          "line": 34,
+          "line": 58,
           "params": [
             "visible"
           ]
@@ -6236,7 +6238,7 @@
       {
         "module": "renderer/sampleBanner",
         "file": "src/renderer/sampleBanner.js",
-        "description": "Sample Banner"
+        "description": "Sample Mode (banner + auto-opened side panels)"
       }
     ],
     "server": [

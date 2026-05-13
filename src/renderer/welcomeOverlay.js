@@ -102,8 +102,13 @@ function setupListeners() {
     close();
   });
 
-  document.getElementById('welcome-skip').addEventListener('click', () => {
+  // "Start" is the primary CTA — it commits the user into the sample
+  // project so they don't get dropped onto a blank screen. The dedicated
+  // featured action above still exists for users who want to be explicit;
+  // this footer button is the obvious "just proceed" path.
+  document.getElementById('welcome-start').addEventListener('click', () => {
     close();
+    state.openSampleProject();
   });
 
   // Persist checkbox state immediately on change so Cmd+Q while the modal

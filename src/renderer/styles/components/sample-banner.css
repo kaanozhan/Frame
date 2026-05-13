@@ -37,27 +37,25 @@
   font-weight: 600;
 }
 
-.sample-banner-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.sample-banner-open {
-  background: var(--accent-primary);
-  color: var(--bg-secondary);
-  border: 1px solid var(--accent-primary);
-  border-radius: 5px;
-  padding: 4px 12px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 500;
+/* Accent-colored × so it visually separates from the side-panel close
+   button that sits directly beneath it on the right edge. Frame's gold
+   makes it pop against the subtle banner background. */
+.sample-banner-close {
+  background: none;
+  border: none;
+  color: var(--accent-primary);
   cursor: pointer;
-  transition: background 0.12s;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 4px 8px;
+  margin-right: 4px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s;
 }
 
-.sample-banner-open:hover {
-  background: var(--accent-secondary);
-  border-color: var(--accent-secondary);
+.sample-banner-close:hover {
+  color: var(--accent-secondary);
+  background: var(--accent-subtle);
 }

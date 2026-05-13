@@ -237,7 +237,7 @@
 
 .welcome-footer {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 12px;
   margin-top: 18px;
@@ -247,15 +247,15 @@
   justify-self: start;
 }
 
-.welcome-footer .welcome-close-btn {
-  justify-self: center;
-}
-
-.welcome-footer .welcome-skip {
+.welcome-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   justify-self: end;
 }
 
-.welcome-close-btn {
+/* Primary CTA — proceed into the sample */
+.welcome-start-btn {
   background: var(--accent-primary);
   color: var(--bg-secondary);
   border: 1px solid var(--accent-primary);
@@ -268,13 +268,32 @@
   transition: background 0.12s, transform 0.08s;
 }
 
-.welcome-close-btn:hover {
+.welcome-start-btn:hover {
   background: var(--accent-secondary);
   border-color: var(--accent-secondary);
 }
 
-.welcome-close-btn:active {
+.welcome-start-btn:active {
   transform: scale(0.98);
+}
+
+/* Secondary — dismiss without opening anything */
+.welcome-close-btn {
+  background: none;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.welcome-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 
 .welcome-dont-show-label {
