@@ -949,6 +949,29 @@
     </div>
   </div>
 
+  <!-- Diff Viewer Overlay (read-only) -->
+  <div id="diff-viewer-overlay">
+    <div id="diff-viewer-container">
+      <div id="diff-viewer-header">
+        <div id="diff-viewer-title">
+          <span id="diff-viewer-filename">filename.js</span>
+          <span id="diff-viewer-pill" data-pill="working">Working</span>
+        </div>
+        <div id="diff-viewer-actions">
+          <div id="diff-viewer-mode-toggle" role="group" aria-label="Diff display mode">
+            <button id="btn-diff-mode-side" class="btn-diff-mode active" data-diff-mode="side-by-side" type="button">Side-by-side</button>
+            <button id="btn-diff-mode-unified" class="btn-diff-mode" data-diff-mode="line-by-line" type="button">Unified</button>
+          </div>
+          <button id="btn-diff-viewer-close" class="btn-editor-close" type="button">✕</button>
+        </div>
+      </div>
+      <div id="diff-viewer-content">
+        <div id="diff-viewer-host"></div>
+        <div id="diff-viewer-empty" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Task Modal -->
   <div id="task-modal">
     <div class="task-modal-container">
