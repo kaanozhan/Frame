@@ -332,6 +332,18 @@
 .terminal-instance {
   height: 100%;
   width: 100%;
+  position: relative;
+}
+
+.terminal-instance.drag-over::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 2px dashed var(--accent-primary);
+  box-shadow: 0 0 18px var(--accent-glow);
+  background: var(--accent-subtle);
+  z-index: 10;
 }
 
 /* Terminal Empty State */

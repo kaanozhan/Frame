@@ -61,6 +61,39 @@ function getTerminalTheme() {
 const SESSION_STORAGE_KEY = 'frame-terminal-sessions';
 const GLOBAL_PROJECT_KEY = '__global__';
 
+// Format a dropped file's path the way the host's native terminals do
+// for drag-drop, so AI TUIs (Claude Code, Codex) recognize it as one
+// token.
+// - macOS/Linux: backslash-escape special chars (iTerm/gnome-terminal
+//   convention). POSIX single-quoting would break Claude's image regex.
+// - Windows: leave backslashes alone (path separator!) and double-quote
+//   only when needed — that's Windows Terminal / PowerShell behavior.
+const IS_WINDOWS = typeof process !== 'undefined' && process.platform === 'win32';
+function escapePathForShell(p) {
+  const str = String(p);
+  if (IS_WINDOWS) {
+    if (/[ \t"&|<>^]/.test(str)) {
+      return `"${str.replace(/"/g, '\\"')}"`;
+    }
+    return str;
+  }
+  return str.replace(/([ \t\n"'`\\$|&;<>()*?[\]{}!#~])/g, '\\$1');
+}
+
+// Electron exposes a non-standard `path` property on File objects from
+// dataTransfer, giving the absolute filesystem path of dropped files.
+// Without this, dropped images/screenshots can't be referenced by the
+// AI CLIs (Claude Code, Codex, Gemini) that live inside the terminal.
+let globalDropGuardInstalled = false;
+function installGlobalDropGuard() {
+  if (globalDropGuardInstalled) return;
+  globalDropGuardInstalled = true;
+  // Without these, dropping a file anywhere in the window makes Electron
+  // navigate to file:// — replacing the app with the file's contents.
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => e.preventDefault());
+}
+
 class TerminalManager {
   constructor() {
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
@@ -73,6 +106,7 @@ class TerminalManager {
     this.currentProjectPath = null; // Current active project (null = global)
     this._setupIPC();
     this._setupThemeObserver();
+    installGlobalDropGuard();
   }
 
   /**
@@ -382,6 +416,42 @@ class TerminalManager {
       e.preventDefault();
       const text = clipboard.readText();
       if (text) terminal.paste(text);
+    });
+
+    // File drag-and-drop: insert quoted absolute paths at the cursor.
+    // xterm renders many nested DOM nodes, so dragenter/leave fire for
+    // each child crossing — use a depth counter to keep the visual state
+    // stable while hovering. dropEffect 'copy' shows the OS '+' cursor.
+    let dragDepth = 0;
+    element.addEventListener('dragenter', (e) => {
+      if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+      e.preventDefault();
+      dragDepth++;
+      element.classList.add('drag-over');
+    });
+    element.addEventListener('dragover', (e) => {
+      if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    element.addEventListener('dragleave', () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) element.classList.remove('drag-over');
+    });
+    element.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      element.classList.remove('drag-over');
+      const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+      const paths = files.map(f => f.path).filter(Boolean).map(escapePathForShell);
+      if (paths.length === 0) return;
+      this.setActiveTerminal(terminalId);
+      // Route through xterm's paste API instead of raw stdin: when the
+      // TUI (Claude Code, etc.) has bracketed paste mode enabled, xterm
+      // wraps the payload with \e[200~ / \e[201~ so the TUI sees it as
+      // one atomic paste — that's the signal Claude needs to turn an
+      // image path into an [Image #N] chip instead of just typed text.
+      terminal.paste(paths.join(' '));
     });
 
     // Handle input
