@@ -107,7 +107,7 @@ function parsePorcelainV1(stdout) {
     const worktreeStatus = entry[1];
     const filename = entry.substring(3);
 
-    files[filename] = {
+    const fileInfo = {
       index: indexStatus,
       worktree: worktreeStatus,
       classification: classify(indexStatus, worktreeStatus)
@@ -115,8 +115,12 @@ function parsePorcelainV1(stdout) {
 
     // Renamed (R) and copied (C) entries are followed by the original name.
     if (indexStatus === 'R' || indexStatus === 'C') {
+      const oldPath = entries[i + 1];
+      if (oldPath) fileInfo.oldPath = oldPath;
+      files[filename] = fileInfo;
       i += 2;
     } else {
+      files[filename] = fileInfo;
       i++;
     }
   }

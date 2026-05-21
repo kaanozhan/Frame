@@ -731,7 +731,7 @@
           "purpose": "Format: \"XY <path>\\0\" with renamed/copied entries adding \"<oldpath>\\0\" after."
         },
         "classify": {
-          "line": 131,
+          "line": 135,
           "params": [
             "index",
             "worktree"
@@ -5594,26 +5594,26 @@
           "purpose": "`staged` and `changes` (VSCode parity)."
         },
         "renderGroup": {
-          "line": 123,
+          "line": 125,
           "params": [
             "group",
             "entries"
           ]
         },
         "buildRow": {
-          "line": 141,
+          "line": 143,
           "params": [
             "entry"
           ]
         },
         "badgeChar": {
-          "line": 170,
+          "line": 184,
           "params": [
             "entry"
           ]
         },
         "normalize": {
-          "line": 182,
+          "line": 196,
           "params": [
             "ch"
           ]

@@ -91,24 +91,26 @@ function partition(files) {
   const conflict = [];
 
   for (const [relPath, entry] of Object.entries(files)) {
-    const { index, worktree, classification } = entry;
+    const { index, worktree, classification, oldPath } = entry;
 
     if (classification === 'ignored') continue;
 
+    const base = { relPath, index, worktree, classification, oldPath };
+
     if (classification === 'conflict') {
-      conflict.push({ relPath, index, worktree, classification, group: 'conflict' });
+      conflict.push({ ...base, group: 'conflict' });
       continue;
     }
 
     // Staged: index char is something other than ' ' or '?'
     if (index && index !== ' ' && index !== '?') {
-      staged.push({ relPath, index, worktree, classification, group: 'staged' });
+      staged.push({ ...base, group: 'staged' });
     }
 
     // Working-tree changes or untracked
     const isUntracked = index === '?' && worktree === '?';
     if (isUntracked || worktree === 'M' || worktree === 'D' || worktree === 'A') {
-      changes.push({ relPath, index, worktree, classification, group: 'changes' });
+      changes.push({ ...base, group: 'changes' });
     }
   }
 
@@ -141,6 +143,7 @@ function renderGroup(group, entries) {
 function buildRow(entry) {
   const row = document.createElement('div');
   row.className = 'git-changes-row';
+  // The diff fetcher always wants the NEW path for renames.
   row.dataset.relpath = entry.relPath;
   row.dataset.group = entry.group;
 
@@ -150,7 +153,15 @@ function buildRow(entry) {
 
   const nameEl = document.createElement('span');
   nameEl.className = 'git-changes-row-name';
-  nameEl.textContent = name;
+
+  // Renamed: show "oldname → newname" so the user sees what moved.
+  if (entry.oldPath) {
+    const oldLast = entry.oldPath.lastIndexOf('/');
+    const oldName = oldLast >= 0 ? entry.oldPath.slice(oldLast + 1) : entry.oldPath;
+    nameEl.textContent = `${oldName} → ${name}`;
+  } else {
+    nameEl.textContent = name;
+  }
 
   const dirEl = document.createElement('span');
   dirEl.className = 'git-changes-row-dir';
@@ -162,7 +173,10 @@ function buildRow(entry) {
   badge.dataset.status = status;
   badge.textContent = status;
 
-  row.title = `${entry.relPath} (${entry.index || ' '}${entry.worktree || ' '})`;
+  const hoverPath = entry.oldPath
+    ? `${entry.oldPath} → ${entry.relPath}`
+    : entry.relPath;
+  row.title = `${hoverPath} (${entry.index || ' '}${entry.worktree || ' '})`;
   row.append(nameEl, dirEl, badge);
   return row;
 }
