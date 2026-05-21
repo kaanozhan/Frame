@@ -75,11 +75,17 @@ function init() {
   fileTreeUI.init('file-tree', state.getProjectPath);
   fileTreeUI.setProjectPathGetter(state.getProjectPath);
 
-  // Initialize Git Changes panel (Changes sidebar tab)
-  gitChangesPanel.init();
-
   // Initialize Diff Viewer overlay (read-only, opened from Changes panel)
   diffViewer.init();
+
+  // Initialize Git Changes panel (Changes sidebar tab); row clicks open the
+  // diff viewer for that file.
+  gitChangesPanel.init({
+    onRowClick: ({ projectPath, relPath, staged }) => {
+      if (!projectPath || !relPath) return;
+      diffViewer.open({ projectPath, relPath, staged });
+    }
+  });
 
   // Initialize editor with file tree refresh callback
   editor.init(() => {

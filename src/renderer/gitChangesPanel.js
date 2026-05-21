@@ -17,16 +17,32 @@ let sections = { staged: null, changes: null, conflict: null };
 let lists = { staged: null, changes: null, conflict: null };
 
 let currentProjectPath = null;
+let onRowClick = null;
 
-function init() {
+function init(opts = {}) {
   emptyEl = document.getElementById('git-changes-empty');
   bodyEl = document.getElementById('git-changes-body');
   if (!emptyEl || !bodyEl) return;
+
+  onRowClick = typeof opts.onRowClick === 'function' ? opts.onRowClick : null;
 
   for (const group of ['staged', 'changes', 'conflict']) {
     sections[group] = bodyEl.querySelector(`[data-git-changes-group="${group}"]`);
     lists[group] = bodyEl.querySelector(`[data-git-changes-list="${group}"]`);
   }
+
+  // Event delegation — one listener for all rows across all groups.
+  bodyEl.addEventListener('click', (e) => {
+    const row = e.target.closest('.git-changes-row');
+    if (!row || !bodyEl.contains(row)) return;
+    if (!onRowClick) return;
+    onRowClick({
+      projectPath: currentProjectPath,
+      relPath: row.dataset.relpath,
+      group: row.dataset.group,
+      staged: row.dataset.group === 'staged'
+    });
+  });
 
   ipcRenderer.on(IPC.GIT_STATUS_DATA, (_event, payload) => {
     if (!payload) return;

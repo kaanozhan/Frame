@@ -2934,22 +2934,22 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 201,
+          "line": 207,
           "purpose": "Setup button click handlers"
         },
         "setupUpdateDot": {
-          "line": 312,
+          "line": 318,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 343,
+          "line": 349,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 361,
+          "line": 367,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -5569,48 +5569,51 @@
       ],
       "functions": {
         "init": {
-          "line": 21
+          "line": 22,
+          "params": [
+            "opts = {}"
+          ]
         },
         "handleStatus": {
-          "line": 37,
+          "line": 53,
           "params": [
             "payload"
           ]
         },
         "showMessage": {
-          "line": 61,
+          "line": 77,
           "params": [
             "text"
           ]
         },
         "partition": {
-          "line": 72,
+          "line": 88,
           "params": [
             "files"
           ],
           "purpose": "`staged` and `changes` (VSCode parity)."
         },
         "renderGroup": {
-          "line": 107,
+          "line": 123,
           "params": [
             "group",
             "entries"
           ]
         },
         "buildRow": {
-          "line": 125,
+          "line": 141,
           "params": [
             "entry"
           ]
         },
         "badgeChar": {
-          "line": 154,
+          "line": 170,
           "params": [
             "entry"
           ]
         },
         "normalize": {
-          "line": 166,
+          "line": 182,
           "params": [
             "ch"
           ]

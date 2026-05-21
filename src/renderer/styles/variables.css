@@ -29,6 +29,16 @@
   --error-subtle: rgba(212, 120, 120, 0.15);
   --info: #78a5d4;
 
+  /* Diff colors (GitHub-style, dark) */
+  --diff-ins-bg: rgba(63, 185, 80, 0.15);
+  --diff-ins-fg: #c9d1d9;
+  --diff-ins-mark-bg: rgba(63, 185, 80, 0.40);
+  --diff-ins-mark-fg: #e6ffec;
+  --diff-del-bg: rgba(248, 81, 73, 0.15);
+  --diff-del-fg: #c9d1d9;
+  --diff-del-mark-bg: rgba(248, 81, 73, 0.40);
+  --diff-del-mark-fg: #ffebe9;
+
   /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-default: rgba(255, 255, 255, 0.08);
@@ -97,4 +107,14 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
   --shadow-glow: 0 0 20px var(--accent-glow);
+
+  /* Diff colors (GitHub-style, light) */
+  --diff-ins-bg: #e6ffec;
+  --diff-ins-fg: #24292f;
+  --diff-ins-mark-bg: #abf2bc;
+  --diff-ins-mark-fg: #1a7f37;
+  --diff-del-bg: #ffebe9;
+  --diff-del-fg: #24292f;
+  --diff-del-mark-bg: #ffcecb;
+  --diff-del-mark-fg: #cf222e;
 }

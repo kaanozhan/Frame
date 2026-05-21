@@ -166,24 +166,24 @@
 
 #diff-viewer-host .d2h-ins,
 #diff-viewer-host .d2h-ins.d2h-change {
-  background: rgba(124, 179, 130, 0.12);
-  color: var(--text-primary);
+  background: var(--diff-ins-bg);
+  color: var(--diff-ins-fg);
 }
 
 #diff-viewer-host .d2h-ins .d2h-code-line-ctn,
 #diff-viewer-host .d2h-ins .d2h-code-side-line {
-  color: #cdebd0;
+  color: var(--diff-ins-fg);
 }
 
 #diff-viewer-host .d2h-del,
 #diff-viewer-host .d2h-del.d2h-change {
-  background: rgba(212, 120, 120, 0.12);
-  color: var(--text-primary);
+  background: var(--diff-del-bg);
+  color: var(--diff-del-fg);
 }
 
 #diff-viewer-host .d2h-del .d2h-code-line-ctn,
 #diff-viewer-host .d2h-del .d2h-code-side-line {
-  color: #ecc3c3;
+  color: var(--diff-del-fg);
 }
 
 #diff-viewer-host .d2h-cntx,
@@ -208,4 +208,21 @@
 #diff-viewer-host .d2h-code-side-line.d2h-emptyplaceholder {
   background: var(--bg-deep);
   border-color: var(--border-subtle);
+}
+
+/* Inline change markers (diff2html wraps the changed substring of a line in
+   <ins>/<del>). Default styles ship light-theme colors only; theme tokens
+   in variables.css drive both dark and light. */
+#diff-viewer-host .d2h-code-line ins,
+#diff-viewer-host .d2h-code-side-line ins {
+  background-color: var(--diff-ins-mark-bg);
+  color: var(--diff-ins-mark-fg);
+  text-decoration: none;
+}
+
+#diff-viewer-host .d2h-code-line del,
+#diff-viewer-host .d2h-code-side-line del {
+  background-color: var(--diff-del-mark-bg);
+  color: var(--diff-del-mark-fg);
+  text-decoration: none;
 }
