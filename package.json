@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@aptabase/electron": "^0.3.1",
+    "diff2html": "^3.4.56",
     "lucide": "^0.577.0",
     "marked": "^17.0.5",
     "node-pty": "^1.0.0",
