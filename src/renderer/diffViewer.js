@@ -38,11 +38,14 @@ function init() {
     if (e.target === overlay) close();
   });
 
+  // Capture phase + stopPropagation so Esc doesn't leak through to a focused
+  // terminal underneath and cancel an in-flight CLI tool.
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && overlay.classList.contains('visible')) {
-      close();
-    }
-  });
+    if (e.key !== 'Escape') return;
+    if (!overlay.classList.contains('visible')) return;
+    e.stopPropagation();
+    close();
+  }, true);
 
   for (const btn of modeButtons) {
     btn.addEventListener('click', () => {

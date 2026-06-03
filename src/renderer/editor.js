@@ -161,17 +161,12 @@ function setupEventHandlers() {
   if (editorTextarea) {
     editorTextarea.addEventListener('input', checkModified);
 
-    // Keyboard shortcuts
+    // Keyboard shortcuts (Esc handled at document level below)
     editorTextarea.addEventListener('keydown', (e) => {
       // Ctrl+S or Cmd+S to save
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         saveFile();
-      }
-
-      // Escape to close
-      if (e.key === 'Escape') {
-        closeEditor();
       }
 
       // Tab for indentation
@@ -185,6 +180,17 @@ function setupEventHandlers() {
       }
     });
   }
+
+  // Esc closes the editor regardless of which element has focus. We use the
+  // capturing phase + stopPropagation so the keystroke never reaches a
+  // focused terminal underneath — otherwise xterm would forward \x1b to the
+  // PTY and cancel an in-flight CLI tool (e.g. a running Claude Code prompt).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!editorOverlay || !editorOverlay.classList.contains('visible')) return;
+    e.stopPropagation();
+    closeEditor();
+  }, true);
 
   // Close on overlay click (outside editor)
   if (editorOverlay) {

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-02",
+  "lastUpdated": "2026-06-03",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -2429,15 +2429,15 @@
           "purpose": "Setup event handlers"
         },
         "setupIPC": {
-          "line": 202,
+          "line": 208,
           "purpose": "Setup IPC listeners"
         },
         "isEditorOpen": {
-          "line": 270,
+          "line": 276,
           "purpose": "Check if editor is open"
         },
         "getCurrentFile": {
-          "line": 277,
+          "line": 283,
           "purpose": "Get currently editing file path"
         }
       },
@@ -5671,29 +5671,29 @@
           "line": 24
         },
         "open": {
-          "line": 60,
+          "line": 63,
           "params": [
             "opts"
           ],
           "purpose": "Open the diff viewer for the given file."
         },
         "close": {
-          "line": 107
+          "line": 110
         },
         "setMode": {
-          "line": 116,
+          "line": 119,
           "params": [
             "mode"
           ]
         },
         "renderCurrent": {
-          "line": 124
+          "line": 127
         },
         "showLoading": {
-          "line": 135
+          "line": 138
         },
         "showEmpty": {
-          "line": 141,
+          "line": 144,
           "params": [
             "message"
           ]
