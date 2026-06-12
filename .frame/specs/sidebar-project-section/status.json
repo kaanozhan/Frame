@@ -1,10 +1,20 @@
 {
   "slug": "sidebar-project-section",
   "title": "Sidebar Project Section — projects as the root of the sidebar",
-  "phase": "specified",
+  "phase": "tasks_generated",
   "ai_tool": "claude-code",
-  "generated_task_ids": [],
+  "generated_task_ids": [
+    "task-spec-sidebar-project-section-T01",
+    "task-spec-sidebar-project-section-T02",
+    "task-spec-sidebar-project-section-T03",
+    "task-spec-sidebar-project-section-T04",
+    "task-spec-sidebar-project-section-T05",
+    "task-spec-sidebar-project-section-T06",
+    "task-spec-sidebar-project-section-T07",
+    "task-spec-sidebar-project-section-T08",
+    "task-spec-sidebar-project-section-T09"
+  ],
   "created_at": "2026-06-11T16:00:00.000Z",
-  "updated_at": "2026-06-11T16:00:00.000Z",
-  "last_phase_at": "2026-06-11T16:00:00.000Z"
+  "updated_at": "2026-06-12T08:56:22.291Z",
+  "last_phase_at": "2026-06-12T08:56:22.291Z"
 }
