@@ -1,16 +1,23 @@
 /**
- * Terminal Tab Bar Module
- * Renders and manages the terminal tab bar UI
+ * Terminal Top Bar Module (historically the tab bar)
+ *
+ * Persistent bar above the terminal content area. The left section is
+ * single-state — identical on the Mainframe and inside a Frame: the
+ * Mainframe button (highlighted when you're on it), the Active Frames
+ * count, and a chip for any pinned section (e.g. a task detail) that can
+ * re-open or close it from either view. The right action cluster (usage
+ * bars, new frame, layout select, panels, more menu) is mode-independent
+ * except the layout select, which only shows in detail.
  */
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
-const tasksPanel = require('./tasksPanel');
+const tasksDashboard = require('./tasksDashboard');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
-const specPanel = require('./specPanel');
-const { Plus, LayoutGrid, MoreHorizontal, Square, Bell, CheckSquare } = require('lucide');
+const specsDashboard = require('./specsDashboard');
+const { Plus, MoreHorizontal, Bell, CheckSquare, Home, X, Boxes, FileText } = require('lucide');
 
 function lucideIcon(data, size = 18) {
   const children = data.map(([tag, attrs]) => {
@@ -25,14 +32,18 @@ class TerminalTabBar {
     this.container = container;
     this.manager = manager;
     this.element = null;
-    this.contextMenu = null;
     this.shellMenu = null;
     this.moreMenu = null;
     this.availableShells = [];
     this.onOverviewToggle = null; // Callback for overview toggle
+    this.onGoHome = null;         // Callback: return to lane board
+    this.onEnterFrames = null;    // Callback: enter the active Frame (detail view)
+    this.onLaneCreated = null;    // Callback: (terminalId) => after + creates a lane
+    this.onActivateSection = null; // Callback: (key) => focus an open section tab
+    this.onCloseSection = null;    // Callback: (key) => close a section tab
+    this._lastState = null;
     this._injectStyles();
     this._render();
-    this._createContextMenu();
     this._createShellMenu();
     this._createMoreMenu();
     this._loadAvailableShells();
@@ -146,27 +157,11 @@ class TerminalTabBar {
     }
   }
 
-  _createContextMenu() {
-    this.contextMenu = document.createElement('div');
-    this.contextMenu.className = 'terminal-context-menu';
-    document.body.appendChild(this.contextMenu);
-    
-    // Hide menu on click elsewhere
-    document.addEventListener('click', () => {
-      this._hideContextMenu();
-    });
-    
-    // Hide menu on scroll
-    document.addEventListener('scroll', () => {
-      this._hideContextMenu();
-    }, true);
-  }
-
   _render() {
     this.element = document.createElement('div');
     this.element.className = 'terminal-tab-bar';
     this.element.innerHTML = `
-      <div class="terminal-tabs"></div>
+      <div class="lane-bar-left"></div>
       <div class="terminal-tab-actions">
         <div class="claude-usage-bars" title="Click to refresh">
           <div class="usage-item session">
@@ -186,18 +181,16 @@ class TerminalTabBar {
             <span class="usage-reset"></span>
           </div>
         </div>
-        <button class="btn-new-terminal" title="New Terminal - Click to select shell, Right-click for default">
+        <button class="btn-new-terminal" title="New Frame - Click to select shell, Right-click for default">
           ${lucideIcon(Plus)}
         </button>
-        <button class="btn-view-toggle" title="Toggle Grid View">
-          ${lucideIcon(LayoutGrid)}
-        </button>
-        <select class="grid-layout-select" title="Grid Layout">
+        <select class="grid-layout-select" title="Layout">
+          <option value="1x1" selected>1×1</option>
           <option value="1x2">1×2</option>
           <option value="1x3">1×3</option>
           <option value="1x4">1×4</option>
           <option value="2x1">2×1</option>
-          <option value="2x2" selected>2×2</option>
+          <option value="2x2">2×2</option>
           <option value="3x1">3×1</option>
           <option value="3x2">3×2</option>
           <option value="3x3">3×3</option>
@@ -206,7 +199,7 @@ class TerminalTabBar {
           ${lucideIcon(Bell)}
           <span class="update-badge"></span>
         </button>
-        <button class="btn-tasks-toggle" title="Toggle Tasks panel">
+        <button class="btn-tasks-toggle" title="Tasks dashboard">
           ${lucideIcon(CheckSquare)}
         </button>
         <button class="btn-more-toggle" title="More panels">
@@ -220,104 +213,100 @@ class TerminalTabBar {
   }
 
   /**
-   * Update tab bar based on state
+   * Update top bar based on state
    */
   update(state) {
-    const tabsContainer = this.element.querySelector('.terminal-tabs');
+    this._lastState = state;
 
-    // Render tabs
-    // Render tabs - Smart update to preserve DOM elements and events
-    const existingTabs = Array.from(tabsContainer.children);
-    const terminalIds = state.terminals.map(t => t.id);
-    const existingIds = existingTabs.map(el => el.dataset.terminalId);
+    this._renderLeftSection(state);
 
-    // Check if we can do an in-place update (same terminals, same order)
-    const canUpdateInPlace = terminalIds.length === existingIds.length && 
-      terminalIds.every((id, i) => id === existingIds[i]);
-
-    if (canUpdateInPlace) {
-      // Update existing elements
-      state.terminals.forEach((t, i) => {
-        const tabEl = existingTabs[i];
-        
-        // Update active class
-        if (t.isActive) tabEl.classList.add('active');
-        else tabEl.classList.remove('active');
-
-        // Update name if changed (and not currently being renamed)
-        const nameSpan = tabEl.querySelector('.tab-name');
-        if (nameSpan) {
-          const newName = t.customName || t.name;
-          if (nameSpan.textContent !== newName) {
-            nameSpan.textContent = newName;
-          }
-        }
-      });
-    } else {
-      // Full re-render
-      tabsContainer.innerHTML = state.terminals.map(t => `
-        <div class="terminal-tab ${t.isActive ? 'active' : ''}" data-terminal-id="${t.id}">
-          <span class="tab-name">${this._escapeHtml(t.customName || t.name)}</span>
-          ${state.terminals.length > 1 ? `<button class="tab-close" data-terminal-id="${t.id}" title="Close">×</button>` : ''}
-        </div>
-      `).join('');
-    }
-
-    // Update view toggle button
-    const toggleBtn = this.element.querySelector('.btn-view-toggle');
-    toggleBtn.innerHTML = state.viewMode === 'tabs' ? lucideIcon(LayoutGrid) : lucideIcon(Square);
-    toggleBtn.title = state.viewMode === 'tabs' ? 'Switch to Grid View' : 'Switch to Tab View';
-
-    // Show/hide grid layout selector
+    // Layout selector lives in the detail view: 1×1 is the plain single
+    // terminal, larger layouts split the view into assignable cells.
     const layoutSelect = this.element.querySelector('.grid-layout-select');
-    layoutSelect.style.display = state.viewMode === 'grid' ? 'inline-block' : 'none';
-    layoutSelect.value = state.gridLayout;
+    layoutSelect.style.display = state.viewMode === 'detail' ? 'inline-block' : 'none';
+    layoutSelect.value = state.gridLayout || '1x1';
 
-    // Disable new terminal button if at max
+    // Disable new lane button when no project is selected or at max
     const newBtn = this.element.querySelector('.btn-new-terminal');
-    newBtn.disabled = state.terminals.length >= this.manager.maxTerminals;
-    newBtn.title = newBtn.disabled
-      ? `Maximum terminals (${this.manager.maxTerminals}) reached for this project`
-      : 'New Terminal (Ctrl+Shift+T)';
+    const noProject = !state.currentProjectPath;
+    newBtn.disabled = noProject || state.terminals.length >= this.manager.maxTerminals;
+    newBtn.title = noProject
+      ? 'Select a project first'
+      : newBtn.disabled
+        ? `Maximum frames (${this.manager.maxTerminals}) reached for this project`
+        : 'New Frame (Ctrl+Shift+T)';
+  }
+
+  /**
+   * Render the single-state left section: the Home tab (the lane board) and,
+   * once at least one Frame is open, a Frames tab carrying the Active Frames
+   * count — always inserted right after Home. Whichever surface is on screen
+   * gets the highlight. Each open detail section (task or spec) appears after
+   * those as its own chip — multiple can be open at once; the active one is
+   * highlighted and every chip has a close button.
+   */
+  _renderLeftSection(state) {
+    const left = this.element.querySelector('.lane-bar-left');
+
+    const sections = state.sections || [];
+    const activeKey = state.activeSectionKey || null;
+    const onSection = !!activeKey;
+    const onHome = state.viewMode === 'board' && !onSection;
+    const onFrames = state.viewMode !== 'board' && !onSection;
+
+    const count = state.terminals.length;
+    const hasFrames = count > 0;
+
+    left.innerHTML = `
+      <button class="btn-lane-home ${onHome ? 'current' : ''}" title="Home (Cmd+Esc)">
+        ${lucideIcon(Home, 15)}
+        <span class="btn-lane-home-label">Home</span>
+      </button>
+      ${hasFrames ? `
+        <span class="lane-bar-divider"></span>
+        <button class="btn-lane-frames ${onFrames ? 'current' : ''}" title="Frames">
+          ${lucideIcon(Boxes, 15)}
+          <span class="btn-lane-frames-label">Frames</span>
+          <span class="lane-bar-count" title="Active Frames">${count}</span>
+        </button>
+      ` : ''}
+      ${sections.length ? `
+        <span class="lane-bar-divider"></span>
+        ${sections.map(sec => `
+          <button class="lane-bar-section ${sec.key === activeKey ? 'current' : ''}" data-key="${this._escapeHtml(sec.key)}" title="${this._escapeHtml(sec.title)}">
+            ${lucideIcon(sec.type === 'spec' ? FileText : CheckSquare, 13)}
+            <span class="lane-bar-section-label">${this._escapeHtml(sec.title)}</span>
+            <span class="lane-bar-section-close" title="Close tab">${lucideIcon(X, 12)}</span>
+          </button>
+        `).join('')}
+      ` : ''}
+    `;
   }
 
   _setupEventHandlers() {
-    // Tab click - activate terminal
+    // Left section (delegated — content re-renders on every state update)
     this.element.addEventListener('click', (e) => {
-      const tab = e.target.closest('.terminal-tab');
-      if (tab && !e.target.classList.contains('tab-close')) {
-        const terminalId = tab.dataset.terminalId;
-        this.manager.setActiveTerminal(terminalId);
-      }
-    });
-
-    // Close button click
-    this.element.addEventListener('click', (e) => {
-      if (e.target.classList.contains('tab-close')) {
+      const sectionEl = e.target.closest('.lane-bar-section');
+      if (e.target.closest('.lane-bar-section-close')) {
         e.stopPropagation();
-        const terminalId = e.target.dataset.terminalId;
-        this.manager.closeTerminal(terminalId);
+        if (this.onCloseSection && sectionEl) this.onCloseSection(sectionEl.dataset.key);
+        return;
+      }
+      if (sectionEl) {
+        if (this.onActivateSection) this.onActivateSection(sectionEl.dataset.key);
+        return;
+      }
+      if (e.target.closest('.btn-lane-home')) {
+        if (this.onGoHome) this.onGoHome();
+        return;
+      }
+      if (e.target.closest('.btn-lane-frames')) {
+        if (this.onEnterFrames) this.onEnterFrames();
+        return;
       }
     });
 
-    // Double-click to rename
-    this.element.addEventListener('dblclick', (e) => {
-      const tab = e.target.closest('.terminal-tab');
-      if (tab) {
-        this._startRename(tab);
-      }
-    });
-
-    // Right-click context menu
-    this.element.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      const tab = e.target.closest('.terminal-tab');
-      if (tab) {
-        this._showContextMenu(e.clientX, e.clientY, tab);
-      }
-    });
-
-    // New terminal button - click to show shell selection, or right-click for default shell
+    // New lane button - click to show shell selection, or right-click for default shell
     const newTerminalBtn = this.element.querySelector('.btn-new-terminal');
     newTerminalBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -325,20 +314,14 @@ class TerminalTabBar {
       this._showShellMenu(rect.left, rect.bottom + 4);
     });
 
-    // Right-click on + button to create terminal with default shell quickly
+    // Right-click on + button to create lane with default shell quickly
     newTerminalBtn.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      this.manager.createTerminal();
+      this._createLane();
     });
 
-    // View toggle button
-    this.element.querySelector('.btn-view-toggle').addEventListener('click', () => {
-      const newMode = this.manager.viewMode === 'tabs' ? 'grid' : 'tabs';
-      this.manager.setViewMode(newMode);
-    });
-
-    // Grid layout selector
+    // Layout selector (1×1 single terminal ↔ multi-cell layouts)
     this.element.querySelector('.grid-layout-select').addEventListener('change', (e) => {
       this.manager.setGridLayout(e.target.value);
     });
@@ -348,12 +331,13 @@ class TerminalTabBar {
       ipcRenderer.send(IPC.REFRESH_CLAUDE_USAGE);
     });
 
-    // Standalone Tasks toggle button (lives directly in the tab bar, no menu)
+    // Standalone Tasks button — opens the full Tasks dashboard (the side
+    // panel is retired; Home's lane rail already covers the at-a-glance view)
     const tasksBtn = this.element.querySelector('.btn-tasks-toggle');
     if (tasksBtn) {
       tasksBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        tasksPanel.toggle();
+        tasksDashboard.toggle();
       });
     }
 
@@ -504,113 +488,19 @@ class TerminalTabBar {
     }
   }
 
-  _startRename(tabElement) {
-    const nameSpan = tabElement.querySelector('.tab-name');
-    if (!nameSpan) return; // Already renaming or invalid structure
-    
-    const currentName = nameSpan.textContent;
-    const terminalId = tabElement.dataset.terminalId;
-
-    // Create input
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'tab-rename-input';
-    input.value = currentName;
-
-    nameSpan.replaceWith(input);
-    input.focus();
-    input.select();
-
-    const finishRename = () => {
-      const newName = input.value.trim() || currentName;
-      
-      // Revert UI immediately to avoid stuck input
-      const span = document.createElement('span');
-      span.className = 'tab-name';
-      span.textContent = newName;
-      if (input.parentNode) {
-        input.replaceWith(span);
-      }
-
-      this.manager.renameTerminal(terminalId, newName);
-    };
-
-    input.addEventListener('blur', finishRename);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        input.blur();
-      }
-      if (e.key === 'Escape') {
-        input.value = currentName;
-        input.blur();
-      }
-    });
-  }
-
   _escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
   }
 
-  _showContextMenu(x, y, tabElement) {
-    // Clear previous items
-    this.contextMenu.innerHTML = '';
-    
-    // Rename option
-    const renameItem = document.createElement('div');
-    renameItem.className = 'terminal-context-menu-item';
-    renameItem.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-      </svg>
-      Rename
-    `;
-    renameItem.addEventListener('click', () => {
-      this._startRename(tabElement);
-      this._hideContextMenu();
-    });
-    
-    // Close option
-    const closeItem = document.createElement('div');
-    closeItem.className = 'terminal-context-menu-item';
-    closeItem.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-      Close
-    `;
-    closeItem.addEventListener('click', () => {
-      const terminalId = tabElement.dataset.terminalId;
-      this.manager.closeTerminal(terminalId);
-      this._hideContextMenu();
-    });
-
-    this.contextMenu.appendChild(renameItem);
-    this.contextMenu.appendChild(closeItem);
-
-    // Position and show
-    this.contextMenu.style.left = `${x}px`;
-    this.contextMenu.style.top = `${y}px`;
-    this.contextMenu.classList.add('visible');
-    
-    // Adjust position if out of bounds
-    const rect = this.contextMenu.getBoundingClientRect();
-    if (rect.right > window.innerWidth) {
-      this.contextMenu.style.left = `${window.innerWidth - rect.width - 5}px`;
-    }
-    if (rect.bottom > window.innerHeight) {
-      this.contextMenu.style.top = `${window.innerHeight - rect.height - 5}px`;
-    }
-  }
-
-  _hideContextMenu() {
-    if (this.contextMenu) {
-      this.contextMenu.classList.remove('visible');
-    }
+  /**
+   * Create a lane (optionally with a specific shell) and enter it.
+   */
+  async _createLane(shellPath = null) {
+    const options = shellPath ? { shell: shellPath } : {};
+    const id = await this.manager.createTerminal(options);
+    if (id && this.onLaneCreated) this.onLaneCreated(id);
   }
 
   _createShellMenu() {
@@ -654,7 +544,7 @@ class TerminalTabBar {
       {
         label: 'Specs',
         icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`,
-        action: () => specPanel.toggle(),
+        action: () => specsDashboard.toggle(),
         key: 'specs'
       },
       {
@@ -786,7 +676,7 @@ class TerminalTabBar {
 
         item.addEventListener('click', () => {
           this._hideShellMenu();
-          this.manager.createTerminal({ shell: shell.path });
+          this._createLane(shell.path);
         });
 
         this.shellMenu.appendChild(item);

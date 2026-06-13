@@ -1,0 +1,23 @@
+# Tasks — Agent Dispatch — lane-aware task & spec runs
+
+- T01 · Create `src/renderer/agentDispatch.js` with `dispatch()` — resolve target lane (existing id or `createTerminalForCurrentProject()` with cap error toast), pre-flight the CLI via `CHECK_AI_TOOL_AVAILABLE`, enter the lane, and inject via `window.terminalSendPromptThenEnter` — wired up through `agentDispatch.init(this)` in `MultiTerminalUI._setup()`
+- T02 · Implement the agent-ready wait in `agentDispatch.js`: subscribe `laneStatus.onChange` before sending the start command, resolve on `agentName` set + `status === 'agent-input'` for the target lane, abort with an error toast after a 15 s fallback timeout so the prompt never lands in a bare shell
+- T03 · Add `assignment` field and `setAssignment(terminalId, assignment)` to `src/renderer/terminalManager.js` per-terminal state (session-only, excluded from `saveProjectSession`) and record it from `dispatch()` after successful injection
+- T04 · Remove the Terminal choice section from `#task-run-modal` in `index.html` and `src/renderer/taskRunModal.js` — CLI section always visible, `useNewTerminal` dropped from the options payload, branch UI untouched
+- T05 · Rewrite `runTaskWithOptions` in `src/renderer/tasksPanel.js` to call `agentDispatch.dispatch({ createNew: true, toolId, prompt, assignment })`, deleting the blind `setTimeout` injection path while keeping `buildTaskPrompt` byte-for-byte
+- T06 · Delete `window.terminalCreateAndStart` from `src/renderer/terminal.js` and verify no references remain
+- T07 · Implement `dispatchSpecCommand({ slug, title, command })` in `agentDispatch.js`: private spec→lane Map validated against open lanes, `BUILD_SPEC_COMMAND_FILE` staging, and the "Continue in \<Frame\> / Open a new Frame" choice modal using the `spec-modal-overlay` idiom
+- T08 · Migrate `runSpecCommand` in `src/renderer/specPanel.js`, `src/renderer/specSection.js`, and `src/renderer/specsDashboard.js` to delegate to `agentDispatch.dispatchSpecCommand`
+- T09 · Render the assignment label (`spec: <slug>` or truncated task title) on lane cards in `src/renderer/laneBoard.js` with styles in `src/renderer/styles/components/lane-board.css`
+- T10 · Render the assignment label on rail items in `src/renderer/laneDetailRail.js`
+- T11 · Register the `renderer/agentDispatch` module in `STRUCTURE.json` (verify the pre-commit hook's intentIndex entry)
+- T12 · Restore the task ▶ entry point: export `tasksPanel.openRunFlow(task)` and wire taskSection's "Start Working" to the run modal + dispatch (the retired side panel had orphaned the flow)
+- T13 · Lock spec next-action bars while the assigned Frame's agent is mid-turn: `getSpecLaneInfo`/`onSpecLaneActivity` + disabled spinner state on specPanel, specSection and specsDashboard
+- T14 · Scope laneStatus's agent-TUI fingerprint fallback to inconclusive foregrounds so a killed agent classifies `idle` instead of sticking at "Awaiting input"
+- T15 · Redesign the lane assignment label as a typed chip (FileText = spec, CheckSquare = task) on cards and the detail rail, dimmed while no live agent owns the lane
+- T16 · Add live spec activity dots (`specStatusDotHtml`) to spec rows and detail headers across panel, section viewport, dashboard and board rail
+- T17 · Add live task activity dots (`getTaskLaneInfo`/`taskStatusDotHtml`) to task rows and the task detail header; stop the static in-progress marker from pulsing
+- T18 · Append the auto-done instruction to `buildTaskPrompt` so the agent marks the task completed in tasks.json when it genuinely finishes
+- T19 · Show an IN PROGRESS status chip on task rows in the board rail and section rail
+- T20 · Board rail layout: SPECS content-sized capped at 40%, TASKS absorbs the rest, all open tasks rendered with section-scoped scrolling
+- T21 · Replace the rail's task filter selects with dashboard-style Filter/Sort buttons + popovers (priority/category filters; status/priority/newest sort)

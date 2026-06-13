@@ -98,8 +98,8 @@ class TerminalManager {
   constructor() {
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
     this.activeTerminalId = null;
-    this.viewMode = 'tabs'; // 'tabs' or 'grid'
-    this.gridLayout = '2x2';
+    this.viewMode = 'board'; // 'board' | 'detail'
+    this.gridLayout = '1x1'; // detail layout: 1x1 single, larger = cells
     this.maxTerminals = 9;
     this.terminalCounter = 0;
     this.onStateChange = null;
@@ -192,9 +192,12 @@ class TerminalManager {
       const sessionData = allSessions[sessionKey];
 
       if (sessionData) {
-        // Restore view settings
+        // Restore view settings. Legacy 'tabs'/'grid' sessions (pre lane
+        // orchestrator) map to 'detail' — terminals existed, land inside.
         if (sessionData.viewMode) {
-          this.viewMode = sessionData.viewMode;
+          this.viewMode = (sessionData.viewMode === 'tabs' || sessionData.viewMode === 'grid')
+            ? 'detail'
+            : sessionData.viewMode;
         }
         if (sessionData.gridLayout) {
           this.gridLayout = sessionData.gridLayout;
@@ -336,11 +339,15 @@ class TerminalManager {
 
     const state = {
       id: terminalId,
-      name: options.name || `Terminal ${++this.terminalCounter}`,
+      name: options.name || `Frame ${++this.terminalCounter}`,
       customName: null,
       isActive: false,
       createdAt: Date.now(),
-      projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath
+      projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath,
+      // What this lane is working on (set by agentDispatch):
+      // { kind: 'task'|'spec', label, ref } — presentation metadata only,
+      // session-scoped, dies with the lane (never persisted).
+      assignment: null
     };
 
     this.terminals.set(terminalId, { terminal, fitAddon, element, state });
@@ -405,6 +412,10 @@ class TerminalManager {
       }
       // Ctrl/Cmd + Tab → pass to app
       if (modKey && event.key === 'Tab') {
+        return false;
+      }
+      // Ctrl/Cmd + Escape (back to lane board) → pass to app
+      if (modKey && key === 'escape') {
         return false;
       }
       // Let terminal handle everything else
@@ -540,6 +551,19 @@ class TerminalManager {
     if (instance) {
       instance.state.customName = newName;
       instance.state.name = newName;
+      this._notifyStateChange();
+    }
+  }
+
+  /**
+   * Set what a lane is working on (most recent dispatch wins the label).
+   * @param {string} terminalId
+   * @param {{kind: 'task'|'spec', label: string, ref: string}|null} assignment
+   */
+  setAssignment(terminalId, assignment) {
+    const instance = this.terminals.get(terminalId);
+    if (instance) {
+      instance.state.assignment = assignment;
       this._notifyStateChange();
     }
   }
@@ -761,7 +785,7 @@ class TerminalManager {
     terminals.forEach((tState, index) => {
       const instance = this.terminals.get(tState.id);
       if (instance && !instance.state.customName) {
-        const newName = `Terminal ${index + 1}`;
+        const newName = `Frame ${index + 1}`;
         if (instance.state.name !== newName) {
           instance.state.name = newName;
         }

@@ -324,22 +324,7 @@ function handleTaskAction(taskId, action) {
 
   switch (action) {
     case 'start':
-      // Open the run-config modal first; status flips and prompt is sent
-      // only after the user confirms AND the launch actually succeeds
-      // (e.g. the chosen CLI is installed). Lazy-required to avoid
-      // load-order coupling with the rest of the renderer wiring.
-      require('./taskRunModal').open(task, {
-        onRun: async (opts) => {
-          const ok = await runTaskWithOptions(task, opts);
-          if (!ok) return;
-          ipcRenderer.send(IPC.UPDATE_TASK, {
-            projectPath,
-            taskId,
-            updates: { status: 'in_progress' }
-          });
-          showToast('Task sent', 'info');
-        }
-      });
+      openRunFlow(task);
       return;
     case 'complete':
       newStatus = 'completed';
@@ -368,6 +353,31 @@ function handleTaskAction(taskId, action) {
     });
     showToast(toastMessage, action === 'complete' ? 'success' : 'info');
   }
+}
+
+/**
+ * Open the run-config modal for a task and dispatch it on confirm.
+ * Status flips and the "sent" toast shows only after the user confirms
+ * AND the dispatch actually succeeds (CLI installed, agent ready).
+ * Shared entry point — the task detail viewport (taskSection) calls this
+ * too, so every surface runs tasks through the same modal + dispatch.
+ */
+function openRunFlow(task) {
+  const projectPath = state.getProjectPath();
+  if (!projectPath || !task) return;
+  // Lazy-required to avoid load-order coupling with the renderer wiring.
+  require('./taskRunModal').open(task, {
+    onRun: async (opts) => {
+      const ok = await runTaskWithOptions(task, opts);
+      if (!ok) return;
+      ipcRenderer.send(IPC.UPDATE_TASK, {
+        projectPath,
+        taskId: task.id,
+        updates: { status: 'in_progress' }
+      });
+      showToast('Task sent', 'info');
+    }
+  });
 }
 
 /**
@@ -443,87 +453,38 @@ function buildTaskPrompt(task, opts = {}) {
       + ` First, check for uncommitted changes on the current branch — if any exist, ask me what to do with them (commit, stash, or discard) and act on my decision before continuing.`
       + ` Then, ${branchStep}.`;
   }
+
+  // Close the loop: the agent flips the task to completed in tasks.json
+  // when it's genuinely done; the tasks watcher pushes the change straight
+  // back into the UI. Terminal-side signals can't tell "done" from
+  // "stopped", so this stays the only auto-completion path.
+  prompt += ` When the task is fully complete, update this task's status to "completed" in tasks.json (task id: ${task.id}).`;
+
   return prompt;
 }
 
 /**
- * Send the task to a terminal according to the user's choices in the
- * run modal. For "use current" we just write into the active terminal.
- * For "new terminal" we pre-flight that the chosen CLI is actually
- * installed, then spawn a terminal, launch the CLI, and inject the
- * prompt once the CLI has had a moment to come up.
+ * Send the task to an agent. Always a new Frame: agentDispatch creates
+ * the lane, pre-flights and starts the chosen CLI, waits for the
+ * agent-ready signal, then injects the prompt — no fixed sleeps, and
+ * never into a bare shell. Dispatch surfaces its own error toasts.
  *
- * Returns true on success, false if we aborted (e.g. CLI missing) so
- * the caller can decide whether to flip status / show "sent" toast.
+ * Returns true on success, false if dispatch aborted (e.g. CLI missing,
+ * frame cap reached) so the caller can decide whether to flip status /
+ * show the "sent" toast.
  */
 async function runTaskWithOptions(task, opts = {}) {
   const prompt = buildTaskPrompt(task, opts);
 
-  if (!opts.useNewTerminal) {
-    // Same text-then-Enter trick as the new-terminal flow: AI CLI input
-    // boxes (Claude/Codex/Gemini) buffer text+\r in one chunk as paste
-    // content, so the trailing \r ends up in the input instead of
-    // submitting. Splitting the writes makes submit reliable.
-    if (typeof window.terminalSendPromptThenEnter === 'function') {
-      window.terminalSendPromptThenEnter(prompt);
-      return true;
-    }
-    if (typeof window.terminalSendCommand === 'function') {
-      window.terminalSendCommand(prompt);
-      return true;
-    }
-    console.error('Terminal sendCommand not available');
-    return false;
-  }
-
-  if (typeof window.terminalCreateAndStart !== 'function') {
-    console.error('Terminal createAndStart not available');
-    return false;
-  }
-
-  const projectPath = state.getProjectPath();
-
-  // Pre-flight: confirm the chosen CLI is installed. Without this we'd
-  // happily hand the user a "command not found" followed by the task
-  // prompt sitting in a bare shell.
-  let startCommand = null;
-  if (opts.toolId) {
-    let check;
-    try {
-      check = await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, {
-        toolId: opts.toolId,
-        projectPath
-      });
-    } catch (err) {
-      console.error('Failed to verify AI tool availability', err);
-      showToast('Could not verify AI CLI availability', 'error');
-      return false;
-    }
-    if (!check || !check.available) {
-      const name = (check && check.name) || opts.toolId;
-      showToast(`${name} CLI not found on your system`, 'error');
-      return false;
-    }
-    startCommand = check.resolvedCommand;
-  }
-
-  const newTerminalId = await window.terminalCreateAndStart(projectPath, startCommand);
-  if (!newTerminalId) return false;
-
-  // Give the CLI a few seconds to boot before injecting the prompt.
-  // window.terminalCreateAndStart already waits 1s before sending the
-  // start command, so we add another 4s on top of that. Use the
-  // text-then-Enter helper so the prompt actually submits — sending
-  // text+\r in a single chunk often gets buffered as paste content by
-  // AI CLI input boxes.
-  setTimeout(() => {
-    if (typeof window.terminalSendPromptThenEnter === 'function') {
-      window.terminalSendPromptThenEnter(prompt, newTerminalId);
-    } else if (typeof window.terminalSendCommand === 'function') {
-      window.terminalSendCommand(prompt, newTerminalId);
-    }
-  }, 5000);
-  return true;
+  // Lazy-required to avoid load-order coupling with the terminal wiring.
+  const agentDispatch = require('./agentDispatch');
+  const result = await agentDispatch.dispatch({
+    createNew: true,
+    toolId: opts.toolId,
+    prompt,
+    assignment: { kind: 'task', label: task.title, ref: task.id }
+  });
+  return result.success;
 }
 
 /**
@@ -745,6 +706,7 @@ module.exports = {
   hide,
   toggle,
   loadTasks,
+  openRunFlow,
   isVisible: () => isVisible,
   setClaudeRunning,
   isClaudeRunning

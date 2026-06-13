@@ -2,9 +2,9 @@
  * Task Run Modal
  *
  * Confirmation/configuration modal shown when the user clicks the play
- * button on a task. Lets them choose:
- *   - existing terminal vs new terminal
- *   - which AI CLI to launch (only if new terminal)
+ * button on a task. Running a task always opens a new Frame; the modal
+ * lets them choose:
+ *   - which AI CLI to launch
  *   - stay on current branch vs create a new branch (optional name)
  *
  * Returns the chosen options to the caller via the `onRun` callback;
@@ -19,9 +19,6 @@ const state = require('./state');
 
 let modalEl = null;
 let titleEl = null;
-let terminalRadios = null;
-let currentHintEl = null;
-let cliSection = null;
 let cliOptionsEl = null;
 let branchRadios = null;
 let currentBranchEl = null;
@@ -40,18 +37,12 @@ function init() {
   if (!modalEl) return;
 
   titleEl = document.getElementById('task-run-modal-task-title');
-  terminalRadios = modalEl.querySelectorAll('input[name="task-run-terminal"]');
-  currentHintEl = document.getElementById('task-run-current-hint');
-  cliSection = document.getElementById('task-run-cli-section');
   cliOptionsEl = document.getElementById('task-run-cli-options');
   branchRadios = modalEl.querySelectorAll('input[name="task-run-branch"]');
   currentBranchEl = document.getElementById('task-run-current-branch');
   newBranchNameInput = document.getElementById('task-run-new-branch-name');
   runBtn = document.getElementById('task-run-confirm');
   cancelBtn = document.getElementById('task-run-cancel');
-
-  // Toggle CLI section + warning hint based on terminal choice
-  terminalRadios.forEach(r => r.addEventListener('change', updateTerminalChoiceUI));
 
   // Toggle new-branch input enabled state based on branch choice
   branchRadios.forEach(r => r.addEventListener('change', updateBranchChoiceUI));
@@ -82,23 +73,12 @@ function init() {
   initialized = true;
 }
 
-function updateTerminalChoiceUI() {
-  const useNew = getTerminalChoice() === 'new';
-  cliSection.style.display = useNew ? '' : 'none';
-  currentHintEl.style.display = useNew ? 'none' : '';
-}
-
 function updateBranchChoiceUI() {
   const newBranch = getBranchChoice() === 'new';
   newBranchNameInput.disabled = !newBranch;
   if (newBranch) {
     requestAnimationFrame(() => newBranchNameInput.focus());
   }
-}
-
-function getTerminalChoice() {
-  const checked = Array.from(terminalRadios).find(r => r.checked);
-  return checked ? checked.value : 'current';
 }
 
 function getBranchChoice() {
@@ -174,13 +154,11 @@ function open(task, opts = {}) {
   }
 
   // Reset to defaults
-  Array.from(terminalRadios).forEach(r => { r.checked = r.value === 'current'; });
   Array.from(branchRadios).forEach(r => { r.checked = r.value === 'current'; });
   newBranchNameInput.value = '';
   newBranchNameInput.disabled = true;
 
   populateCliOptions();
-  updateTerminalChoiceUI();
   loadCurrentBranch();
 
   modalEl.classList.add('visible');
@@ -197,7 +175,6 @@ function close() {
 
 function confirm() {
   const options = {
-    useNewTerminal: getTerminalChoice() === 'new',
     toolId: getCliChoice(),
     branchMode: getBranchChoice(),
     newBranchName: newBranchNameInput.value.trim() || null

@@ -1,0 +1,214 @@
+/* ═══════════════════════════════════════════════════════════
+   Task Section — pinned task detail surface (taskSection.js)
+
+   Opened from a Mainframe task card; takes over the content area
+   while a chip in the top bar keeps it reachable from any view.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Section viewport shell: scrollable detail on the left + a collapsible
+   sibling rail (sectionRail.js) on the right, shared by task & spec views. */
+.terminal-content.section-view {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.section-layout {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.section-content-area {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Width applies only when expanded — collapsed falls back to the slim
+   36px strip (.lane-rail.collapsed), otherwise the strip renders full-width. */
+.lane-rail.section-rail:not(.collapsed) {
+  width: 280px;
+}
+
+/* "Hide completed" filter row + the revealed completed group heading */
+.section-rail-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.section-rail-filter input {
+  cursor: pointer;
+  margin: 0;
+}
+
+.section-rail-group {
+  padding: 12px 12px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+/* Keep the dashboard shortcut always visible here (the board rail only shows
+   it on hover) — it's the primary "jump to the full dashboard" affordance. */
+.section-rail-header .section-rail-dash {
+  opacity: 0.7;
+}
+
+.section-rail-header:hover .section-rail-dash,
+.section-rail-header .section-rail-dash:hover {
+  opacity: 1;
+}
+
+.spec-section {
+  display: flex;
+  justify-content: center;
+  padding: 28px 24px 48px;
+}
+
+.spec-section-inner {
+  width: min(820px, 100%);
+}
+
+.task-section {
+  display: flex;
+  justify-content: center;
+  padding: 28px 24px 48px;
+}
+
+.task-section-inner {
+  width: min(760px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Header */
+
+.task-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.task-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.task-section-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.task-section-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.task-section-status.status-pending {
+  background: var(--bg-hover);
+  color: var(--text-tertiary);
+}
+
+.task-section-status.status-in_progress {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+.task-section-status.status-completed {
+  background: var(--success-subtle);
+  color: var(--success);
+}
+
+.task-section-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.task-section-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+/* Content blocks — card sections, same family as the panels */
+
+.task-section-block {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.task-section-block-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.task-section-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.task-section-quote {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  padding-left: var(--space-md);
+  border-left: 3px solid var(--accent-primary);
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.task-section-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-section-list li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.task-section-missing {
+  align-items: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}

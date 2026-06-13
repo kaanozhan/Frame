@@ -70,7 +70,11 @@ async function restartTerminal(projectPath) {
   if (multiTerminalUI) {
     // Set the project first, then create terminal
     multiTerminalUI.setCurrentProject(projectPath);
-    return await multiTerminalUI.createTerminalForCurrentProject();
+    const newTerminalId = await multiTerminalUI.createTerminalForCurrentProject();
+    if (newTerminalId) {
+      multiTerminalUI.enterLane(newTerminalId);
+    }
+    return newTerminalId;
   }
   return null;
 }
@@ -95,23 +99,6 @@ function setActiveTerminal(terminalId) {
 
 // Expose sendCommand globally for modules that can't import terminal directly (circular dependency)
 window.terminalSendCommand = sendCommand;
-
-// Expose new-terminal orchestration so tasksPanel can spawn a fresh terminal
-// and (optionally) launch an AI CLI inside it without importing terminal.js
-// directly. Returns the new terminal id, or null on failure.
-window.terminalCreateAndStart = async function(projectPath, toolStartCommand) {
-  if (!multiTerminalUI) return null;
-  if (projectPath) multiTerminalUI.setCurrentProject(projectPath);
-  const newTerminalId = await multiTerminalUI.createTerminalForCurrentProject();
-  if (!newTerminalId) return null;
-  multiTerminalUI.setActiveTerminal(newTerminalId);
-  if (toolStartCommand) {
-    setTimeout(() => {
-      multiTerminalUI.sendCommand(toolStartCommand, newTerminalId);
-    }, 1000);
-  }
-  return newTerminalId;
-};
 
 // Send a prompt as raw text first, then a separate Enter keystroke after
 // a short delay. AI CLIs (Claude Code, Codex, Gemini) buffer pasted

@@ -23,6 +23,33 @@ function init(window) {
 /**
  * Get default shell based on platform
  */
+/**
+ * Resolve the full command line of the terminal's foreground process.
+ * Unix only: `ps -o tpgid= -p <shellPid>` gives the foreground process
+ * group of the controlling tty; its leader's `command=` is what the user
+ * actually typed ("npm run dev", "python manage.py runserver", ...).
+ * Windows has no tpgid concept — callback gets null and the renderer
+ * falls back to the bare process name.
+ */
+function getForegroundCommand(shellPid, callback) {
+  if (process.platform === 'win32') {
+    callback(null);
+    return;
+  }
+  const { execFile } = require('child_process');
+  execFile('ps', ['-o', 'tpgid=', '-p', String(shellPid)], (err, out) => {
+    const tpgid = (out || '').trim();
+    if (err || !tpgid || !/^\d+$/.test(tpgid)) {
+      callback(null);
+      return;
+    }
+    execFile('ps', ['-o', 'command=', '-p', tpgid], (err2, out2) => {
+      const command = (out2 || '').trim();
+      callback(err2 || !command ? null : command);
+    });
+  });
+}
+
 function getDefaultShell() {
   if (process.platform === 'win32') {
     try {
@@ -177,13 +204,45 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null)
   // Handle PTY exit
   ptyProcess.onExit(({ exitCode, signal }) => {
     console.log(`Terminal ${terminalId} exited:`, exitCode, signal);
+    const inst = ptyInstances.get(terminalId);
+    if (inst && inst.processPoll) clearInterval(inst.processPoll);
     ptyInstances.delete(terminalId);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC.TERMINAL_DESTROYED, { terminalId, exitCode });
     }
   });
 
-  ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath });
+  // Poll the PTY's foreground process name (what node-pty uses for tab
+  // titles). The renderer compares it against the spawned shell to tell a
+  // quiet-but-running server ("node", "expo") from a truly idle prompt.
+  // Pushed only on change, so steady state costs one syscall per tick.
+  // On change we also resolve the full command line ("npm run dev") via
+  // the terminal's foreground process group — see getForegroundCommand.
+  const spawnedShellName = shell.split(/[\\/]/).pop();
+  let lastProcessName = null;
+  const processPoll = setInterval(() => {
+    let name = null;
+    try {
+      name = ptyProcess.process || null;
+    } catch {
+      return;
+    }
+    if (name !== lastProcessName) {
+      lastProcessName = name;
+      getForegroundCommand(ptyProcess.pid, (commandLine) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send(IPC.TERMINAL_PROCESS_DATA, {
+            terminalId,
+            processName: name,
+            shellName: spawnedShellName,
+            commandLine
+          });
+        }
+      });
+    }
+  }, 2500);
+
+  ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath, processPoll });
   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
@@ -243,6 +302,7 @@ function resizeTerminal(terminalId, cols, rows) {
 function destroyTerminal(terminalId) {
   const instance = ptyInstances.get(terminalId);
   if (instance) {
+    if (instance.processPoll) clearInterval(instance.processPoll);
     instance.pty.kill();
     ptyInstances.delete(terminalId);
     console.log(`Destroyed terminal ${terminalId}`);
@@ -254,6 +314,7 @@ function destroyTerminal(terminalId) {
  */
 function destroyAll() {
   for (const [terminalId, instance] of ptyInstances) {
+    if (instance.processPoll) clearInterval(instance.processPoll);
     instance.pty.kill();
     console.log(`Destroyed terminal ${terminalId}`);
   }

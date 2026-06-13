@@ -91,6 +91,18 @@ function setupIPCListeners() {
   });
 
   ipcRenderer.on(IPC.TOGGLE_SPECS_PANEL, () => toggle());
+
+  // Re-render when a spec's assigned Frame changes state (agent starts/
+  // finishes/dies, Frame closes): the detail view for its busy lock and
+  // activity dot, the list view for the row dots. Material changes only.
+  require('./agentDispatch').onSpecLaneActivity((slug) => {
+    if (!isVisible) return;
+    if (activeSlug) {
+      if (slug === activeSlug && activeSpec) renderDetail();
+    } else {
+      renderList();
+    }
+  });
 }
 
 // ─── Visibility ─────────────────────────────────────
@@ -185,7 +197,7 @@ function renderSpecRow(spec) {
     : '';
   return `
     <div class="spec-row" data-slug="${escapeHtml(spec.slug)}">
-      <div class="spec-row-title">${escapeHtml(spec.title)}</div>
+      <div class="spec-row-title">${require('./agentDispatch').specStatusDotHtml(spec.slug)}${escapeHtml(spec.title)}</div>
       <div class="spec-row-meta">
         <span class="spec-phase-badge phase-${spec.phase}">${phaseLabel}</span>
         ${tasksLabel ? `<span class="spec-row-tasks">${tasksLabel}</span>` : ''}
@@ -240,11 +252,12 @@ function renderDetail() {
       <div class="spec-detail-header">
         <h3 class="spec-detail-title">${escapeHtml(status.title)}</h3>
         <div class="spec-detail-meta">
+          ${require('./agentDispatch').specStatusDotHtml(status.slug)}
           <span class="spec-phase-badge phase-${status.phase}">${phaseLabel}</span>
           ${aiLabel ? `<span class="spec-detail-ai">${escapeHtml(aiLabel)}</span>` : ''}
         </div>
       </div>
-      ${nextAction ? renderNextActionBar(nextAction) : ''}
+      ${nextAction ? renderNextActionBar(nextAction, require('./agentDispatch').getSpecLaneInfo(status.slug)) : ''}
       <div class="spec-detail-tabs">
         ${renderTabButton('spec', 'Spec', !!spec)}
         ${renderTabButton('plan', 'Plan', !!plan)}
@@ -292,7 +305,25 @@ function nextActionForPhase(phase) {
   }
 }
 
-function renderNextActionBar(action) {
+function renderNextActionBar(action, lane) {
+  // The spec's assigned Frame has a live agent mid-turn — lock the button
+  // so the same command can't be double-dispatched. Purely derived state:
+  // the bar re-renders from getSpecLaneInfo on lane activity, so a crashed
+  // agent or closed Frame re-enables it within a status cycle.
+  if (lane && lane.busy) {
+    const verb = lane.status === 'agent-approval' ? 'Waiting for approval' : 'Working';
+    return `
+    <div class="spec-next-action spec-next-action-busy">
+      <div class="spec-next-action-text">
+        <strong>${escapeHtml(verb)} in ${escapeHtml(lane.name)}</strong>
+        <span>Unlocks when the agent finishes its turn.</span>
+      </div>
+      <button class="btn btn-primary spec-action-btn" disabled>
+        <span class="spec-action-spinner"></span>${escapeHtml(action.label)}
+      </button>
+    </div>
+  `;
+  }
   return `
     <div class="spec-next-action">
       <div class="spec-next-action-text">
@@ -308,31 +339,14 @@ function renderNextActionBar(action) {
 
 async function runSpecCommand(command) {
   if (!activeSlug) return;
-  const projectPath = state.getProjectPath();
-  if (!projectPath) {
-    showInlineError('Open a project first.');
-    return;
-  }
-  // Write the interpolated prompt to .frame/runtime/prompts/<slug>__<command>.md
-  // and send a short instruction to the terminal. This dodges Claude Code's
-  // paste compression (which collapses long pastes to "[Pasted text +N lines]"
-  // placeholders) — Claude reads the full prompt back from disk via its Read
-  // tool.
-  const result = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
-    projectPath,
+  // Agent Dispatch owns lane targeting, prompt staging and the
+  // continue-or-new-Frame question; it surfaces its own error toasts.
+  // Lazy-required to avoid load-order coupling with the terminal wiring.
+  await require('./agentDispatch').dispatchSpecCommand({
     slug: activeSlug,
-    command,
-    aiTool: 'claude-code'
+    title: activeSpec?.status?.title || activeSlug,
+    command
   });
-  if (!result || !result.success) {
-    showInlineError('Could not stage prompt: ' + (result?.error || 'unknown error'));
-    return;
-  }
-  if (typeof window.terminalSendCommand !== 'function') {
-    showInlineError('No terminal available. Open a terminal first.');
-    return;
-  }
-  window.terminalSendCommand(result.instruction);
 }
 
 function renderTabButton(tab, label, hasContent) {

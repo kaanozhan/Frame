@@ -52,3 +52,9 @@
 
 /* 15. Diff Viewer Overlay (read-only) */
 @import 'components/diff-viewer.css';
+
+/* 16. Lane Board (Lane Orchestrator home screen) */
+@import 'components/lane-board.css';
+
+/* 17. Task Section (pinned task detail surface) */
+@import 'components/task-section.css';

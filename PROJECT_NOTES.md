@@ -716,3 +716,119 @@ Frame is gaining native spec-driven development as a core feature (4-slice plan 
 **Validator**: `validateSpecStatus(obj)` lives in `src/main/specManager.js`. Shape check only — phase enum, required fields, ISO date strings. No deep semantic validation.
 
 **Watcher**: `fs.watch` with `recursive: true` on `.frame/specs/`. Debounced 250ms. On any change, re-scans the directory and pushes `SPEC_DATA` to the renderer with the changed slug + fresh content.
+
+---
+
+### [2026-06-10] Lane Orchestrator — initial screen redesign (spec opened)
+
+**Context:** User wants Frame's initial view to be a "lane orchestrator" board instead of opening directly into a terminal with tabs.
+
+**User's request (original):**
+
+> "Frame ilk açıldığında ... initial olarak bir ekran görmek istiyorum. Bunu da bir lane orchestrator olarak düşünebiliriz. Bu ekrandan terminal de eklenebilecek. Terminalleri tab tab görmektense bir lane olarak görüp istediğimiz lane'e girebileceğimiz bir genel ekran yapısı olmalı. Detay ekrandan da çok hızlı bir şekilde ana ekrana dönebileceğimiz bir yapı olmalı; ayrıca detaydayken bir menüden de kolayca ana ekranda neler varsa onları görüp tab gibi geçiş yapabilmeliyiz."
+
+**Decisions made (via design Q&A):**
+1. **Lane = terminal, 1:1** — reuses terminalManager state directly; richer "lane = work context" model deferred to a future spec.
+2. **Cards show metadata only** in v1 (name, project, AI tool, last activity) **plus a live activity status badge**: `processing` (output flowing) / `waiting` (Claude Code blocked on input/permission prompt) / `idle` (shell at prompt). Detection is a renderer-side heuristic over the existing PTY output stream — this absorbs the old `task-claude-detect` idea.
+3. **Tabs are retired, grid view stays** as the "watch several lanes side by side" mode, reachable from the board. Navigation becomes board ↔ detail, with a lane switcher inside detail (Ctrl+Tab / Ctrl+1-9 rebound to lanes).
+4. No terminal auto-created on launch anymore (`autoCreateInitialTerminal` behavior retired).
+
+**Artifact:** spec opened at `.frame/specs/lane-orchestrator/spec.md` (phase: specified). Next step is `/spec.plan`.
+
+---
+
+### [2026-06-11] Naming: Mainframe & Frames (brand vocabulary)
+
+**Context:** The home screen needed a name; UI used "Lane" and "Terminal" interchangeably.
+
+**Decision (user's idea):** Unify on the product's own brand: each work stream (terminal) is a **Frame**, and the home/orchestrator screen is the **Mainframe**. "Lane" is retired from the UI vocabulary (kept in internal code/module names only — laneBoard.js etc.).
+
+**Applied:** board title "Mainframe · Active Frames · N", back button "⌂ Mainframe", default terminal names "Frame 1/2/…", "New Frame" everywhere (board card, grid placeholder cells, + button), command palette category "Frames" ("New Frame", "Switch to Frame N", "Back to Mainframe").
+
+---
+
+### [2026-06-11] Top-bar tabs: Home + Frames; "Mainframe" label → "Home"
+
+**Context:** The top-bar left section had a single "Mainframe" button + an Active Frames count floating next to it.
+
+**Decisions (user):**
+1. The board tab's visible label is now **"Home"** (not "Mainframe"). The internal `btn-lane-home` / board view-mode naming is unchanged.
+2. A sibling **"Frames"** tab sits right after Home, carrying the Active Frames count. It is **hidden when no Frame is open** (not disabled) and always renders in 2nd position once ≥1 Frame exists. Clicking it enters the active Frame's detail view (`multiTerminalUI.enterFrames()`). The active Frame's *name* is intentionally **not** shown on the tab — just "Frames" + count.
+
+---
+
+### [2026-06-11] Spec/Task detail surface: A/B test resolved → pinned section
+
+**Context:** Two detail-surface UXs were built side by side to compare: spec detail opened as a **centered modal** (`specDetailModal.js`), task detail opened as a **pinned section tab** in the top bar (`taskSection.js`). Both reachable from the lane rail on the Home board.
+
+**Decision (user):** The **pinned section** wins. Specs now behave exactly like tasks — clicking a spec on Home opens it as a top-bar section tab (full content view with the lifecycle stepper, next-action bar, spec/plan/tasks/outcome tabs, and interactive task rows), reachable from any view via its chip.
+
+**Applied:**
+- New `specSection.js` (mirrors `taskSection.js`); the centered `specDetailModal.js` is **deleted**.
+- The host's pinned-section slot in `multiTerminalUI.js` was generalized: a single `activeSection` (task **or** spec), `showSection(module)` / `closeSection()`. Section modules share one interface: `setHost, open, close, reset, getChip, render, viewClass`.
+- The top-bar chip (`terminalTabBar.js`) renders a task or spec by `chip.type` (spec → FileText icon).
+
+**Follow-up (same day) — multi-tab:** the first cut pinned only one section at a time (opening another replaced it). User corrected: the whole point of tabs is to keep several open and switch freely. Refactored so **multiple sections stay open as side-by-side chips**:
+- `taskSection.js` / `specSection.js` became **instance factories** — each `open()` builds an independent tab (own state + IPC subscription + `dispose()`); opening an already-open item just focuses its tab.
+- The host (`multiTerminalUI.js`) owns the collection: `sections[]` + `activeSectionKey` + `isSectionVisible`, with `openSection` / `activateSection` / `closeSection(key)` / `hideSections` / `notifySectionChanged` / `_disposeAllSections` (project switch disposes all).
+- Only the active tab renders into the content area; closing the active tab drops back to the board/detail surface beneath while other chips stay. Clicking a chip focuses it.
+
+**Rationale:** Slack-channels move — the unit concept carries the brand (app Frame → units Frames → home Mainframe). Known tradeoff: "Frame" overload with the app name and `.frame/` dir; docs should write "a frame" (unit, lowercase) vs "Frame" (the app).
+
+---
+
+### [2026-06-11] Tasks/Specs side panels retired → entry points open dashboards
+
+**Context:** With the Home board's lane rail already showing specs + tasks at a glance, and detail now opening as section tabs, the old right-side **Tasks** and **Specs** panels are redundant.
+
+**Decision (user):** The panels' entry points now open the **full dashboards** directly instead of the side panels:
+- Top-bar **Tasks** icon (`btn-tasks-toggle`) → `tasksDashboard.toggle()`.
+- **⋯ More menu → Specs** → `specsDashboard.toggle()`.
+- Command palette / shortcuts consolidated: the side-panel commands (`panel.toggleTasks` Cmd+T, `panel.toggleSpecs` Cmd+Shift+S) were removed; the dashboards keep **Cmd+Shift+D** (tasks) and now **Cmd+Shift+S** (specs).
+
+**Kept (background roles only):** `specPanel.js` still watches `.frame/specs/` (feeds the lane rail) and `tasksPanel.js` still loads task data — both are just no longer surfaced as a side panel. Not deleted to avoid disturbing the spec-watch / task-load data flow.
+
+---
+
+### [2026-06-11] Sidebar restructure: Projects becomes the root, not a tab
+
+**Context:** The sidebar presented `Projects | Files | Changes` as three sibling tabs, but they live at different altitudes — Projects answers "which context am I in" (heavy side effects: switching projects switches terminal sessions), while Files/Changes are views *inside* that context. Project-opening UI was also cramped (three stacked buttons + an awkward inline clone-URL row), and a duplicate `+` (`btn-add-project`) re-triggered the same folder picker.
+
+**Decisions (user, via brainstorm):**
+1. **Projects becomes a collapsible section pinned to the top** of the sidebar (variant C of the brainstorm): collapsed = active project name + `+` button; expanded = workspace project list (reuses `projectListUI`). Session-scoped collapse state.
+2. The **`+` opens a single Open Project modal** hosting Select Folder / Create New / Clone GitHub — a pure UI shell over the existing IPC flows (no new channels, `dialogs.js` untouched). The inline clone row dies.
+3. **Files | Changes remain as two tabs** below the section (no accordion stacking).
+4. **"Initialize as Frame"** stays a visible clickable flow under the project header for non-Frame projects (spotlight/tooltip preserved).
+5. **AI tool row (Start button + selector) stays under the section for now** — its removal is explicitly deferred to a future spec (later resolved: the Frame Starter spec).
+
+**Also recorded:** code review found "Create New Project" is effectively a relabeled folder picker (`createDirectory` flag + different labels, no scaffolding); real scaffolding is out of scope but the modal should leave room for it.
+
+**Artifact:** spec at `.frame/specs/sidebar-project-section/spec.md` (phase: specified).
+
+---
+
+### [2026-06-11] Frame creation UX: "create-then-decide" Starter overlay (direction chosen)
+
+**Context:** 4 entry points create a new Frame (board card, top-bar `+`, grid empty cell, empty-state CTA) with 3 inconsistent behaviors — the board card's left-click opened a shell picker while right-click created silently (inverted: the common case paid the question). Agent start lived in a disconnected sidebar "Start <agent>" button using a fragile 1s setTimeout to type the command. User wanted: let the user choose Terminal vs Agent, but never require 2 clicks for a plain terminal.
+
+**Decision (user picked option C of A–D):** **create-then-decide.** Every `+` instantly creates a Frame with the default shell (1 click, zero questions). Inside the freshly opened Frame, a lightweight dismissible **Starter overlay** floats over the live terminal: big "▶ Claude Code / ▶ Codex" buttons (last-used first), a small `zsh ▾` shell switcher in the corner (demoting the shell question permanently), and a "just start typing" hint. Dismissal rules: first keystroke (not swallowed — goes to the shell), Esc, or any programmatic sendCommand. Shown only for freshly created lanes, never on re-entry.
+
+**Key insight that shaped it:** "Agent" is not a data-model concept in Frame — an agent lane is just a terminal + a start command, and the agent chip is already derived live from the foreground process. So Terminal-vs-Agent is a first-moment UX question only, which can be deferred *into* the lane instead of blocking the `+`.
+
+**Sequencing:** before building the Starter, the prompt-injection flows had to be adapted to lanes (user caught this) → the `agent-dispatch` spec became the prerequisite. The Starter overlay spec comes after it and will retire the sidebar Start button. Out to v2: a prompt input inside the overlay ("type the task, start Claude with it").
+
+---
+
+### [2026-06-11] Agent Dispatch: lane-aware task & spec runs (spec opened)
+
+**Context:** Task ▶ run and spec commands inject prompts into terminals with pre-lane-orchestrator assumptions: task "current terminal" wrote into the active terminal without verifying an agent runs there; task "new terminal" stacked blind timeouts (1s + 4s) hoping the CLI booted; spec runs sent to whatever terminal was active, creating a bare shell if none. From the board, "current terminal" is meaningless — and `laneStatus` detection now exists, making timeout-guessing obsolete.
+
+**Decisions (user):**
+1. **Single Agent Dispatch layer** (renderer module): the only door for "deliver this prompt to an agent in a lane". Existing-lane targets verify the agent (restart it if exited); new-lane targets create + start + **wait for the agent-ready signal** (laneStatus settles into `waiting`) instead of fixed sleeps. On readiness timeout: visible error, prompt never lands in a bare shell. Text-then-Enter trick and `.frame/runtime/prompts/` staging are wrapped, not reinvented.
+2. **Task run always opens a new Frame** — the modal's current/new terminal choice is removed; CLI choice and all branch options stay byte-for-byte unchanged.
+3. **Spec → lane assignment:** first run creates + assigns a Frame silently; while an assigned Frame exists, every spec run **asks**: "Continue in <Frame>" (default, same agent session) vs "Open a new Frame" (re-assigns). Session-scoped, renderer state.
+4. **Lane cards/switcher show the assigned spec/task label** (one label per lane, most recent dispatch wins; clears on lane close, never touches the task/spec itself).
+
+**Spec ordering decided:** 1) `agent-dispatch` → 2) frame-starter (consumes dispatch, retires sidebar Start button) → 3) `sidebar-project-section` (independent, can go in parallel).
+
+**Artifact:** spec at `.frame/specs/agent-dispatch/spec.md` (phase: specified).

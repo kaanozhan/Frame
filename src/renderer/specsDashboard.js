@@ -100,6 +100,18 @@ function setupIPCListeners() {
   });
 
   ipcRenderer.on(IPC.TOGGLE_SPECS_DASHBOARD, () => toggle());
+
+  // Keep the busy lock and the activity dots in sync with the assigned
+  // Frame's live agent state (fires only on material changes).
+  require('./agentDispatch').onSpecLaneActivity((slug) => {
+    if (!isVisible) return;
+    renderGrid();
+    if (selectedSpec && slug === selectedSlug) {
+      renderDetailHeader();
+      renderDetailBody();
+      attachTaskActionHandlers();
+    }
+  });
 }
 
 // ─── Visibility ──────────────────────────────────────────
@@ -214,6 +226,7 @@ function renderCard(spec) {
   return `
     <div class="specs-card ${isSelected}" data-slug="${escapeHtml(spec.slug)}">
       <div class="specs-card-top">
+        ${require('./agentDispatch').specStatusDotHtml(spec.slug)}
         <span class="spec-phase-badge phase-${spec.phase}">${phaseLabel}</span>
         ${spec.ai_tool ? `<span class="specs-card-ai">${escapeHtml(spec.ai_tool)}</span>` : ''}
       </div>
@@ -287,9 +300,10 @@ function renderDetailHeader() {
       </div>
       <h3 class="specs-dashboard-detail-title">${escapeHtml(status.title)}</h3>
       <div class="specs-dashboard-detail-meta">
+        ${require('./agentDispatch').specStatusDotHtml(status.slug)}
         <span class="spec-phase-badge phase-${status.phase}">${phaseLabel}</span>
       </div>
-      ${nextAction ? renderNextActionBar(nextAction) : ''}
+      ${nextAction ? renderNextActionBar(nextAction, require('./agentDispatch').getSpecLaneInfo(status.slug)) : ''}
       <div class="specs-dashboard-detail-tabs">
         ${tabBtn('spec',  'Spec',  !!spec)}
         ${tabBtn('plan',  'Plan',  !!plan)}
@@ -353,7 +367,24 @@ function nextActionForPhase(phase) {
   }
 }
 
-function renderNextActionBar(action) {
+function renderNextActionBar(action, lane) {
+  // Live agent mid-turn in the assigned Frame → lock the button against
+  // double-dispatch. Derived state only; lane activity re-renders the
+  // header, so a dead agent or closed Frame unlocks it on its own.
+  if (lane && lane.busy) {
+    const verb = lane.status === 'agent-approval' ? 'Waiting for approval' : 'Working';
+    return `
+    <div class="spec-next-action spec-next-action-busy">
+      <div class="spec-next-action-text">
+        <strong>${escapeHtml(verb)} in ${escapeHtml(lane.name)}</strong>
+        <span>Unlocks when the agent finishes its turn.</span>
+      </div>
+      <button class="btn btn-primary spec-action-btn" disabled>
+        <span class="spec-action-spinner"></span>${escapeHtml(action.label)}
+      </button>
+    </div>
+  `;
+  }
   return `
     <div class="spec-next-action">
       <div class="spec-next-action-text">
@@ -369,21 +400,13 @@ function renderNextActionBar(action) {
 
 async function runSpecCommand(command) {
   if (!selectedSlug) return;
-  const projectPath = state.getProjectPath();
-  if (!projectPath) return;
-  const result = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
-    projectPath,
+  // Agent Dispatch owns lane targeting, prompt staging and the
+  // continue-or-new-Frame question; it surfaces its own error toasts.
+  await require('./agentDispatch').dispatchSpecCommand({
     slug: selectedSlug,
-    command,
-    aiTool: 'claude-code'
+    title: (selectedSpec && selectedSpec.status && selectedSpec.status.title) || selectedSlug,
+    command
   });
-  if (!result || !result.success) {
-    console.error('specsDashboard: BUILD_SPEC_COMMAND_FILE failed', result?.error);
-    return;
-  }
-  if (typeof window.terminalSendCommand === 'function') {
-    window.terminalSendCommand(result.instruction);
-  }
 }
 
 function tabBtn(tab, label, hasContent) {

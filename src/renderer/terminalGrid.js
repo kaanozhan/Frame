@@ -1,9 +1,19 @@
 /**
  * Terminal Grid Module
- * Handles grid layout for multiple terminals
+ *
+ * Renders the detail view's multi-cell layout (1x2, 2x2, ...). Each cell is
+ * an assignable slot: a lane mounted with a header dropdown to swap which
+ * lane the cell shows, or — when unassigned — a "New Lane" placeholder that
+ * creates a terminal in place (same affordance as the board's add card).
+ * 1x1 is handled by MultiTerminalUI directly; this module only renders
+ * multi-cell layouts.
  */
 
+const laneStatus = require('./laneStatus');
+const { ChevronDown, Plus, Maximize2 } = require('lucide');
+
 const GRID_LAYOUTS = {
+  '1x1': { rows: 1, cols: 1 },
   '1x2': { rows: 1, cols: 2 },
   '1x3': { rows: 1, cols: 3 },
   '1x4': { rows: 1, cols: 4 },
@@ -14,220 +24,224 @@ const GRID_LAYOUTS = {
   '3x3': { rows: 3, cols: 3 }
 };
 
+function lucideIcon(data, size = 13) {
+  const children = data.map(([tag, attrs]) => {
+    const attrStr = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+    return `<${tag} ${attrs ? attrStr : ''}/>`;
+  }).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${children}</svg>`;
+}
+
 class TerminalGrid {
-  constructor(container, manager) {
-    this.container = container;
+  /**
+   * @param {TerminalManager} manager
+   * @param {Object} callbacks
+   * @param {Function} callbacks.onAssign   - (cellIndex, terminalId)
+   * @param {Function} callbacks.onNewLane  - (cellIndex)
+   * @param {Function} callbacks.onMaximize - (terminalId) back to 1x1
+   */
+  constructor(manager, callbacks = {}) {
     this.manager = manager;
-    this.cellSizes = new Map(); // Store custom cell sizes
+    this.callbacks = callbacks;
+    this.container = null;
+    this.cellMenu = null;
+    this._layout = '1x1';
+    this._createCellMenu();
+
+    // Keep cell-header status dots live without remounting terminals
+    laneStatus.onChange((terminalId) => {
+      if (!this.container || !this.container.isConnected) return;
+      const dot = this.container.querySelector(
+        `.grid-cell[data-terminal-id="${terminalId}"] .lane-status-dot`
+      );
+      if (dot) dot.className = `lane-status-dot ${laneStatus.getStatus(terminalId).status}`;
+    });
   }
 
   /**
-   * Render grid with terminals
+   * Render the grid into a container.
+   * @param {HTMLElement} container
+   * @param {Array<string|null>} assignments - terminalId per cell, null = empty
+   * @param {string} layout - key of GRID_LAYOUTS
    */
-  render(terminals, layout) {
+  render(container, assignments, layout) {
+    this.container = container;
+    this._layout = layout;
     const config = GRID_LAYOUTS[layout] || GRID_LAYOUTS['2x2'];
 
-    // Clear container
-    this.container.innerHTML = '';
-    this.container.className = 'terminal-grid';
+    container.innerHTML = '';
+    // Additive — the container is the detail view's content area and must
+    // keep its layout classes (flex sizing comes from detail-content-area).
+    container.classList.add('terminal-grid');
+    container.style.display = 'grid';
+    container.style.gridTemplateRows = `repeat(${config.rows}, 1fr)`;
+    container.style.gridTemplateColumns = `repeat(${config.cols}, 1fr)`;
+    container.style.gap = '2px';
+    container.style.height = '100%';
 
-    // Set grid template
-    this.container.style.display = 'grid';
-    this.container.style.gridTemplateRows = `repeat(${config.rows}, 1fr)`;
-    this.container.style.gridTemplateColumns = `repeat(${config.cols}, 1fr)`;
-    this.container.style.gap = '2px';
-    this.container.style.height = '100%';
-    this.container.style.backgroundColor = '';
+    const cellCount = config.rows * config.cols;
+    for (let i = 0; i < cellCount; i++) {
+      const terminalId = assignments[i] || null;
+      const instance = terminalId ? this.manager.getTerminal(terminalId) : null;
 
-    // Calculate max cells
-    const maxCells = config.rows * config.cols;
-    const terminalsToShow = terminals.slice(0, maxCells);
-
-    // Create cells
-    terminalsToShow.forEach((terminal, index) => {
-      const cell = this._createCell(terminal, index);
-      this.container.appendChild(cell);
-
-      // Mount terminal in cell content
-      const contentArea = cell.querySelector('.grid-cell-content');
-      this.manager.mountTerminal(terminal.id, contentArea);
-    });
-
-    // Add dashed divider lines between cells
-    this._renderDividers(config);
-  }
-
-  /**
-   * Render dashed divider lines between grid cells
-   */
-  _renderDividers(config) {
-    // Vertical dividers (between columns)
-    for (let c = 1; c < config.cols; c++) {
-      const divider = document.createElement('div');
-      divider.className = 'grid-divider grid-divider-vertical';
-      divider.style.left = `calc(${c} / ${config.cols} * 100%)`;
-      this.container.appendChild(divider);
-    }
-
-    // Horizontal dividers (between rows)
-    for (let r = 1; r < config.rows; r++) {
-      const divider = document.createElement('div');
-      divider.className = 'grid-divider grid-divider-horizontal';
-      divider.style.top = `calc(${r} / ${config.rows} * 100%)`;
-      this.container.appendChild(divider);
+      if (instance) {
+        const cell = this._createCell(instance.state, i);
+        container.appendChild(cell);
+        this.manager.mountTerminal(terminalId, cell.querySelector('.grid-cell-content'));
+      } else {
+        container.appendChild(this._createPlaceholderCell(i));
+      }
     }
   }
 
-  /**
-   * Create a grid cell
-   */
-  _createCell(terminal, index) {
+  // ─── Cells ──────────────────────────────────────────────
+
+  _createCell(state, index) {
+    const { status } = laneStatus.getStatus(state.id);
     const cell = document.createElement('div');
-    cell.className = `grid-cell ${terminal.isActive ? 'active' : ''}`;
-    cell.dataset.terminalId = terminal.id;
+    cell.className = `grid-cell ${state.isActive ? 'active' : ''}`;
+    cell.dataset.terminalId = state.id;
     cell.dataset.index = index;
 
     cell.innerHTML = `
       <div class="grid-cell-header">
-        <span class="grid-cell-name">${this._escapeHtml(terminal.customName || terminal.name)}</span>
+        <button class="grid-cell-switcher" title="Switch frame in this cell">
+          <span class="lane-status-dot ${status}"></span>
+          <span class="grid-cell-name">${this._escapeHtml(state.customName || state.name)}</span>
+          ${lucideIcon(ChevronDown, 12)}
+        </button>
         <div class="grid-cell-actions">
-          <button class="btn-grid-focus" title="Focus">◎</button>
-          <button class="btn-grid-close" title="Close">×</button>
+          ${this._layout !== '1x1' ? `<button class="btn-grid-maximize" title="Maximize (1×1)">${lucideIcon(Maximize2, 12)}</button>` : ''}
+          <button class="btn-grid-close" title="Close frame">×</button>
         </div>
       </div>
       <div class="grid-cell-content"></div>
       <button class="btn-scroll-bottom-overlay btn-scroll-bottom-cell" title="Scroll to bottom">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <div class="grid-resizer grid-resizer-right"></div>
-      <div class="grid-resizer grid-resizer-bottom"></div>
     `;
 
-    this._setupCellEvents(cell, terminal.id);
+    this._setupCellEvents(cell, state.id, index);
     return cell;
   }
 
-  /**
-   * Setup cell event handlers
-   */
-  _setupCellEvents(cell, terminalId) {
+  _createPlaceholderCell(index) {
+    const cell = document.createElement('div');
+    cell.className = 'grid-cell grid-cell-empty';
+    cell.dataset.index = index;
+    cell.innerHTML = `
+      <div class="grid-cell-empty-inner">
+        ${lucideIcon(Plus, 20)}
+        <span>New Frame</span>
+      </div>
+    `;
+    cell.addEventListener('click', () => {
+      if (this.callbacks.onNewLane) this.callbacks.onNewLane(index);
+    });
+    return cell;
+  }
+
+  _setupCellEvents(cell, terminalId, index) {
     // Click to focus
     cell.addEventListener('click', (e) => {
-      if (!e.target.closest('.grid-cell-actions')) {
-        this.manager.setActiveTerminal(terminalId);
-        this._updateActiveCell(terminalId);
-      }
-    });
-
-    // Scroll to bottom button
-    cell.querySelector('.btn-scroll-bottom-cell').addEventListener('click', (e) => {
-      e.stopPropagation();
-      const instance = this.manager.terminals.get(terminalId);
-      if (instance) instance.terminal.scrollToBottom();
-    });
-
-    // Focus button
-    cell.querySelector('.btn-grid-focus').addEventListener('click', (e) => {
-      e.stopPropagation();
+      if (e.target.closest('.grid-cell-actions') || e.target.closest('.grid-cell-switcher')) return;
       this.manager.setActiveTerminal(terminalId);
-      this.manager.setViewMode('tabs'); // Switch to tabs to show focused terminal
+      this._updateActiveCell(terminalId);
     });
 
-    // Close button
+    // Cell lane switcher dropdown
+    cell.querySelector('.grid-cell-switcher').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      this._showCellMenu(rect.left, rect.bottom + 4, index, terminalId);
+    });
+
+    // Maximize back to single view (absent in 1x1)
+    const maximizeBtn = cell.querySelector('.btn-grid-maximize');
+    if (maximizeBtn) {
+      maximizeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.callbacks.onMaximize) this.callbacks.onMaximize(terminalId);
+      });
+    }
+
+    // Close lane
     cell.querySelector('.btn-grid-close').addEventListener('click', (e) => {
       e.stopPropagation();
       this.manager.closeTerminal(terminalId);
     });
 
-    // Setup resizers
-    this._setupResizer(cell, 'right');
-    this._setupResizer(cell, 'bottom');
+    // Scroll to bottom
+    cell.querySelector('.btn-scroll-bottom-cell').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const instance = this.manager.terminals.get(terminalId);
+      if (instance) instance.terminal.scrollToBottom();
+    });
   }
 
-  /**
-   * Update active cell styling
-   */
   _updateActiveCell(activeId) {
-    const cells = this.container.querySelectorAll('.grid-cell');
-    cells.forEach(cell => {
+    this.container.querySelectorAll('.grid-cell').forEach((cell) => {
       cell.classList.toggle('active', cell.dataset.terminalId === activeId);
     });
   }
 
-  /**
-   * Setup resizer for a cell
-   */
-  _setupResizer(cell, direction) {
-    const resizer = cell.querySelector(`.grid-resizer-${direction}`);
-    if (!resizer) return;
+  // ─── Cell lane menu ─────────────────────────────────────
 
-    let startPos, startSize, siblingCell, siblingStartSize;
+  _createCellMenu() {
+    this.cellMenu = document.createElement('div');
+    this.cellMenu.className = 'terminal-context-menu lane-menu grid-cell-menu';
+    document.body.appendChild(this.cellMenu);
 
-    resizer.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-
-      const isHorizontal = direction === 'right';
-      startPos = isHorizontal ? e.clientX : e.clientY;
-      startSize = isHorizontal ? cell.offsetWidth : cell.offsetHeight;
-
-      // Find sibling cell
-      const cells = Array.from(this.container.querySelectorAll('.grid-cell'));
-      const index = cells.indexOf(cell);
-
-      if (isHorizontal) {
-        // Find cell to the right
-        siblingCell = cells[index + 1];
-      } else {
-        // Find cell below (next row)
-        const cols = parseInt(this.container.style.gridTemplateColumns.match(/repeat\((\d+)/)?.[1] || 2);
-        siblingCell = cells[index + cols];
+    document.addEventListener('click', (e) => {
+      if (!this.cellMenu.contains(e.target) && !e.target.closest('.grid-cell-switcher')) {
+        this._hideCellMenu();
       }
+    });
+    document.addEventListener('scroll', () => this._hideCellMenu(), true);
+  }
 
-      if (siblingCell) {
-        siblingStartSize = isHorizontal ? siblingCell.offsetWidth : siblingCell.offsetHeight;
-      }
+  _showCellMenu(x, y, cellIndex, currentTerminalId) {
+    this.cellMenu.innerHTML = '';
 
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
-      document.body.style.cursor = isHorizontal ? 'col-resize' : 'row-resize';
-      resizer.classList.add('active');
+    this.manager.getTerminalStates().forEach((t) => {
+      const { status, agentName } = laneStatus.getStatus(t.id);
+      const item = document.createElement('div');
+      item.className = 'terminal-context-menu-item';
+      if (t.id === currentTerminalId) item.classList.add('active-lane');
+      item.innerHTML = `
+        <span class="lane-status-dot ${status}"></span>
+        <span class="lane-menu-item-name">${this._escapeHtml(t.customName || t.name)}</span>
+        ${agentName ? `<span class="lane-menu-item-status">${this._escapeHtml(agentName)}</span>` : ''}
+      `;
+      item.addEventListener('click', () => {
+        this._hideCellMenu();
+        if (t.id !== currentTerminalId && this.callbacks.onAssign) {
+          this.callbacks.onAssign(cellIndex, t.id);
+        }
+      });
+      this.cellMenu.appendChild(item);
     });
 
-    const onMouseMove = (e) => {
-      const isHorizontal = direction === 'right';
-      const currentPos = isHorizontal ? e.clientX : e.clientY;
-      const delta = currentPos - startPos;
+    this.cellMenu.style.left = `${x}px`;
+    this.cellMenu.style.top = `${y}px`;
+    this.cellMenu.classList.add('visible');
 
-      // Apply constraints
-      const minSize = 150;
-      const newSize = Math.max(minSize, startSize + delta);
+    const rect = this.cellMenu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+      this.cellMenu.style.left = `${window.innerWidth - rect.width - 5}px`;
+    }
+    if (rect.bottom > window.innerHeight) {
+      this.cellMenu.style.top = `${y - rect.height}px`;
+    }
+  }
 
-      if (siblingCell && siblingStartSize) {
-        const siblingNewSize = Math.max(minSize, siblingStartSize - delta);
-        if (siblingNewSize < minSize) return;
-      }
-
-      // Store custom size
-      this.cellSizes.set(cell.dataset.index, {
-        ...this.cellSizes.get(cell.dataset.index),
-        [isHorizontal ? 'width' : 'height']: newSize
-      });
-
-      // Fit terminals after resize
-      this.manager.fitAll();
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      document.body.style.cursor = '';
-      resizer.classList.remove('active');
-    };
+  _hideCellMenu() {
+    if (this.cellMenu) this.cellMenu.classList.remove('visible');
   }
 
   _escapeHtml(text) {
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = text == null ? '' : String(text);
     return div.innerHTML;
   }
 }

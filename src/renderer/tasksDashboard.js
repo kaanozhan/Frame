@@ -124,6 +124,11 @@ function init() {
   });
 
   ipcRenderer.on(IPC.TOGGLE_TASKS_DASHBOARD, () => toggle());
+
+  // Activity dots track the live agent state of lanes working on tasks
+  require('./agentDispatch').onTaskLaneActivity(() => {
+    if (isVisible) render();
+  });
 }
 
 function flatten(data) {
@@ -249,6 +254,9 @@ function renderCard(task) {
   const title = document.createElement('div');
   title.className = 'tasks-dashboard-card-title';
   title.textContent = task.title || 'Untitled';
+  // Live agent working on this task → pulsing activity dot before the title
+  const liveDot = require('./agentDispatch').taskStatusDotHtml(task.id);
+  if (liveDot) title.insertAdjacentHTML('afterbegin', liveDot);
   card.appendChild(title);
 
   if (task.description) {

@@ -264,7 +264,8 @@ function setupButtonHandlers() {
         // Ensure the new terminal is focused
         terminal.setActiveTerminal(newTerminalId);
 
-        // Send start command for the selected AI tool
+        // Send start command for the selected AI tool. The board's agent
+        // chip is derived live from the foreground process, not tagged here.
         const startCommand = aiToolSelector.getStartCommand();
         setTimeout(() => {
           terminal.sendCommand(startCommand, newTerminalId);
@@ -446,31 +447,20 @@ function registerCommands() {
     shortcut: 'CmdOrCtrl+Shift+H',
     run: () => historyPanel.toggleHistoryPanel()
   });
-  r({
-    id: 'panel.toggleTasks',
-    title: 'Toggle Tasks Panel',
-    category: 'Panel',
-    shortcut: 'CmdOrCtrl+T',
-    run: () => tasksPanel.toggle()
-  });
+  // Tasks/Specs side panels are retired — Home's lane rail covers the
+  // at-a-glance view, and these entry points now open the full dashboards.
   r({
     id: 'panel.toggleTasksDashboard',
-    title: 'Toggle Task Dashboard',
+    title: 'Toggle Tasks Dashboard',
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+D',
     run: () => tasksDashboard.toggle()
   });
   r({
-    id: 'panel.toggleSpecs',
-    title: 'Toggle Specs Panel',
-    category: 'Panel',
-    shortcut: 'CmdOrCtrl+Shift+S',
-    run: () => specPanel.toggle()
-  });
-  r({
     id: 'panel.toggleSpecsDashboard',
     title: 'Toggle Specs Dashboard',
     category: 'Panel',
+    shortcut: 'CmdOrCtrl+Shift+S',
     run: () => specsDashboard.toggle()
   });
   r({
@@ -554,21 +544,36 @@ function registerCommands() {
     run: () => state.initializeAsFrameProject()
   });
 
-  // ---------- Terminal ----------
+  // ---------- Lanes / Terminal ----------
   r({
-    id: 'terminal.new',
-    title: 'New Terminal',
-    category: 'Terminal',
-    shortcut: 'CmdOrCtrl+Shift+T',
+    id: 'lane.home',
+    title: 'Back to Mainframe',
+    category: 'Frames',
+    shortcut: 'CmdOrCtrl+Escape',
     run: () => {
       const ui = terminal.getMultiTerminalUI();
-      if (ui) ui.createTerminalForCurrentProject();
+      if (ui) ui.goHome();
+    }
+  });
+  r({
+    id: 'terminal.new',
+    title: 'New Frame',
+    category: 'Frames',
+    shortcut: 'CmdOrCtrl+Shift+T',
+    when: () => !!state.getProjectPath(),
+    run: () => {
+      const ui = terminal.getMultiTerminalUI();
+      if (ui) {
+        ui.createTerminalForCurrentProject().then((id) => {
+          if (id) ui.enterLane(id);
+        });
+      }
     }
   });
   r({
     id: 'terminal.close',
-    title: 'Close Terminal',
-    category: 'Terminal',
+    title: 'Close Frame',
+    category: 'Frames',
     shortcut: 'CmdOrCtrl+Shift+W',
     run: () => {
       const ui = terminal.getMultiTerminalUI();
@@ -577,8 +582,8 @@ function registerCommands() {
   });
   r({
     id: 'terminal.next',
-    title: 'Next Terminal',
-    category: 'Terminal',
+    title: 'Next Frame',
+    category: 'Frames',
     shortcut: 'CmdOrCtrl+Tab',
     run: () => {
       const ui = terminal.getMultiTerminalUI();
@@ -587,8 +592,8 @@ function registerCommands() {
   });
   r({
     id: 'terminal.prev',
-    title: 'Previous Terminal',
-    category: 'Terminal',
+    title: 'Previous Frame',
+    category: 'Frames',
     shortcut: 'CmdOrCtrl+Shift+Tab',
     run: () => {
       const ui = terminal.getMultiTerminalUI();
@@ -598,8 +603,8 @@ function registerCommands() {
   for (let i = 1; i <= 9; i++) {
     r({
       id: `terminal.switch.${i}`,
-      title: `Switch to Terminal ${i}`,
-      category: 'Terminal',
+      title: `Switch to Frame ${i}`,
+      category: 'Frames',
       shortcut: `CmdOrCtrl+${i}`,
       run: () => {
         const ui = terminal.getMultiTerminalUI();
@@ -607,17 +612,6 @@ function registerCommands() {
       }
     });
   }
-  r({
-    id: 'terminal.toggleGridView',
-    title: 'Toggle Terminal Grid View',
-    category: 'Terminal',
-    // Cmd+Shift+G previously bound here too — moved to Panel:GitHub.
-    // Grid view is reachable via tab bar and palette.
-    run: () => {
-      const ui = terminal.getMultiTerminalUI();
-      if (ui) ui.toggleViewMode();
-    }
-  });
 
   // ---------- AI Tool ----------
   r({

@@ -466,6 +466,37 @@
   cursor: default;
 }
 
+/* Live agent activity on a spec's assigned Frame — shown in spec rows and
+   detail headers. Colors mirror the lane status palette. */
+.spec-activity-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+
+.spec-activity-dot.working {
+  background: var(--accent-primary);
+  animation: spec-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.spec-activity-dot.approval {
+  background: var(--error, #d45555);
+  animation: spec-dot-pulse 0.7s ease-in-out infinite;
+}
+
+.spec-activity-dot.input {
+  background: var(--warning, #e5a50a);
+}
+
+@keyframes spec-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
 .task-date {
   font-size: 10px;
   color: var(--text-muted);
@@ -4902,6 +4933,28 @@
   flex-shrink: 0;
 }
 
+/* Busy lock: the spec's assigned Frame has a live agent mid-turn */
+.spec-next-action-busy {
+  border-style: dashed;
+}
+
+.spec-next-action-busy .spec-action-btn {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.spec-action-spinner {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: -1px;
+  animation: spin 0.9s linear infinite;
+}
+
 .spec-detail-tabs {
   display: flex;
   gap: var(--space-xs);
@@ -5170,6 +5223,147 @@
 .spec-modal-wide {
   width: 720px;
   max-width: 92vw;
+}
+
+/* Spec detail modal — opened from the Mainframe spec cards. Same shell as
+   the task-edit modal (centered, blurred backdrop), filled with the side
+   panel's spec-detail-* markup so both surfaces look identical. */
+.spec-detail-modal {
+  width: min(880px, 78vw);
+  height: min(700px, 82vh);
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  animation: modalSlideIn 0.2s ease-out;
+}
+
+.spec-detail-modal-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.spec-detail-modal-top .spec-detail-slug {
+  flex: 1;
+}
+
+.spec-detail-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spec-detail-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.spec-detail-modal-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-xl);
+}
+
+/* Lifecycle stepper — the modal shows the whole wizard (Spec → Plan →
+   Tasks → Implement → Done) instead of a single phase badge */
+.spec-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+}
+
+.spec-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.spec-step-marker {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border-strong);
+  box-sizing: border-box;
+}
+
+.spec-step.done .spec-step-marker {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--bg-deep);
+}
+
+.spec-step.active .spec-step-marker {
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+.spec-step.active .spec-step-marker::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+}
+
+.spec-step-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--text-muted);
+}
+
+.spec-step.done .spec-step-label {
+  color: var(--text-secondary);
+}
+
+.spec-step.active .spec-step-label {
+  color: var(--accent-primary);
+}
+
+.spec-step-line {
+  flex: 1;
+  min-width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--border-subtle);
+}
+
+.spec-step-line.done {
+  background: var(--success);
+  opacity: 0.45;
+}
+
+/* The modal's next-action title is human language, not a command —
+   undo the panel's mono font without touching the panel itself */
+.spec-detail-modal .spec-next-action-text strong {
+  font-family: inherit;
+}
+
+.spec-next-action-cmd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+  margin-top: 2px;
 }
 
 .spec-modal h3 {

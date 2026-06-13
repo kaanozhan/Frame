@@ -1,0 +1,1069 @@
+/* ==================== LANE BOARD (Lane Orchestrator home) ==================== */
+
+.terminal-content.board-view {
+  overflow: hidden; /* board and rail columns scroll independently */
+  background: var(--bg-primary);
+}
+
+.lane-board-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.lane-board {
+  padding: 24px;
+  height: 100%;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  /* Size queries below track the board's own width (window minus
+     sidebar/rail), not the window — that's what actually varies. */
+  container-type: inline-size;
+}
+
+/* Max 9 lanes (+ New Lane) and "at least 3 side by side on a wide
+   screen": a fixed 3-column grid is the baseline — 3×3 fits the cap
+   exactly. Narrow boards step down to 2/1; ultrawide steps up to 4 so
+   cards don't become slabs. Cards fill their tracks, no centering. */
+.lane-board-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  align-content: start;
+}
+
+@container (max-width: 899px) {
+  .lane-board-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container (max-width: 569px) {
+  .lane-board-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@container (min-width: 1500px) {
+  .lane-board-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ─── Lane card ─────────────────────────────────────────── */
+
+.lane-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 168px;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.lane-card:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-hover);
+}
+
+.lane-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lane-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.lane-rename-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  outline: none;
+}
+
+.lane-card-action {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.lane-card:hover .lane-card-action {
+  display: flex;
+}
+
+.lane-card-action:hover {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.lane-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lane-card-branch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.lane-card-branch svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.lane-card-branch-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Agent" badge: filled accent chip marking the lane kind */
+.lane-card-agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--bg-primary);
+  background: var(--accent-primary);
+  border-radius: 99px;
+  padding: 0 8px;
+  line-height: 17px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.lane-card-agent-badge svg {
+  flex-shrink: 0;
+}
+
+/* Tool chip: which agent (claude / codex / gemini) — outlined */
+.lane-card-tool {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 99px;
+  padding: 0 7px;
+  line-height: 16px;
+  flex-shrink: 0;
+}
+
+/* What the lane is working on — Agent Dispatch label as a typed chip
+   (FileText = spec, CheckSquare = task). Shared by cards and the rail. */
+.lane-card-assignment {
+  display: flex;
+  min-width: 0;
+}
+
+.lane-assignment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-border, rgba(212, 165, 116, 0.25));
+  border-radius: 99px;
+  padding: 2px 9px;
+  transition: opacity 0.25s ease;
+}
+
+.lane-assignment-chip svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.lane-assignment-chip-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Agent exited/killed: the chip stays as provenance but fades out until
+   a live agent owns the lane again (e.g. spec "continue" restarts it) */
+.lane-assignment-chip.dimmed {
+  opacity: 0.45;
+}
+
+.lane-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.lane-card-status-label {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.lane-card-activity {
+  flex-shrink: 0;
+}
+
+.lane-card-status-label.agent-working  { color: var(--accent-primary); }
+.lane-card-status-label.agent-approval { color: var(--error, #d45555); font-weight: 600; }
+.lane-card-status-label.agent-input    { color: var(--warning, #e5a50a); }
+.lane-card-status-label.running        { color: var(--success, #23d18b); }
+.lane-card-status-label.idle           { color: var(--text-secondary); }
+
+.lane-card-activity {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ─── Status dot (shared with lane switcher in the top bar) ─ */
+
+.lane-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lane-status-dot.agent-working {
+  background: var(--accent-primary);
+  animation: lane-pulse 1.2s ease-in-out infinite;
+}
+
+.lane-status-dot.agent-approval {
+  background: var(--error, #d45555);
+  animation: lane-pulse 0.8s ease-in-out infinite;
+}
+
+.lane-status-dot.agent-input {
+  background: var(--warning, #e5a50a);
+}
+
+.lane-status-dot.running {
+  background: var(--success, #23d18b);
+  animation: lane-pulse 1.2s ease-in-out infinite;
+}
+
+.lane-status-dot.idle {
+  background: var(--text-secondary);
+  opacity: 0.5;
+}
+
+@keyframes lane-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ─── New Lane card ─────────────────────────────────────── */
+
+.lane-card-new {
+  border-style: dashed;
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+}
+
+.lane-card-new:hover {
+  background: var(--bg-hover);
+}
+
+.lane-card-new.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lane-card-new.disabled:hover {
+  border-color: var(--border-subtle);
+  background: transparent;
+}
+
+.lane-card-new-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.lane-card-new:not(.disabled):hover .lane-card-new-inner {
+  color: var(--text-primary);
+}
+
+/* ─── Empty state ───────────────────────────────────────── */
+
+.lane-board-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.lane-board-empty-icon {
+  width: 52px;
+  height: 52px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.lane-board-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.lane-board-empty-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 320px;
+}
+
+.lane-board-empty-cta {
+  margin-top: 12px;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.lane-board-empty-cta:hover {
+  opacity: 0.85;
+}
+
+/* ─── Top bar left section (board/detail/grid modes) ─────── */
+
+.lane-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.lane-bar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lane-bar-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  padding: 0 7px;
+  line-height: 16px;
+}
+
+.btn-lane-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-lane-home-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.btn-lane-home:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* The surface currently on screen gets the highlight — the bar is
+   single-state, so this is the only thing that changes between views */
+.btn-lane-home.current,
+.btn-lane-frames.current,
+.lane-bar-section.current {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+/* Frames tab — sibling of Home; carries the Active Frames count */
+.btn-lane-frames {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.btn-lane-frames:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.btn-lane-frames-label {
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.lane-bar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-subtle);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* Open section chips (task / spec detail tabs) — several can sit side by side */
+.lane-bar-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 6px 4px 8px;
+  border-radius: var(--radius-sm);
+  min-width: 0;
+  max-width: 180px;
+  flex-shrink: 1;
+}
+
+.lane-bar-section:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.lane-bar-section-label {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.lane-bar-section-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.lane-bar-section-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.lane-switcher {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 3px 8px;
+  min-width: 0;
+  max-width: 260px;
+}
+
+.lane-switcher:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-subtle);
+}
+
+.lane-switcher .lane-switcher-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane-switcher svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* ─── Context rail (Specs & Tasks teaser) ───────────────── */
+
+.lane-rail {
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.lane-rail.collapsed {
+  width: 36px;
+  overflow: visible;
+}
+
+.lane-rail-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 8px 0;
+}
+
+.lane-rail-toggle,
+.lane-rail-strip-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lane-rail-toggle:hover,
+.lane-rail-strip-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.lane-rail-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 8px;
+}
+
+.lane-rail-section {
+  padding: 4px 10px 12px;
+}
+
+.lane-rail-section + .lane-rail-section {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 2px;
+  padding-top: 10px;
+}
+
+.lane-rail-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm);
+}
+
+.lane-rail-section-header:hover {
+  background: var(--bg-hover);
+}
+
+.lane-rail-section-chevron {
+  display: flex;
+  color: var(--text-secondary);
+}
+
+.lane-rail-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.lane-rail-section-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  padding: 0 7px;
+  line-height: 16px;
+}
+
+.lane-rail-section-open {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  opacity: 0;
+}
+
+.lane-rail-section-header:hover .lane-rail-section-open {
+  opacity: 1;
+}
+
+.lane-rail-section-open:hover {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.lane-rail-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.lane-rail-item {
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid transparent;
+}
+
+.lane-rail-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-subtle);
+}
+
+.lane-rail-item-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.lane-rail-item-title {
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Card-style items — same look as the Specs/Tasks side panels
+   (spec-row / task-item), compacted for the rail width. Badges reuse
+   the panels' own classes (spec-phase-badge, task-priority,
+   task-category) so colors stay in sync automatically. */
+.lane-rail-card {
+  padding: 9px 10px;
+  gap: 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.lane-rail-card:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent-primary);
+}
+
+.lane-rail-card.status-in-progress {
+  border-left: 3px solid var(--accent-primary);
+}
+
+.lane-rail-card .lane-rail-item-title {
+  font-weight: 500;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+.lane-rail-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.lane-rail-progress-text {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+.lane-rail-progress {
+  height: 3px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.lane-rail-progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 2px;
+}
+
+.lane-rail-task-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Persistent in_progress marker — steady on purpose: pulsing is reserved
+   for the live-activity dots (.spec-activity-dot), which only show while
+   an agent is actually working. */
+.lane-rail-task-dot.in-progress {
+  background: var(--accent-primary);
+  opacity: 0.65;
+}
+
+/* Workflow-status chip on task rows (persistent state, not live activity) */
+.task-status-chip {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.task-status-chip.in-progress {
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-border, rgba(212, 165, 116, 0.25));
+}
+
+/* Tasks section filter/sort controls — the dashboard's toolbar buttons +
+   popovers, compacted for the rail */
+.lane-rail-controls {
+  display: flex;
+  gap: 6px;
+  padding: 2px 4px 8px;
+}
+
+.lane-rail-ctl-wrap {
+  position: relative;
+}
+
+.lane-rail-ctl-btn {
+  font-size: 10px;
+  padding: 4px 9px;
+  gap: 5px;
+}
+
+.lane-rail-popover {
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Board rail layout: SPECS is content-sized but never exceeds 40% of the
+   rail; TASKS always absorbs everything SPECS leaves (60% minimum, more
+   when SPECS is short). Scrolling happens inside each section body, never
+   on the rail, so headers and controls stay pinned. Scoped to .board-rail
+   — the detail/section rails keep rail-level scrolling. */
+.lane-rail.board-rail:not(.collapsed) {
+  overflow-y: hidden;
+}
+
+.board-rail > .lane-rail-header {
+  flex-shrink: 0;
+}
+
+.board-rail .lane-rail-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* flex-shrink: 0 is the load-bearing part — with shrink allowed, a huge
+   TASKS list drags SPECS into the proportional-shrink phase and crushes
+   it to a sliver. SPECS must hold min(content, 40%) exactly. */
+.board-rail .lane-rail-section.rail-specs {
+  flex: 0 0 auto;
+  max-height: 40%;
+}
+
+.board-rail .lane-rail-section.rail-tasks {
+  flex: 1 1 auto;
+}
+
+.board-rail .lane-rail-section-header,
+.board-rail .lane-rail-controls {
+  flex-shrink: 0;
+}
+
+.board-rail .lane-rail-section-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.lane-rail-empty {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 6px 8px;
+}
+
+.lane-rail-more {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 5px 8px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.lane-rail-more:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* ─── Detail view: terminal + collapsible lanes rail ─────── */
+
+.detail-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.detail-layout .detail-content-area {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.lane-rail.lanes-rail {
+  width: 240px;
+}
+
+.lane-rail.lanes-rail.collapsed {
+  width: 36px;
+}
+
+.lanes-rail-header {
+  margin: 6px 10px 0;
+  cursor: default;
+}
+
+.lanes-rail-header:hover {
+  background: none;
+}
+
+.lanes-rail-body {
+  padding: 4px 10px 10px;
+}
+
+.lane-detail-item.active-lane {
+  background: var(--bg-hover);
+  border-color: var(--border-subtle);
+}
+
+/* Mini "Agent" badge — same identity marker as the Mainframe cards,
+   scaled down for the rail's narrow rows */
+.lane-rail-agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--bg-primary);
+  background: var(--accent-primary);
+  border-radius: 99px;
+  padding: 0 6px;
+  line-height: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.lane-detail-item-status {
+  font-size: 10px;
+  font-weight: 500;
+  padding-left: 16px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane-detail-item-time {
+  font-size: 10px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.lane-detail-item-status.agent-working  { color: var(--accent-primary); }
+.lane-detail-item-status.agent-approval { color: var(--error, #d45555); font-weight: 600; }
+.lane-detail-item-status.agent-input    { color: var(--warning, #e5a50a); }
+.lane-detail-item-status.running        { color: var(--success, #23d18b); }
+.lane-detail-item-status.idle           { color: var(--text-secondary); }
+
+/* Rail variant of the assignment chip: smaller, aligned under the title */
+.lane-rail-item .lane-assignment-chip {
+  font-size: 10px;
+  padding: 1px 7px;
+  margin-left: 16px;
+}
+
+/* ─── Multi-cell detail layout (grid in detail view) ─────── */
+
+.grid-cell-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 6px;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.grid-cell-switcher:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-subtle);
+}
+
+.grid-cell-switcher .grid-cell-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grid-cell-switcher svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.btn-grid-maximize {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-cell-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: transparent;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.grid-cell-empty:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+}
+
+.grid-cell-empty-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.grid-cell-empty:hover .grid-cell-empty-inner {
+  color: var(--text-primary);
+}
+
+/* Lane switcher dropdown items */
+
+.lane-menu {
+  min-width: 200px;
+}
+
+.lane-menu .terminal-context-menu-item.active-lane {
+  font-weight: 600;
+}
+
+.lane-menu .lane-menu-item-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane-menu .lane-menu-item-status {
+  font-size: 10px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}

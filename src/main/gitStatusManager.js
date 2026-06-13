@@ -163,6 +163,7 @@ async function pushStatus() {
       mainWindow.webContents.send(IPC.GIT_STATUS_DATA, {
         projectPath,
         isRepo: result.isRepo,
+        branch: result.branch || null,
         files: result.files
       });
     }
@@ -179,26 +180,30 @@ function readGitStatus(projectPath) {
   return new Promise((resolve) => {
     execFile(
       'git',
-      ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
+      ['status', '--porcelain=v1', '-z', '--branch', '--untracked-files=all'],
       { cwd: projectPath, maxBuffer: MAX_BUFFER },
       (err, stdout) => {
         if (err) {
-          resolve({ isRepo: false, files: {} });
+          resolve({ isRepo: false, branch: null, files: {} });
           return;
         }
-        resolve({ isRepo: true, files: parsePorcelainV1(stdout) });
+        const parsed = parsePorcelainV1(stdout);
+        resolve({ isRepo: true, branch: parsed.branch, files: parsed.files });
       }
     );
   });
 }
 
 /**
- * Parse `git status --porcelain=v1 -z` output.
- * Format: "XY <path>\0" with renamed/copied entries adding "<oldpath>\0" after.
+ * Parse `git status --porcelain=v1 -z --branch` output.
+ * First entry is the branch header: "## main...origin/main [ahead 1]",
+ * "## HEAD (no branch)" (detached) or "## No commits yet on main".
+ * File entries: "XY <path>\0" with renamed/copied adding "<oldpath>\0" after.
  */
 function parsePorcelainV1(stdout) {
   const files = {};
-  if (!stdout) return files;
+  let branch = null;
+  if (!stdout) return { branch, files };
 
   const entries = stdout.split('\0');
   let i = 0;
@@ -208,6 +213,21 @@ function parsePorcelainV1(stdout) {
       i++;
       continue;
     }
+
+    // Branch header from --branch
+    if (entry.startsWith('## ')) {
+      const header = entry.substring(3);
+      if (header.startsWith('No commits yet on ')) {
+        branch = header.substring('No commits yet on '.length);
+      } else if (header.startsWith('HEAD ')) {
+        branch = 'detached HEAD';
+      } else {
+        branch = header.split('...')[0].split(' ')[0];
+      }
+      i++;
+      continue;
+    }
+
     const indexStatus = entry[0];
     const worktreeStatus = entry[1];
     const filename = entry.substring(3);
@@ -230,7 +250,7 @@ function parsePorcelainV1(stdout) {
     }
   }
 
-  return files;
+  return { branch, files };
 }
 
 /**
