@@ -2778,7 +2778,8 @@
       "file": "src/renderer/gitChangesPanel.js",
       "description": "Git Changes Panel (Changes sidebar tab)",
       "exports": [
-        "init"
+        "init",
+        "getOrderedFiles"
       ],
       "depends": [
         "electron",
@@ -2786,54 +2787,57 @@
       ],
       "functions": {
         "init": {
-          "line": 22,
+          "line": 25,
           "params": [
             "opts = {}"
           ]
         },
         "handleStatus": {
-          "line": 53,
+          "line": 56,
           "params": [
             "payload"
           ]
         },
         "showMessage": {
-          "line": 77,
+          "line": 88,
           "params": [
             "text"
           ]
         },
         "partition": {
-          "line": 88,
+          "line": 99,
           "params": [
             "files"
           ],
           "purpose": "`staged` and `changes` (VSCode parity)."
         },
         "renderGroup": {
-          "line": 125,
+          "line": 136,
           "params": [
             "group",
             "entries"
           ]
         },
         "buildRow": {
-          "line": 143,
+          "line": 154,
           "params": [
             "entry"
           ]
         },
         "badgeChar": {
-          "line": 184,
+          "line": 195,
           "params": [
             "entry"
           ]
         },
         "normalize": {
-          "line": 196,
+          "line": 207,
           "params": [
             "ch"
           ]
+        },
+        "getOrderedFiles": {
+          "line": 213
         }
       },
       "ipc": {
@@ -3160,7 +3164,7 @@
         "terminal",
         "fileTreeUI",
         "gitChangesPanel",
-        "diffViewer",
+        "diffSection",
         "historyPanel",
         "tasksPanel",
         "tasksDashboard",
@@ -3199,26 +3203,26 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 223,
+          "line": 220,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 306,
+          "line": 303,
           "purpose": "and close on outside click / Escape."
         },
         "setupUpdateDot": {
-          "line": 395,
+          "line": 392,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 426,
+          "line": 423,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 452,
+          "line": 449,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -3428,7 +3432,8 @@
         "laneDetailRail",
         "overviewPanel",
         "taskSection",
-        "specSection"
+        "specSection",
+        "diffSection"
       ],
       "functions": {}
     },
@@ -6945,6 +6950,64 @@
         ],
         "emits": []
       }
+    },
+    "renderer/diffSection": {
+      "file": "src/renderer/diffSection.js",
+      "description": "Diff Section Module",
+      "exports": [],
+      "depends": [
+        "electron",
+        "diff2html",
+        "shared/ipcChannels",
+        "lucide",
+        "gitChangesPanel"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 23,
+          "params": [
+            "data",
+            "size = 16"
+          ]
+        },
+        "setHost": {
+          "line": 31,
+          "params": [
+            "h"
+          ]
+        },
+        "open": {
+          "line": 40,
+          "params": [
+            "ref"
+          ],
+          "purpose": "it) or creates one if none."
+        },
+        "createViewport": {
+          "line": 45
+        },
+        "_orderedFiles": {
+          "line": 191
+        },
+        "_basename": {
+          "line": 199,
+          "params": [
+            "p"
+          ]
+        },
+        "_escape": {
+          "line": 205,
+          "params": [
+            "text"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GIT_STATUS_DATA"
+        ],
+        "emits": []
+      }
     }
   },
   "ipcChannels": {
@@ -7624,6 +7687,13 @@
         "module": "main/dialogs",
         "file": "src/main/dialogs.js",
         "description": "Dialogs Module"
+      }
+    ],
+    "diff-section": [
+      {
+        "module": "renderer/diffSection",
+        "file": "src/renderer/diffSection.js",
+        "description": "Diff Section Module"
       }
     ],
     "diff-viewer": [

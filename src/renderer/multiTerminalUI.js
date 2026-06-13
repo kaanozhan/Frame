@@ -19,6 +19,7 @@ const laneDetailRail = require('./laneDetailRail');
 const overviewPanel = require('./overviewPanel');
 const taskSection = require('./taskSection');
 const specSection = require('./specSection');
+const diffSection = require('./diffSection');
 
 class MultiTerminalUI {
   constructor(containerId) {
@@ -94,6 +95,7 @@ class MultiTerminalUI {
     // collection and what the content area shows. Several can be open at once.
     taskSection.setHost(this);
     specSection.setHost(this);
+    diffSection.setHost(this);
 
     // Listen for state changes
     this.manager.onStateChange = (state) => this._onStateChange(state);

@@ -5,6 +5,158 @@
 
 @import '../../../../node_modules/diff2html/bundles/css/diff2html.min.css';
 
+/* =========================
+   Diff Section (the diff opened as a tab, with prev/next file nav)
+   ========================= */
+.diff-section {
+  /* The section content container (.terminal-content.section-view) is a flex
+     row — grow to fill it, otherwise the section sizes to the diff content. */
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.diff-section-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+/* Prev/next file arrows — deliberately prominent and easy to hit. */
+.diff-section-nav {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+}
+
+.diff-section-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.diff-section-arrow:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+  background: var(--bg-hover);
+}
+
+.diff-section-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.diff-section-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.diff-section-filename {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.diff-section-pill {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+
+.diff-section-pill[data-pill="working"] {
+  color: var(--warning, #e5a50a);
+  background: color-mix(in srgb, var(--warning, #e5a50a) 16%, transparent);
+}
+
+.diff-section-pill[data-pill="staged"] {
+  color: var(--success, #7cb382);
+  background: color-mix(in srgb, var(--success, #7cb382) 16%, transparent);
+}
+
+.diff-section-pos {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.diff-section-modes {
+  flex: 0 0 auto;
+  display: flex;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.diff-section-mode {
+  padding: 5px 10px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.diff-section-mode + .diff-section-mode {
+  border-left: 1px solid var(--border-default);
+}
+
+.diff-section-mode:hover {
+  color: var(--text-primary);
+}
+
+.diff-section-mode.active {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+.diff-section-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diff-section-host {
+  padding: var(--space-md);
+}
+
+.diff-section-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
 #diff-viewer-overlay {
   display: none;
   position: fixed;
@@ -128,84 +280,101 @@
 }
 
 /* ----- diff2html dark-theme overrides ----- */
-#diff-viewer-host .d2h-wrapper {
+.frame-diff .d2h-wrapper {
   background: transparent;
 }
 
-#diff-viewer-host .d2h-file-header,
-#diff-viewer-host .d2h-files-diff,
-#diff-viewer-host .d2h-file-wrapper {
+.frame-diff .d2h-file-header,
+.frame-diff .d2h-files-diff,
+.frame-diff .d2h-file-wrapper {
   background: var(--bg-secondary);
   border-color: var(--border-subtle);
   color: var(--text-primary);
 }
 
-#diff-viewer-host .d2h-file-name {
+/* Always fill the available width, regardless of how small the diff is —
+   diff2html otherwise shrinks the wrapper/tables to their content. */
+.frame-diff .d2h-wrapper,
+.frame-diff .d2h-file-wrapper,
+.frame-diff .d2h-files-diff,
+.frame-diff .d2h-file-diff,
+.frame-diff .d2h-diff-table,
+.frame-diff .d2h-diff-tbody {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Side-by-side: two equal halves that fill the row. */
+.frame-diff .d2h-file-side-diff {
+  width: 50%;
+}
+
+.frame-diff .d2h-file-name {
   color: var(--text-primary);
 }
 
-#diff-viewer-host .d2h-tag,
-#diff-viewer-host .d2h-file-stats {
+.frame-diff .d2h-tag,
+.frame-diff .d2h-file-stats {
   color: var(--text-secondary);
 }
 
-#diff-viewer-host .d2h-code-line,
-#diff-viewer-host .d2h-code-side-line,
-#diff-viewer-host .d2h-diff-table {
+.frame-diff .d2h-code-line,
+.frame-diff .d2h-code-side-line,
+.frame-diff .d2h-diff-table {
   color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
 }
 
-#diff-viewer-host .d2h-code-linenumber,
-#diff-viewer-host .d2h-code-side-linenumber {
+.frame-diff .d2h-code-linenumber,
+.frame-diff .d2h-code-side-linenumber {
   background: var(--bg-tertiary);
   color: var(--text-tertiary);
   border-color: var(--border-subtle);
 }
 
-#diff-viewer-host .d2h-ins,
-#diff-viewer-host .d2h-ins.d2h-change {
+.frame-diff .d2h-ins,
+.frame-diff .d2h-ins.d2h-change {
   background: var(--diff-ins-bg);
   color: var(--diff-ins-fg);
 }
 
-#diff-viewer-host .d2h-ins .d2h-code-line-ctn,
-#diff-viewer-host .d2h-ins .d2h-code-side-line {
+.frame-diff .d2h-ins .d2h-code-line-ctn,
+.frame-diff .d2h-ins .d2h-code-side-line {
   color: var(--diff-ins-fg);
 }
 
-#diff-viewer-host .d2h-del,
-#diff-viewer-host .d2h-del.d2h-change {
+.frame-diff .d2h-del,
+.frame-diff .d2h-del.d2h-change {
   background: var(--diff-del-bg);
   color: var(--diff-del-fg);
 }
 
-#diff-viewer-host .d2h-del .d2h-code-line-ctn,
-#diff-viewer-host .d2h-del .d2h-code-side-line {
+.frame-diff .d2h-del .d2h-code-line-ctn,
+.frame-diff .d2h-del .d2h-code-side-line {
   color: var(--diff-del-fg);
 }
 
-#diff-viewer-host .d2h-cntx,
-#diff-viewer-host .d2h-cntx .d2h-code-line-ctn,
-#diff-viewer-host .d2h-cntx .d2h-code-side-line {
+.frame-diff .d2h-cntx,
+.frame-diff .d2h-cntx .d2h-code-line-ctn,
+.frame-diff .d2h-cntx .d2h-code-side-line {
   background: transparent;
   color: var(--text-secondary);
 }
 
-#diff-viewer-host .d2h-info {
+.frame-diff .d2h-info {
   background: var(--bg-tertiary);
   color: var(--text-tertiary);
   border-color: var(--border-subtle);
 }
 
-#diff-viewer-host .d2h-code-line-prefix {
+.frame-diff .d2h-code-line-prefix {
   color: var(--text-tertiary);
 }
 
-#diff-viewer-host .d2h-emptyplaceholder,
-#diff-viewer-host .d2h-code-line.d2h-emptyplaceholder,
-#diff-viewer-host .d2h-code-side-line.d2h-emptyplaceholder {
+.frame-diff .d2h-emptyplaceholder,
+.frame-diff .d2h-code-line.d2h-emptyplaceholder,
+.frame-diff .d2h-code-side-line.d2h-emptyplaceholder {
   background: var(--bg-deep);
   border-color: var(--border-subtle);
 }
@@ -213,15 +382,15 @@
 /* Inline change markers (diff2html wraps the changed substring of a line in
    <ins>/<del>). Default styles ship light-theme colors only; theme tokens
    in variables.css drive both dark and light. */
-#diff-viewer-host .d2h-code-line ins,
-#diff-viewer-host .d2h-code-side-line ins {
+.frame-diff .d2h-code-line ins,
+.frame-diff .d2h-code-side-line ins {
   background-color: var(--diff-ins-mark-bg);
   color: var(--diff-ins-mark-fg);
   text-decoration: none;
 }
 
-#diff-viewer-host .d2h-code-line del,
-#diff-viewer-host .d2h-code-side-line del {
+.frame-diff .d2h-code-line del,
+.frame-diff .d2h-code-side-line del {
   background-color: var(--diff-del-mark-bg);
   color: var(--diff-del-mark-fg);
   text-decoration: none;

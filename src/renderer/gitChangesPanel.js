@@ -18,6 +18,9 @@ let lists = { staged: null, changes: null, conflict: null };
 
 let currentProjectPath = null;
 let onRowClick = null;
+// Flat, display-order list of changed files ({ relPath, staged, group }) — the
+// diff section reads this for its prev/next navigation.
+let lastOrdered = [];
 
 function init(opts = {}) {
   emptyEl = document.getElementById('git-changes-empty');
@@ -54,12 +57,20 @@ function handleStatus(payload) {
   currentProjectPath = payload.projectPath || null;
 
   if (!payload.isRepo) {
+    lastOrdered = [];
     showMessage('Not a git repository');
     return;
   }
 
   const buckets = partition(payload.files || {});
   const total = buckets.staged.length + buckets.changes.length + buckets.conflict.length;
+
+  // Flat nav order matches the on-screen order: staged → changes → conflict.
+  lastOrdered = [
+    ...buckets.staged.map((e) => ({ relPath: e.relPath, staged: true, group: 'staged' })),
+    ...buckets.changes.map((e) => ({ relPath: e.relPath, staged: false, group: 'changes' })),
+    ...buckets.conflict.map((e) => ({ relPath: e.relPath, staged: false, group: 'conflict' }))
+  ];
 
   if (total === 0) {
     showMessage('Working tree clean');
@@ -198,4 +209,9 @@ function normalize(ch) {
   return ch;
 }
 
-module.exports = { init };
+/** Current changed files in display order (for the diff section's prev/next). */
+function getOrderedFiles() {
+  return lastOrdered.slice();
+}
+
+module.exports = { init, getOrderedFiles };

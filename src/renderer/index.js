@@ -8,7 +8,7 @@ const { IPC } = require('../shared/ipcChannels');
 const terminal = require('./terminal');
 const fileTreeUI = require('./fileTreeUI');
 const gitChangesPanel = require('./gitChangesPanel');
-const diffViewer = require('./diffViewer');
+const diffSection = require('./diffSection');
 const historyPanel = require('./historyPanel');
 const tasksPanel = require('./tasksPanel');
 const tasksDashboard = require('./tasksDashboard');
@@ -85,15 +85,12 @@ function init() {
   fileTreeUI.init('file-tree', state.getProjectPath);
   fileTreeUI.setProjectPathGetter(state.getProjectPath);
 
-  // Initialize Diff Viewer overlay (read-only, opened from Changes panel)
-  diffViewer.init();
-
-  // Initialize Git Changes panel (Changes sidebar tab); row clicks open the
-  // diff viewer for that file.
+  // Git Changes panel (Changes sidebar tab); a row click opens that file's
+  // diff as a section tab (next to Home / Frames), navigable with ◀ / ▶.
   gitChangesPanel.init({
     onRowClick: ({ projectPath, relPath, staged }) => {
       if (!projectPath || !relPath) return;
-      diffViewer.open({ projectPath, relPath, staged });
+      diffSection.open({ projectPath, relPath, staged });
     }
   });
 

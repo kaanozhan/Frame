@@ -195,9 +195,8 @@
               <div class="git-changes-list" data-git-changes-list="staged"></div>
             </div>
 
-            <!-- No header here: "Changes" would duplicate the tab name. Staged /
-                 Conflict sections keep theirs to mark the distinction. -->
             <div class="git-changes-section" data-git-changes-group="changes" style="display:none;">
+              <div class="git-changes-section-header">Unstaged</div>
               <div class="git-changes-list" data-git-changes-list="changes"></div>
             </div>
 
@@ -1101,7 +1100,7 @@
         </div>
       </div>
       <div id="diff-viewer-content">
-        <div id="diff-viewer-host"></div>
+        <div id="diff-viewer-host" class="frame-diff"></div>
         <div id="diff-viewer-empty" style="display:none;"></div>
       </div>
     </div>
