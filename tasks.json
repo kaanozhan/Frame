@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-06-12T12:13:56.094Z",
+  "lastUpdated": "2026-06-15T14:21:31.311Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -25,6 +25,21 @@
     "completedAt": "ISO timestamp | null"
   },
   "tasks": [
+    {
+      "id": "task-fix-lane-card-assignment-overflow",
+      "title": "Lane card stretches when assignment label is long",
+      "description": "On the Lane Board (Mainframe home), when a lane card's assigned task/spec label is long (e.g. 'Structure filter data-loading per active view (Home/Explore + Explore sub...')', the assignment chip forces the card's grid track wider and breaks the card grid layout — cards stop sizing to their column. Fix is CSS-only in src/renderer/styles/components/lane-board.css: grid items default to min-width:auto, so a long nowrap chip refuses to shrink and overflows its track. Add min-width:0 to .lane-card so it can shrink within its 1fr grid track, and min-width:0 to .lane-assignment-chip-label so the existing text-overflow:ellipsis actually engages inside the chip's flex row. Card width must stay fixed to its column; the long label truncates with an ellipsis instead of expanding the card.",
+      "userRequest": "User said: bir bug var. Eğer bir frame üzerinde atanan task ya da spec çok uzunsa bu main ekrandaki görünümü bozuyor, burada esnememeli o width'ten gerekirse alt satırda yerimiz var o şekilde devam etmeli.",
+      "acceptanceCriteria": "(1) A lane card with a very long assigned task/spec label keeps the same width as the other cards in its grid row — it no longer stretches. (2) The long label truncates with an ellipsis within the assignment chip. (3) No regression to short-label cards, the branch chip, agent badge, or the status footer. (4) Behavior holds across the board's responsive breakpoints (1/2/3/4 columns).",
+      "notes": "Root cause: CSS grid tracks (repeat(N, 1fr)) carry an implicit min-width:auto on items, so intrinsic content (the nowrap chip label) widens the track. Two-line targeted fix in lane-board.css — no JS/markup change. Assignment chip markup lives in src/renderer/laneBoard.js (_renderCard).",
+      "status": "in_progress",
+      "priority": "high",
+      "category": "fix",
+      "context": "Session 2026-06-15 - Lane card overflow on long task/spec assignment",
+      "createdAt": "2026-06-15T00:00:00Z",
+      "updatedAt": "2026-06-15T00:00:00Z",
+      "completedAt": null
+    },
     {
       "id": "task-structure-bootstrap",
       "title": "Ship STRUCTURE.json auto-fill machinery to user projects",
@@ -701,7 +716,7 @@
       "category": "feature",
       "context": "Session 2026-03-19 - HN post discussion on intentIndex edge cases",
       "createdAt": "2026-03-19T00:00:00Z",
-      "updatedAt": "2026-04-24T12:50:58.600Z",
+      "updatedAt": "2026-06-15T14:21:31.311Z",
       "completedAt": null
     },
     {

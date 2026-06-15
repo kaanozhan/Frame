@@ -64,6 +64,10 @@
   flex-direction: column;
   gap: 12px;
   min-height: 168px;
+  /* Grid items default to min-width:auto, so a long assignment label would
+     widen the 1fr track and stretch the card past its column. min-width:0
+     lets the card hold its track and the label truncate instead. */
+  min-width: 0;
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
@@ -216,6 +220,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Without this the label keeps its intrinsic (full-text) width inside the
+     chip's flex row and ellipsis never triggers — it must be allowed to shrink. */
+  min-width: 0;
 }
 
 /* Agent exited/killed: the chip stays as provenance but fades out until
