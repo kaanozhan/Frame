@@ -95,6 +95,26 @@ Two principles shaped this:
 - **Files over databases.** Markdown is canonical. Any AI tool can read it without Frame, any teammate can grep it, git versions it, PRs review it.
 - **Optional, never forced.** Spec-driven dev isn't every project's shape. Frame asks once when you open the Specs panel; you opt in or skip. Existing `tasks.json` workflows are untouched.
 
+### Agent Orchestration
+
+Specs make features durable. Orchestration makes them **parallel.**
+
+Open the Orchestrator and hand a **conductor** agent several ready specs. It runs them at the same time — each spec in its own **git worktree**, worked by its own agent, fully isolated. No two agents fighting over the same files, no half-finished work bleeding into your working tree.
+
+The conductor doesn't guess at safety. Before running anything it reads each spec's declared **footprint** (the files it will touch) and only parallelizes specs that don't overlap; the rest are serialized. That guard is enforced in Frame's code, not left to the model — a spec whose footprint collides with in-flight work is refused, not merged into chaos.
+
+The unit of parallelism is the **spec**, not the task. A spec's own tasks are interdependent, so one agent runs them in order; *different* specs are the independent units that fan out. Need more parallelism? Split the work into more specs.
+
+You stay in control of what lands:
+
+- Workers commit only to their own branch — they never push, never merge, never touch shared files (`tasks.json`, `STRUCTURE.json`, …).
+- When a worker finishes, the conductor reviews it and tells you it's ready — it does **not** merge on its own.
+- You review (you can test right in the worktree), then **Approve**. Frame runs a **drift check** — what the agent *actually* changed vs. what it *declared* — and merges locally into a per-spec integration branch. `main` is never touched; promoting it or opening a PR stays your call.
+
+The Orchestrator is a live cockpit: a pipeline rail showing every worker's state at a glance, plus worker lanes you can drop into — because no real task finishes in one shot, and an agent may need your approval mid-run.
+
+> **Honest framing:** this is *guardrailed, human-steered* parallelism — not fire-and-forget automation. The conductor proposes and isolates; you decide what merges. That's the point.
+
 ### Fast File Lookup
 
 Instead of scanning the entire codebase, Frame's `intentIndex` maps concepts to files:
@@ -132,6 +152,12 @@ Switch between AI tools without leaving Frame:
 - **Git Branches** — view, switch, create, and manage branches and worktrees
 - **Plugins Panel** — browse, enable/disable, and install Claude Code plugins
 
+### Orchestration
+- **Parallel spec execution** — a conductor agent runs multiple ready specs at once, each worker in its own git worktree
+- **Code-enforced isolation** — footprint conflict guard, per-spec branches, drift-checked local merges; `main` is never touched
+- **Live cockpit** — pipeline rail + worker lanes with per-worker **Open / Approve / Remove**
+- **You approve** — the conductor reviews and reports; nothing merges without your review
+
 ### Context & Architecture
 - **STRUCTURE.json** — auto-updated on every commit via pre-commit hooks
 - **Overview Panel** — visual structure map of your project's modules
@@ -147,7 +173,7 @@ Switch between AI tools without leaving Frame:
 
 ## Under the Hood
 
-- **115+ IPC channels** powering real-time bidirectional communication between renderer and main process
+- **120+ IPC channels** powering real-time bidirectional communication between renderer and main process
 - **40+ modules** across main and renderer processes
 - **Pre-commit hooks** for automatic STRUCTURE.json updates
 - **Transport layer abstraction** — architecture designed for Electron IPC → WebSocket migration (web platform coming)
@@ -248,6 +274,7 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan
 - [x] Overview / structure map panel
 - [x] Pre-commit hooks for automatic structure updates
 - [x] Spec-driven development — spec / plan / tasks / outcome markdown workflow with auto-import to tasks.json
+- [x] Agent orchestration — conductor-led parallel spec execution, each agent isolated in its own git worktree
 - [x] Light / dark theme
 
 ### In Progress
