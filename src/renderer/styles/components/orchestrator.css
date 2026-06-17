@@ -1,0 +1,439 @@
+/* ==================== ORCHESTRATOR ==================== */
+/*
+ * Full-screen board overlay for conductor-led parallel spec execution.
+ * Layout mirrors the agreed sketch: conductor (top-left) + workers
+ * (bottom-left) in the main column, assignable specs in the right rail.
+ */
+
+/* Rendered as a section view into the terminal content area (a tab next to
+ * Home / Frames) — not a modal. Fills the content area. */
+.terminal-content.orchestrator-view {
+  display: block;
+  overflow: hidden;
+}
+
+.orch-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+.orch-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  flex: none;
+}
+.orch-toolbar-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.orch-stop {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+.orch-stop:hover {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* Empty-state secondary action — orchestrator entry on first launch */
+.lane-board-empty-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-md);
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+.lane-board-empty-secondary:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+  background: var(--bg-hover);
+}
+
+/* Home board "Orchestrator" card — running badge when a session is live */
+.lane-card-orch-running {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* Pipeline rail — at-a-glance lifecycle of all workers */
+.orch-pipeline {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  overflow-x: auto;
+}
+.orch-pipeline:empty { display: none; }
+.orch-pipe-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  flex: none;
+}
+.orch-pipe-flow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-sm);
+}
+.orch-pipe-station {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 90px;
+}
+.orch-pipe-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.orch-pipe-count {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.orch-pipe-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.orch-pipe-empty { color: var(--text-muted); font-size: 11px; }
+.orch-pipe-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.orch-pipe-offtrack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+  padding-left: var(--space-md);
+  border-left: 1px solid var(--border-subtle);
+}
+
+.orch-pipe-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 140px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.orch-pipe-chip:hover { background: var(--bg-hover); color: var(--text-primary); }
+.orch-pipe-chip-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.orch-pipe-chip-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--border-strong);
+}
+.orch-pipe-chip.is-idle { opacity: 0.65; }
+
+/* State colors (dot + chip border) */
+.orch-pipe-chip.stage-queued   .orch-pipe-chip-dot { background: var(--text-muted); }
+.orch-pipe-chip.stage-running  .orch-pipe-chip-dot { background: var(--accent-primary); }
+.orch-pipe-chip.stage-running  { border-color: color-mix(in srgb, var(--accent-primary) 50%, var(--border-subtle)); }
+.orch-pipe-chip.stage-done     .orch-pipe-chip-dot { background: var(--accent-secondary); }
+.orch-pipe-chip.stage-done     { border-color: color-mix(in srgb, var(--accent-secondary) 50%, var(--border-subtle)); }
+.orch-pipe-chip.stage-approved .orch-pipe-chip-dot { background: var(--success); }
+.orch-pipe-chip.stage-approved { border-color: color-mix(in srgb, var(--success) 50%, var(--border-subtle)); }
+.orch-pipe-chip.stage-blocked  .orch-pipe-chip-dot { background: var(--warning); }
+.orch-pipe-chip.stage-blocked  { border-color: color-mix(in srgb, var(--warning) 55%, var(--border-subtle)); }
+.orch-pipe-chip.stage-failed   .orch-pipe-chip-dot { background: var(--error); }
+.orch-pipe-chip.stage-failed   { border-color: color-mix(in srgb, var(--error) 55%, var(--border-subtle)); }
+
+.orch-section {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, 30%); /* conductor ~70% : rail ~30% */
+}
+
+/* Right rail stacks Workers (top) + Specs (bottom) vertically. */
+.orch-side {
+  display: grid;
+  grid-template-rows: minmax(0, 1.2fr) minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.orch-conductor,
+.orch-workers,
+.orch-specs {
+  padding: var(--space-md) var(--space-lg);
+  overflow-y: auto;
+}
+.orch-specs {
+  border-top: 1px solid var(--border-subtle);
+}
+.orch-conductor {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.orch-zone-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+.orch-zone-action {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.orch-zone-action:hover { color: var(--text-primary); }
+.orch-zone-action:disabled { opacity: 0.4; cursor: default; }
+.orch-conductor-host {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+.orch-zone-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-sm);
+}
+.orch-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: var(--space-md) 0;
+}
+
+/* Conductor card */
+.orch-conductor-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.orch-conductor-state {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.orch-open-conductor,
+.orch-spec-assign {
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+.orch-open-conductor:hover,
+.orch-spec-assign:hover { opacity: 0.85; }
+.orch-open-conductor:disabled,
+.orch-spec-assign:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Spec rail */
+.orch-spec-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.orch-spec-row.disabled { opacity: 0.5; }
+.orch-spec-main { flex: 1; min-width: 0; }
+.orch-spec-title {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.orch-spec-phase {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.orch-spec-assign {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Worker board — vertical rich list */
+.orch-zone-count {
+  margin-left: var(--space-sm);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.orch-worker-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.orch-worker-card {
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.orch-worker-card:hover { border-color: var(--border-default); }
+
+.orch-worker-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.orch-worker-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  flex: none;
+}
+.orch-worker-slug {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.orch-worker-status-chip {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+.orch-worker-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.orch-worker-tree {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.orch-worker-branch { color: var(--text-secondary); }
+.orch-worker-branch::before { content: '⎇ '; color: var(--text-tertiary); }
+.orch-worker-path {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.orch-worker-diff { color: var(--accent-secondary); }
+.orch-worker-merged { color: var(--success); }
+
+.orch-worker-fp {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orch-worker-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: 10px;
+}
+.orch-wbtn {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.orch-wbtn:hover { color: var(--text-primary); background: var(--bg-hover); }
+.orch-wbtn:disabled { opacity: 0.4; cursor: default; }
+.orch-wbtn.act-remove:hover { color: var(--error); border-color: var(--error); }
+
+/* Status accents (left border + dot) */
+.orch-worker-card.status-running .orch-worker-dot { background: var(--accent-primary); }
+.orch-worker-card.status-idle    .orch-worker-dot { background: var(--text-muted); }
+.orch-worker-card.status-done    .orch-worker-dot { background: var(--success); }
+.orch-worker-card.status-failed  .orch-worker-dot { background: var(--error); }
+.orch-worker-card.status-blocked .orch-worker-dot { background: var(--warning); }
+.orch-worker-card.status-queued  .orch-worker-dot { background: var(--border-strong); }
+.orch-worker-card.status-running { border-left-color: var(--accent-primary); }
+.orch-worker-card.status-idle    { border-left-color: var(--text-muted); }
+.orch-worker-card.status-done    { border-left-color: var(--success); }
+.orch-worker-card.status-failed  { border-left-color: var(--error); }
+.orch-worker-card.status-blocked { border-left-color: var(--warning); }
+.orch-worker-card.status-queued  { border-left-color: var(--border-strong); }

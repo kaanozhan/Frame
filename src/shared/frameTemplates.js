@@ -566,6 +566,77 @@ exit 0
 `;
 }
 
+/**
+ * Orchestration command-channel scripts (.frame/bin/)
+ *
+ * The conductor (and workers) call these to talk to Frame's
+ * orchestrationManager, which watches $FRAME_ORCH_BUS. Requests are written as
+ * atomic JSON files (tmp + rename, unique name); the manager consumes + deletes
+ * them and publishes board state to $FRAME_ORCH_BUS/state.json for status.js.
+ *
+ * These are standalone Node scripts (core modules only) so they run from any
+ * worktree without a Frame runtime — same self-contained spirit as the AI-tool
+ * wrappers above.
+ */
+function getOrchBusHeader() {
+  return `#!/usr/bin/env node
+// Frame orchestration command — auto-generated. Talks to Frame via $FRAME_ORCH_BUS.
+const fs = require('fs');
+const path = require('path');
+const BUS = process.env.FRAME_ORCH_BUS;
+if (!BUS) {
+  console.error('FRAME_ORCH_BUS not set — run this from inside a Frame orchestration session.');
+  process.exit(2);
+}`;
+}
+
+function getOrchRequestScript(type) {
+  return `${getOrchBusHeader()}
+
+const type = ${JSON.stringify(type)};
+const slug = process.argv[2] || process.env.FRAME_ORCH_SLUG || '';
+if (!slug) {
+  console.error('usage: ' + path.basename(process.argv[1]) + ' <spec-slug>');
+  process.exit(2);
+}
+const req = { type, slug, args: process.argv.slice(3), ts: new Date().toISOString(), pid: process.pid };
+try { fs.mkdirSync(BUS, { recursive: true }); } catch (e) {}
+const name = Date.now() + '-' + type + '-' + Math.random().toString(36).slice(2, 8) + '.json';
+const dest = path.join(BUS, name);
+const tmp = dest + '.tmp';
+fs.writeFileSync(tmp, JSON.stringify(req));
+fs.renameSync(tmp, dest); // atomic publish — the watcher only ever sees complete files
+console.log('[frame] ' + type + ' request queued for "' + slug + '"');
+`;
+}
+
+function getOrchStatusScript() {
+  return `${getOrchBusHeader()}
+
+const statePath = path.join(BUS, 'state.json');
+try {
+  const raw = fs.readFileSync(statePath, 'utf8');
+  process.stdout.write(raw.endsWith('\\n') ? raw : raw + '\\n');
+} catch (e) {
+  console.log('{}'); // no session state yet
+}
+`;
+}
+
+/**
+ * Map of filename → script body for the orchestration bin scripts. The
+ * orchestrationManager materializes these under .frame/bin/ for the active
+ * project when an orchestration session starts.
+ */
+function getOrchBinScripts() {
+  return {
+    'dispatch.js': getOrchRequestScript('dispatch'),
+    'report-done.js': getOrchRequestScript('report-done'),
+    'merge.js': getOrchRequestScript('merge'),
+    'status.js': getOrchStatusScript()
+  };
+}
+
 module.exports = {
   getAgentsTemplate,
   getStructureTemplate,
@@ -578,6 +649,7 @@ module.exports = {
   getGenericWrapperTemplate,
   getStructureHookSnippet,
   getStructurePreCommitHookTemplate,
+  getOrchBinScripts,
   FRAME_HOOK_MARKER_START,
   FRAME_HOOK_MARKER_END
 };

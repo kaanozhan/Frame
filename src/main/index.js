@@ -31,6 +31,7 @@ const gitStatusManager = require('./gitStatusManager');
 const gitDiffManager = require('./gitDiffManager');
 const telemetry = require('./telemetry');
 const specManager = require('./specManager');
+const orchestrationManager = require('./orchestrationManager');
 
 let mainWindow = null;
 
@@ -122,6 +123,9 @@ function setupAllIPC() {
   // Spec-Driven Development — .frame/specs/<slug>/ CRUD + watcher
   specManager.setupIPC(ipcMain);
 
+  // Orchestration — conductor-led parallel spec execution
+  orchestrationManager.setupIPC(ipcMain);
+
   // Telemetry — toggle from Settings
   ipcMain.handle(IPC.TELEMETRY_SET_ENABLED, (event, enabled) =>
     telemetry.setEnabled(enabled)
@@ -169,6 +173,7 @@ function initModulesWithWindow(window) {
   claudeSessionsManager.init(window);
   gitStatusManager.init(window);
   specManager.init(window);
+  orchestrationManager.init(window);
 }
 
 // Aptabase MUST be initialized before app.whenReady() because the SDK

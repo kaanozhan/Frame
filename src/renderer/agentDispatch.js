@@ -67,7 +67,7 @@ function init(ui) {
  * @param {object|null} [opts.assignment]  - { kind: 'task'|'spec', label, ref }
  * @returns {Promise<{success: boolean, terminalId: string|null, error: string|null}>}
  */
-async function dispatch({ terminalId = null, createNew = false, toolId = null, prompt, assignment = null } = {}) {
+async function dispatch({ terminalId = null, createNew = false, toolId = null, prompt, assignment = null, enter = true } = {}) {
   if (!multiTerminalUI) {
     return _fail(null, 'Terminal system is not ready yet');
   }
@@ -94,8 +94,10 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     }
   }
 
-  // Land the user inside the Frame so they watch the dispatch arrive
-  multiTerminalUI.enterLane(targetId);
+  // Land the user inside the Frame so they watch the dispatch arrive. The
+  // orchestrator passes enter:false when fanning out several workers at once,
+  // so the view doesn't jump into each spawned lane.
+  if (enter) multiTerminalUI.enterLane(targetId);
 
   // ── Ensure an agent is running there ─────────────────────
   const { agentName } = laneStatus.getStatus(targetId);
@@ -128,7 +130,13 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     // Subscribe before sending the start command — a fast CLI could reach
     // its input box between "send" and "listen" and we'd miss the event.
     const readyPromise = _waitForAgentReady(targetId);
-    multiTerminalUI.sendCommand(check.resolvedCommand, targetId);
+    // ui.sendCommand auto-enters the lane when on the board; the orchestrator
+    // (enter:false) must not switch the view, so send via the raw manager.
+    if (enter) {
+      multiTerminalUI.sendCommand(check.resolvedCommand, targetId);
+    } else {
+      multiTerminalUI.getManager().sendCommand(check.resolvedCommand, targetId);
+    }
 
     const ready = await readyPromise;
     if (!ready) {

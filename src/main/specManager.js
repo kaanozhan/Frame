@@ -14,7 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
-const { FRAME_DIR } = require('../shared/frameConstants');
+const { FRAME_DIR, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
 
 const SPECS_DIR_NAME = 'specs';
@@ -320,6 +320,43 @@ function parseTasksMarkdown(content) {
     out.push({ taskId: m[1], description });
   }
   return out;
+}
+
+// ─── plan.md → footprint (orchestration conflict detection) ──
+//
+// The plan command template emits a `## Footprint` section: a flat list of
+// `- <path|glob>` bullets naming the source files a spec creates/modifies. The
+// orchestrator parses these to detect collisions between specs running in
+// parallel worktrees. Meta files (tasks.json / STRUCTURE.json / PROJECT_NOTES.md
+// / AGENTS.md|CLAUDE.md) are excluded — the template says so, and we filter
+// defensively here too so a stray entry can't mark every spec as conflicting.
+
+const FOOTPRINT_HEADING_RE = /^\s*#{1,6}\s+footprint\s*$/i;
+const ANY_HEADING_RE = /^\s*#{1,6}\s+/;
+const FOOTPRINT_ITEM_RE = /^\s*-\s+(.+?)\s*$/;
+
+function parseFootprintMarkdown(content) {
+  if (!content) return [];
+  const out = [];
+  let inSection = false;
+  for (const line of content.split(/\r?\n/)) {
+    if (FOOTPRINT_HEADING_RE.test(line)) { inSection = true; continue; }
+    if (!inSection) continue;
+    if (ANY_HEADING_RE.test(line)) break; // next heading ends the Footprint section
+    const m = line.match(FOOTPRINT_ITEM_RE);
+    if (!m) continue;
+    const item = m[1].trim().replace(/^`+|`+$/g, '').trim();
+    if (!item) continue;
+    if (/^[_*].*[_*]$/.test(item)) continue;            // placeholder e.g. _…_
+    if (ORCH_META_FILES.includes(item.split('/').pop())) continue;
+    if (!out.includes(item)) out.push(item);
+  }
+  return out;
+}
+
+function getSpecFootprint(projectPath, slug) {
+  const plan = readFileSafe(path.join(getSpecDir(projectPath, slug), PLAN_FILE));
+  return parseFootprintMarkdown(plan);
 }
 
 function syncTasksFromMarkdown(projectPath, slug) {
@@ -747,5 +784,7 @@ module.exports = {
   getCommandPrompt,
   buildSpecCommandFile,
   parseTasksMarkdown,
-  syncTasksFromMarkdown
+  syncTasksFromMarkdown,
+  parseFootprintMarkdown,
+  getSpecFootprint
 };

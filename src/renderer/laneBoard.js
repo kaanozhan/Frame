@@ -139,6 +139,7 @@ class LaneBoard {
       grid.className = 'lane-board-grid';
       state.terminals.forEach((t) => grid.appendChild(this._renderCard(t)));
       grid.appendChild(this._renderNewLaneCard(state));
+      grid.appendChild(this._renderOrchestratorCard());
       this.boardEl.appendChild(grid);
     }
 
@@ -236,6 +237,28 @@ class LaneBoard {
     return card;
   }
 
+  _renderOrchestratorCard() {
+    const orchestrator = require('./orchestrator'); // lazy — avoids load-order coupling
+    const active = orchestrator.isActive && orchestrator.isActive();
+    const card = document.createElement('div');
+    card.className = 'lane-card lane-card-new lane-card-orchestrator' + (active ? ' active' : '');
+    card.title = active
+      ? 'Open Orchestrator — reattach to the running session (does not restart it)'
+      : 'Start Orchestrator — run several specs in parallel with a conductor';
+    card.innerHTML = `
+      <div class="lane-card-new-inner">
+        ${lucideIcon(Bot, 22)}
+        <span>${active ? 'Open Orchestrator' : 'Start Orchestrator'}</span>
+        ${active ? '<span class="lane-card-orch-running">running</span>' : ''}
+      </div>
+    `;
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      orchestrator.open();
+    });
+    return card;
+  }
+
   _renderNoProjectState() {
     const empty = document.createElement('div');
     empty.className = 'lane-board-empty';
@@ -257,14 +280,20 @@ class LaneBoard {
   _renderEmptyState() {
     const empty = document.createElement('div');
     empty.className = 'lane-board-empty';
+    const orchestrator = require('./orchestrator');
+    const orchActive = orchestrator.isActive && orchestrator.isActive();
     empty.innerHTML = `
       <div class="lane-board-empty-icon">${lucideIcon(Plus, 28)}</div>
       <p class="lane-board-empty-title">No frames yet</p>
       <p class="lane-board-empty-hint">A frame is a terminal where you run your shell or an AI session.</p>
       <button class="lane-board-empty-cta">Create your first frame</button>
+      <button class="lane-board-empty-secondary">${lucideIcon(Bot, 14)}<span>${orchActive ? 'Open Orchestrator' : 'Start Orchestrator'}</span></button>
     `;
     empty.querySelector('.lane-board-empty-cta').addEventListener('click', () => {
       this._createLane();
+    });
+    empty.querySelector('.lane-board-empty-secondary').addEventListener('click', () => {
+      orchestrator.open();
     });
     return empty;
   }

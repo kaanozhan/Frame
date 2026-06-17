@@ -283,7 +283,8 @@ class TerminalManager {
       ipcRenderer.send(IPC.TERMINAL_CREATE, {
         cwd: workingDir,
         projectPath,
-        shell: options.shell || null
+        shell: options.shell || null,
+        extraEnv: options.extraEnv || null // orchestration worker lanes pass FRAME_ORCH_* env
       });
     });
   }

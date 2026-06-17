@@ -855,3 +855,45 @@ Frame is gaining native spec-driven development as a core feature (4-slice plan 
 - New-frame creation uses the **default shell** everywhere now; the old `+`'s shell-picker menu was retired with the button.
 
 **New/changed modules:** `agentPanel.js` (running-agents list); `agentDispatch.startDefaultAgent()`; `multiTerminalUI.isViewingFrame()` + `onNewLane` detail-rail callback; `projectListUI.getProjects()` + first-launch auto-select.
+
+---
+
+### [2026-06-15] Conductor Orchestration — parallel spec execution in isolated worktrees
+
+Built the orchestration feature (`.frame/specs/agent-orchestration/`). The unit
+of parallelism is the **spec** (a spec's own tasks are interdependent → run
+sequentially in one lane; different specs run in parallel). A **conductor**
+agent (a Claude lane running `CONDUCTOR.md`) is given ready specs, checks
+inter-spec footprint conflicts, and dispatches each to a **worker** agent that
+runs in its own git worktree (`.frame/worktrees/<slug>`, branch
+`frame/<slug>/work`).
+
+**Key design decisions (the journey):**
+- Pivoted from task-level to **spec-level parallelism** — task-level forced
+  sequential work to run in parallel and created intra-spec merge hell.
+- Frame **never decides**: the conductor (AI) + the user decide; Frame is the
+  cockpit + transport + isolation layer. Reconciles with the "don't auto-drive"
+  philosophy.
+- **Safety in code, not the prompt:** `orchestrationManager` refuses to create a
+  worktree for a spec whose footprint overlaps an in-flight one — the conflict
+  guard doesn't depend on the conductor reasoning correctly.
+- **Footprint** declared in each `plan.md` (`## Footprint`), parsed by
+  `specManager.getSpecFootprint`. Meta files (tasks.json/STRUCTURE.json/
+  PROJECT_NOTES.md/AGENTS.md) excluded — else every spec collides on them.
+- **Command bus** (`.frame/bin/{dispatch,report-done,merge,status}.js` +
+  `FRAME_ORCH_BUS`/`FRAME_ORCH_BIN` env injected into lanes) lets the conductor
+  (a shell-bound AI) drive Frame from any worktree.
+- **Merge** is local: fast-forward `frame/<slug>/work` → `frame/<slug>/integration`
+  after a real-diff **drift check** vs the declared footprint. `main` is never
+  touched; PR/promotion stays a manual user step.
+- Built on the existing **lane/dispatch** foundation (PRs #86/#87): reuses
+  `laneStatus`, `agentDispatch` (added an `enter:false` option for parallel
+  fan-out), lane cards, lane detail. The orchestrator screen is a full-screen
+  overlay (specsDashboard pattern), opened from a Home "Start Orchestrator" card
+  or Cmd+Shift+O.
+
+**New modules:** `main/orchestrationManager.js`, `renderer/orchestrator.js`,
+`templates/orchestration/{CONDUCTOR,WORKER}.md`, `styles/components/orchestrator.css`,
+`.frame/bin/*` orchestration scripts. Backend verified end-to-end headless
+(dispatch → worktree → conflict guard → report-done → merge+drift → teardown →
+rehydrate). Renderer compiles; live UI verification pending an app run.

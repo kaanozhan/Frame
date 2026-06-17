@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-13",
+  "lastUpdated": "2026-06-17",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -568,22 +568,33 @@
         "addWorktree",
         "removeWorktree",
         "isWorkingTreeClean",
-        "setupIPC"
+        "setupIPC",
+        "getHeadSha",
+        "branchExists",
+        "createOrchWorktree",
+        "removeOrchWorktree",
+        "worktreeChangedFiles",
+        "mergeWorkToIntegration",
+        "isWorkMerged",
+        "listOrchBranches"
       ],
       "depends": [
         "child_process",
-        "shared/ipcChannels"
+        "fs",
+        "path",
+        "shared/ipcChannels",
+        "shared/frameConstants"
       ],
       "functions": {
         "init": {
-          "line": 14,
+          "line": 17,
           "params": [
             "window"
           ],
           "purpose": "Initialize manager"
         },
         "execGit": {
-          "line": 21,
+          "line": 24,
           "params": [
             "command",
             "projectPath"
@@ -591,21 +602,21 @@
           "purpose": "Execute git command with promise"
         },
         "isWorkingTreeClean": {
-          "line": 36,
+          "line": 39,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if working tree is clean"
         },
         "loadBranches": {
-          "line": 48,
+          "line": 51,
           "params": [
             "projectPath"
           ],
           "purpose": "Load all branches"
         },
         "switchBranch": {
-          "line": 93,
+          "line": 96,
           "params": [
             "projectPath",
             "branchName"
@@ -613,7 +624,7 @@
           "purpose": "Switch to a branch"
         },
         "createBranch": {
-          "line": 125,
+          "line": 128,
           "params": [
             "projectPath",
             "branchName",
@@ -623,7 +634,7 @@
           "purpose": "Create a new branch"
         },
         "deleteBranch": {
-          "line": 153,
+          "line": 156,
           "params": [
             "projectPath",
             "branchName",
@@ -632,14 +643,14 @@
           "purpose": "Delete a branch"
         },
         "loadWorktrees": {
-          "line": 170,
+          "line": 173,
           "params": [
             "projectPath"
           ],
           "purpose": "Load worktrees"
         },
         "addWorktree": {
-          "line": 212,
+          "line": 215,
           "params": [
             "projectPath",
             "worktreePath",
@@ -649,7 +660,7 @@
           "purpose": "Add a worktree"
         },
         "removeWorktree": {
-          "line": 231,
+          "line": 234,
           "params": [
             "projectPath",
             "worktreePath",
@@ -657,8 +668,78 @@
           ],
           "purpose": "Remove a worktree"
         },
+        "orchWorktreePath": {
+          "line": 256,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "(fresh-base rule). These build on the generic addWorktree/removeWorktree above."
+        },
+        "getHeadSha": {
+          "line": 260,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "branchExists": {
+          "line": 269,
+          "params": [
+            "projectPath",
+            "branchName"
+          ]
+        },
+        "createOrchWorktree": {
+          "line": 283,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "the latest merged state. Returns { error, path, branch, baseSha }."
+        },
+        "removeOrchWorktree": {
+          "line": 304,
+          "params": [
+            "projectPath",
+            "slug",
+            "{ deleteBranch = false } = {}"
+          ],
+          "purpose": "work can be kept."
+        },
+        "worktreeChangedFiles": {
+          "line": 319,
+          "params": [
+            "projectPath",
+            "slug",
+            "baseRef = 'HEAD'"
+          ],
+          "purpose": "recorded at worktree creation for an accurate diff."
+        },
+        "mergeWorkToIntegration": {
+          "line": 336,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "`main`, never pushes. Returns { error, branch }."
+        },
+        "isWorkMerged": {
+          "line": 355,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "orphan (unmerged → keep) or safe to prune."
+        },
+        "listOrchBranches": {
+          "line": 371,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "best-effort rehydration after a restart. Returns { slug: { work, integration } }."
+        },
         "setupIPC": {
-          "line": 250,
+          "line": 389,
           "params": [
             "ipcMain"
           ],
@@ -906,23 +987,24 @@
         "gitStatusManager",
         "gitDiffManager",
         "telemetry",
-        "specManager"
+        "specManager",
+        "orchestrationManager"
       ],
       "functions": {
         "createWindow": {
-          "line": 40,
+          "line": 41,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 93,
+          "line": 94,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 140,
+          "line": 144,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 159,
+          "line": 163,
           "params": [
             "window"
           ],
@@ -1395,6 +1477,7 @@
         "hasTerminal",
         "getTerminalsByProject",
         "getTerminalInfo",
+        "getLastOutputAt",
         "getAvailableShells",
         "setupIPC"
       ],
@@ -1433,25 +1516,33 @@
           "params": [
             "workingDir = null",
             "projectPath = null",
-            "shellPath = null"
+            "shellPath = null",
+            "extraEnv = null"
           ]
         },
         "getTerminalsByProject": {
-          "line": 256,
+          "line": 264,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 271,
+          "line": 279,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
+        "getLastOutputAt": {
+          "line": 291,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Used by the orchestrator's idle / soft-done detection."
+        },
         "writeToTerminal": {
-          "line": 282,
+          "line": 299,
           "params": [
             "terminalId",
             "data"
@@ -1459,7 +1550,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 292,
+          "line": 309,
           "params": [
             "terminalId",
             "cols",
@@ -1468,33 +1559,33 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 302,
+          "line": 319,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 315,
+          "line": 332,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 327,
+          "line": 344,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 334,
+          "line": 351,
           "purpose": "Get all terminal IDs"
         },
         "hasTerminal": {
-          "line": 341,
+          "line": 358,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 348,
+          "line": 365,
           "params": [
             "ipcMain"
           ],
@@ -1533,7 +1624,9 @@
         "getCommandPrompt",
         "buildSpecCommandFile",
         "parseTasksMarkdown",
-        "syncTasksFromMarkdown"
+        "syncTasksFromMarkdown",
+        "parseFootprintMarkdown",
+        "getSpecFootprint"
       ],
       "depends": [
         "fs",
@@ -1694,42 +1787,55 @@
             "content"
           ]
         },
+        "parseFootprintMarkdown": {
+          "line": 338,
+          "params": [
+            "content"
+          ]
+        },
+        "getSpecFootprint": {
+          "line": 357,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
         "syncTasksFromMarkdown": {
-          "line": 325,
+          "line": 362,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 405,
+          "line": 442,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 412,
+          "line": 449,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 429,
+          "line": 466,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "createSpec": {
-          "line": 443,
+          "line": 480,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 485,
+          "line": 522,
           "params": [
             "projectPath",
             "slug",
@@ -1737,14 +1843,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 503,
+          "line": 540,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 520,
+          "line": 557,
           "params": [
             "projectPath",
             "oldSlug",
@@ -1753,30 +1859,30 @@
           "purpose": "Returns { success: true, slug, status } on success, { error } on failure."
         },
         "startWatching": {
-          "line": 627,
+          "line": 664,
           "params": [
             "projectPath"
           ],
           "purpose": "across all three platforms — if that ever changes, swap in a poller."
         },
         "stopWatching": {
-          "line": 669
+          "line": 706
         },
         "pushSpecData": {
-          "line": 689,
+          "line": 726,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 700,
+          "line": 737,
           "params": [
             "window"
           ],
           "purpose": "─── Init + IPC ────────────────────────────────────────────"
         },
         "setupIPC": {
-          "line": 704,
+          "line": 741,
           "params": [
             "ipcMain"
           ]
@@ -3183,6 +3289,7 @@
         "projectSection",
         "projectStatusBadges",
         "agentPanel",
+        "orchestrator",
         "editor",
         "sidebarResize",
         "aiToolSelector",
@@ -3199,30 +3306,30 @@
       ],
       "functions": {
         "init": {
-          "line": 45,
+          "line": 46,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 220,
+          "line": 225,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 303,
+          "line": 308,
           "purpose": "and close on outside click / Escape."
         },
         "setupUpdateDot": {
-          "line": 392,
+          "line": 397,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 423,
+          "line": 428,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 449,
+          "line": 454,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -3253,6 +3360,7 @@
         "laneStatus",
         "laneRail",
         "lucide",
+        "orchestrator",
         "openProjectModal"
       ],
       "functions": {
@@ -5757,6 +5865,13 @@
         "WORKSPACE_FILE",
         "FRAME_FILES",
         "FRAME_BIN_DIR",
+        "ORCH_WORKTREES_DIR",
+        "ORCH_BUS_DIR",
+        "ORCH_BUS_ENV",
+        "ORCH_BRANCH_PREFIX",
+        "orchWorkBranch",
+        "orchIntegrationBranch",
+        "ORCH_META_FILES",
         "FRAME_VERSION"
       ],
       "depends": [],
@@ -5777,10 +5892,14 @@
         "getGenericWrapperTemplate",
         "getStructureHookSnippet",
         "getStructurePreCommitHookTemplate",
+        "getOrchBinScripts",
         "FRAME_HOOK_MARKER_START",
         "FRAME_HOOK_MARKER_END"
       ],
-      "depends": [],
+      "depends": [
+        "fs",
+        "path"
+      ],
       "functions": {
         "getDateString": {
           "line": 10,
@@ -5851,6 +5970,23 @@
         "getStructurePreCommitHookTemplate": {
           "line": 558,
           "purpose": "Husky/lefthook get the snippet appended into their own files instead."
+        },
+        "getOrchBusHeader": {
+          "line": 581,
+          "purpose": "wrappers above."
+        },
+        "getOrchRequestScript": {
+          "line": 593,
+          "params": [
+            "type"
+          ]
+        },
+        "getOrchStatusScript": {
+          "line": 613
+        },
+        "getOrchBinScripts": {
+          "line": 631,
+          "purpose": "project when an orchestration session starts."
         }
       }
     },
@@ -6617,16 +6753,17 @@
             "createNew = false",
             "toolId = null",
             "prompt",
-            "assignment = null } = {}"
+            "assignment = null",
+            "enter = true } = {}"
           ],
           "purpose": "running (default: current tool)"
         },
         "startDefaultAgent": {
-          "line": 165,
+          "line": 173,
           "purpose": "- Anywhere else (Home / any other tab) it always opens a new Frame."
         },
         "_startAgentIn": {
-          "line": 200,
+          "line": 208,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -6634,10 +6771,10 @@
           "purpose": "spawned shell a beat to accept input before the command is typed."
         },
         "_startAgentInNewFrame": {
-          "line": 210
+          "line": 218
         },
         "_askNewOrRestart": {
-          "line": 228,
+          "line": 236,
           "params": [
             "frameName",
             "hasAgent"
@@ -6645,7 +6782,7 @@
           "purpose": "safe default (never silently kills running work)."
         },
         "dispatchSpecCommand": {
-          "line": 285,
+          "line": 293,
           "params": [
             "{ slug",
             "title = null",
@@ -6653,79 +6790,79 @@
           ]
         },
         "getSpecLaneInfo": {
-          "line": 349,
+          "line": 357,
           "params": [
             "slug"
           ],
           "purpose": "states fail open on purpose."
         },
         "getTaskLaneInfo": {
-          "line": 368,
+          "line": 376,
           "params": [
             "taskId"
           ],
           "purpose": "requires a live agent process."
         },
         "specStatusDotHtml": {
-          "line": 389,
+          "line": 397,
           "params": [
             "slug"
           ],
           "purpose": "Presentation helpers kept here so all surfaces share one mapping."
         },
         "taskStatusDotHtml": {
-          "line": 393,
+          "line": 401,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 397,
+          "line": 405,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 414,
+          "line": 422,
           "params": [
             "callback"
           ],
           "purpose": "Returns an unsubscribe function."
         },
         "_notifySpecLane": {
-          "line": 422,
+          "line": 430,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 442,
+          "line": 450,
           "params": [
             "callback"
           ],
           "purpose": "Returns an unsubscribe function."
         },
         "_notifyTaskLane": {
-          "line": 450,
+          "line": 458,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 468,
+          "line": 476,
           "params": [
             "slug"
           ],
           "purpose": "lane means the spec is unassigned again."
         },
         "_laneName": {
-          "line": 478,
+          "line": 486,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 487,
+          "line": 495,
           "params": [
             "frameName",
             "specName"
@@ -6733,20 +6870,20 @@
           "purpose": "Resolves 'continue' | 'new' | 'cancel'; continue is the default action."
         },
         "_escapeHtml": {
-          "line": 519,
+          "line": 527,
           "params": [
             "s"
           ]
         },
         "_waitForAgentReady": {
-          "line": 538,
+          "line": 546,
           "params": [
             "terminalId"
           ],
           "purpose": "the prompt to a y/n chooser, so those lanes time out instead."
         },
         "_fail": {
-          "line": 573,
+          "line": 581,
           "params": [
             "terminalId",
             "message"
@@ -6754,7 +6891,7 @@
           "purpose": "for what is presentation-only."
         },
         "_showToast": {
-          "line": 578,
+          "line": 586,
           "params": [
             "message",
             "type = 'info'"
@@ -7008,6 +7145,390 @@
         ],
         "emits": []
       }
+    },
+    "main/orchestrationManager": {
+      "file": "src/main/orchestrationManager.js",
+      "description": "Orchestration Manager",
+      "exports": [
+        "init",
+        "setupIPC",
+        "startOrchestration",
+        "stopOrchestration",
+        "assignSpecs",
+        "registerWorkerLane",
+        "mergeWorker",
+        "removeWorker",
+        "getState",
+        "rehydrate",
+        "envForLane",
+        "publishState",
+        "drainBus",
+        "getSession"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/ipcChannels",
+        "shared/frameConstants",
+        "shared/frameTemplates",
+        "ptyManager",
+        "gitBranchesManager",
+        "specManager"
+      ],
+      "functions": {
+        "init": {
+          "line": 57,
+          "params": [
+            "window"
+          ]
+        },
+        "busDirFor": {
+          "line": 63,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "─── path helpers ─────────────────────────────────────────"
+        },
+        "binDirFor": {
+          "line": 66,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "worktreeDirFor": {
+          "line": 69,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "envForLane": {
+          "line": 75,
+          "params": [
+            "slug"
+          ],
+          "purpose": "worktree, regardless of its own .frame/ copy."
+        },
+        "toPrefix": {
+          "line": 89,
+          "params": [
+            "entry"
+          ],
+          "purpose": "equality; a glob/dir entry (`src/foo/**`, `src/foo/*`) matches by prefix."
+        },
+        "entriesOverlap": {
+          "line": 94,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "footprintsOverlap": {
+          "line": 106,
+          "params": [
+            "fa",
+            "fb"
+          ]
+        },
+        "findFootprintConflict": {
+          "line": 117,
+          "params": [
+            "slug",
+            "footprint"
+          ],
+          "purpose": "workers don't block (their work is already integrated or abandoned)."
+        },
+        "buildWorkerPrompt": {
+          "line": 129,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "from inside the worktree."
+        },
+        "relayToConductor": {
+          "line": 151,
+          "params": [
+            "text"
+          ]
+        },
+        "drainRelayQueue": {
+          "line": 157
+        },
+        "materializeBinScripts": {
+          "line": 175,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Materialize the .frame/bin command scripts for this project."
+        },
+        "serializeState": {
+          "line": 187,
+          "purpose": "─── state publish ────────────────────────────────────────"
+        },
+        "publishState": {
+          "line": 210
+        },
+        "startBusWatcher": {
+          "line": 228,
+          "purpose": "─── bus watcher ──────────────────────────────────────────"
+        },
+        "drainBus": {
+          "line": 241
+        },
+        "handleRequest": {
+          "line": 265,
+          "params": [
+            "req"
+          ]
+        },
+        "handleDispatch": {
+          "line": 285,
+          "params": [
+            "slug"
+          ],
+          "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
+        },
+        "registerWorkerLane": {
+          "line": 353,
+          "params": [
+            "slug",
+            "terminalId"
+          ],
+          "purpose": "manager can track status, relay, and tear it down."
+        },
+        "handleReportDone": {
+          "line": 365,
+          "params": [
+            "slug"
+          ],
+          "purpose": "the conductor with the merge command."
+        },
+        "handleMerge": {
+          "line": 382,
+          "params": [
+            "slug",
+            "args = []"
+          ],
+          "purpose": "reminder; the conductor performs the actual reconcile per CONDUCTOR.md)."
+        },
+        "mergeWorker": {
+          "line": 421,
+          "params": [
+            "slug",
+            "force = false"
+          ],
+          "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
+        },
+        "removeWorker": {
+          "line": 427,
+          "params": [
+            "slug"
+          ],
+          "purpose": "prune the work branch ONLY if merged (un-merged work is kept — no data loss)."
+        },
+        "pollStatuses": {
+          "line": 451,
+          "purpose": "additionally overlays its richer laneStatus (processing/waiting) per lane."
+        },
+        "startOrchestration": {
+          "line": 491,
+          "params": [
+            "args = {}"
+          ],
+          "purpose": "─── session lifecycle ────────────────────────────────────"
+        },
+        "stopOrchestration": {
+          "line": 540,
+          "purpose": "work branches (un-merged work is kept on its branch), leave main untouched."
+        },
+        "rehydrate": {
+          "line": 575,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "board/status reflect prior work. Statuses come from git: merged ⇒ done."
+        },
+        "assignSpecs": {
+          "line": 611,
+          "params": [
+            "slugs"
+          ]
+        },
+        "getState": {
+          "line": 618
+        },
+        "setupIPC": {
+          "line": 624,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "─── IPC ──────────────────────────────────────────────────"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "START_ORCHESTRATION",
+          "STOP_ORCHESTRATION",
+          "GET_ORCH_STATE",
+          "ORCH_ASSIGN_SPECS",
+          "ORCH_WORKER_LANE",
+          "ORCH_MERGE_WORKER",
+          "ORCH_REMOVE_WORKER"
+        ],
+        "emits": [
+          "ORCH_STATE",
+          "ORCH_SPAWN_WORKER",
+          "ORCH_STATE"
+        ]
+      }
+    },
+    "renderer/orchestrator": {
+      "file": "src/renderer/orchestrator.js",
+      "description": "Orchestrator (renderer) — a section viewport",
+      "exports": [],
+      "depends": [
+        "electron",
+        "path",
+        "shared/ipcChannels",
+        "shared/frameConstants",
+        "state",
+        "agentDispatch"
+      ],
+      "functions": {
+        "setHost": {
+          "line": 37,
+          "params": [
+            "h"
+          ]
+        },
+        "open": {
+          "line": 63,
+          "purpose": "Open (or focus) the orchestrator section tab."
+        },
+        "orchEnv": {
+          "line": 74,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "─── session ──────────────────────────────────────────────"
+        },
+        "ensureSession": {
+          "line": 81
+        },
+        "spawnWorkerLane": {
+          "line": 120,
+          "params": [
+            "{ slug",
+            "worktreePath",
+            "env",
+            "promptInstruction } = {}"
+          ],
+          "purpose": "─── worker lane bridge ───────────────────────────────────"
+        },
+        "createViewport": {
+          "line": 147,
+          "purpose": "─── section viewport ─────────────────────────────────────"
+        },
+        "stopSession": {
+          "line": 200,
+          "purpose": "un-merged work kept), reset local state, close the tab."
+        },
+        "renderConductorZone": {
+          "line": 213,
+          "params": [
+            "root"
+          ],
+          "purpose": "─── zones ────────────────────────────────────────────────"
+        },
+        "stageOf": {
+          "line": 246,
+          "params": [
+            "w"
+          ]
+        },
+        "renderPipeline": {
+          "line": 258,
+          "params": [
+            "root"
+          ]
+        },
+        "renderWorkerZone": {
+          "line": 300,
+          "params": [
+            "root"
+          ]
+        },
+        "mergeWorkerAction": {
+          "line": 346,
+          "params": [
+            "slug"
+          ]
+        },
+        "removeWorkerAction": {
+          "line": 364,
+          "params": [
+            "slug"
+          ]
+        },
+        "_shortPath": {
+          "line": 373,
+          "params": [
+            "p"
+          ]
+        },
+        "_relTime": {
+          "line": 379,
+          "params": [
+            "ts"
+          ]
+        },
+        "loadSpecs": {
+          "line": 390,
+          "params": [
+            "root"
+          ]
+        },
+        "renderSpecRail": {
+          "line": 405,
+          "params": [
+            "root",
+            "specs"
+          ]
+        },
+        "assignSpec": {
+          "line": 437,
+          "params": [
+            "slug"
+          ]
+        },
+        "nudgeConductor": {
+          "line": 449
+        },
+        "_esc": {
+          "line": 462,
+          "params": [
+            "s"
+          ],
+          "purpose": "─── helpers ──────────────────────────────────────────────"
+        },
+        "_toast": {
+          "line": 468,
+          "params": [
+            "message",
+            "type = 'info'"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "ORCH_SPAWN_WORKER",
+          "ORCH_STATE"
+        ],
+        "emits": [
+          "ORCH_WORKER_LANE"
+        ]
+      }
     }
   },
   "ipcChannels": {
@@ -7228,6 +7749,56 @@
       },
       "REORDER_WORKSPACE_PROJECTS": {
         "name": "reorder-workspace-projects",
+        "direction": "",
+        "description": ""
+      },
+      "OPEN_ORCHESTRATOR": {
+        "name": "open-orchestrator",
+        "direction": "",
+        "description": ""
+      },
+      "START_ORCHESTRATION": {
+        "name": "start-orchestration",
+        "direction": "",
+        "description": ""
+      },
+      "STOP_ORCHESTRATION": {
+        "name": "stop-orchestration",
+        "direction": "",
+        "description": ""
+      },
+      "GET_ORCH_STATE": {
+        "name": "get-orch-state",
+        "direction": "",
+        "description": ""
+      },
+      "ORCH_ASSIGN_SPECS": {
+        "name": "orch-assign-specs",
+        "direction": "",
+        "description": ""
+      },
+      "ORCH_STATE": {
+        "name": "orch-state",
+        "direction": "",
+        "description": ""
+      },
+      "ORCH_SPAWN_WORKER": {
+        "name": "orch-spawn-worker",
+        "direction": "",
+        "description": ""
+      },
+      "ORCH_WORKER_LANE": {
+        "name": "orch-worker-lane",
+        "direction": "",
+        "description": ""
+      },
+      "ORCH_MERGE_WORKER": {
+        "name": "orch-merge-worker",
+        "direction": "",
+        "description": ""
+      },
+      "ORCH_REMOVE_WORKER": {
+        "name": "orch-remove-worker",
         "direction": "",
         "description": ""
       }
@@ -7869,6 +8440,20 @@
         "module": "renderer/openProjectModal",
         "file": "src/renderer/openProjectModal.js",
         "description": "Open Project Modal"
+      }
+    ],
+    "orchestration": [
+      {
+        "module": "main/orchestrationManager",
+        "file": "src/main/orchestrationManager.js",
+        "description": "Orchestration Manager"
+      }
+    ],
+    "orchestrator": [
+      {
+        "module": "renderer/orchestrator",
+        "file": "src/renderer/orchestrator.js",
+        "description": "Orchestrator (renderer) — a section viewport"
       }
     ],
     "overview": [

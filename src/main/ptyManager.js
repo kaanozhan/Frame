@@ -153,7 +153,7 @@ function getAvailableShells() {
  * @param {string|null} shellPath - Shell to use (defaults to system default)
  * @returns {string} Terminal ID
  */
-function createTerminal(workingDir = null, projectPath = null, shellPath = null) {
+function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null) {
   // Per-project cap. The renderer keeps terminals from inactive projects
   // alive in its Map for fast switch-back, so a global count would surface
   // here as a confusing "you have 3 visible but can't open a 4th" because
@@ -190,12 +190,20 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null)
     env: {
       ...process.env,
       TERM: 'xterm-256color',
-      COLORTERM: 'truecolor'
+      COLORTERM: 'truecolor',
+      // Orchestration: FRAME_ORCH_BUS / FRAME_ORCH_SLUG let conductor + worker
+      // terminals reach Frame's command bus from any worktree (see
+      // orchestrationManager). Null for normal terminals.
+      ...(extraEnv || {})
     }
   });
 
-  // Handle PTY output - send with terminal ID
+  // Handle PTY output - send with terminal ID. Stamp lastOutputAt so the
+  // orchestrator can tell a quiet (idle) worker from an active one and drive
+  // its soft-done / long-idle heuristics.
   ptyProcess.onData((data) => {
+    const inst = ptyInstances.get(terminalId);
+    if (inst) inst.lastOutputAt = Date.now();
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC.TERMINAL_OUTPUT_ID, { terminalId, data });
     }
@@ -242,7 +250,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null)
     }
   }, 2500);
 
-  ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath, processPoll });
+  ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath, processPoll, lastOutputAt: Date.now() });
   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
@@ -271,9 +279,18 @@ function getTerminalsByProject(projectPath) {
 function getTerminalInfo(terminalId) {
   const instance = ptyInstances.get(terminalId);
   if (instance) {
-    return { cwd: instance.cwd, projectPath: instance.projectPath };
+    return { cwd: instance.cwd, projectPath: instance.projectPath, lastOutputAt: instance.lastOutputAt };
   }
   return null;
+}
+
+/**
+ * Last time this terminal produced output (epoch ms), or null if unknown.
+ * Used by the orchestrator's idle / soft-done detection.
+ */
+function getLastOutputAt(terminalId) {
+  const instance = ptyInstances.get(terminalId);
+  return instance ? (instance.lastOutputAt || null) : null;
 }
 
 /**
@@ -363,18 +380,20 @@ function setupIPC(ipcMain) {
       let workingDir = null;
       let projectPath = null;
       let shellPath = null;
+      let extraEnv = null;
 
       if (typeof data === 'string') {
         // Legacy format: just working directory
         workingDir = data;
       } else if (data && typeof data === 'object') {
-        // New format: { cwd, projectPath, shell }
+        // New format: { cwd, projectPath, shell, extraEnv }
         workingDir = data.cwd;
         projectPath = data.projectPath;
         shellPath = data.shell;
+        extraEnv = data.extraEnv || null; // orchestration worker lanes pass FRAME_ORCH_* here
       }
 
-      const terminalId = createTerminal(workingDir, projectPath, shellPath);
+      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv);
       event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true });
     } catch (error) {
       event.reply(IPC.TERMINAL_CREATED, { success: false, error: error.message });
@@ -410,6 +429,7 @@ module.exports = {
   hasTerminal,
   getTerminalsByProject,
   getTerminalInfo,
+  getLastOutputAt,
   getAvailableShells,
   setupIPC
 };

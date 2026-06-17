@@ -161,7 +161,19 @@ const IPC = {
 
   // Spec-Driven Development opt-in (Slice 1.5)
   IS_SPEC_DRIVEN_ENABLED: 'is-spec-driven-enabled',
-  ENABLE_SPEC_DRIVEN: 'enable-spec-driven'
+  ENABLE_SPEC_DRIVEN: 'enable-spec-driven',
+
+  // Orchestration (conductor / parallel spec execution)
+  OPEN_ORCHESTRATOR: 'open-orchestrator',            // → renderer: open the orchestrator view
+  START_ORCHESTRATION: 'start-orchestration',        // renderer → main: begin a session (conductor lane id in)
+  STOP_ORCHESTRATION: 'stop-orchestration',          // renderer → main: teardown (workers, worktrees, branches)
+  GET_ORCH_STATE: 'get-orch-state',                  // renderer → main: snapshot of the session
+  ORCH_ASSIGN_SPECS: 'orch-assign-specs',            // renderer → main: set the specs assigned to the conductor
+  ORCH_STATE: 'orch-state',                          // main → renderer: pushed session/lane state
+  ORCH_SPAWN_WORKER: 'orch-spawn-worker',            // main → renderer: create a worker lane (slug, worktreeDir, env) + dispatch
+  ORCH_WORKER_LANE: 'orch-worker-lane',              // renderer → main: report the terminalId it created for a worker
+  ORCH_MERGE_WORKER: 'orch-merge-worker',            // renderer → main: merge a worker's branch (per-worker board action)
+  ORCH_REMOVE_WORKER: 'orch-remove-worker'           // renderer → main: cleanup a worker (worktree + branch)
 };
 
 module.exports = { IPC };

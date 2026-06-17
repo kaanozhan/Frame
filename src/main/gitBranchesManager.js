@@ -4,7 +4,10 @@
  */
 
 const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
+const { FRAME_DIR, ORCH_WORKTREES_DIR, orchWorkBranch, orchIntegrationBranch } = require('../shared/frameConstants');
 
 let mainWindow = null;
 
@@ -244,6 +247,142 @@ async function removeWorktree(projectPath, worktreePath, force = false) {
   }
 }
 
+// ─── Orchestration helpers ────────────────────────────────
+//
+// Worker worktrees for orchestration live under .frame/worktrees/<slug> on a
+// branch frame/<slug>/work, branched from current HEAD at dispatch time
+// (fresh-base rule). These build on the generic addWorktree/removeWorktree above.
+
+function orchWorktreePath(projectPath, slug) {
+  return path.join(projectPath, FRAME_DIR, ORCH_WORKTREES_DIR, slug);
+}
+
+async function getHeadSha(projectPath) {
+  try {
+    const { stdout } = await execGit('git rev-parse HEAD', projectPath);
+    return stdout;
+  } catch (err) {
+    return null;
+  }
+}
+
+async function branchExists(projectPath, branchName) {
+  try {
+    await execGit(`git rev-parse --verify --quiet "refs/heads/${branchName}"`, projectPath);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Create a fresh worker worktree for a spec, branched from current HEAD.
+ * Cleans any stale worktree/branch for the slug first so a re-dispatch picks up
+ * the latest merged state. Returns { error, path, branch, baseSha }.
+ */
+async function createOrchWorktree(projectPath, slug) {
+  const wtPath = orchWorktreePath(projectPath, slug);
+  const branch = orchWorkBranch(slug);
+
+  await removeWorktree(projectPath, wtPath, true); // ignore "not a worktree" errors
+  if (await branchExists(projectPath, branch)) {
+    try { await execGit(`git branch -D "${branch}"`, projectPath); } catch (e) {}
+  }
+  try { fs.mkdirSync(path.dirname(wtPath), { recursive: true }); } catch (e) {}
+
+  const baseSha = await getHeadSha(projectPath);
+  const res = await addWorktree(projectPath, wtPath, branch, true); // -b <branch> <path> (from HEAD)
+  if (res.error) return res;
+  return { error: null, path: wtPath, branch, baseSha };
+}
+
+/**
+ * Remove a spec's worker worktree (force). Optionally delete its work branch.
+ * Used by teardown (T25); deleteBranch is guarded by the caller so un-merged
+ * work can be kept.
+ */
+async function removeOrchWorktree(projectPath, slug, { deleteBranch = false } = {}) {
+  const wtPath = orchWorktreePath(projectPath, slug);
+  const branch = orchWorkBranch(slug);
+  const res = await removeWorktree(projectPath, wtPath, true);
+  if (deleteBranch && (await branchExists(projectPath, branch))) {
+    try { await execGit(`git branch -D "${branch}"`, projectPath); } catch (e) {}
+  }
+  return res;
+}
+
+/**
+ * Files actually changed on a spec's work branch relative to a base ref.
+ * Used for the merge-time footprint drift check (T22). Pass the baseSha
+ * recorded at worktree creation for an accurate diff.
+ */
+async function worktreeChangedFiles(projectPath, slug, baseRef = 'HEAD') {
+  const branch = orchWorkBranch(slug);
+  try {
+    const { stdout } = await execGit(`git diff --name-only "${baseRef}...${branch}"`, projectPath);
+    return stdout ? stdout.split('\n').filter(Boolean) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+/**
+ * Merge a spec's work branch into its per-spec integration branch. Because the
+ * work branch was cut from the same base and is the only contributor to the
+ * integration branch (one worktree per spec, V1), this is a fast-forward:
+ * point integration at the work tip. Never touches the main working tree or
+ * `main`, never pushes. Returns { error, branch }.
+ */
+async function mergeWorkToIntegration(projectPath, slug) {
+  const work = orchWorkBranch(slug);
+  const integ = orchIntegrationBranch(slug);
+  if (!(await branchExists(projectPath, work))) {
+    return { error: `work branch ${work} does not exist` };
+  }
+  try {
+    await execGit(`git branch -f "${integ}" "${work}"`, projectPath);
+    return { error: null, branch: integ };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
+/**
+ * Whether a spec's work branch has been merged (its integration branch exists
+ * and contains the work tip). Used by teardown to decide if a work branch is an
+ * orphan (unmerged → keep) or safe to prune.
+ */
+async function isWorkMerged(projectPath, slug) {
+  const work = orchWorkBranch(slug);
+  const integ = orchIntegrationBranch(slug);
+  if (!(await branchExists(projectPath, integ))) return false;
+  try {
+    await execGit(`git merge-base --is-ancestor "${work}" "${integ}"`, projectPath);
+    return true; // exit 0 → work is an ancestor of integration
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * List orchestration branches present in the repo, grouped by slug. Used for
+ * best-effort rehydration after a restart. Returns { slug: { work, integration } }.
+ */
+async function listOrchBranches(projectPath) {
+  const out = {};
+  try {
+    const { stdout } = await execGit(`git branch --list "frame/*" --format="%(refname:short)"`, projectPath);
+    for (const ref of stdout.split('\n').map((s) => s.trim()).filter(Boolean)) {
+      const m = ref.match(/^frame\/(.+)\/(work|integration)$/);
+      if (!m) continue;
+      const [, slug, kind] = m;
+      out[slug] = out[slug] || { work: false, integration: false };
+      out[slug][kind] = true;
+    }
+  } catch (err) {}
+  return out;
+}
+
 /**
  * Setup IPC handlers
  */
@@ -301,5 +440,15 @@ module.exports = {
   addWorktree,
   removeWorktree,
   isWorkingTreeClean,
-  setupIPC
+  setupIPC,
+  // Orchestration helpers
+  orchWorktreePath,
+  getHeadSha,
+  branchExists,
+  createOrchWorktree,
+  removeOrchWorktree,
+  worktreeChangedFiles,
+  mergeWorkToIntegration,
+  isWorkMerged,
+  listOrchBranches
 };

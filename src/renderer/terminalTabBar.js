@@ -17,7 +17,7 @@ const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
 const specsDashboard = require('./specsDashboard');
-const { Plus, MoreHorizontal, Bell, CheckSquare, Home, X, Boxes, FileText, FileDiff } = require('lucide');
+const { Plus, MoreHorizontal, Bell, CheckSquare, Home, X, Boxes, FileText, FileDiff, Bot } = require('lucide');
 
 function lucideIcon(data, size = 18) {
   const children = data.map(([tag, attrs]) => {
@@ -258,7 +258,7 @@ class TerminalTabBar {
         <span class="lane-bar-divider"></span>
         ${sections.map(sec => `
           <button class="lane-bar-section ${sec.key === activeKey ? 'current' : ''}" data-key="${this._escapeHtml(sec.key)}" title="${this._escapeHtml(sec.title)}">
-            ${lucideIcon(sec.type === 'spec' ? FileText : sec.type === 'diff' ? FileDiff : CheckSquare, 13)}
+            ${lucideIcon(sec.type === 'spec' ? FileText : sec.type === 'diff' ? FileDiff : sec.type === 'orchestrator' ? Bot : CheckSquare, 13)}
             <span class="lane-bar-section-label">${this._escapeHtml(sec.title)}</span>
             <span class="lane-bar-section-close" title="Close tab">${lucideIcon(X, 12)}</span>
           </button>

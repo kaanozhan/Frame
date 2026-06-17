@@ -27,6 +27,7 @@ const openProjectModal = require('./openProjectModal');
 const projectSection = require('./projectSection');
 const projectStatusBadges = require('./projectStatusBadges');
 const agentPanel = require('./agentPanel');
+const orchestrator = require('./orchestrator');
 const editor = require('./editor');
 const sidebarResize = require('./sidebarResize');
 const aiToolSelector = require('./aiToolSelector');
@@ -65,6 +66,10 @@ function init() {
 
   // Connect state with multiTerminalUI for project-terminal session management
   state.setMultiTerminalUI(multiTerminalUI);
+
+  // Orchestrator (conductor-led parallel spec execution) — a section tab that
+  // composes lanes + agentDispatch; opened from the command palette / Home.
+  orchestrator.setHost(multiTerminalUI);
 
   // Initialize project list UI
   projectListUI.init('projects-list', (projectPath) => {
@@ -692,6 +697,16 @@ function registerCommands() {
       }
     });
   }
+
+  // ---------- Orchestrator ----------
+  r({
+    id: 'orchestrator.open',
+    title: 'Open Orchestrator',
+    category: 'Orchestrator',
+    shortcut: 'CmdOrCtrl+Shift+O',
+    when: () => !!state.getProjectPath(),
+    run: () => orchestrator.open()
+  });
 
   // ---------- AI Tool ----------
   r({

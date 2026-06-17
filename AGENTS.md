@@ -247,5 +247,36 @@ No problem, continue. The user can also say what they consider important themsel
 
 ---
 
+## Agent Orchestration (conductor-led parallel specs)
+
+Frame can run **several specs in parallel**, each by its own agent in its own
+git worktree, coordinated by a **conductor** agent. Open it from the Home board
+("Start Orchestrator") or the command palette (Open Orchestrator). The unit of
+parallelism is the **spec** (a spec's own tasks run sequentially in one lane);
+across specs run in parallel.
+
+**Roles**
+- **Conductor** — a Claude lane running `.frame/orchestration/CONDUCTOR.md`. It
+  validates each assigned spec is `tasks_generated`, reads each spec's
+  `## Footprint` (in `plan.md`) to detect file conflicts, dispatches
+  parallel-safe specs, reviews worker reports, and merges.
+- **Worker** — one Claude lane per spec, in `.frame/worktrees/<slug>` on branch
+  `frame/<slug>/work`. Implements only that spec's `tasks.md` in order, commits
+  to its own branch, **never pushes/merges**, and **never touches meta files**
+  (`tasks.json`, `STRUCTURE.json`, `PROJECT_NOTES.md`, `AGENTS.md`).
+
+**Command bus** — the conductor/worker talk to Frame via `.frame/bin/`:
+`dispatch.js <slug>`, `report-done.js`, `merge.js <slug>`, `status.js`. Frame
+(`orchestrationManager`) owns worktrees, the bus, a **code-enforced conflict
+guard** (refuses to run a spec whose footprint overlaps an in-flight one), and
+the fast-forward merge into `frame/<slug>/integration`. `main` is never touched;
+promoting an integration branch / opening a PR stays a manual user step.
+
+**For the plan step:** every `plan.md` must declare a `## Footprint` — a flat
+`- <path>` list of the source files the spec touches (meta files excluded). This
+is what the conductor and Frame use to schedule safely.
+
+---
+
 *This file was automatically created by Frame.*
 *Creation date: 2026-01-24*

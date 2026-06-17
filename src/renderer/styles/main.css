@@ -61,3 +61,6 @@
 
 /* 18. Projects Section (pinned project switcher + Open Project modal) */
 @import 'components/project-section.css';
+
+/* 19. Orchestrator (conductor-led parallel spec execution overlay) */
+@import 'components/orchestrator.css';
