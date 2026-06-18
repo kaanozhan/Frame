@@ -38,6 +38,7 @@ class TerminalTabBar {
     this.onOverviewToggle = null; // Callback for overview toggle
     this.onGoHome = null;         // Callback: return to lane board
     this.onEnterFrames = null;    // Callback: enter the active Frame (detail view)
+    this.onEnterLane = null;      // Callback: (terminalId) => enter a specific Frame's detail view
     this.onLaneCreated = null;    // Callback: (terminalId) => after + creates a lane
     this.onActivateSection = null; // Callback: (key) => focus an open section tab
     this.onCloseSection = null;    // Callback: (key) => close a section tab
@@ -223,11 +224,12 @@ class TerminalTabBar {
 
   /**
    * Render the single-state left section: the Home tab (the lane board) and,
-   * once at least one Frame is open, a Frames tab carrying the Active Frames
-   * count — always inserted right after Home. Whichever surface is on screen
-   * gets the highlight. Each open detail section (task or spec) appears after
-   * those as its own chip — multiple can be open at once; the active one is
-   * highlighted and every chip has a close button.
+   * once at least one Frame is open, one tab per open Frame — spread out right
+   * after Home, each carrying the Frame's name. Whichever surface is on screen
+   * gets the highlight (in detail view that's the active Frame). Each open
+   * detail section (task or spec) appears after those as its own chip —
+   * multiple can be open at once; the active one is highlighted and every chip
+   * has a close button.
    */
   _renderLeftSection(state) {
     const left = this.element.querySelector('.lane-bar-left');
@@ -238,8 +240,8 @@ class TerminalTabBar {
     const onHome = state.viewMode === 'board' && !onSection;
     const onFrames = state.viewMode !== 'board' && !onSection;
 
-    const count = state.terminals.length;
-    const hasFrames = count > 0;
+    const terminals = state.terminals || [];
+    const hasFrames = terminals.length > 0;
 
     left.innerHTML = `
       <button class="btn-lane-home ${onHome ? 'current' : ''}" title="Home (Cmd+Esc)">
@@ -248,11 +250,12 @@ class TerminalTabBar {
       </button>
       ${hasFrames ? `
         <span class="lane-bar-divider"></span>
-        <button class="btn-lane-frames ${onFrames ? 'current' : ''}" title="Frames">
-          ${lucideIcon(Boxes, 15)}
-          <span class="btn-lane-frames-label">Frames</span>
-          <span class="lane-bar-count" title="Active Frames">${count}</span>
-        </button>
+        ${terminals.map(t => `
+          <button class="btn-lane-frame ${onFrames && t.id === state.activeTerminalId ? 'current' : ''}" data-id="${this._escapeHtml(t.id)}" title="${this._escapeHtml(t.name || 'Frame')}">
+            ${lucideIcon(Boxes, 15)}
+            <span class="btn-lane-frame-label">${this._escapeHtml(t.name || 'Frame')}</span>
+          </button>
+        `).join('')}
       ` : ''}
       ${sections.length ? `
         <span class="lane-bar-divider"></span>
@@ -284,8 +287,9 @@ class TerminalTabBar {
         if (this.onGoHome) this.onGoHome();
         return;
       }
-      if (e.target.closest('.btn-lane-frames')) {
-        if (this.onEnterFrames) this.onEnterFrames();
+      const frameEl = e.target.closest('.btn-lane-frame');
+      if (frameEl) {
+        if (this.onEnterLane) this.onEnterLane(frameEl.dataset.id);
         return;
       }
     });

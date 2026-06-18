@@ -446,9 +446,40 @@
    single-state, so this is the only thing that changes between views */
 .btn-lane-home.current,
 .btn-lane-frames.current,
+.btn-lane-frame.current,
 .lane-bar-section.current {
   color: var(--text-primary);
   background: var(--bg-elevated);
+}
+
+/* Per-Frame tabs — spread out as siblings of Home, one per open Frame */
+.btn-lane-frame {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  min-width: 0;
+  max-width: 160px;
+  flex-shrink: 1;
+}
+
+.btn-lane-frame:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.btn-lane-frame-label {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* Frames tab — sibling of Home; carries the Active Frames count */
