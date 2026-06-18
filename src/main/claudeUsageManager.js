@@ -171,9 +171,9 @@ async function sendUsageToRenderer() {
 
 /**
  * Start periodic polling for usage updates
- * @param {number} interval - Polling interval in ms (default: 60000 = 1 minute)
+ * @param {number} interval - Polling interval in ms (default: 300000 = 5 minutes)
  */
-function startPolling(interval = 60000) {
+function startPolling(interval = 300000) {
   // Stop any existing polling
   stopPolling();
 

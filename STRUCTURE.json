@@ -208,7 +208,7 @@
         "startPolling": {
           "line": 176,
           "params": [
-            "interval = 60000"
+            "interval = 300000"
           ],
           "purpose": "Start periodic polling for usage updates"
         },
