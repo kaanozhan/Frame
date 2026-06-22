@@ -3453,8 +3453,16 @@
           ],
           "purpose": "Returns { status, lastActivityAt, foreground, commandLine, agentName }."
         },
+        "_agentNameFor": {
+          "line": 124,
+          "params": [
+            "terminalId",
+            "entry"
+          ],
+          "purpose": "the fingerprint branch is gated off, so getStatus does no extra buffer reads."
+        },
         "detectAgentName": {
-          "line": 123,
+          "line": 138,
           "params": [
             "foreground",
             "commandLine"
@@ -3462,27 +3470,27 @@
           "purpose": "Live data only — a failed launch or an exited agent leaves nothing."
         },
         "remove": {
-          "line": 137,
+          "line": 152,
           "params": [
             "terminalId"
           ],
           "purpose": "Drop tracking for a closed terminal."
         },
         "_isShellProcess": {
-          "line": 153,
+          "line": 177,
           "params": [
             "processName",
             "shellName"
           ]
         },
         "_ensureEntry": {
-          "line": 160,
+          "line": 184,
           "params": [
             "terminalId"
           ]
         },
         "_isAgentMode": {
-          "line": 179,
+          "line": 203,
           "params": [
             "entry",
             "tail"
@@ -3490,25 +3498,25 @@
           "purpose": "until 15 fresh lines scroll the remnants away."
         },
         "_onOutput": {
-          "line": 185,
+          "line": 214,
           "params": [
             "terminalId"
           ]
         },
         "_classifyQuiet": {
-          "line": 208,
+          "line": 237,
           "params": [
             "terminalId"
           ]
         },
         "_readBufferTail": {
-          "line": 234,
+          "line": 263,
           "params": [
             "terminalId"
           ]
         },
         "_emit": {
-          "line": 254,
+          "line": 283,
           "params": [
             "terminalId",
             "entry"

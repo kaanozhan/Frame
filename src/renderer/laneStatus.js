@@ -112,8 +112,23 @@ function getStatus(terminalId) {
     lastActivityAt: entry.lastActivityAt,
     foreground: isShell ? null : entry.foreground,
     commandLine: isShell ? null : entry.commandLine,
-    agentName: detectAgentName(entry.foreground, entry.commandLine)
+    agentName: _agentNameFor(terminalId, entry)
   };
+}
+
+// Agent identity for a lane. Process name first (reliable on Unix). On Windows
+// that's never available, so fall back to the buffer-tail TUI fingerprint and
+// report a generic 'agent' — enough for readiness checks and dispatch (which
+// only need a truthy name to know an agent owns the lane). Unix is unchanged:
+// the fingerprint branch is gated off, so getStatus does no extra buffer reads.
+function _agentNameFor(terminalId, entry) {
+  const byProcess = detectAgentName(entry.foreground, entry.commandLine);
+  if (byProcess) return byProcess;
+  if (!FOREGROUND_RELIABLE) {
+    const tail = _readBufferTail(terminalId);
+    if (tail && AGENT_PATTERNS.some((re) => re.test(tail))) return 'agent';
+  }
+  return null;
 }
 
 /**
@@ -150,6 +165,15 @@ const SHELL_NAMES = new Set([
   'pwsh', 'powershell', 'cmd', 'login'
 ]);
 
+// Whether the foreground process name reliably reflects what's running.
+// On Unix, ptyManager reads the tty foreground process group, so the name
+// flips to the agent (claude/codex/…) and back to the shell correctly. On
+// Windows node-pty can't do this — `.process` stays the spawned shell and the
+// foreground command line is unavailable (ptyManager returns null) — so agent
+// detection there can't trust the process name and must lean on the on-screen
+// TUI fingerprint instead.
+const FOREGROUND_RELIABLE = process.platform !== 'win32';
+
 function _isShellProcess(processName, shellName) {
   if (!processName) return true; // no info — assume idle prompt
   const norm = processName.toLowerCase().replace(/^-/, '').replace(/\.exe$/, '');
@@ -178,7 +202,12 @@ function _ensureEntry(terminalId) {
 // until 15 fresh lines scroll the remnants away.
 function _isAgentMode(entry, tail) {
   if (detectAgentName(entry.foreground, entry.commandLine)) return true;
-  if (entry.foreground && _isShellProcess(entry.foreground, entry.shellName)) return false;
+  // Unix: a shell foreground means no live agent — anything agent-shaped on
+  // screen is a killed agent's leftover TUI, so stop here. Windows: the
+  // foreground is ALWAYS the shell (node-pty can't see the child), so this
+  // short-circuit would suppress every agent — skip it and let the fingerprint
+  // decide (accepting that a killed agent's remnants linger until they scroll).
+  if (FOREGROUND_RELIABLE && entry.foreground && _isShellProcess(entry.foreground, entry.shellName)) return false;
   return AGENT_PATTERNS.some((re) => re.test(tail));
 }
 
