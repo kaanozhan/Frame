@@ -26,13 +26,30 @@ const agentDispatch = require('./agentDispatch');
 
 let host = null;             // MultiTerminalUI
 let seq = 0;
-let sessionStarted = false;
-let conductorId = null;
-let latestState = { workers: [] };
-const assigned = new Set();  // slugs assigned to the conductor
 let liveContainer = null;    // current rendered root, for in-place worker updates
 let activeVpKey = null;      // current section viewport key (for Stop → close tab)
 let spawnChain = Promise.resolve(); // serializes worker-lane creation (see setHost)
+
+// Sessions are PER-PROJECT: switching projects must not lose another project's
+// conductor/workers. Each entry holds that project's view state; the live
+// terminals themselves survive project switches in the terminal manager.
+// Map<projectPath, { started, conductorId, latestState, assigned:Set<slug> }>
+const sessions = new Map();
+
+function _sess(projectPath, create = false) {
+  let s = projectPath ? sessions.get(projectPath) : null;
+  if (!s && create && projectPath) {
+    s = { started: false, conductorId: null, latestState: { workers: [] }, assigned: new Set() };
+    sessions.set(projectPath, s);
+  }
+  return s || null;
+}
+
+// The session for the project currently on screen (the visible viewport always
+// belongs to the current project). null when no project / no session yet.
+function _curSess(create = false) {
+  return _sess(state.getProjectPath(), create);
+}
 
 function setHost(h) {
   host = h;
@@ -48,11 +65,21 @@ function setHost(h) {
       .catch((err) => console.error('orchestrator: spawn failed', err));
   });
 
-  // Live worker state → update the workers zone in place (don't disturb the
-  // mounted conductor terminal).
+  // Live worker state → route to the right project's session, then update the
+  // workers zone in place ONLY if that project is the one on screen (don't
+  // disturb the mounted conductor terminal, and don't let a background
+  // project's state bleed into the visible board).
   ipcRenderer.on(IPC.ORCH_STATE, (event, st) => {
-    latestState = st || { workers: [] };
-    if (liveContainer && document.body.contains(liveContainer)) {
+    const projectPath = st && st.projectPath;
+    if (!projectPath) return;
+    if (st.active === false) {
+      // Main tore this project's session down (Stop). Drop our view state.
+      sessions.delete(projectPath);
+    } else {
+      const s = _sess(projectPath, true);
+      s.latestState = st;
+    }
+    if (projectPath === state.getProjectPath() && liveContainer && document.body.contains(liveContainer)) {
       renderPipeline(liveContainer);
       renderWorkerZone(liveContainer);
     }
@@ -79,15 +106,22 @@ function orchEnv(projectPath) {
 }
 
 async function ensureSession() {
-  if (sessionStarted) return true;
   const projectPath = state.getProjectPath();
   if (!projectPath) return false;
+  const s = _sess(projectPath, true);
 
+  // Re-attach: this project already has a live session and its conductor
+  // terminal survived the project switch — reuse it, don't spin up a second
+  // conductor or restart main's session.
+  if (s.started && s.conductorId && host.getManager().getTerminal(s.conductorId)) {
+    return true;
+  }
+
+  let conductorId = null;
   try {
-    conductorId = await host.createTerminalForCurrentProject({ extraEnv: orchEnv(projectPath) });
+    conductorId = await host.createTerminalForCurrentProject({ projectPath, extraEnv: orchEnv(projectPath) });
   } catch (err) {
     console.error('orchestrator: conductor lane creation failed', err);
-    conductorId = null;
   }
   if (!conductorId) {
     _toast('Could not create the conductor Frame (terminal limit reached?)', 'error');
@@ -103,7 +137,8 @@ async function ensureSession() {
   }
   const docPath = (res && res.conductorDocPath) || path.join(projectPath, FRAME_DIR, 'orchestration', 'CONDUCTOR.md');
 
-  sessionStarted = true;
+  s.started = true;
+  s.conductorId = conductorId;
   // Start the conductor agent in the background (enter:false → stay on the tab).
   agentDispatch.dispatch({
     terminalId: conductorId,
@@ -117,11 +152,13 @@ async function ensureSession() {
 
 // ─── worker lane bridge ───────────────────────────────────
 
-async function spawnWorkerLane({ slug, worktreePath, env, promptInstruction } = {}) {
+async function spawnWorkerLane({ projectPath, slug, worktreePath, env, promptInstruction } = {}) {
   if (!host || !slug) return;
   let terminalId = null;
   try {
-    terminalId = await host.createTerminalForCurrentProject({ cwd: worktreePath, extraEnv: env });
+    // File the lane under its own project (not "current") — a background
+    // project may dispatch a worker while the user is viewing another one.
+    terminalId = await host.createTerminalForCurrentProject({ projectPath, cwd: worktreePath, extraEnv: env });
   } catch (err) {
     console.error('orchestrator: worker lane creation failed', err);
   }
@@ -129,7 +166,7 @@ async function spawnWorkerLane({ slug, worktreePath, env, promptInstruction } = 
     _toast(`Could not open a worker Frame for "${slug}"`, 'error');
     return;
   }
-  ipcRenderer.send(IPC.ORCH_WORKER_LANE, { slug, terminalId });
+  ipcRenderer.send(IPC.ORCH_WORKER_LANE, { projectPath, slug, terminalId });
 
   // The lane is already created above (so it exists + joins the frame switcher).
   // enter:false → don't steal focus into it; the user stays on the orchestrator
@@ -199,11 +236,9 @@ function createViewport() {
 // un-merged work kept), reset local state, close the tab.
 async function stopSession() {
   if (!window.confirm('Stop orchestration?\nWorker worktrees are removed and the conductor lane is closed. Un-merged work stays on its branch.')) return;
-  try { await ipcRenderer.invoke(IPC.STOP_ORCHESTRATION); } catch (e) { console.error('orchestrator: stop failed', e); }
-  sessionStarted = false;
-  conductorId = null;
-  latestState = { workers: [] };
-  assigned.clear();
+  const projectPath = state.getProjectPath();
+  try { await ipcRenderer.invoke(IPC.STOP_ORCHESTRATION, { projectPath }); } catch (e) { console.error('orchestrator: stop failed', e); }
+  sessions.delete(projectPath); // drop this project's view state (others untouched)
   if (host && activeVpKey) host.closeSection(activeVpKey);
   _toast('Orchestration stopped — worktrees cleaned up', 'info');
 }
@@ -213,6 +248,7 @@ async function stopSession() {
 function renderConductorZone(root) {
   const zone = root.querySelector('[data-zone="conductor"]');
   if (!zone) return;
+  const conductorId = _curSess() && _curSess().conductorId;
   zone.innerHTML = `
     <div class="orch-zone-head">
       <span class="orch-zone-title">Conductor</span>
@@ -258,7 +294,8 @@ function stageOf(w) {
 function renderPipeline(root) {
   const bar = root.querySelector('[data-zone="pipeline"]');
   if (!bar) return;
-  const workers = (latestState && latestState.workers) || [];
+  const cur = _curSess();
+  const workers = (cur && cur.latestState && cur.latestState.workers) || [];
   if (!workers.length) { bar.innerHTML = ''; return; } // hidden via :empty until there's activity
   const byStage = {};
   for (const w of workers) (byStage[stageOf(w)] = byStage[stageOf(w)] || []).push(w);
@@ -300,7 +337,8 @@ const WORKER_STATUS_LABEL = {
 function renderWorkerZone(root) {
   const zone = root.querySelector('[data-zone="workers"]');
   if (!zone) return;
-  const workers = (latestState && latestState.workers) || [];
+  const cur = _curSess();
+  const workers = (cur && cur.latestState && cur.latestState.workers) || [];
   zone.innerHTML = `<div class="orch-zone-head"><span class="orch-zone-title">Workers</span><span class="orch-zone-count">${workers.length}</span></div>`;
   if (!workers.length) {
     zone.insertAdjacentHTML('beforeend', '<div class="orch-empty">No workers running. Assign a spec to begin.</div>');
@@ -344,8 +382,9 @@ function renderWorkerZone(root) {
 }
 
 async function mergeWorkerAction(slug) {
+  const projectPath = state.getProjectPath();
   let res;
-  try { res = await ipcRenderer.invoke(IPC.ORCH_MERGE_WORKER, { slug }); }
+  try { res = await ipcRenderer.invoke(IPC.ORCH_MERGE_WORKER, { projectPath, slug }); }
   catch (e) { res = { status: 'failed', error: e.message }; }
   if (!res) return;
   if (res.status === 'merged') {
@@ -353,7 +392,7 @@ async function mergeWorkerAction(slug) {
   } else if (res.status === 'drift') {
     const ok = window.confirm(`"${slug}" changed files outside its declared footprint:\n\n${(res.drift || []).join('\n')}\n\nApprove anyway?`);
     if (ok) {
-      const f = await ipcRenderer.invoke(IPC.ORCH_MERGE_WORKER, { slug, force: true }).catch((e) => ({ status: 'failed', error: e.message }));
+      const f = await ipcRenderer.invoke(IPC.ORCH_MERGE_WORKER, { projectPath, slug, force: true }).catch((e) => ({ status: 'failed', error: e.message }));
       _toast(f && f.status === 'merged' ? `Approved "${slug}" (forced)` : `Approve failed: ${(f && f.error) || 'unknown'}`, f && f.status === 'merged' ? 'info' : 'error');
     }
   } else {
@@ -364,7 +403,7 @@ async function mergeWorkerAction(slug) {
 async function removeWorkerAction(slug) {
   if (!window.confirm(`Remove worker "${slug}"?\nIts worktree is deleted; un-merged work stays on its branch.`)) return;
   let res;
-  try { res = await ipcRenderer.invoke(IPC.ORCH_REMOVE_WORKER, { slug }); }
+  try { res = await ipcRenderer.invoke(IPC.ORCH_REMOVE_WORKER, { projectPath: state.getProjectPath(), slug }); }
   catch (e) { res = { error: e.message }; }
   if (res && res.success) _toast(`Removed "${slug}"${res.branchKept ? ' (branch kept — un-merged)' : ''}`, 'info');
   else _toast(`Remove failed: ${(res && res.error) || 'unknown'}`, 'error');
@@ -410,12 +449,14 @@ function renderSpecRail(root, specs) {
     zone.insertAdjacentHTML('beforeend', '<div class="orch-empty">No specs yet.</div>');
     return;
   }
+  const cur = _curSess();
+  const assignedSet = (cur && cur.assigned) || new Set();
   for (const spec of specs) {
     const slug = specSlug(spec);
     if (!slug) continue;
     const phase = specPhase(spec);
     const assignable = ASSIGNABLE_PHASES.includes(phase);
-    const isAssigned = assigned.has(slug);
+    const isAssigned = assignedSet.has(slug);
     const row = document.createElement('div');
     row.className = 'orch-spec-row' + (assignable ? '' : ' disabled');
     row.innerHTML = `
@@ -435,23 +476,26 @@ function renderSpecRail(root, specs) {
 let nudgeTimer = null;
 
 function assignSpec(slug) {
-  assigned.add(slug);
-  ipcRenderer.invoke(IPC.ORCH_ASSIGN_SPECS, { slugs: Array.from(assigned) })
+  const projectPath = state.getProjectPath();
+  const s = _sess(projectPath, true);
+  s.assigned.add(slug);
+  ipcRenderer.invoke(IPC.ORCH_ASSIGN_SPECS, { projectPath, slugs: Array.from(s.assigned) })
     .catch((err) => console.error('orchestrator: assign failed', err));
   // Coalesce rapid Assign clicks into ONE batch nudge to the conductor — per-spec
   // nudges pushed it into single-spec mode and could interleave in the terminal,
   // dropping the last one. One set-reconcile message keeps it in wave mode.
   clearTimeout(nudgeTimer);
-  nudgeTimer = setTimeout(nudgeConductor, 600);
+  nudgeTimer = setTimeout(() => nudgeConductor(projectPath), 600);
   if (liveContainer && document.body.contains(liveContainer)) loadSpecs(liveContainer);
 }
 
-function nudgeConductor() {
-  if (!conductorId) return;
-  const set = Array.from(assigned);
+function nudgeConductor(projectPath) {
+  const s = _sess(projectPath);
+  if (!s || !s.conductorId) return;
+  const set = Array.from(s.assigned);
   if (!set.length) return;
   agentDispatch.dispatch({
-    terminalId: conductorId,
+    terminalId: s.conductorId,
     prompt: `Assigned specs are now: ${set.join(', ')}. Per CONDUCTOR.md, treat this set as the source of truth: validate each is ready, build the conflict graph, and dispatch ALL ready, non-conflicting specs now (in waves). Do not wait for per-spec confirmation; re-check the full set, not just the newest one.`,
     enter: false
   }).catch((err) => console.error('orchestrator: assign-nudge failed', err));
@@ -476,5 +520,16 @@ function _toast(message, type = 'info') {
   setTimeout(() => { toast.classList.remove('visible'); setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
-const api = { setHost, open, createViewport, isActive: () => sessionStarted };
+// Active only when the CURRENT project has a live session — the Home card shows
+// "Open Orchestrator" for a project with a running session and "Start
+// Orchestrator" for one without, independent of other projects' sessions.
+const api = {
+  setHost,
+  open,
+  createViewport,
+  isActive: () => {
+    const s = _curSess();
+    return !!(s && s.started);
+  }
+};
 module.exports = api;

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-18",
+  "lastUpdated": "2026-06-22",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -7163,6 +7163,7 @@
         "envForLane",
         "publishState",
         "drainBus",
+        "sessionFor",
         "getSession"
       ],
       "depends": [
@@ -7177,69 +7178,77 @@
       ],
       "functions": {
         "init": {
-          "line": 57,
+          "line": 62,
           "params": [
             "window"
           ]
         },
+        "sessionFor": {
+          "line": 66,
+          "params": [
+            "projectPath"
+          ]
+        },
         "busDirFor": {
-          "line": 63,
+          "line": 72,
           "params": [
             "projectPath"
           ],
           "purpose": "─── path helpers ─────────────────────────────────────────"
         },
         "binDirFor": {
-          "line": 66,
+          "line": 75,
           "params": [
             "projectPath"
           ]
         },
         "worktreeDirFor": {
-          "line": 69,
+          "line": 78,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "envForLane": {
-          "line": 75,
+          "line": 84,
           "params": [
+            "session",
             "slug"
           ],
           "purpose": "worktree, regardless of its own .frame/ copy."
         },
         "toPrefix": {
-          "line": 89,
+          "line": 98,
           "params": [
             "entry"
           ],
           "purpose": "equality; a glob/dir entry (`src/foo/**`, `src/foo/*`) matches by prefix."
         },
         "entriesOverlap": {
-          "line": 94,
+          "line": 103,
           "params": [
             "a",
             "b"
           ]
         },
         "footprintsOverlap": {
-          "line": 106,
+          "line": 115,
           "params": [
             "fa",
             "fb"
           ]
         },
         "findFootprintConflict": {
-          "line": 117,
+          "line": 126,
           "params": [
+            "session",
             "slug",
             "footprint"
           ],
           "purpose": "workers don't block (their work is already integrated or abandoned)."
         },
         "buildWorkerPrompt": {
-          "line": 129,
+          "line": 138,
           "params": [
             "projectPath",
             "slug"
@@ -7247,119 +7256,152 @@
           "purpose": "from inside the worktree."
         },
         "relayToConductor": {
-          "line": 151,
+          "line": 160,
           "params": [
+            "session",
             "text"
           ]
         },
         "drainRelayQueue": {
-          "line": 157
+          "line": 166,
+          "params": [
+            "session"
+          ]
         },
         "materializeBinScripts": {
-          "line": 175,
+          "line": 184,
           "params": [
             "projectPath"
           ],
           "purpose": "Materialize the .frame/bin command scripts for this project."
         },
         "serializeState": {
-          "line": 187,
+          "line": 196,
+          "params": [
+            "session"
+          ],
           "purpose": "─── state publish ────────────────────────────────────────"
         },
         "publishState": {
-          "line": 210
+          "line": 219,
+          "params": [
+            "session"
+          ]
         },
         "startBusWatcher": {
-          "line": 228,
+          "line": 237,
+          "params": [
+            "session"
+          ],
           "purpose": "─── bus watcher ──────────────────────────────────────────"
         },
         "drainBus": {
-          "line": 241
+          "line": 250,
+          "params": [
+            "session"
+          ]
         },
         "handleRequest": {
-          "line": 265,
+          "line": 274,
           "params": [
+            "session",
             "req"
           ]
         },
         "handleDispatch": {
-          "line": 285,
+          "line": 294,
           "params": [
+            "session",
             "slug"
           ],
           "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
         },
         "registerWorkerLane": {
-          "line": 353,
+          "line": 365,
           "params": [
+            "projectPath",
             "slug",
             "terminalId"
           ],
           "purpose": "manager can track status, relay, and tear it down."
         },
         "handleReportDone": {
-          "line": 365,
+          "line": 378,
           "params": [
+            "session",
             "slug"
           ],
           "purpose": "the conductor with the merge command."
         },
         "handleMerge": {
-          "line": 382,
+          "line": 395,
           "params": [
+            "session",
             "slug",
             "args = []"
           ],
           "purpose": "reminder; the conductor performs the actual reconcile per CONDUCTOR.md)."
         },
         "mergeWorker": {
-          "line": 421,
+          "line": 434,
           "params": [
+            "projectPath",
             "slug",
             "force = false"
           ],
           "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
         },
         "removeWorker": {
-          "line": 427,
+          "line": 442,
           "params": [
+            "projectPath",
             "slug"
           ],
           "purpose": "prune the work branch ONLY if merged (un-merged work is kept — no data loss)."
         },
         "pollStatuses": {
-          "line": 451,
+          "line": 467,
+          "params": [
+            "session"
+          ],
           "purpose": "additionally overlays its richer laneStatus (processing/waiting) per lane."
         },
         "startOrchestration": {
-          "line": 491,
+          "line": 507,
           "params": [
             "args = {}"
           ],
           "purpose": "─── session lifecycle ────────────────────────────────────"
         },
         "stopOrchestration": {
-          "line": 540,
+          "line": 572,
+          "params": [
+            "projectPath"
+          ],
           "purpose": "work branches (un-merged work is kept on its branch), leave main untouched."
         },
         "rehydrate": {
-          "line": 575,
+          "line": 610,
           "params": [
-            "projectPath"
+            "session"
           ],
           "purpose": "board/status reflect prior work. Statuses come from git: merged ⇒ done."
         },
         "assignSpecs": {
-          "line": 611,
+          "line": 645,
           "params": [
+            "projectPath",
             "slugs"
           ]
         },
         "getState": {
-          "line": 618
+          "line": 653,
+          "params": [
+            "projectPath"
+          ]
         },
         "setupIPC": {
-          "line": 624,
+          "line": 659,
           "params": [
             "ipcMain"
           ],
@@ -7396,30 +7438,45 @@
         "agentDispatch"
       ],
       "functions": {
+        "_sess": {
+          "line": 39,
+          "params": [
+            "projectPath",
+            "create = false"
+          ]
+        },
+        "_curSess": {
+          "line": 50,
+          "params": [
+            "create = false"
+          ],
+          "purpose": "belongs to the current project). null when no project / no session yet."
+        },
         "setHost": {
-          "line": 37,
+          "line": 54,
           "params": [
             "h"
           ]
         },
         "open": {
-          "line": 63,
+          "line": 90,
           "purpose": "Open (or focus) the orchestrator section tab."
         },
         "orchEnv": {
-          "line": 74,
+          "line": 101,
           "params": [
             "projectPath"
           ],
           "purpose": "─── session ──────────────────────────────────────────────"
         },
         "ensureSession": {
-          "line": 81
+          "line": 108
         },
         "spawnWorkerLane": {
-          "line": 120,
+          "line": 155,
           "params": [
-            "{ slug",
+            "{ projectPath",
+            "slug",
             "worktreePath",
             "env",
             "promptInstruction } = {}"
@@ -7427,93 +7484,96 @@
           "purpose": "─── worker lane bridge ───────────────────────────────────"
         },
         "createViewport": {
-          "line": 147,
+          "line": 184,
           "purpose": "─── section viewport ─────────────────────────────────────"
         },
         "stopSession": {
-          "line": 200,
+          "line": 237,
           "purpose": "un-merged work kept), reset local state, close the tab."
         },
         "renderConductorZone": {
-          "line": 213,
+          "line": 248,
           "params": [
             "root"
           ],
           "purpose": "─── zones ────────────────────────────────────────────────"
         },
         "stageOf": {
-          "line": 246,
+          "line": 282,
           "params": [
             "w"
           ]
         },
         "renderPipeline": {
-          "line": 258,
+          "line": 294,
           "params": [
             "root"
           ]
         },
         "renderWorkerZone": {
-          "line": 300,
+          "line": 337,
           "params": [
             "root"
           ]
         },
         "mergeWorkerAction": {
-          "line": 346,
+          "line": 384,
           "params": [
             "slug"
           ]
         },
         "removeWorkerAction": {
-          "line": 364,
+          "line": 403,
           "params": [
             "slug"
           ]
         },
         "_shortPath": {
-          "line": 373,
+          "line": 412,
           "params": [
             "p"
           ]
         },
         "_relTime": {
-          "line": 379,
+          "line": 418,
           "params": [
             "ts"
           ]
         },
         "loadSpecs": {
-          "line": 390,
+          "line": 429,
           "params": [
             "root"
           ]
         },
         "renderSpecRail": {
-          "line": 405,
+          "line": 444,
           "params": [
             "root",
             "specs"
           ]
         },
         "assignSpec": {
-          "line": 437,
+          "line": 478,
           "params": [
             "slug"
           ]
         },
         "nudgeConductor": {
-          "line": 449
+          "line": 492,
+          "params": [
+            "projectPath"
+          ]
         },
         "_esc": {
-          "line": 462,
+          "line": 506,
           "params": [
             "s"
           ],
           "purpose": "─── helpers ──────────────────────────────────────────────"
         },
         "_toast": {
-          "line": 468,
+          "line": 512,
           "params": [
             "message",
             "type = 'info'"
