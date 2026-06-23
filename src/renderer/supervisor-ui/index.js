@@ -1,4 +1,4 @@
-// Supervisor UI (renderer) — Phase A skeleton.
+// Supervisor UI (renderer) — Phase B composition.
 //
 // Per docs/frame-edit-discipline.md §1.6, the renderer addition is a standalone
 // module under src/renderer/supervisor-ui/ exposing ONE init() function. The
@@ -9,18 +9,37 @@
 // openSection(type, itemRef, factory, opts) treats `type` as an opaque string
 // (only used for "find existing viewport of same type" matching at L222-224).
 // No dispatch table; no registration required. This module is the factory.
+//
+// Phase B: createViewport().render(el) composes header + projectTree + kanban
+// and wires teardown into the viewport's dispose() hook (already invoked by
+// multiTerminalUI on section close — see multiTerminalUI.js:248).
 
-const { ipcRenderer } = require('electron');
+const path = require('path');
 const SUP = require('../../shared/supervisor-ipc');
 
 let seq = 0;
+let stylesInjected = false;
+
+function injectStylesOnce() {
+  if (stylesInjected) return;
+  stylesInjected = true;
+  // index.html is loaded with loadFile('index.html') (see src/main/index.js:55);
+  // relative href resolves against the project root.
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'src/renderer/supervisor-ui/styles.css';
+  link.dataset.supervisorStyles = '1';
+  document.head.appendChild(link);
+}
 
 function createViewport() {
   const key = `supervisor-vp:${++seq}`;
+  let controllers = null;
+  let rendered = false;
 
   function navigate(/* itemRef */) {
-    // Phase A: section has no sub-navigation. Phase B introduces project /
-    // kanban routing via this hook.
+    // Phase B section has no sub-navigation. Phase D will route to a specific
+    // project / task here.
   }
 
   function getChip() {
@@ -28,30 +47,34 @@ function createViewport() {
   }
 
   function render(el) {
+    injectStylesOnce();
     el.innerHTML = `
-      <div style="padding: 24px; font-family: var(--font-sans); color: var(--text-primary);">
-        <h2 style="margin: 0 0 8px;">Supervisor — Loading…</h2>
-        <p style="color: var(--text-secondary); margin: 0;">
-          Phase A skeleton. Real content arrives in Phase B.
-        </p>
-        <p style="color: var(--text-secondary); margin: 16px 0 0; font-size: 12px;">
-          Phase A handshake: <span id="supervisor-ping-result">testing…</span>
-        </p>
+      <div class="supervisor-root">
+        <div class="supervisor-header" id="supervisor-header"></div>
+        <div class="supervisor-body">
+          <aside class="supervisor-tree" id="supervisor-tree"></aside>
+          <main class="supervisor-kanban" id="supervisor-kanban"></main>
+        </div>
       </div>
     `;
-    // Round-trip SUPERVISOR_PING to confirm the bridge wiring is alive.
-    ipcRenderer.invoke(SUP.SUPERVISOR_PING).then((r) => {
-      const out = el.querySelector('#supervisor-ping-result');
-      if (out) out.textContent = JSON.stringify(r);
-    }).catch((err) => {
-      const out = el.querySelector('#supervisor-ping-result');
-      if (out) out.textContent = `error: ${err && err.message ? err.message : String(err)}`;
-    });
+    const header = require('./header').create(el.querySelector('#supervisor-header'));
+    const tree = require('./projectTree').create(el.querySelector('#supervisor-tree'));
+    const kanban = require('./kanban').create(el.querySelector('#supervisor-kanban'));
+    controllers = { header, tree, kanban };
+    rendered = true;
   }
 
   function dispose() {
-    // Phase A has no listeners to tear down. Phase C will unsubscribe from
-    // SUPERVISOR_STATE here.
+    // multiTerminalUI.closeSection() calls viewport.dispose() — wire down all
+    // pollers + listeners here so the supervisor view stops polling /api/* once
+    // the user closes the tab.
+    if (controllers) {
+      try { controllers.header.stop(); } catch {}
+      try { controllers.tree.stop(); } catch {}
+      try { controllers.kanban.stop(); } catch {}
+      controllers = null;
+    }
+    rendered = false;
   }
 
   return {

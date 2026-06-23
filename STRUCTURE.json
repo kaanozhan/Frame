@@ -7594,16 +7594,27 @@
     },
     "main/supervisor-bridge/index": {
       "file": "src/main/supervisor-bridge/index.js",
-      "description": "Supervisor bridge (main) — Phase A skeleton.",
+      "description": "Supervisor bridge (main) — Phase A skeleton + Phase B handlers.",
       "exports": [
-        "register"
+        "register",
+        "listProjectDocs"
       ],
       "depends": [
+        "fs",
+        "os",
+        "path",
         "../shared/supervisor-ipc"
       ],
       "functions": {
+        "listProjectDocs": {
+          "line": 15,
+          "params": [
+            "{ project_id",
+            "project_path }"
+          ]
+        },
         "register": {
-          "line": 10,
+          "line": 71,
           "params": [
             "ipcMain"
           ]
@@ -7611,6 +7622,7 @@
       },
       "ipc": {
         "listens": [
+          "SUP",
           "SUP"
         ],
         "emits": []
@@ -7618,23 +7630,29 @@
     },
     "renderer/supervisor-ui/index": {
       "file": "src/renderer/supervisor-ui/index.js",
-      "description": "Supervisor UI (renderer) — Phase A skeleton.",
+      "description": "Supervisor UI (renderer) — Phase B composition.",
       "exports": [],
       "depends": [
-        "electron",
+        "path",
         "../shared/supervisor-ipc",
+        "header",
+        "projectTree",
+        "kanban",
         "terminal",
         "commandRegistry"
       ],
       "functions": {
+        "injectStylesOnce": {
+          "line": 23
+        },
         "createViewport": {
-          "line": 18
+          "line": 35
         },
         "open": {
-          "line": 68
+          "line": 91
         },
         "init": {
-          "line": 75
+          "line": 98
         }
       }
     },
@@ -7648,6 +7666,154 @@
       ],
       "depends": [],
       "functions": {}
+    },
+    "renderer/supervisor-ui/header": {
+      "file": "src/renderer/supervisor-ui/header.js",
+      "description": "Supervisor header — Phase B.",
+      "exports": [
+        "create",
+        "SUPERVISOR_API"
+      ],
+      "depends": [],
+      "functions": {
+        "esc": {
+          "line": 16,
+          "params": [
+            "s"
+          ]
+        },
+        "fetchJson": {
+          "line": 22,
+          "params": [
+            "path"
+          ]
+        },
+        "create": {
+          "line": 28,
+          "params": [
+            "root"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/kanban": {
+      "file": "src/renderer/supervisor-ui/kanban.js",
+      "description": "Supervisor kanban — Phase B.",
+      "exports": [
+        "create"
+      ],
+      "depends": [
+        "path",
+        "header",
+        "taskCard",
+        "editor"
+      ],
+      "functions": {
+        "fetchJson": {
+          "line": 19,
+          "params": [
+            "p"
+          ]
+        },
+        "create": {
+          "line": 25,
+          "params": [
+            "root"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/projectTree": {
+      "file": "src/renderer/supervisor-ui/projectTree.js",
+      "description": "Supervisor project tree — Phase B.",
+      "exports": [
+        "create"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "header",
+        "editor"
+      ],
+      "functions": {
+        "esc": {
+          "line": 18,
+          "params": [
+            "s"
+          ]
+        },
+        "fetchJson": {
+          "line": 24,
+          "params": [
+            "p"
+          ]
+        },
+        "openDoc": {
+          "line": 30,
+          "params": [
+            "absPath"
+          ]
+        },
+        "create": {
+          "line": 39,
+          "params": [
+            "root"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/taskCard": {
+      "file": "src/renderer/supervisor-ui/taskCard.js",
+      "description": "Supervisor task card — Phase B (collapsed only).",
+      "exports": [
+        "render",
+        "statusTag"
+      ],
+      "depends": [
+        "path"
+      ],
+      "functions": {
+        "esc": {
+          "line": 9,
+          "params": [
+            "s"
+          ]
+        },
+        "statusTag": {
+          "line": 15,
+          "params": [
+            "t"
+          ]
+        },
+        "elapsedLabel": {
+          "line": 24,
+          "params": [
+            "t"
+          ]
+        },
+        "costLabel": {
+          "line": 32,
+          "params": [
+            "t"
+          ]
+        },
+        "resolveDeliverable": {
+          "line": 43,
+          "params": [
+            "p",
+            "supervisorRoot"
+          ],
+          "purpose": "`run-state/`)."
+        },
+        "render": {
+          "line": 57,
+          "params": [
+            "t",
+            "columnKey",
+            "ctx"
+          ]
+        }
+      }
     }
   },
   "ipcChannels": {
@@ -8476,6 +8642,13 @@
         "description": "GitHub Panel Module"
       }
     ],
+    "header": [
+      {
+        "module": "renderer/supervisor-ui/header",
+        "file": "src/renderer/supervisor-ui/header.js",
+        "description": "Supervisor header — Phase B."
+      }
+    ],
     "history": [
       {
         "module": "main/promptLogger",
@@ -8497,7 +8670,7 @@
       {
         "module": "main/supervisor-bridge/index",
         "file": "src/main/supervisor-bridge/index.js",
-        "description": "Supervisor bridge (main) — Phase A skeleton."
+        "description": "Supervisor bridge (main) — Phase A skeleton + Phase B handlers."
       },
       {
         "module": "renderer/index",
@@ -8507,7 +8680,7 @@
       {
         "module": "renderer/supervisor-ui/index",
         "file": "src/renderer/supervisor-ui/index.js",
-        "description": "Supervisor UI (renderer) — Phase A skeleton."
+        "description": "Supervisor UI (renderer) — Phase B composition."
       },
       {
         "module": "templates/sample-project/src/index",
@@ -8520,6 +8693,13 @@
         "module": "shared/ipcChannels",
         "file": "src/shared/ipcChannels.js",
         "description": "IPC Channel Constants"
+      }
+    ],
+    "kanban": [
+      {
+        "module": "renderer/supervisor-ui/kanban",
+        "file": "src/renderer/supervisor-ui/kanban.js",
+        "description": "Supervisor kanban — Phase B."
       }
     ],
     "lane-board": [
@@ -8628,6 +8808,13 @@
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
+      }
+    ],
+    "project-tree": [
+      {
+        "module": "renderer/supervisor-ui/projectTree",
+        "file": "src/renderer/supervisor-ui/projectTree.js",
+        "description": "Supervisor project tree — Phase B."
       }
     ],
     "prompts": [
@@ -8750,6 +8937,13 @@
         "module": "shared/supervisor-ipc",
         "file": "src/shared/supervisor-ipc.js",
         "description": "SUPERVISOR-OWNED IPC channel names. All channels prefixed with SUPERVISOR_"
+      }
+    ],
+    "task-card": [
+      {
+        "module": "renderer/supervisor-ui/taskCard",
+        "file": "src/renderer/supervisor-ui/taskCard.js",
+        "description": "Supervisor task card — Phase B (collapsed only)."
       }
     ],
     "task-confirm-modal": [
