@@ -9,6 +9,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const SUP = require('../../shared/supervisor-ipc');
+const stateWatcher = require('./stateWatcher');
+const tailReader = require('./tailReader');
 
 const DOC_CAP = 100;
 const SPEC_CAP = 50;
@@ -171,6 +173,13 @@ function register(ipcMain) {
   ipcMain.handle(SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS, async () => {
     return listWorkspaceProjects();
   });
+
+  // Phase C: reactive file-watch driven state pushes + per-task tail logs.
+  // Both register their own handlers; the renderer announces supervisorRoot
+  // on mount (it has to resolve it from /api/meta first) which kicks off the
+  // watcher lazily — see stateWatcher.js for why this is not driven by boot.
+  stateWatcher.registerHandlers(ipcMain);
+  tailReader.registerHandlers(ipcMain);
 }
 
 module.exports = { register, listProjectDocs, listProjectSpecs, listWorkspaceProjects };

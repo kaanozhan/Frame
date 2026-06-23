@@ -7605,29 +7605,31 @@
         "fs",
         "os",
         "path",
-        "../shared/supervisor-ipc"
+        "../shared/supervisor-ipc",
+        "stateWatcher",
+        "tailReader"
       ],
       "functions": {
         "listProjectDocs": {
-          "line": 17,
+          "line": 19,
           "params": [
             "{ project_id",
             "project_path }"
           ]
         },
         "listWorkspaceProjects": {
-          "line": 80,
+          "line": 82,
           "purpose": "Returns [{ name, path, isFrameProject }] for the active workspace, or []."
         },
         "listProjectSpecs": {
-          "line": 112,
+          "line": 114,
           "params": [
             "{ project_path }"
           ],
           "purpose": "[{ slug, phase, files: [{ path, label }] }]"
         },
         "register": {
-          "line": 146,
+          "line": 148,
           "params": [
             "ipcMain"
           ]
@@ -7676,28 +7678,24 @@
       "description": "SUPERVISOR-OWNED IPC channel names. All channels prefixed with SUPERVISOR_",
       "exports": [
         "SUPERVISOR_LIST_PROJECT_SPECS",
-        "SUPERVISOR_DAEMON_START",
-        "SUPERVISOR_DAEMON_STOP",
-        "SUPERVISOR_RESPOND_ESCALATION"
+        "SUPERVISOR_TAIL_START",
+        "supervisorRoot"
       ],
       "depends": [],
       "functions": {}
     },
     "renderer/supervisor-ui/header": {
       "file": "src/renderer/supervisor-ui/header.js",
-      "description": "Supervisor header — Phase B.",
+      "description": "Supervisor header — Phase C (reactive).",
       "exports": [
         "create",
         "SUPERVISOR_API"
       ],
-      "depends": [],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
       "functions": {
-        "esc": {
-          "line": 16,
-          "params": [
-            "s"
-          ]
-        },
         "fetchJson": {
           "line": 22,
           "params": [
@@ -7710,33 +7708,47 @@
             "root"
           ]
         }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
       }
     },
     "renderer/supervisor-ui/kanban": {
       "file": "src/renderer/supervisor-ui/kanban.js",
-      "description": "Supervisor kanban — Phase B.",
+      "description": "Supervisor kanban — Phase C (reactive nudge + fallback poll).",
       "exports": [
         "create"
       ],
       "depends": [
         "path",
+        "electron",
+        "../shared/supervisor-ipc",
         "header",
         "taskCard",
         "editor"
       ],
       "functions": {
         "fetchJson": {
-          "line": 19,
+          "line": 30,
           "params": [
             "p"
           ]
         },
         "create": {
-          "line": 25,
+          "line": 36,
           "params": [
             "root"
           ]
         }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
       }
     },
     "renderer/supervisor-ui/projectTree": {
@@ -7802,7 +7814,8 @@
         "statusTag"
       ],
       "depends": [
-        "path"
+        "path",
+        "liveOutputPane"
       ],
       "functions": {
         "esc": {
@@ -7845,6 +7858,205 @@
             "ctx"
           ]
         }
+      }
+    },
+    "main/supervisor-bridge/stateWatcher": {
+      "file": "src/main/supervisor-bridge/stateWatcher.js",
+      "description": "Supervisor state watcher (main) — Phase C reactive replacement for polling.",
+      "exports": [
+        "start",
+        "stop",
+        "registerHandlers"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "send": {
+          "line": 34,
+          "params": [
+            "channel",
+            "payload"
+          ]
+        },
+        "emit": {
+          "line": 44,
+          "params": [
+            "kind",
+            "data"
+          ]
+        },
+        "readHeartbeat": {
+          "line": 48,
+          "params": [
+            "filePath"
+          ]
+        },
+        "flushAuditPending": {
+          "line": 57
+        },
+        "scheduleAuditFlush": {
+          "line": 65
+        },
+        "processAuditDelta": {
+          "line": 70,
+          "params": [
+            "filePath"
+          ]
+        },
+        "watchHeartbeat": {
+          "line": 109,
+          "params": [
+            "filePath"
+          ]
+        },
+        "watchAudit": {
+          "line": 125,
+          "params": [
+            "filePath"
+          ]
+        },
+        "watchQueueDir": {
+          "line": 142,
+          "params": [
+            "dir",
+            "status"
+          ]
+        },
+        "stop": {
+          "line": 155
+        },
+        "start": {
+          "line": 177,
+          "params": [
+            "opts"
+          ],
+          "purpose": "/api/meta.audit_path). Must be set; without it we have nothing to watch."
+        },
+        "registerHandlers": {
+          "line": 199,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": [
+          "SUPERVISOR_STATE",
+          "channel"
+        ]
+      }
+    },
+    "main/supervisor-bridge/tailReader": {
+      "file": "src/main/supervisor-bridge/tailReader.js",
+      "description": "Supervisor tail reader (main) — Phase C live PTY-backed log stream.",
+      "exports": [
+        "create",
+        "resize",
+        "destroy",
+        "destroyAll",
+        "registerHandlers"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "node-pty",
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "send": {
+          "line": 33,
+          "params": [
+            "webContents",
+            "channel",
+            "payload"
+          ]
+        },
+        "resolveLogTarget": {
+          "line": 38,
+          "params": [
+            "supervisorRoot",
+            "taskId"
+          ]
+        },
+        "create": {
+          "line": 66,
+          "params": [
+            "opts"
+          ],
+          "purpose": "{{ handleId: null, error: string }} on failure"
+        },
+        "resize": {
+          "line": 117,
+          "params": [
+            "handleId",
+            "cols",
+            "rows"
+          ]
+        },
+        "destroy": {
+          "line": 123,
+          "params": [
+            "handleId"
+          ]
+        },
+        "destroyAll": {
+          "line": 130
+        },
+        "registerHandlers": {
+          "line": 134,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP",
+          "SUP"
+        ],
+        "emits": [
+          "channel"
+        ]
+      }
+    },
+    "renderer/supervisor-ui/liveOutputPane": {
+      "file": "src/renderer/supervisor-ui/liveOutputPane.js",
+      "description": "Supervisor live output pane (renderer) — Phase C.",
+      "exports": [
+        "create"
+      ],
+      "depends": [
+        "electron",
+        "xterm",
+        "xterm-addon-fit",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "themeFromVars": {
+          "line": 12
+        },
+        "create": {
+          "line": 26,
+          "params": [
+            "containerEl",
+            "opts"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP",
+          "SUP"
+        ],
+        "emits": []
       }
     }
   },
@@ -8678,7 +8890,7 @@
       {
         "module": "renderer/supervisor-ui/header",
         "file": "src/renderer/supervisor-ui/header.js",
-        "description": "Supervisor header — Phase B."
+        "description": "Supervisor header — Phase C (reactive)."
       }
     ],
     "history": [
@@ -8731,7 +8943,7 @@
       {
         "module": "renderer/supervisor-ui/kanban",
         "file": "src/renderer/supervisor-ui/kanban.js",
-        "description": "Supervisor kanban — Phase B."
+        "description": "Supervisor kanban — Phase C (reactive nudge + fallback poll)."
       }
     ],
     "lane-board": [
@@ -8760,6 +8972,13 @@
         "module": "renderer/laneStatus",
         "file": "src/renderer/laneStatus.js",
         "description": "Lane Status Module"
+      }
+    ],
+    "live-output-pane": [
+      {
+        "module": "renderer/supervisor-ui/liveOutputPane",
+        "file": "src/renderer/supervisor-ui/liveOutputPane.js",
+        "description": "Supervisor live output pane (renderer) — Phase C."
       }
     ],
     "menu": [
@@ -8950,6 +9169,13 @@
         "description": "Application State Module"
       }
     ],
+    "state-watcher": [
+      {
+        "module": "main/supervisor-bridge/stateWatcher",
+        "file": "src/main/supervisor-bridge/stateWatcher.js",
+        "description": "Supervisor state watcher (main) — Phase C reactive replacement for polling."
+      }
+    ],
     "structure": [
       {
         "module": "renderer/structureMap",
@@ -8969,6 +9195,13 @@
         "module": "shared/supervisor-ipc",
         "file": "src/shared/supervisor-ipc.js",
         "description": "SUPERVISOR-OWNED IPC channel names. All channels prefixed with SUPERVISOR_"
+      }
+    ],
+    "tail-reader": [
+      {
+        "module": "main/supervisor-bridge/tailReader",
+        "file": "src/main/supervisor-bridge/tailReader.js",
+        "description": "Supervisor tail reader (main) — Phase C live PTY-backed log stream."
       }
     ],
     "task-card": [

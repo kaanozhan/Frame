@@ -1,20 +1,31 @@
-// Supervisor kanban — Phase B.
+// Supervisor kanban — Phase C (reactive nudge + fallback poll).
 //
-// Polls /api/workspace (4s) and renders 4 columns plus a full-width
-// "Needs You" row above. Column mapping per server.py:derive_workspace
-// (supervisor/scripts/monitor/server.py:336):
-//   columns.pending   → Pending column
-//   columns.active    → In-flight column
-//   columns.awaiting  → Needs You row (above the grid)
-//   columns.done      → Done + Failed columns (split client-side by t.status)
+// We still rely on /api/workspace as the authoritative shape — server.py
+// derive_workspace() does the column-bucket bookkeeping (escalations,
+// elapsed_s, etc.) we don't want to reimplement client-side. What changed:
+//   - audit.jsonl writes and queue/*/ directory changes get pushed via
+//     SUPERVISOR_STATE → we coalesce a refetch on each (debounced 300ms)
+//   - the 4s polling interval is only armed as a fallback if no
+//     SUPERVISOR_STATE push lands within 5s of mount
+//
+// Also: after resolving the supervisorRoot from /api/meta.audit_path, we
+// hand it to main via SUPERVISOR_STATE_INIT so stateWatcher knows what to
+// watch. This is what kicks off heartbeat + audit pushes for both header
+// and kanban; without it, both fall back to HTTP.
 //
 // /api/meta returns audit_path; we derive supervisorRoot = parent of run-state/
-// so deliverable paths (which are project-relative) resolve to absolute paths
-// that editor.openFile can consume.
+// so deliverable paths (project-relative) resolve to absolute paths that
+// editor.openFile can consume.
 
 const path = require('path');
+const { ipcRenderer } = require('electron');
+const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
 const taskCard = require('./taskCard');
+
+const FALLBACK_AFTER_MS = 5000;
+const FALLBACK_POLL_MS = 4000;
+const REFETCH_DEBOUNCE_MS = 300;
 
 async function fetchJson(p) {
   const res = await fetch(`${SUPERVISOR_API}${p}`);
@@ -23,10 +34,16 @@ async function fetchJson(p) {
 }
 
 function create(root) {
-  let timer = null;
   let alive = true;
   let supervisorRoot = null;
   let pendingScrollTaskId = null;
+  let stateListener = null;
+  let receivedPushAt = 0;
+  let fallbackTimer = null;
+  let fallbackArmTimer = null;
+  let refetchDebounce = null;
+  // Track the most recent in-flight task ids so we can offer Tail log on them.
+  let lastInFlight = new Set();
 
   root.innerHTML = `
     <div class="sup-needs-you" id="sup-needs-you">
@@ -62,11 +79,12 @@ function create(root) {
       if (meta && meta.audit_path) {
         // audit_path = <ROOT>/run-state/audit.jsonl → ROOT = grandparent
         supervisorRoot = path.dirname(path.dirname(meta.audit_path));
+        // Hand the root to main so stateWatcher can start. Idempotent on the
+        // main side — calling repeatedly with the same root is a no-op.
+        ipcRenderer.invoke(SUP.SUPERVISOR_STATE_INIT, { supervisorRoot })
+          .catch((err) => console.warn('[supervisor] STATE_INIT failed:', err.message));
       }
     } catch (err) {
-      // Without the root, deliverable paths stay relative — editor.openFile
-      // will fail and the user sees an error in the editor overlay. We log
-      // once so the cause is debuggable.
       console.warn('[supervisor] could not resolve audit_path:', err.message);
     }
     return supervisorRoot;
@@ -75,10 +93,6 @@ function create(root) {
   function onArtifactClick(absPath) {
     try {
       const editor = require('../editor');
-      // editor.openFile(filePath, source) — Phase A spec §9 Q2 verified the
-      // signature accepts absolute paths outside the current Frame project
-      // root: src/main/fileEditor.js reads via fs.readFileSync(filePath) with
-      // no project-root check.
       editor.openFile(absPath, 'supervisor');
     } catch (err) {
       console.warn('[supervisor] editor.openFile failed:', err);
@@ -119,23 +133,22 @@ function create(root) {
       const active = cols.active || [];
       const awaiting = cols.awaiting || [];
       const allDone = cols.done || [];
-      // Split Done into "done" and "failed" — server lumps them in `done`.
       const done = allDone.filter((t) => t.status !== 'failed');
       const failed = allDone.filter((t) => t.status === 'failed');
 
-      // Counts
       root.querySelector('#sup-ct-pending').textContent = String(pending.length);
       root.querySelector('#sup-ct-active').textContent = String(active.length);
       root.querySelector('#sup-ct-done').textContent = String(done.length);
       root.querySelector('#sup-ct-failed').textContent = String(failed.length);
       root.querySelector('#sup-needs-count').textContent = String(awaiting.length);
 
+      lastInFlight = new Set(active.map((t) => t.id).filter(Boolean));
+
       fillList('sup-list-pending', pending, 'Queue empty', 'pending');
       fillList('sup-list-active', active, 'No active work', 'active');
       fillList('sup-list-done', done, 'No completed tasks', 'done');
       fillList('sup-list-failed', failed, 'No failures ✓', 'failed');
 
-      // Needs-You row
       const needsListEl = root.querySelector('#sup-needs-you-list');
       needsListEl.innerHTML = '';
       if (!awaiting.length) {
@@ -149,25 +162,63 @@ function create(root) {
     }
   }
 
+  function schedulePoll() {
+    if (refetchDebounce) return;
+    refetchDebounce = setTimeout(() => {
+      refetchDebounce = null;
+      poll();
+    }, REFETCH_DEBOUNCE_MS);
+  }
+
+  function startFallback() {
+    if (fallbackTimer) return;
+    fallbackTimer = setInterval(poll, FALLBACK_POLL_MS);
+  }
+
+  function stopFallback() {
+    if (fallbackTimer) clearInterval(fallbackTimer);
+    fallbackTimer = null;
+  }
+
+  // Subscribe to main's reactive state pushes. Audit + queue events both
+  // mean "workspace probably changed" → debounced refetch of /api/workspace.
+  stateListener = (_evt, payload) => {
+    if (!payload || !alive) return;
+    receivedPushAt = Date.now();
+    stopFallback();
+    if (payload.kind === 'audit' || payload.kind === 'queue') {
+      schedulePoll();
+    }
+  };
+  ipcRenderer.on(SUP.SUPERVISOR_STATE, stateListener);
+
   function scrollToTask(taskId) {
     pendingScrollTaskId = taskId;
     poll();
   }
 
-  function start() {
-    if (timer) return;
-    poll();
-    timer = setInterval(poll, 4000);
-  }
+  // Initial paint
+  poll();
+
+  // If no SUPERVISOR_STATE push arrives within 5s, resume polling at the
+  // original 4s cadence.
+  fallbackArmTimer = setTimeout(() => {
+    if (!alive) return;
+    if (!receivedPushAt) startFallback();
+  }, FALLBACK_AFTER_MS);
 
   function stop() {
     alive = false;
-    if (timer) clearInterval(timer);
-    timer = null;
+    if (stateListener) ipcRenderer.removeListener(SUP.SUPERVISOR_STATE, stateListener);
+    stateListener = null;
+    stopFallback();
+    if (fallbackArmTimer) clearTimeout(fallbackArmTimer);
+    if (refetchDebounce) clearTimeout(refetchDebounce);
+    fallbackArmTimer = null;
+    refetchDebounce = null;
   }
 
-  start();
-  return { start, stop, refresh: poll, scrollToTask };
+  return { stop, refresh: poll, scrollToTask };
 }
 
 module.exports = { create };

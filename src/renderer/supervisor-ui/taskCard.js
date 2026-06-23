@@ -84,6 +84,43 @@ function render(t, columnKey, ctx) {
     ${metaParts.length ? `<div class="sup-card-meta">${metaParts.join('')}</div>` : ''}
   `;
 
+  // "Tail log" affordance for in-flight cards — clicking expands the card
+  // and mounts a liveOutputPane (xterm.js + PTY-backed tail). Phase C.
+  // Only offered when we have a supervisorRoot resolved (otherwise the tail
+  // can't locate audit.jsonl).
+  if (columnKey === 'active' && t.id && ctx && ctx.supervisorRoot) {
+    const tailRow = document.createElement('div');
+    tailRow.className = 'sup-card-tail-row';
+    const tailBtn = document.createElement('button');
+    tailBtn.type = 'button';
+    tailBtn.className = 'sup-card-tail-btn';
+    tailBtn.textContent = '▾ Tail log';
+    tailRow.appendChild(tailBtn);
+
+    const tailArea = document.createElement('div');
+    tailArea.className = 'sup-card-tail-area';
+    tailRow.appendChild(tailArea);
+
+    let pane = null;
+    let expanded = false;
+    tailBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      expanded = !expanded;
+      tailBtn.textContent = expanded ? '▴ Hide log' : '▾ Tail log';
+      tailArea.classList.toggle('open', expanded);
+      if (expanded) {
+        const lop = require('./liveOutputPane');
+        pane = lop.create(tailArea, { taskId: t.id, supervisorRoot: ctx.supervisorRoot });
+        pane.start();
+      } else if (pane) {
+        pane.stop();
+        pane = null;
+        tailArea.innerHTML = '';
+      }
+    });
+    card.appendChild(tailRow);
+  }
+
   // Artifact links on Done cards
   const deliverables = Array.isArray(t.deliverables) ? t.deliverables : [];
   if (deliverables.length && (tag === 'done' || tag === 'failed')) {
