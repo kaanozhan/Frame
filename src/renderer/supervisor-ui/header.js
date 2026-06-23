@@ -44,8 +44,8 @@ function create(root) {
       <span>cost today: <span class="v" id="sup-cost">$0.00</span></span>
     </div>
     <div class="sup-actions">
-      <button class="sup-btn primary" id="sup-btn-submit" title="Submit a new task (Phase D)">▶ Submit task</button>
-      <button class="sup-btn" id="sup-btn-stop" title="Stop daemon (Phase D)">⏸ Stop daemon</button>
+      <button class="sup-btn primary" id="sup-btn-submit" title="Submit a new task">▶ Submit task</button>
+      <button class="sup-btn" id="sup-btn-daemon" title="Toggle daemon">⏸ Stop daemon</button>
       <button class="sup-btn" id="sup-btn-refresh" title="Force re-poll now">↻ Refresh</button>
     </div>
   `;
@@ -54,6 +54,31 @@ function create(root) {
   const daemonEl = root.querySelector('#sup-daemon');
   const inflightEl = root.querySelector('#sup-inflight');
   const costEl = root.querySelector('#sup-cost');
+  const daemonBtnEl = root.querySelector('#sup-btn-daemon');
+  // Tracks the current daemon liveness so the toggle button knows whether
+  // clicking should call /api/queue/start vs /api/queue/stop. Defaulting to
+  // null (rather than false) keeps the button disabled until we've heard
+  // back at least once.
+  let daemonAlive = null;
+
+  function applyDaemonButton() {
+    if (daemonAlive === null) {
+      daemonBtnEl.textContent = '… daemon';
+      daemonBtnEl.disabled = true;
+      daemonBtnEl.classList.remove('primary');
+      return;
+    }
+    daemonBtnEl.disabled = false;
+    if (daemonAlive) {
+      daemonBtnEl.textContent = '⏸ Stop daemon';
+      daemonBtnEl.classList.remove('primary');
+      daemonBtnEl.title = 'Stop the daemon (confirms first)';
+    } else {
+      daemonBtnEl.textContent = '▶ Start daemon';
+      daemonBtnEl.classList.add('primary');
+      daemonBtnEl.title = 'Start the daemon';
+    }
+  }
 
   function applyHeartbeat(hb) {
     if (!alive || !hb) return;
@@ -62,6 +87,8 @@ function create(root) {
     dotEl.classList.toggle('dead', !isAlive);
     daemonEl.textContent = hb.state || (isAlive ? 'running' : 'offline');
     inflightEl.textContent = String((hb.in_flight || []).length);
+    daemonAlive = isAlive;
+    applyDaemonButton();
   }
 
   function applyWorkspaceTotals(ws) {
@@ -78,6 +105,8 @@ function create(root) {
       dotEl.classList.remove('alive');
       dotEl.classList.add('dead');
       daemonEl.textContent = 'unreachable';
+      daemonAlive = false;
+      applyDaemonButton();
     }
   }
 
@@ -117,12 +146,32 @@ function create(root) {
   };
   ipcRenderer.on(SUP.SUPERVISOR_STATE, stateListener);
 
-  // Buttons
+  // Buttons — Phase D wires Submit / daemon toggle to the bridge.
   root.querySelector('#sup-btn-submit').addEventListener('click', () => {
-    alert('Submit task lands in Phase D.');
+    require('./submitTaskPanel').toggle();
   });
-  root.querySelector('#sup-btn-stop').addEventListener('click', () => {
-    alert('Stop daemon lands in Phase D.');
+  daemonBtnEl.addEventListener('click', async () => {
+    if (daemonAlive === null) return;
+    if (daemonAlive) {
+      if (!window.confirm('Stop the supervisor daemon? In-flight tasks finish first.')) return;
+      daemonBtnEl.disabled = true;
+      try {
+        await ipcRenderer.invoke(SUP.SUPERVISOR_DAEMON_STOP);
+      } catch (err) {
+        console.warn('[supervisor] daemon stop failed:', err);
+      }
+      // Force an immediate heartbeat re-fetch so the button label flips
+      // without waiting for the next watcher push.
+      setTimeout(fetchHeartbeatOnce, 800);
+    } else {
+      daemonBtnEl.disabled = true;
+      try {
+        await ipcRenderer.invoke(SUP.SUPERVISOR_DAEMON_START);
+      } catch (err) {
+        console.warn('[supervisor] daemon start failed:', err);
+      }
+      setTimeout(fetchHeartbeatOnce, 800);
+    }
   });
   root.querySelector('#sup-btn-refresh').addEventListener('click', refresh);
 

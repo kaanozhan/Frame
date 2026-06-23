@@ -7599,7 +7599,8 @@
         "register",
         "listProjectDocs",
         "listProjectSpecs",
-        "listWorkspaceProjects"
+        "listWorkspaceProjects",
+        "listBriefs"
       ],
       "depends": [
         "fs",
@@ -7607,29 +7608,39 @@
         "path",
         "../shared/supervisor-ipc",
         "stateWatcher",
-        "tailReader"
+        "tailReader",
+        "profilesLister",
+        "taskSubmitter",
+        "electron"
       ],
       "functions": {
         "listProjectDocs": {
-          "line": 19,
+          "line": 22,
           "params": [
             "{ project_id",
             "project_path }"
           ]
         },
         "listWorkspaceProjects": {
-          "line": 82,
+          "line": 85,
           "purpose": "Returns [{ name, path, isFrameProject }] for the active workspace, or []."
         },
         "listProjectSpecs": {
-          "line": 114,
+          "line": 117,
           "params": [
             "{ project_path }"
           ],
           "purpose": "[{ slug, phase, files: [{ path, label }] }]"
         },
+        "listBriefs": {
+          "line": 159,
+          "params": [
+            "{ supervisor_root }"
+          ],
+          "purpose": "recent brief."
+        },
         "register": {
-          "line": 148,
+          "line": 184,
           "params": [
             "ipcMain"
           ]
@@ -7637,6 +7648,13 @@
       },
       "ipc": {
         "listens": [
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
           "SUP",
           "SUP",
           "SUP",
@@ -7693,7 +7711,8 @@
       ],
       "depends": [
         "electron",
-        "../shared/supervisor-ipc"
+        "../shared/supervisor-ipc",
+        "submitTaskPanel"
       ],
       "functions": {
         "fetchJson": {
@@ -7728,17 +7747,18 @@
         "../shared/supervisor-ipc",
         "header",
         "taskCard",
+        "escalationCard",
         "editor"
       ],
       "functions": {
         "fetchJson": {
-          "line": 30,
+          "line": 31,
           "params": [
             "p"
           ]
         },
         "create": {
-          "line": 36,
+          "line": 37,
           "params": [
             "root"
           ]
@@ -8057,6 +8077,254 @@
           "SUP"
         ],
         "emits": []
+      }
+    },
+    "main/supervisor-bridge/profilesLister": {
+      "file": "src/main/supervisor-bridge/profilesLister.js",
+      "description": "Supervisor profiles lister (main) — Phase D.",
+      "exports": [
+        "list"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "humanise": {
+          "line": 18,
+          "params": [
+            "stem"
+          ]
+        },
+        "scan": {
+          "line": 24,
+          "params": [
+            "supervisorRoot"
+          ]
+        },
+        "list": {
+          "line": 44,
+          "params": [
+            "{ supervisorRoot",
+            "force } = {}"
+          ]
+        }
+      }
+    },
+    "main/supervisor-bridge/taskSubmitter": {
+      "file": "src/main/supervisor-bridge/taskSubmitter.js",
+      "description": "Supervisor task submitter (main) — Phase D.",
+      "exports": [
+        "submit",
+        "startDaemon",
+        "stopDaemon",
+        "respondEscalation",
+        "SUPERVISOR_API"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "fetchJson": {
+          "line": 18,
+          "params": [
+            "url",
+            "opts"
+          ]
+        },
+        "collectIds": {
+          "line": 26,
+          "params": [
+            "ws"
+          ]
+        },
+        "idCollides": {
+          "line": 37,
+          "params": [
+            "taskId"
+          ]
+        },
+        "writeInlineBrief": {
+          "line": 49,
+          "params": [
+            "{ supervisorRoot",
+            "taskId",
+            "text }"
+          ]
+        },
+        "submit": {
+          "line": 77,
+          "params": [
+            "payload"
+          ]
+        },
+        "postNoBody": {
+          "line": 134,
+          "params": [
+            "pathSegment"
+          ]
+        },
+        "startDaemon": {
+          "line": 146
+        },
+        "stopDaemon": {
+          "line": 147
+        },
+        "respondEscalation": {
+          "line": 153,
+          "params": [
+            "{ id",
+            "kind",
+            "answer }"
+          ],
+          "purpose": "`POST /api/escalations/{id}/respond` with `{kind, answer}`."
+        }
+      }
+    },
+    "renderer/supervisor-ui/escalationCard": {
+      "file": "src/renderer/supervisor-ui/escalationCard.js",
+      "description": "Supervisor escalation card — Phase D.",
+      "exports": [
+        "render"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "esc": {
+          "line": 14,
+          "params": [
+            "s"
+          ]
+        },
+        "pickEscalationId": {
+          "line": 20,
+          "params": [
+            "t"
+          ]
+        },
+        "pickDraft": {
+          "line": 31,
+          "params": [
+            "t"
+          ]
+        },
+        "pickCategory": {
+          "line": 48,
+          "params": [
+            "t"
+          ]
+        },
+        "pickConfidence": {
+          "line": 56,
+          "params": [
+            "t"
+          ]
+        },
+        "render": {
+          "line": 65,
+          "params": [
+            "t"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/submitTaskPanel": {
+      "file": "src/renderer/supervisor-ui/submitTaskPanel.js",
+      "description": "Supervisor submit-task panel — Phase D.",
+      "exports": [
+        "toggle",
+        "open",
+        "close",
+        "isOpen"
+      ],
+      "depends": [
+        "path",
+        "electron",
+        "../shared/supervisor-ipc",
+        "header"
+      ],
+      "functions": {
+        "esc": {
+          "line": 32,
+          "params": [
+            "s"
+          ]
+        },
+        "fetchJson": {
+          "line": 38,
+          "params": [
+            "p"
+          ]
+        },
+        "resolveSupervisorRoot": {
+          "line": 44
+        },
+        "loadProfiles": {
+          "line": 59,
+          "params": [
+            "force = false"
+          ]
+        },
+        "loadBriefs": {
+          "line": 70,
+          "params": [
+            "force = false"
+          ]
+        },
+        "setMode": {
+          "line": 81,
+          "params": [
+            "next"
+          ]
+        },
+        "setError": {
+          "line": 92,
+          "params": [
+            "msg"
+          ]
+        },
+        "renderProfileOptions": {
+          "line": 100,
+          "params": [
+            "selectEl",
+            "items"
+          ]
+        },
+        "renderBriefList": {
+          "line": 106,
+          "params": [
+            "listEl",
+            "items",
+            "filter"
+          ]
+        },
+        "buildPanelHTML": {
+          "line": 122
+        },
+        "bind": {
+          "line": 190
+        },
+        "rebindReuseRows": {
+          "line": 217
+        },
+        "submit": {
+          "line": 230
+        },
+        "open": {
+          "line": 281
+        },
+        "close": {
+          "line": 306
+        },
+        "toggle": {
+          "line": 316
+        },
+        "isOpen": {
+          "line": 321
+        }
       }
     }
   },
@@ -8810,6 +9078,13 @@
         "description": "File Editor Module"
       }
     ],
+    "escalation-card": [
+      {
+        "module": "renderer/supervisor-ui/escalationCard",
+        "file": "src/renderer/supervisor-ui/escalationCard.js",
+        "description": "Supervisor escalation card — Phase D."
+      }
+    ],
     "file-editor": [
       {
         "module": "main/fileEditor",
@@ -9047,6 +9322,13 @@
         "description": "Plugins Panel Module"
       }
     ],
+    "profiles-lister": [
+      {
+        "module": "main/supervisor-bridge/profilesLister",
+        "file": "src/main/supervisor-bridge/profilesLister.js",
+        "description": "Supervisor profiles lister (main) — Phase D."
+      }
+    ],
     "project-section": [
       {
         "module": "renderer/projectSection",
@@ -9190,6 +9472,13 @@
         "description": "Structure Bootstrap"
       }
     ],
+    "submit-task": [
+      {
+        "module": "renderer/supervisor-ui/submitTaskPanel",
+        "file": "src/renderer/supervisor-ui/submitTaskPanel.js",
+        "description": "Supervisor submit-task panel — Phase D."
+      }
+    ],
     "supervisor-ipc": [
       {
         "module": "shared/supervisor-ipc",
@@ -9237,6 +9526,13 @@
         "module": "renderer/taskSection",
         "file": "src/renderer/taskSection.js",
         "description": "Task Section Module"
+      }
+    ],
+    "task-submitter": [
+      {
+        "module": "main/supervisor-bridge/taskSubmitter",
+        "file": "src/main/supervisor-bridge/taskSubmitter.js",
+        "description": "Supervisor task submitter (main) — Phase D."
       }
     ],
     "tasks": [

@@ -11,9 +11,12 @@ const path = require('path');
 const SUP = require('../../shared/supervisor-ipc');
 const stateWatcher = require('./stateWatcher');
 const tailReader = require('./tailReader');
+const profilesLister = require('./profilesLister');
+const taskSubmitter = require('./taskSubmitter');
 
 const DOC_CAP = 100;
 const SPEC_CAP = 50;
+const BRIEF_CAP = 200;
 const FRAME_WORKSPACES_PATH = path.join(os.homedir(), '.frame', 'workspaces.json');
 
 function listProjectDocs({ project_id, project_path }) {
@@ -145,6 +148,39 @@ function listProjectSpecs({ project_path }) {
   return out;
 }
 
+/**
+ * Scan <supervisor_root>/prompts/follow-ups/*.md and surface them as
+ * brief candidates for the "Reuse existing brief" submit mode. We return
+ * project-relative paths because the monitor's create_task_file resolves
+ * non-absolute paths under ROOT and the renderer doesn't need the absolute.
+ * Sorted newest-mtime first since users almost always want their most
+ * recent brief.
+ */
+function listBriefs({ supervisor_root }) {
+  if (!supervisor_root) return [];
+  const dir = path.join(supervisor_root, 'prompts', 'follow-ups');
+  if (!fs.existsSync(dir)) return [];
+  let names;
+  try { names = fs.readdirSync(dir); } catch { return []; }
+  const out = [];
+  for (const name of names) {
+    if (out.length >= BRIEF_CAP) break;
+    if (!name.endsWith('.md')) continue;
+    const abs = path.join(dir, name);
+    let mtime = 0;
+    try { mtime = fs.statSync(abs).mtimeMs; } catch { continue; }
+    out.push({
+      name,
+      label: name.replace(/\.md$/, ''),
+      path: path.join('prompts', 'follow-ups', name),
+      absPath: abs,
+      mtime,
+    });
+  }
+  out.sort((a, b) => b.mtime - a.mtime);
+  return out;
+}
+
 function register(ipcMain) {
   // Round-trip sanity check used by the renderer's Supervisor section on first
   // open. Future phases register stateWatcher / tailReader / taskSubmitter
@@ -180,6 +216,61 @@ function register(ipcMain) {
   // watcher lazily — see stateWatcher.js for why this is not driven by boot.
   stateWatcher.registerHandlers(ipcMain);
   tailReader.registerHandlers(ipcMain);
+
+  // Phase D: profile dropdown + brief picker for the Submit-task composer.
+  // Both scans are scoped to supervisor_root which the renderer resolved
+  // already (kanban.js does this on mount); we just receive it in the payload.
+  ipcMain.handle(SUP.SUPERVISOR_LIST_PROFILES, async (_evt, payload) => {
+    return profilesLister.list(payload || {});
+  });
+  ipcMain.handle(SUP.SUPERVISOR_LIST_BRIEFS, async (_evt, payload) => {
+    return listBriefs(payload || {});
+  });
+
+  // Phase D: Electron file picker for the "From file" submit mode. We surface
+  // it through the bridge so the renderer never reaches for @electron/remote
+  // — keeps the renderer-side discipline unchanged.
+  ipcMain.handle(SUP.SUPERVISOR_PICK_BRIEF_FILE, async (_evt, payload) => {
+    const { dialog, BrowserWindow } = require('electron');
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+    const defaultPath = (payload && payload.defaultPath)
+      || path.join(os.homedir(), 'Desktop', 'lemonade-stand');
+    try {
+      const result = await dialog.showOpenDialog(win, {
+        properties: ['openFile'],
+        title: 'Pick a brief markdown file',
+        defaultPath,
+        filters: [
+          { name: 'Markdown', extensions: ['md', 'markdown', 'txt'] },
+          { name: 'All files', extensions: ['*'] },
+        ],
+      });
+      if (result.canceled || !result.filePaths.length) return { ok: false, canceled: true };
+      return { ok: true, path: result.filePaths[0] };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // Phase D: submit-task + daemon control + escalation respond.
+  ipcMain.handle(SUP.SUPERVISOR_SUBMIT_TASK, async (_evt, payload) => {
+    return taskSubmitter.submit(payload || {});
+  });
+  ipcMain.handle(SUP.SUPERVISOR_DAEMON_START, async () => {
+    return taskSubmitter.startDaemon();
+  });
+  ipcMain.handle(SUP.SUPERVISOR_DAEMON_STOP, async () => {
+    return taskSubmitter.stopDaemon();
+  });
+  ipcMain.handle(SUP.SUPERVISOR_RESPOND_ESCALATION, async (_evt, payload) => {
+    return taskSubmitter.respondEscalation(payload || {});
+  });
 }
 
-module.exports = { register, listProjectDocs, listProjectSpecs, listWorkspaceProjects };
+module.exports = {
+  register,
+  listProjectDocs,
+  listProjectSpecs,
+  listWorkspaceProjects,
+  listBriefs,
+};

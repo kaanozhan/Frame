@@ -18,11 +18,18 @@ module.exports = {
   SUPERVISOR_TAIL_DATA: 'supervisor:tail-data',          // main → renderer push {handleId, chunk}
   SUPERVISOR_TAIL_EXIT: 'supervisor:tail-exit',          // main → renderer push {handleId, code}
   SUPERVISOR_TAIL_STOP: 'supervisor:tail-stop',          // {handleId}
-  // Phase D
+  // Phase D — actions
+  // SUPERVISOR_LIST_PROFILES was declared above for Phase B intent but only
+  // lands a handler in D; SUPERVISOR_LIST_BRIEFS is the symmetric scan over
+  // prompts/follow-ups/*.md driving the "Reuse existing brief" picker.
+  SUPERVISOR_LIST_BRIEFS: 'supervisor:list-briefs',
   SUPERVISOR_SUBMIT_TASK: 'supervisor:submit-task',
   SUPERVISOR_DAEMON_START: 'supervisor:daemon-start',
   SUPERVISOR_DAEMON_STOP: 'supervisor:daemon-stop',
   SUPERVISOR_RESPOND_ESCALATION: 'supervisor:respond-escalation',
+  // File picker for the "From file" submit mode — wraps Electron's
+  // dialog.showOpenDialog so the renderer never touches @electron/remote.
+  SUPERVISOR_PICK_BRIEF_FILE: 'supervisor:pick-brief-file',
   // Phase E
   SUPERVISOR_NOTIFY: 'supervisor:notify',
 };

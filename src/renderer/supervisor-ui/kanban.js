@@ -22,6 +22,7 @@ const { ipcRenderer } = require('electron');
 const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
 const taskCard = require('./taskCard');
+const escalationCard = require('./escalationCard');
 
 const FALLBACK_AFTER_MS = 5000;
 const FALLBACK_POLL_MS = 4000;
@@ -154,8 +155,10 @@ function create(root) {
       if (!awaiting.length) {
         needsListEl.innerHTML = '<div class="sup-needs-you-empty">Nothing needs you ✓</div>';
       } else {
-        const ctx = { supervisorRoot, onArtifactClick };
-        awaiting.forEach((t) => needsListEl.appendChild(taskCard.render(t, 'awaiting', ctx)));
+        // Phase D: replaces the Phase B placeholder taskCard with the
+        // Approve/Edit/Redirect card. taskCard is still used for the four
+        // columns; only the Needs-You row uses escalationCard.
+        awaiting.forEach((t) => needsListEl.appendChild(escalationCard.render(t)));
       }
     } catch (err) {
       // Quiet — keep the last rendered state
