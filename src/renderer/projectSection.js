@@ -24,6 +24,8 @@ function init() {
   section = document.getElementById('project-section');
   if (!section) return;
 
+  require('./supervisor-ui/sidebarEntry').mount(section); // supervisor-mod
+
   const addBtn = document.getElementById('project-add-btn');
   if (addBtn) addBtn.addEventListener('click', () => openProjectModal.open());
 }

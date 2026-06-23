@@ -3362,6 +3362,7 @@
         "laneStatus",
         "laneRail",
         "lucide",
+        "supervisor-ui/homeCard",
         "orchestrator",
         "openProjectModal"
       ],
@@ -6979,7 +6980,8 @@
       ],
       "depends": [
         "openProjectModal",
-        "projectListUI"
+        "projectListUI",
+        "supervisor-ui/sidebarEntry"
       ],
       "functions": {
         "focusList": {
@@ -8503,6 +8505,91 @@
         ],
         "emits": []
       }
+    },
+    "renderer/supervisor-ui/homeCard": {
+      "file": "src/renderer/supervisor-ui/homeCard.js",
+      "description": "Supervisor home card — Phase G.",
+      "exports": [
+        "mount"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "index"
+      ],
+      "functions": {
+        "injectStylesOnce": {
+          "line": 25
+        },
+        "subscribeOnce": {
+          "line": 138
+        },
+        "refreshAll": {
+          "line": 151
+        },
+        "paint": {
+          "line": 158,
+          "params": [
+            "card"
+          ]
+        },
+        "mount": {
+          "line": 174,
+          "params": [
+            "host"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/supervisor-ui/sidebarEntry": {
+      "file": "src/renderer/supervisor-ui/sidebarEntry.js",
+      "description": "Supervisor projects-sidebar entry — Phase G.",
+      "exports": [
+        "mount"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "index"
+      ],
+      "functions": {
+        "injectStylesOnce": {
+          "line": 28
+        },
+        "setState": {
+          "line": 90,
+          "params": [
+            "kind"
+          ]
+        },
+        "applyHeartbeat": {
+          "line": 103,
+          "params": [
+            "hb"
+          ]
+        },
+        "armStaleTimer": {
+          "line": 111
+        },
+        "mount": {
+          "line": 118,
+          "params": [
+            "host"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
+      }
     }
   },
   "ipcChannels": {
@@ -9357,6 +9444,13 @@
         "description": "History Panel Module"
       }
     ],
+    "home-card": [
+      {
+        "module": "renderer/supervisor-ui/homeCard",
+        "file": "src/renderer/supervisor-ui/homeCard.js",
+        "description": "Supervisor home card — Phase G."
+      }
+    ],
     "index": [
       {
         "module": "main/index",
@@ -9600,6 +9694,13 @@
         "module": "renderer/supervisor-ui/sidebarChip",
         "file": "src/renderer/supervisor-ui/sidebarChip.js",
         "description": "Supervisor sidebar-footer heartbeat chip — Phase F."
+      }
+    ],
+    "sidebar-entry": [
+      {
+        "module": "renderer/supervisor-ui/sidebarEntry",
+        "file": "src/renderer/supervisor-ui/sidebarEntry.js",
+        "description": "Supervisor projects-sidebar entry — Phase G."
       }
     ],
     "spec": [

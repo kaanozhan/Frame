@@ -123,6 +123,7 @@ class LaneBoard {
 
     this.boardEl = document.createElement('div');
     this.boardEl.className = 'lane-board';
+    require('./supervisor-ui/homeCard').mount(this.boardEl); // supervisor-mod
 
     if (!state.currentProjectPath) {
       // Lanes live inside a project — ask for one before anything else.

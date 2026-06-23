@@ -34,11 +34,13 @@ zero modifications to `multiTerminalUI.js` for Phase A.
 | 2026-06-23 | d324153 | `src/main/index.js` | 1 | Register supervisor-bridge IPC channels (Phase A) | 1 |
 | 2026-06-23 | d324153 | `src/renderer/index.js` | 1 | Init supervisor-ui (Phase A) | 1 |
 | 2026-06-23 | d324153 | `src/renderer/sidebarResize.js` | 1 | Mount sidebar-footer heartbeat chip (Phase F) | 1 |
+| 2026-06-23 | d324153 | `src/renderer/projectSection.js` | 1 | Mount projects-sidebar Supervisor entry (Phase G) | 1 |
+| 2026-06-23 | d324153 | `src/renderer/laneBoard.js` | 1 | Mount home-tab Supervisor card (Phase G) | 1 |
 
 ## Discipline budget consumed
 
-- **Modified Frame source files:** 3 / 5
-- **Modified Frame source lines:** 3 / 15
+- **Modified Frame source files:** 5 / 5
+- **Modified Frame source lines:** 5 / 15
 
 Well under the ceiling — see `docs/frame-edit-discipline.md` for the budget
 and rationale. Everything else (the supervisor-bridge / supervisor-ui / IPC
