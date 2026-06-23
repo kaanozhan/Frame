@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-22",
+  "lastUpdated": "2026-06-23",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -988,7 +988,8 @@
         "gitDiffManager",
         "telemetry",
         "specManager",
-        "orchestrationManager"
+        "orchestrationManager",
+        "supervisor-bridge"
       ],
       "functions": {
         "createWindow": {
@@ -1000,11 +1001,11 @@
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 144,
+          "line": 146,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 163,
+          "line": 165,
           "params": [
             "window"
           ],
@@ -3302,6 +3303,7 @@
         "telemetryNotice",
         "sampleBanner",
         "../package.json",
+        "supervisor-ui",
         "agentDispatch"
       ],
       "functions": {
@@ -3310,26 +3312,26 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 225,
+          "line": 226,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 308,
+          "line": 309,
           "purpose": "and close on outside click / Escape."
         },
         "setupUpdateDot": {
-          "line": 397,
+          "line": 398,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 428,
+          "line": 429,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 454,
+          "line": 455,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -7589,6 +7591,63 @@
           "ORCH_WORKER_LANE"
         ]
       }
+    },
+    "main/supervisor-bridge/index": {
+      "file": "src/main/supervisor-bridge/index.js",
+      "description": "Supervisor bridge (main) — Phase A skeleton.",
+      "exports": [
+        "register"
+      ],
+      "depends": [
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "register": {
+          "line": 10,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/supervisor-ui/index": {
+      "file": "src/renderer/supervisor-ui/index.js",
+      "description": "Supervisor UI (renderer) — Phase A skeleton.",
+      "exports": [],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "terminal",
+        "commandRegistry"
+      ],
+      "functions": {
+        "createViewport": {
+          "line": 18
+        },
+        "open": {
+          "line": 68
+        },
+        "init": {
+          "line": 75
+        }
+      }
+    },
+    "shared/supervisor-ipc": {
+      "file": "src/shared/supervisor-ipc.js",
+      "description": "SUPERVISOR-OWNED IPC channel names. All channels prefixed with SUPERVISOR_",
+      "exports": [
+        "SUPERVISOR_DAEMON_START",
+        "SUPERVISOR_DAEMON_STOP",
+        "SUPERVISOR_RESPOND_ESCALATION"
+      ],
+      "depends": [],
+      "functions": {}
     }
   },
   "ipcChannels": {
@@ -8436,9 +8495,19 @@
         "description": "Main Process Entry Point"
       },
       {
+        "module": "main/supervisor-bridge/index",
+        "file": "src/main/supervisor-bridge/index.js",
+        "description": "Supervisor bridge (main) — Phase A skeleton."
+      },
+      {
         "module": "renderer/index",
         "file": "src/renderer/index.js",
         "description": "Renderer Entry Point"
+      },
+      {
+        "module": "renderer/supervisor-ui/index",
+        "file": "src/renderer/supervisor-ui/index.js",
+        "description": "Supervisor UI (renderer) — Phase A skeleton."
       },
       {
         "module": "templates/sample-project/src/index",
@@ -8674,6 +8743,13 @@
         "module": "main/structureBootstrap",
         "file": "src/main/structureBootstrap.js",
         "description": "Structure Bootstrap"
+      }
+    ],
+    "supervisor-ipc": [
+      {
+        "module": "shared/supervisor-ipc",
+        "file": "src/shared/supervisor-ipc.js",
+        "description": "SUPERVISOR-OWNED IPC channel names. All channels prefixed with SUPERVISOR_"
       }
     ],
     "task-confirm-modal": [

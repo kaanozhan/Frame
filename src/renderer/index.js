@@ -211,6 +211,7 @@ function init() {
   sampleBanner.init();
   setupUpdateDot();
   registerCommands();
+  require('./supervisor-ui').init(); // supervisor-mod
   commandRegistry.bindKeyboard();
 
   // Setup window resize handler

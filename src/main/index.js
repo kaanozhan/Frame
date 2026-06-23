@@ -126,6 +126,8 @@ function setupAllIPC() {
   // Orchestration — conductor-led parallel spec execution
   orchestrationManager.setupIPC(ipcMain);
 
+  require('./supervisor-bridge').register(ipcMain); // supervisor-mod
+
   // Telemetry — toggle from Settings
   ipcMain.handle(IPC.TELEMETRY_SET_ENABLED, (event, enabled) =>
     telemetry.setEnabled(enabled)
