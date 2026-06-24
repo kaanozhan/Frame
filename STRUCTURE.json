@@ -7698,7 +7698,8 @@
         "electron",
         "commandRegistry",
         "submitTaskPanel",
-        "notifications"
+        "notifications",
+        "sidebar-ui/sidebarChip"
       ],
       "functions": {
         "injectStylesOnce": {
@@ -8637,25 +8638,25 @@
       ],
       "functions": {
         "injectStylesOnce": {
-          "line": 27
+          "line": 28
         },
         "setState": {
-          "line": 115,
+          "line": 116,
           "params": [
             "kind"
           ]
         },
         "applyHeartbeat": {
-          "line": 128,
+          "line": 129,
           "params": [
             "hb"
           ]
         },
         "armStaleTimer": {
-          "line": 136
+          "line": 137
         },
         "mount": {
-          "line": 143,
+          "line": 144,
           "params": [
             "host"
           ]
