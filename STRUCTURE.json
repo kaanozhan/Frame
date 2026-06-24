@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-22",
+  "lastUpdated": "2026-06-24",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -24,11 +24,16 @@
         "fs",
         "path",
         "child_process",
+        "os",
         "shared/ipcChannels"
       ],
       "functions": {
+        "loginShell": {
+          "line": 15,
+          "purpose": "doesn't source the zsh configs where PATH (claude/codex/gemini) usually lives."
+        },
         "init": {
-          "line": 73,
+          "line": 85,
           "params": [
             "window",
             "app"
@@ -36,54 +41,54 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "loadConfig": {
-          "line": 83,
+          "line": 95,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 98,
+          "line": 110,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 109,
+          "line": 121,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 116,
+          "line": 128,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 124,
+          "line": 136,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 143,
+          "line": 155,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 153,
+          "line": 165,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 170,
+          "line": 182,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "isPathLike": {
-          "line": 182,
+          "line": 194,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 196,
+          "line": 208,
           "params": [
             "command",
             "projectPath"
@@ -91,18 +96,18 @@
           "purpose": "shell. Tries the tool's primary command first, then its fallback."
         },
         "setupIPC": {
-          "line": 250,
+          "line": 265,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 299,
+          "line": 314,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 307,
+          "line": 322,
           "purpose": "Get the start command for active tool"
         }
       },

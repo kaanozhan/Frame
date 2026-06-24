@@ -7,6 +7,18 @@ const { ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const os = require('os');
+
+// The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL
+// is often unset, so fall back to the passwd entry — never to /bin/sh, which
+// doesn't source the zsh configs where PATH (claude/codex/gemini) usually lives.
+function loginShell() {
+  try {
+    const s = os.userInfo().shell;
+    if (s) return s;
+  } catch {}
+  return process.env.SHELL || '/bin/zsh';
+}
 const { IPC } = require('../shared/ipcChannels');
 
 let mainWindow = null;
@@ -209,16 +221,19 @@ async function isCommandAvailable(command, projectPath) {
     }
   }
 
-  // PATH-based command: probe via the user's login shell so PATH
-  // additions from .zshrc/.bashrc and shim managers (asdf, nvm, brew)
-  // are visible — same reason we run the PTY shell with -l.
+  // PATH-based command: probe via the user's **interactive login** shell so
+  // PATH additions from .zshrc/.bashrc and shim managers (asdf, nvm, brew) are
+  // visible — exactly like the PTY, which runs the shell with `-i -l`. A
+  // packaged app launched from Finder has a minimal PATH and often no $SHELL,
+  // and a non-interactive login (`-lc`) skips .zshrc — that's why the bundled
+  // app reported "CLI not found" while the terminal could run it fine.
   const isWin = process.platform === 'win32';
   const shell = isWin
     ? (process.env.COMSPEC || 'cmd.exe')
-    : (process.env.SHELL || '/bin/sh');
+    : (process.env.SHELL || loginShell());
   const args = isWin
     ? ['/c', `where ${command}`]
-    : ['-lc', `command -v ${command}`];
+    : ['-ilc', `command -v ${command}`];
 
   return new Promise((resolve) => {
     let settled = false;
@@ -238,7 +253,7 @@ async function isCommandAvailable(command, projectPath) {
     const timer = setTimeout(() => {
       try { child.kill('SIGTERM'); } catch {}
       finish(false);
-    }, 3000);
+    }, 6000);
     child.on('exit', (code) => finish(code === 0));
     child.on('error', () => finish(false));
   });
