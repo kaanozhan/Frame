@@ -7693,8 +7693,9 @@
         "terminal",
         "header",
         "kanban",
-        "profilePanel",
         "editor",
+        "profilePanel",
+        "memoryPanel",
         "projectTree",
         "electron",
         "commandRegistry",
@@ -7710,20 +7711,20 @@
           "line": 40
         },
         "open": {
-          "line": 180
+          "line": 195
         },
         "handleNotifyClick": {
-          "line": 187,
+          "line": 202,
           "params": [
             "{ taskId }"
           ]
         },
         "isSupervisorActive": {
-          "line": 210,
+          "line": 225,
           "purpose": "even one in a background tab. Ask multiTerminalUI for the active section."
         },
         "init": {
-          "line": 221
+          "line": 236
         }
       }
     },
@@ -8806,6 +8807,46 @@
           ]
         }
       }
+    },
+    "renderer/supervisor-ui/memoryPanel": {
+      "file": "src/renderer/supervisor-ui/memoryPanel.js",
+      "description": "Supervisor memory Q&A panel — Phase J.",
+      "exports": [
+        "create"
+      ],
+      "depends": [
+        "electron",
+        "marked",
+        "header"
+      ],
+      "functions": {
+        "esc": {
+          "line": 26,
+          "params": [
+            "s"
+          ]
+        },
+        "fetchJson": {
+          "line": 32,
+          "params": [
+            "p",
+            "init"
+          ]
+        },
+        "renderMarkdown": {
+          "line": 38,
+          "params": [
+            "text"
+          ]
+        },
+        "create": {
+          "line": 48,
+          "params": [
+            "root",
+            "opts = {}"
+          ]
+        }
+      }
     }
   },
   "ipcChannels": {
@@ -9741,6 +9782,13 @@
         "module": "renderer/supervisor-ui/liveOutputPane",
         "file": "src/renderer/supervisor-ui/liveOutputPane.js",
         "description": "Supervisor live output pane (renderer) — Phase C."
+      }
+    ],
+    "memory": [
+      {
+        "module": "renderer/supervisor-ui/memoryPanel",
+        "file": "src/renderer/supervisor-ui/memoryPanel.js",
+        "description": "Supervisor memory Q&A panel — Phase J."
       }
     ],
     "menu": [

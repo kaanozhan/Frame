@@ -75,12 +75,16 @@ function createViewport() {
                       data-tab="kanban" aria-selected="true">Kanban</button>
               <button type="button" class="sup-tab" role="tab"
                       data-tab="profile" aria-selected="false">Profile</button>
+              <button type="button" class="sup-tab" role="tab"
+                      data-tab="memory" aria-selected="false">Memory</button>
             </div>
             <div class="supervisor-tabpanes">
               <div class="supervisor-kanban sup-tabpane active"
                    id="supervisor-kanban" role="tabpanel" data-tab="kanban"></div>
               <div class="supervisor-profile sup-tabpane"
                    id="supervisor-profile" role="tabpanel" data-tab="profile"></div>
+              <div class="supervisor-memory sup-tabpane"
+                   id="supervisor-memory" role="tabpanel" data-tab="memory"></div>
             </div>
           </main>
         </div>
@@ -88,18 +92,24 @@ function createViewport() {
     `;
     const header = require('./header').create(el.querySelector('#supervisor-header'));
     const kanban = require('./kanban').create(el.querySelector('#supervisor-kanban'));
+    // Shared editor-opener used by the Profile and Memory panels — citation
+    // and source clicks both resolve to Frame's native markdown viewer so the
+    // user never bounces out to the OS.
+    const openInFrameEditor = (absPath) => {
+      try {
+        const editor = require('../editor');
+        editor.openFile(absPath, 'supervisor');
+      } catch (err) {
+        console.warn('[supervisor] editor.openFile failed:', err);
+      }
+    };
     const profile = require('./profilePanel').create(
       el.querySelector('#supervisor-profile'),
-      {
-        onOpenFile: (absPath) => {
-          try {
-            const editor = require('../editor');
-            editor.openFile(absPath, 'supervisor');
-          } catch (err) {
-            console.warn('[supervisor] editor.openFile failed:', err);
-          }
-        },
-      }
+      { onOpenFile: openInFrameEditor }
+    );
+    const memory = require('./memoryPanel').create(
+      el.querySelector('#supervisor-memory'),
+      { onOpenFile: openInFrameEditor }
     );
     const tree = require('./projectTree').create(
       el.querySelector('#supervisor-tree'),
@@ -112,6 +122,10 @@ function createViewport() {
         // whenever they do switch.
         onSelectProject: (project) => {
           profile.setProject(project);
+          // Memory tab follows the same auto-bind pattern — selecting a
+          // project in the tree primes the Memory tab's project dropdown
+          // without yanking the user off whatever tab they're currently on.
+          memory.setProject(project);
         },
         // Once the kanban resolves audit_path → supervisorRoot, push it into
         // the profile panel so its YAML fallback can resolve. The tree
@@ -146,7 +160,7 @@ function createViewport() {
       t.addEventListener('click', () => activateTab(t.dataset.tab));
     });
 
-    controllers = { header, tree, kanban, profile };
+    controllers = { header, tree, kanban, profile, memory };
     latestControllers = controllers;
     rendered = true;
   }
@@ -160,6 +174,7 @@ function createViewport() {
       try { controllers.tree.stop(); } catch {}
       try { controllers.kanban.stop(); } catch {}
       try { if (controllers.profile) controllers.profile.stop(); } catch {}
+      try { if (controllers.memory) controllers.memory.stop(); } catch {}
       if (latestControllers === controllers) latestControllers = null;
       controllers = null;
     }
