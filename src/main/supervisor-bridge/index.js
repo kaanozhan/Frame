@@ -25,6 +25,10 @@ const BRIEF_CAP = 200;
 // main process on a long-running supervisor.
 const AUDIT_SCAN_CAP_BYTES = 8 * 1024 * 1024;
 const AUDIT_EVENTS_PER_TASK_CAP = 500;
+// Matches tailReader.js — task ids are alphanumeric + ._-, 1..128 chars.
+// Used as a hard input check on the renderer payload so a malformed taskId
+// can't drive unexpected matches against arbitrary audit lines.
+const SAFE_TASK_ID = /^[A-Za-z0-9_.\-]{1,128}$/;
 const FRAME_WORKSPACES_PATH = path.join(os.homedir(), '.frame', 'workspaces.json');
 
 function listProjectDocs({ project_id, project_path }) {
@@ -198,10 +202,25 @@ function listBriefs({ supervisor_root }) {
  * otherwise flood the inspector).
  */
 function readTaskAudit({ taskId, supervisorRoot }) {
-  if (!taskId || !supervisorRoot) {
-    return { ok: false, error: 'taskId and supervisorRoot required', events: [] };
+  // Input validation mirrors the rigor of sibling handlers (writeInlineBrief,
+  // tailReader): typed args, absolute path for supervisorRoot, regex-checked
+  // taskId. The reachable file is always <root>/run-state/audit.jsonl so the
+  // attack surface is narrow, but consistency matters across the bridge.
+  if (typeof taskId !== 'string' || !SAFE_TASK_ID.test(taskId)) {
+    return { ok: false, error: 'invalid taskId', events: [] };
   }
-  const auditPath = path.join(supervisorRoot, 'run-state', 'audit.jsonl');
+  if (typeof supervisorRoot !== 'string' || !path.isAbsolute(supervisorRoot)) {
+    return { ok: false, error: 'supervisorRoot must be an absolute path', events: [] };
+  }
+  const rootResolved = path.resolve(supervisorRoot);
+  const auditPath = path.resolve(rootResolved, 'run-state', 'audit.jsonl');
+  // Defensive: ensure the resolved audit path lives under the resolved root
+  // (path.resolve normalizes any `..` segments). Currently impossible since
+  // we construct from a fixed suffix, but the check would catch a future
+  // change that accepts a relative `auditRelPath` arg.
+  if (!auditPath.startsWith(rootResolved + path.sep)) {
+    return { ok: false, error: 'audit path escapes supervisor root', events: [] };
+  }
   if (!fs.existsSync(auditPath)) return { ok: true, events: [] };
   let fd;
   try {

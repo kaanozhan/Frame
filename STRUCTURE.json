@@ -7621,32 +7621,32 @@
       ],
       "functions": {
         "listProjectDocs": {
-          "line": 30,
+          "line": 34,
           "params": [
             "{ project_id",
             "project_path }"
           ]
         },
         "listWorkspaceProjects": {
-          "line": 93,
+          "line": 97,
           "purpose": "Returns [{ name, path, isFrameProject }] for the active workspace, or []."
         },
         "listProjectSpecs": {
-          "line": 125,
+          "line": 129,
           "params": [
             "{ project_path }"
           ],
           "purpose": "[{ slug, phase, files: [{ path, label }] }]"
         },
         "listBriefs": {
-          "line": 167,
+          "line": 171,
           "params": [
             "{ supervisor_root }"
           ],
           "purpose": "recent brief."
         },
         "readTaskAudit": {
-          "line": 200,
+          "line": 204,
           "params": [
             "{ taskId",
             "supervisorRoot }"
@@ -7654,7 +7654,7 @@
           "purpose": "otherwise flood the inspector)."
         },
         "register": {
-          "line": 239,
+          "line": 258,
           "params": [
             "ipcMain"
           ]
@@ -7881,31 +7881,31 @@
       ],
       "functions": {
         "esc": {
-          "line": 29,
+          "line": 37,
           "params": [
             "s"
           ]
         },
         "statusTag": {
-          "line": 35,
+          "line": 43,
           "params": [
             "t"
           ]
         },
         "elapsedLabel": {
-          "line": 44,
-          "params": [
-            "t"
-          ]
-        },
-        "costLabel": {
           "line": 52,
           "params": [
             "t"
           ]
         },
+        "costLabel": {
+          "line": 60,
+          "params": [
+            "t"
+          ]
+        },
         "resolveDeliverable": {
-          "line": 63,
+          "line": 71,
           "params": [
             "p",
             "supervisorRoot"
@@ -7913,26 +7913,26 @@
           "purpose": "`run-state/`)."
         },
         "formatBytes": {
-          "line": 70,
+          "line": 78,
           "params": [
             "n"
           ]
         },
         "formatTimeAgo": {
-          "line": 77,
+          "line": 85,
           "params": [
             "mtimeMs"
           ]
         },
         "renderStatusGrid": {
-          "line": 88,
+          "line": 96,
           "params": [
             "t"
           ],
           "purpose": "---- Section renderers --------------------------------------------------"
         },
         "renderBriefSection": {
-          "line": 106,
+          "line": 114,
           "params": [
             "t",
             "ctx",
@@ -7940,45 +7940,51 @@
           ]
         },
         "renderDecisions": {
-          "line": 141,
+          "line": 149,
           "params": [
             "events"
           ]
         },
         "renderCritic": {
-          "line": 171,
+          "line": 179,
           "params": [
             "events"
           ]
         },
         "renderFailure": {
-          "line": 192,
+          "line": 200,
           "params": [
             "t"
           ]
         },
         "renderDeliverables": {
-          "line": 202,
+          "line": 210,
           "params": [
             "t",
             "ctx"
           ]
         },
+        "wireDeliverableStats": {
+          "line": 229,
+          "params": [
+            "sectionEl"
+          ]
+        },
         "renderTimeline": {
-          "line": 226,
+          "line": 244,
           "params": [
             "t",
             "events"
           ]
         },
         "shortSummary": {
-          "line": 242,
+          "line": 260,
           "params": [
             "e"
           ]
         },
         "buildExpanded": {
-          "line": 259,
+          "line": 277,
           "params": [
             "t",
             "ctx"
@@ -7986,7 +7992,7 @@
           "purpose": "---- Expansion build + audit fetch --------------------------------------"
         },
         "loadAuditAndPaint": {
-          "line": 302,
+          "line": 325,
           "params": [
             "t",
             "ctx",
@@ -7994,7 +8000,7 @@
           ]
         },
         "paintAuditSections": {
-          "line": 323,
+          "line": 346,
           "params": [
             "t",
             "events",
@@ -8002,7 +8008,7 @@
           ]
         },
         "render": {
-          "line": 338,
+          "line": 361,
           "params": [
             "t",
             "columnKey",
@@ -8010,7 +8016,7 @@
           ]
         },
         "resetExpansion": {
-          "line": 466
+          "line": 489
         }
       }
     },

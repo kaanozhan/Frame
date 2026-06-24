@@ -14,6 +14,7 @@
 // data are cached the same way to avoid re-fetching on every poll.
 
 const fs = require('fs');
+const fsp = fs.promises;
 const path = require('path');
 const { ipcRenderer } = require('electron');
 const SUP = require('../../shared/supervisor-ipc');
@@ -24,7 +25,14 @@ const { SUPERVISOR_API } = require('./header');
 const expanded = new Set();
 const auditCache = new Map();   // taskId -> { events, ts }
 const briefCache = new Map();   // taskId -> { content, abs }
-const AUDIT_TTL_MS = 5000;
+// Kanban polls every 4s and re-renders all cards; if TTL ≤ poll interval we
+// cache-miss on every other poll and the IPC fires for every open card. 10s
+// keeps the cache warm across at least two polls.
+const AUDIT_TTL_MS = 10000;
+// Cap the number of fs.stat calls per expansion so a Done task with many
+// deliverables can't fan out into a stat storm — we still render the entry,
+// we just skip the size/mtime meta past this budget.
+const DELIVERABLE_STAT_BUDGET = 30;
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
@@ -204,23 +212,33 @@ function renderDeliverables(t, ctx) {
   if (!deliverables.length) {
     return `<h4>Deliverables</h4><div class="sup-exp-muted">(none extracted from agent summary)</div>`;
   }
-  const items = deliverables.map((rel) => {
+  // Render items with empty meta spans; stat is async-patched after mount (see
+  // wireDeliverableStats below) so a slow/stalled FS can't freeze the renderer.
+  const items = deliverables.map((rel, idx) => {
     const abs = resolveDeliverable(rel, ctx.supervisorRoot);
-    let sizeStr = '';
-    let mtimeStr = '';
-    try {
-      const st = fs.statSync(abs);
-      sizeStr = formatBytes(st.size);
-      mtimeStr = formatTimeAgo(st.mtimeMs);
-    } catch { /* file may have been deleted/moved */ }
     return `<li>
-      <button type="button" class="sup-exp-deliv" data-abs="${esc(abs || rel)}" title="${esc(abs || rel)}">
+      <button type="button" class="sup-exp-deliv" data-abs="${esc(abs || rel)}" data-stat-idx="${idx}" title="${esc(abs || rel)}">
         <span class="sup-exp-deliv-name">${esc(rel)}</span>
-        <span class="sup-exp-deliv-meta">${esc(sizeStr)}${sizeStr && mtimeStr ? ' · ' : ''}${esc(mtimeStr)}</span>
+        <span class="sup-exp-deliv-meta" data-role="deliv-meta"></span>
       </button>
     </li>`;
   }).join('');
   return `<h4>Deliverables (${deliverables.length})</h4><ul class="sup-exp-deliv-list">${items}</ul>`;
+}
+
+function wireDeliverableStats(sectionEl) {
+  const buttons = Array.from(sectionEl.querySelectorAll('.sup-exp-deliv'));
+  buttons.slice(0, DELIVERABLE_STAT_BUDGET).forEach((btn) => {
+    const abs = btn.dataset.abs;
+    const metaEl = btn.querySelector('[data-role="deliv-meta"]');
+    if (!abs || !metaEl) return;
+    fsp.stat(abs).then((st) => {
+      if (!metaEl.isConnected) return;
+      const sizeStr = formatBytes(st.size);
+      const mtimeStr = formatTimeAgo(st.mtimeMs);
+      metaEl.textContent = `${sizeStr}${sizeStr && mtimeStr ? ' · ' : ''}${mtimeStr}`;
+    }).catch(() => { /* file deleted/moved — leave meta blank */ });
+  });
 }
 
 function renderTimeline(t, events) {
@@ -276,15 +294,20 @@ function buildExpanded(t, ctx) {
   const failSec = wrap.querySelector('.sup-exp-fail-sec');
   if (failHtml) failSec.innerHTML = failHtml; else failSec.remove();
 
-  wrap.querySelector('.sup-exp-deliv-sec').innerHTML = renderDeliverables(t, ctx);
+  const delivSec = wrap.querySelector('.sup-exp-deliv-sec');
+  delivSec.innerHTML = renderDeliverables(t, ctx);
   // Wire deliverable clicks; pattern matches the collapsed-state list.
-  wrap.querySelectorAll('.sup-exp-deliv').forEach((btn) => {
+  delivSec.querySelectorAll('.sup-exp-deliv').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const abs = btn.dataset.abs;
       if (abs && typeof ctx.onArtifactClick === 'function') ctx.onArtifactClick(abs);
     });
   });
+  // Async stat for size/mtime — fired after mount so a slow disk never blocks
+  // the renderer; per-button isConnected guard handles the case where the
+  // 4s poll replaces the card before stat resolves.
+  wireDeliverableStats(delivSec);
 
   // Decisions / critic / timeline depend on audit; render placeholders + fetch.
   const decEl = wrap.querySelector('.sup-exp-decisions');
