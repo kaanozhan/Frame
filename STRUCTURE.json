@@ -7639,28 +7639,35 @@
         "listMemoryNamespaces": {
           "line": 139
         },
+        "canonicalSlug": {
+          "line": 160,
+          "params": [
+            "s"
+          ],
+          "purpose": "without re-deriving it from the display name."
+        },
         "listWorkspaceProjects": {
-          "line": 154,
+          "line": 167,
           "params": [
             "payload = {}"
           ]
         },
         "listProjectSpecs": {
-          "line": 200,
+          "line": 231,
           "params": [
             "{ project_path }"
           ],
           "purpose": "[{ slug, phase, files: [{ path, label }] }]"
         },
         "listBriefs": {
-          "line": 242,
+          "line": 273,
           "params": [
             "{ supervisor_root }"
           ],
           "purpose": "recent brief."
         },
         "readTaskAudit": {
-          "line": 275,
+          "line": 306,
           "params": [
             "{ taskId",
             "supervisorRoot }"
@@ -7668,7 +7675,7 @@
           "purpose": "otherwise flood the inspector)."
         },
         "register": {
-          "line": 329,
+          "line": 360,
           "params": [
             "ipcMain"
           ]
@@ -7839,7 +7846,9 @@
       "file": "src/renderer/supervisor-ui/projectTree.js",
       "description": "Supervisor project tree — Phase B + Phase M.",
       "exports": [
-        "create"
+        "create",
+        "dedupBySlug",
+        "canonicalSlug"
       ],
       "depends": [
         "path",
@@ -7856,20 +7865,34 @@
             "s"
           ]
         },
+        "canonicalSlug": {
+          "line": 42,
+          "params": [
+            "s"
+          ],
+          "purpose": "\"kitli-kids\") collapse into one row."
+        },
+        "dedupBySlug": {
+          "line": 58,
+          "params": [
+            "projects"
+          ],
+          "purpose": "carried over from whichever source had it."
+        },
         "fetchJson": {
-          "line": 38,
+          "line": 89,
           "params": [
             "p"
           ]
         },
         "openFile": {
-          "line": 58,
+          "line": 109,
           "params": [
             "absPath"
           ]
         },
         "taskMatchesProject": {
-          "line": 80,
+          "line": 131,
           "params": [
             "task",
             "projectName"
@@ -7877,13 +7900,13 @@
           "purpose": "option since the workspace payload has no project_id field."
         },
         "flatTasks": {
-          "line": 92,
+          "line": 143,
           "params": [
             "workspace"
           ]
         },
         "create": {
-          "line": 102,
+          "line": 153,
           "params": [
             "root",
             "opts = {}"
@@ -8616,7 +8639,7 @@
           "purpose": "something useful — the error field carries the parse message."
         },
         "read": {
-          "line": 165,
+          "line": 182,
           "params": [
             "{ project_id",
             "project_path",
@@ -8633,7 +8656,8 @@
         "create",
         "pickViewModel",
         "formatBudgets",
-        "shortenHome"
+        "shortenHome",
+        "slugifyProjectName"
       ],
       "depends": [
         "path",
@@ -8647,8 +8671,15 @@
             "s"
           ]
         },
-        "pickViewModel": {
+        "slugifyProjectName": {
           "line": 38,
+          "params": [
+            "name"
+          ],
+          "purpose": "runs for callers that handed us a name-only project descriptor."
+        },
+        "pickViewModel": {
+          "line": 51,
           "params": [
             "profile",
             "sourceCtx"
@@ -8656,19 +8687,19 @@
           "purpose": "`null` rather than throwing, which the render path treats as \"—\"."
         },
         "formatBudgets": {
-          "line": 102,
+          "line": 115,
           "params": [
             "vm"
           ]
         },
         "shortenHome": {
-          "line": 110,
+          "line": 123,
           "params": [
             "p"
           ]
         },
         "create": {
-          "line": 119,
+          "line": 132,
           "params": [
             "root",
             "opts = {}"

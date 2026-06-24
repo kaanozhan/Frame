@@ -101,14 +101,31 @@ function readSupervisorYaml(supervisorRoot, project_id) {
   // regex-validated project_id this is belt-and-braces but consistency
   // matters across the bridge.
   if (!profilesDir.startsWith(root + path.sep)) return null;
-  const candidates = [
-    path.resolve(profilesDir, `${project_id}.yaml`),
-    path.resolve(profilesDir, `${project_id}.yml`),
-  ];
+  // Phase N: belt-and-braces. The renderer (profilePanel.js) is supposed to
+  // pass a canonical slug, but if any caller hands us a raw display name
+  // ("kitli kids") or mixed case ("Localized") we'd rather match the YAML
+  // than fail. Try the original, the lowercased form, and the slugified form
+  // in order; first file found wins.
+  const variants = [];
+  const pushVariant = (v) => { if (v && !variants.includes(v)) variants.push(v); };
+  pushVariant(project_id);
+  pushVariant(project_id.toLowerCase());
+  pushVariant(project_id.replace(/\s+/g, '-').toLowerCase());
+  pushVariant(
+    project_id
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .toLowerCase()
+      .replace(/^-+|-+$/g, '')
+  );
   let abs = null;
-  for (const cand of candidates) {
-    if (!cand.startsWith(profilesDir + path.sep)) continue;
-    if (fs.existsSync(cand)) { abs = cand; break; }
+  outer: for (const v of variants) {
+    for (const ext of ['.yaml', '.yml']) {
+      const cand = path.resolve(profilesDir, `${v}${ext}`);
+      if (!cand.startsWith(profilesDir + path.sep)) continue;
+      try {
+        if (fs.existsSync(cand)) { abs = cand; break outer; }
+      } catch { /* ignore */ }
+    }
   }
   if (!abs) return null;
   const stat = fs.statSync(abs);
@@ -164,9 +181,19 @@ function readSupervisorYaml(supervisorRoot, project_id) {
  */
 function read({ project_id, project_path, supervisorRoot } = {}) {
   // Input validation — typed, bounded, regex-checked. Same rigor as the
-  // siblings in index.js (readTaskAudit, writeInlineBrief).
-  if (project_id != null && (typeof project_id !== 'string' || !SAFE_PROJECT_ID.test(project_id))) {
-    return { ok: false, error: 'invalid project_id' };
+  // siblings in index.js (readTaskAudit, writeInlineBrief). Phase N: also
+  // accept whitespace inside project_id so a caller that hands us a raw
+  // display name ("kitli kids") still flows into readSupervisorYaml's
+  // variant matcher instead of erroring at the boundary. Path-traversal
+  // characters (/, \, NUL) remain forbidden.
+  if (project_id != null) {
+    if (typeof project_id !== 'string'
+      || project_id.length === 0
+      || project_id.length > 128
+      || /[\/\\\0]/.test(project_id)
+      || project_id.includes('..')) {
+      return { ok: false, error: 'invalid project_id' };
+    }
   }
   if (project_path != null && (typeof project_path !== 'string' || !path.isAbsolute(project_path))) {
     return { ok: false, error: 'project_path must be an absolute path' };

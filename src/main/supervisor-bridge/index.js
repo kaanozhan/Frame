@@ -151,21 +151,52 @@ function listMemoryNamespaces() {
   } catch { return []; }
 }
 
+// Phase N: canonicalise a project's display name to the slug shape the
+// supervisor's profile YAMLs use ("kitli kids" → "kitli-kids"). Keying the
+// merge map on this collapses Frame-workspace + supervisor-profile entries
+// for the same logical project; surfacing it as `id` on each row lets the
+// renderer's profile panel look up <supervisorRoot>/profiles/<id>.yaml
+// without re-deriving it from the display name.
+function canonicalSlug(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function listWorkspaceProjects(payload = {}) {
   const supervisorRoot = payload && typeof payload.supervisorRoot === 'string'
     && path.isAbsolute(payload.supervisorRoot) ? payload.supervisorRoot : '';
-  const merged = new Map(); // key: name → { name, path, isFrameProject, sources[] }
-  const add = (name, source, extras = {}) => {
-    if (!name) return;
-    const existing = merged.get(name);
+  // Phase N: keyed by canonical slug so "kitli kids" (Frame workspace) and
+  // "kitli-kids" (supervisor profile id) collapse into one entry instead of
+  // becoming two sibling rows. The previous key was the raw display name,
+  // which never matched across the slug/space boundary.
+  const merged = new Map();
+  const add = (rawName, source, extras = {}) => {
+    if (!rawName) return;
+    const canonical = canonicalSlug(rawName);
+    if (!canonical) return;
+    const existing = merged.get(canonical);
     if (existing) {
       existing.sources.push(source);
       if (!existing.path && extras.path) existing.path = extras.path;
       if (extras.isFrameProject) existing.isFrameProject = true;
+      // The supervisor-profile source carries the YAML-shaped slug id —
+      // that's the one profileReader needs, so let it overwrite anything a
+      // slugify-from-name fallback put there.
+      if (source === 'supervisor-profile' && extras.id) {
+        existing.id = extras.id;
+      }
+      // Display name: prefer the Frame-workspace label (the user's chosen
+      // capitalisation/spacing) over the slug id.
+      if (source === 'frame-workspace' && rawName) {
+        existing.name = rawName;
+      }
       return;
     }
-    merged.set(name, {
-      name,
+    merged.set(canonical, {
+      name: rawName,
+      id: extras.id || canonical,
       path: extras.path || '',
       isFrameProject: !!extras.isFrameProject,
       sources: [source],
@@ -175,7 +206,7 @@ function listWorkspaceProjects(payload = {}) {
     add(p.name, 'frame-workspace', { path: p.path, isFrameProject: p.isFrameProject });
   }
   for (const id of listSupervisorProfileNames(supervisorRoot)) {
-    add(id, 'supervisor-profile');
+    add(id, 'supervisor-profile', { id });
   }
   for (const id of listMemoryNamespaces()) {
     add(id, 'memory-namespace');

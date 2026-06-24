@@ -30,6 +30,19 @@ function esc(s) {
   ));
 }
 
+// Phase N: turn a project display name ("kitli kids", "Localized Scraper")
+// into the slug shape the supervisor's profile YAMLs use ("kitli-kids",
+// "localized-scraper"). When the tree row has a real `id` (set by the main-
+// side listWorkspaceProjects merge), use that directly; this fallback only
+// runs for callers that handed us a name-only project descriptor.
+function slugifyProjectName(name) {
+  if (!name) return '';
+  return String(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 /**
  * Normalize either shape (Frame JSON / supervisor YAML) into a single view-
  * model the layout binds to. Fields are best-effort — a missing block yields
@@ -135,8 +148,11 @@ function create(root, opts = {}) {
   function renderLoaded(loaded, project) {
     if (!loaded || !loaded.ok) {
       const err = (loaded && loaded.error) || 'no profile found';
+      const lookupId = project
+        ? (project.id || slugifyProjectName(project.name) || project.name || '')
+        : '';
       const trailing = project && project.path
-        ? `<div class="sup-profile-empty-hint">Looked for <code>${esc(path.join(project.path, '.frame', 'profile.json'))}</code> and <code>profiles/${esc(project.name || '')}.yaml</code>.</div>`
+        ? `<div class="sup-profile-empty-hint">Looked for <code>${esc(path.join(project.path, '.frame', 'profile.json'))}</code> and <code>profiles/${esc(lookupId)}.yaml</code>.</div>`
         : '';
       root.innerHTML = `
         <div class="sup-profile-empty">
@@ -242,8 +258,18 @@ function create(root, opts = {}) {
     }
     setEmpty('Loading profile…', 'loading');
     try {
+      // Phase N: profileReader looks up <supervisorRoot>/profiles/<id>.yaml
+      // by an exact filename match. The Frame-workspaces source feeds rows
+      // with display names ("kitli kids") that don't match the slug-shaped
+      // YAML filenames ("kitli-kids.yaml") — pass the merge-set `id` when we
+      // have it, otherwise slugify the display name so the regex check and
+      // the file lookup both succeed.
+      const project_id = currentProject.id
+        || slugifyProjectName(currentProject.name)
+        || currentProject.name
+        || '';
       const loaded = await ipcRenderer.invoke(SUP.SUPERVISOR_READ_PROFILE, {
-        project_id: currentProject.name || '',
+        project_id,
         project_path: currentProject.path || '',
         supervisorRoot: currentSupervisorRoot || undefined,
       });
@@ -289,4 +315,4 @@ function create(root, opts = {}) {
   };
 }
 
-module.exports = { create, pickViewModel, formatBudgets, shortenHome };
+module.exports = { create, pickViewModel, formatBudgets, shortenHome, slugifyProjectName };

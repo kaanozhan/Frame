@@ -35,6 +35,57 @@ function esc(s) {
   ));
 }
 
+// Phase N: canonical slug for the dedup pass below. Mirrors the main-side
+// canonicalSlug in supervisor-bridge/index.js so two entries that came in
+// with different surface spellings of the same project ("kitli kids" vs
+// "kitli-kids") collapse into one row.
+function canonicalSlug(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Phase N: belt-and-braces dedup. The main-side listWorkspaceProjects already
+ * merges by canonical slug, so most builds receive a clean list — but if any
+ * caller (a future source, a stale handler) hands us two rows for the same
+ * logical project we collapse them here so the UI never shows duplicates.
+ * Collision resolution mirrors the main-side rule: supervisor-profile id
+ * wins as canonical id; Frame-workspace name wins as display label; path is
+ * carried over from whichever source had it.
+ */
+function dedupBySlug(projects) {
+  const byKey = new Map();
+  for (const p of projects) {
+    const key = canonicalSlug(p.id || p.name);
+    if (!key) continue;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, { ...p });
+      continue;
+    }
+    if (!existing.path && p.path) existing.path = p.path;
+    if (p.isFrameProject) existing.isFrameProject = true;
+    const sources = Array.isArray(existing.sources) ? existing.sources.slice() : [];
+    for (const s of (p.sources || [])) {
+      if (!sources.includes(s)) sources.push(s);
+    }
+    existing.sources = sources;
+    const incomingSources = p.sources || [];
+    if (incomingSources.includes('supervisor-profile') && p.id) {
+      existing.id = p.id;
+    }
+    if (incomingSources.includes('frame-workspace') && p.name) {
+      existing.name = p.name;
+    }
+    if (!existing.id) existing.id = p.id || key;
+  }
+  const out = Array.from(byKey.values());
+  out.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  return out;
+}
+
 async function fetchJson(p) {
   const res = await fetch(`${SUPERVISOR_API}${p}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -314,11 +365,12 @@ function create(root, opts = {}) {
 
   async function load() {
     try {
-      const projects = await ipcRenderer.invoke(
+      const raw = await ipcRenderer.invoke(
         SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS,
         { supervisorRoot: supervisorRoot || undefined }
       );
       if (!alive) return;
+      const projects = dedupBySlug(raw || []);
       root.innerHTML = '';
       if (!projects || !projects.length) {
         root.innerHTML = '<div class="sup-tree-empty">No projects found.<br/><small>Add one from the Home board.</small></div>';
@@ -360,4 +412,4 @@ function create(root, opts = {}) {
   return { start, stop, refresh: load, setSupervisorRoot };
 }
 
-module.exports = { create };
+module.exports = { create, dedupBySlug, canonicalSlug };
