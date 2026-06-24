@@ -8317,59 +8317,61 @@
       ],
       "depends": [
         "path",
+        "fs",
+        "os",
         "electron",
         "../shared/supervisor-ipc",
         "header"
       ],
       "functions": {
         "esc": {
-          "line": 43,
+          "line": 50,
           "params": [
             "s"
           ]
         },
         "fetchJson": {
-          "line": 49,
+          "line": 56,
           "params": [
             "p"
           ]
         },
         "resolveSupervisorRoot": {
-          "line": 55
+          "line": 62
         },
         "loadProfiles": {
-          "line": 70,
+          "line": 77,
           "params": [
             "force = false"
           ]
         },
         "loadBriefs": {
-          "line": 81,
+          "line": 88,
           "params": [
             "force = false"
           ]
         },
         "setMode": {
-          "line": 92,
+          "line": 99,
           "params": [
             "next"
           ]
         },
         "setError": {
-          "line": 113,
+          "line": 120,
           "params": [
             "msg"
           ]
         },
         "renderProfileOptions": {
-          "line": 121,
+          "line": 128,
           "params": [
             "selectEl",
             "items"
           ]
         },
         "renderBriefList": {
-          "line": 127,
+          "line": 134,
           "params": [
             "listEl",
             "items",
@@ -8377,54 +8379,87 @@
           ]
         },
         "buildPanelHTML": {
-          "line": 143
+          "line": 150
         },
         "bind": {
-          "line": 264
+          "line": 271
+        },
+        "insertAtCursor": {
+          "line": 312,
+          "params": [
+            "taEl",
+            "text"
+          ]
+        },
+        "saveDroppedImageBuffer": {
+          "line": 325,
+          "params": [
+            "buf",
+            "suggestedName"
+          ]
+        },
+        "readFileAsBuffer": {
+          "line": 348,
+          "params": [
+            "file"
+          ]
+        },
+        "wireDropTarget": {
+          "line": 357,
+          "params": [
+            "taEl",
+            "statusFn"
+          ]
         },
         "setAutoStatus": {
-          "line": 296,
+          "line": 403,
           "params": [
             "msg",
             "kind"
           ]
         },
         "hydrateAutoProjects": {
-          "line": 305
+          "line": 412
         },
         "runAutoSpec": {
-          "line": 330
+          "line": 437
         },
         "renderAutoPreview": {
-          "line": 362,
+          "line": 469,
           "params": [
             "proposed",
             "costUsd"
           ]
         },
         "submitAuto": {
-          "line": 393
+          "line": 500
         },
         "rebindReuseRows": {
-          "line": 430
+          "line": 537
         },
         "loadPickedBriefIntoEditor": {
-          "line": 444
+          "line": 551
+        },
+        "fetchReuseEnrichment": {
+          "line": 609,
+          "params": [
+            "briefRel"
+          ]
         },
         "submit": {
-          "line": 479
+          "line": 638
         },
         "open": {
-          "line": 550
+          "line": 709
         },
         "close": {
-          "line": 575
+          "line": 734
         },
         "toggle": {
-          "line": 588
+          "line": 747
         },
         "isOpen": {
-          "line": 593
+          "line": 752
         }
       }
     },

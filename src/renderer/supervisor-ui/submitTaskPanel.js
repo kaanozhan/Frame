@@ -17,9 +17,16 @@
 // Phase C reactively shows the new card in Pending within ~1s.
 
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const { ipcRenderer } = require('electron');
 const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
+
+// Phase P — drag/drop targets reuse this dir to persist clipboard-pasted or
+// inline-dropped images. Workers can read them by absolute path via @-mentions.
+const DROPPED_IMAGES_DIR = path.join(os.homedir(), '.supervisor', 'dropped-images');
+const DROPPED_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 let panelEl = null;
 let mode = 'freeform';   // 'freeform' | 'file' | 'reuse' | 'auto'
@@ -291,6 +298,106 @@ function bind() {
   panelEl.querySelector('.sup-sub-auto-generate').addEventListener('click', runAutoSpec);
   panelEl.querySelector('.sup-sub-auto-regenerate').addEventListener('click', runAutoSpec);
   panelEl.querySelector('.sup-sub-auto-submit').addEventListener('click', submitAuto);
+
+  // Phase P — drag/drop file paths and images into the Auto-spec description
+  // (and the editable reuse-brief textarea). Workers read the dropped paths
+  // because Electron exposes `file.path` on the dropped File; for clipboard /
+  // synthesised images we persist the bytes under ~/.supervisor/dropped-images/
+  // first so the worker has an absolute path to Read.
+  wireDropTarget(panelEl.querySelector('.sup-sub-auto-desc'), setAutoStatus);
+  wireDropTarget(panelEl.querySelector('.sup-sub-auto-brief'), setAutoStatus);
+  wireDropTarget(panelEl.querySelector('.sup-sub-reuse-brief'), setError);
+}
+
+function insertAtCursor(taEl, text) {
+  if (!taEl || !text) return;
+  const start = taEl.selectionStart || 0;
+  const end = taEl.selectionEnd || 0;
+  const before = taEl.value.slice(0, start);
+  const after = taEl.value.slice(end);
+  const needsLeadingNl = before && !before.endsWith('\n') ? '\n' : '';
+  taEl.value = before + needsLeadingNl + text + after;
+  const caret = (before + needsLeadingNl + text).length;
+  taEl.selectionStart = taEl.selectionEnd = caret;
+  taEl.dispatchEvent(new Event('input'));
+}
+
+function saveDroppedImageBuffer(buf, suggestedName) {
+  try {
+    if (!fs.existsSync(DROPPED_IMAGES_DIR)) {
+      fs.mkdirSync(DROPPED_IMAGES_DIR, { recursive: true });
+    }
+  } catch (err) {
+    return { ok: false, error: `mkdir failed: ${err.message}` };
+  }
+  const ts = Math.floor(Date.now() / 1000);
+  const stem = (path.parse(suggestedName || 'image').name || 'image')
+    .replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 60) || 'image';
+  let ext = path.extname(suggestedName || '').toLowerCase();
+  const ALLOWED = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.heic'];
+  if (!ALLOWED.includes(ext)) ext = '.png';
+  const outPath = path.join(DROPPED_IMAGES_DIR, `${ts}-${stem}${ext}`);
+  try {
+    fs.writeFileSync(outPath, buf);
+  } catch (err) {
+    return { ok: false, error: `write failed: ${err.message}` };
+  }
+  return { ok: true, path: outPath };
+}
+
+function readFileAsBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(Buffer.from(r.result));
+    r.onerror = () => reject(r.error || new Error('FileReader error'));
+    r.readAsArrayBuffer(file);
+  });
+}
+
+function wireDropTarget(taEl, statusFn) {
+  if (!taEl) return;
+  const setStatus = (msg, kind) => {
+    if (typeof statusFn === 'function') statusFn(msg, kind || 'err');
+  };
+  taEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    taEl.classList.add('drag-over');
+  });
+  taEl.addEventListener('dragleave', () => taEl.classList.remove('drag-over'));
+  taEl.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    taEl.classList.remove('drag-over');
+    const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+    const text = (e.dataTransfer && e.dataTransfer.getData('text/plain') || '').trim();
+    const tokens = [];
+    for (const f of files) {
+      // Electron renderer: file.path is the absolute filesystem path. Prefer it
+      // verbatim — no need to copy bytes anywhere.
+      if (f.path) {
+        tokens.push('@' + f.path);
+        continue;
+      }
+      // No path (clipboard-pasted image, drag from a web source): persist the
+      // bytes under ~/.supervisor/dropped-images/ and use the saved path.
+      if (f.size > DROPPED_IMAGE_MAX_BYTES) {
+        setStatus(`dropped ${f.name || 'file'} exceeds 5MB — skipped`);
+        continue;
+      }
+      try {
+        const buf = await readFileAsBuffer(f);
+        const saved = saveDroppedImageBuffer(buf, f.name || 'pasted-image.png');
+        if (saved.ok) tokens.push('@' + saved.path);
+        else setStatus(`save failed: ${saved.error}`);
+      } catch (err) {
+        setStatus(`read failed: ${err.message}`);
+      }
+    }
+    if (!tokens.length && text) {
+      // Plain-text drop (e.g. a path dragged from the file column view).
+      tokens.push(text);
+    }
+    if (tokens.length) insertAtCursor(taEl, tokens.join('\n'));
+  });
 }
 
 function setAutoStatus(msg, kind) {
@@ -459,9 +566,32 @@ async function loadPickedBriefIntoEditor() {
       supervisorRoot,
     });
     if (res && res.ok) {
-      pickedBriefOriginal = res.content || '';
-      ta.value = pickedBriefOriginal;
+      // Phase P — enrich the loaded brief with the original task's profile +
+      // deliverables. The user re-running a similar task gets the prior outputs
+      // surfaced as @-references at the top of the brief so the worker reads
+      // them first. This runs best-effort — if the lookup fails we still load
+      // the raw brief content unchanged.
+      const enrichment = await fetchReuseEnrichment(pickedBriefRel);
+      let body = res.content || '';
+      if (enrichment && enrichment.refsBlock) {
+        body = enrichment.refsBlock + '\n\n' + body;
+      }
+      pickedBriefOriginal = body;
+      ta.value = body;
       ta.disabled = false;
+      if (enrichment && enrichment.profilePath) {
+        // Pre-select the original profile in the shared dropdown above the pane.
+        const profileSel = panelEl.querySelector('.sup-sub-profile');
+        if (profileSel) {
+          if (![...profileSel.options].some((o) => o.value === enrichment.profilePath)) {
+            const opt = document.createElement('option');
+            opt.value = enrichment.profilePath;
+            opt.textContent = enrichment.profilePath;
+            profileSel.appendChild(opt);
+          }
+          profileSel.value = enrichment.profilePath;
+        }
+      }
     } else {
       pickedBriefOriginal = '';
       ta.value = '';
@@ -474,6 +604,35 @@ async function loadPickedBriefIntoEditor() {
     ta.disabled = true;
     setError(`IPC error: ${err.message}`);
   }
+}
+
+async function fetchReuseEnrichment(briefRel) {
+  // Walk /api/workspace's done column looking for the task whose `brief`
+  // matches the brief the user just picked. Pull its profile + deliverables
+  // and synthesise a `## Reference materials` block of @-paths.
+  if (!briefRel) return null;
+  let workspace;
+  try {
+    workspace = await fetchJson('/api/workspace');
+  } catch {
+    return null;
+  }
+  const done = (workspace && workspace.columns && workspace.columns.done) || [];
+  const match = done.find((t) => t && t.brief && t.brief === briefRel);
+  if (!match) return null;
+  const root = supervisorRoot || '';
+  const abs = (rel) => (rel && rel.startsWith('/') ? rel : (root ? path.join(root, rel) : rel));
+  const lines = [];
+  lines.push('## Reference materials');
+  lines.push('');
+  lines.push('Source brief: @' + abs(briefRel));
+  if (match.profile) lines.push('Source profile: @' + abs(match.profile));
+  const deliverables = Array.isArray(match.deliverables) ? match.deliverables : [];
+  if (deliverables.length) {
+    lines.push('Source outputs:');
+    for (const d of deliverables) lines.push('- @' + abs(d));
+  }
+  return { refsBlock: lines.join('\n'), profilePath: match.profile || '' };
 }
 
 async function submit() {

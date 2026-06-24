@@ -1064,6 +1064,14 @@
   justify-content: flex-end;
 }
 
+/* Phase P — drag/drop affordance on the Auto-spec description textarea. */
+.sup-sub-auto-desc.drag-over,
+.sup-sub-reuse-brief.drag-over {
+  border-color: var(--signal, var(--accent-primary));
+  background: rgba(243, 178, 90, 0.06);
+  box-shadow: 0 0 0 2px rgba(243, 178, 90, 0.25);
+}
+
 /* ---- Escalation card (Phase D) ---- */
 .sup-esc-card {
   display: flex;
