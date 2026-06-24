@@ -216,28 +216,84 @@ function renderOverview() {
     </section>
   ` : '';
 
-  // Deliverables (only on done/failed). We surface as clickable links into
-  // Frame's editor — matches the inline-card behavior the previous Phase H
-  // expansion had. The PWA had View / Open / Finder triples; native gets a
-  // single click → editor.openFile, which is the right thing for the IDE.
+  // Deliverables (Phase Q) — files the agent produced during the task. Two
+  // sources merged server-side: `file_written` audit events (post-Phase Q) +
+  // regex over the final summary text (legacy fallback). Section is only
+  // meaningful for terminal states; hidden for pending/running.
+  const delivHtml = renderDeliverables(t, ctx);
+
+  return statsHtml + ctxHtml + failureHtml + briefHtml + delivHtml;
+}
+
+function _isTerminalForDeliverables(t) {
+  const s = t.status || '';
+  return s === 'done' || s === 'failed' || s === 'succeeded_with_warnings'
+    || s === 'revision_cap_reached' || s === 'verification_failed';
+}
+
+function _formatSize(n) {
+  if (n == null) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function _formatAgo(epochSec) {
+  if (!epochSec) return '';
+  const ms = Date.now() - (epochSec * 1000);
+  if (ms < 0) return 'just now';
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function renderDeliverables(t, ctx) {
+  if (!_isTerminalForDeliverables(t)) return '';
   const deliverables = Array.isArray(t.deliverables) ? t.deliverables : [];
-  const delivHtml = deliverables.length ? `
-    <section class="sup-modal-section">
+  const meta = (t.deliverables_meta && typeof t.deliverables_meta === 'object')
+    ? t.deliverables_meta : {};
+  if (!deliverables.length) {
+    return `
+      <section class="sup-modal-section sup-deliverables">
+        <h4>Deliverables</h4>
+        <div class="sup-deliv-empty">
+          No file changes tracked — agent may not have written files, or tracking
+          missed them. Check the brief or the full task summary for output paths.
+        </div>
+      </section>
+    `;
+  }
+  return `
+    <section class="sup-modal-section sup-deliverables">
       <h4>Deliverables (${deliverables.length})</h4>
-      <ul class="sup-modal-deliv-list">
-        ${deliverables.map((rel) => {
-          const abs = resolveAbs(rel, ctx.supervisorRoot);
-          return `<li>
-            <button type="button" class="sup-modal-deliv" data-open="${esc(abs || rel)}" title="${esc(abs || rel)}">
-              ▸ ${esc(rel)}
-            </button>
+      <ul class="sup-deliv-list">
+        ${deliverables.map((p) => {
+          const info = meta[p] || {};
+          const abs = info.abs || resolveAbs(p, ctx.supervisorRoot);
+          const exists = info.exists !== false;
+          const sizeLbl = exists ? _formatSize(info.size) : 'missing';
+          const ageLbl = exists ? _formatAgo(info.mtime) : '';
+          const dotSep = (sizeLbl && ageLbl) ? ' · ' : '';
+          return `<li class="sup-deliv-row ${exists ? '' : 'missing'}">
+            <div class="sup-deliv-pathwrap">
+              <span class="sup-deliv-bullet">▸</span>
+              <code class="sup-deliv-path" title="${esc(abs || p)}">${esc(p)}</code>
+            </div>
+            <div class="sup-deliv-actions">
+              <span class="sup-deliv-meta">${esc(sizeLbl)}${dotSep}${esc(ageLbl)}</span>
+              <button type="button" class="sup-modal-pa" data-open="${esc(abs || p)}" ${exists ? '' : 'disabled'}>Open</button>
+              <button type="button" class="sup-modal-pa" data-reveal="${esc(abs || p)}" ${exists ? '' : 'disabled'}>Finder</button>
+            </div>
           </li>`;
         }).join('')}
       </ul>
     </section>
-  ` : '';
-
-  return statsHtml + ctxHtml + failureHtml + briefHtml + delivHtml;
+  `;
 }
 
 function renderActivity() {

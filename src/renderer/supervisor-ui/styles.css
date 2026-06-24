@@ -2174,35 +2174,80 @@
   overflow-y: auto;
   line-height: 1.5;
 }
-.sup-modal-deliv-list {
+/* Phase Q: deliverables surface in the task detail modal (replaces the
+ * minimal Phase H `.sup-modal-deliv-list` row). Two-column layout per row:
+ * monospace path on the left, size + Open/Finder actions on the right.
+ * Empty-state and "missing" file states use muted text so the section
+ * still renders informatively even when no files were tracked. */
+.sup-deliverables { /* uses base .sup-modal-section spacing */ }
+.sup-deliv-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
-.sup-modal-deliv {
-  display: block;
-  width: 100%;
+.sup-deliv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 4px 8px;
-  cursor: pointer;
-  text-align: left;
-  color: var(--info);
+  transition: background var(--transition-fast);
+  border-top: 1px solid var(--border-subtle);
+}
+.sup-deliv-row:first-child { border-top: none; }
+.sup-deliv-row:hover { background: var(--bg-elevated); }
+.sup-deliv-row.missing { opacity: 0.55; }
+.sup-deliv-pathwrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.sup-deliv-bullet {
+  color: var(--text-tertiary);
+  flex: 0 0 auto;
+}
+.sup-deliv-path {
   font-family: var(--font-mono);
   font-size: 11.5px;
+  color: var(--text-primary);
+  background: transparent;
+  padding: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  direction: rtl;        /* keep the filename visible when the path is long */
+  text-align: left;
+  unicode-bidi: plaintext;
 }
-.sup-modal-deliv:hover {
-  background: var(--bg-elevated);
-  border-color: var(--border-subtle);
-  color: var(--accent-primary);
+.sup-deliv-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.sup-deliv-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  margin-right: 2px;
+  white-space: nowrap;
+}
+.sup-deliv-empty {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 8px 10px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
 }
 .sup-modal-narr {
   background: var(--accent-subtle);

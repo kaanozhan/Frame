@@ -8909,61 +8909,86 @@
           "line": 130,
           "purpose": "---- Body renderers -----------------------------------------------------"
         },
+        "_isTerminalForDeliverables": {
+          "line": 228,
+          "params": [
+            "t"
+          ]
+        },
+        "_formatSize": {
+          "line": 234,
+          "params": [
+            "n"
+          ]
+        },
+        "_formatAgo": {
+          "line": 241,
+          "params": [
+            "epochSec"
+          ]
+        },
+        "renderDeliverables": {
+          "line": 255,
+          "params": [
+            "t",
+            "ctx"
+          ]
+        },
         "renderActivity": {
-          "line": 243
+          "line": 299
         },
         "renderRecentList": {
-          "line": 280,
+          "line": 336,
           "params": [
             "t",
             "events"
           ]
         },
         "shortSummary": {
-          "line": 297,
+          "line": 353,
           "params": [
             "e"
           ]
         },
         "renderBriefMd": {
-          "line": 312,
+          "line": 368,
           "params": [
             "text"
           ]
         },
         "paintBriefBody": {
-          "line": 322,
+          "line": 378,
           "params": [
             "body",
             "raw"
           ]
         },
         "loadBriefIntoBody": {
-          "line": 331
+          "line": 387
         },
         "loadAuditForActivity": {
-          "line": 353
+          "line": 409
         },
         "paintAudit": {
-          "line": 372,
+          "line": 428,
           "params": [
             "events"
           ]
         },
         "renderBody": {
-          "line": 378
+          "line": 434
         },
         "wireOverviewHandlers": {
-          "line": 392,
+          "line": 448,
           "params": [
             "body"
           ]
         },
         "renderHeader": {
-          "line": 426
+          "line": 482
         },
         "open": {
-          "line": 445,
+          "line": 501,
           "params": [
             "task",
             "ctx"
@@ -8971,13 +8996,13 @@
           "purpose": "clicks an Open button on a profile / brief / deliverable."
         },
         "close": {
-          "line": 473
+          "line": 529
         },
         "isOpen": {
-          "line": 481
+          "line": 537
         },
         "lookupLatest": {
-          "line": 491,
+          "line": 547,
           "params": [
             "taskId"
           ]
