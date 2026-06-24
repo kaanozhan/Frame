@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-23",
+  "lastUpdated": "2026-06-24",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -7604,7 +7604,8 @@
         "listProjectDocs",
         "listProjectSpecs",
         "listWorkspaceProjects",
-        "listBriefs"
+        "listBriefs",
+        "readTaskAudit"
       ],
       "depends": [
         "fs",
@@ -7620,32 +7621,40 @@
       ],
       "functions": {
         "listProjectDocs": {
-          "line": 23,
+          "line": 30,
           "params": [
             "{ project_id",
             "project_path }"
           ]
         },
         "listWorkspaceProjects": {
-          "line": 86,
+          "line": 93,
           "purpose": "Returns [{ name, path, isFrameProject }] for the active workspace, or []."
         },
         "listProjectSpecs": {
-          "line": 118,
+          "line": 125,
           "params": [
             "{ project_path }"
           ],
           "purpose": "[{ slug, phase, files: [{ path, label }] }]"
         },
         "listBriefs": {
-          "line": 160,
+          "line": 167,
           "params": [
             "{ supervisor_root }"
           ],
           "purpose": "recent brief."
         },
+        "readTaskAudit": {
+          "line": 200,
+          "params": [
+            "{ taskId",
+            "supervisorRoot }"
+          ],
+          "purpose": "otherwise flood the inspector)."
+        },
         "register": {
-          "line": 185,
+          "line": 239,
           "params": [
             "ipcMain"
           ]
@@ -7653,6 +7662,7 @@
       },
       "ipc": {
         "listens": [
+          "SUP",
           "SUP",
           "SUP",
           "SUP",
@@ -7787,7 +7797,7 @@
           ]
         },
         "expandTailOnFirstInflight": {
-          "line": 276,
+          "line": 280,
           "purpose": "a module-level shim so the command-registry entry stays a one-liner."
         }
       },
@@ -7855,55 +7865,152 @@
     },
     "renderer/supervisor-ui/taskCard": {
       "file": "src/renderer/supervisor-ui/taskCard.js",
-      "description": "Supervisor task card — Phase B (collapsed only).",
+      "description": "Supervisor task card — Phase B (collapsed) + Phase H (inline expansion).",
       "exports": [
         "render",
-        "statusTag"
+        "statusTag",
+        "resetExpansion"
       ],
       "depends": [
+        "fs",
         "path",
+        "electron",
+        "../shared/supervisor-ipc",
+        "header",
         "liveOutputPane"
       ],
       "functions": {
         "esc": {
-          "line": 9,
+          "line": 29,
           "params": [
             "s"
           ]
         },
         "statusTag": {
-          "line": 15,
+          "line": 35,
           "params": [
             "t"
           ]
         },
         "elapsedLabel": {
-          "line": 24,
+          "line": 44,
           "params": [
             "t"
           ]
         },
         "costLabel": {
-          "line": 32,
+          "line": 52,
           "params": [
             "t"
           ]
         },
         "resolveDeliverable": {
-          "line": 43,
+          "line": 63,
           "params": [
             "p",
             "supervisorRoot"
           ],
           "purpose": "`run-state/`)."
         },
+        "formatBytes": {
+          "line": 70,
+          "params": [
+            "n"
+          ]
+        },
+        "formatTimeAgo": {
+          "line": 77,
+          "params": [
+            "mtimeMs"
+          ]
+        },
+        "renderStatusGrid": {
+          "line": 88,
+          "params": [
+            "t"
+          ],
+          "purpose": "---- Section renderers --------------------------------------------------"
+        },
+        "renderBriefSection": {
+          "line": 106,
+          "params": [
+            "t",
+            "ctx",
+            "sectionEl"
+          ]
+        },
+        "renderDecisions": {
+          "line": 141,
+          "params": [
+            "events"
+          ]
+        },
+        "renderCritic": {
+          "line": 171,
+          "params": [
+            "events"
+          ]
+        },
+        "renderFailure": {
+          "line": 192,
+          "params": [
+            "t"
+          ]
+        },
+        "renderDeliverables": {
+          "line": 202,
+          "params": [
+            "t",
+            "ctx"
+          ]
+        },
+        "renderTimeline": {
+          "line": 226,
+          "params": [
+            "t",
+            "events"
+          ]
+        },
+        "shortSummary": {
+          "line": 242,
+          "params": [
+            "e"
+          ]
+        },
+        "buildExpanded": {
+          "line": 259,
+          "params": [
+            "t",
+            "ctx"
+          ],
+          "purpose": "---- Expansion build + audit fetch --------------------------------------"
+        },
+        "loadAuditAndPaint": {
+          "line": 302,
+          "params": [
+            "t",
+            "ctx",
+            "els"
+          ]
+        },
+        "paintAuditSections": {
+          "line": 323,
+          "params": [
+            "t",
+            "events",
+            "els"
+          ]
+        },
         "render": {
-          "line": 57,
+          "line": 338,
           "params": [
             "t",
             "columnKey",
             "ctx"
           ]
+        },
+        "resetExpansion": {
+          "line": 466
         }
       }
     },
@@ -9801,7 +9908,7 @@
       {
         "module": "renderer/supervisor-ui/taskCard",
         "file": "src/renderer/supervisor-ui/taskCard.js",
-        "description": "Supervisor task card — Phase B (collapsed only)."
+        "description": "Supervisor task card — Phase B (collapsed) + Phase H (inline expansion)."
       }
     ],
     "task-confirm-modal": [

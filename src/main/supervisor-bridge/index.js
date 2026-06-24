@@ -18,6 +18,13 @@ const notifier = require('./notifier');
 const DOC_CAP = 100;
 const SPEC_CAP = 50;
 const BRIEF_CAP = 200;
+// audit.jsonl grows unbounded (one line per orchestration event). For Phase H
+// the inspector only renders a single task's events, but we still cap the
+// total bytes we'll scan per request — anything beyond the cap is older than
+// what the inspector usefully surfaces, and an unbounded scan would block the
+// main process on a long-running supervisor.
+const AUDIT_SCAN_CAP_BYTES = 8 * 1024 * 1024;
+const AUDIT_EVENTS_PER_TASK_CAP = 500;
 const FRAME_WORKSPACES_PATH = path.join(os.homedir(), '.frame', 'workspaces.json');
 
 function listProjectDocs({ project_id, project_path }) {
@@ -182,6 +189,53 @@ function listBriefs({ supervisor_root }) {
   return out;
 }
 
+/**
+ * Read run-state/audit.jsonl and return every event whose task_id matches.
+ * The supervisor's audit log is append-only JSONL, one event per line; we
+ * scan the tail (capped at AUDIT_SCAN_CAP_BYTES) and filter in-process so the
+ * renderer never has to parse the whole file. Per-task results are also
+ * capped at AUDIT_EVENTS_PER_TASK_CAP (5xx self-revision passes would
+ * otherwise flood the inspector).
+ */
+function readTaskAudit({ taskId, supervisorRoot }) {
+  if (!taskId || !supervisorRoot) {
+    return { ok: false, error: 'taskId and supervisorRoot required', events: [] };
+  }
+  const auditPath = path.join(supervisorRoot, 'run-state', 'audit.jsonl');
+  if (!fs.existsSync(auditPath)) return { ok: true, events: [] };
+  let fd;
+  try {
+    fd = fs.openSync(auditPath, 'r');
+    const stat = fs.fstatSync(fd);
+    const size = stat.size;
+    const readLen = Math.min(size, AUDIT_SCAN_CAP_BYTES);
+    const start = size - readLen;
+    const buf = Buffer.alloc(readLen);
+    fs.readSync(fd, buf, 0, readLen, start);
+    const text = buf.toString('utf8');
+    const lines = text.split('\n');
+    // If we started mid-line (tail read), discard the first partial line.
+    if (start > 0 && lines.length) lines.shift();
+    const events = [];
+    for (const line of lines) {
+      if (!line) continue;
+      let evt;
+      try { evt = JSON.parse(line); } catch { continue; }
+      if (evt && evt.task_id === taskId) events.push(evt);
+    }
+    const truncated = events.length > AUDIT_EVENTS_PER_TASK_CAP;
+    return {
+      ok: true,
+      truncated,
+      events: truncated ? events.slice(-AUDIT_EVENTS_PER_TASK_CAP) : events,
+    };
+  } catch (err) {
+    return { ok: false, error: err.message, events: [] };
+  } finally {
+    if (fd != null) { try { fs.closeSync(fd); } catch { /* ignore */ } }
+  }
+}
+
 function register(ipcMain) {
   // Round-trip sanity check used by the renderer's Supervisor section on first
   // open. Future phases register stateWatcher / tailReader / taskSubmitter
@@ -301,6 +355,13 @@ function register(ipcMain) {
     }
   });
 
+  // Phase H: stream every audit.jsonl event for a single task to feed the
+  // inline task-detail expansion (decisions, critic verdicts, full timeline).
+  // See readTaskAudit above for cap behavior.
+  ipcMain.handle(SUP.SUPERVISOR_TASK_AUDIT, async (_evt, payload) => {
+    return readTaskAudit(payload || {});
+  });
+
   // Phase K: write a brief edited in the Reuse picker. Constrained to
   // <supervisorRoot>/prompts/inline/ so an attacker (or a buggy renderer)
   // can't overwrite arbitrary files. Mirrors taskSubmitter.writeInlineBrief
@@ -332,4 +393,5 @@ module.exports = {
   listProjectSpecs,
   listWorkspaceProjects,
   listBriefs,
+  readTaskAudit,
 };

@@ -403,6 +403,263 @@
   color: var(--accent-primary);
 }
 
+/* ---- Card body wrapper (Phase H — toggle target) ---- */
+.sup-card-body { cursor: pointer; }
+.sup-card-toggle {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  user-select: none;
+  flex-shrink: 0;
+}
+.sup-card-open {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+}
+
+/* ---- Inline task detail (Phase H) ---- */
+.sup-card-expanded {
+  margin-top: var(--space-sm, 8px);
+  padding-top: var(--space-sm, 8px);
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 12px);
+}
+.sup-card-exp-section h4 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.sup-card-exp-section h4 .sup-exp-path {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.sup-exp-muted {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+.sup-exp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+}
+.sup-exp-stat {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  min-width: 0;
+}
+.sup-exp-stat-k {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+.sup-exp-stat-v {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-primary);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sup-exp-brief {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  max-height: 180px;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+.sup-exp-open-brief { font-size: 10.5px; padding: 4px 10px; }
+.sup-exp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.sup-exp-list > li {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-size: 11.5px;
+  color: var(--text-primary);
+}
+.sup-exp-dec-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.sup-exp-route {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.sup-exp-route.route-auto,
+.sup-exp-route.route-auto_answer { color: var(--success); background: var(--success-subtle); }
+.sup-exp-route.route-research { color: var(--info); background: var(--info-subtle, rgba(120, 165, 212, 0.15)); }
+.sup-exp-route.route-escalate { color: var(--error); background: var(--error-subtle); }
+.sup-exp-dec-conf {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.sup-exp-dec-q {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sup-exp-dec-a {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sup-exp-issue-list {
+  margin: 4px 0 0 16px;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.sup-exp-failure {
+  background: var(--error-subtle);
+  border: 1px solid var(--error);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+.sup-exp-deliv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sup-exp-deliv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 3px 6px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--info);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.sup-exp-deliv:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+  color: var(--accent-primary);
+}
+.sup-exp-deliv-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.sup-exp-deliv-meta {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.sup-exp-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.sup-exp-timeline > li {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  align-items: baseline;
+}
+.sup-exp-timeline > li:last-child { border-bottom: none; }
+.sup-exp-tl-k {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  min-width: 80px;
+}
+.sup-exp-tl-k.action-escalated,
+.sup-exp-tl-k.action-self_revision_revise { color: var(--error); }
+.sup-exp-tl-k.action-task_finished,
+.sup-exp-tl-k.action-self_revision_critique { color: var(--success); }
+.sup-exp-tl-k.action-classified { color: var(--info); }
+.sup-exp-tl-s {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  word-break: break-word;
+  line-height: 1.4;
+  flex: 1;
+}
+
 /* ---- Tail log (Phase C live output pane) ---- */
 .sup-card-tail-row {
   margin-top: 6px;

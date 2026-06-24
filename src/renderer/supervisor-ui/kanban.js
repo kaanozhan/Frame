@@ -265,6 +265,10 @@ function create(root) {
     if (refetchDebounce) clearTimeout(refetchDebounce);
     fallbackArmTimer = null;
     refetchDebounce = null;
+    // Phase H: clear inline-detail expansion state when the section closes so
+    // a fresh open doesn't auto-expand previously-opened cards (and so the
+    // audit/brief caches don't outlive the section's lifetime).
+    try { taskCard.resetExpansion(); } catch { /* ignore */ }
   }
 
   return { stop, refresh: poll, scrollToTask, expandTailOnFirstInflight };

@@ -39,4 +39,12 @@ module.exports = {
   // it can't escape the supervisor sandbox.
   SUPERVISOR_READ_BRIEF: 'supervisor:read-brief',        // {path | relPath, supervisorRoot} → {ok, content, error?}
   SUPERVISOR_WRITE_BRIEF: 'supervisor:write-brief',      // {relPath, content, supervisorRoot} → {ok, path, error?}
+  // Phase H — task card inline expansion feeds the Decisions / Critic /
+  // Timeline sections from audit.jsonl filtered to a single task_id. The
+  // workspace payload counts decisions/critique events but doesn't carry
+  // their per-event detail (route, question, issues) — this handler streams
+  // them straight from the audit log so the inspector can render route +
+  // question + answered-with for each classified event and pass/revise
+  // verdict + reasoning for each critique pass.
+  SUPERVISOR_TASK_AUDIT: 'supervisor:task-audit',        // {taskId, supervisorRoot} → {ok, events: [...]}
 };
