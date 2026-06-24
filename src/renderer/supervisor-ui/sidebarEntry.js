@@ -2,12 +2,11 @@
 //
 // Mounts a "⚡ Supervisor" row at the very top of Frame's projects rail so the
 // foundational dashboard is reachable without remembering the ⌘⇧U shortcut.
-// Functionally a sibling of sidebarChip (Phase F) but lives in a different
-// surface — the projects sidebar view, above the workspace project list —
-// so users see it as a top-level destination, not a status badge.
+// Lives in the projects sidebar view, above the workspace project list — so
+// users see it as a top-level destination with an embedded status dot.
 //
 // Subscribes to SUPERVISOR_STATE for the heartbeat dot (mirrors the dot
-// semantics in supervisor-ui/header.js and sidebarChip.js: muted/alive/dead).
+// semantics in supervisor-ui/header.js: muted/alive/dead).
 // We don't introduce new IPC channels — the Phase C watcher already pushes
 // what we need.
 //

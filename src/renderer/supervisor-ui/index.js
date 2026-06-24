@@ -287,10 +287,6 @@ function init() {
   // calling start() twice is a no-op.
   const notifications = require('./notifications');
   notifications.start({ onNotifyClick: handleNotifyClick });
-  // Phase F: the sidebar-footer heartbeat chip mounts itself when the host
-  // calls require('./sidebar-ui/sidebarChip').mount(); subscribing to
-  // SUPERVISOR_STATE is started lazily on mount and runs for the whole
-  // Frame session.
 }
 
 const api = { init, open, createViewport, __getLatestControllers: () => latestControllers };

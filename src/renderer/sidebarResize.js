@@ -56,8 +56,6 @@ function init(onResize) {
 
   // Handle double-click to reset width
   resizeHandle.addEventListener('dblclick', resetWidth);
-
-  require('./supervisor-ui/sidebarChip').mount(document.getElementById('sidebar-body')); // supervisor-mod
 }
 
 /**

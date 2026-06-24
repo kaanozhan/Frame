@@ -4243,9 +4243,7 @@
         "show",
         "isVisible"
       ],
-      "depends": [
-        "supervisor-ui/sidebarChip"
-      ],
+      "depends": [],
       "functions": {
         "init": {
           "line": 25,
@@ -4255,55 +4253,55 @@
           "purpose": "Initialize sidebar resize functionality"
         },
         "handleMouseDown": {
-          "line": 67,
+          "line": 65,
           "params": [
             "e"
           ],
           "purpose": "Handle mouse down on resize handle"
         },
         "handleMouseMove": {
-          "line": 81,
+          "line": 79,
           "params": [
             "e"
           ],
           "purpose": "Handle mouse move during resize"
         },
         "handleMouseUp": {
-          "line": 97,
+          "line": 95,
           "params": [
             "e"
           ],
           "purpose": "Handle mouse up to finish resize"
         },
         "resetWidth": {
-          "line": 117,
+          "line": 115,
           "purpose": "Reset sidebar width to default"
         },
         "getWidth": {
-          "line": 130,
+          "line": 128,
           "purpose": "Get current sidebar width"
         },
         "setWidth": {
-          "line": 138,
+          "line": 136,
           "params": [
             "width"
           ],
           "purpose": "Set sidebar width programmatically"
         },
         "toggle": {
-          "line": 153,
+          "line": 151,
           "purpose": "Toggle sidebar visibility"
         },
         "hide": {
-          "line": 166,
+          "line": 164,
           "purpose": "Hide sidebar"
         },
         "show": {
-          "line": 182,
+          "line": 180,
           "purpose": "Show sidebar"
         },
         "isVisible": {
-          "line": 198,
+          "line": 196,
           "purpose": "Check if sidebar is hidden"
         }
       }
@@ -7700,8 +7698,7 @@
         "electron",
         "commandRegistry",
         "submitTaskPanel",
-        "notifications",
-        "sidebar-ui/sidebarChip"
+        "notifications"
       ],
       "functions": {
         "injectStylesOnce": {
@@ -8586,50 +8583,6 @@
         ]
       }
     },
-    "renderer/supervisor-ui/sidebarChip": {
-      "file": "src/renderer/supervisor-ui/sidebarChip.js",
-      "description": "Supervisor sidebar-footer heartbeat chip — Phase F.",
-      "exports": [
-        "mount"
-      ],
-      "depends": [
-        "electron",
-        "../shared/supervisor-ipc",
-        "index"
-      ],
-      "functions": {
-        "injectStylesOnce": {
-          "line": 30
-        },
-        "setState": {
-          "line": 85,
-          "params": [
-            "kind"
-          ]
-        },
-        "applyHeartbeat": {
-          "line": 98,
-          "params": [
-            "hb"
-          ]
-        },
-        "armStaleTimer": {
-          "line": 106
-        },
-        "mount": {
-          "line": 114,
-          "params": [
-            "anchor"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "SUP"
-        ],
-        "emits": []
-      }
-    },
     "renderer/supervisor-ui/homeCard": {
       "file": "src/renderer/supervisor-ui/homeCard.js",
       "description": "Supervisor home card — Phase G.",
@@ -8684,25 +8637,25 @@
       ],
       "functions": {
         "injectStylesOnce": {
-          "line": 28
+          "line": 27
         },
         "setState": {
-          "line": 116,
+          "line": 115,
           "params": [
             "kind"
           ]
         },
         "applyHeartbeat": {
-          "line": 129,
+          "line": 128,
           "params": [
             "hb"
           ]
         },
         "armStaleTimer": {
-          "line": 137
+          "line": 136
         },
         "mount": {
-          "line": 144,
+          "line": 143,
           "params": [
             "host"
           ]
@@ -9965,13 +9918,6 @@
         "module": "renderer/sidebarResize",
         "file": "src/renderer/sidebarResize.js",
         "description": "Sidebar Resize Module"
-      }
-    ],
-    "sidebar-chip": [
-      {
-        "module": "renderer/supervisor-ui/sidebarChip",
-        "file": "src/renderer/supervisor-ui/sidebarChip.js",
-        "description": "Supervisor sidebar-footer heartbeat chip — Phase F."
       }
     ],
     "sidebar-entry": [
