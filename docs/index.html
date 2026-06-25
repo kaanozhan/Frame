@@ -421,10 +421,47 @@
       aspect-ratio: 16 / 9;
       border-radius: var(--radius-lg);
       overflow: hidden;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-hover);
       background: #000 center / cover no-repeat;
       cursor: pointer;
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(245, 158, 11, 0.12), 0 0 70px rgba(245, 158, 11, 0.07);
+      transition: box-shadow var(--transition-base), transform var(--transition-base);
+    }
+
+    .video-embed:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(245, 158, 11, 0.3), 0 0 90px rgba(245, 158, 11, 0.16);
+    }
+
+    .video-duration {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      z-index: 2;
+      background: rgba(10, 10, 11, 0.82);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(6px);
+    }
+
+    .video-play::after {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 2px solid rgba(245, 158, 11, 0.45);
+      animation: videoPulse 2.4s ease-out infinite;
+    }
+
+    @keyframes videoPulse {
+      0% { transform: scale(1); opacity: 0.7; }
+      100% { transform: scale(1.5); opacity: 0; }
     }
 
     .video-embed::before {
@@ -474,7 +511,8 @@
     }
 
     .video-embed.is-playing::before,
-    .video-embed.is-playing .video-play { display: none; }
+    .video-embed.is-playing .video-play,
+    .video-embed.is-playing .video-duration { display: none; }
 
     /* ===== HERO ===== */
     .hero {
@@ -1303,11 +1341,12 @@
         From one spec to a fleet of agents running in parallel — a four-minute walkthrough.
       </p>
       <div class="video-embed fade-in" data-yt="K20BQQ1gnXQ"
-           style="background-image:url('https://img.youtube.com/vi/K20BQQ1gnXQ/maxresdefault.jpg')"
+           style="background-image:url('frame-walkthrough-poster.jpg')"
            role="button" tabindex="0" aria-label="Play the Frame walkthrough">
         <button class="video-play" aria-label="Play">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="#0a0a0b"><path d="M8 5v14l11-7z"/></svg>
         </button>
+        <span class="video-duration">4:20</span>
       </div>
     </div>
   </section>
