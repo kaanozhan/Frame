@@ -413,6 +413,69 @@
     .dl-foot a { color: var(--text-secondary); }
     .dl-foot a:hover { color: var(--accent); }
 
+    /* ===== VIDEO ===== */
+    .video-embed {
+      position: relative;
+      max-width: 920px;
+      margin: 48px auto 0;
+      aspect-ratio: 16 / 9;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #000 center / cover no-repeat;
+      cursor: pointer;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    }
+
+    .video-embed::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(0,0,0,0.15), rgba(0,0,0,0.5));
+      transition: background var(--transition-base);
+    }
+
+    .video-embed:hover::before {
+      background: radial-gradient(circle at center, rgba(0,0,0,0.05), rgba(0,0,0,0.4));
+    }
+
+    .video-play {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-left: 4px;
+      box-shadow: 0 8px 36px rgba(245, 158, 11, 0.5);
+      transition: transform var(--transition-base), box-shadow var(--transition-base);
+      z-index: 1;
+    }
+
+    .video-embed:hover .video-play {
+      transform: translate(-50%, -50%) scale(1.08);
+      box-shadow: 0 10px 44px rgba(245, 158, 11, 0.65);
+    }
+
+    .video-embed iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    .video-embed.is-playing::before,
+    .video-embed.is-playing .video-play { display: none; }
+
     /* ===== HERO ===== */
     .hero {
       min-height: 100vh;
@@ -1140,6 +1203,7 @@
       </a>
 
       <div class="nav-links">
+        <a href="#watch">Watch</a>
         <a href="#features">Features</a>
         <a href="#orchestration">Orchestration</a>
         <a href="#faq">FAQ</a>
@@ -1230,6 +1294,24 @@
   </section>
 
   <!-- Features -->
+  <!-- Video -->
+  <section class="features" id="watch">
+    <div class="container">
+      <div class="section-label fade-in">Watch</div>
+      <h2 class="section-title fade-in">See Frame in action</h2>
+      <p class="section-subtitle fade-in">
+        From one spec to a fleet of agents running in parallel — a four-minute walkthrough.
+      </p>
+      <div class="video-embed fade-in" data-yt="K20BQQ1gnXQ"
+           style="background-image:url('https://img.youtube.com/vi/K20BQQ1gnXQ/maxresdefault.jpg')"
+           role="button" tabindex="0" aria-label="Play the Frame walkthrough">
+        <button class="video-play" aria-label="Play">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="#0a0a0b"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <section class="features" id="features">
     <div class="container">
       <div class="section-label fade-in">Features</div>
@@ -1635,6 +1717,26 @@
           });
         }
       });
+    });
+
+    // Click-to-play YouTube facade — load the iframe only on click so the
+    // page stays light (no YouTube script on first paint).
+    document.querySelectorAll('.video-embed').forEach((el) => {
+      const play = () => {
+        if (el.dataset.loaded) return;
+        const id = el.dataset.yt;
+        if (!id) return;
+        el.dataset.loaded = '1';
+        el.classList.add('is-playing');
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+        iframe.title = 'Frame — the platform for agentic development';
+        iframe.allow = 'autoplay; encrypted-media; picture-in-picture; web-share';
+        iframe.allowFullscreen = true;
+        el.appendChild(iframe);
+      };
+      el.addEventListener('click', play);
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); } });
     });
 
     // Download modal — pull latest release assets from GitHub
