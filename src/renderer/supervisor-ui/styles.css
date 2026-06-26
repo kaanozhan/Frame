@@ -2305,3 +2305,173 @@
   color: var(--text-tertiary);
   font-style: italic;
 }
+
+/* Phase R — in-renderer toast stack (bottom-right) for lifecycle events.
+   OS notifications still drive failures / escalations / daemon-stale; toasts
+   are the quieter "task started / done" lifecycle hints that would be too
+   noisy as system pings. */
+.sup-toast-stack {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1100; /* above sup-modal-root (1000) so toasts surface on top */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: 320px;
+}
+.sup-toast {
+  pointer-events: auto;
+  background: var(--bg-secondary, #1f2937);
+  border: 1px solid var(--border-subtle, #374151);
+  border-left: 3px solid var(--text-tertiary, #9ca3af);
+  border-radius: var(--radius-sm, 4px);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.sup-toast.entered { opacity: 1; transform: translateY(0); }
+.sup-toast.leaving { opacity: 0; transform: translateY(8px); }
+.sup-toast:hover { filter: brightness(1.08); }
+.sup-toast-started { border-left-color: var(--info, #60a5fa); }
+.sup-toast-done { border-left-color: var(--success, #34d399); }
+.sup-toast-kind {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+.sup-toast-started .sup-toast-kind { color: var(--info, #60a5fa); }
+.sup-toast-done .sup-toast-kind { color: var(--success, #34d399); }
+.sup-toast-title {
+  color: var(--text-primary);
+  line-height: 1.35;
+  word-break: break-word;
+}
+.sup-toast-body {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Phase R — Lifecycle section at top of the Activity tab. */
+.sup-lifecycle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sup-lifecycle-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  padding: 3px 0;
+  border-bottom: 1px dotted var(--border-subtle);
+}
+.sup-lifecycle-row:last-child { border-bottom: none; }
+.sup-lifecycle-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-tertiary, #9ca3af);
+}
+.sup-lifecycle-row.event-queued .sup-lifecycle-dot { background: var(--text-tertiary, #9ca3af); }
+.sup-lifecycle-row.event-started .sup-lifecycle-dot { background: var(--info, #60a5fa); }
+.sup-lifecycle-row.event-completed .sup-lifecycle-dot { background: var(--success, #34d399); }
+.sup-lifecycle-row.event-critic-pass .sup-lifecycle-dot { background: var(--success, #34d399); }
+.sup-lifecycle-row.event-critic-revise .sup-lifecycle-dot { background: var(--warning, #fbbf24); }
+.sup-lifecycle-row.event-failed .sup-lifecycle-dot { background: var(--error, #f87171); }
+.sup-lifecycle-label {
+  min-width: 110px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: lowercase;
+}
+.sup-lifecycle-ts {
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+}
+.sup-lifecycle-extra {
+  color: var(--text-primary);
+  flex: 1;
+}
+.sup-lifecycle-row.event-critic-revise .sup-lifecycle-extra { color: var(--warning, #fbbf24); }
+.sup-lifecycle-row.event-failed .sup-lifecycle-extra { color: var(--error, #f87171); }
+
+/* Phase R — Verification recap (acceptance criteria with pass/fail). */
+.sup-verify {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sup-verify-header {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+.sup-verify-header.pass { color: var(--success, #34d399); }
+.sup-verify-header.fail { color: var(--warning, #fbbf24); }
+.sup-verify-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sup-verify-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  padding: 3px 0;
+}
+.sup-verify-mark {
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  font-weight: 700;
+}
+.sup-verify-item.pass .sup-verify-mark { color: var(--success, #34d399); }
+.sup-verify-item.fail .sup-verify-mark { color: var(--warning, #fbbf24); }
+.sup-verify-item.unclear .sup-verify-mark { color: var(--text-tertiary, #9ca3af); }
+.sup-verify-text { flex: 1; word-break: break-word; }
+.sup-verify-issues {
+  margin: 4px 0 0 22px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sup-verify-issues > li {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--warning, #fbbf24);
+  padding-left: 10px;
+  position: relative;
+}
+.sup-verify-issues > li::before { content: "↳"; position: absolute; left: 0; opacity: 0.7; }
+.sup-verify-empty {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-24",
+  "lastUpdated": "2026-06-26",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -7717,6 +7717,7 @@
         "memoryPanel",
         "projectFilter",
         "projectTree",
+        "taskDetailModal",
         "electron",
         "commandRegistry",
         "submitTaskPanel",
@@ -7736,15 +7737,16 @@
         "handleNotifyClick": {
           "line": 195,
           "params": [
-            "{ taskId }"
+            "{ taskId",
+            "kind } = {}"
           ]
         },
         "isSupervisorActive": {
-          "line": 218,
+          "line": 250,
           "purpose": "even one in a background tab. Ask multiTerminalUI for the active section."
         },
         "init": {
-          "line": 229
+          "line": 261
         }
       }
     },
@@ -8511,56 +8513,57 @@
         "path",
         "electron",
         "../shared/supervisor-ipc",
-        "header"
+        "header",
+        "notificationToast"
       ],
       "functions": {
         "fetchJson": {
-          "line": 55,
+          "line": 56,
           "params": [
             "p"
           ]
         },
         "shouldNotify": {
-          "line": 61,
+          "line": 62,
           "params": [
             "key"
           ]
         },
         "notify": {
-          "line": 74,
+          "line": 75,
           "params": [
             "payload"
           ]
         },
         "applyHeartbeat": {
-          "line": 78,
+          "line": 79,
           "params": [
             "hb"
           ]
         },
         "checkStale": {
-          "line": 84
+          "line": 85
         },
         "pollWorkspace": {
-          "line": 118
+          "line": 119
         },
         "schedulePoll": {
-          "line": 173
+          "line": 198
         },
         "announceSupervisorRoot": {
-          "line": 181
+          "line": 206
         },
         "tryInit": {
-          "line": 200
+          "line": 225
         },
         "start": {
-          "line": 218,
+          "line": 243,
           "params": [
             "opts"
           ]
         },
         "stop": {
-          "line": 247
+          "line": 275
         }
       },
       "ipc": {
@@ -8859,136 +8862,202 @@
       ],
       "functions": {
         "esc": {
-          "line": 42,
+          "line": 46,
           "params": [
             "s"
           ]
         },
         "elapsedLabel": {
-          "line": 48,
+          "line": 52,
           "params": [
             "t"
           ]
         },
         "costLabel": {
-          "line": 56,
+          "line": 60,
           "params": [
             "t",
             "isActive"
           ]
         },
         "resolveAbs": {
-          "line": 61,
+          "line": 65,
           "params": [
             "p",
             "supervisorRoot"
           ]
         },
         "statusTag": {
-          "line": 68,
+          "line": 72,
           "params": [
             "t"
           ]
         },
         "ensureRoot": {
-          "line": 77
+          "line": 81
         },
         "_onKeydown": {
-          "line": 109,
+          "line": 113,
           "params": [
             "e"
           ]
         },
         "switchTab": {
-          "line": 117,
+          "line": 121,
           "params": [
             "name"
           ]
         },
         "renderOverview": {
-          "line": 130,
+          "line": 134,
           "purpose": "---- Body renderers -----------------------------------------------------"
         },
         "_isTerminalForDeliverables": {
-          "line": 228,
+          "line": 239,
           "params": [
             "t"
           ]
         },
         "_formatSize": {
-          "line": 234,
+          "line": 245,
           "params": [
             "n"
           ]
         },
         "_formatAgo": {
-          "line": 241,
+          "line": 252,
           "params": [
             "epochSec"
           ]
         },
         "renderDeliverables": {
-          "line": 255,
+          "line": 266,
           "params": [
             "t",
             "ctx"
           ]
         },
         "renderActivity": {
-          "line": 299
+          "line": 310
+        },
+        "_fmtTs": {
+          "line": 360,
+          "params": [
+            "epochMs"
+          ],
+          "purpose": "---- Lifecycle (Phase R) ------------------------------------------------"
+        },
+        "_fmtDuration": {
+          "line": 370,
+          "params": [
+            "ms"
+          ]
+        },
+        "_eventTimestamp": {
+          "line": 382,
+          "params": [
+            "e"
+          ]
+        },
+        "deriveLifecycle": {
+          "line": 399,
+          "params": [
+            "t",
+            "events"
+          ]
+        },
+        "renderLifecycleList": {
+          "line": 478,
+          "params": [
+            "t",
+            "events"
+          ]
+        },
+        "parseAcceptanceItems": {
+          "line": 497,
+          "params": [
+            "briefText"
+          ],
+          "purpose": "---- Verification recap (Phase R) ---------------------------------------"
+        },
+        "_lastCriticEvent": {
+          "line": 526,
+          "params": [
+            "events"
+          ]
+        },
+        "renderVerification": {
+          "line": 534,
+          "params": [
+            "t"
+          ]
+        },
+        "_classifyItemAgainstIssues": {
+          "line": 586,
+          "params": [
+            "item",
+            "issues"
+          ]
         },
         "renderRecentList": {
-          "line": 336,
+          "line": 603,
           "params": [
             "t",
             "events"
           ]
         },
         "shortSummary": {
-          "line": 353,
+          "line": 620,
           "params": [
             "e"
           ]
         },
         "renderBriefMd": {
-          "line": 368,
+          "line": 635,
           "params": [
             "text"
           ]
         },
         "paintBriefBody": {
-          "line": 378,
+          "line": 645,
           "params": [
             "body",
             "raw"
           ]
         },
         "loadBriefIntoBody": {
-          "line": 387
+          "line": 654
         },
-        "loadAuditForActivity": {
-          "line": 409
+        "loadAudit": {
+          "line": 690
+        },
+        "prefetchBriefForVerification": {
+          "line": 718,
+          "purpose": "used by the brief preview path would risk cutting the block off."
         },
         "paintAudit": {
-          "line": 428,
+          "line": 743,
           "params": [
             "events"
           ]
         },
+        "repaintVerification": {
+          "line": 755
+        },
         "renderBody": {
-          "line": 434
+          "line": 773
         },
         "wireOverviewHandlers": {
-          "line": 448,
+          "line": 794,
           "params": [
             "body"
           ]
         },
         "renderHeader": {
-          "line": 482
+          "line": 828
         },
         "open": {
-          "line": 501,
+          "line": 847,
           "params": [
             "task",
             "ctx"
@@ -8996,13 +9065,13 @@
           "purpose": "clicks an Open button on a profile / brief / deliverable."
         },
         "close": {
-          "line": 529
+          "line": 876
         },
         "isOpen": {
-          "line": 537
+          "line": 885
         },
         "lookupLatest": {
-          "line": 547,
+          "line": 895,
           "params": [
             "taskId"
           ]
@@ -9028,6 +9097,42 @@
           "params": [
             "absPath"
           ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/notificationToast": {
+      "file": "src/renderer/supervisor-ui/notificationToast.js",
+      "description": "Supervisor in-renderer toast — Phase R.",
+      "exports": [
+        "show",
+        "setClickHandler",
+        "clearAll"
+      ],
+      "depends": [],
+      "functions": {
+        "esc": {
+          "line": 22,
+          "params": [
+            "s"
+          ]
+        },
+        "ensureRoot": {
+          "line": 28
+        },
+        "setClickHandler": {
+          "line": 36,
+          "params": [
+            "fn"
+          ]
+        },
+        "show": {
+          "line": 40,
+          "params": [
+            "payload"
+          ]
+        },
+        "clearAll": {
+          "line": 74
         }
       }
     }
@@ -9979,6 +10084,13 @@
         "module": "main/menu",
         "file": "src/main/menu.js",
         "description": "Application Menu Module"
+      }
+    ],
+    "notification-toast": [
+      {
+        "module": "renderer/supervisor-ui/notificationToast",
+        "file": "src/renderer/supervisor-ui/notificationToast.js",
+        "description": "Supervisor in-renderer toast — Phase R."
       }
     ],
     "notifications": [

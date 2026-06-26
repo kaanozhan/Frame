@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-06-15T14:58:43.063Z",
+  "lastUpdated": "2026-06-25T00:00:00.000Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -25,6 +25,21 @@
     "completedAt": "ISO timestamp | null"
   },
   "tasks": [
+    {
+      "id": "task-phase-r-supervisor-backend-deliverables-and-verification",
+      "title": "Supervisor backend: git-diff fallback for deliverables + critic-result extraction",
+      "description": "Phase R landed the visibility fixes that don't need backend changes (brief preview JSON/text fallback, lifecycle toasts, Lifecycle section in Activity tab, Verification recap section in Overview). Two pieces still need the supervisor backend (the out-of-tree Python service that serves http://127.0.0.1:8766) and are deferred until that repo is available for editing.\n\n1) Git-diff fallback for deliverables. The current `t.deliverables[]` payload is populated from `file_written` audit events plus a regex over the final summary text — this misses code-execution tasks that did Edit/MultiEdit on existing source files without ever calling Write, so the modal shows the empty-state '(No file changes tracked — agent may not have written files)' even when the agent clearly modified Frame source. When the audit-log extraction returns 0 deliverables for a `done` task AND the task's profile has a `workdir` that is a git repo, fall back to: (a) `git rev-parse HEAD` at task_started.ts, (b) `git rev-parse HEAD` at task_finished.ts, (c) `git diff --name-only <start>..<finish>` filtered to non-gitignored paths that exist. Surface those as `deliverables[]` plus `deliverables_meta[path] = {abs, size, mtime, source: 'git-diff'}` so the UI can disambiguate from audit-event-derived entries.\n\n2) Richer critic-result extraction. The Verification section parses the brief's `=== ACCEPTANCE ===` block client-side and pairs each item against the last `self_revision_critique` event. Today the per-item pass/fail is best-effort token matching; the backend has the actual critic prompt input/output and can emit a structured `self_revision_critique.detail.acceptance_results[]` field mapping criterion → pass/fail/unclear + per-item reasoning. Once that field exists, the UI in renderVerification() (taskDetailModal.js) can stop guessing and render the authoritative result.\n\nBoth pieces should ship with mocked tests in the backend repo (git operations + critic-output fixture). Once landed, no Frame changes required — the existing UI already consumes `t.deliverables[]`, `t.deliverables_meta`, and the critic event detail.",
+      "userRequest": "User said: Go with option 1 — land the Frame-only PR (Fixes 1, 3, 4-UI) now. Create a tracked task in tasks.json for the server-side git-diff fallback (Fix 2) and richer critic extraction (Fix 4 server). This keeps momentum on visible dashboard improvements while the backend enhancements are designed and sequenced separately.",
+      "acceptanceCriteria": "(1) Supervisor server's deliverables aggregator gains a git-diff fallback path: when audit-log extraction returns 0 entries for a done task and the task's profile workdir is a git repo, the response includes git-diff-derived deliverables tagged source='git-diff'. (2) Phase Q's own task modal shows the actual modified .js / .css / .py files in DELIVERABLES (verifies the fallback works in a real case). (3) Audit `self_revision_critique` events gain a structured `detail.acceptance_results[]` array mapping each acceptance criterion to {status: 'pass'|'fail'|'unclear', note?: string}. (4) Frame's renderVerification() in taskDetailModal.js consumes the new field when present and falls back to the current token-match heuristic when absent. (5) Backend tests cover: empty workdir, non-git workdir, no commits in window, gitignored paths excluded, critic-output JSON fixture mapping to acceptance_results.",
+      "notes": "Why deferred: the supervisor backend repo (referenced internally as 'remy') wasn't on disk in the session that landed Phase R. The Frame-only PR (Fix 1 brief preview, Fix 3 toast + lifecycle, Fix 4-UI verification section) is sequenced first because it doesn't depend on backend changes and unblocks the visible dashboard improvements Chris flagged in the 2026-06-25 screenshot. When this task picks up, also revisit: per-item match heuristic in _classifyItemAgainstIssues (taskDetailModal.js) becomes dead code once acceptance_results[] lands and can be removed.",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "Session 2026-06-25 — Phase R supervisor visibility fixes; backend work deferred until remy repo is available",
+      "createdAt": "2026-06-25T00:00:00.000Z",
+      "updatedAt": "2026-06-25T00:00:00.000Z",
+      "completedAt": null
+    },
     {
       "id": "task-fix-lane-card-assignment-overflow",
       "title": "Lane card stretches when assignment label is long",

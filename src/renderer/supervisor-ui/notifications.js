@@ -28,6 +28,7 @@ const path = require('path');
 const { ipcRenderer } = require('electron');
 const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
+const toast = require('./notificationToast');
 
 const DEDUPE_MS = 60_000;
 const STALE_THRESHOLD_S = 60;
@@ -126,19 +127,22 @@ async function pollWorkspace() {
   const all = [...pending, ...active, ...awaiting, ...done];
 
   const awaitingIds = new Set(awaiting.map((t) => t.id).filter(Boolean));
+  const activeIds = new Set(active.map((t) => t.id).filter(Boolean));
   const next = new Map();
   for (const t of all) {
     if (!t.id) continue;
     next.set(t.id, {
       status: t.status || '',
       awaiting: awaitingIds.has(t.id),
+      inFlight: activeIds.has(t.id),
       title: t.title || t.id,
       error: t.error || t.error_message || t.last_error || '',
     });
   }
 
   if (knownTaskStates === null) {
-    // Cold-start baseline — don't fire for pre-existing escalations/failures.
+    // Cold-start baseline — don't fire for pre-existing escalations/failures
+    // or for tasks that were already in-flight / already done at launch.
     knownTaskStates = next;
     return;
   }
@@ -161,6 +165,27 @@ async function pollWorkspace() {
           title: 'Task failed',
           body: n.error ? `${n.title}: ${n.error}` : n.title,
           kind: 'failed',
+          taskId: id,
+        });
+      }
+    }
+    // Phase R: in-renderer toasts on lifecycle transitions. Quieter than OS
+    // pings — `started` is the moment the daemon picked the task up,
+    // `done` is the moment it left the active column for done.
+    if (n.inFlight && (!p || !p.inFlight) && n.status !== 'done' && n.status !== 'failed') {
+      if (shouldNotify(`${id}:started`)) {
+        toast.show({
+          title: n.title,
+          kind: 'started',
+          taskId: id,
+        });
+      }
+    }
+    if (n.status === 'done' && (!p || p.status !== 'done')) {
+      if (shouldNotify(`${id}:done`)) {
+        toast.show({
+          title: n.title,
+          kind: 'done',
           taskId: id,
         });
       }
@@ -219,6 +244,9 @@ function start(opts) {
   if (started) return;
   started = true;
   onClickHandler = (opts && opts.onNotifyClick) || null;
+  // Route toast clicks through the same handler the OS notifications use so
+  // clicking a "task done" toast opens the modal / scrolls the kanban.
+  toast.setClickHandler(onClickHandler);
 
   stateListener = (_evt, payload) => {
     if (!payload) return;

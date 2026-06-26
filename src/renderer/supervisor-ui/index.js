@@ -192,7 +192,7 @@ function open() {
   host.openSection('supervisor', null, api, { newTab: false });
 }
 
-function handleNotifyClick({ taskId }) {
+function handleNotifyClick({ taskId, kind } = {}) {
   // Always open / focus the section first so a closed tab still routes to the
   // task. open() reuses the existing viewport when one is present.
   open();
@@ -207,6 +207,38 @@ function handleNotifyClick({ taskId }) {
       try { k.scrollToTask(taskId); } catch (err) {
         console.warn('[supervisor] scrollToTask failed:', err);
       }
+    }
+    // Phase R: a click on a "task done" toast should open the detail modal
+    // directly so the user lands on the deliverables / lifecycle recap
+    // instead of having to also click the card. OS-notification clicks omit
+    // `kind` and keep the original scroll-only behavior so they don't slam
+    // a modal over the user's current view on escalations / failures.
+    if (kind === 'done') {
+      const k2 = latestControllers && latestControllers.kanban;
+      const sr = k2 && typeof k2.getSupervisorRoot === 'function' ? k2.getSupervisorRoot() : null;
+      const { SUPERVISOR_API } = require('./header');
+      const taskDetailModal = require('./taskDetailModal');
+      const { openFile } = require('./openFile');
+      fetch(`${SUPERVISOR_API}/api/workspace`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((ws) => {
+          if (!ws) return;
+          const cols = ws.columns || {};
+          const all = [
+            ...(cols.pending || []),
+            ...(cols.active || []),
+            ...(cols.awaiting || []),
+            ...(cols.done || []),
+          ];
+          const t = all.find((x) => x && x.id === taskId);
+          if (!t) return;
+          try {
+            taskDetailModal.open(t, { supervisorRoot: sr, onOpenFile: openFile });
+          } catch (err) {
+            console.warn('[supervisor] open detail modal from toast failed:', err);
+          }
+        })
+        .catch(() => { /* quiet — toast click is best-effort */ });
     }
   }, 120);
 }
