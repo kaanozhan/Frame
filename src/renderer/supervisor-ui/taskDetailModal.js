@@ -533,14 +533,49 @@ function _lastCriticEvent(events) {
 
 function renderVerification(t) {
   if (!_isTerminalForDeliverables(t)) return '';
-  // We render the section even when sources are still loading so the user
-  // sees the heading + loading hint instead of nothing — paintBriefBody +
-  // paintAudit will repaint once data arrives.
+
+  // Phase R server-side (supervisor repo): when the daemon ships structured
+  // acceptance_results[] alongside the task, prefer those over our client-
+  // side token heuristic — they're paired with the actual critic event
+  // text at derivation time so they don't false-fail on common words.
+  const serverResults = Array.isArray(t.acceptance_results) ? t.acceptance_results : null;
+  const events = _state.auditForOverview;
+  const critic = _lastCriticEvent(events);
+
+  if (serverResults && serverResults.length) {
+    const verdict = critic ? String((critic.detail || {}).verdict || '').toLowerCase() : '';
+    const allPassed = serverResults.every((r) => r && r.status === 'pass');
+    const issues = critic && Array.isArray((critic.detail || {}).issues)
+      ? (critic.detail || {}).issues : [];
+    const header = allPassed
+      ? `<div class="sup-verify-header pass">✓ All criteria met</div>`
+      : (verdict
+          ? `<div class="sup-verify-header fail">⚠ Critic final pass: ${esc(verdict)}${issues.length ? ` (${issues.length} issue${issues.length === 1 ? '' : 's'})` : ''}</div>`
+          : `<div class="sup-verify-header">${esc(serverResults.length)} acceptance criteria</div>`);
+    const itemRows = serverResults.map((r) => {
+      const cls = r.status === 'pass' ? 'pass' : (r.status === 'fail' ? 'fail' : 'unclear');
+      const mark = cls === 'pass' ? '✓' : (cls === 'fail' ? '✗' : '·');
+      const matched = r.matched_issue
+        ? `<div class="sup-verify-issues"><li>${esc(r.matched_issue)}</li></div>` : '';
+      return `<li class="sup-verify-item ${cls}">
+        <span class="sup-verify-mark">${mark}</span>
+        <span class="sup-verify-text">${esc(r.criterion || '')}${matched}</span>
+      </li>`;
+    }).join('');
+    return `
+      <section class="sup-modal-section sup-verify-sec">
+        <h4>Verification</h4>
+        <div class="sup-verify">${header}<ul class="sup-verify-list">${itemRows}</ul></div>
+      </section>
+    `;
+  }
+
+  // Client-side fallback (no server acceptance_results — e.g. older daemon
+  // builds or non-terminal tasks the server skipped). Read the brief +
+  // critic event ourselves and do best-effort token matching.
   const briefEntry = briefCache.get(t.id);
   const briefText = (briefEntry && briefEntry.full) || (briefEntry && briefEntry.content) || '';
-  const events = _state.auditForOverview;
   const items = parseAcceptanceItems(briefText);
-  const critic = _lastCriticEvent(events);
 
   let inner = '';
   if (!briefText) {
@@ -558,9 +593,6 @@ function renderVerification(t) {
           ? `<div class="sup-verify-header fail">⚠ Critic final pass: ${esc(verdict)}${issues.length ? ` (${issues.length} issue${issues.length === 1 ? '' : 's'})` : ''}</div>`
           : `<div class="sup-verify-header">(no critic verdict recorded — pass/fail per item is best-effort)</div>`);
     const itemRows = items.map((item) => {
-      // Best-effort per-item match: if verdict is "pass" mark every row pass;
-      // if "revise" and an issue mentions a salient word from the item,
-      // mark that item fail; otherwise mark unclear.
       const cls = allPassed ? 'pass' : _classifyItemAgainstIssues(item, issues);
       const mark = cls === 'pass' ? '✓' : (cls === 'fail' ? '✗' : '·');
       return `<li class="sup-verify-item ${cls}">

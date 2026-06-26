@@ -8993,71 +8993,71 @@
           ]
         },
         "_classifyItemAgainstIssues": {
-          "line": 586,
+          "line": 618,
           "params": [
             "item",
             "issues"
           ]
         },
         "renderRecentList": {
-          "line": 603,
+          "line": 635,
           "params": [
             "t",
             "events"
           ]
         },
         "shortSummary": {
-          "line": 620,
+          "line": 652,
           "params": [
             "e"
           ]
         },
         "renderBriefMd": {
-          "line": 635,
+          "line": 667,
           "params": [
             "text"
           ]
         },
         "paintBriefBody": {
-          "line": 645,
+          "line": 677,
           "params": [
             "body",
             "raw"
           ]
         },
         "loadBriefIntoBody": {
-          "line": 654
+          "line": 686
         },
         "loadAudit": {
-          "line": 690
+          "line": 722
         },
         "prefetchBriefForVerification": {
-          "line": 718,
+          "line": 750,
           "purpose": "used by the brief preview path would risk cutting the block off."
         },
         "paintAudit": {
-          "line": 743,
+          "line": 775,
           "params": [
             "events"
           ]
         },
         "repaintVerification": {
-          "line": 755
+          "line": 787
         },
         "renderBody": {
-          "line": 773
+          "line": 805
         },
         "wireOverviewHandlers": {
-          "line": 794,
+          "line": 826,
           "params": [
             "body"
           ]
         },
         "renderHeader": {
-          "line": 828
+          "line": 860
         },
         "open": {
-          "line": 847,
+          "line": 879,
           "params": [
             "task",
             "ctx"
@@ -9065,13 +9065,13 @@
           "purpose": "clicks an Open button on a profile / brief / deliverable."
         },
         "close": {
-          "line": 876
+          "line": 908
         },
         "isOpen": {
-          "line": 885
+          "line": 917
         },
         "lookupLatest": {
-          "line": 895,
+          "line": 927,
           "params": [
             "taskId"
           ]
