@@ -37,11 +37,16 @@ let selectedSlug = null;
 let selectedSpec = null;   // full spec body (from GET_SPEC)
 let selectedTab = 'spec';
 let activeFilter = 'all';
+let searchQuery = '';        // current search text (trimmed lower-cased when matched)
+let searchMatches = null;    // Set of slugs matching the query, or null when no search is active
+let searchDebounce = null;
 
 let dashboardEl = null;
 let projectLabelEl = null;
 let gridEl = null;
 let filtersEl = null;
+let searchInputEl = null;
+let searchWrapEl = null;
 let detailEl = null;
 let detailEmptyEl = null;
 let detailContentEl = null;
@@ -53,6 +58,8 @@ function init() {
   projectLabelEl = document.getElementById('specs-dashboard-project');
   gridEl = document.getElementById('specs-dashboard-grid');
   filtersEl = document.getElementById('specs-dashboard-filters');
+  searchInputEl = document.getElementById('specs-dashboard-search-input');
+  searchWrapEl = document.querySelector('.specs-dashboard-search');
   detailEl = document.getElementById('specs-dashboard-detail');
   detailEmptyEl = detailEl.querySelector('.specs-dashboard-detail-empty');
   detailContentEl = detailEl.querySelector('.specs-dashboard-detail-content');
@@ -66,6 +73,7 @@ function init() {
   detailEl.querySelector('.specs-dashboard-detail-close')?.addEventListener('click', clearSelection);
 
   renderFilters();
+  setupSearch();
   setupIPCListeners();
 
   // Esc closes detail first, then dashboard
@@ -73,6 +81,7 @@ function init() {
     if (!isVisible) return;
     if (e.key === 'Escape') {
       if (selectedSlug) clearSelection();
+      else if (searchQuery) clearSearch();
       else hide();
     }
   });
@@ -82,7 +91,10 @@ function setupIPCListeners() {
   ipcRenderer.on(IPC.SPEC_DATA, (event, { specs: incoming }) => {
     specs = incoming || [];
     if (isVisible) {
-      renderGrid();
+      // spec.md content may have changed on disk — refresh matches if a
+      // search is active (runSearch re-renders the grid itself).
+      if (searchQuery) runSearch(searchQuery);
+      else renderGrid();
       if (selectedSlug) reloadDetail();
     }
   });
@@ -130,6 +142,7 @@ async function show() {
   // overlaps z-indexes and confuses the layout. Force the side panel closed.
   try { require('./specPanel').hide?.(); } catch {}
 
+  clearSearch();  // start from a clean search state on every open
   dashboardEl.classList.add('visible');
   isVisible = true;
   if (projectLabelEl) projectLabelEl.textContent = displayProjectName(projectPath);
@@ -175,14 +188,65 @@ function renderFilters() {
 }
 
 function applyFilter(specsList) {
-  if (activeFilter === 'all') return specsList;
-  if (activeFilter === 'active') return specsList.filter(s => s.phase !== 'done');
-  if (activeFilter === 'done') return specsList.filter(s => s.phase === 'done');
-  if (activeFilter.startsWith('phase:')) {
+  let out = specsList;
+  if (activeFilter === 'active') out = out.filter(s => s.phase !== 'done');
+  else if (activeFilter === 'done') out = out.filter(s => s.phase === 'done');
+  else if (activeFilter.startsWith('phase:')) {
     const target = activeFilter.slice('phase:'.length);
-    return specsList.filter(s => s.phase === target);
+    out = out.filter(s => s.phase === target);
   }
-  return specsList;
+  // Keyword search over spec.md — searchMatches (a slug Set) is computed by
+  // the main process; null means no active search, so everything passes.
+  if (searchMatches) out = out.filter(s => searchMatches.has(s.slug));
+  return out;
+}
+
+// ─── Search ──────────────────────────────────────────────
+
+function setupSearch() {
+  if (!searchInputEl) return;
+  searchInputEl.addEventListener('input', () => {
+    const value = searchInputEl.value;
+    if (searchWrapEl) searchWrapEl.classList.toggle('has-query', value.trim().length > 0);
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => runSearch(value), 180);
+  });
+  document.getElementById('specs-dashboard-search-clear')?.addEventListener('click', () => {
+    clearSearch();
+    searchInputEl.focus();
+  });
+}
+
+async function runSearch(rawQuery) {
+  const query = (rawQuery || '').trim();
+  searchQuery = query;
+  if (!query) {
+    searchMatches = null;
+    if (isVisible) renderGrid();
+    return;
+  }
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return;
+  let matches = [];
+  try {
+    matches = await ipcRenderer.invoke(IPC.SEARCH_SPECS, { projectPath, query }) || [];
+  } catch (err) {
+    matches = [];
+  }
+  // A newer keystroke may have superseded this query while awaiting — ignore
+  // stale results so the grid always reflects the latest input.
+  if (searchQuery !== query) return;
+  searchMatches = new Set(matches);
+  if (isVisible) renderGrid();
+}
+
+function clearSearch() {
+  searchQuery = '';
+  searchMatches = null;
+  clearTimeout(searchDebounce);
+  if (searchInputEl) searchInputEl.value = '';
+  if (searchWrapEl) searchWrapEl.classList.remove('has-query');
+  if (isVisible) renderGrid();
 }
 
 // ─── Grid ────────────────────────────────────────────────
@@ -203,6 +267,8 @@ function renderGrid() {
       gridEl.querySelector('#specs-dashboard-empty-new')?.addEventListener('click', () => {
         require('./specPanel').showNewSpecPrompt?.();
       });
+    } else if (searchMatches) {
+      gridEl.innerHTML = `<div class="specs-dashboard-empty"><p>No specs match “${escapeHtml(searchQuery)}”.</p></div>`;
     } else {
       gridEl.innerHTML = `<div class="specs-dashboard-empty"><p>No specs match the active filter.</p></div>`;
     }

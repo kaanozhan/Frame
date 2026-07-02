@@ -147,6 +147,7 @@ const IPC = {
 
   // Spec-Driven Development (Slice 1) — .frame/specs/<slug>/ lifecycle
   LIST_SPECS: 'list-specs',
+  SEARCH_SPECS: 'search-specs',
   GET_SPEC: 'get-spec',
   CREATE_SPEC: 'create-spec',
   UPDATE_SPEC_STATUS: 'update-spec-status',

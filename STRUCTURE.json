@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-24",
+  "lastUpdated": "2026-07-02",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -1620,6 +1620,7 @@
         "setupIPC",
         "validateSpecStatus",
         "listSpecs",
+        "searchSpecs",
         "getSpec",
         "createSpec",
         "updateSpecStatus",
@@ -1832,15 +1833,23 @@
             "slug"
           ]
         },
+        "searchSpecs": {
+          "line": 487,
+          "params": [
+            "projectPath",
+            "query"
+          ],
+          "purpose": "result with the active phase filter."
+        },
         "createSpec": {
-          "line": 480,
+          "line": 508,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 522,
+          "line": 550,
           "params": [
             "projectPath",
             "slug",
@@ -1848,14 +1857,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 540,
+          "line": 568,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 557,
+          "line": 585,
           "params": [
             "projectPath",
             "oldSlug",
@@ -1864,30 +1873,30 @@
           "purpose": "Returns { success: true, slug, status } on success, { error } on failure."
         },
         "startWatching": {
-          "line": 664,
+          "line": 692,
           "params": [
             "projectPath"
           ],
           "purpose": "across all three platforms — if that ever changes, swap in a poller."
         },
         "stopWatching": {
-          "line": 706
+          "line": 734
         },
         "pushSpecData": {
-          "line": 726,
+          "line": 754,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 737,
+          "line": 765,
           "params": [
             "window"
           ],
           "purpose": "─── Init + IPC ────────────────────────────────────────────"
         },
         "setupIPC": {
-          "line": 741,
+          "line": 769,
           "params": [
             "ipcMain"
           ]
@@ -1896,6 +1905,7 @@
       "ipc": {
         "listens": [
           "LIST_SPECS",
+          "SEARCH_SPECS",
           "GET_SPEC",
           "CREATE_SPEC",
           "UPDATE_SPEC_STATUS",
@@ -4592,78 +4602,91 @@
       ],
       "functions": {
         "init": {
-          "line": 49
+          "line": 54
         },
         "setupIPCListeners": {
-          "line": 81
+          "line": 90
         },
         "show": {
-          "line": 119,
+          "line": 131,
           "purpose": "─── Visibility ──────────────────────────────────────────"
         },
         "hide": {
-          "line": 150
+          "line": 163
         },
         "toggle": {
-          "line": 157
+          "line": 170
         },
         "renderFilters": {
-          "line": 163,
+          "line": 176,
           "purpose": "─── Filters ─────────────────────────────────────────────"
         },
         "applyFilter": {
-          "line": 177,
+          "line": 190,
           "params": [
             "specsList"
           ]
         },
+        "setupSearch": {
+          "line": 206,
+          "purpose": "─── Search ──────────────────────────────────────────────"
+        },
+        "runSearch": {
+          "line": 220,
+          "params": [
+            "rawQuery"
+          ]
+        },
+        "clearSearch": {
+          "line": 243
+        },
         "renderGrid": {
-          "line": 190,
+          "line": 254,
           "purpose": "─── Grid ────────────────────────────────────────────────"
         },
         "renderCard": {
-          "line": 218,
+          "line": 284,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 250,
+          "line": 316,
           "params": [
             "slug"
           ],
           "purpose": "─── Detail aside ───────────────────────────────────────"
         },
         "clearSelection": {
-          "line": 258
+          "line": 324
         },
         "reloadDetail": {
-          "line": 266
+          "line": 332
         },
         "renderDetailHeader": {
-          "line": 282
+          "line": 348
         },
         "nextActionForPhase": {
-          "line": 354,
+          "line": 420,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 370,
+          "line": 436,
           "params": [
             "action",
             "lane"
           ]
         },
         "runSpecCommand": {
-          "line": 401,
+          "line": 467,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 412,
+          "line": 478,
           "params": [
             "tab",
             "label",
@@ -4671,57 +4694,57 @@
           ]
         },
         "renderDetailBody": {
-          "line": 418
+          "line": 484
         },
         "renderTasksTabBody": {
-          "line": 439
+          "line": 505
         },
         "renderSpecTaskRow": {
-          "line": 476,
+          "line": 542,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 525
+          "line": 591
         },
         "handleSpecTaskAction": {
-          "line": 538,
+          "line": 604,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 549,
+          "line": 615,
           "purpose": "─── Helpers ────────────────────────────────────────────"
         },
         "tasksTabLabel": {
-          "line": 555,
+          "line": 621,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 564,
+          "line": 630,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 569,
+          "line": 635,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 575,
+          "line": 641,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 586,
+          "line": 652,
           "params": [
             "projectPath"
           ]
@@ -7872,6 +7895,11 @@
       },
       "ORCH_REMOVE_WORKER": {
         "name": "orch-remove-worker",
+        "direction": "",
+        "description": ""
+      },
+      "SEARCH_SPECS": {
+        "name": "search-specs",
         "direction": "",
         "description": ""
       }
