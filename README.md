@@ -4,7 +4,7 @@
 
 <h1 align="center">Frame</h1>
 
-<p align="center"><strong>The platform for agentic development.</strong></p>
+<p align="center"><strong>Spec-driven development that becomes durable, structural context — built on Claude Code.</strong></p>
 
 <p align="center">
   <a href="https://frame.cool"><img src="https://img.shields.io/badge/website-frame.cool-d4a574" alt="Website"></a>
@@ -21,10 +21,13 @@ the foundation didn't: good results still come from good planning. Frame puts
 planning back at the center. You write a spec once, and that single spec
 becomes three things at once: the plan your agents follow, a clean unit of work
 you can run in parallel without collisions, and the durable, shared context
-your project keeps across every session. No more re-explaining your
-architecture every time you open a terminal.
+your project keeps across every session. Every future agent arrives knowing
+what was done and why — no more re-explaining your architecture every time you
+open a terminal.
 
-Works with Claude Code, Codex CLI, and Gemini CLI.
+Built on Claude Code. Codex CLI and Gemini CLI work too — and because your
+context lives in plain, git-versioned files, it stays yours and stays readable
+by any tool.
 
 https://github.com/user-attachments/assets/6fe108d1-70c8-441e-a913-b34583c803b0
 
@@ -105,7 +108,10 @@ Two principles shaped this:
 
 ### Agent Orchestration
 
-Specs make features durable. Orchestration makes them **parallel.**
+Running agents in parallel is easy — every tool does it now. Landing their
+work into `main` without chaos is the hard part. That's what Frame's
+orchestration is built for: specs make features durable, orchestration makes
+them **parallel and safe to land.**
 
 Open the Orchestrator and hand a **conductor** agent several ready specs. It runs them at the same time — each spec in its own **git worktree**, worked by its own agent, fully isolated. No two agents fighting over the same files, no half-finished work bleeding into your working tree.
 
@@ -150,6 +156,10 @@ Switch between AI tools without leaving Frame:
 - **Claude Code** — reads `CLAUDE.md` natively (symlink to AGENTS.md)
 - **Codex CLI** — wrapper script at `.frame/bin/codex` injects AGENTS.md as initial prompt
 - **Gemini CLI** — reads `GEMINI.md` natively
+
+Multi-AI is a principle here, not a race: Frame goes deep on Claude Code, and
+keeps your specs, plans, outcomes, and notes in plain markdown and JSON — so
+the context your work produces outlives any single tool, including Frame.
 
 ---
 
