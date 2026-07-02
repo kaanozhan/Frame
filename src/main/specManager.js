@@ -477,6 +477,34 @@ function getSpec(projectPath, slug) {
   };
 }
 
+/**
+ * Search specs by keyword over their spec.md content. Case-insensitive
+ * substring match. Returns the array of matching slugs, or null for an
+ * empty/whitespace query (meaning "no search active" — caller shows all).
+ * Used by the specs dashboard search box; the renderer intersects the
+ * result with the active phase filter.
+ */
+function searchSpecs(projectPath, query) {
+  const q = (query || '').trim().toLowerCase();
+  if (!q) return null;
+  const root = getSpecsRoot(projectPath);
+  if (!fs.existsSync(root)) return [];
+  let entries;
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch (err) {
+    console.error('specManager: searchSpecs readdir failed', err);
+    return [];
+  }
+  const matches = [];
+  for (const ent of entries) {
+    if (!ent.isDirectory()) continue;
+    const body = readFileSafe(path.join(getSpecDir(projectPath, ent.name), SPEC_FILE));
+    if (body && body.toLowerCase().includes(q)) matches.push(ent.name);
+  }
+  return matches;
+}
+
 function createSpec(projectPath, opts) {
   const { title, ai_tool, description } = opts || {};
   if (!title || typeof title !== 'string') return { error: 'title required' };
@@ -742,6 +770,9 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.LIST_SPECS, (event, projectPath) =>
     listSpecs(projectPath)
   );
+  ipcMain.handle(IPC.SEARCH_SPECS, (event, { projectPath, query }) =>
+    searchSpecs(projectPath, query)
+  );
   ipcMain.handle(IPC.GET_SPEC, (event, { projectPath, slug }) =>
     getSpec(projectPath, slug)
   );
@@ -775,6 +806,7 @@ module.exports = {
   generateSlug,
   validateSpecStatus,
   listSpecs,
+  searchSpecs,
   getSpec,
   createSpec,
   updateSpecStatus,
