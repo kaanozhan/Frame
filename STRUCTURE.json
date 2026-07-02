@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-02",
+  "lastUpdated": "2026-06-26",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -1287,15 +1287,15 @@
           "purpose": "Toggle plugin enabled/disabled status"
         },
         "ensureOfficialMarketplace": {
-          "line": 163,
+          "line": 188,
           "purpose": "Ensure official marketplace exists"
         },
         "refreshMarketplace": {
-          "line": 192,
+          "line": 217,
           "purpose": "Refresh marketplace plugins (git pull or clone)"
         },
         "setupIPC": {
-          "line": 220,
+          "line": 245,
           "params": [
             "ipcMain"
           ],

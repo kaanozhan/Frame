@@ -138,7 +138,23 @@ function getAllPlugins() {
  * Toggle plugin enabled/disabled status
  */
 function togglePlugin(pluginId) {
-  const settings = readJsonFile(SETTINGS_FILE) || {};
+  // This file is the user's GLOBAL Claude config — it can hold custom API /
+  // router / env / permission settings we don't own. Never overwrite a file we
+  // couldn't read: if it exists but doesn't parse, abort instead of clobbering
+  // it with just { enabledPlugins }, which would reset their config to default.
+  let settings;
+  if (fs.existsSync(SETTINGS_FILE)) {
+    settings = readJsonFile(SETTINGS_FILE);
+    if (settings === null || typeof settings !== 'object' || Array.isArray(settings)) {
+      return {
+        success: false,
+        pluginId,
+        error: 'Could not parse ~/.claude/settings.json — refusing to overwrite it so your custom settings stay intact. Fix or remove that file, then try again.'
+      };
+    }
+  } else {
+    settings = {};
+  }
 
   if (!settings.enabledPlugins) {
     settings.enabledPlugins = {};
@@ -147,6 +163,15 @@ function togglePlugin(pluginId) {
   // Toggle the status
   const currentStatus = settings.enabledPlugins[pluginId] === true;
   settings.enabledPlugins[pluginId] = !currentStatus;
+
+  // Belt and suspenders: back up the existing file before we touch it.
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      fs.copyFileSync(SETTINGS_FILE, SETTINGS_FILE + '.bak');
+    }
+  } catch (err) {
+    console.error('Could not back up settings.json:', err);
+  }
 
   const success = writeJsonFile(SETTINGS_FILE, settings);
 
