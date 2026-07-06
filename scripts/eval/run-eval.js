@@ -87,6 +87,11 @@ function runOne(task, arm, resultsDir, timeoutSec) {
       git('git -c user.email=eval@frame -c user.name=frame-eval commit -q --no-verify -m "strip frame context (bare arm)"', wt);
     }
 
+    // Diff base: some agents commit their own work in the worktree, which
+    // would make a HEAD-relative diff empty — always diff against the sha
+    // the agent started from.
+    const baseSha = git('git rev-parse HEAD', wt).trim();
+
     const started = Date.now();
     const result = spawnSync(AGENT_CMD, [...AGENT_ARGS, '-p', task.prompt], {
       cwd: wt,
@@ -104,9 +109,9 @@ function runOne(task, arm, resultsDir, timeoutSec) {
     // Capture the produced diff BEFORE the successCheck runs — the check may
     // itself mutate the worktree (e.g. regenerating STRUCTURE.json).
     git('git add -A', wt);
-    const diff = git('git diff --cached', wt);
+    const diff = git(`git diff ${baseSha}`, wt);
     fs.writeFileSync(path.join(runDir, 'diff.patch'), diff);
-    const changedFiles = git('git diff --cached --name-only', wt)
+    const changedFiles = git(`git diff ${baseSha} --name-only`, wt)
       .split('\n').filter(Boolean);
 
     let checkPassed = false;
