@@ -383,6 +383,13 @@ function sortKeys(obj) {
 function saveStructure(structure) {
   structure.modules = sortKeys(structure.modules);
 
+  // architectureNotes is hand-written insight: preserved verbatim across
+  // regens when present, omitted entirely when empty — never emit an empty
+  // object that looks populated.
+  if (structure.architectureNotes && Object.keys(structure.architectureNotes).length === 0) {
+    delete structure.architectureNotes;
+  }
+
   let previous = null;
   try {
     previous = JSON.parse(fs.readFileSync(STRUCTURE_FILE, 'utf-8'));

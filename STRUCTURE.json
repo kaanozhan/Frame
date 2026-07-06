@@ -8805,5 +8805,12 @@
         "description": "Terminal Top Bar Module (historically the tab bar)"
       }
     ]
+  },
+  "architectureNotes": {
+    "manager-panel-ipc": "Each feature is a pair: src/main/<x>Manager.js (main process — fs, git, child processes) + src/renderer/<x>Panel.js (UI). They talk only over IPC channels declared as constants in src/shared/ipcChannels.js (the IPC object); adding a feature means adding its channels there first.",
+    "renderer-bundle": "The renderer is bundled by esbuild into dist/renderer.js (npm run build / npm run watch); index.html loads the bundle, so renderer edits do nothing until a rebuild. Main-process files are loaded directly by Electron, no bundling.",
+    "orchestration-command-bus": "Conductor/worker agents never call Frame directly — they run .frame/bin scripts (dispatch.js, report-done.js, merge.js, status.js) that write request files; src/main/orchestrationManager.js watches the bus, owns worktrees under .frame/worktrees/, enforces the footprint conflict guard, and fast-forward merges into frame/<slug>/integration. main is never touched.",
+    "meta-file-watchers": "tasks.json / STRUCTURE.json / spec status.json are written by both Frame and external agents; main-process managers watch them with self-write debouncing (lastSelfWriteAt) so external edits reconcile without clobbering. Write whole-file JSON, never partial.",
+    "dual-homed-scripts": "Everything in scripts/ (update-structure, find-module, check-freshness, intent-map.json) is dual-homed: it runs from this repo AND is copied into user projects .frame/bin/ by structureBootstrap. Scripts must resolve the project root via FRAME_PROJECT_ROOT with a repo-relative fallback and stay dependency-free."
   }
 }
