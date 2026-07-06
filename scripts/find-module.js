@@ -14,12 +14,14 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 // FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user
 // project. Frame's own callers don't set it — behavior is unchanged.
-const STRUCTURE_FILE = process.env.FRAME_PROJECT_ROOT
-  ? path.join(path.resolve(process.env.FRAME_PROJECT_ROOT), 'STRUCTURE.json')
-  : path.join(__dirname, '..', 'STRUCTURE.json');
+const ROOT_DIR = process.env.FRAME_PROJECT_ROOT
+  ? path.resolve(process.env.FRAME_PROJECT_ROOT)
+  : path.join(__dirname, '..');
+const STRUCTURE_FILE = path.join(ROOT_DIR, 'STRUCTURE.json');
 
 function loadStructure() {
   try {
@@ -28,6 +30,39 @@ function loadStructure() {
     console.error('Error: Could not read STRUCTURE.json');
     process.exit(1);
   }
+}
+
+/**
+ * Load the curated concept map (synonyms live here). Sits next to this
+ * script both in Frame's repo (scripts/) and user projects (.frame/bin/).
+ */
+function loadIntentMap() {
+  try {
+    const map = JSON.parse(fs.readFileSync(path.join(__dirname, 'intent-map.json'), 'utf-8'));
+    delete map._comment;
+    return map;
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * One-line warning when STRUCTURE.json predates the last commit touching src
+ */
+function stalenessBanner(structure) {
+  try {
+    const lastSrcCommit = execSync('git log -1 --format=%cs -- src', {
+      cwd: ROOT_DIR,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
+    if (lastSrcCommit && structure.lastUpdated && structure.lastUpdated < lastSrcCommit) {
+      return `⚠ STRUCTURE.json (${structure.lastUpdated}) is older than the last src commit (${lastSrcCommit}) — run: npm run structure`;
+    }
+  } catch (e) {
+    // Not a git repo or git unavailable — no banner
+  }
+  return null;
 }
 
 /**
@@ -50,7 +85,18 @@ function searchIntentIndex(structure, keyword) {
     }
   }
 
-  // 2. Partial match in intentIndex keys
+  // 2. Synonym match from intent-map.json (e.g. "auth" → ai-tool)
+  if (results.length === 0) {
+    const intentMap = loadIntentMap();
+    for (const [concept, entry] of Object.entries(intentMap)) {
+      const synonyms = (entry.synonyms || []).map(s => s.toLowerCase());
+      if (synonyms.includes(kw) && index[concept]) {
+        results.push({ feature: `${concept} (synonym: "${keyword}")`, modules: index[concept], matchType: 'synonym' });
+      }
+    }
+  }
+
+  // 3. Partial match in intentIndex keys
   if (results.length === 0) {
     for (const [feature, modules] of Object.entries(index)) {
       if (feature.includes(kw) || kw.includes(feature)) {
@@ -59,7 +105,7 @@ function searchIntentIndex(structure, keyword) {
     }
   }
 
-  // 3. Search in module descriptions, exports, IPC channels
+  // 4. Search in module descriptions, exports, IPC channels
   if (results.length === 0) {
     const matchedModules = [];
     for (const [key, mod] of Object.entries(structure.modules)) {
@@ -108,7 +154,7 @@ function listFeatures(structure) {
 /**
  * Format and print results
  */
-function printResults(results, keyword) {
+function printResults(structure, results, keyword) {
   if (results.length === 0) {
     console.log(`No modules found for "${keyword}"`);
     console.log('Try: node scripts/find-module.js --list');
@@ -119,11 +165,13 @@ function printResults(results, keyword) {
     console.log(`Feature: ${result.feature}`);
     for (const mod of result.modules) {
       const desc = mod.description ? ` — ${mod.description}` : '';
-      console.log(`  ${mod.file.padEnd(42)}${desc}`);
+      const missing = fs.existsSync(path.join(ROOT_DIR, mod.file))
+        ? ''
+        : '  ⚠ file missing on disk — run: npm run structure';
+      console.log(`  ${mod.file.padEnd(42)}${desc}${missing}`);
     }
 
     // Show related IPC channels
-    const structure = loadStructure();
     const ipcChannels = [];
     for (const mod of result.modules) {
       const modInfo = structure.modules[mod.module];
@@ -149,10 +197,15 @@ if (args.length === 0) {
 
 const structure = loadStructure();
 
+const banner = stalenessBanner(structure);
+if (banner) {
+  console.log(banner + '\n');
+}
+
 if (args[0] === '--list') {
   listFeatures(structure);
 } else {
   const keyword = args.join(' ');
   const results = searchIntentIndex(structure, keyword);
-  printResults(results, keyword);
+  printResults(structure, results, keyword);
 }
