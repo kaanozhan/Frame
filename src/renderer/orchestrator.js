@@ -286,6 +286,7 @@ function stageOf(w) {
     case 'idle': return 'running';
     case 'blocked': return 'blocked';
     case 'failed': return 'failed';
+    case 'recovered': return 'recovered'; // restart survivor, no live lane — off-track row
     case 'done': return w.merged ? 'approved' : 'done';
     default: return 'running';
   }
@@ -317,7 +318,7 @@ function renderPipeline(root) {
   });
   html += '</div>';
 
-  const off = [...(byStage.blocked || []), ...(byStage.failed || [])];
+  const off = [...(byStage.blocked || []), ...(byStage.failed || []), ...(byStage.recovered || [])];
   if (off.length) {
     html += `<div class="orch-pipe-offtrack">${off.map(chip).join('')}</div>`;
   }
@@ -331,7 +332,7 @@ function renderPipeline(root) {
 
 const WORKER_STATUS_LABEL = {
   queued: 'Queued', blocked: 'Blocked', running: 'Running',
-  idle: 'Idle', done: 'Done', failed: 'Failed'
+  idle: 'Idle', done: 'Done', failed: 'Failed', recovered: 'Recovered'
 };
 
 function renderWorkerZone(root) {
@@ -367,13 +368,16 @@ function renderWorkerZone(root) {
       ${fp.length ? `<div class="orch-worker-fp" title="${_esc(fp.join('\n'))}">footprint: ${_esc(fp.slice(0, 3).join(', '))}${fp.length > 3 ? ` +${fp.length - 3}` : ''}</div>` : ''}
       <div class="orch-worker-actions">
         <button class="orch-wbtn act-open" ${w.terminalId ? '' : 'disabled'} title="Open this worker's terminal">Open</button>
-        <button class="orch-wbtn act-merge" ${['running', 'idle', 'done'].includes(w.status) ? '' : 'disabled'} title="Approve this worker's changes — collects its branch into the spec's integration branch (main stays manual)">Approve</button>
+        ${w.status === 'recovered' ? '<button class="orch-wbtn act-resume" title="Relaunch an agent lane in this worker\'s existing worktree — prior work is kept">Resume</button>' : ''}
+        <button class="orch-wbtn act-merge" ${['running', 'idle', 'done', 'recovered'].includes(w.status) ? '' : 'disabled'} title="Approve this worker's changes — collects its branch into the spec's integration branch (main stays manual)">Approve</button>
         <button class="orch-wbtn act-remove" title="Remove the worktree (un-merged work stays on its branch)">Remove</button>
       </div>
     `;
     card.querySelector('.orch-worker-slug').textContent = w.slug;
     const openBtn = card.querySelector('.act-open');
     if (w.terminalId) openBtn.addEventListener('click', () => host.enterLane(w.terminalId));
+    const resumeBtn = card.querySelector('.act-resume');
+    if (resumeBtn) resumeBtn.addEventListener('click', () => resumeWorkerAction(w.slug));
     card.querySelector('.act-merge').addEventListener('click', () => mergeWorkerAction(w.slug));
     card.querySelector('.act-remove').addEventListener('click', () => removeWorkerAction(w.slug));
     list.appendChild(card);
@@ -398,6 +402,14 @@ async function mergeWorkerAction(slug) {
   } else {
     _toast(`Approve failed: ${res.error || 'unknown'}`, 'error');
   }
+}
+
+async function resumeWorkerAction(slug) {
+  let res;
+  try { res = await ipcRenderer.invoke(IPC.ORCH_RESUME_WORKER, { projectPath: state.getProjectPath(), slug }); }
+  catch (e) { res = { error: e.message }; }
+  if (res && res.success) _toast(`Resuming "${slug}" in its existing worktree`, 'info');
+  else _toast(`Resume failed: ${(res && res.error) || 'unknown'}`, 'error');
 }
 
 async function removeWorkerAction(slug) {
