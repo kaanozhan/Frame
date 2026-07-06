@@ -247,6 +247,17 @@ function initializeFrameProject(projectPath, projectName) {
     agentsContent
   );
 
+  // .frame/docs/REFERENCE.md — the reference-on-demand companion to the lean
+  // AGENTS.md core (meta-file maintenance rules, loaded only when needed)
+  const docsDirPath = path.join(frameDirPath, 'docs');
+  if (!fs.existsSync(docsDirPath)) {
+    fs.mkdirSync(docsDirPath, { recursive: true });
+  }
+  createFileIfNotExists(
+    path.join(docsDirPath, 'REFERENCE.md'),
+    templates.getReferenceTemplate(name)
+  );
+
   // CLAUDE.md - Symlink to AGENTS.md for Claude Code compatibility
   createSymlinkSafe(
     FRAME_FILES.AGENTS,
@@ -373,6 +384,15 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
     fs.writeFileSync(gitkeepPath, '', 'utf8');
   }
 
+  // Make sure .frame/docs/REFERENCE.md exists — the short spec section in
+  // AGENTS.md points into it, and pre-split projects won't have it yet
+  const docsDir = path.join(projectPath, FRAME_DIR, 'docs');
+  fs.mkdirSync(docsDir, { recursive: true });
+  const referencePath = path.join(docsDir, 'REFERENCE.md');
+  if (!fs.existsSync(referencePath)) {
+    fs.writeFileSync(referencePath, templates.getReferenceTemplate(name), 'utf8');
+  }
+
   // Make sure AGENTS.md has the Spec-Driven Development section so AI
   // tools learn the workflow. We never rewrite the whole file — projects
   // routinely customize their AGENTS.md with their own conventions, and
@@ -391,7 +411,9 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
   if (!existing) {
     fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true }), 'utf8');
   } else if (!existing.includes('Spec-Driven Development')) {
-    const sectionBlock = `\n\n---\n\n${templates.SPEC_DRIVEN_SECTION}\n`;
+    // Append the short core section — the full workflow lives in
+    // .frame/docs/REFERENCE.md, which is guaranteed to exist above
+    const sectionBlock = `\n\n---\n\n${templates.SPEC_DRIVEN_CORE_SECTION}\n`;
     const footerMarker = '*This file was automatically created by Frame.';
     const footerIdx = existing.indexOf(footerMarker);
     let updated;
