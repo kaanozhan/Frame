@@ -66,6 +66,7 @@ const IPC = {
   TERMINAL_FOCUS: 'terminal-focus',
   GET_AVAILABLE_SHELLS: 'get-available-shells',
   AVAILABLE_SHELLS_DATA: 'available-shells-data',
+  RECONCILE_TERMINALS: 'reconcile-terminals',
 
   // Tasks Panel
   LOAD_TASKS: 'load-tasks',
@@ -75,6 +76,7 @@ const IPC = {
   DELETE_TASK: 'delete-task',
   REORDER_TASKS: 'reorder-tasks',
   TASK_UPDATED: 'task-updated',
+  TASKS_FILE_ERROR: 'tasks-file-error',
   TOGGLE_TASKS_PANEL: 'toggle-tasks-panel',
   TOGGLE_TASKS_DASHBOARD: 'toggle-tasks-dashboard',
 
@@ -142,6 +144,11 @@ const IPC = {
   // Telemetry (Aptabase, opt-out via Settings)
   TELEMETRY_SET_ENABLED: 'telemetry-set-enabled',
 
+  // Health / crash recovery (main → renderer notices)
+  MAIN_PROCESS_ERROR: 'main-process-error',
+  STATE_FILE_RECOVERED: 'state-file-recovered',
+  GET_LOG_INFO: 'get-log-info',
+
   // Settings UI (open settings modal from menu)
   OPEN_SETTINGS: 'open-settings',
 
@@ -174,7 +181,8 @@ const IPC = {
   ORCH_SPAWN_WORKER: 'orch-spawn-worker',            // main → renderer: create a worker lane (slug, worktreeDir, env) + dispatch
   ORCH_WORKER_LANE: 'orch-worker-lane',              // renderer → main: report the terminalId it created for a worker
   ORCH_MERGE_WORKER: 'orch-merge-worker',            // renderer → main: merge a worker's branch (per-worker board action)
-  ORCH_REMOVE_WORKER: 'orch-remove-worker'           // renderer → main: cleanup a worker (worktree + branch)
+  ORCH_REMOVE_WORKER: 'orch-remove-worker',          // renderer → main: cleanup a worker (worktree + branch)
+  ORCH_RESUME_WORKER: 'orch-resume-worker'           // renderer → main: relaunch a recovered worker's lane in its existing worktree
 };
 
 module.exports = { IPC };

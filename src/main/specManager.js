@@ -13,6 +13,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
@@ -107,20 +108,20 @@ function readFileSafe(p) {
 }
 
 function readStatus(projectPath, slug) {
-  const raw = readFileSafe(path.join(getSpecDir(projectPath, slug), STATUS_FILE));
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('specManager: status.json parse failed', slug, err);
-    return null;
+  const statusPath = path.join(getSpecDir(projectPath, slug), STATUS_FILE);
+  const { data, source, error } = fsSafe.readJsonWithRecovery(statusPath);
+  if (source === 'bak') {
+    console.error('specManager: status.json was corrupt — restored from .bak', slug);
+  } else if (error) {
+    console.error('specManager: status.json parse failed (corrupt copy preserved)', slug, error.message);
   }
+  return data;
 }
 
 function writeStatus(projectPath, slug, status) {
   const dir = getSpecDir(projectPath, slug);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, STATUS_FILE), JSON.stringify(status, null, 2) + '\n', 'utf8');
+  fsSafe.writeFileAtomic(path.join(dir, STATUS_FILE), JSON.stringify(status, null, 2) + '\n');
 }
 
 // ─── Public API ────────────────────────────────────────────
@@ -701,10 +702,10 @@ function startWatching(projectPath) {
     return;
   }
   try {
-    activeWatcher = fs.watch(root, { recursive: true }, () => {
+    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, () => {
       if (watchDebounce) clearTimeout(watchDebounce);
       watchDebounce = setTimeout(() => pushSpecData(projectPath), WATCH_DEBOUNCE_MS);
-    });
+    }, () => { activeWatcher = null; });
     activeWatchedProject = projectPath;
   } catch (err) {
     console.error('specManager: fs.watch failed', err);
@@ -718,10 +719,10 @@ function startWatching(projectPath) {
   const tasksJsonPath = path.join(projectPath, 'tasks.json');
   if (fs.existsSync(tasksJsonPath)) {
     try {
-      activeTasksWatcher = fs.watch(tasksJsonPath, () => {
+      activeTasksWatcher = fsSafe.safeWatch(tasksJsonPath, null, () => {
         if (tasksWatchDebounce) clearTimeout(tasksWatchDebounce);
         tasksWatchDebounce = setTimeout(() => pushSpecData(projectPath), WATCH_DEBOUNCE_MS);
-      });
+      }, () => { activeTasksWatcher = null; });
     } catch (err) {
       console.error('specManager: tasks.json watch failed', err);
     }
