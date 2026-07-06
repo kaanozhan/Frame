@@ -545,74 +545,75 @@ function main() {
 }
 
 /**
- * Generate intentIndex from module keys
- * Groups related modules by feature name (e.g. githubManager + githubPanel → "github")
+ * Load the curated concept→modules map (agent-editable).
+ * Lives next to this script so it works both in Frame's repo (scripts/) and
+ * in user projects (.frame/bin/). Missing file → pure auto-grouping.
+ */
+function loadIntentMap() {
+  try {
+    const map = JSON.parse(fs.readFileSync(path.join(__dirname, 'intent-map.json'), 'utf-8'));
+    delete map._comment;
+    return map;
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * Generate intentIndex: curated concepts from intent-map.json first, then
+ * auto-grouping by stripped filename suffix — but only for groups spanning
+ * ≥ 2 files. Thin single-file intents are dropped; find-module.js's deep
+ * search over module keys/descriptions still finds them.
  */
 function generateIntentIndex(structure) {
   const modules = structure.modules;
+  const intentMap = loadIntentMap();
   const groups = {};
+  const claimed = new Set();
 
-  // Suffixes to strip for grouping
+  const toEntry = (key) => ({
+    module: key,
+    file: modules[key].file,
+    description: modules[key].description || ''
+  });
+
+  // 1. Curated concepts — skip module keys that no longer exist
+  for (const [concept, entry] of Object.entries(intentMap)) {
+    const mods = (entry.modules || []).filter(key => modules[key]);
+    if (mods.length === 0) continue;
+    groups[concept] = mods.map(toEntry);
+    mods.forEach(key => claimed.add(key));
+  }
+
+  // 2. Auto-group unclaimed modules by stripped suffix
   const suffixes = ['Manager', 'Panel', 'UI', 'Selector', 'TabBar', 'Grid'];
+  const autoGroups = {};
 
-  // Special aliases: module base name → intent name
-  const aliases = {
-    'pty': 'terminal',
-    'ptyManager': 'terminal',
-    'terminal': 'terminal',
-    'terminalManager': 'terminal',
-    'terminalGrid': 'terminal',
-    'terminalTabBar': 'terminal',
-    'multiTerminalUI': 'terminal',
-    'promptLogger': 'history',
-    'historyPanel': 'history',
-    'fileTree': 'file-tree',
-    'fileTreeUI': 'file-tree',
-    'ipcChannels': 'ipc',
-    'frameConstants': 'frame-config',
-    'frameTemplates': 'frame-config',
-    'frameProject': 'frame-config',
-    'sidebarResize': 'sidebar',
-    'projectListUI': 'sidebar',
-    'structureMap': 'structure',
-    'claudeUsageManager': 'claude-usage',
-    'claudeSessionsManager': 'claude-sessions',
-    'gitBranchesManager': 'git-branches',
-    'aiToolManager': 'ai-tool',
-    'aiToolSelector': 'ai-tool'
-  };
+  for (const [key] of Object.entries(modules)) {
+    if (claimed.has(key)) continue;
 
-  for (const [key, mod] of Object.entries(modules)) {
-    const parts = key.split('/');
-    const baseName = parts[parts.length - 1]; // e.g. "githubManager"
-
-    let intentName;
-
-    // Check aliases first
-    if (aliases[baseName]) {
-      intentName = aliases[baseName];
-    } else {
-      // Strip known suffixes to get the feature name
-      intentName = baseName;
-      for (const suffix of suffixes) {
-        if (intentName.endsWith(suffix) && intentName.length > suffix.length) {
-          intentName = intentName.slice(0, -suffix.length);
-          break;
-        }
+    const baseName = key.split('/').pop();
+    let intentName = baseName;
+    for (const suffix of suffixes) {
+      if (intentName.endsWith(suffix) && intentName.length > suffix.length) {
+        intentName = intentName.slice(0, -suffix.length);
+        break;
       }
-      // Convert camelCase to kebab-case
-      intentName = intentName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
     }
+    intentName = intentName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 
-    if (!groups[intentName]) {
-      groups[intentName] = [];
+    // A curated concept owns its name — an unclaimed module that happens to
+    // strip to the same name stays out (deep search still finds it)
+    if (groups[intentName]) continue;
+
+    if (!autoGroups[intentName]) autoGroups[intentName] = [];
+    autoGroups[intentName].push(toEntry(key));
+  }
+
+  for (const [name, mods] of Object.entries(autoGroups)) {
+    if (mods.length >= 2) {
+      groups[name] = mods;
     }
-
-    groups[intentName].push({
-      module: key,
-      file: mod.file,
-      description: mod.description || ''
-    });
   }
 
   // Sort groups alphabetically and sort modules within each group

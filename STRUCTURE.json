@@ -8398,20 +8398,6 @@
   "files": {},
   "conventions": {},
   "intentIndex": {
-    "agent": [
-      {
-        "module": "renderer/agentPanel",
-        "file": "src/renderer/agentPanel.js",
-        "description": "Agent Panel"
-      }
-    ],
-    "agent-dispatch": [
-      {
-        "module": "renderer/agentDispatch",
-        "file": "src/renderer/agentDispatch.js",
-        "description": "Agent Dispatch Module"
-      }
-    ],
     "ai-tool": [
       {
         "module": "main/aiToolManager",
@@ -8422,20 +8408,6 @@
         "module": "renderer/aiToolSelector",
         "file": "src/renderer/aiToolSelector.js",
         "description": "AI Tool Selector Module"
-      }
-    ],
-    "app-loader": [
-      {
-        "module": "renderer/appLoader",
-        "file": "src/renderer/appLoader.js",
-        "description": "App Loader"
-      }
-    ],
-    "cheat-sheet": [
-      {
-        "module": "renderer/cheatSheet",
-        "file": "src/renderer/cheatSheet.js",
-        "description": "Keyboard Shortcut Cheat Sheet"
       }
     ],
     "claude-sessions": [
@@ -8452,66 +8424,44 @@
         "description": "Claude Usage Manager Module"
       }
     ],
-    "client": [
+    "commands": [
       {
-        "module": "templates/sample-project/src/db/client",
-        "file": "src/templates/sample-project/src/db/client.js",
-        "description": "Database client — Postgres connection pool"
-      }
-    ],
-    "command-palette": [
+        "module": "renderer/cheatSheet",
+        "file": "src/renderer/cheatSheet.js",
+        "description": "Keyboard Shortcut Cheat Sheet"
+      },
       {
         "module": "renderer/commandPalette",
         "file": "src/renderer/commandPalette.js",
         "description": "Command Palette"
-      }
-    ],
-    "command-registry": [
+      },
       {
         "module": "renderer/commandRegistry",
         "file": "src/renderer/commandRegistry.js",
         "description": "Command Registry"
       }
     ],
-    "crash-guard": [
+    "crash": [
       {
         "module": "main/crashGuard",
         "file": "src/main/crashGuard.js",
         "description": "Crash Guard — global error handlers for the main process."
-      }
-    ],
-    "dialogs": [
+      },
       {
-        "module": "main/dialogs",
-        "file": "src/main/dialogs.js",
-        "description": "Dialogs Module"
-      }
-    ],
-    "diff-section": [
-      {
-        "module": "renderer/diffSection",
-        "file": "src/renderer/diffSection.js",
-        "description": "Diff Section Module"
-      }
-    ],
-    "diff-viewer": [
-      {
-        "module": "renderer/diffViewer",
-        "file": "src/renderer/diffViewer.js",
-        "description": "Diff Viewer Overlay (read-only)"
+        "module": "renderer/healthNotice",
+        "file": "src/renderer/healthNotice.js",
+        "description": "Health Notice Banner"
       }
     ],
     "editor": [
       {
-        "module": "renderer/editor",
-        "file": "src/renderer/editor.js",
-        "description": "File Editor Module"
-      }
-    ],
-    "file-editor": [
-      {
         "module": "main/fileEditor",
         "file": "src/main/fileEditor.js",
+        "description": "File Editor Module"
+      },
+      {
+        "module": "renderer/editor",
+        "file": "src/renderer/editor.js",
         "description": "File Editor Module"
       }
     ],
@@ -8544,13 +8494,6 @@
         "description": "Frame Templates"
       }
     ],
-    "fs-safe": [
-      {
-        "module": "main/fsSafe",
-        "file": "src/main/fsSafe.js",
-        "description": "fsSafe — durable state-file primitives"
-      }
-    ],
     "git-branches": [
       {
         "module": "main/gitBranchesManager",
@@ -8560,23 +8503,29 @@
     ],
     "git-changes": [
       {
-        "module": "renderer/gitChangesPanel",
-        "file": "src/renderer/gitChangesPanel.js",
-        "description": "Git Changes Panel (Changes sidebar tab)"
-      }
-    ],
-    "git-diff": [
-      {
         "module": "main/gitDiffManager",
         "file": "src/main/gitDiffManager.js",
         "description": "Git Diff Manager"
-      }
-    ],
-    "git-status": [
+      },
       {
         "module": "main/gitStatusManager",
         "file": "src/main/gitStatusManager.js",
         "description": "Git Status Manager"
+      },
+      {
+        "module": "renderer/diffSection",
+        "file": "src/renderer/diffSection.js",
+        "description": "Diff Section Module"
+      },
+      {
+        "module": "renderer/diffViewer",
+        "file": "src/renderer/diffViewer.js",
+        "description": "Diff Viewer Overlay (read-only)"
+      },
+      {
+        "module": "renderer/gitChangesPanel",
+        "file": "src/renderer/gitChangesPanel.js",
+        "description": "Git Changes Panel (Changes sidebar tab)"
       }
     ],
     "github": [
@@ -8591,13 +8540,6 @@
         "description": "GitHub Panel Module"
       }
     ],
-    "health-notice": [
-      {
-        "module": "renderer/healthNotice",
-        "file": "src/renderer/healthNotice.js",
-        "description": "Health Notice Banner"
-      }
-    ],
     "history": [
       {
         "module": "main/promptLogger",
@@ -8608,6 +8550,11 @@
         "module": "renderer/historyPanel",
         "file": "src/renderer/historyPanel.js",
         "description": "History Panel Module"
+      },
+      {
+        "module": "renderer/promptsPanel",
+        "file": "src/renderer/promptsPanel.js",
+        "description": "Prompts Panel Module"
       }
     ],
     "index": [
@@ -8634,70 +8581,42 @@
         "description": "IPC Channel Constants"
       }
     ],
-    "lane-board": [
-      {
-        "module": "renderer/laneBoard",
-        "file": "src/renderer/laneBoard.js",
-        "description": "Lane Board Module"
-      }
-    ],
-    "lane-detail-rail": [
-      {
-        "module": "renderer/laneDetailRail",
-        "file": "src/renderer/laneDetailRail.js",
-        "description": "Lane Detail Rail Module"
-      }
-    ],
-    "lane-rail": [
-      {
-        "module": "renderer/laneRail",
-        "file": "src/renderer/laneRail.js",
-        "description": "Lane Rail Module"
-      }
-    ],
-    "lane-status": [
-      {
-        "module": "renderer/laneStatus",
-        "file": "src/renderer/laneStatus.js",
-        "description": "Lane Status Module"
-      }
-    ],
-    "logger": [
-      {
-        "module": "main/logger",
-        "file": "src/main/logger.js",
-        "description": "Logger — rotating, redacted log file for the main process."
-      }
-    ],
-    "menu": [
-      {
-        "module": "main/menu",
-        "file": "src/main/menu.js",
-        "description": "Application Menu Module"
-      }
-    ],
-    "oauth": [
-      {
-        "module": "templates/sample-project/src/auth/oauth",
-        "file": "src/templates/sample-project/src/auth/oauth.js",
-        "description": "Google OAuth — Passport strategy + routes"
-      }
-    ],
-    "open-project-modal": [
-      {
-        "module": "renderer/openProjectModal",
-        "file": "src/renderer/openProjectModal.js",
-        "description": "Open Project Modal"
-      }
-    ],
     "orchestration": [
       {
         "module": "main/orchestrationManager",
         "file": "src/main/orchestrationManager.js",
         "description": "Orchestration Manager"
-      }
-    ],
-    "orchestrator": [
+      },
+      {
+        "module": "renderer/agentDispatch",
+        "file": "src/renderer/agentDispatch.js",
+        "description": "Agent Dispatch Module"
+      },
+      {
+        "module": "renderer/agentPanel",
+        "file": "src/renderer/agentPanel.js",
+        "description": "Agent Panel"
+      },
+      {
+        "module": "renderer/laneBoard",
+        "file": "src/renderer/laneBoard.js",
+        "description": "Lane Board Module"
+      },
+      {
+        "module": "renderer/laneDetailRail",
+        "file": "src/renderer/laneDetailRail.js",
+        "description": "Lane Detail Rail Module"
+      },
+      {
+        "module": "renderer/laneRail",
+        "file": "src/renderer/laneRail.js",
+        "description": "Lane Rail Module"
+      },
+      {
+        "module": "renderer/laneStatus",
+        "file": "src/renderer/laneStatus.js",
+        "description": "Lane Status Module"
+      },
       {
         "module": "renderer/orchestrator",
         "file": "src/renderer/orchestrator.js",
@@ -8716,13 +8635,6 @@
         "description": "Overview Panel Module"
       }
     ],
-    "platform": [
-      {
-        "module": "renderer/platform",
-        "file": "src/renderer/platform.js",
-        "description": "Platform helpers"
-      }
-    ],
     "plugins": [
       {
         "module": "main/pluginsManager",
@@ -8735,56 +8647,12 @@
         "description": "Plugins Panel Module"
       }
     ],
-    "project-section": [
+    "settings": [
       {
-        "module": "renderer/projectSection",
-        "file": "src/renderer/projectSection.js",
-        "description": "Projects Section"
-      }
-    ],
-    "project-status-badges": [
-      {
-        "module": "renderer/projectStatusBadges",
-        "file": "src/renderer/projectStatusBadges.js",
-        "description": "Project Status Badges"
-      }
-    ],
-    "prompts": [
-      {
-        "module": "renderer/promptsPanel",
-        "file": "src/renderer/promptsPanel.js",
-        "description": "Prompts Panel Module"
-      }
-    ],
-    "sample-banner": [
-      {
-        "module": "renderer/sampleBanner",
-        "file": "src/renderer/sampleBanner.js",
-        "description": "Sample Mode (banner + auto-opened side panels)"
-      }
-    ],
-    "section-rail": [
-      {
-        "module": "renderer/sectionRail",
-        "file": "src/renderer/sectionRail.js",
-        "description": "Section Rail Module"
-      }
-    ],
-    "server": [
-      {
-        "module": "templates/sample-project/src/api/server",
-        "file": "src/templates/sample-project/src/api/server.js",
-        "description": "Express server — app factory"
-      }
-    ],
-    "session": [
-      {
-        "module": "templates/sample-project/src/auth/session",
-        "file": "src/templates/sample-project/src/auth/session.js",
-        "description": "Session middleware + requireAuth guard"
-      }
-    ],
-    "settings-modal": [
+        "module": "main/userSettings",
+        "file": "src/main/userSettings.js",
+        "description": "User Settings"
+      },
       {
         "module": "renderer/settingsModal",
         "file": "src/renderer/settingsModal.js",
@@ -8803,7 +8671,7 @@
         "description": "Sidebar Resize Module"
       }
     ],
-    "spec": [
+    "specs": [
       {
         "module": "main/specManager",
         "file": "src/main/specManager.js",
@@ -8813,76 +8681,33 @@
         "module": "renderer/specPanel",
         "file": "src/renderer/specPanel.js",
         "description": "Specs Panel Module"
-      }
-    ],
-    "spec-panel-resize": [
+      },
       {
         "module": "renderer/specPanelResize",
         "file": "src/renderer/specPanelResize.js",
         "description": "Specs Panel Resize Module"
-      }
-    ],
-    "spec-section": [
+      },
+      {
+        "module": "renderer/specsDashboard",
+        "file": "src/renderer/specsDashboard.js",
+        "description": "Specs Dashboard Module"
+      },
       {
         "module": "renderer/specSection",
         "file": "src/renderer/specSection.js",
         "description": "Spec Section Module"
       }
     ],
-    "specs-dashboard": [
-      {
-        "module": "renderer/specsDashboard",
-        "file": "src/renderer/specsDashboard.js",
-        "description": "Specs Dashboard Module"
-      }
-    ],
-    "state": [
-      {
-        "module": "renderer/state",
-        "file": "src/renderer/state.js",
-        "description": "Application State Module"
-      }
-    ],
     "structure": [
-      {
-        "module": "renderer/structureMap",
-        "file": "src/renderer/structureMap.js",
-        "description": "Structure Map Module"
-      }
-    ],
-    "structure-bootstrap": [
       {
         "module": "main/structureBootstrap",
         "file": "src/main/structureBootstrap.js",
         "description": "Structure Bootstrap"
-      }
-    ],
-    "task-confirm-modal": [
+      },
       {
-        "module": "renderer/taskConfirmModal",
-        "file": "src/renderer/taskConfirmModal.js",
-        "description": "Task Confirm-Delete Modal"
-      }
-    ],
-    "task-info-modal": [
-      {
-        "module": "renderer/taskInfoModal",
-        "file": "src/renderer/taskInfoModal.js",
-        "description": "Task Info Modal"
-      }
-    ],
-    "task-run-modal": [
-      {
-        "module": "renderer/taskRunModal",
-        "file": "src/renderer/taskRunModal.js",
-        "description": "Task Run Modal"
-      }
-    ],
-    "task-section": [
-      {
-        "module": "renderer/taskSection",
-        "file": "src/renderer/taskSection.js",
-        "description": "Task Section Module"
+        "module": "renderer/structureMap",
+        "file": "src/renderer/structureMap.js",
+        "description": "Structure Map Module"
       }
     ],
     "tasks": [
@@ -8892,21 +8717,34 @@
         "description": "Tasks Manager Module"
       },
       {
-        "module": "renderer/tasksPanel",
-        "file": "src/renderer/tasksPanel.js",
-        "description": "Tasks Panel Module"
+        "module": "renderer/taskConfirmModal",
+        "file": "src/renderer/taskConfirmModal.js",
+        "description": "Task Confirm-Delete Modal"
       },
       {
-        "module": "templates/sample-project/src/api/tasks",
-        "file": "src/templates/sample-project/src/api/tasks.js",
-        "description": "Task CRUD endpoints"
-      }
-    ],
-    "tasks-dashboard": [
+        "module": "renderer/taskInfoModal",
+        "file": "src/renderer/taskInfoModal.js",
+        "description": "Task Info Modal"
+      },
+      {
+        "module": "renderer/taskRunModal",
+        "file": "src/renderer/taskRunModal.js",
+        "description": "Task Run Modal"
+      },
       {
         "module": "renderer/tasksDashboard",
         "file": "src/renderer/tasksDashboard.js",
         "description": "Tasks Dashboard Module"
+      },
+      {
+        "module": "renderer/taskSection",
+        "file": "src/renderer/taskSection.js",
+        "description": "Task Section Module"
+      },
+      {
+        "module": "renderer/tasksPanel",
+        "file": "src/renderer/tasksPanel.js",
+        "description": "Tasks Panel Module"
       }
     ],
     "telemetry": [
@@ -8914,9 +8752,7 @@
         "module": "main/telemetry",
         "file": "src/main/telemetry.js",
         "description": "Telemetry"
-      }
-    ],
-    "telemetry-notice": [
+      },
       {
         "module": "renderer/telemetryNotice",
         "file": "src/renderer/telemetryNotice.js",
@@ -8958,41 +8794,6 @@
         "module": "renderer/terminalTabBar",
         "file": "src/renderer/terminalTabBar.js",
         "description": "Terminal Top Bar Module (historically the tab bar)"
-      }
-    ],
-    "update-checker": [
-      {
-        "module": "main/updateChecker",
-        "file": "src/main/updateChecker.js",
-        "description": "Update Checker Module"
-      }
-    ],
-    "user-settings": [
-      {
-        "module": "main/userSettings",
-        "file": "src/main/userSettings.js",
-        "description": "User Settings"
-      }
-    ],
-    "users": [
-      {
-        "module": "templates/sample-project/src/api/users",
-        "file": "src/templates/sample-project/src/api/users.js",
-        "description": "User + team membership endpoints"
-      }
-    ],
-    "welcome-overlay": [
-      {
-        "module": "renderer/welcomeOverlay",
-        "file": "src/renderer/welcomeOverlay.js",
-        "description": "Welcome Overlay (Launch Greeting)"
-      }
-    ],
-    "workspace": [
-      {
-        "module": "main/workspace",
-        "file": "src/main/workspace.js",
-        "description": "Workspace Module"
       }
     ]
   }
