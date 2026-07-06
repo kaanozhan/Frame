@@ -14,6 +14,7 @@
 const { execFile } = require('child_process');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
+const logger = require('./logger');
 
 const MAX_BUFFER = 20 * 1024 * 1024;
 const DIFF_TIMEOUT_MS = 15000;
@@ -53,13 +54,28 @@ function setupIPC(ipcMain) {
   });
 }
 
+// Set on the first ENOENT from the git binary — see gitStatusManager.
+let gitMissing = false;
+const GIT_MISSING_ERROR = 'git is not installed or not on PATH';
+
 function runDiff(cwd, args) {
+  if (gitMissing) {
+    return Promise.resolve({ stdout: '', stderr: GIT_MISSING_ERROR });
+  }
   return new Promise((resolve) => {
     execFile(
       'git',
       args,
       { cwd, maxBuffer: MAX_BUFFER, timeout: DIFF_TIMEOUT_MS },
       (err, stdout, stderr) => {
+        if (err && err.code === 'ENOENT') {
+          if (!gitMissing) {
+            gitMissing = true;
+            logger.warn('gitDiff', 'git executable not found — diff viewer disabled');
+          }
+          resolve({ stdout: '', stderr: GIT_MISSING_ERROR });
+          return;
+        }
         // `git diff --no-index` exits 1 when files differ — that's the normal
         // "we have a diff" case, not an error. Treat any stdout we got as valid.
         if (err && !stdout) {

@@ -8,6 +8,8 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const os = require('os');
+const fsSafe = require('./fsSafe');
+const logger = require('./logger');
 
 // The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL
 // is often unset, so fall back to the passwd entry — never to /bin/sh, which
@@ -16,7 +18,9 @@ function loginShell() {
   try {
     const s = os.userInfo().shell;
     if (s) return s;
-  } catch {}
+  } catch (e) {
+    logger.warn('aiToolManager', 'userInfo shell lookup failed:', e.message);
+  }
   return process.env.SHELL || '/bin/zsh';
 }
 const { IPC } = require('../shared/ipcChannels');
@@ -93,15 +97,13 @@ function init(window, app) {
  * Load configuration from file
  */
 function loadConfig() {
-  try {
-    if (fs.existsSync(configPath)) {
-      const data = fs.readFileSync(configPath, 'utf8');
-      const loaded = JSON.parse(data);
-      config = { ...config, ...loaded };
-    }
-  } catch (error) {
-    console.error('Error loading AI tool config:', error);
+  const { data, source, error } = fsSafe.readJsonWithRecovery(configPath);
+  if (source === 'bak') {
+    console.error('aiToolManager: ai-tool-config.json was corrupt — restored from .bak');
+  } else if (error) {
+    console.error('aiToolManager: config load failed (corrupt copy preserved):', error.message);
   }
+  if (data) config = { ...config, ...data };
 }
 
 /**
@@ -109,7 +111,7 @@ function loadConfig() {
  */
 function saveConfig() {
   try {
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+    fsSafe.writeFileAtomic(configPath, JSON.stringify(config, null, 2));
   } catch (error) {
     console.error('Error saving AI tool config:', error);
   }
@@ -204,9 +206,13 @@ function isPathLike(command) {
  * Used as a pre-flight before spawning a terminal so we don't hand the
  * user a "command not found" + an injected prompt sitting in a bare
  * shell. Tries the tool's primary command first, then its fallback.
+ *
+ * Resolves `{ found, reason }` — reason ('not-found' | 'timeout' |
+ * 'spawn-error') distinguishes "the CLI isn't installed" from "the probe
+ * itself failed", which need different guidance.
  */
 async function isCommandAvailable(command, projectPath) {
-  if (!command) return false;
+  if (!command) return { found: false, reason: 'not-found' };
 
   // Path-based command: check the binary actually exists & is executable.
   if (isPathLike(command)) {
@@ -215,9 +221,9 @@ async function isCommandAvailable(command, projectPath) {
       : (projectPath ? path.resolve(projectPath, command) : command);
     try {
       fs.accessSync(target, fs.constants.X_OK);
-      return true;
+      return { found: true };
     } catch {
-      return false;
+      return { found: false, reason: 'not-found' };
     }
   }
 
@@ -237,25 +243,29 @@ async function isCommandAvailable(command, projectPath) {
 
   return new Promise((resolve) => {
     let settled = false;
-    const finish = (ok) => {
+    const finish = (result) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      resolve(ok);
+      if (!result.found) {
+        logger.warn('aiToolManager', `CLI probe for "${command}" failed (${result.reason}) via ${shell}`);
+      }
+      resolve(result);
     };
     let child;
     try {
       child = spawn(shell, args, { stdio: 'ignore' });
-    } catch {
-      resolve(false);
+    } catch (err) {
+      logger.warn('aiToolManager', `CLI probe spawn failed for "${command}":`, err.message);
+      resolve({ found: false, reason: 'spawn-error' });
       return;
     }
     const timer = setTimeout(() => {
-      try { child.kill('SIGTERM'); } catch {}
-      finish(false);
+      try { child.kill('SIGTERM'); } catch (e) { logger.warn('aiToolManager', 'probe kill failed:', e.message); }
+      finish({ found: false, reason: 'timeout' });
     }, 6000);
-    child.on('exit', (code) => finish(code === 0));
-    child.on('error', () => finish(false));
+    child.on('exit', (code) => finish(code === 0 ? { found: true } : { found: false, reason: 'not-found' }));
+    child.on('error', () => finish({ found: false, reason: 'spawn-error' }));
   });
 }
 
@@ -282,29 +292,32 @@ function setupIPC() {
       return { available: false, resolvedCommand: null, name: toolId || null };
     }
 
-    const primaryOk = await isCommandAvailable(tool.command, projectPath);
+    const primary = await isCommandAvailable(tool.command, projectPath);
 
     // When the primary is a path-based wrapper script and the tool
     // declares a fallback, the wrapper almost always `exec`s the
     // fallback (see .frame/bin/codex). Treat the fallback as a hard
     // dependency in that case — wrapper presence alone isn't enough.
-    if (primaryOk && tool.fallbackCommand && isPathLike(tool.command)) {
-      const fallbackOk = await isCommandAvailable(tool.fallbackCommand, projectPath);
-      if (fallbackOk) {
+    if (primary.found && tool.fallbackCommand && isPathLike(tool.command)) {
+      const fallback = await isCommandAvailable(tool.fallbackCommand, projectPath);
+      if (fallback.found) {
         return { available: true, resolvedCommand: tool.command, name: tool.name };
       }
-      return { available: false, resolvedCommand: null, name: tool.name };
+      return { available: false, resolvedCommand: null, name: tool.name, reason: fallback.reason };
     }
 
-    if (primaryOk) {
+    if (primary.found) {
       return { available: true, resolvedCommand: tool.command, name: tool.name };
     }
 
-    if (tool.fallbackCommand && await isCommandAvailable(tool.fallbackCommand, projectPath)) {
-      return { available: true, resolvedCommand: tool.fallbackCommand, name: tool.name };
+    if (tool.fallbackCommand) {
+      const fallback = await isCommandAvailable(tool.fallbackCommand, projectPath);
+      if (fallback.found) {
+        return { available: true, resolvedCommand: tool.fallbackCommand, name: tool.name };
+      }
     }
 
-    return { available: false, resolvedCommand: null, name: tool.name };
+    return { available: false, resolvedCommand: null, name: tool.name, reason: primary.reason };
   });
 }
 

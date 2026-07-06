@@ -10,10 +10,12 @@ const { ipcRenderer, shell } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 
 const TELEMETRY_KEY = 'telemetryEnabled';
+const CRASH_DUMPS_KEY = 'crashDumpsEnabled';
 const DISMISSED_VERSION_KEY = 'dismissedUpdateVersion';
 
 let overlayEl = null;
 let toggleEl = null;
+let crashDumpsToggleEl = null;
 let isOpen = false;
 
 // About section elements + state
@@ -30,6 +32,7 @@ let currentUpdateInfo = null;
 function init() {
   overlayEl = document.getElementById('settings-overlay');
   toggleEl = document.getElementById('settings-telemetry-toggle');
+  crashDumpsToggleEl = document.getElementById('settings-crash-dumps-toggle');
 
   // About section
   aboutVersionEl = document.getElementById('settings-version');
@@ -56,6 +59,14 @@ function init() {
     await ipcRenderer.invoke(IPC.SET_USER_SETTING, TELEMETRY_KEY, enabled);
     await ipcRenderer.invoke(IPC.TELEMETRY_SET_ENABLED, enabled);
   });
+
+  // Crash dumps: persisted setting only — crashGuard reads it at startup
+  // (the reporter can't be stopped once started, so changes apply on next launch)
+  if (crashDumpsToggleEl) {
+    crashDumpsToggleEl.addEventListener('change', async () => {
+      await ipcRenderer.invoke(IPC.SET_USER_SETTING, CRASH_DUMPS_KEY, crashDumpsToggleEl.checked);
+    });
+  }
 
   overlayEl.addEventListener('mousedown', (e) => {
     if (e.target === overlayEl) close();
@@ -95,6 +106,21 @@ function initAboutSection() {
     });
   }
 
+  // Diagnostics: reveal the rotating (redacted) log file — the first thing
+  // to grab when filing a bug report. Location documented in PRIVACY.md.
+  const openLogsBtn = document.getElementById('settings-open-logs');
+  if (openLogsBtn) {
+    openLogsBtn.addEventListener('click', async () => {
+      try {
+        const info = await ipcRenderer.invoke(IPC.GET_LOG_INFO);
+        if (info && info.logPath) shell.showItemInFolder(info.logPath);
+        else if (info && info.logsDir) shell.openPath(info.logsDir);
+      } catch (err) {
+        console.error('Settings: could not open logs folder', err);
+      }
+    });
+  }
+
   if (updateLinkEl) {
     updateLinkEl.addEventListener('click', (e) => {
       e.preventDefault();
@@ -131,6 +157,13 @@ function initAboutSection() {
           info: status.result,
           checkedAt: status.lastCheckedAt
         });
+      } else if (status.lastStatus === 'error') {
+        renderUpdateState({
+          checked: true,
+          failed: true,
+          failReason: status.lastErrorReason,
+          checkedAt: status.lastCheckedAt
+        });
       } else if (status.lastCheckedAt) {
         renderUpdateState({
           checked: true,
@@ -149,22 +182,31 @@ async function runCheck(userInitiated) {
   if (aboutStatusEl) aboutStatusEl.textContent = 'Checking…';
   if (aboutCheckBtn) aboutCheckBtn.disabled = true;
   try {
-    const info = await ipcRenderer.invoke(IPC.CHECK_FOR_UPDATE);
-    const status = await ipcRenderer.invoke(IPC.GET_UPDATE_STATUS);
-    if (info) {
-      currentUpdateInfo = info;
+    // Discriminated result: 'update-available' | 'up-to-date' | 'error'.
+    // A failed check must never render as "you're up to date".
+    const res = await ipcRenderer.invoke(IPC.CHECK_FOR_UPDATE);
+    if (res && res.status === 'update-available') {
+      currentUpdateInfo = res.info;
       renderUpdateState({
         checked: true,
         found: true,
-        info,
-        checkedAt: status ? status.lastCheckedAt : null,
+        info: res.info,
+        checkedAt: res.checkedAt,
+        userInitiated
+      });
+    } else if (res && res.status === 'error') {
+      renderUpdateState({
+        checked: true,
+        failed: true,
+        failReason: res.reason,
+        checkedAt: res.checkedAt,
         userInitiated
       });
     } else {
       renderUpdateState({
         checked: true,
         found: false,
-        checkedAt: status ? status.lastCheckedAt : null,
+        checkedAt: res ? res.checkedAt : null,
         userInitiated
       });
     }
@@ -175,12 +217,20 @@ async function runCheck(userInitiated) {
   }
 }
 
-function renderUpdateState({ checked, found, info, checkedAt, userInitiated }) {
+function renderUpdateState({ checked, found, failed, failReason, info, checkedAt, userInitiated }) {
   if (!aboutStatusEl) return;
   const stamp = checkedAt ? formatRelative(new Date(checkedAt)) : '';
   if (found && info) {
     aboutStatusEl.textContent = stamp ? `Last checked ${stamp}.` : '';
     showUpdateBanner(info);
+  } else if (failed) {
+    const why = failReason === 'timeout'
+      ? 'timed out'
+      : failReason === 'parse'
+        ? 'unexpected response'
+        : 'network error';
+    aboutStatusEl.textContent = `Update check failed (${why}) — you may not be on the latest version.`;
+    hideUpdateBanner();
   } else if (checked) {
     aboutStatusEl.textContent = stamp
       ? `You're up to date. Last checked ${stamp}.`
@@ -229,6 +279,12 @@ async function syncToggleFromSettings() {
   const value = await ipcRenderer.invoke(IPC.GET_USER_SETTING, TELEMETRY_KEY);
   // Default ON when unset (opt-out semantics)
   toggleEl.checked = value !== false;
+
+  if (crashDumpsToggleEl) {
+    const dumps = await ipcRenderer.invoke(IPC.GET_USER_SETTING, CRASH_DUMPS_KEY);
+    // Default ON when unset (local-only; nothing is uploaded)
+    crashDumpsToggleEl.checked = dumps !== false;
+  }
 }
 
 function open() {

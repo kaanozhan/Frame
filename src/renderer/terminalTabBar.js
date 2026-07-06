@@ -365,11 +365,20 @@ class TerminalTabBar {
     const sessionItem = container.querySelector('.usage-item.session');
     const weeklyItem = container.querySelector('.usage-item.weekly');
 
+    if (data.available === false && data.reason === 'keychain-unsupported') {
+      // This platform can never provide usage data — hide the widget
+      // instead of showing a permanently dead "N/A".
+      container.style.display = 'none';
+      return;
+    }
+    container.style.display = '';
+
     if (data.error) {
-      // Show error state
+      // Show error state with the reason from main (e.g. "sign in via the
+      // claude CLI") so the user knows what's degraded and why.
       this._updateUsageItem(sessionItem, 0, 'N/A', '');
       this._updateUsageItem(weeklyItem, 0, 'N/A', '');
-      container.title = `Error: ${data.error}\nClick to refresh`;
+      container.title = `${data.error}\nClick to refresh`;
       return;
     }
 
