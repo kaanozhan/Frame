@@ -47,3 +47,6 @@ release/
 #Walkthroughs
 WALKTHROUGH/*.p8
 RELEASE.local.md
+
+# Orientation eval transcripts/diffs — bulky, local-only (summary lives in scripts/eval/README.md)
+scripts/eval/results/
