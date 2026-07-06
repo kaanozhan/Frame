@@ -289,23 +289,6 @@ function getChangedFiles() {
 }
 
 /**
- * Get list of deleted JS files from git
- */
-function getDeletedFiles() {
-  try {
-    const deleted = execSync('git diff --cached --name-only --diff-filter=D', {
-      cwd: ROOT_DIR,
-      encoding: 'utf-8'
-    });
-
-    return deleted.split('\n')
-      .filter(f => f.endsWith('.js') && f.startsWith('src/'));
-  } catch (e) {
-    return [];
-  }
-}
-
-/**
  * Get all JS files in src directory
  */
 function getAllJSFiles(dir = SRC_DIR) {
@@ -349,10 +332,56 @@ function loadStructure() {
 }
 
 /**
- * Save STRUCTURE.json
+ * Remove modules whose file no longer exists on disk.
+ * Runs in every mode so deletions are reconciled even when they never hit
+ * the staged diff (the phantom-module class of bug).
+ */
+function reconcileDeletedModules(structure) {
+  let removed = 0;
+  for (const [key, mod] of Object.entries(structure.modules)) {
+    const file = mod.file || path.join('src', `${key}.js`);
+    if (!fs.existsSync(path.join(ROOT_DIR, file))) {
+      delete structure.modules[key];
+      console.log(`  - Removed (missing on disk): ${key}`);
+      removed++;
+    }
+  }
+  return removed;
+}
+
+/**
+ * Return a copy of an object with keys sorted alphabetically
+ */
+function sortKeys(obj) {
+  const sorted = {};
+  for (const key of Object.keys(obj).sort()) {
+    sorted[key] = obj[key];
+  }
+  return sorted;
+}
+
+/**
+ * Save STRUCTURE.json.
+ * Modules are sorted for stable output, and lastUpdated is only bumped when
+ * content actually changed — a regen on an unchanged tree is byte-identical.
  */
 function saveStructure(structure) {
-  structure.lastUpdated = new Date().toISOString().split('T')[0];
+  structure.modules = sortKeys(structure.modules);
+
+  let previous = null;
+  try {
+    previous = JSON.parse(fs.readFileSync(STRUCTURE_FILE, 'utf-8'));
+  } catch (e) {
+    // No existing file — treat as changed
+  }
+
+  const withoutTimestamp = (s) => JSON.stringify({ ...s, lastUpdated: undefined });
+  if (previous && withoutTimestamp(previous) === withoutTimestamp(structure)) {
+    structure.lastUpdated = previous.lastUpdated;
+  } else {
+    structure.lastUpdated = new Date().toISOString().split('T')[0];
+  }
+
   fs.writeFileSync(STRUCTURE_FILE, JSON.stringify(structure, null, 2) + '\n');
   console.log(`✓ Updated STRUCTURE.json (${Object.keys(structure.modules).length} modules)`);
 }
@@ -447,22 +476,16 @@ function main() {
   let filesToProcess = [];
   let mode = 'full';
 
+  // Reconcile deletions against the disk in every mode, so a phantom module
+  // never survives just because its deletion wasn't in the staged diff.
+  const removedCount = reconcileDeletedModules(structure);
+
   if (args.includes('--changed')) {
     // Incremental mode: only changed files
     mode = 'incremental';
     filesToProcess = getChangedFiles();
 
-    // Handle deleted files
-    const deleted = getDeletedFiles();
-    for (const file of deleted) {
-      const key = getModuleKey(path.join(ROOT_DIR, file));
-      if (structure.modules[key]) {
-        delete structure.modules[key];
-        console.log(`- Removed: ${key}`);
-      }
-    }
-
-    if (filesToProcess.length === 0 && deleted.length === 0) {
+    if (filesToProcess.length === 0 && removedCount === 0) {
       console.log('No JS changes detected.');
       return;
     }

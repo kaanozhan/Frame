@@ -253,6 +253,45 @@
         ]
       }
     },
+    "main/crashGuard": {
+      "file": "src/main/crashGuard.js",
+      "description": "Crash Guard — global error handlers for the main process.",
+      "exports": [
+        "init",
+        "attachWindow",
+        "notify"
+      ],
+      "depends": [
+        "electron",
+        "logger",
+        "shared/ipcChannels",
+        "userSettings"
+      ],
+      "functions": {
+        "init": {
+          "line": 21
+        },
+        "attachWindow": {
+          "line": 71,
+          "params": [
+            "window"
+          ]
+        },
+        "notify": {
+          "line": 85,
+          "params": [
+            "source",
+            "message"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [],
+        "emits": [
+          "MAIN_PROCESS_ERROR"
+        ]
+      }
+    },
     "main/dialogs": {
       "file": "src/main/dialogs.js",
       "description": "Dialogs Module",
@@ -568,6 +607,44 @@
           "FRAME_PROJECT_INITIALIZED",
           "FRAME_CONFIG_DATA"
         ]
+      }
+    },
+    "main/fsSafe": {
+      "file": "src/main/fsSafe.js",
+      "description": "fsSafe — durable state-file primitives",
+      "exports": [
+        "writeFileAtomic",
+        "readJsonWithRecovery",
+        "safeWatch"
+      ],
+      "depends": [
+        "fs"
+      ],
+      "functions": {
+        "writeFileAtomic": {
+          "line": 28,
+          "params": [
+            "filePath",
+            "data"
+          ],
+          "purpose": "`.bak`. Throws on failure; callers keep their existing try/catch contract."
+        },
+        "readJsonWithRecovery": {
+          "line": 64,
+          "params": [
+            "filePath"
+          ],
+          "purpose": "default can save without destroying recoverable data."
+        },
+        "safeWatch": {
+          "line": 114,
+          "params": [
+            "target",
+            "options",
+            "listener",
+            "onError"
+          ]
+        }
       }
     },
     "main/gitBranchesManager": {
@@ -1054,6 +1131,84 @@
         ]
       }
     },
+    "main/logger": {
+      "file": "src/main/logger.js",
+      "description": "Logger — rotating, redacted log file for the main process.",
+      "exports": [
+        "init",
+        "info",
+        "warn",
+        "error",
+        "redact",
+        "getLogPath"
+      ],
+      "depends": [
+        "electron-log/main",
+        "fs"
+      ],
+      "functions": {
+        "redact": {
+          "line": 33,
+          "params": [
+            "text"
+          ]
+        },
+        "redactValue": {
+          "line": 43,
+          "params": [
+            "value"
+          ]
+        },
+        "init": {
+          "line": 61
+        },
+        "rotateArchives": {
+          "line": 84,
+          "params": [
+            "oldLogFile"
+          ],
+          "purpose": "(electron-log's default keeps only one .old file)."
+        },
+        "scoped": {
+          "line": 101,
+          "params": [
+            "scope"
+          ]
+        },
+        "emit": {
+          "line": 108,
+          "params": [
+            "level",
+            "scope",
+            "args"
+          ]
+        },
+        "info": {
+          "line": 118,
+          "params": [
+            "scope",
+            "...args"
+          ]
+        },
+        "warn": {
+          "line": 122,
+          "params": [
+            "scope",
+            "...args"
+          ]
+        },
+        "error": {
+          "line": 126,
+          "params": [
+            "scope",
+            "...args"
+          ]
+        },
+        "getLogPath": {
+          "line": 130
+        }
+      }
+    },
     "main/menu": {
       "file": "src/main/menu.js",
       "description": "Application Menu Module",
@@ -1122,6 +1277,297 @@
           "OPEN_SETTINGS",
           "RUN_COMMAND",
           "TOGGLE_HISTORY_PANEL"
+        ]
+      }
+    },
+    "main/orchestrationManager": {
+      "file": "src/main/orchestrationManager.js",
+      "description": "Orchestration Manager",
+      "exports": [
+        "init",
+        "setupIPC",
+        "startOrchestration",
+        "stopOrchestration",
+        "assignSpecs",
+        "registerWorkerLane",
+        "mergeWorker",
+        "removeWorker",
+        "getState",
+        "rehydrate",
+        "envForLane",
+        "publishState",
+        "drainBus",
+        "sessionFor",
+        "getSession"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "fsSafe",
+        "logger",
+        "shared/ipcChannels",
+        "shared/frameConstants",
+        "shared/frameTemplates",
+        "ptyManager",
+        "gitBranchesManager",
+        "specManager"
+      ],
+      "functions": {
+        "init": {
+          "line": 64,
+          "params": [
+            "window"
+          ]
+        },
+        "sessionFor": {
+          "line": 68,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "busDirFor": {
+          "line": 74,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "─── path helpers ─────────────────────────────────────────"
+        },
+        "binDirFor": {
+          "line": 77,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "worktreeDirFor": {
+          "line": 80,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "envForLane": {
+          "line": 86,
+          "params": [
+            "session",
+            "slug"
+          ],
+          "purpose": "worktree, regardless of its own .frame/ copy."
+        },
+        "toPrefix": {
+          "line": 100,
+          "params": [
+            "entry"
+          ],
+          "purpose": "equality; a glob/dir entry (`src/foo/**`, `src/foo/*`) matches by prefix."
+        },
+        "entriesOverlap": {
+          "line": 105,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "footprintsOverlap": {
+          "line": 117,
+          "params": [
+            "fa",
+            "fb"
+          ]
+        },
+        "findFootprintConflict": {
+          "line": 128,
+          "params": [
+            "session",
+            "slug",
+            "footprint"
+          ],
+          "purpose": "workers don't block (their work is already integrated or abandoned)."
+        },
+        "buildWorkerPrompt": {
+          "line": 141,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "from inside the worktree."
+        },
+        "relayToConductor": {
+          "line": 163,
+          "params": [
+            "session",
+            "text"
+          ]
+        },
+        "drainRelayQueue": {
+          "line": 169,
+          "params": [
+            "session"
+          ]
+        },
+        "materializeBinScripts": {
+          "line": 187,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Materialize the .frame/bin command scripts for this project."
+        },
+        "serializeState": {
+          "line": 199,
+          "params": [
+            "session"
+          ],
+          "purpose": "─── state publish ────────────────────────────────────────"
+        },
+        "publishState": {
+          "line": 224,
+          "params": [
+            "session"
+          ]
+        },
+        "startBusWatcher": {
+          "line": 241,
+          "params": [
+            "session"
+          ],
+          "purpose": "─── bus watcher ──────────────────────────────────────────"
+        },
+        "drainBus": {
+          "line": 254,
+          "params": [
+            "session"
+          ]
+        },
+        "handleRequest": {
+          "line": 278,
+          "params": [
+            "session",
+            "req"
+          ]
+        },
+        "handleDispatch": {
+          "line": 298,
+          "params": [
+            "session",
+            "slug"
+          ],
+          "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
+        },
+        "registerWorkerLane": {
+          "line": 369,
+          "params": [
+            "projectPath",
+            "slug",
+            "terminalId"
+          ],
+          "purpose": "manager can track status, relay, and tear it down."
+        },
+        "handleReportDone": {
+          "line": 382,
+          "params": [
+            "session",
+            "slug"
+          ],
+          "purpose": "the conductor with the merge command."
+        },
+        "handleMerge": {
+          "line": 401,
+          "params": [
+            "session",
+            "slug",
+            "args = []"
+          ],
+          "purpose": "reminder; the conductor performs the actual reconcile per CONDUCTOR.md)."
+        },
+        "mergeWorker": {
+          "line": 440,
+          "params": [
+            "projectPath",
+            "slug",
+            "force = false"
+          ],
+          "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
+        },
+        "removeWorker": {
+          "line": 448,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "prune the work branch ONLY if merged (un-merged work is kept — no data loss)."
+        },
+        "pollStatuses": {
+          "line": 473,
+          "params": [
+            "session"
+          ],
+          "purpose": "additionally overlays its richer laneStatus (processing/waiting) per lane."
+        },
+        "startOrchestration": {
+          "line": 513,
+          "params": [
+            "args = {}"
+          ],
+          "purpose": "─── session lifecycle ────────────────────────────────────"
+        },
+        "stopOrchestration": {
+          "line": 578,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "work branches (un-merged work is kept on its branch), leave main untouched."
+        },
+        "rehydrate": {
+          "line": 619,
+          "params": [
+            "session"
+          ],
+          "purpose": "offers Resume / Remove on it."
+        },
+        "resumeWorker": {
+          "line": 672,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "worktree and deletes the branch, which would destroy the recovered work."
+        },
+        "assignSpecs": {
+          "line": 697,
+          "params": [
+            "projectPath",
+            "slugs"
+          ]
+        },
+        "getState": {
+          "line": 705,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "setupIPC": {
+          "line": 711,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "─── IPC ──────────────────────────────────────────────────"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "START_ORCHESTRATION",
+          "STOP_ORCHESTRATION",
+          "GET_ORCH_STATE",
+          "ORCH_ASSIGN_SPECS",
+          "ORCH_WORKER_LANE",
+          "ORCH_MERGE_WORKER",
+          "ORCH_REMOVE_WORKER",
+          "ORCH_RESUME_WORKER"
+        ],
+        "emits": [
+          "ORCH_STATE",
+          "ORCH_SPAWN_WORKER",
+          "ORCH_STATE",
+          "ORCH_SPAWN_WORKER"
         ]
       }
     },
@@ -2412,6 +2858,261 @@
         ]
       }
     },
+    "renderer/agentDispatch": {
+      "file": "src/renderer/agentDispatch.js",
+      "description": "Agent Dispatch Module",
+      "exports": [
+        "init",
+        "dispatch",
+        "startDefaultAgent",
+        "dispatchSpecCommand",
+        "getSpecLaneInfo",
+        "getTaskLaneInfo",
+        "onSpecLaneActivity",
+        "onTaskLaneActivity",
+        "specStatusDotHtml",
+        "taskStatusDotHtml"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "laneStatus",
+        "state",
+        "aiToolSelector"
+      ],
+      "functions": {
+        "init": {
+          "line": 32,
+          "params": [
+            "ui"
+          ],
+          "purpose": "Initialize with the MultiTerminalUI instance."
+        },
+        "dispatch": {
+          "line": 70,
+          "params": [
+            "{ terminalId = null",
+            "createNew = false",
+            "toolId = null",
+            "prompt",
+            "assignment = null",
+            "enter = true } = {}"
+          ],
+          "purpose": "running (default: current tool)"
+        },
+        "startDefaultAgent": {
+          "line": 178,
+          "purpose": "- Anywhere else (Home / any other tab) it always opens a new Frame."
+        },
+        "_startAgentIn": {
+          "line": 213,
+          "params": [
+            "terminalId",
+            "{ fresh = false } = {}"
+          ],
+          "purpose": "spawned shell a beat to accept input before the command is typed."
+        },
+        "_startAgentInNewFrame": {
+          "line": 223
+        },
+        "_askNewOrRestart": {
+          "line": 241,
+          "params": [
+            "frameName",
+            "hasAgent"
+          ],
+          "purpose": "safe default (never silently kills running work)."
+        },
+        "dispatchSpecCommand": {
+          "line": 298,
+          "params": [
+            "{ slug",
+            "title = null",
+            "command } = {}"
+          ]
+        },
+        "getSpecLaneInfo": {
+          "line": 362,
+          "params": [
+            "slug"
+          ],
+          "purpose": "states fail open on purpose."
+        },
+        "getTaskLaneInfo": {
+          "line": 381,
+          "params": [
+            "taskId"
+          ],
+          "purpose": "requires a live agent process."
+        },
+        "specStatusDotHtml": {
+          "line": 402,
+          "params": [
+            "slug"
+          ],
+          "purpose": "Presentation helpers kept here so all surfaces share one mapping."
+        },
+        "taskStatusDotHtml": {
+          "line": 406,
+          "params": [
+            "taskId"
+          ]
+        },
+        "_activityDotHtml": {
+          "line": 410,
+          "params": [
+            "info"
+          ]
+        },
+        "onSpecLaneActivity": {
+          "line": 427,
+          "params": [
+            "callback"
+          ],
+          "purpose": "Returns an unsubscribe function."
+        },
+        "_notifySpecLane": {
+          "line": 435,
+          "params": [
+            "slug"
+          ]
+        },
+        "onTaskLaneActivity": {
+          "line": 455,
+          "params": [
+            "callback"
+          ],
+          "purpose": "Returns an unsubscribe function."
+        },
+        "_notifyTaskLane": {
+          "line": 463,
+          "params": [
+            "taskId"
+          ]
+        },
+        "_assignedLane": {
+          "line": 481,
+          "params": [
+            "slug"
+          ],
+          "purpose": "lane means the spec is unassigned again."
+        },
+        "_laneName": {
+          "line": 491,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "_askContinueOrNew": {
+          "line": 500,
+          "params": [
+            "frameName",
+            "specName"
+          ],
+          "purpose": "Resolves 'continue' | 'new' | 'cancel'; continue is the default action."
+        },
+        "_escapeHtml": {
+          "line": 532,
+          "params": [
+            "s"
+          ]
+        },
+        "_waitForAgentReady": {
+          "line": 551,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "the prompt to a y/n chooser, so those lanes time out instead."
+        },
+        "_fail": {
+          "line": 586,
+          "params": [
+            "terminalId",
+            "message"
+          ],
+          "purpose": "for what is presentation-only."
+        },
+        "_showToast": {
+          "line": 591,
+          "params": [
+            "message",
+            "type = 'info'"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_DESTROYED"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/agentPanel": {
+      "file": "src/renderer/agentPanel.js",
+      "description": "Agent Panel",
+      "exports": [
+        "init",
+        "recompute"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "laneStatus",
+        "state",
+        "projectListUI"
+      ],
+      "functions": {
+        "init": {
+          "line": 35,
+          "params": [
+            "ui"
+          ]
+        },
+        "schedule": {
+          "line": 47
+        },
+        "recompute": {
+          "line": 60,
+          "purpose": "grouped under a heading per project (active project first)."
+        },
+        "_buildRow": {
+          "line": 124,
+          "params": [
+            "a"
+          ],
+          "purpose": "sub-line is just the Frame name."
+        },
+        "_projectNames": {
+          "line": 146,
+          "purpose": "path -> the workspace's display name for that project (fallback: basename)."
+        },
+        "_focus": {
+          "line": 157,
+          "params": [
+            "a"
+          ],
+          "purpose": "so the lane is in view before we enter it."
+        },
+        "_label": {
+          "line": 165,
+          "params": [
+            "agentName"
+          ]
+        },
+        "_basename": {
+          "line": 169,
+          "params": [
+            "p"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_DESTROYED"
+        ],
+        "emits": []
+      }
+    },
     "renderer/aiToolSelector": {
       "file": "src/renderer/aiToolSelector.js",
       "description": "AI Tool Selector Module",
@@ -2671,6 +3372,64 @@
           "line": 149,
           "purpose": "registered shortcut. Idempotent."
         }
+      }
+    },
+    "renderer/diffSection": {
+      "file": "src/renderer/diffSection.js",
+      "description": "Diff Section Module",
+      "exports": [],
+      "depends": [
+        "electron",
+        "diff2html",
+        "shared/ipcChannels",
+        "lucide",
+        "gitChangesPanel"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 23,
+          "params": [
+            "data",
+            "size = 16"
+          ]
+        },
+        "setHost": {
+          "line": 31,
+          "params": [
+            "h"
+          ]
+        },
+        "open": {
+          "line": 40,
+          "params": [
+            "ref"
+          ],
+          "purpose": "it) or creates one if none."
+        },
+        "createViewport": {
+          "line": 45
+        },
+        "_orderedFiles": {
+          "line": 191
+        },
+        "_basename": {
+          "line": 199,
+          "params": [
+            "p"
+          ]
+        },
+        "_escape": {
+          "line": 205,
+          "params": [
+            "text"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GIT_STATUS_DATA"
+        ],
+        "emits": []
       }
     },
     "renderer/diffViewer": {
@@ -3264,6 +4023,40 @@
         ]
       }
     },
+    "renderer/healthNotice": {
+      "file": "src/renderer/healthNotice.js",
+      "description": "Health Notice Banner",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 18
+        },
+        "show": {
+          "line": 38,
+          "params": [
+            "kind",
+            "message"
+          ]
+        },
+        "dismiss": {
+          "line": 70
+        }
+      },
+      "ipc": {
+        "listens": [
+          "MAIN_PROCESS_ERROR",
+          "STATE_FILE_RECOVERED",
+          "TASKS_FILE_ERROR"
+        ],
+        "emits": []
+      }
+    },
     "renderer/historyPanel": {
       "file": "src/renderer/historyPanel.js",
       "description": "History Panel Module",
@@ -3486,6 +4279,201 @@
         "emits": []
       }
     },
+    "renderer/laneDetailRail": {
+      "file": "src/renderer/laneDetailRail.js",
+      "description": "Lane Detail Rail Module",
+      "exports": [
+        "render"
+      ],
+      "depends": [
+        "laneStatus",
+        "laneBoard",
+        "lucide"
+      ],
+      "functions": {
+        "itemStatusText": {
+          "line": 37,
+          "params": [
+            "s"
+          ],
+          "purpose": "agents read \"claude · Needs approval\", commands read \"Running · npm run dev\"."
+        },
+        "lucideIcon": {
+          "line": 51,
+          "params": [
+            "data",
+            "size = 14"
+          ]
+        },
+        "escapeHtml": {
+          "line": 59,
+          "params": [
+            "text"
+          ]
+        },
+        "isHidden": {
+          "line": 65
+        },
+        "setHidden": {
+          "line": 73,
+          "params": [
+            "hidden"
+          ]
+        },
+        "render": {
+          "line": 83,
+          "params": [
+            "el",
+            "state",
+            "cbs"
+          ],
+          "purpose": "re-renders itself on lane status changes while visible."
+        },
+        "_renderInto": {
+          "line": 100
+        },
+        "_startTicker": {
+          "line": 193
+        }
+      }
+    },
+    "renderer/laneRail": {
+      "file": "src/renderer/laneRail.js",
+      "description": "Lane Rail Module",
+      "exports": [
+        "render"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "lucide",
+        "agentDispatch",
+        "specsDashboard",
+        "specSection",
+        "tasksDashboard",
+        "taskSection"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 36,
+          "params": [
+            "data",
+            "size = 14"
+          ]
+        },
+        "escapeHtml": {
+          "line": 44,
+          "params": [
+            "text"
+          ]
+        },
+        "getUIState": {
+          "line": 58
+        },
+        "setUIState": {
+          "line": 66,
+          "params": [
+            "partial"
+          ]
+        },
+        "_initOnce": {
+          "line": 75,
+          "purpose": "─── Data ───────────────────────────────────────────────────"
+        },
+        "_fetchForProject": {
+          "line": 97,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "_rerenderIfVisible": {
+          "line": 108
+        },
+        "render": {
+          "line": 120,
+          "params": [
+            "container",
+            "projectPath"
+          ],
+          "purpose": "Called by laneBoard on every board render."
+        },
+        "_renderInto": {
+          "line": 136,
+          "params": [
+            "container"
+          ],
+          "purpose": "─── Rendering ──────────────────────────────────────────────"
+        },
+        "_renderCollapsedStrip": {
+          "line": 161
+        },
+        "_sectionHeader": {
+          "line": 185,
+          "params": [
+            "{ title",
+            "count",
+            "collapsed",
+            "onToggle",
+            "onOpen",
+            "openTitle }"
+          ]
+        },
+        "_renderSpecsSection": {
+          "line": 204,
+          "params": [
+            "ui"
+          ]
+        },
+        "_specProgress": {
+          "line": 258,
+          "params": [
+            "spec"
+          ]
+        },
+        "_renderTasksSection": {
+          "line": 275,
+          "params": [
+            "ui"
+          ]
+        },
+        "_popoverOption": {
+          "line": 355,
+          "params": [
+            "name",
+            "value",
+            "label",
+            "checked"
+          ]
+        },
+        "_taskControls": {
+          "line": 367,
+          "params": [
+            "ui",
+            "categories"
+          ],
+          "purpose": "dashboard, single-select radios instead of its multi-select checkboxes."
+        },
+        "_closeRailPopovers": {
+          "line": 442
+        },
+        "_moreLink": {
+          "line": 446,
+          "params": [
+            "label",
+            "onClick"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SPEC_DATA",
+          "TASKS_DATA"
+        ],
+        "emits": [
+          "LOAD_TASKS"
+        ]
+      }
+    },
     "renderer/laneStatus": {
       "file": "src/renderer/laneStatus.js",
       "description": "Lane Status Module",
@@ -3624,6 +4612,238 @@
         "diffSection"
       ],
       "functions": {}
+    },
+    "renderer/openProjectModal": {
+      "file": "src/renderer/openProjectModal.js",
+      "description": "Open Project Modal",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "isVisible",
+        "handleCloneResult"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state"
+      ],
+      "functions": {
+        "open": {
+          "line": 29,
+          "params": [
+            "opts = {}"
+          ],
+          "purpose": "(used by the welcome overlay's \"Clone GitHub\" entry point)."
+        },
+        "close": {
+          "line": 39,
+          "purpose": "Hide the modal and reset the clone form."
+        },
+        "isVisible": {
+          "line": 45
+        },
+        "resetCloneForm": {
+          "line": 52,
+          "purpose": "Collapse the clone form back to the option list and clear its state."
+        },
+        "showCloneForm": {
+          "line": 65,
+          "purpose": "Reveal the in-modal clone URL form and focus the input."
+        },
+        "submitClone": {
+          "line": 80,
+          "purpose": "Send the clone request for the current URL value (if any)."
+        },
+        "handleCloneResult": {
+          "line": 92,
+          "params": [
+            "result"
+          ],
+          "purpose": "Returns true if it consumed the result (modal handled the feedback)."
+        },
+        "init": {
+          "line": 109,
+          "purpose": "Wire all modal controls. Safe to call once at startup."
+        }
+      },
+      "ipc": {
+        "listens": [],
+        "emits": [
+          "CLONE_GITHUB_REPO"
+        ]
+      }
+    },
+    "renderer/orchestrator": {
+      "file": "src/renderer/orchestrator.js",
+      "description": "Orchestrator (renderer) — a section viewport",
+      "exports": [],
+      "depends": [
+        "electron",
+        "path",
+        "shared/ipcChannels",
+        "shared/frameConstants",
+        "state",
+        "agentDispatch"
+      ],
+      "functions": {
+        "_sess": {
+          "line": 39,
+          "params": [
+            "projectPath",
+            "create = false"
+          ]
+        },
+        "_curSess": {
+          "line": 50,
+          "params": [
+            "create = false"
+          ],
+          "purpose": "belongs to the current project). null when no project / no session yet."
+        },
+        "setHost": {
+          "line": 54,
+          "params": [
+            "h"
+          ]
+        },
+        "open": {
+          "line": 90,
+          "purpose": "Open (or focus) the orchestrator section tab."
+        },
+        "orchEnv": {
+          "line": 101,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "─── session ──────────────────────────────────────────────"
+        },
+        "ensureSession": {
+          "line": 108
+        },
+        "spawnWorkerLane": {
+          "line": 155,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "worktreePath",
+            "env",
+            "promptInstruction } = {}"
+          ],
+          "purpose": "─── worker lane bridge ───────────────────────────────────"
+        },
+        "createViewport": {
+          "line": 184,
+          "purpose": "─── section viewport ─────────────────────────────────────"
+        },
+        "stopSession": {
+          "line": 237,
+          "purpose": "un-merged work kept), reset local state, close the tab."
+        },
+        "renderConductorZone": {
+          "line": 248,
+          "params": [
+            "root"
+          ],
+          "purpose": "─── zones ────────────────────────────────────────────────"
+        },
+        "stageOf": {
+          "line": 282,
+          "params": [
+            "w"
+          ]
+        },
+        "renderPipeline": {
+          "line": 295,
+          "params": [
+            "root"
+          ]
+        },
+        "renderWorkerZone": {
+          "line": 338,
+          "params": [
+            "root"
+          ]
+        },
+        "mergeWorkerAction": {
+          "line": 388,
+          "params": [
+            "slug"
+          ]
+        },
+        "resumeWorkerAction": {
+          "line": 407,
+          "params": [
+            "slug"
+          ]
+        },
+        "removeWorkerAction": {
+          "line": 415,
+          "params": [
+            "slug"
+          ]
+        },
+        "_shortPath": {
+          "line": 424,
+          "params": [
+            "p"
+          ]
+        },
+        "_relTime": {
+          "line": 430,
+          "params": [
+            "ts"
+          ]
+        },
+        "loadSpecs": {
+          "line": 441,
+          "params": [
+            "root"
+          ]
+        },
+        "renderSpecRail": {
+          "line": 456,
+          "params": [
+            "root",
+            "specs"
+          ]
+        },
+        "assignSpec": {
+          "line": 490,
+          "params": [
+            "slug"
+          ]
+        },
+        "nudgeConductor": {
+          "line": 504,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "_esc": {
+          "line": 518,
+          "params": [
+            "s"
+          ],
+          "purpose": "─── helpers ──────────────────────────────────────────────"
+        },
+        "_toast": {
+          "line": 524,
+          "params": [
+            "message",
+            "type = 'info'"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "ORCH_SPAWN_WORKER",
+          "ORCH_STATE"
+        ],
+        "emits": [
+          "ORCH_WORKER_LANE"
+        ]
+      }
     },
     "renderer/overviewPanel": {
       "file": "src/renderer/overviewPanel.js",
@@ -4126,6 +5346,62 @@
         ]
       }
     },
+    "renderer/projectSection": {
+      "file": "src/renderer/projectSection.js",
+      "description": "Projects Section",
+      "exports": [
+        "init",
+        "focusList"
+      ],
+      "depends": [
+        "openProjectModal",
+        "projectListUI"
+      ],
+      "functions": {
+        "focusList": {
+          "line": 19,
+          "purpose": "command."
+        },
+        "init": {
+          "line": 23
+        }
+      }
+    },
+    "renderer/projectStatusBadges": {
+      "file": "src/renderer/projectStatusBadges.js",
+      "description": "Project Status Badges",
+      "exports": [
+        "init",
+        "recompute"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "laneStatus",
+        "projectListUI"
+      ],
+      "functions": {
+        "init": {
+          "line": 28,
+          "params": [
+            "multiTerminalUI"
+          ]
+        },
+        "schedule": {
+          "line": 39
+        },
+        "recompute": {
+          "line": 51,
+          "purpose": "Tally attention-worthy agent statuses per project and push to the list."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_DESTROYED"
+        ],
+        "emits": []
+      }
+    },
     "renderer/promptsPanel": {
       "file": "src/renderer/promptsPanel.js",
       "description": "Prompts Panel Module",
@@ -4227,6 +5503,53 @@
           "line": 58,
           "params": [
             "visible"
+          ]
+        }
+      }
+    },
+    "renderer/sectionRail": {
+      "file": "src/renderer/sectionRail.js",
+      "description": "Section Rail Module",
+      "exports": [
+        "render"
+      ],
+      "depends": [
+        "lucide"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 19,
+          "params": [
+            "data",
+            "size = 14"
+          ]
+        },
+        "getState": {
+          "line": 27,
+          "params": [
+            "storageKey"
+          ]
+        },
+        "setState": {
+          "line": 38,
+          "params": [
+            "storageKey",
+            "partial"
+          ]
+        },
+        "_appendItem": {
+          "line": 45,
+          "params": [
+            "parent",
+            "it",
+            "onSelect"
+          ]
+        },
+        "render": {
+          "line": 70,
+          "params": [
+            "el",
+            "opts"
           ]
         }
       }
@@ -4639,6 +5962,106 @@
         "refreshToggleIcon": {
           "line": 97
         }
+      }
+    },
+    "renderer/specSection": {
+      "file": "src/renderer/specSection.js",
+      "description": "Spec Section Module",
+      "exports": [],
+      "depends": [
+        "electron",
+        "marked",
+        "shared/ipcChannels",
+        "state",
+        "sectionRail",
+        "lucide",
+        "agentDispatch",
+        "specsDashboard"
+      ],
+      "functions": {
+        "setHost": {
+          "line": 31,
+          "params": [
+            "h"
+          ],
+          "purpose": "─── Public API ─────────────────────────────────────"
+        },
+        "open": {
+          "line": 36,
+          "params": [
+            "slug"
+          ]
+        },
+        "openInNewTab": {
+          "line": 42,
+          "params": [
+            "slug"
+          ]
+        },
+        "createViewport": {
+          "line": 48
+        },
+        "nextActionForPhase": {
+          "line": 331,
+          "params": [
+            "phase"
+          ],
+          "purpose": "─── Pure helpers ───────────────────────────────────"
+        },
+        "renderNextActionBar": {
+          "line": 347,
+          "params": [
+            "action",
+            "lane"
+          ]
+        },
+        "stepIndexForPhase": {
+          "line": 383,
+          "params": [
+            "phase"
+          ]
+        },
+        "renderStepper": {
+          "line": 395,
+          "params": [
+            "phase"
+          ]
+        },
+        "renderSpecTaskRow": {
+          "line": 412,
+          "params": [
+            "task"
+          ]
+        },
+        "handleTaskAction": {
+          "line": 461,
+          "params": [
+            "taskId",
+            "action"
+          ]
+        },
+        "renderMarkdown": {
+          "line": 470,
+          "params": [
+            "md"
+          ]
+        },
+        "escapeHtml": {
+          "line": 478,
+          "params": [
+            "s"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TASKS_DATA",
+          "SPEC_DATA"
+        ],
+        "emits": [
+          "LOAD_TASKS",
+          "UPDATE_TASK"
+        ]
       }
     },
     "renderer/specsDashboard": {
@@ -5256,6 +6679,94 @@
             "s"
           ]
         }
+      }
+    },
+    "renderer/taskSection": {
+      "file": "src/renderer/taskSection.js",
+      "description": "Task Section Module",
+      "exports": [],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "sectionRail",
+        "lucide",
+        "agentDispatch",
+        "tasksDashboard",
+        "tasksPanel"
+      ],
+      "functions": {
+        "setHost": {
+          "line": 37,
+          "params": [
+            "h"
+          ],
+          "purpose": "─── Public API ─────────────────────────────────────"
+        },
+        "open": {
+          "line": 42,
+          "params": [
+            "taskId"
+          ]
+        },
+        "openInNewTab": {
+          "line": 48,
+          "params": [
+            "taskId"
+          ]
+        },
+        "createViewport": {
+          "line": 54
+        },
+        "block": {
+          "line": 206,
+          "params": [
+            "heading",
+            "content",
+            "quote = false"
+          ],
+          "purpose": "─── Rendering helpers (pure / stateless) ───────────"
+        },
+        "actionButtons": {
+          "line": 221,
+          "params": [
+            "status"
+          ]
+        },
+        "handleAction": {
+          "line": 237,
+          "params": [
+            "task",
+            "action"
+          ]
+        },
+        "sourceChip": {
+          "line": 260,
+          "params": [
+            "source"
+          ]
+        },
+        "formatDate": {
+          "line": 267,
+          "params": [
+            "iso"
+          ]
+        },
+        "escapeHtml": {
+          "line": 274,
+          "params": [
+            "text"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TASKS_DATA"
+        ],
+        "emits": [
+          "LOAD_TASKS",
+          "UPDATE_TASK"
+        ]
       }
     },
     "renderer/tasksDashboard": {
@@ -6228,1668 +7739,6 @@
         "start": {
           "line": 12
         }
-      }
-    },
-    "renderer/laneDetailRail": {
-      "file": "src/renderer/laneDetailRail.js",
-      "description": "Lane Detail Rail Module",
-      "exports": [
-        "render"
-      ],
-      "depends": [
-        "laneStatus",
-        "laneBoard",
-        "lucide"
-      ],
-      "functions": {
-        "itemStatusText": {
-          "line": 37,
-          "params": [
-            "s"
-          ],
-          "purpose": "agents read \"claude · Needs approval\", commands read \"Running · npm run dev\"."
-        },
-        "lucideIcon": {
-          "line": 51,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        },
-        "escapeHtml": {
-          "line": 59,
-          "params": [
-            "text"
-          ]
-        },
-        "isHidden": {
-          "line": 65
-        },
-        "setHidden": {
-          "line": 73,
-          "params": [
-            "hidden"
-          ]
-        },
-        "render": {
-          "line": 83,
-          "params": [
-            "el",
-            "state",
-            "cbs"
-          ],
-          "purpose": "re-renders itself on lane status changes while visible."
-        },
-        "_renderInto": {
-          "line": 100
-        },
-        "_startTicker": {
-          "line": 193
-        }
-      }
-    },
-    "renderer/laneRail": {
-      "file": "src/renderer/laneRail.js",
-      "description": "Lane Rail Module",
-      "exports": [
-        "render"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "lucide",
-        "agentDispatch",
-        "specsDashboard",
-        "specSection",
-        "tasksDashboard",
-        "taskSection"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 36,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        },
-        "escapeHtml": {
-          "line": 44,
-          "params": [
-            "text"
-          ]
-        },
-        "getUIState": {
-          "line": 58
-        },
-        "setUIState": {
-          "line": 66,
-          "params": [
-            "partial"
-          ]
-        },
-        "_initOnce": {
-          "line": 75,
-          "purpose": "─── Data ───────────────────────────────────────────────────"
-        },
-        "_fetchForProject": {
-          "line": 97,
-          "params": [
-            "projectPath"
-          ]
-        },
-        "_rerenderIfVisible": {
-          "line": 108
-        },
-        "render": {
-          "line": 120,
-          "params": [
-            "container",
-            "projectPath"
-          ],
-          "purpose": "Called by laneBoard on every board render."
-        },
-        "_renderInto": {
-          "line": 136,
-          "params": [
-            "container"
-          ],
-          "purpose": "─── Rendering ──────────────────────────────────────────────"
-        },
-        "_renderCollapsedStrip": {
-          "line": 161
-        },
-        "_sectionHeader": {
-          "line": 185,
-          "params": [
-            "{ title",
-            "count",
-            "collapsed",
-            "onToggle",
-            "onOpen",
-            "openTitle }"
-          ]
-        },
-        "_renderSpecsSection": {
-          "line": 204,
-          "params": [
-            "ui"
-          ]
-        },
-        "_specProgress": {
-          "line": 258,
-          "params": [
-            "spec"
-          ]
-        },
-        "_renderTasksSection": {
-          "line": 275,
-          "params": [
-            "ui"
-          ]
-        },
-        "_popoverOption": {
-          "line": 355,
-          "params": [
-            "name",
-            "value",
-            "label",
-            "checked"
-          ]
-        },
-        "_taskControls": {
-          "line": 367,
-          "params": [
-            "ui",
-            "categories"
-          ],
-          "purpose": "dashboard, single-select radios instead of its multi-select checkboxes."
-        },
-        "_closeRailPopovers": {
-          "line": 442
-        },
-        "_moreLink": {
-          "line": 446,
-          "params": [
-            "label",
-            "onClick"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "SPEC_DATA",
-          "TASKS_DATA"
-        ],
-        "emits": [
-          "LOAD_TASKS"
-        ]
-      }
-    },
-    "renderer/specDetailModal": {
-      "file": "src/renderer/specDetailModal.js",
-      "description": "Spec Detail Modal Module",
-      "exports": [
-        "show",
-        "close"
-      ],
-      "depends": [
-        "electron",
-        "marked",
-        "shared/ipcChannels",
-        "state",
-        "lucide"
-      ],
-      "functions": {
-        "show": {
-          "line": 33,
-          "params": [
-            "slug"
-          ],
-          "purpose": "─── Public API ─────────────────────────────────────"
-        },
-        "close": {
-          "line": 49
-        },
-        "_bindIPC": {
-          "line": 61,
-          "purpose": "─── Live updates while open ────────────────────────"
-        },
-        "_ensureOverlay": {
-          "line": 85,
-          "purpose": "─── Overlay shell ──────────────────────────────────"
-        },
-        "_onKeydown": {
-          "line": 106,
-          "params": [
-            "e"
-          ]
-        },
-        "_renderContent": {
-          "line": 116,
-          "purpose": "─── Detail rendering (mirrors specPanel's detail view) ─────"
-        },
-        "switchTab": {
-          "line": 159,
-          "params": [
-            "tab"
-          ]
-        },
-        "nextActionForPhase": {
-          "line": 172,
-          "params": [
-            "phase"
-          ],
-          "purpose": "underlying slash command kept visible as a small chip for transparency."
-        },
-        "renderNextActionBar": {
-          "line": 188,
-          "params": [
-            "action"
-          ]
-        },
-        "stepIndexForPhase": {
-          "line": 210,
-          "params": [
-            "phase"
-          ]
-        },
-        "renderStepper": {
-          "line": 222,
-          "params": [
-            "phase"
-          ]
-        },
-        "runSpecCommand": {
-          "line": 239,
-          "params": [
-            "command"
-          ]
-        },
-        "renderTabButton": {
-          "line": 257,
-          "params": [
-            "tab",
-            "label",
-            "hasContent"
-          ]
-        },
-        "hasSpecTasks": {
-          "line": 263
-        },
-        "tasksTabLabel": {
-          "line": 269
-        },
-        "renderTabBody": {
-          "line": 278,
-          "params": [
-            "tab"
-          ]
-        },
-        "renderTasksTabBody": {
-          "line": 290
-        },
-        "renderSpecTaskRow": {
-          "line": 328,
-          "params": [
-            "task"
-          ]
-        },
-        "_attachTaskActionHandlers": {
-          "line": 377
-        },
-        "_handleTaskAction": {
-          "line": 390,
-          "params": [
-            "taskId",
-            "action"
-          ]
-        },
-        "lucideIcon": {
-          "line": 407,
-          "params": [
-            "data",
-            "size = 14"
-          ],
-          "purpose": "─── Helpers ────────────────────────────────────────"
-        },
-        "renderMarkdown": {
-          "line": 415,
-          "params": [
-            "md"
-          ]
-        },
-        "escapeHtml": {
-          "line": 423,
-          "params": [
-            "s"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TASKS_DATA",
-          "SPEC_DATA"
-        ],
-        "emits": [
-          "LOAD_TASKS",
-          "UPDATE_TASK"
-        ]
-      }
-    },
-    "renderer/taskSection": {
-      "file": "src/renderer/taskSection.js",
-      "description": "Task Section Module",
-      "exports": [],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "state",
-        "sectionRail",
-        "lucide",
-        "agentDispatch",
-        "tasksDashboard",
-        "tasksPanel"
-      ],
-      "functions": {
-        "setHost": {
-          "line": 37,
-          "params": [
-            "h"
-          ],
-          "purpose": "─── Public API ─────────────────────────────────────"
-        },
-        "open": {
-          "line": 42,
-          "params": [
-            "taskId"
-          ]
-        },
-        "openInNewTab": {
-          "line": 48,
-          "params": [
-            "taskId"
-          ]
-        },
-        "createViewport": {
-          "line": 54
-        },
-        "block": {
-          "line": 206,
-          "params": [
-            "heading",
-            "content",
-            "quote = false"
-          ],
-          "purpose": "─── Rendering helpers (pure / stateless) ───────────"
-        },
-        "actionButtons": {
-          "line": 221,
-          "params": [
-            "status"
-          ]
-        },
-        "handleAction": {
-          "line": 237,
-          "params": [
-            "task",
-            "action"
-          ]
-        },
-        "sourceChip": {
-          "line": 260,
-          "params": [
-            "source"
-          ]
-        },
-        "formatDate": {
-          "line": 267,
-          "params": [
-            "iso"
-          ]
-        },
-        "escapeHtml": {
-          "line": 274,
-          "params": [
-            "text"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TASKS_DATA"
-        ],
-        "emits": [
-          "LOAD_TASKS",
-          "UPDATE_TASK"
-        ]
-      }
-    },
-    "renderer/specSection": {
-      "file": "src/renderer/specSection.js",
-      "description": "Spec Section Module",
-      "exports": [],
-      "depends": [
-        "electron",
-        "marked",
-        "shared/ipcChannels",
-        "state",
-        "sectionRail",
-        "lucide",
-        "agentDispatch",
-        "specsDashboard"
-      ],
-      "functions": {
-        "setHost": {
-          "line": 31,
-          "params": [
-            "h"
-          ],
-          "purpose": "─── Public API ─────────────────────────────────────"
-        },
-        "open": {
-          "line": 36,
-          "params": [
-            "slug"
-          ]
-        },
-        "openInNewTab": {
-          "line": 42,
-          "params": [
-            "slug"
-          ]
-        },
-        "createViewport": {
-          "line": 48
-        },
-        "nextActionForPhase": {
-          "line": 331,
-          "params": [
-            "phase"
-          ],
-          "purpose": "─── Pure helpers ───────────────────────────────────"
-        },
-        "renderNextActionBar": {
-          "line": 347,
-          "params": [
-            "action",
-            "lane"
-          ]
-        },
-        "stepIndexForPhase": {
-          "line": 383,
-          "params": [
-            "phase"
-          ]
-        },
-        "renderStepper": {
-          "line": 395,
-          "params": [
-            "phase"
-          ]
-        },
-        "renderSpecTaskRow": {
-          "line": 412,
-          "params": [
-            "task"
-          ]
-        },
-        "handleTaskAction": {
-          "line": 461,
-          "params": [
-            "taskId",
-            "action"
-          ]
-        },
-        "renderMarkdown": {
-          "line": 470,
-          "params": [
-            "md"
-          ]
-        },
-        "escapeHtml": {
-          "line": 478,
-          "params": [
-            "s"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TASKS_DATA",
-          "SPEC_DATA"
-        ],
-        "emits": [
-          "LOAD_TASKS",
-          "UPDATE_TASK"
-        ]
-      }
-    },
-    "renderer/sectionRail": {
-      "file": "src/renderer/sectionRail.js",
-      "description": "Section Rail Module",
-      "exports": [
-        "render"
-      ],
-      "depends": [
-        "lucide"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 19,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        },
-        "getState": {
-          "line": 27,
-          "params": [
-            "storageKey"
-          ]
-        },
-        "setState": {
-          "line": 38,
-          "params": [
-            "storageKey",
-            "partial"
-          ]
-        },
-        "_appendItem": {
-          "line": 45,
-          "params": [
-            "parent",
-            "it",
-            "onSelect"
-          ]
-        },
-        "render": {
-          "line": 70,
-          "params": [
-            "el",
-            "opts"
-          ]
-        }
-      }
-    },
-    "renderer/agentDispatch": {
-      "file": "src/renderer/agentDispatch.js",
-      "description": "Agent Dispatch Module",
-      "exports": [
-        "init",
-        "dispatch",
-        "startDefaultAgent",
-        "dispatchSpecCommand",
-        "getSpecLaneInfo",
-        "getTaskLaneInfo",
-        "onSpecLaneActivity",
-        "onTaskLaneActivity",
-        "specStatusDotHtml",
-        "taskStatusDotHtml"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "laneStatus",
-        "state",
-        "aiToolSelector"
-      ],
-      "functions": {
-        "init": {
-          "line": 32,
-          "params": [
-            "ui"
-          ],
-          "purpose": "Initialize with the MultiTerminalUI instance."
-        },
-        "dispatch": {
-          "line": 70,
-          "params": [
-            "{ terminalId = null",
-            "createNew = false",
-            "toolId = null",
-            "prompt",
-            "assignment = null",
-            "enter = true } = {}"
-          ],
-          "purpose": "running (default: current tool)"
-        },
-        "startDefaultAgent": {
-          "line": 178,
-          "purpose": "- Anywhere else (Home / any other tab) it always opens a new Frame."
-        },
-        "_startAgentIn": {
-          "line": 213,
-          "params": [
-            "terminalId",
-            "{ fresh = false } = {}"
-          ],
-          "purpose": "spawned shell a beat to accept input before the command is typed."
-        },
-        "_startAgentInNewFrame": {
-          "line": 223
-        },
-        "_askNewOrRestart": {
-          "line": 241,
-          "params": [
-            "frameName",
-            "hasAgent"
-          ],
-          "purpose": "safe default (never silently kills running work)."
-        },
-        "dispatchSpecCommand": {
-          "line": 298,
-          "params": [
-            "{ slug",
-            "title = null",
-            "command } = {}"
-          ]
-        },
-        "getSpecLaneInfo": {
-          "line": 362,
-          "params": [
-            "slug"
-          ],
-          "purpose": "states fail open on purpose."
-        },
-        "getTaskLaneInfo": {
-          "line": 381,
-          "params": [
-            "taskId"
-          ],
-          "purpose": "requires a live agent process."
-        },
-        "specStatusDotHtml": {
-          "line": 402,
-          "params": [
-            "slug"
-          ],
-          "purpose": "Presentation helpers kept here so all surfaces share one mapping."
-        },
-        "taskStatusDotHtml": {
-          "line": 406,
-          "params": [
-            "taskId"
-          ]
-        },
-        "_activityDotHtml": {
-          "line": 410,
-          "params": [
-            "info"
-          ]
-        },
-        "onSpecLaneActivity": {
-          "line": 427,
-          "params": [
-            "callback"
-          ],
-          "purpose": "Returns an unsubscribe function."
-        },
-        "_notifySpecLane": {
-          "line": 435,
-          "params": [
-            "slug"
-          ]
-        },
-        "onTaskLaneActivity": {
-          "line": 455,
-          "params": [
-            "callback"
-          ],
-          "purpose": "Returns an unsubscribe function."
-        },
-        "_notifyTaskLane": {
-          "line": 463,
-          "params": [
-            "taskId"
-          ]
-        },
-        "_assignedLane": {
-          "line": 481,
-          "params": [
-            "slug"
-          ],
-          "purpose": "lane means the spec is unassigned again."
-        },
-        "_laneName": {
-          "line": 491,
-          "params": [
-            "terminalId"
-          ]
-        },
-        "_askContinueOrNew": {
-          "line": 500,
-          "params": [
-            "frameName",
-            "specName"
-          ],
-          "purpose": "Resolves 'continue' | 'new' | 'cancel'; continue is the default action."
-        },
-        "_escapeHtml": {
-          "line": 532,
-          "params": [
-            "s"
-          ]
-        },
-        "_waitForAgentReady": {
-          "line": 551,
-          "params": [
-            "terminalId"
-          ],
-          "purpose": "the prompt to a y/n chooser, so those lanes time out instead."
-        },
-        "_fail": {
-          "line": 586,
-          "params": [
-            "terminalId",
-            "message"
-          ],
-          "purpose": "for what is presentation-only."
-        },
-        "_showToast": {
-          "line": 591,
-          "params": [
-            "message",
-            "type = 'info'"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TERMINAL_DESTROYED"
-        ],
-        "emits": []
-      }
-    },
-    "renderer/openProjectModal": {
-      "file": "src/renderer/openProjectModal.js",
-      "description": "Open Project Modal",
-      "exports": [
-        "init",
-        "open",
-        "close",
-        "isVisible",
-        "handleCloneResult"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "state"
-      ],
-      "functions": {
-        "open": {
-          "line": 29,
-          "params": [
-            "opts = {}"
-          ],
-          "purpose": "(used by the welcome overlay's \"Clone GitHub\" entry point)."
-        },
-        "close": {
-          "line": 39,
-          "purpose": "Hide the modal and reset the clone form."
-        },
-        "isVisible": {
-          "line": 45
-        },
-        "resetCloneForm": {
-          "line": 52,
-          "purpose": "Collapse the clone form back to the option list and clear its state."
-        },
-        "showCloneForm": {
-          "line": 65,
-          "purpose": "Reveal the in-modal clone URL form and focus the input."
-        },
-        "submitClone": {
-          "line": 80,
-          "purpose": "Send the clone request for the current URL value (if any)."
-        },
-        "handleCloneResult": {
-          "line": 92,
-          "params": [
-            "result"
-          ],
-          "purpose": "Returns true if it consumed the result (modal handled the feedback)."
-        },
-        "init": {
-          "line": 109,
-          "purpose": "Wire all modal controls. Safe to call once at startup."
-        }
-      },
-      "ipc": {
-        "listens": [],
-        "emits": [
-          "CLONE_GITHUB_REPO"
-        ]
-      }
-    },
-    "renderer/projectSection": {
-      "file": "src/renderer/projectSection.js",
-      "description": "Projects Section",
-      "exports": [
-        "init",
-        "focusList"
-      ],
-      "depends": [
-        "openProjectModal",
-        "projectListUI"
-      ],
-      "functions": {
-        "focusList": {
-          "line": 19,
-          "purpose": "command."
-        },
-        "init": {
-          "line": 23
-        }
-      }
-    },
-    "renderer/projectStatusBadges": {
-      "file": "src/renderer/projectStatusBadges.js",
-      "description": "Project Status Badges",
-      "exports": [
-        "init",
-        "recompute"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "laneStatus",
-        "projectListUI"
-      ],
-      "functions": {
-        "init": {
-          "line": 28,
-          "params": [
-            "multiTerminalUI"
-          ]
-        },
-        "schedule": {
-          "line": 39
-        },
-        "recompute": {
-          "line": 51,
-          "purpose": "Tally attention-worthy agent statuses per project and push to the list."
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TERMINAL_DESTROYED"
-        ],
-        "emits": []
-      }
-    },
-    "renderer/agentPanel": {
-      "file": "src/renderer/agentPanel.js",
-      "description": "Agent Panel",
-      "exports": [
-        "init",
-        "recompute"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "laneStatus",
-        "state",
-        "projectListUI"
-      ],
-      "functions": {
-        "init": {
-          "line": 35,
-          "params": [
-            "ui"
-          ]
-        },
-        "schedule": {
-          "line": 47
-        },
-        "recompute": {
-          "line": 60,
-          "purpose": "grouped under a heading per project (active project first)."
-        },
-        "_buildRow": {
-          "line": 124,
-          "params": [
-            "a"
-          ],
-          "purpose": "sub-line is just the Frame name."
-        },
-        "_projectNames": {
-          "line": 146,
-          "purpose": "path -> the workspace's display name for that project (fallback: basename)."
-        },
-        "_focus": {
-          "line": 157,
-          "params": [
-            "a"
-          ],
-          "purpose": "so the lane is in view before we enter it."
-        },
-        "_label": {
-          "line": 165,
-          "params": [
-            "agentName"
-          ]
-        },
-        "_basename": {
-          "line": 169,
-          "params": [
-            "p"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TERMINAL_DESTROYED"
-        ],
-        "emits": []
-      }
-    },
-    "renderer/diffSection": {
-      "file": "src/renderer/diffSection.js",
-      "description": "Diff Section Module",
-      "exports": [],
-      "depends": [
-        "electron",
-        "diff2html",
-        "shared/ipcChannels",
-        "lucide",
-        "gitChangesPanel"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 23,
-          "params": [
-            "data",
-            "size = 16"
-          ]
-        },
-        "setHost": {
-          "line": 31,
-          "params": [
-            "h"
-          ]
-        },
-        "open": {
-          "line": 40,
-          "params": [
-            "ref"
-          ],
-          "purpose": "it) or creates one if none."
-        },
-        "createViewport": {
-          "line": 45
-        },
-        "_orderedFiles": {
-          "line": 191
-        },
-        "_basename": {
-          "line": 199,
-          "params": [
-            "p"
-          ]
-        },
-        "_escape": {
-          "line": 205,
-          "params": [
-            "text"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "GIT_STATUS_DATA"
-        ],
-        "emits": []
-      }
-    },
-    "main/orchestrationManager": {
-      "file": "src/main/orchestrationManager.js",
-      "description": "Orchestration Manager",
-      "exports": [
-        "init",
-        "setupIPC",
-        "startOrchestration",
-        "stopOrchestration",
-        "assignSpecs",
-        "registerWorkerLane",
-        "mergeWorker",
-        "removeWorker",
-        "getState",
-        "rehydrate",
-        "envForLane",
-        "publishState",
-        "drainBus",
-        "sessionFor",
-        "getSession"
-      ],
-      "depends": [
-        "fs",
-        "path",
-        "fsSafe",
-        "logger",
-        "shared/ipcChannels",
-        "shared/frameConstants",
-        "shared/frameTemplates",
-        "ptyManager",
-        "gitBranchesManager",
-        "specManager"
-      ],
-      "functions": {
-        "init": {
-          "line": 64,
-          "params": [
-            "window"
-          ]
-        },
-        "sessionFor": {
-          "line": 68,
-          "params": [
-            "projectPath"
-          ]
-        },
-        "busDirFor": {
-          "line": 74,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "─── path helpers ─────────────────────────────────────────"
-        },
-        "binDirFor": {
-          "line": 77,
-          "params": [
-            "projectPath"
-          ]
-        },
-        "worktreeDirFor": {
-          "line": 80,
-          "params": [
-            "projectPath",
-            "slug"
-          ]
-        },
-        "envForLane": {
-          "line": 86,
-          "params": [
-            "session",
-            "slug"
-          ],
-          "purpose": "worktree, regardless of its own .frame/ copy."
-        },
-        "toPrefix": {
-          "line": 100,
-          "params": [
-            "entry"
-          ],
-          "purpose": "equality; a glob/dir entry (`src/foo/**`, `src/foo/*`) matches by prefix."
-        },
-        "entriesOverlap": {
-          "line": 105,
-          "params": [
-            "a",
-            "b"
-          ]
-        },
-        "footprintsOverlap": {
-          "line": 117,
-          "params": [
-            "fa",
-            "fb"
-          ]
-        },
-        "findFootprintConflict": {
-          "line": 128,
-          "params": [
-            "session",
-            "slug",
-            "footprint"
-          ],
-          "purpose": "workers don't block (their work is already integrated or abandoned)."
-        },
-        "buildWorkerPrompt": {
-          "line": 141,
-          "params": [
-            "projectPath",
-            "slug"
-          ],
-          "purpose": "from inside the worktree."
-        },
-        "relayToConductor": {
-          "line": 163,
-          "params": [
-            "session",
-            "text"
-          ]
-        },
-        "drainRelayQueue": {
-          "line": 169,
-          "params": [
-            "session"
-          ]
-        },
-        "materializeBinScripts": {
-          "line": 187,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Materialize the .frame/bin command scripts for this project."
-        },
-        "serializeState": {
-          "line": 199,
-          "params": [
-            "session"
-          ],
-          "purpose": "─── state publish ────────────────────────────────────────"
-        },
-        "publishState": {
-          "line": 224,
-          "params": [
-            "session"
-          ]
-        },
-        "startBusWatcher": {
-          "line": 241,
-          "params": [
-            "session"
-          ],
-          "purpose": "─── bus watcher ──────────────────────────────────────────"
-        },
-        "drainBus": {
-          "line": 254,
-          "params": [
-            "session"
-          ]
-        },
-        "handleRequest": {
-          "line": 278,
-          "params": [
-            "session",
-            "req"
-          ]
-        },
-        "handleDispatch": {
-          "line": 298,
-          "params": [
-            "session",
-            "slug"
-          ],
-          "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
-        },
-        "registerWorkerLane": {
-          "line": 369,
-          "params": [
-            "projectPath",
-            "slug",
-            "terminalId"
-          ],
-          "purpose": "manager can track status, relay, and tear it down."
-        },
-        "handleReportDone": {
-          "line": 382,
-          "params": [
-            "session",
-            "slug"
-          ],
-          "purpose": "the conductor with the merge command."
-        },
-        "handleMerge": {
-          "line": 401,
-          "params": [
-            "session",
-            "slug",
-            "args = []"
-          ],
-          "purpose": "reminder; the conductor performs the actual reconcile per CONDUCTOR.md)."
-        },
-        "mergeWorker": {
-          "line": 440,
-          "params": [
-            "projectPath",
-            "slug",
-            "force = false"
-          ],
-          "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
-        },
-        "removeWorker": {
-          "line": 448,
-          "params": [
-            "projectPath",
-            "slug"
-          ],
-          "purpose": "prune the work branch ONLY if merged (un-merged work is kept — no data loss)."
-        },
-        "pollStatuses": {
-          "line": 473,
-          "params": [
-            "session"
-          ],
-          "purpose": "additionally overlays its richer laneStatus (processing/waiting) per lane."
-        },
-        "startOrchestration": {
-          "line": 513,
-          "params": [
-            "args = {}"
-          ],
-          "purpose": "─── session lifecycle ────────────────────────────────────"
-        },
-        "stopOrchestration": {
-          "line": 578,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "work branches (un-merged work is kept on its branch), leave main untouched."
-        },
-        "rehydrate": {
-          "line": 619,
-          "params": [
-            "session"
-          ],
-          "purpose": "offers Resume / Remove on it."
-        },
-        "resumeWorker": {
-          "line": 672,
-          "params": [
-            "projectPath",
-            "slug"
-          ],
-          "purpose": "worktree and deletes the branch, which would destroy the recovered work."
-        },
-        "assignSpecs": {
-          "line": 697,
-          "params": [
-            "projectPath",
-            "slugs"
-          ]
-        },
-        "getState": {
-          "line": 705,
-          "params": [
-            "projectPath"
-          ]
-        },
-        "setupIPC": {
-          "line": 711,
-          "params": [
-            "ipcMain"
-          ],
-          "purpose": "─── IPC ──────────────────────────────────────────────────"
-        }
-      },
-      "ipc": {
-        "listens": [
-          "START_ORCHESTRATION",
-          "STOP_ORCHESTRATION",
-          "GET_ORCH_STATE",
-          "ORCH_ASSIGN_SPECS",
-          "ORCH_WORKER_LANE",
-          "ORCH_MERGE_WORKER",
-          "ORCH_REMOVE_WORKER",
-          "ORCH_RESUME_WORKER"
-        ],
-        "emits": [
-          "ORCH_STATE",
-          "ORCH_SPAWN_WORKER",
-          "ORCH_STATE",
-          "ORCH_SPAWN_WORKER"
-        ]
-      }
-    },
-    "renderer/orchestrator": {
-      "file": "src/renderer/orchestrator.js",
-      "description": "Orchestrator (renderer) — a section viewport",
-      "exports": [],
-      "depends": [
-        "electron",
-        "path",
-        "shared/ipcChannels",
-        "shared/frameConstants",
-        "state",
-        "agentDispatch"
-      ],
-      "functions": {
-        "_sess": {
-          "line": 39,
-          "params": [
-            "projectPath",
-            "create = false"
-          ]
-        },
-        "_curSess": {
-          "line": 50,
-          "params": [
-            "create = false"
-          ],
-          "purpose": "belongs to the current project). null when no project / no session yet."
-        },
-        "setHost": {
-          "line": 54,
-          "params": [
-            "h"
-          ]
-        },
-        "open": {
-          "line": 90,
-          "purpose": "Open (or focus) the orchestrator section tab."
-        },
-        "orchEnv": {
-          "line": 101,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "─── session ──────────────────────────────────────────────"
-        },
-        "ensureSession": {
-          "line": 108
-        },
-        "spawnWorkerLane": {
-          "line": 155,
-          "params": [
-            "{ projectPath",
-            "slug",
-            "worktreePath",
-            "env",
-            "promptInstruction } = {}"
-          ],
-          "purpose": "─── worker lane bridge ───────────────────────────────────"
-        },
-        "createViewport": {
-          "line": 184,
-          "purpose": "─── section viewport ─────────────────────────────────────"
-        },
-        "stopSession": {
-          "line": 237,
-          "purpose": "un-merged work kept), reset local state, close the tab."
-        },
-        "renderConductorZone": {
-          "line": 248,
-          "params": [
-            "root"
-          ],
-          "purpose": "─── zones ────────────────────────────────────────────────"
-        },
-        "stageOf": {
-          "line": 282,
-          "params": [
-            "w"
-          ]
-        },
-        "renderPipeline": {
-          "line": 295,
-          "params": [
-            "root"
-          ]
-        },
-        "renderWorkerZone": {
-          "line": 338,
-          "params": [
-            "root"
-          ]
-        },
-        "mergeWorkerAction": {
-          "line": 388,
-          "params": [
-            "slug"
-          ]
-        },
-        "resumeWorkerAction": {
-          "line": 407,
-          "params": [
-            "slug"
-          ]
-        },
-        "removeWorkerAction": {
-          "line": 415,
-          "params": [
-            "slug"
-          ]
-        },
-        "_shortPath": {
-          "line": 424,
-          "params": [
-            "p"
-          ]
-        },
-        "_relTime": {
-          "line": 430,
-          "params": [
-            "ts"
-          ]
-        },
-        "loadSpecs": {
-          "line": 441,
-          "params": [
-            "root"
-          ]
-        },
-        "renderSpecRail": {
-          "line": 456,
-          "params": [
-            "root",
-            "specs"
-          ]
-        },
-        "assignSpec": {
-          "line": 490,
-          "params": [
-            "slug"
-          ]
-        },
-        "nudgeConductor": {
-          "line": 504,
-          "params": [
-            "projectPath"
-          ]
-        },
-        "_esc": {
-          "line": 518,
-          "params": [
-            "s"
-          ],
-          "purpose": "─── helpers ──────────────────────────────────────────────"
-        },
-        "_toast": {
-          "line": 524,
-          "params": [
-            "message",
-            "type = 'info'"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "ORCH_SPAWN_WORKER",
-          "ORCH_STATE"
-        ],
-        "emits": [
-          "ORCH_WORKER_LANE"
-        ]
-      }
-    },
-    "main/crashGuard": {
-      "file": "src/main/crashGuard.js",
-      "description": "Crash Guard — global error handlers for the main process.",
-      "exports": [
-        "init",
-        "attachWindow",
-        "notify"
-      ],
-      "depends": [
-        "electron",
-        "logger",
-        "shared/ipcChannels",
-        "userSettings"
-      ],
-      "functions": {
-        "init": {
-          "line": 21
-        },
-        "attachWindow": {
-          "line": 71,
-          "params": [
-            "window"
-          ]
-        },
-        "notify": {
-          "line": 85,
-          "params": [
-            "source",
-            "message"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [],
-        "emits": [
-          "MAIN_PROCESS_ERROR"
-        ]
-      }
-    },
-    "main/fsSafe": {
-      "file": "src/main/fsSafe.js",
-      "description": "fsSafe — durable state-file primitives",
-      "exports": [
-        "writeFileAtomic",
-        "readJsonWithRecovery",
-        "safeWatch"
-      ],
-      "depends": [
-        "fs"
-      ],
-      "functions": {
-        "writeFileAtomic": {
-          "line": 28,
-          "params": [
-            "filePath",
-            "data"
-          ],
-          "purpose": "`.bak`. Throws on failure; callers keep their existing try/catch contract."
-        },
-        "readJsonWithRecovery": {
-          "line": 64,
-          "params": [
-            "filePath"
-          ],
-          "purpose": "default can save without destroying recoverable data."
-        },
-        "safeWatch": {
-          "line": 114,
-          "params": [
-            "target",
-            "options",
-            "listener",
-            "onError"
-          ]
-        }
-      }
-    },
-    "main/logger": {
-      "file": "src/main/logger.js",
-      "description": "Logger — rotating, redacted log file for the main process.",
-      "exports": [
-        "init",
-        "info",
-        "warn",
-        "error",
-        "redact",
-        "getLogPath"
-      ],
-      "depends": [
-        "electron-log/main",
-        "fs"
-      ],
-      "functions": {
-        "redact": {
-          "line": 33,
-          "params": [
-            "text"
-          ]
-        },
-        "redactValue": {
-          "line": 43,
-          "params": [
-            "value"
-          ]
-        },
-        "init": {
-          "line": 61
-        },
-        "rotateArchives": {
-          "line": 84,
-          "params": [
-            "oldLogFile"
-          ],
-          "purpose": "(electron-log's default keeps only one .old file)."
-        },
-        "scoped": {
-          "line": 101,
-          "params": [
-            "scope"
-          ]
-        },
-        "emit": {
-          "line": 108,
-          "params": [
-            "level",
-            "scope",
-            "args"
-          ]
-        },
-        "info": {
-          "line": 118,
-          "params": [
-            "scope",
-            "...args"
-          ]
-        },
-        "warn": {
-          "line": 122,
-          "params": [
-            "scope",
-            "...args"
-          ]
-        },
-        "error": {
-          "line": 126,
-          "params": [
-            "scope",
-            "...args"
-          ]
-        },
-        "getLogPath": {
-          "line": 130
-        }
-      }
-    },
-    "renderer/healthNotice": {
-      "file": "src/renderer/healthNotice.js",
-      "description": "Health Notice Banner",
-      "exports": [
-        "init"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels"
-      ],
-      "functions": {
-        "init": {
-          "line": 18
-        },
-        "show": {
-          "line": 38,
-          "params": [
-            "kind",
-            "message"
-          ]
-        },
-        "dismiss": {
-          "line": 70
-        }
-      },
-      "ipc": {
-        "listens": [
-          "MAIN_PROCESS_ERROR",
-          "STATE_FILE_RECOVERED",
-          "TASKS_FILE_ERROR"
-        ],
-        "emits": []
       }
     }
   },
@@ -8990,13 +8839,6 @@
         "module": "renderer/specPanel",
         "file": "src/renderer/specPanel.js",
         "description": "Specs Panel Module"
-      }
-    ],
-    "spec-detail-modal": [
-      {
-        "module": "renderer/specDetailModal",
-        "file": "src/renderer/specDetailModal.js",
-        "description": "Spec Detail Modal Module"
       }
     ],
     "spec-panel-resize": [
