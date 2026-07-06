@@ -1267,6 +1267,19 @@
               <span class="settings-switch-slider"></span>
             </label>
           </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-crash-dumps-toggle">Keep local crash dumps</label>
+              <p class="settings-row-desc">
+                On a crash, save a minidump on this machine to help debugging.
+                Nothing is ever uploaded. Takes effect on next launch.
+              </p>
+            </div>
+            <label class="settings-switch">
+              <input type="checkbox" id="settings-crash-dumps-toggle" />
+              <span class="settings-switch-slider"></span>
+            </label>
+          </div>
         </div>
 
         <div class="settings-section">
@@ -1279,6 +1292,10 @@
               <button type="button" id="settings-check-updates" class="settings-about-btn">Check for Updates</button>
             </div>
             <p id="settings-update-status" class="settings-about-status">Checking for updates…</p>
+            <div class="settings-about-row">
+              <div class="settings-about-version">Diagnostics</div>
+              <button type="button" id="settings-open-logs" class="settings-about-btn" title="Frame keeps a rotating, redacted log file to help debug issues — see PRIVACY.md">Open Logs Folder</button>
+            </div>
 
             <div id="settings-update-available" class="settings-update-banner" style="display:none;">
               <div class="settings-update-banner-text">
