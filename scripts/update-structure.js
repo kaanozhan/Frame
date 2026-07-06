@@ -186,29 +186,44 @@ function extractFunctions(content, lines) {
 }
 
 /**
- * Extract function purpose from preceding comment
+ * Extract function purpose from the comment block directly above a declaration.
+ * Only a comment that ends on the line immediately above counts. The purpose is
+ * always the block's FIRST content line — never a mid-comment fragment.
  */
 function extractFunctionPurpose(lines, lineIndex) {
-  // Look at previous lines for JSDoc or single-line comment
-  for (let i = lineIndex - 1; i >= Math.max(0, lineIndex - 5); i--) {
-    const line = lines[i].trim();
+  const above = lineIndex - 1;
+  if (above < 0) return null;
 
-    // JSDoc @description or first line after /**
-    if (line.startsWith('*') && !line.startsWith('*/') && !line.startsWith('/**')) {
-      const text = line.replace(/^\*\s*/, '').trim();
+  const aboveLine = lines[above].trim();
+
+  // Run of // comments: walk up to the start of the run, take its first line
+  if (aboveLine.startsWith('//')) {
+    let start = above;
+    while (start > 0 && lines[start - 1].trim().startsWith('//')) {
+      start--;
+    }
+    const text = lines[start].trim().replace(/^\/\/\s*/, '').trim();
+    return text || null;
+  }
+
+  // Block comment ending immediately above: walk up to /* and take the
+  // block's first content line (skipping JSDoc @tags)
+  if (aboveLine.endsWith('*/')) {
+    let start = above;
+    while (start >= 0 && !lines[start].includes('/*')) {
+      start--;
+    }
+    if (start < 0) return null;
+
+    for (let i = start; i <= above; i++) {
+      const text = lines[i].trim()
+        .replace(/^\/\*\*?/, '')
+        .replace(/\*\/$/, '')
+        .replace(/^\*\s?/, '')
+        .trim();
       if (text && !text.startsWith('@')) {
         return text;
       }
-    }
-
-    // Single line comment
-    if (line.startsWith('//')) {
-      return line.replace(/^\/\/\s*/, '').trim();
-    }
-
-    // Stop if we hit code
-    if (line && !line.startsWith('*') && !line.startsWith('/')) {
-      break;
     }
   }
 
