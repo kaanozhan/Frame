@@ -2426,28 +2426,28 @@
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "detectHookSetup": {
-          "line": 84,
+          "line": 102,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "hasFrameSnippet": {
-          "line": 139,
+          "line": 157,
           "params": [
             "hookFilePath"
           ],
           "purpose": "Check if our managed snippet is already present in a hook file."
         },
         "installPreCommitHook": {
-          "line": 156,
+          "line": 174,
           "params": [
             "projectPath"
           ],
           "purpose": "Install (or append) the pre-commit hook based on detected setup."
         },
         "appendToHookFile": {
-          "line": 211,
+          "line": 229,
           "params": [
             "hookPath",
             "createIfMissing",
@@ -2456,14 +2456,14 @@
           "purpose": "Append the Frame snippet to an existing hook file (husky case)."
         },
         "runInitialFullScan": {
-          "line": 247,
+          "line": 265,
           "params": [
             "projectPath"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 287,
+          "line": 305,
           "params": [
             "projectPath",
             "structureWasCreated"
