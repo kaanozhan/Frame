@@ -6,6 +6,13 @@
 const fs = require('fs');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
+const { redact } = require('./logger');
+
+// Prompt history is a feature, not a debug log — but it must never persist
+// secrets typed into a terminal (API keys, tokens, passwords), and it must
+// not grow unbounded. Every line is redacted before append; past MAX_SIZE
+// the file is truncated to its newest half.
+const MAX_LOG_SIZE = 1024 * 1024;
 
 let logFilePath = null;
 let inputBuffer = '';
@@ -52,8 +59,13 @@ function logInput(data) {
       // Enter pressed - save the line
       if (inputBuffer.trim().length > 0) {
         const timestamp = new Date().toISOString();
-        const logEntry = `[${timestamp}] ${inputBuffer}\n`;
-        fs.appendFileSync(logFilePath, logEntry, 'utf8');
+        const logEntry = `[${timestamp}] ${redact(inputBuffer)}\n`;
+        try {
+          fs.appendFileSync(logFilePath, logEntry, 'utf8');
+          enforceSizeCap();
+        } catch (err) {
+          console.error('promptLogger: append failed:', err.message);
+        }
       }
       inputBuffer = '';
     } else if (char === '\x7f' || char === '\b') {
@@ -64,6 +76,19 @@ function logInput(data) {
       inputBuffer += char;
     }
   }
+}
+
+/**
+ * Cap the history file: past MAX_LOG_SIZE, keep the newest half (whole
+ * lines). Runs after append, so at most one oversized write ever exists.
+ */
+function enforceSizeCap() {
+  const { size } = fs.statSync(logFilePath);
+  if (size <= MAX_LOG_SIZE) return;
+  const content = fs.readFileSync(logFilePath, 'utf8');
+  const half = content.slice(Math.floor(content.length / 2));
+  const firstLine = half.indexOf('\n');
+  fs.writeFileSync(logFilePath, half.slice(firstLine + 1), 'utf8');
 }
 
 /**

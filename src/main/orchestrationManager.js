@@ -24,6 +24,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const fsSafe = require('./fsSafe');
+const logger = require('./logger');
 const { IPC } = require('../shared/ipcChannels');
 const {
   FRAME_DIR,
@@ -126,6 +128,7 @@ function footprintsOverlap(fa, fb) {
 function findFootprintConflict(session, slug, footprint) {
   for (const w of session.workers.values()) {
     if (w.slug === slug) continue;
+    if (w.detached) continue; // recovered-without-a-lane workers never block dispatch
     if (!['running', 'idle'].includes(w.status)) continue; // only in-flight workers block
     if (footprintsOverlap(footprint, w.declaredFootprint || [])) return w.slug;
   }
@@ -137,7 +140,7 @@ function findFootprintConflict(session, slug, footprint) {
 // from inside the worktree.
 function buildWorkerPrompt(projectPath, slug) {
   let tpl = '';
-  try { tpl = fs.readFileSync(WORKER_TEMPLATE_PATH, 'utf8'); } catch (e) {}
+  try { tpl = fs.readFileSync(WORKER_TEMPLATE_PATH, 'utf8'); } catch (e) { logger.warn('orch', 'worker template read failed:', e.message); }
   const body = (tpl || `You are a worker for spec ${slug}. Implement .frame/specs/${slug}/tasks.md in order, commit only to frame/${slug}/work, then run: node "$FRAME_ORCH_BIN/report-done.js".`).replace(/\{slug\}/g, slug);
   const dir = path.join(projectPath, FRAME_DIR, 'runtime', 'prompts');
   fs.mkdirSync(dir, { recursive: true });
@@ -170,9 +173,9 @@ async function drainRelayQueue(session) {
     while (session.conductorTerminalId && session.relayQueue.length) {
       const id = session.conductorTerminalId;
       const text = session.relayQueue.shift();
-      try { ptyManager.writeToTerminal(id, text); } catch (e) {}
+      try { ptyManager.writeToTerminal(id, text); } catch (e) { logger.warn('orch', 'prompt write to lane failed:', e.message); }
       await relaySleep(350);                                  // let the paste settle
-      try { ptyManager.writeToTerminal(id, '\r'); } catch (e) {} // submit
+      try { ptyManager.writeToTerminal(id, '\r'); } catch (e) { logger.warn('orch', 'prompt submit to lane failed:', e.message); } // submit
       await relaySleep(400);                                  // gap before next message
     }
   } finally {
@@ -187,7 +190,7 @@ function materializeBinScripts(projectPath) {
   for (const [name, body] of Object.entries(getOrchBinScripts())) {
     const p = path.join(binDir, name);
     fs.writeFileSync(p, body);
-    try { fs.chmodSync(p, 0o755); } catch (e) {}
+    try { fs.chmodSync(p, 0o755); } catch (e) { logger.warn('orch', 'chmod on bus script failed:', e.message); }
   }
 }
 
@@ -211,6 +214,8 @@ function serializeState(session) {
       footprint: w.declaredFootprint || [],
       blockedBy: w.blockedBy || null,
       merged: !!w.merged,
+      detached: !!w.detached,
+      baseSha: w.baseSha || null, // persisted so rehydrate can restore it
       lastActivityAt: w.lastActivityAt || null
     }))
   };
@@ -225,11 +230,10 @@ function publishState(session) {
   // Mirror to the bus so the conductor's status.js can read it.
   try {
     fs.mkdirSync(session.busDir, { recursive: true });
-    const dest = path.join(session.busDir, 'state.json');
-    const tmp = dest + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify(state, null, 2));
-    fs.renameSync(tmp, dest);
-  } catch (e) {}
+    fsSafe.writeFileAtomic(path.join(session.busDir, 'state.json'), JSON.stringify(state, null, 2));
+  } catch (e) {
+    logger.warn('orch', 'bus state write failed:', e.message);
+  }
 }
 
 // ─── bus watcher ──────────────────────────────────────────
@@ -238,12 +242,12 @@ function startBusWatcher(session) {
   fs.mkdirSync(session.busDir, { recursive: true });
   drainBus(session); // pick up anything queued before the watcher attached
   try {
-    session.watcher = fs.watch(session.busDir, () => {
+    session.watcher = fsSafe.safeWatch(session.busDir, null, () => {
       clearTimeout(session.debounce);
       session.debounce = setTimeout(() => drainBus(session), WATCH_DEBOUNCE_MS);
-    });
+    }, () => { session.watcher = null; });
   } catch (e) {
-    console.error('[orch] failed to watch bus dir:', e.message);
+    logger.error('orch', 'failed to watch bus dir:', e.message);
   }
 }
 
@@ -266,7 +270,7 @@ function drainBus(session) {
     } catch (e) {
       continue; // partial/corrupt — atomic writers shouldn't cause this; skip
     }
-    try { fs.unlinkSync(full); } catch (e) {}
+    try { fs.unlinkSync(full); } catch (e) { logger.warn('orch', 'bus request cleanup failed:', e.message); }
     handleRequest(session, req);
   }
 }
@@ -384,7 +388,9 @@ async function handleReportDone(session, slug) {
   let n = 0;
   try {
     n = (await gitBranches.worktreeChangedFiles(session.projectPath, slug, w.baseSha || 'HEAD')).length;
-  } catch (e) {}
+  } catch (e) {
+    logger.warn('orch', 'diff stat for report-done failed:', e.message);
+  }
   w.diffStat = { files: n };
   relayToConductor(session, `WORKER DONE: "${slug}" — branch ${w.branch} (${n} file${n === 1 ? '' : 's'} changed). Review it (git log/diff) and tell the USER it's ready for their approval (board → Approve). Do NOT merge it yourself — approval is the user's call, unless they explicitly ask you to merge.`);
   publishState(session);
@@ -445,12 +451,12 @@ async function removeWorker(projectPath, slug) {
   const w = session.workers.get(slug);
   if (!w) return { error: 'no such worker' };
   if (w.terminalId) {
-    try { ptyManager.destroyTerminal(w.terminalId); } catch (e) {}
+    try { ptyManager.destroyTerminal(w.terminalId); } catch (e) { logger.warn('orch', 'worker lane destroy failed:', e.message); }
   }
   let merged = false;
-  try { merged = await gitBranches.isWorkMerged(session.projectPath, slug); } catch (e) {}
+  try { merged = await gitBranches.isWorkMerged(session.projectPath, slug); } catch (e) { logger.warn('orch', 'isWorkMerged failed:', e.message); }
   if (w.worktreePath || w.branch) {
-    try { await gitBranches.removeOrchWorktree(session.projectPath, slug, { deleteBranch: merged }); } catch (e) {}
+    try { await gitBranches.removeOrchWorktree(session.projectPath, slug, { deleteBranch: merged }); } catch (e) { logger.warn('orch', 'worktree removal failed:', e.message); }
   }
   session.workers.delete(slug);
   publishState(session);
@@ -549,7 +555,7 @@ async function startOrchestration(args = {}) {
   // Materialize the conductor protocol doc so the conductor lane can read it.
   try {
     let tpl = '';
-    try { tpl = fs.readFileSync(CONDUCTOR_TEMPLATE_PATH, 'utf8'); } catch (e) {}
+    try { tpl = fs.readFileSync(CONDUCTOR_TEMPLATE_PATH, 'utf8'); } catch (e) { logger.warn('orch', 'conductor template read failed:', e.message); }
     const dir = path.join(projectPath, FRAME_DIR, 'orchestration');
     fs.mkdirSync(dir, { recursive: true });
     session.conductorDocPath = path.join(dir, 'CONDUCTOR.md');
@@ -562,7 +568,7 @@ async function startOrchestration(args = {}) {
   session.statusPoll = setInterval(() => pollStatuses(session), STATUS_POLL_MS);
   // Recover any worktrees/branches left by a prior (e.g. app-closed) session so
   // they reappear on the board instead of being orphaned.
-  try { await rehydrate(session); } catch (e) {}
+  try { await rehydrate(session); } catch (e) { logger.warn('orch', 'rehydrate failed:', e.message); }
   publishState(session);
   return { success: true, busDir: session.busDir, conductorDocPath: session.conductorDocPath };
 }
@@ -578,23 +584,23 @@ async function stopOrchestration(projectPath) {
   // Remove from the registry first so any in-flight bus/poll callbacks bail.
   sessions.delete(proj);
 
-  try { if (session.watcher) session.watcher.close(); } catch (e) {}
+  try { if (session.watcher) session.watcher.close(); } catch (e) { logger.warn('orch', 'bus watcher close failed:', e.message); }
   clearTimeout(session.debounce);
   clearInterval(session.statusPoll);
 
   // Stop the conductor lane too (clean teardown).
   if (session.conductorTerminalId) {
-    try { ptyManager.destroyTerminal(session.conductorTerminalId); } catch (e) {}
+    try { ptyManager.destroyTerminal(session.conductorTerminalId); } catch (e) { logger.warn('orch', 'conductor lane destroy failed:', e.message); }
   }
 
   for (const w of workers) {
     if (w.terminalId) {
-      try { ptyManager.destroyTerminal(w.terminalId); } catch (e) {}
+      try { ptyManager.destroyTerminal(w.terminalId); } catch (e) { logger.warn('orch', 'worker lane destroy failed:', e.message); }
     }
     if (w.worktreePath || w.branch) {
       let merged = false;
-      try { merged = await gitBranches.isWorkMerged(proj, w.slug); } catch (e) {}
-      try { await gitBranches.removeOrchWorktree(proj, w.slug, { deleteBranch: merged }); } catch (e) {}
+      try { merged = await gitBranches.isWorkMerged(proj, w.slug); } catch (e) { logger.warn('orch', 'isWorkMerged failed on stop:', e.message); }
+      try { await gitBranches.removeOrchWorktree(proj, w.slug, { deleteBranch: merged }); } catch (e) { logger.warn('orch', 'worktree removal on stop failed:', e.message); }
     }
   }
 
@@ -606,11 +612,27 @@ async function stopOrchestration(projectPath) {
 
 // T26 — best-effort rehydration from frame/<slug>/* branches after a restart.
 // Rebuilds worker entries (no live terminals; agents are ephemeral) so the
-// board/status reflect prior work. Statuses come from git: merged ⇒ done.
+// board/status reflect prior work. Statuses come from git: merged ⇒ done,
+// un-merged ⇒ 'recovered' — a distinct status (not 'idle') so a stale
+// detached worker can't read as live or block the conflict guard; the board
+// offers Resume / Remove on it.
 async function rehydrate(session) {
   if (!session) return { error: 'no session' };
   const projectPath = session.projectPath;
   const branches = await gitBranches.listOrchBranches(projectPath);
+
+  // The last bus snapshot (written atomically on every state change) carries
+  // per-worker baseSha — restore it so diff stats stay correct after resume.
+  let priorWorkers = new Map();
+  try {
+    const snapshot = JSON.parse(fs.readFileSync(path.join(session.busDir, 'state.json'), 'utf8'));
+    if (snapshot && Array.isArray(snapshot.workers)) {
+      priorWorkers = new Map(snapshot.workers.map((w) => [w.slug, w]));
+    }
+  } catch (e) {
+    // No/corrupt snapshot — rehydrate without baseSha, as before.
+  }
+
   let recovered = 0;
   for (const [slug, kinds] of Object.entries(branches)) {
     if (session.workers.has(slug)) continue;
@@ -623,16 +645,18 @@ async function rehydrate(session) {
     if (kinds.integration && !kinds.work) {
       merged = true; // work branch pruned after a successful merge ⇒ done
     } else if (kinds.integration && kinds.work) {
-      try { merged = await gitBranches.isWorkMerged(projectPath, slug); } catch (e) {}
+      try { merged = await gitBranches.isWorkMerged(projectPath, slug); } catch (e) { logger.warn('orch', 'isWorkMerged failed on rehydrate:', e.message); }
     }
+    const prior = priorWorkers.get(slug);
     session.workers.set(slug, {
       slug,
       branch: orchWorkBranch(slug),
       worktreePath: worktreeDirFor(projectPath, slug),
       terminalId: null,
-      status: merged ? 'done' : 'idle',
+      status: merged ? 'done' : 'recovered',
       merged,
       detached: true, // recovered without a live lane
+      baseSha: (prior && prior.baseSha) || null,
       declaredFootprint: specManager.getSpecFootprint(projectPath, slug),
       lastActivityAt: Date.now()
     });
@@ -640,6 +664,34 @@ async function rehydrate(session) {
   }
   publishState(session);
   return { success: true, recovered };
+}
+
+// Resume a recovered worker: spawn a fresh agent lane in its EXISTING
+// worktree. Never goes through dispatch — createOrchWorktree recreates the
+// worktree and deletes the branch, which would destroy the recovered work.
+function resumeWorker(projectPath, slug) {
+  const session = sessionFor(projectPath);
+  if (!session) return { error: 'no active orchestration' };
+  const w = session.workers.get(slug);
+  if (!w || !w.detached) return { error: 'not a recovered worker' };
+  if (!w.worktreePath || !fs.existsSync(w.worktreePath)) return { error: 'worktree missing on disk' };
+
+  const { instruction } = buildWorkerPrompt(projectPath, slug);
+  w.status = 'running';
+  w.detached = false;
+  w.lastActivityAt = Date.now();
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC.ORCH_SPAWN_WORKER, {
+      projectPath,
+      slug,
+      worktreePath: w.worktreePath,
+      env: envForLane(session, slug),
+      promptInstruction: instruction
+    });
+  }
+  publishState(session);
+  return { success: true };
 }
 
 function assignSpecs(projectPath, slugs) {
@@ -664,6 +716,7 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.ORCH_WORKER_LANE, (e, args) => registerWorkerLane((args || {}).projectPath, (args || {}).slug, (args || {}).terminalId));
   ipcMain.handle(IPC.ORCH_MERGE_WORKER, (e, args) => mergeWorker((args || {}).projectPath, (args || {}).slug, (args || {}).force));
   ipcMain.handle(IPC.ORCH_REMOVE_WORKER, (e, args) => removeWorker((args || {}).projectPath, (args || {}).slug));
+  ipcMain.handle(IPC.ORCH_RESUME_WORKER, (e, args) => resumeWorker((args || {}).projectPath, (args || {}).slug));
 }
 
 module.exports = {

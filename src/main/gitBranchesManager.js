@@ -4,6 +4,7 @@
  */
 
 const { exec } = require('child_process');
+const logger = require('./logger');
 const fs = require('fs');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
@@ -18,13 +19,31 @@ function init(window) {
   mainWindow = window;
 }
 
+// Set on the first "command not found" from the shell: without git every
+// call would fail identically, so reject fast with a clear reason instead
+// of spawning a doomed shell each time.
+let gitMissing = false;
+const GIT_MISSING_ERROR = 'git is not installed or not on PATH';
+
 /**
  * Execute git command with promise
  */
 function execGit(command, projectPath) {
+  if (gitMissing) {
+    return Promise.reject({ error: GIT_MISSING_ERROR, gitMissing: true });
+  }
   return new Promise((resolve, reject) => {
     exec(command, { cwd: projectPath, timeout: 10000 }, (error, stdout, stderr) => {
       if (error) {
+        // exit 127 = shell couldn't find the binary
+        if (error.code === 127 || /command not found|not recognized/i.test(stderr || error.message)) {
+          if (!gitMissing) {
+            gitMissing = true;
+            logger.warn('gitBranches', 'git executable not found — branch/worktree operations disabled');
+          }
+          reject({ error: GIT_MISSING_ERROR, gitMissing: true });
+          return;
+        }
         reject({ error: error.message, stderr });
       } else {
         resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
@@ -286,9 +305,9 @@ async function createOrchWorktree(projectPath, slug) {
 
   await removeWorktree(projectPath, wtPath, true); // ignore "not a worktree" errors
   if (await branchExists(projectPath, branch)) {
-    try { await execGit(`git branch -D "${branch}"`, projectPath); } catch (e) {}
+    try { await execGit(`git branch -D "${branch}"`, projectPath); } catch (e) { logger.warn('gitBranches', 'branch -D failed (may not exist):', e.message); }
   }
-  try { fs.mkdirSync(path.dirname(wtPath), { recursive: true }); } catch (e) {}
+  try { fs.mkdirSync(path.dirname(wtPath), { recursive: true }); } catch (e) { logger.warn('gitBranches', 'worktree dir create failed:', e.message); }
 
   const baseSha = await getHeadSha(projectPath);
   const res = await addWorktree(projectPath, wtPath, branch, true); // -b <branch> <path> (from HEAD)
@@ -306,7 +325,7 @@ async function removeOrchWorktree(projectPath, slug, { deleteBranch = false } = 
   const branch = orchWorkBranch(slug);
   const res = await removeWorktree(projectPath, wtPath, true);
   if (deleteBranch && (await branchExists(projectPath, branch))) {
-    try { await execGit(`git branch -D "${branch}"`, projectPath); } catch (e) {}
+    try { await execGit(`git branch -D "${branch}"`, projectPath); } catch (e) { logger.warn('gitBranches', 'branch -D failed (may not exist):', e.message); }
   }
   return res;
 }
@@ -379,7 +398,9 @@ async function listOrchBranches(projectPath) {
       out[slug] = out[slug] || { work: false, integration: false };
       out[slug][kind] = true;
     }
-  } catch (err) {}
+  } catch (err) {
+    logger.warn('gitBranches', 'listOrchBranches failed:', err.message);
+  }
   return out;
 }
 

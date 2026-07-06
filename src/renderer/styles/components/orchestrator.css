@@ -183,6 +183,8 @@
 .orch-pipe-chip.stage-blocked  { border-color: color-mix(in srgb, var(--warning) 55%, var(--border-subtle)); }
 .orch-pipe-chip.stage-failed   .orch-pipe-chip-dot { background: var(--error); }
 .orch-pipe-chip.stage-failed   { border-color: color-mix(in srgb, var(--error) 55%, var(--border-subtle)); }
+.orch-pipe-chip.stage-recovered .orch-pipe-chip-dot { background: var(--warning); }
+.orch-pipe-chip.stage-recovered { border-color: color-mix(in srgb, var(--warning) 55%, var(--border-subtle)); border-style: dashed; }
 
 .orch-section {
   flex: 1;
@@ -437,3 +439,8 @@
 .orch-worker-card.status-failed  { border-left-color: var(--error); }
 .orch-worker-card.status-blocked { border-left-color: var(--warning); }
 .orch-worker-card.status-queued  { border-left-color: var(--border-strong); }
+
+/* Recovered: survived a restart, no live lane — amber like blocked but
+   dashed to read as "needs a decision (resume/remove)", not "in trouble" */
+.orch-worker-card.status-recovered .orch-worker-dot { background: var(--warning); }
+.orch-worker-card.status-recovered { border-left-color: var(--warning); border-left-style: dashed; }

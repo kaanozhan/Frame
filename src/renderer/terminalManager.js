@@ -194,6 +194,10 @@ class TerminalManager {
       if (sessionData) {
         // Restore view settings. Legacy 'tabs'/'grid' sessions (pre lane
         // orchestrator) map to 'detail' — terminals existed, land inside.
+        // viewMode/gridLayout are the only entries that survive a restart:
+        // terminal ids never do (PTYs die with the main process), so id-keyed
+        // entries are only honored for terminals that still exist in this
+        // process and are pruned otherwise.
         if (sessionData.viewMode) {
           this.viewMode = (sessionData.viewMode === 'tabs' || sessionData.viewMode === 'grid')
             ? 'detail'
@@ -214,6 +218,26 @@ class TerminalManager {
             }
           }
         });
+
+        // Prune dead-id entries (previous-process terminals) so localStorage
+        // doesn't accumulate cosmetic ghosts across restarts.
+        let pruned = false;
+        if (sessionData.terminalNames) {
+          for (const id of Object.keys(sessionData.terminalNames)) {
+            if (!this.terminals.has(id)) {
+              delete sessionData.terminalNames[id];
+              pruned = true;
+            }
+          }
+        }
+        if (sessionData.activeTerminalId && !this.terminals.has(sessionData.activeTerminalId)) {
+          sessionData.activeTerminalId = null;
+          pruned = true;
+        }
+        if (pruned) {
+          allSessions[sessionKey] = sessionData;
+          localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(allSessions));
+        }
 
         // Restore active terminal if it belongs to current project
         if (sessionData.activeTerminalId) {

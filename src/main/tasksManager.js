@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_FILES } = require('../shared/frameConstants');
 
@@ -80,14 +81,27 @@ function dedupById(tasks) {
 function loadTasks(projectPath) {
   const tasksPath = getTasksFilePath(projectPath);
 
-  let raw;
-  try {
-    if (!fs.existsSync(tasksPath)) return null;
-    raw = JSON.parse(fs.readFileSync(tasksPath, 'utf8'));
-  } catch (err) {
-    console.error('Error loading tasks:', err);
-    return null;
+  const { data, source, error } = fsSafe.readJsonWithRecovery(tasksPath);
+  if (!data && !error) return null; // no tasks.json — not a Frame project yet
+
+  if (source === 'bak') {
+    console.error('tasksManager: tasks.json was corrupt — restored from .bak');
+    sendTasksFileError(projectPath, { recovered: true });
+  } else if (!data) {
+    // Unrecoverable corruption. The broken file is already preserved as
+    // .corrupt-<ts>, so writing a fresh empty file destroys nothing — and
+    // keeps CRUD alive (without it, the moved-aside file would read as "no
+    // tasks.json" and every mutation would no-op like the old silent null).
+    // The `corrupt` flag gives the panel and dashboard one consistent error
+    // state; it lives only in memory, never on disk.
+    console.error('tasksManager: tasks.json corrupt with no usable .bak (corrupt copy preserved):', error.message);
+    sendTasksFileError(projectPath, { recovered: false });
+    const fresh = { version: '2.0', tasks: [] };
+    saveTasks(projectPath, fresh);
+    return { ...fresh, corrupt: true };
   }
+
+  const raw = data;
 
   let mutated = false;
   let tasks;
@@ -127,13 +141,26 @@ function saveTasks(projectPath, tasksData) {
   const tasksPath = getTasksFilePath(projectPath);
   try {
     tasksData.lastUpdated = new Date().toISOString();
+    delete tasksData.corrupt; // in-memory flag only — never persisted
     lastSelfWriteAt = Date.now();
-    fs.writeFileSync(tasksPath, JSON.stringify(tasksData, null, 2), 'utf8');
+    fsSafe.writeFileAtomic(tasksPath, JSON.stringify(tasksData, null, 2));
     return true;
   } catch (err) {
     console.error('Error saving tasks:', err);
     return false;
   }
+}
+
+/**
+ * Tell the renderer tasks.json is corrupt (or was auto-recovered from .bak)
+ * so the tasks panel and dashboard render one consistent error state.
+ */
+function sendTasksFileError(projectPath, info) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send(IPC.TASKS_FILE_ERROR, {
+    projectPath: projectPath || currentProjectPath,
+    ...info
+  });
 }
 
 function generateTaskId() {
@@ -264,7 +291,7 @@ function startWatching(projectPath) {
   if (!projectPath || !fs.existsSync(projectPath)) return;
 
   try {
-    watcher = fs.watch(projectPath, { persistent: false }, (eventType, filename) => {
+    watcher = fsSafe.safeWatch(projectPath, { persistent: false }, (eventType, filename) => {
       if (!filename || filename !== FRAME_FILES.TASKS) return;
       if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) return;
 

@@ -6,19 +6,53 @@
 const { execSync } = require('child_process');
 const https = require('https');
 const { IPC } = require('../shared/ipcChannels');
+const logger = require('./logger');
+
+// The OAuth token lives in the macOS Keychain (`security` CLI) — there is no
+// Linux/Windows equivalent wired up, so on those platforms usage tracking is
+// reported as unavailable instead of silently polling into a null token
+// forever. On macOS, repeated token misses (not signed in / locked keychain)
+// also stop the poll; a manual refresh from the widget re-arms it.
+const KEYCHAIN_SUPPORTED = process.platform === 'darwin';
+const MAX_TOKEN_MISSES = 3;
 
 let mainWindow = null;
 let pollingInterval = null;
 let cachedUsage = null;
 let lastFetchTime = null;
+let consecutiveTokenMisses = 0;
 
 /**
  * Initialize the module with window reference
  */
 function init(window) {
   mainWindow = window;
+  if (!KEYCHAIN_SUPPORTED) {
+    logger.info('claudeUsage', `usage polling disabled: macOS Keychain not available on ${process.platform}`);
+    // One push so the widget can explain itself instead of showing stale "--".
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC.CLAUDE_USAGE_DATA, degradedPayload('keychain-unsupported'));
+      }
+    }, 2000);
+    return;
+  }
   // Start polling when window is ready
   startPolling();
+}
+
+function degradedPayload(reason) {
+  return {
+    available: false,
+    reason,
+    error:
+      reason === 'keychain-unsupported'
+        ? 'Usage data needs the macOS Keychain — not available on this platform'
+        : 'Claude Code OAuth token not found — sign in via the claude CLI, then click to refresh',
+    fiveHour: null,
+    sevenDay: null,
+    lastUpdated: new Date().toISOString()
+  };
 }
 
 /**
@@ -48,8 +82,8 @@ function getOAuthToken() {
 
     return null;
   } catch (err) {
-    // Token not found or parse error
-    console.log('Claude usage: Could not get OAuth token:', err.message);
+    // Token not found, keychain locked, or parse error
+    logger.warn('claudeUsage', 'could not get OAuth token:', err.message);
     return null;
   }
 }
@@ -60,17 +94,23 @@ function getOAuthToken() {
  */
 function fetchUsage() {
   return new Promise((resolve) => {
+    if (!KEYCHAIN_SUPPORTED) {
+      resolve(degradedPayload('keychain-unsupported'));
+      return;
+    }
+
     const token = getOAuthToken();
 
     if (!token) {
-      resolve({
-        error: 'No OAuth token found',
-        fiveHour: null,
-        sevenDay: null,
-        lastUpdated: new Date().toISOString()
-      });
+      consecutiveTokenMisses++;
+      if (consecutiveTokenMisses >= MAX_TOKEN_MISSES && pollingInterval) {
+        logger.info('claudeUsage', `no OAuth token after ${consecutiveTokenMisses} attempts — pausing usage polling (manual refresh re-arms it)`);
+        stopPolling();
+      }
+      resolve(degradedPayload('no-token'));
       return;
     }
+    consecutiveTokenMisses = 0;
 
     const options = {
       hostname: 'api.anthropic.com',
@@ -209,10 +249,15 @@ function setupIPC(ipcMain) {
     event.sender.send(IPC.CLAUDE_USAGE_DATA, usage);
   });
 
-  // Handle manual refresh request
+  // Handle manual refresh request. Also re-arms polling if it was paused
+  // after repeated token misses (e.g. the user has signed in since).
   ipcMain.on(IPC.REFRESH_CLAUDE_USAGE, async (event) => {
+    consecutiveTokenMisses = 0;
     const usage = await fetchUsage();
     event.sender.send(IPC.CLAUDE_USAGE_DATA, usage);
+    if (KEYCHAIN_SUPPORTED && !pollingInterval && !usage.error) {
+      startPolling();
+    }
   });
 }
 

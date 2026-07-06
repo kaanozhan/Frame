@@ -24,6 +24,8 @@ let mainWindow = null;
 let recheckTimer = null;
 let lastCheckedAt = null;
 let lastResult = null;
+let lastStatus = null; // 'update-available' | 'up-to-date' | 'error'
+let lastErrorReason = null; // 'network' | 'timeout' | 'parse' | null
 
 function init(window) {
   mainWindow = window;
@@ -36,6 +38,8 @@ function setupIPC() {
   });
   ipcMain.handle(IPC.GET_UPDATE_STATUS, () => ({
     lastCheckedAt,
+    lastStatus,
+    lastErrorReason,
     result: lastResult,
     currentVersion: require('../../package.json').version
   }));
@@ -48,8 +52,29 @@ function startPeriodicRecheck() {
   }, RECHECK_INTERVAL_MS);
 }
 
+/**
+ * Check GitHub for a newer release.
+ *
+ * Resolves a discriminated result — the UI must be able to tell "you're
+ * current" apart from "the check failed" (they used to both resolve null):
+ *   { status: 'update-available', info }
+ *   { status: 'up-to-date', checkedAt }
+ *   { status: 'error', reason: 'network' | 'timeout' | 'parse', checkedAt }
+ * Never rejects.
+ */
 function checkForUpdate() {
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (status, extra = {}) => {
+      if (settled) return;
+      settled = true;
+      lastCheckedAt = new Date().toISOString();
+      lastStatus = status;
+      lastErrorReason = status === 'error' ? extra.reason : null;
+      if (status !== 'update-available') lastResult = null;
+      resolve({ status, checkedAt: lastCheckedAt, ...extra });
+    };
+
     const options = {
       hostname: 'api.github.com',
       path: `/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`,
@@ -62,17 +87,16 @@ function checkForUpdate() {
       res.on('end', () => {
         try {
           const release = JSON.parse(data);
-          lastCheckedAt = new Date().toISOString();
           if (!release.tag_name) {
-            lastResult = null;
-            resolve(null);
+            // No releases published — current by definition.
+            finish('up-to-date');
             return;
           }
           const latestVersion = release.tag_name.replace(/^v/, '');
           const currentVersion = require('../../package.json').version;
 
           if (isNewerVersion(currentVersion, latestVersion)) {
-            const result = {
+            const info = {
               currentVersion,
               latestVersion,
               releaseUrl: release.html_url,
@@ -80,23 +104,22 @@ function checkForUpdate() {
               publishedAt: release.published_at,
               releaseNotes: release.body || ''
             };
-            lastResult = result;
+            lastResult = info;
             if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send(IPC.UPDATE_AVAILABLE, result);
+              mainWindow.webContents.send(IPC.UPDATE_AVAILABLE, info);
             }
-            resolve(result);
+            finish('update-available', { info });
           } else {
-            lastResult = null;
-            resolve(null);
+            finish('up-to-date');
           }
         } catch {
-          resolve(null);
+          finish('error', { reason: 'parse' });
         }
       });
     });
 
-    req.on('error', () => resolve(null));
-    req.setTimeout(10000, () => { req.destroy(); resolve(null); });
+    req.on('error', () => finish('error', { reason: 'network' }));
+    req.setTimeout(10000, () => { req.destroy(); finish('error', { reason: 'timeout' }); });
   });
 }
 

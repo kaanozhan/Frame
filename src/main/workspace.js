@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
 const { WORKSPACE_DIR, WORKSPACE_FILE, FRAME_VERSION } = require('../shared/frameConstants');
 
@@ -54,16 +55,31 @@ function createDefaultWorkspace() {
 }
 
 /**
- * Load workspace from file
+ * Load workspace from file.
+ *
+ * On corruption, readJsonWithRecovery has already moved the broken file
+ * aside and restored `.bak` when one exists — so falling back to the empty
+ * default here can no longer destroy a recoverable project list (the next
+ * saveWorkspace writes a fresh file, not over the user's data).
  */
 function loadWorkspace() {
-  try {
-    const data = fs.readFileSync(workspacePath, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error loading workspace:', err);
-    return createDefaultWorkspace();
+  const { data, source, error } = fsSafe.readJsonWithRecovery(workspacePath);
+  if (data) {
+    if (source === 'bak') {
+      console.error('workspace: workspaces.json was corrupt — restored from .bak');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC.STATE_FILE_RECOVERED, { file: 'workspaces.json' });
+      }
+    }
+    return data;
   }
+  if (error) {
+    console.error(
+      'workspace: workspaces.json corrupt with no usable .bak — starting fresh (corrupt copy preserved):',
+      error.message
+    );
+  }
+  return createDefaultWorkspace();
 }
 
 /**
@@ -71,7 +87,7 @@ function loadWorkspace() {
  */
 function saveWorkspace(data) {
   try {
-    fs.writeFileSync(workspacePath, JSON.stringify(data, null, 2));
+    fsSafe.writeFileAtomic(workspacePath, JSON.stringify(data, null, 2));
   } catch (err) {
     console.error('Error saving workspace:', err);
   }

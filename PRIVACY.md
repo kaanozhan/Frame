@@ -32,9 +32,22 @@ You can also dismiss the one-time notice banner at the top of the app — that d
 
 Telemetry is sent to [Aptabase](https://aptabase.com), an open-source, privacy-focused analytics service. They do not retain IP addresses and do not share data with third parties.
 
-## Crash reporting
+## Local logging
 
-Frame does **not** currently include a crash reporter. If we add one in the future, it will be opt-in and disclosed here.
+Frame keeps a **local** log file to make bugs debuggable — it never leaves your machine and is not part of telemetry.
+
+- **Location:** Electron's standard logs directory — on macOS `~/Library/Logs/Frame/main.log` (find it via **Settings → About → Open Logs Folder**).
+- **Rotation:** capped at 5 MB with up to 3 archived files (`main.old.1.log` … `main.old.3.log`); old content is discarded, never uploaded.
+- **Redaction:** every line is scrubbed before it is written. Recognized secret shapes — API keys (`sk-…`), GitHub/Slack tokens, AWS keys, JWTs, `Bearer` headers, and `password=`/`token=`/`api_key=` values — are replaced with `[REDACTED]`. The same redaction applies to the per-project prompt history under `~/.frame/prompts/`.
+
+When filing a bug report, attaching the log is the fastest way to help us help you — skim it first if you want to double-check its contents.
+
+## Crash dumps (local only)
+
+On a crash, Frame saves a **minidump on your machine** using Electron's built-in crash reporter with uploading **disabled** — nothing is ever transmitted, to us or anyone else. This exists purely so a crash can be diagnosed locally.
+
+- Toggle it off under **Settings → Privacy & Analytics → "Keep local crash dumps"** (takes effect on next launch).
+- If Frame ever gains the ability to *send* crash reports, that will be a separate, **opt-in** setting and will be disclosed here first.
 
 ## Questions
 

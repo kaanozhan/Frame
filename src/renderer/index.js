@@ -38,6 +38,7 @@ const welcomeOverlay = require('./welcomeOverlay');
 const appLoader = require('./appLoader');
 const settingsModal = require('./settingsModal');
 const telemetryNotice = require('./telemetryNotice');
+const healthNotice = require('./healthNotice');
 const sampleBanner = require('./sampleBanner');
 
 /**
@@ -51,6 +52,17 @@ function init() {
 
   // Initialize terminal
   const multiTerminalUI = terminal.initTerminal('terminal');
+
+  // Reload reconcile: report the terminal ids this renderer actually holds
+  // (none on a fresh boot or Cmd-R) so main kills orphaned PTYs instead of
+  // leaving agents running invisibly with no attached view.
+  const knownTerminalIds =
+    multiTerminalUI && multiTerminalUI.manager && multiTerminalUI.manager.terminals
+      ? Array.from(multiTerminalUI.manager.terminals.keys())
+      : [];
+  ipcRenderer
+    .invoke(IPC.RECONCILE_TERMINALS, knownTerminalIds)
+    .catch((err) => console.error('Terminal reconcile failed:', err));
 
   // Initialize state management
   state.init({
@@ -208,6 +220,7 @@ function init() {
   welcomeOverlay.init();
   settingsModal.init();
   telemetryNotice.init(() => settingsModal.open());
+  healthNotice.init();
   sampleBanner.init();
   setupUpdateDot();
   registerCommands();

@@ -11,9 +11,9 @@
  * the same pattern aiToolManager / workspace already use.
  */
 
-const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
+const fsSafe = require('./fsSafe');
 
 let settingsPath = null;
 let cache = {};
@@ -24,17 +24,13 @@ function init() {
 }
 
 function load() {
-  try {
-    if (fs.existsSync(settingsPath)) {
-      const raw = fs.readFileSync(settingsPath, 'utf-8');
-      cache = JSON.parse(raw) || {};
-    } else {
-      cache = {};
-    }
-  } catch (err) {
-    console.error('userSettings: failed to load', err);
-    cache = {};
+  const { data, source, error } = fsSafe.readJsonWithRecovery(settingsPath);
+  if (source === 'bak') {
+    console.error('userSettings: user-settings.json was corrupt — restored from .bak');
+  } else if (error) {
+    console.error('userSettings: failed to load (corrupt copy preserved):', error.message);
   }
+  cache = data || {};
 }
 
 function get(key) {
@@ -48,7 +44,7 @@ function set(key, value) {
     cache[key] = value;
   }
   try {
-    fs.writeFileSync(settingsPath, JSON.stringify(cache, null, 2), 'utf-8');
+    fsSafe.writeFileAtomic(settingsPath, JSON.stringify(cache, null, 2));
     return true;
   } catch (err) {
     console.error('userSettings: failed to write', err);

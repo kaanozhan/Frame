@@ -124,7 +124,12 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     }
     if (!check || !check.available) {
       const name = (check && check.name) || chosenToolId;
-      return _fail(targetId, `${name} CLI not found on your system`);
+      const why = check && check.reason === 'timeout'
+        ? 'availability check timed out — try again'
+        : check && check.reason === 'spawn-error'
+          ? 'could not run the probe shell'
+          : 'not found on your system';
+      return _fail(targetId, `${name} CLI: ${why}`);
     }
 
     // Subscribe before sending the start command — a fast CLI could reach

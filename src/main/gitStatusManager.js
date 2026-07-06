@@ -22,6 +22,8 @@
 const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const fsSafe = require('./fsSafe');
+const logger = require('./logger');
 const { IPC } = require('../shared/ipcChannels');
 
 const MAX_BUFFER = 10 * 1024 * 1024;
@@ -71,13 +73,14 @@ function startWatching(projectPath) {
   // Working-tree watcher: new/edited/deleted files. Events under `.git/` are
   // ignored here because the dedicated .git watcher handles those.
   try {
-    worktreeWatcher = fs.watch(
+    worktreeWatcher = fsSafe.safeWatch(
       projectPath,
       { recursive: true, persistent: false },
       (eventType, filename) => {
         if (filename && isGitInternalPath(filename)) return;
         scheduleRefresh();
-      }
+      },
+      () => { worktreeWatcher = null; } // root deleted/renamed at runtime — degrade, don't crash
     );
   } catch (err) {
     console.error('gitStatusManager: worktree fs.watch failed', err);
@@ -91,10 +94,11 @@ function startWatching(projectPath) {
     const gitDir = path.join(projectPath, '.git');
     const stat = fs.statSync(gitDir);
     if (stat.isDirectory()) {
-      gitDirWatcher = fs.watch(
+      gitDirWatcher = fsSafe.safeWatch(
         gitDir,
         { recursive: true, persistent: false },
-        () => scheduleRefresh()
+        () => scheduleRefresh(),
+        () => { gitDirWatcher = null; }
       );
     }
   } catch (err) {
@@ -176,7 +180,15 @@ async function pushStatus() {
   }
 }
 
+// Set on the first ENOENT from the git binary: no git on this machine means
+// every spawn would fail identically, so short-circuit quietly instead of
+// respawning (and logging) on every FS event.
+let gitMissing = false;
+
 function readGitStatus(projectPath) {
+  if (gitMissing) {
+    return Promise.resolve({ isRepo: false, branch: null, files: {} });
+  }
   return new Promise((resolve) => {
     execFile(
       'git',
@@ -184,6 +196,10 @@ function readGitStatus(projectPath) {
       { cwd: projectPath, maxBuffer: MAX_BUFFER },
       (err, stdout) => {
         if (err) {
+          if (err.code === 'ENOENT' && !gitMissing) {
+            gitMissing = true;
+            logger.warn('gitStatus', 'git executable not found — file-tree status decorations disabled');
+          }
           resolve({ isRepo: false, branch: null, files: {} });
           return;
         }
