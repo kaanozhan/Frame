@@ -53,37 +53,24 @@ not deterministic, so treat small deltas (±1 task) as noise and re-run
 before concluding. The suite must be re-pinned (new `pinnedCommit`, checks
 re-verified) whenever the referenced code moves materially.
 
-## Baseline — 2026-07-06
+## Baseline — pending
 
-- **Pinned commit:** `ccbd47d7abee12d0922433d490b7196bfc1cbb16`
-- **Model:** claude haiku (`--model haiku`), 300s timeout — chosen for a
-  cheap, repeatable first number; re-run with the default model for a
-  stronger-signal baseline.
+No baseline numbers are recorded yet, deliberately. A pilot run
+(2026-07-06, 10 tasks × 2 arms, **single run per cell, haiku**, pinned
+`ccbd47d`) validated the instrument end-to-end — worktrees, stripping,
+capture, scoring all work, and the deltas appeared exactly where the
+design predicts (in concept-named tasks, not in the file-named `scripts/*`
+controls) — but a single non-deterministic run per cell is too weak to
+publish as *the* number: the success-rate delta was 2 paired wins on
+n=10 (sign test p≈0.25), and one bare-arm cell looked like an agent
+anomaly (0 tool calls, 8s) rather than a context effect.
 
-| metric                        | bare       | frame      |
-| ----------------------------- | ---------- | ---------- |
-| first-try success             | 7/10 (70%) | 9/10 (90%) |
-| tasks w/ wrong-file edits     | 2          | 1          |
-| total wrong-file edits        | 2          | 1          |
-| avg searches before 1st edit  | 3.9        | 1.0        |
-| avg tool calls                | 11.5       | 7.7        |
-| avg turns                     | 27.0       | 20.7       |
-| avg duration (s)              | 40         | 41         |
-| total output tokens           | 24,307     | 30,504     |
+**What a credible baseline needs** (then record it here):
+- 3–5 repeats per cell, default model (not haiku)
+- report per-task paired wins/losses with a sign test, not just arm means
+- re-check the anomalous cells before counting them
 
-**Reading it:** the oriented agent searched ~4× less before its first edit
-(1.0 vs 3.9), used fewer tool calls and turns, and succeeded first-try on 2
-more tasks (90% vs 70%). The bare arm's failures are orientation-shaped:
-`menu-freshness-item [bare]` invented a root-level `main.js` that doesn't
-exist in this codebase, and `github-empty-state [bare]` gave up without
-editing anything. `cmd-github-toggle` failed in **both** arms (the model
-wired the command in `src/renderer/index.js` instead of
-`commandRegistry.js`) — a model-capability limit, not a context effect,
-which is exactly the kind of noise the A/B design cancels out. Frame's
-higher output-token total is the cost side of the trade: it reads context
-up front and spends fewer actions after.
-
-**Known caveats:** single run per cell (haiku, non-deterministic — treat
-±1 task as noise); grep-based success checks measure "did the named change
-land", not code quality; agents that commit inside the worktree are handled
-(diff is taken against the starting sha), discovered via this run.
+The pilot's methodological catches are already folded into the harness:
+diffs are taken against the starting sha (agents that self-commit in the
+worktree no longer hide their changes), and grep-based success checks
+measure "did the named change land", not code quality.
