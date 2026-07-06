@@ -14,6 +14,7 @@
     "structure": "node scripts/update-structure.js",
     "structure:changed": "node scripts/update-structure.js --changed",
     "find-module": "node scripts/find-module.js",
+    "freshness": "node scripts/check-freshness.js",
     "prepare": "git config core.hooksPath .githooks || true",
     "dist": "npm run build && electron-builder --mac --dir",
     "dist:mac": "npm run build && electron-builder --mac",
