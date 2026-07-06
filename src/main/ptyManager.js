@@ -5,6 +5,7 @@
 
 const pty = require('node-pty');
 const { IPC } = require('../shared/ipcChannels');
+const logger = require('./logger');
 const promptLogger = require('./promptLogger');
 
 // Store multiple PTY instances
@@ -320,9 +321,13 @@ function destroyTerminal(terminalId) {
   const instance = ptyInstances.get(terminalId);
   if (instance) {
     if (instance.processPoll) clearInterval(instance.processPoll);
-    instance.pty.kill();
+    try {
+      instance.pty.kill();
+    } catch (e) {
+      logger.warn('ptyManager', `kill failed for terminal ${terminalId}:`, e.message);
+    }
     ptyInstances.delete(terminalId);
-    console.log(`Destroyed terminal ${terminalId}`);
+    logger.info('ptyManager', `Destroyed terminal ${terminalId}`);
   }
 }
 
@@ -332,8 +337,12 @@ function destroyTerminal(terminalId) {
 function destroyAll() {
   for (const [terminalId, instance] of ptyInstances) {
     if (instance.processPoll) clearInterval(instance.processPoll);
-    instance.pty.kill();
-    console.log(`Destroyed terminal ${terminalId}`);
+    try {
+      instance.pty.kill();
+    } catch (e) {
+      logger.warn('ptyManager', `kill failed for terminal ${terminalId}:`, e.message);
+    }
+    logger.info('ptyManager', `Destroyed terminal ${terminalId}`);
   }
   ptyInstances.clear();
 }
@@ -350,6 +359,19 @@ function getTerminalCount() {
  */
 function getTerminalIds() {
   return Array.from(ptyInstances.keys());
+}
+
+/**
+ * Destroy every PTY the renderer doesn't know about. A renderer reload
+ * (Cmd-R / did-fail-load) doesn't fire the window `closed` event, so
+ * without this the fresh renderer loses its handles while the underlying
+ * agents keep running invisibly. Returns the destroyed ids.
+ */
+function destroyExcept(knownIds) {
+  const keep = new Set(knownIds);
+  const orphans = getTerminalIds().filter((id) => !keep.has(id));
+  for (const id of orphans) destroyTerminal(id);
+  return orphans;
 }
 
 /**
@@ -424,6 +446,7 @@ module.exports = {
   resizeTerminal,
   destroyTerminal,
   destroyAll,
+  destroyExcept,
   getTerminalCount,
   getTerminalIds,
   hasTerminal,

@@ -1,0 +1,64 @@
+/* Health Notice Banner — degraded/recovered state notices from main */
+
+.health-notice {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9100; /* above the telemetry notice */
+  background: color-mix(in srgb, var(--warning) 14%, var(--bg-secondary));
+  border-bottom: 1px solid var(--warning);
+  padding: 8px 14px;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: opacity 0.2s ease-out;
+}
+
+.health-notice.visible {
+  display: flex;
+}
+
+.health-notice.health-notice-error {
+  background: var(--error-subtle);
+  border-bottom-color: var(--error);
+}
+
+.health-notice-icon {
+  font-size: 14px;
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.health-notice-error .health-notice-icon {
+  color: var(--error);
+}
+
+.health-notice-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health-notice-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+
+.health-notice-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}

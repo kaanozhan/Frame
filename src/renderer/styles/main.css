@@ -41,6 +41,9 @@
 /* 12. Telemetry Notice (one-time disclosure banner) */
 @import 'components/telemetry-notice.css';
 
+/* 12a. Health Notice (degraded/recovered state banner) */
+@import 'components/health-notice.css';
+
 /* 12b. Sample-project banner */
 @import 'components/sample-banner.css';
 
