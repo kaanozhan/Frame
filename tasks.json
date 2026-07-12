@@ -2858,13 +2858,14 @@
       "title": "Add `.github/workflows/ci.yml` running `npm test` via checkout + setup-node (no `npm ci` — postinstall needs Electron) on ubuntu + macos push/PR",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T12",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T18:15:00.000Z",
+      "completedAt": "2026-07-12T18:15:00.000Z",
+      "notes": "Outcome: .github/workflows/ci.yml — checkout + setup-node@20 + npm test on ubuntu+macos push/PR, fail-fast off. No npm ci by design (built-in runner + repo-local modules; verified by running the full 71-test suite with node_modules hidden — green). Closes the \"validated only against itself\" loop: the fixture matrix (Python/Go/Rust/pnpm/docs + golden js-src-app + no-Frame-vocabulary sentinels) now gates every push."
     }
   ],
   "metadata": {

@@ -1,0 +1,30 @@
+# First CI for this repo (audit-q3-generic-any-project T12). Runs the full
+# node --test suite — including the cross-project fixture matrix that runs
+# detect-project + update-structure against Python/Go/Rust/monorepo/docs
+# repos — so "works on any project" is asserted by a machine, not by
+# eyeballing Frame's own repo.
+#
+# No `npm ci` on purpose: the suite uses Node's built-in runner and
+# repo-local modules only (verified by running it without node_modules),
+# and postinstall (electron-rebuild) would need Electron binaries — slow
+# and fragile for zero benefit here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
