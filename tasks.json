@@ -2844,13 +2844,14 @@
       "title": "Make \"Open your own project\" a first-class CTA in `src/renderer/welcomeOverlay.js` and generalize `src/renderer/sampleBanner.js` into a first-run banner showing the detection summary for any newly initialized project",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T11",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T18:00:00.000Z",
+      "completedAt": "2026-07-12T18:00:00.000Z",
+      "notes": "Outcome: welcome overlay features \"Open Your Own Project\" as a peer CTA (\"any language, any layout — Frame detects the stack\"); sampleBanner.js generalized into first-run banners — a new #detection-banner shows the detected stack summary + next steps (QUICKSTART/config/AGENTS) right after any project init, hidden on project switch; unknown stack gets an honest review prompt. Verified end-to-end inside Electron main: real initializeFrameProject on a scratch Django repo produced python/poetry/mysite config, populated STRUCTURE.json (old code skipped no-src repos entirely), clean QUICKSTART (no npm/todos.json), Project Facts in AGENTS.md, lang/ extractors in .frame/bin."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T12",

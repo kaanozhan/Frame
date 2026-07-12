@@ -5497,25 +5497,52 @@
     },
     "renderer/sampleBanner": {
       "file": "src/renderer/sampleBanner.js",
-      "description": "Sample Mode (banner + auto-opened side panels)",
+      "description": "First-run banners (sample mode + post-init detection)",
       "exports": [
         "init"
       ],
       "depends": [
+        "electron",
+        "shared/ipcChannels",
         "state",
         "tasksPanel",
         "specPanel"
       ],
       "functions": {
+        "escapeHtml": {
+          "line": 30,
+          "params": [
+            "s"
+          ]
+        },
+        "detectionSummary": {
+          "line": 38,
+          "params": [
+            "project"
+          ],
+          "purpose": "One-line summary of the detected stack for the post-init banner"
+        },
+        "setDetectionVisible": {
+          "line": 50,
+          "params": [
+            "visible"
+          ]
+        },
         "init": {
-          "line": 24
+          "line": 55
         },
         "setVisible": {
-          "line": 58,
+          "line": 108,
           "params": [
             "visible"
           ]
         }
+      },
+      "ipc": {
+        "listens": [
+          "FRAME_PROJECT_INITIALIZED"
+        ],
+        "emits": []
       }
     },
     "renderer/sectionRail": {
