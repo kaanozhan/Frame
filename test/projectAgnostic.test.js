@@ -116,6 +116,54 @@ test('docs-repo: markdown file map with heading descriptions', () => {
   assert.ok(s.modules['docs/api']);
 });
 
+/* --------------------- templates from detection ------------------------ */
+
+const templates = require('../src/shared/frameTemplates');
+const { detectProject } = require(DETECTOR);
+
+test('templates: QUICKSTART carries the detected commands, never npm defaults', () => {
+  const project = detectProject(path.join(FIXTURES, 'django-app'));
+  const q = templates.getQuickstartTemplate('django-app', project);
+  assert.ok(q.includes('poetry install'));
+  assert.ok(q.includes('python manage.py runserver'));
+  assert.ok(q.includes('poetry run pytest'));
+  assert.ok(!q.includes('npm'), 'npm leaked into a Python project QUICKSTART');
+  assert.ok(!q.includes('todos.json'), 'todos.json bug resurfaced');
+  assert.ok(q.includes('tasks.json'));
+  assert.ok(q.includes('mysite/'), 'detected source root missing from the tree');
+});
+
+test('templates: unknown commands render as explicit TODO, not a guess', () => {
+  const q = templates.getQuickstartTemplate('mystery', null);
+  assert.ok(q.includes("TODO: confirm — Frame couldn't detect this"));
+  assert.ok(!q.includes('npm install'));
+  assert.ok(!q.includes('todos.json'));
+});
+
+test('templates: AGENTS.md records the detected stack and the record-your-stack rule', () => {
+  const project = detectProject(path.join(FIXTURES, 'go-service'));
+  const a = templates.getAgentsTemplate('go-service', { project });
+  assert.ok(a.includes('## Project Facts'));
+  assert.ok(a.includes('go'));
+  assert.ok(a.includes('`go test ./...`'));
+  assert.ok(a.includes('Never assume this'));
+  // No detection → the section still demands recording real facts
+  const bare = templates.getAgentsTemplate('mystery', {});
+  assert.ok(bare.includes('## Project Facts'));
+  assert.ok(bare.includes("couldn't detect"));
+});
+
+test('templates: STRUCTURE shape is generic — no Electron presumptions', () => {
+  const project = detectProject(path.join(FIXTURES, 'rust-workspace'));
+  const s = templates.getStructureTemplate('rust-workspace', project);
+  assert.deepEqual(s.architecture.languages, ['rust']);
+  assert.deepEqual(s.architecture.sourceRoots, project.sourceRoots);
+  assert.ok(!('dataFlow' in s), 'dataFlow presumption resurfaced');
+  assert.ok(!('ipcChannels' in s), 'ipcChannels presumption resurfaced');
+  assert.ok(!('entryPoint' in s.architecture));
+  assert.ok('intentIndex' in s);
+});
+
 test('shipped scripts carry no Frame-specific vocabulary (spec success criterion)', () => {
   const sentinels = [
     'TERMINAL_CREATE', 'LOAD_GITHUB_ISSUES', 'INITIALIZE_FRAME_PROJECT',

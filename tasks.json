@@ -2788,13 +2788,14 @@
       "title": "Thread a `project` parameter through `src/shared/frameTemplates.js` (QUICKSTART with detected commands and `todos.json`→`tasks.json` fix, generic STRUCTURE shape, AGENTS.md Project Facts + record-your-stack instruction) and run detection in `initializeFrameProject` (`src/main/frameProject.js`), persisting the block and returning the summary; extend fixture tests with template assertions",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T16:35:00.000Z",
+      "completedAt": "2026-07-12T16:35:00.000Z",
+      "notes": "Outcome: initializeFrameProject runs detectProject first (non-fatal), persists the block into .frame/config.json, threads it into AGENTS/STRUCTURE/QUICKSTART templates and returns it. AGENTS.md gains a Project Facts section (detected stack marked \"verify, then keep true\" + explicit never-assume-generalization rule; renders a record-your-facts prompt without detection). QUICKSTART: detected install/dev/build/test (unknown → explicit TODO line, never a guess), todos.json→tasks.json fixed, tree from detected roots, tool-agnostic header. STRUCTURE template drops dataFlow/ipcChannels/entryPoint for languages/layout/sourceRoots + intentIndex. Spec-driven re-emit path threads config.project. 4 new template tests; 71/71 green."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T08",

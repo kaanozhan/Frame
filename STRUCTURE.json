@@ -506,32 +506,33 @@
         "shared/frameConstants",
         "shared/frameTemplates",
         "workspace",
-        "structureBootstrap"
+        "structureBootstrap",
+        "../scripts/detect-project"
       ],
       "functions": {
         "init": {
-          "line": 20,
+          "line": 21,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 27,
+          "line": 28,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 35,
+          "line": 36,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 48,
+          "line": 49,
           "params": [
             "filePath",
             "content"
@@ -539,7 +540,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 65,
+          "line": 66,
           "params": [
             "target",
             "linkPath"
@@ -547,21 +548,21 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 106,
+          "line": 107,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 130,
+          "line": 131,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 174,
+          "line": 175,
           "params": [
             "projectPath",
             "projectName"
@@ -569,26 +570,26 @@
           "purpose": "Initialize a project as Frame project"
         },
         "isSpecDrivenEnabled": {
-          "line": 346,
+          "line": 360,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 351,
+          "line": 365,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 376,
+          "line": 390,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "setupIPC": {
-          "line": 437,
+          "line": 451,
           "params": [
             "ipcMain"
           ],
@@ -7491,62 +7492,70 @@
           "line": 17,
           "purpose": "Get current ISO timestamp"
         },
+        "formatProjectFacts": {
+          "line": 124,
+          "params": [
+            "project"
+          ],
+          "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
+        },
         "getAgentsTemplate": {
-          "line": 119,
+          "line": 153,
           "params": [
             "projectName",
             "options"
-          ],
-          "purpose": "AGENTS.md template - the lean always-on core read by AI coding tools"
+          ]
         },
         "getReferenceTemplate": {
-          "line": 198,
+          "line": 236,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 373,
+          "line": 411,
           "params": [
-            "projectName"
+            "projectName",
+            "project"
           ],
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 397,
+          "line": 436,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 417,
+          "line": 456,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 463,
+          "line": 502,
           "params": [
-            "projectName"
+            "projectName",
+            "project"
           ],
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 529,
+          "line": 583,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 568,
+          "line": 622,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 605,
+          "line": 659,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -7554,27 +7563,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 651
+          "line": 705
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 672,
+          "line": 726,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 695,
+          "line": 749,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 707,
+          "line": 761,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 727
+          "line": 781
         },
         "getOrchBinScripts": {
-          "line": 745,
+          "line": 799,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
