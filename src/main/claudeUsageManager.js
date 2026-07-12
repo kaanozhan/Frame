@@ -4,17 +4,27 @@
  */
 
 const { execSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const https = require('https');
 const { IPC } = require('../shared/ipcChannels');
 const logger = require('./logger');
 
-// The OAuth token lives in the macOS Keychain (`security` CLI) — there is no
-// Linux/Windows equivalent wired up, so on those platforms usage tracking is
-// reported as unavailable instead of silently polling into a null token
-// forever. On macOS, repeated token misses (not signed in / locked keychain)
-// also stop the poll; a manual refresh from the widget re-arms it.
+// Token sources, in order: the macOS Keychain (`security` CLI), then Claude
+// Code's file-based store (~/.claude/.credentials.json) — the cross-platform
+// location, so Linux/Windows users get usage data too. Only when neither
+// source yields anything is usage reported unavailable, with the reason.
+// Repeated token misses (not signed in / locked keychain) stop the poll; a
+// manual refresh from the widget re-arms it.
 const KEYCHAIN_SUPPORTED = process.platform === 'darwin';
+const CREDENTIALS_FILE = path.join(os.homedir(), '.claude', '.credentials.json');
 const MAX_TOKEN_MISSES = 3;
+
+/** Is any credential source present on this system right now? */
+function tokenSourceAvailable() {
+  return KEYCHAIN_SUPPORTED || fs.existsSync(CREDENTIALS_FILE);
+}
 
 let mainWindow = null;
 let pollingInterval = null;
@@ -27,12 +37,12 @@ let consecutiveTokenMisses = 0;
  */
 function init(window) {
   mainWindow = window;
-  if (!KEYCHAIN_SUPPORTED) {
-    logger.info('claudeUsage', `usage polling disabled: macOS Keychain not available on ${process.platform}`);
+  if (!tokenSourceAvailable()) {
+    logger.info('claudeUsage', `usage polling disabled: no macOS Keychain (${process.platform}) and no ${CREDENTIALS_FILE}`);
     // One push so the widget can explain itself instead of showing stale "--".
     setTimeout(() => {
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(IPC.CLAUDE_USAGE_DATA, degradedPayload('keychain-unsupported'));
+        mainWindow.webContents.send(IPC.CLAUDE_USAGE_DATA, degradedPayload('no-credentials'));
       }
     }, 2000);
     return;
@@ -46,8 +56,8 @@ function degradedPayload(reason) {
     available: false,
     reason,
     error:
-      reason === 'keychain-unsupported'
-        ? 'Usage data needs the macOS Keychain — not available on this platform'
+      reason === 'no-credentials'
+        ? 'No Claude Code credentials found on this system — sign in via the claude CLI, then click to refresh'
         : 'Claude Code OAuth token not found — sign in via the claude CLI, then click to refresh',
     fiveHour: null,
     sevenDay: null,
@@ -55,37 +65,48 @@ function degradedPayload(reason) {
   };
 }
 
+/** Pull the access token out of a credentials JSON string */
+function parseAccessToken(raw) {
+  const credentials = JSON.parse(raw);
+  // Token can be in different locations depending on auth method
+  if (credentials.claudeAiOauth?.accessToken) {
+    return credentials.claudeAiOauth.accessToken;
+  }
+  if (credentials.accessToken) {
+    return credentials.accessToken;
+  }
+  return null;
+}
+
 /**
- * Get OAuth token from macOS Keychain
+ * Get OAuth token: macOS Keychain first, then the file-based store
  * @returns {string|null} Access token or null if not found
  */
 function getOAuthToken() {
-  try {
-    // macOS Keychain command
-    const result = execSync(
-      'security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null',
-      { encoding: 'utf8', timeout: 5000 }
-    ).trim();
-
-    if (!result) return null;
-
-    // Parse JSON to get the access token
-    const credentials = JSON.parse(result);
-
-    // Token can be in different locations depending on auth method
-    if (credentials.claudeAiOauth?.accessToken) {
-      return credentials.claudeAiOauth.accessToken;
+  if (KEYCHAIN_SUPPORTED) {
+    try {
+      const result = execSync(
+        'security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null',
+        { encoding: 'utf8', timeout: 5000 }
+      ).trim();
+      if (result) {
+        const token = parseAccessToken(result);
+        if (token) return token;
+      }
+    } catch (err) {
+      // Token not found, keychain locked, or parse error — try the file next
+      logger.warn('claudeUsage', 'keychain token lookup failed:', err.message);
     }
-    if (credentials.accessToken) {
-      return credentials.accessToken;
-    }
-
-    return null;
-  } catch (err) {
-    // Token not found, keychain locked, or parse error
-    logger.warn('claudeUsage', 'could not get OAuth token:', err.message);
-    return null;
   }
+
+  try {
+    if (fs.existsSync(CREDENTIALS_FILE)) {
+      return parseAccessToken(fs.readFileSync(CREDENTIALS_FILE, 'utf8'));
+    }
+  } catch (err) {
+    logger.warn('claudeUsage', 'credentials file read failed:', err.message);
+  }
+  return null;
 }
 
 /**
@@ -94,8 +115,8 @@ function getOAuthToken() {
  */
 function fetchUsage() {
   return new Promise((resolve) => {
-    if (!KEYCHAIN_SUPPORTED) {
-      resolve(degradedPayload('keychain-unsupported'));
+    if (!tokenSourceAvailable()) {
+      resolve(degradedPayload('no-credentials'));
       return;
     }
 
@@ -255,7 +276,7 @@ function setupIPC(ipcMain) {
     consecutiveTokenMisses = 0;
     const usage = await fetchUsage();
     event.sender.send(IPC.CLAUDE_USAGE_DATA, usage);
-    if (KEYCHAIN_SUPPORTED && !pollingInterval && !usage.error) {
+    if (tokenSourceAvailable() && !pollingInterval && !usage.error) {
       startPolling();
     }
   });

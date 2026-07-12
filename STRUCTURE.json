@@ -147,21 +147,21 @@
           "purpose": "Initialize sessions manager"
         },
         "encodeProjectPath": {
-          "line": 27,
+          "line": 30,
           "params": [
             "projectPath"
           ],
-          "purpose": "Encode project path to Claude's directory format"
+          "purpose": "Encode project path to Claude Code's directory format: every character"
         },
         "getSessionsForProject": {
-          "line": 34,
+          "line": 39,
           "params": [
             "projectPath"
           ],
-          "purpose": "Get sessions for a given project path"
+          "purpose": "Get sessions for a given project path."
         },
         "setupIPC": {
-          "line": 66,
+          "line": 75,
           "params": [
             "ipcMain"
           ],
@@ -189,56 +189,70 @@
       ],
       "depends": [
         "child_process",
+        "fs",
+        "os",
+        "path",
         "https",
         "shared/ipcChannels",
         "logger"
       ],
       "functions": {
+        "tokenSourceAvailable": {
+          "line": 25,
+          "purpose": "Is any credential source present on this system right now?"
+        },
         "init": {
-          "line": 28,
+          "line": 38,
           "params": [
             "window"
           ],
           "purpose": "Initialize the module with window reference"
         },
         "degradedPayload": {
-          "line": 44,
+          "line": 54,
           "params": [
             "reason"
           ]
         },
+        "parseAccessToken": {
+          "line": 69,
+          "params": [
+            "raw"
+          ],
+          "purpose": "Pull the access token out of a credentials JSON string"
+        },
         "getOAuthToken": {
-          "line": 62,
-          "purpose": "Get OAuth token from macOS Keychain"
+          "line": 85,
+          "purpose": "Get OAuth token: macOS Keychain first, then the file-based store"
         },
         "fetchUsage": {
-          "line": 95,
+          "line": 116,
           "purpose": "Fetch usage data from Claude OAuth API"
         },
         "sendUsageToRenderer": {
-          "line": 205,
+          "line": 226,
           "purpose": "Send usage data to renderer"
         },
         "startPolling": {
-          "line": 216,
+          "line": 237,
           "params": [
             "interval = 300000"
           ],
           "purpose": "Start periodic polling for usage updates"
         },
         "stopPolling": {
-          "line": 234,
+          "line": 255,
           "purpose": "Stop polling"
         },
         "setupIPC": {
-          "line": 245,
+          "line": 266,
           "params": [
             "ipcMain"
           ],
           "purpose": "Setup IPC handlers"
         },
         "cleanup": {
-          "line": 267,
+          "line": 288,
           "purpose": "Cleanup on app quit"
         }
       },
@@ -4988,89 +5002,89 @@
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 28,
           "purpose": "Initialize plugins panel"
         },
         "setupEventListeners": {
-          "line": 44,
+          "line": 45,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 89,
+          "line": 90,
           "purpose": "Setup IPC listeners"
         },
         "loadPlugins": {
-          "line": 113,
+          "line": 114,
           "purpose": "Load plugins"
         },
         "refreshPlugins": {
-          "line": 127,
+          "line": 128,
           "purpose": "Refresh plugins from marketplace"
         },
         "show": {
-          "line": 161,
+          "line": 162,
           "purpose": "Show plugins panel"
         },
         "hide": {
-          "line": 178,
+          "line": 179,
           "purpose": "Hide plugins panel"
         },
         "toggle": {
-          "line": 188,
+          "line": 189,
           "purpose": "Toggle plugins panel visibility"
         },
         "setTab": {
-          "line": 199,
+          "line": 200,
           "params": [
             "tab"
           ],
           "purpose": "Set active tab"
         },
         "setFilter": {
-          "line": 221,
+          "line": 222,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredPlugins": {
-          "line": 235,
+          "line": 236,
           "purpose": "Get filtered plugins"
         },
         "render": {
-          "line": 251,
+          "line": 252,
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 295,
+          "line": 296,
           "params": [
             "plugin"
           ],
           "purpose": "Render single plugin item"
         },
         "getPluginIcon": {
-          "line": 341,
+          "line": 342,
           "params": [
             "name"
           ],
           "purpose": "Get icon for plugin based on name"
         },
         "togglePlugin": {
-          "line": 380,
+          "line": 381,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled"
         },
         "installPlugin": {
-          "line": 392,
+          "line": 393,
           "params": [
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
         },
         "showToast": {
-          "line": 409,
+          "line": 410,
           "params": [
             "message",
             "type = 'info'"
@@ -5078,54 +5092,54 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 444,
+          "line": 445,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
         "escapeHtml": {
-          "line": 458,
+          "line": 459,
           "params": [
             "text"
           ],
           "purpose": "Escape HTML for safe rendering"
         },
         "loadSessions": {
-          "line": 469,
+          "line": 470,
           "purpose": "Load sessions from Claude data"
         },
         "refreshSessions": {
-          "line": 494,
+          "line": 499,
           "purpose": "Refresh sessions with spinner animation"
         },
         "renderSessions": {
-          "line": 516,
+          "line": 521,
           "purpose": "Render sessions list"
         },
         "renderSessionItem": {
-          "line": 544,
+          "line": 555,
           "params": [
             "session"
           ],
           "purpose": "Render a single session item"
         },
         "renderSessionsEmpty": {
-          "line": 573,
+          "line": 584,
           "params": [
             "message"
           ],
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 595,
+          "line": 606,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a session by sending command to terminal"
         },
         "formatRelativeTime": {
-          "line": 609,
+          "line": 620,
           "params": [
             "dateString"
           ],

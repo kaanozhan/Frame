@@ -14,6 +14,7 @@ let currentTab = 'plugins';
 
 // Sessions state
 let sessionsData = [];
+let sessionsReason = null;
 let sessionsLoaded = false;
 
 // DOM Elements
@@ -477,12 +478,16 @@ async function loadSessions() {
   }
 
   try {
-    sessionsData = await ipcRenderer.invoke(IPC.LOAD_CLAUDE_SESSIONS, projectPath);
+    const result = await ipcRenderer.invoke(IPC.LOAD_CLAUDE_SESSIONS, projectPath);
+    // Main returns { sessions, reason }; tolerate the legacy plain array too
+    sessionsData = Array.isArray(result) ? result : (result.sessions || []);
+    sessionsReason = Array.isArray(result) ? null : result.reason;
     sessionsLoaded = true;
     renderSessions();
   } catch (err) {
     console.error('Error loading sessions:', err);
     sessionsData = [];
+    sessionsReason = null;
     sessionsLoaded = true;
     renderSessionsEmpty('Failed to load sessions');
   }
@@ -523,7 +528,13 @@ function renderSessions() {
   }
 
   if (sessionsData.length === 0) {
-    renderSessionsEmpty('No sessions found for this project');
+    // Say WHY it's empty — an unexplained empty panel reads as broken
+    const reasonMessages = {
+      'no-claude-dir': 'Claude Code has no session history on this machine yet',
+      'no-project-sessions': 'No Claude Code sessions recorded for this project yet',
+      'read-error': 'Could not read Claude session data — check ~/.claude/projects'
+    };
+    renderSessionsEmpty(reasonMessages[sessionsReason] || 'No sessions found for this project');
     return;
   }
 

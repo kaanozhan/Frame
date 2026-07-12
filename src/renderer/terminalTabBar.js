@@ -365,12 +365,6 @@ class TerminalTabBar {
     const sessionItem = container.querySelector('.usage-item.session');
     const weeklyItem = container.querySelector('.usage-item.weekly');
 
-    if (data.available === false && data.reason === 'keychain-unsupported') {
-      // This platform can never provide usage data — hide the widget
-      // instead of showing a permanently dead "N/A".
-      container.style.display = 'none';
-      return;
-    }
     container.style.display = '';
 
     if (data.error) {

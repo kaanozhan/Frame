@@ -2802,13 +2802,14 @@
       "title": "Add file-based `~/.claude/.credentials.json` fallback with reason codes to `src/main/claudeUsageManager.js` and fix `encodeProjectPath` (dots, Windows separators) with a `no-sessions-dir` reason in `src/main/claudeSessionsManager.js`",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T16:55:00.000Z",
+      "completedAt": "2026-07-12T16:55:00.000Z",
+      "notes": "Outcome: claudeUsageManager reads the token from macOS Keychain first then ~/.claude/.credentials.json (cross-platform); polling enabled wherever a source exists; degraded reasons no-credentials/no-token with actionable messages; usage widget no longer hides permanently — it shows the reason. claudeSessionsManager encodeProjectPath matches Claude Code (all non-alphanumerics → \"-\", fixing dotted paths + Windows separators); IPC returns {sessions, reason} (no-claude-dir / no-project-sessions / read-error) and the panel renders the specific reason. Verified live: 3 sessions for this repo, dotted-missing-project → no-project-sessions. Build + 71/71 tests green."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T09",
