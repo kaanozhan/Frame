@@ -8601,28 +8601,23 @@
         "description": "Prompts Panel Module"
       }
     ],
-    "index": [
-      {
-        "module": "main/index",
-        "file": "src/main/index.js",
-        "description": "Main Process Entry Point"
-      },
-      {
-        "module": "renderer/index",
-        "file": "src/renderer/index.js",
-        "description": "Renderer Entry Point"
-      },
-      {
-        "module": "templates/sample-project/src/index",
-        "file": "src/templates/sample-project/src/index.js",
-        "description": "TaskFlow — Application entry"
-      }
-    ],
     "ipc": [
       {
         "module": "shared/ipcChannels",
         "file": "src/shared/ipcChannels.js",
         "description": "IPC Channel Constants"
+      }
+    ],
+    "manager": [
+      {
+        "module": "main/overviewManager",
+        "file": "src/main/overviewManager.js",
+        "description": "Overview Manager Module"
+      },
+      {
+        "module": "main/pluginsManager",
+        "file": "src/main/pluginsManager.js",
+        "description": "Plugins Manager Module"
       }
     ],
     "orchestration": [
@@ -8679,6 +8674,18 @@
         "description": "Overview Panel Module"
       }
     ],
+    "panel": [
+      {
+        "module": "renderer/overviewPanel",
+        "file": "src/renderer/overviewPanel.js",
+        "description": "Overview Panel Module"
+      },
+      {
+        "module": "renderer/pluginsPanel",
+        "file": "src/renderer/pluginsPanel.js",
+        "description": "Plugins Panel Module"
+      }
+    ],
     "plugins": [
       {
         "module": "main/pluginsManager",
@@ -8689,6 +8696,35 @@
         "module": "renderer/pluginsPanel",
         "file": "src/renderer/pluginsPanel.js",
         "description": "Plugins Panel Module"
+      }
+    ],
+    "project": [
+      {
+        "module": "renderer/openProjectModal",
+        "file": "src/renderer/openProjectModal.js",
+        "description": "Open Project Modal"
+      },
+      {
+        "module": "renderer/projectSection",
+        "file": "src/renderer/projectSection.js",
+        "description": "Projects Section"
+      },
+      {
+        "module": "renderer/projectStatusBadges",
+        "file": "src/renderer/projectStatusBadges.js",
+        "description": "Project Status Badges"
+      }
+    ],
+    "section": [
+      {
+        "module": "renderer/projectSection",
+        "file": "src/renderer/projectSection.js",
+        "description": "Projects Section"
+      },
+      {
+        "module": "renderer/sectionRail",
+        "file": "src/renderer/sectionRail.js",
+        "description": "Section Rail Module"
       }
     ],
     "settings": [

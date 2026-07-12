@@ -2774,13 +2774,14 @@
       "title": "De-Frame `scripts/update-structure.js` vocabulary — `syncIPCChannels` driven by a `project.ipcChannelsFile` config field (categories from channel-name tokens, hardcoded table removed), intent grouping from dir/basename tokenization — add Frame's `project` + `ipcChannelsFile` block to `.frame/config.json`, and add the no-Frame-vocabulary assertion to fixture tests",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T16:10:00.000Z",
+      "completedAt": "2026-07-12T16:10:00.000Z",
+      "notes": "Outcome: syncIPCChannels reads project.ipcChannelsFile from .frame/config.json (no file → no-op); the hardcoded categoryRules table of Frame channel names is gone — existing channels keep categories from the existing STRUCTURE.json, new channels get token-derived categories (verb prefixes skipped). intentIndex auto-grouping replaced the Frame suffix list with basename tokenization (≥2 files, structural tokens + >25% too-common tokens skipped). writeProjectConfig now merges, preserving repo-local keys. Frame dogfoods: config gained project block + ipcChannelsFile; 128 IPC channels unchanged, intentIndex gained real groups (project/section), junk index group dropped. Sentinel tests assert no Frame vocabulary in any shipped script nor fixture output. 67/67 green."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T07",

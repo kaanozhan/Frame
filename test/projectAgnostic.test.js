@@ -59,7 +59,12 @@ function initAndParse(fixtureName) {
     assert.equal(detect.status, 0, detect.stderr);
     const parse = runParser(tmp);
     assert.equal(parse.status, 0, parse.stderr);
-    return JSON.parse(fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8'));
+    const raw = fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8');
+    // Output must never carry Frame's own vocabulary into a user project
+    for (const sentinel of ['TERMINAL_', 'CLAUDE_', 'GITHUB_', 'FRAME_PROJECT', 'multiTerminal']) {
+      assert.ok(!raw.includes(sentinel), `fixture output contains Frame vocabulary "${sentinel}"`);
+    }
+    return JSON.parse(raw);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -109,6 +114,50 @@ test('docs-repo: markdown file map with heading descriptions', () => {
   assert.equal(guide.description, 'Guide');
   assert.deepEqual(guide.exports, []);
   assert.ok(s.modules['docs/api']);
+});
+
+test('shipped scripts carry no Frame-specific vocabulary (spec success criterion)', () => {
+  const sentinels = [
+    'TERMINAL_CREATE', 'LOAD_GITHUB_ISSUES', 'INITIALIZE_FRAME_PROJECT',
+    'LOAD_CLAUDE_USAGE', 'claudeUsageManager', 'githubManager',
+    'gitBranchesManager', 'multiTerminal', 'TabBar', 'ipcChannels.js'
+  ];
+  const scriptsDir = path.join(REPO_ROOT, 'scripts');
+  const shipped = [
+    'update-structure.js', 'detect-project.js', 'find-module.js', 'check-freshness.js',
+    ...fs.readdirSync(path.join(scriptsDir, 'lang')).map(f => path.join('lang', f))
+  ];
+  for (const file of shipped) {
+    const content = fs.readFileSync(path.join(scriptsDir, file), 'utf8');
+    for (const sentinel of sentinels) {
+      assert.ok(!content.includes(sentinel), `${file} contains Frame vocabulary "${sentinel}"`);
+    }
+  }
+});
+
+test('ipc channels sync from the config-named file with token-derived categories', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-ipc-'));
+  try {
+    fs.mkdirSync(path.join(tmp, '.frame'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, '.frame', 'config.json'), JSON.stringify({
+      project: { sourceRoots: ['src'], ipcChannelsFile: 'src/ipc.js' }
+    }));
+    fs.writeFileSync(path.join(tmp, 'src', 'ipc.js'), [
+      'const IPC = {',
+      "  LOAD_REPORTS: 'load-reports',",
+      "  TOGGLE_EXPORT_PANEL: 'toggle-export-panel'",
+      '};',
+      'module.exports = { IPC };'
+    ].join('\n'));
+    const res = runParser(tmp);
+    assert.equal(res.status, 0, res.stderr);
+    const s = JSON.parse(fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8'));
+    assert.ok(s.ipcChannels.reports.LOAD_REPORTS, 'LOAD_REPORTS → category "reports"');
+    assert.ok(s.ipcChannels.export.TOGGLE_EXPORT_PANEL, 'TOGGLE_EXPORT_PANEL → category "export"');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 test('walker safety: symlink cycle + ignored dirs terminate with clean output', () => {

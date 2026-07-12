@@ -19,5 +19,27 @@
   },
   "features": {
     "specDriven": true
+  },
+  "project": {
+    "languages": [
+      "javascript"
+    ],
+    "packageManager": "npm",
+    "sourceRoots": [
+      "src"
+    ],
+    "layout": "single",
+    "commands": {
+      "install": "npm install",
+      "dev": "npm run dev",
+      "build": "npm run build",
+      "test": "npm test"
+    },
+    "markers": [
+      "package.json"
+    ],
+    "detectedAt": "2026-07-12T14:59:05.548Z",
+    "confidence": "high",
+    "ipcChannelsFile": "src/shared/ipcChannels.js"
   }
 }

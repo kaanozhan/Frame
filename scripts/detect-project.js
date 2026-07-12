@@ -312,7 +312,9 @@ function detectProject(rootDir) {
 
 /**
  * Merge a detected project block into <root>/.frame/config.json, preserving
- * every other key. Throws when the project has no .frame/ directory —
+ * every other key — including repo-local keys inside `project` that
+ * detection doesn't produce (e.g. ipcChannelsFile), so a re-run never wipes
+ * hand-set config. Throws when the project has no .frame/ directory —
  * detection is only persisted into initialized Frame projects.
  */
 function writeProjectConfig(rootDir, project) {
@@ -322,7 +324,7 @@ function writeProjectConfig(rootDir, project) {
   }
   const configPath = path.join(frameDir, 'config.json');
   const config = readJSON(configPath) || {};
-  config.project = project;
+  config.project = { ...(config.project || {}), ...project };
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
   return configPath;
 }

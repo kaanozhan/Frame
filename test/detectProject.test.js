@@ -201,6 +201,17 @@ test('writeProjectConfig merges into .frame/config.json preserving keys', () => 
   assert.deepEqual(config.project.languages, ['javascript']);
 });
 
+test('writeProjectConfig preserves repo-local project keys (ipcChannelsFile)', () => {
+  scaffold({
+    '.frame/config.json': JSON.stringify({ project: { ipcChannelsFile: 'src/ipc.js' } }),
+    'package.json': JSON.stringify({ name: 'app' })
+  });
+  writeProjectConfig(tmpRoot, detectProject(tmpRoot));
+  const config = JSON.parse(fs.readFileSync(path.join(tmpRoot, '.frame', 'config.json'), 'utf-8'));
+  assert.equal(config.project.ipcChannelsFile, 'src/ipc.js');
+  assert.deepEqual(config.project.languages, ['javascript']);
+});
+
 test('writeProjectConfig throws without a .frame directory', () => {
   scaffold({ 'package.json': '{}' });
   assert.throws(() => writeProjectConfig(tmpRoot, detectProject(tmpRoot)), /\.frame directory not found/);
