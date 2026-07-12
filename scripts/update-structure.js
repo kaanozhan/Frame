@@ -8,6 +8,7 @@
  * Usage:
  *   node scripts/update-structure.js              # Full update
  *   node scripts/update-structure.js --changed    # Only git staged changes
+ *   node scripts/update-structure.js --check      # Would a regen change anything? (writes nothing; exit 0/1/2)
  *   node scripts/update-structure.js file1.js file2.js  # Specific files
  */
 
@@ -351,13 +352,13 @@ function loadStructure() {
  * Runs in every mode so deletions are reconciled even when they never hit
  * the staged diff (the phantom-module class of bug).
  */
-function reconcileDeletedModules(structure) {
+function reconcileDeletedModules(structure, quiet) {
   let removed = 0;
   for (const [key, mod] of Object.entries(structure.modules)) {
     const file = mod.file || path.join('src', `${key}.js`);
     if (!fs.existsSync(path.join(ROOT_DIR, file))) {
       delete structure.modules[key];
-      console.log(`  - Removed (missing on disk): ${key}`);
+      if (!quiet) console.log(`  - Removed (missing on disk): ${key}`);
       removed++;
     }
   }
@@ -376,19 +377,24 @@ function sortKeys(obj) {
 }
 
 /**
+ * Normalize a structure for output: sorted modules, and architectureNotes —
+ * hand-written insight — preserved verbatim when present, omitted entirely
+ * when empty (never emit an empty object that looks populated).
+ */
+function normalizeStructure(structure) {
+  structure.modules = sortKeys(structure.modules);
+  if (structure.architectureNotes && Object.keys(structure.architectureNotes).length === 0) {
+    delete structure.architectureNotes;
+  }
+}
+
+/**
  * Save STRUCTURE.json.
  * Modules are sorted for stable output, and lastUpdated is only bumped when
  * content actually changed — a regen on an unchanged tree is byte-identical.
  */
 function saveStructure(structure) {
-  structure.modules = sortKeys(structure.modules);
-
-  // architectureNotes is hand-written insight: preserved verbatim across
-  // regens when present, omitted entirely when empty — never emit an empty
-  // object that looks populated.
-  if (structure.architectureNotes && Object.keys(structure.architectureNotes).length === 0) {
-    delete structure.architectureNotes;
-  }
+  normalizeStructure(structure);
 
   let previous = null;
   try {
@@ -413,7 +419,7 @@ function saveStructure(structure) {
  * Preserves existing rich data (direction, payload, description) for known channels.
  * Adds skeleton entries for new channels discovered in ipcChannels.js.
  */
-function syncIPCChannels(structure) {
+function syncIPCChannels(structure, quiet) {
   const ipcFile = path.join(SRC_DIR, 'shared', 'ipcChannels.js');
   if (!fs.existsSync(ipcFile)) return;
 
@@ -485,7 +491,64 @@ function syncIPCChannels(structure) {
   structure.ipcChannels = updated;
 
   const total = Object.values(updated).reduce((sum, cat) => sum + Object.keys(cat).length, 0);
-  console.log(`  ✓ IPC channels: ${total} total (${added} new) — parsed from ipcChannels.js`);
+  if (!quiet) console.log(`  ✓ IPC channels: ${total} total (${added} new) — parsed from ipcChannels.js`);
+}
+
+/**
+ * Parse the given files into structure.modules (preserving manual
+ * descriptions when the auto-extracted one is empty)
+ */
+function processFiles(structure, files, quiet) {
+  for (const file of files) {
+    try {
+      const moduleKey = getModuleKey(file);
+      const moduleInfo = parseJSFile(file);
+
+      const existing = structure.modules[moduleKey] || {};
+      structure.modules[moduleKey] = {
+        ...moduleInfo,
+        description: moduleInfo.description || existing.description || ''
+      };
+
+      if (!quiet) console.log(`  ✓ ${moduleKey}`);
+    } catch (e) {
+      if (!quiet) console.error(`  ✗ ${file}: ${e.message}`);
+    }
+  }
+}
+
+/**
+ * --check: report whether a full regen would change STRUCTURE.json
+ * (ignoring lastUpdated) without writing anything. Exit 0 = in sync,
+ * 1 = out of date, 2 = cannot check. Lets check-freshness.js and
+ * find-module.js confirm date-based drift suspicion against actual
+ * content, so merges/reverts that changed no module content don't
+ * produce false staleness warnings.
+ */
+function runCheck() {
+  if (!fs.existsSync(STRUCTURE_FILE)) {
+    console.log('STRUCTURE.json missing — run: npm run structure');
+    process.exit(2);
+  }
+
+  const current = loadStructure();
+  const rebuilt = JSON.parse(JSON.stringify(current));
+
+  reconcileDeletedModules(rebuilt, true);
+  if (fs.existsSync(SRC_DIR)) {
+    processFiles(rebuilt, getAllJSFiles(), true);
+  }
+  syncIPCChannels(rebuilt, true);
+  generateIntentIndex(rebuilt);
+  normalizeStructure(rebuilt);
+
+  const withoutTimestamp = (s) => JSON.stringify({ ...s, lastUpdated: undefined });
+  if (withoutTimestamp(current) === withoutTimestamp(rebuilt)) {
+    console.log('STRUCTURE.json is in sync with src/.');
+    process.exit(0);
+  }
+  console.log('STRUCTURE.json is out of date — run: npm run structure');
+  process.exit(1);
 }
 
 /**
@@ -493,6 +556,12 @@ function syncIPCChannels(structure) {
  */
 function main() {
   const args = process.argv.slice(2);
+
+  if (args.includes('--check')) {
+    runCheck();
+    return;
+  }
+
   const structure = loadStructure();
 
   let filesToProcess = [];
@@ -523,24 +592,7 @@ function main() {
 
   console.log(`Mode: ${mode}, Processing ${filesToProcess.length} file(s)...`);
 
-  for (const file of filesToProcess) {
-    try {
-      const moduleKey = getModuleKey(file);
-      const moduleInfo = parseJSFile(file);
-
-      // Preserve manually added fields (like detailed descriptions)
-      const existing = structure.modules[moduleKey] || {};
-      structure.modules[moduleKey] = {
-        ...moduleInfo,
-        // Keep manual description if auto-extracted is empty
-        description: moduleInfo.description || existing.description || ''
-      };
-
-      console.log(`  ✓ ${moduleKey}`);
-    } catch (e) {
-      console.error(`  ✗ ${file}: ${e.message}`);
-    }
-  }
+  processFiles(structure, filesToProcess, false);
 
   // Sync IPC channels from ipcChannels.js
   syncIPCChannels(structure);

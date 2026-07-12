@@ -14,7 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 // FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user
 // project. Frame's own callers don't set it — behavior is unchanged.
@@ -47,7 +47,11 @@ function loadIntentMap() {
 }
 
 /**
- * One-line warning when STRUCTURE.json predates the last commit touching src
+ * One-line warning when STRUCTURE.json is stale. The date comparison is a
+ * cheap pre-filter; when it fires, update-structure.js --check confirms
+ * against actual content — merges/reverts dated after lastUpdated that
+ * changed no module content must not produce a banner (an idempotent regen
+ * couldn't clear it).
  */
 function stalenessBanner(structure) {
   try {
@@ -56,9 +60,24 @@ function stalenessBanner(structure) {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'ignore']
     }).trim();
-    if (lastSrcCommit && structure.lastUpdated && structure.lastUpdated < lastSrcCommit) {
-      return `⚠ STRUCTURE.json (${structure.lastUpdated}) is older than the last src commit (${lastSrcCommit}) — run: npm run structure`;
+    if (!(lastSrcCommit && structure.lastUpdated && structure.lastUpdated < lastSrcCommit)) {
+      return null;
     }
+
+    const checker = path.join(__dirname, 'update-structure.js');
+    if (fs.existsSync(checker)) {
+      const r = spawnSync('node', [checker, '--check'], {
+        cwd: ROOT_DIR,
+        env: { ...process.env, FRAME_PROJECT_ROOT: ROOT_DIR },
+        stdio: 'ignore',
+        timeout: 30000
+      });
+      if (r.status === 0) return null; // dates disagree, content in sync
+      if (r.status === 1) {
+        return '⚠ STRUCTURE.json content is out of date vs src — run: npm run structure';
+      }
+    }
+    return `⚠ STRUCTURE.json (${structure.lastUpdated}) is older than the last src commit (${lastSrcCommit}) — run: npm run structure`;
   } catch (e) {
     // Not a git repo or git unavailable — no banner
   }

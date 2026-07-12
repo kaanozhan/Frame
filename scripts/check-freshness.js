@@ -12,7 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 // FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user
 // project. Frame's own callers don't set it — behavior is unchanged.
@@ -62,11 +62,45 @@ function checkPhantomModules(structure) {
 }
 
 /**
- * 2. STRUCTURE drift — lastUpdated older than the last commit touching src
+ * Ask update-structure.js --check whether a regen would actually change
+ * STRUCTURE.json. Returns true (out of date), false (in sync), or null
+ * (cannot verify — checker missing or errored).
+ */
+function confirmContentDrift() {
+  const checker = path.join(__dirname, 'update-structure.js');
+  if (!fs.existsSync(checker)) return null;
+  try {
+    const r = spawnSync('node', [checker, '--check'], {
+      cwd: ROOT_DIR,
+      env: { ...process.env, FRAME_PROJECT_ROOT: ROOT_DIR },
+      stdio: 'ignore',
+      timeout: 30000
+    });
+    if (r.status === 0) return false;
+    if (r.status === 1) return true;
+  } catch (e) {
+    // fall through to null
+  }
+  return null;
+}
+
+/**
+ * 2. STRUCTURE drift — the date heuristic (lastUpdated older than the last
+ * commit touching src) is only a cheap pre-filter: a merge or revert dated
+ * after lastUpdated can touch src without changing any module content, and
+ * an idempotent regen wouldn't clear such a warning. When the dates look
+ * stale, the actual content decides.
  */
 function checkStructureDrift(structure) {
   const lastSrcCommit = git('git log -1 --format=%cs -- src');
-  if (lastSrcCommit && structure.lastUpdated && structure.lastUpdated < lastSrcCommit) {
+  if (!(lastSrcCommit && structure.lastUpdated && structure.lastUpdated < lastSrcCommit)) return;
+
+  const drift = confirmContentDrift();
+  if (drift === false) return; // dates disagree but content is in sync — not stale
+
+  if (drift === true) {
+    warn('structure-drift', `STRUCTURE.json content is out of date vs src (lastUpdated ${structure.lastUpdated}) — run: npm run structure`);
+  } else {
     warn('structure-drift', `STRUCTURE.json (${structure.lastUpdated}) predates the last src commit (${lastSrcCommit}) — run: npm run structure`);
   }
 }
