@@ -2746,13 +2746,14 @@
       "title": "Add an extractor registry to `scripts/update-structure.js` and move CJS logic into `scripts/lang/javascript.js` extended with ESM/TS/JSX support and TS-annotation cleanup; add subdir copy support to `structureBootstrap.js` so `scripts/lang/*` ships to `.frame/bin/`; golden file stays byte-identical",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T15:20:00.000Z",
+      "completedAt": "2026-07-12T15:20:00.000Z",
+      "notes": "Outcome: extractor registry in update-structure.js dispatches by extension; CJS logic moved verbatim to scripts/lang/javascript.js and extended with ESM (import/export/re-export/dynamic/side-effect), TS/TSX/JSX/MJS/CJS extensions, TS param-annotation cleanup (only when \":\" present — CJS untouched), export-prefixed function forms, generics. structureBootstrap copies scripts/lang/* into user .frame/bin/lang/. Verified: golden CJS fixture byte-identical, suite 50/50; live ESM/TS scratch project extracts clean params/exports/deps; Frame repo drift is only legit new .jsx sample-project modules + line shifts from the bootstrap edit."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T05",

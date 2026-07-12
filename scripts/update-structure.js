@@ -2,7 +2,8 @@
 /**
  * STRUCTURE.json Auto-Updater
  *
- * Parses JS files and updates STRUCTURE.json with module info.
+ * Parses source files (per-language extractors in scripts/lang/) and updates
+ * STRUCTURE.json with module info.
  * Can run in full mode (all files) or incremental mode (changed files only).
  *
  * Usage:
@@ -85,247 +86,51 @@ function loadGitignoreDirs() {
   return { names, paths };
 }
 
+// Per-language extractors (scripts/lang/*). Each declares its extensions and
+// extraction functions; the registry dispatches by file extension.
+const EXTRACTORS = [require('./lang/javascript')];
+const EXT_TO_EXTRACTOR = new Map();
+for (const extractor of EXTRACTORS) {
+  for (const ext of extractor.extensions) EXT_TO_EXTRACTOR.set(ext, extractor);
+}
+
+function allExtensions() {
+  return [...EXT_TO_EXTRACTOR.keys()];
+}
+
 /**
- * Parse a JS file and extract module information
+ * Parse a source file with its language's extractor and build the module entry
  */
-function parseJSFile(filePath) {
+function parseSourceFile(filePath) {
+  const lang = EXT_TO_EXTRACTOR.get(path.extname(filePath));
+  if (!lang) return null;
+
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.split('\n');
 
   const moduleInfo = {
     file: path.relative(ROOT_DIR, filePath),
-    description: extractDescription(content),
-    exports: extractExports(content),
-    depends: extractDependencies(content),
+    description: lang.extractDescription(content),
+    exports: lang.extractExports(content),
+    depends: lang.extractDependencies(content),
     functions: {}
   };
 
   // Extract functions with line numbers
-  const functions = extractFunctions(content, lines);
+  const functions = lang.extractFunctions(content, lines);
   if (Object.keys(functions).length > 0) {
     moduleInfo.functions = functions;
   }
 
-  // Extract IPC info if relevant
-  const ipc = extractIPC(content);
-  if (ipc.listens.length > 0 || ipc.emits.length > 0) {
-    moduleInfo.ipc = ipc;
+  // Extract IPC info when the language knows about it (Electron JS)
+  if (lang.extractIPC) {
+    const ipc = lang.extractIPC(content);
+    if (ipc.listens.length > 0 || ipc.emits.length > 0) {
+      moduleInfo.ipc = ipc;
+    }
   }
 
   return moduleInfo;
-}
-
-/**
- * Extract file description from top comment
- */
-function extractDescription(content) {
-  // Match JSDoc style comment at top
-  const match = content.match(/^\/\*\*\s*\n\s*\*\s*([^\n]+)/);
-  if (match) {
-    return match[1].trim();
-  }
-
-  // Match single line comment
-  const singleMatch = content.match(/^\/\/\s*(.+)/);
-  if (singleMatch) {
-    return singleMatch[1].trim();
-  }
-
-  return '';
-}
-
-/**
- * Extract module.exports
- */
-function extractExports(content) {
-  const exports = [];
-
-  // module.exports = { func1, func2 }
-  const objectMatch = content.match(/module\.exports\s*=\s*\{([^}]+)\}/);
-  if (objectMatch) {
-    const items = objectMatch[1].split(',').map(s => s.trim());
-    items.forEach(item => {
-      // Handle "name: value" and just "name"
-      const name = item.split(':')[0].trim();
-      if (name && !name.startsWith('//')) {
-        exports.push(name);
-      }
-    });
-  }
-
-  // module.exports.funcName = ...
-  const namedMatches = content.matchAll(/module\.exports\.(\w+)\s*=/g);
-  for (const match of namedMatches) {
-    if (!exports.includes(match[1])) {
-      exports.push(match[1]);
-    }
-  }
-
-  return exports;
-}
-
-/**
- * Extract require() dependencies
- */
-function extractDependencies(content) {
-  const deps = [];
-  const matches = content.matchAll(/require\s*\(\s*['"]([^'"]+)['"]\s*\)/g);
-
-  for (const match of matches) {
-    const dep = match[1];
-    // Convert relative paths to module names
-    if (dep.startsWith('./') || dep.startsWith('../')) {
-      // Convert to module path format
-      const normalized = dep.replace(/^\.\.?\//, '').replace(/\.js$/, '');
-      deps.push(normalized);
-    } else {
-      // External module
-      deps.push(dep);
-    }
-  }
-
-  return [...new Set(deps)]; // Remove duplicates
-}
-
-/**
- * Extract function definitions with line numbers
- */
-function extractFunctions(content, lines) {
-  const functions = {};
-
-  // Match function declarations: function name(params) {
-  const funcRegex = /^(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)/gm;
-  let match;
-
-  while ((match = funcRegex.exec(content)) !== null) {
-    const name = match[1];
-    const params = match[2].split(',').map(p => p.trim()).filter(p => p);
-    const lineNum = content.substring(0, match.index).split('\n').length;
-
-    // Try to extract purpose from preceding comment
-    const purpose = extractFunctionPurpose(lines, lineNum - 1);
-
-    functions[name] = {
-      line: lineNum,
-      params: params.length > 0 ? params : undefined,
-      purpose: purpose || undefined
-    };
-
-    // Clean up undefined values
-    Object.keys(functions[name]).forEach(key => {
-      if (functions[name][key] === undefined) {
-        delete functions[name][key];
-      }
-    });
-  }
-
-  // Match const name = function(params) or const name = (params) =>
-  const constFuncRegex = /^(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function\s*)?\(([^)]*)\)\s*(?:=>)?\s*[{]/gm;
-
-  while ((match = constFuncRegex.exec(content)) !== null) {
-    const name = match[1];
-    if (functions[name]) continue; // Skip if already found
-
-    const params = match[2].split(',').map(p => p.trim()).filter(p => p);
-    const lineNum = content.substring(0, match.index).split('\n').length;
-    const purpose = extractFunctionPurpose(lines, lineNum - 1);
-
-    functions[name] = {
-      line: lineNum,
-      params: params.length > 0 ? params : undefined,
-      purpose: purpose || undefined
-    };
-
-    Object.keys(functions[name]).forEach(key => {
-      if (functions[name][key] === undefined) {
-        delete functions[name][key];
-      }
-    });
-  }
-
-  return functions;
-}
-
-/**
- * Extract function purpose from the comment block directly above a declaration.
- * Only a comment that ends on the line immediately above counts. The purpose is
- * always the block's FIRST content line — never a mid-comment fragment.
- */
-function extractFunctionPurpose(lines, lineIndex) {
-  const above = lineIndex - 1;
-  if (above < 0) return null;
-
-  const aboveLine = lines[above].trim();
-
-  // Run of // comments: walk up to the start of the run, take its first line
-  if (aboveLine.startsWith('//')) {
-    let start = above;
-    while (start > 0 && lines[start - 1].trim().startsWith('//')) {
-      start--;
-    }
-    const text = lines[start].trim().replace(/^\/\/\s*/, '').trim();
-    return text || null;
-  }
-
-  // Block comment ending immediately above: walk up to /* and take the
-  // block's first content line (skipping JSDoc @tags)
-  if (aboveLine.endsWith('*/')) {
-    let start = above;
-    while (start >= 0 && !lines[start].includes('/*')) {
-      start--;
-    }
-    if (start < 0) return null;
-
-    for (let i = start; i <= above; i++) {
-      const text = lines[i].trim()
-        .replace(/^\/\*\*?/, '')
-        .replace(/\*\/$/, '')
-        .replace(/^\*\s?/, '')
-        .trim();
-      if (text && !text.startsWith('@')) {
-        return text;
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Extract IPC channel usage
- */
-function extractIPC(content) {
-  const ipc = { listens: [], emits: [] };
-
-  // ipcMain.on / ipcMain.handle
-  const listenMatches = content.matchAll(/ipc(?:Main|Renderer)\.(?:on|handle)\s*\(\s*(?:IPC\.)?['"]?(\w+)['"]?/g);
-  for (const match of listenMatches) {
-    ipc.listens.push(match[1]);
-  }
-
-  // Also check for IPC constant references in .on()
-  const ipcConstListens = content.matchAll(/\.on\s*\(\s*IPC\.(\w+)/g);
-  for (const match of ipcConstListens) {
-    if (!ipc.listens.includes(match[1])) {
-      ipc.listens.push(match[1]);
-    }
-  }
-
-  // ipcRenderer.send / mainWindow.webContents.send
-  const emitMatches = content.matchAll(/(?:ipcRenderer|webContents)\.send\s*\(\s*(?:IPC\.)?['"]?(\w+)['"]?/g);
-  for (const match of emitMatches) {
-    ipc.emits.push(match[1]);
-  }
-
-  // Also check for IPC constant references in .send()
-  const ipcConstEmits = content.matchAll(/\.send\s*\(\s*IPC\.(\w+)/g);
-  for (const match of ipcConstEmits) {
-    if (!ipc.emits.includes(match[1])) {
-      ipc.emits.push(match[1]);
-    }
-  }
-
-  return ipc;
 }
 
 /**
@@ -337,7 +142,8 @@ function extractIPC(content) {
 function getModuleKey(filePath) {
   let relative = path.relative(ROOT_DIR, filePath).replace(/\\/g, '/');
   if (relative.startsWith('src/')) relative = relative.slice(4);
-  return relative.replace(/\.js$/, '');
+  const ext = path.extname(relative);
+  return EXT_TO_EXTRACTOR.has(ext) ? relative.slice(0, -ext.length) : relative;
 }
 
 /**
@@ -360,7 +166,7 @@ function getChangedFiles() {
     const roots = getSourceRoots();
     const inRoots = (f) => roots.some(root => root === '.' || f.startsWith(root.replace(/\\/g, '/') + '/'));
     const files = [...staged.split('\n'), ...unstaged.split('\n')]
-      .filter(f => f.endsWith('.js') && inRoots(f))
+      .filter(f => EXT_TO_EXTRACTOR.has(path.extname(f)) && inRoots(f))
       .map(f => path.join(ROOT_DIR, f));
 
     return [...new Set(files)];
@@ -376,7 +182,7 @@ function getChangedFiles() {
  * dirs, never follows symlinks (cycles, out-of-repo trees), and caps
  * depth/file count with a warning instead of hanging on pathological trees.
  */
-function getAllSourceFiles(extensions = ['.js']) {
+function getAllSourceFiles(extensions = allExtensions()) {
   const files = [];
   const seen = new Set();
   const ignore = loadGitignoreDirs();
@@ -604,8 +410,9 @@ function syncIPCChannels(structure, quiet) {
 function processFiles(structure, files, quiet) {
   for (const file of files) {
     try {
+      const moduleInfo = parseSourceFile(file);
+      if (!moduleInfo) continue; // No extractor for this extension
       const moduleKey = getModuleKey(file);
-      const moduleInfo = parseJSFile(file);
 
       const existing = structure.modules[moduleKey] || {};
       structure.modules[moduleKey] = {

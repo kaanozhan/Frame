@@ -2426,28 +2426,28 @@
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "detectHookSetup": {
-          "line": 102,
+          "line": 120,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "hasFrameSnippet": {
-          "line": 157,
+          "line": 175,
           "params": [
             "hookFilePath"
           ],
           "purpose": "Check if our managed snippet is already present in a hook file."
         },
         "installPreCommitHook": {
-          "line": 174,
+          "line": 192,
           "params": [
             "projectPath"
           ],
           "purpose": "Install (or append) the pre-commit hook based on detected setup."
         },
         "appendToHookFile": {
-          "line": 229,
+          "line": 247,
           "params": [
             "hookPath",
             "createIfMissing",
@@ -2456,14 +2456,14 @@
           "purpose": "Append the Frame snippet to an existing hook file (husky case)."
         },
         "runInitialFullScan": {
-          "line": 265,
+          "line": 283,
           "params": [
             "projectPath"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 296,
+          "line": 314,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -7721,6 +7721,41 @@
       "functions": {
         "start": {
           "line": 12
+        }
+      }
+    },
+    "templates/sample-project/src/ui/App": {
+      "file": "src/templates/sample-project/src/ui/App.jsx",
+      "description": "App root — routing + auth context",
+      "exports": [
+        "App"
+      ],
+      "depends": [
+        "react",
+        "react-router-dom",
+        "components/TaskList"
+      ],
+      "functions": {
+        "App": {
+          "line": 9
+        },
+        "Login": {
+          "line": 21
+        }
+      }
+    },
+    "templates/sample-project/src/ui/components/TaskList": {
+      "file": "src/templates/sample-project/src/ui/components/TaskList.jsx",
+      "description": "TaskList — renders the user's tasks with status filters",
+      "exports": [
+        "TaskList"
+      ],
+      "depends": [
+        "react"
+      ],
+      "functions": {
+        "TaskList": {
+          "line": 9
         }
       }
     }
