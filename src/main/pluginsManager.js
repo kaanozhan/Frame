@@ -120,7 +120,7 @@ function getAllPlugins() {
   const installedPlugins = getInstalledPlugins();
   const enabledPlugins = getEnabledPlugins();
 
-  return marketplacePlugins.map(plugin => {
+  const plugins = marketplacePlugins.map(plugin => {
     const isInstalled = !!installedPlugins[plugin.id];
     const isEnabled = enabledPlugins[plugin.id] === true;
     const installInfo = installedPlugins[plugin.id]?.[0];
@@ -132,6 +132,15 @@ function getAllPlugins() {
       installedAt: installInfo?.installedAt || null
     };
   });
+
+  return {
+    plugins,
+    marketplace: {
+      available: fs.existsSync(path.join(MARKETPLACES_DIR, 'claude-plugins-official')),
+      reason: marketplaceFailure ? marketplaceFailure.reason : null,
+      detail: marketplaceFailure ? marketplaceFailure.detail : null
+    }
+  };
 }
 
 /**
@@ -182,14 +191,37 @@ function togglePlugin(pluginId) {
   };
 }
 
+// Last marketplace clone/pull failure — { reason, detail } — so the panel
+// can say WHY the marketplace is empty instead of showing a bare state with
+// the cause buried in console.log. Cleared on success.
+let marketplaceFailure = null;
+
+/** Classify a git failure into an actionable reason */
+function classifyGitError(err) {
+  const text = `${err.message || ''} ${String(err.stderr || '')}`;
+  if (/ENOENT|command not found|not recognized|No such file/i.test(text)) return 'git-missing';
+  if (/could not resolve host|unable to access|connection|timed? ?out|network|proxy|ssl/i.test(text)) return 'network';
+  return 'other';
+}
+
 /**
- * Ensure official marketplace exists
+ * Ensure official marketplace exists. Preflights git before cloning and
+ * records a classified failure reason instead of failing silently.
  */
 function ensureOfficialMarketplace() {
   const officialMarketplace = path.join(MARKETPLACES_DIR, 'claude-plugins-official');
-  
+
   if (fs.existsSync(officialMarketplace)) {
+    marketplaceFailure = null;
     return true;
+  }
+
+  try {
+    execSync('git --version', { stdio: 'pipe', timeout: 5000 });
+  } catch (err) {
+    marketplaceFailure = { reason: 'git-missing', detail: 'git is not installed or not on PATH' };
+    console.error('Marketplace clone skipped:', marketplaceFailure.detail);
+    return false;
   }
 
   try {
@@ -204,8 +236,13 @@ function ensureOfficialMarketplace() {
       stdio: 'pipe',
       timeout: 60000
     });
+    marketplaceFailure = null;
     return true;
   } catch (err) {
+    marketplaceFailure = {
+      reason: classifyGitError(err),
+      detail: String(err.stderr || err.message || '').split('\n')[0].slice(0, 200)
+    };
     console.error('Error cloning official marketplace:', err);
     return false;
   }
@@ -221,7 +258,8 @@ function refreshMarketplace() {
   if (!fs.existsSync(officialMarketplace)) {
     const success = ensureOfficialMarketplace();
     if (!success) {
-      return { success: false, error: 'Failed to clone marketplace' };
+      const why = marketplaceFailure || { reason: 'other', detail: '' };
+      return { success: false, error: `Failed to clone marketplace (${why.reason}): ${why.detail}`, reason: why.reason };
     }
     return { success: true };
   }
@@ -232,10 +270,13 @@ function refreshMarketplace() {
       stdio: 'pipe',
       timeout: 30000
     });
+    marketplaceFailure = null;
     return { success: true };
   } catch (err) {
     console.error('Error refreshing marketplace:', err);
-    return { success: false, error: err.message };
+    const reason = classifyGitError(err);
+    marketplaceFailure = { reason, detail: String(err.stderr || err.message || '').split('\n')[0].slice(0, 200) };
+    return { success: false, error: err.message, reason };
   }
 }
 
@@ -266,7 +307,7 @@ function setupIPC(ipcMain) {
     if (result.success) {
       return getAllPlugins();
     }
-    return { error: result.error };
+    return { error: result.error, reason: result.reason };
   });
 }
 

@@ -1765,22 +1765,29 @@
           "purpose": "Get all plugins with their status"
         },
         "togglePlugin": {
-          "line": 140,
+          "line": 149,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled status"
         },
+        "classifyGitError": {
+          "line": 200,
+          "params": [
+            "err"
+          ],
+          "purpose": "Classify a git failure into an actionable reason"
+        },
         "ensureOfficialMarketplace": {
-          "line": 188,
-          "purpose": "Ensure official marketplace exists"
+          "line": 211,
+          "purpose": "Ensure official marketplace exists. Preflights git before cloning and"
         },
         "refreshMarketplace": {
-          "line": 217,
+          "line": 254,
           "purpose": "Refresh marketplace plugins (git pull or clone)"
         },
         "setupIPC": {
-          "line": 245,
+          "line": 286,
           "params": [
             "ipcMain"
           ],
@@ -5002,89 +5009,89 @@
       ],
       "functions": {
         "init": {
-          "line": 28,
+          "line": 29,
           "purpose": "Initialize plugins panel"
         },
         "setupEventListeners": {
-          "line": 45,
+          "line": 46,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 90,
+          "line": 91,
           "purpose": "Setup IPC listeners"
         },
         "loadPlugins": {
-          "line": 114,
+          "line": 115,
           "purpose": "Load plugins"
         },
         "refreshPlugins": {
-          "line": 128,
+          "line": 133,
           "purpose": "Refresh plugins from marketplace"
         },
         "show": {
-          "line": 162,
+          "line": 168,
           "purpose": "Show plugins panel"
         },
         "hide": {
-          "line": 179,
+          "line": 185,
           "purpose": "Hide plugins panel"
         },
         "toggle": {
-          "line": 189,
+          "line": 195,
           "purpose": "Toggle plugins panel visibility"
         },
         "setTab": {
-          "line": 200,
+          "line": 206,
           "params": [
             "tab"
           ],
           "purpose": "Set active tab"
         },
         "setFilter": {
-          "line": 222,
+          "line": 228,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredPlugins": {
-          "line": 236,
+          "line": 242,
           "purpose": "Get filtered plugins"
         },
         "render": {
-          "line": 252,
+          "line": 258,
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 296,
+          "line": 312,
           "params": [
             "plugin"
           ],
           "purpose": "Render single plugin item"
         },
         "getPluginIcon": {
-          "line": 342,
+          "line": 358,
           "params": [
             "name"
           ],
           "purpose": "Get icon for plugin based on name"
         },
         "togglePlugin": {
-          "line": 381,
+          "line": 397,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled"
         },
         "installPlugin": {
-          "line": 393,
+          "line": 409,
           "params": [
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
         },
         "showToast": {
-          "line": 410,
+          "line": 426,
           "params": [
             "message",
             "type = 'info'"
@@ -5092,54 +5099,54 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 445,
+          "line": 461,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
         "escapeHtml": {
-          "line": 459,
+          "line": 475,
           "params": [
             "text"
           ],
           "purpose": "Escape HTML for safe rendering"
         },
         "loadSessions": {
-          "line": 470,
+          "line": 486,
           "purpose": "Load sessions from Claude data"
         },
         "refreshSessions": {
-          "line": 499,
+          "line": 515,
           "purpose": "Refresh sessions with spinner animation"
         },
         "renderSessions": {
-          "line": 521,
+          "line": 537,
           "purpose": "Render sessions list"
         },
         "renderSessionItem": {
-          "line": 555,
+          "line": 571,
           "params": [
             "session"
           ],
           "purpose": "Render a single session item"
         },
         "renderSessionsEmpty": {
-          "line": 584,
+          "line": 600,
           "params": [
             "message"
           ],
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 606,
+          "line": 622,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a session by sending command to terminal"
         },
         "formatRelativeTime": {
-          "line": 620,
+          "line": 636,
           "params": [
             "dateString"
           ],

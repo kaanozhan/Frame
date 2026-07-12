@@ -9,6 +9,7 @@ const state = require('./state');
 
 let isVisible = false;
 let pluginsData = [];
+let marketplaceInfo = null;
 let currentFilter = 'all'; // all, installed, enabled
 let currentTab = 'plugins';
 
@@ -113,11 +114,15 @@ function setupIPCListeners() {
  */
 async function loadPlugins() {
   try {
-    pluginsData = await ipcRenderer.invoke(IPC.LOAD_PLUGINS);
+    const result = await ipcRenderer.invoke(IPC.LOAD_PLUGINS);
+    // Main returns { plugins, marketplace }; tolerate the legacy plain array
+    pluginsData = Array.isArray(result) ? result : (result.plugins || []);
+    marketplaceInfo = Array.isArray(result) ? null : result.marketplace;
     render();
   } catch (err) {
     console.error('Error loading plugins:', err);
     pluginsData = [];
+    marketplaceInfo = null;
     render();
   }
 }
@@ -140,7 +145,8 @@ async function refreshPlugins() {
     if (result.error) {
       showToast('Failed to refresh: ' + result.error, 'error');
     } else {
-      pluginsData = result;
+      pluginsData = Array.isArray(result) ? result : (result.plugins || []);
+      marketplaceInfo = Array.isArray(result) ? null : result.marketplace;
       render();
       showToast('Plugins refreshed', 'success');
     }
@@ -255,6 +261,16 @@ function render() {
   const plugins = getFilteredPlugins();
 
   if (plugins.length === 0) {
+    // An unavailable marketplace explains itself — never a bare empty state
+    const reasonMessages = {
+      'git-missing': 'Marketplace needs git — install git, then refresh',
+      'network': 'Could not reach the plugin marketplace — check your connection, then refresh',
+      'other': 'Marketplace could not be loaded — check the logs, then refresh'
+    };
+    const marketplaceDown = marketplaceInfo && marketplaceInfo.available === false;
+    const emptyHint = marketplaceDown
+      ? reasonMessages[marketplaceInfo.reason] || reasonMessages.other
+      : (currentFilter === 'all' ? 'Claude Code plugins will appear here' : `No ${currentFilter} plugins`);
     contentElement.innerHTML = `
       <div class="plugins-empty">
         <div class="plugins-empty-icon">
@@ -263,7 +279,7 @@ function render() {
           </svg>
         </div>
         <p>No plugins found</p>
-        <span>${currentFilter === 'all' ? 'Claude Code plugins will appear here' : `No ${currentFilter} plugins`}</span>
+        <span>${emptyHint}</span>
       </div>
     `;
     return;

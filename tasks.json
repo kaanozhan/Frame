@@ -2816,13 +2816,14 @@
       "title": "Add git/network preflight with classified failure reasons (`git-missing`, `network`, `other`) to `src/main/pluginsManager.js` and render the reason in `src/renderer/pluginsPanel.js` empty state",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T17:15:00.000Z",
+      "completedAt": "2026-07-12T17:15:00.000Z",
+      "notes": "Outcome: ensureOfficialMarketplace preflights git --version; clone/pull failures classified (git-missing/network/other) and recorded with a one-line detail; LOAD_PLUGINS returns {plugins, marketplace:{available, reason, detail}} and REFRESH carries the reason; pluginsPanel renders the specific actionable message in the empty state instead of a bare \"No plugins found\". Verified live: 24 plugins, marketplace available, reason null. Build + 71/71 green."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T10",
