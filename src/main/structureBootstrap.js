@@ -268,15 +268,6 @@ function runInitialFullScan(projectPath) {
     return { status: 'error', message: 'Parser script not found at .frame/bin/update-structure.js' };
   }
 
-  // Skip if the project doesn't have a src/ folder — parser would produce
-  // an empty result and we'd needlessly bump STRUCTURE.json's mtime.
-  if (!fs.existsSync(path.join(projectPath, 'src'))) {
-    return {
-      status: 'skipped-no-src',
-      message: 'No src/ folder — initial scan skipped. (Non-standard layouts will be supported later; see .frame/specs/structure-non-standard-layouts/)'
-    };
-  }
-
   try {
     const result = spawnSync('node', [parserPath], {
       cwd: projectPath,

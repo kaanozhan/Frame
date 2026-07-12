@@ -25,6 +25,66 @@ const ROOT_DIR = process.env.FRAME_PROJECT_ROOT
 const STRUCTURE_FILE = path.join(ROOT_DIR, 'STRUCTURE.json');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 
+// Directories never scanned for source files, regardless of .gitignore.
+const DEFAULT_IGNORED_DIRS = new Set([
+  'node_modules', 'vendor', '.venv', 'venv', 'target', 'dist', 'build',
+  '.git', '__pycache__', '.next', '.turbo', 'coverage', '.frame'
+]);
+// Degradation caps: a pathological tree (huge vendored dir the ignores miss,
+// deep generated nesting) warns and stops instead of hanging.
+const MAX_SCAN_DEPTH = 12;
+const MAX_SCAN_FILES = 5000;
+
+/** The `project` block of .frame/config.json (written by detect-project.js). */
+function loadProjectConfig() {
+  try {
+    const config = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, '.frame', 'config.json'), 'utf-8'));
+    return config.project || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * Source roots to scan: project.sourceRoots from .frame/config.json, falling
+ * back to Frame's historical default ["src"] so a config without the block
+ * behaves exactly like today. Only roots that exist on disk are returned.
+ */
+function getSourceRoots() {
+  const project = loadProjectConfig();
+  const configured = Array.isArray(project.sourceRoots) && project.sourceRoots.length > 0
+    ? project.sourceRoots
+    : ['src'];
+  return configured.filter(root => {
+    try { return fs.statSync(path.join(ROOT_DIR, root)).isDirectory(); } catch (e) { return false; }
+  });
+}
+
+/**
+ * Simple .gitignore subset: bare directory names ("dist") match anywhere,
+ * anchored entries ("/build", "docs/out") match repo-relative. Wildcard and
+ * negation lines are skipped — a pragmatic filter, not a gitignore engine.
+ */
+function loadGitignoreDirs() {
+  const names = new Set();
+  const paths = new Set();
+  let lines = [];
+  try {
+    lines = fs.readFileSync(path.join(ROOT_DIR, '.gitignore'), 'utf-8').split('\n');
+  } catch (e) {
+    return { names, paths };
+  }
+  for (let line of lines) {
+    line = line.trim();
+    if (!line || line.startsWith('#') || line.startsWith('!') || line.includes('*')) continue;
+    line = line.replace(/\/+$/, '');
+    if (line.startsWith('/')) paths.add(line.slice(1));
+    else if (!line.includes('/')) names.add(line);
+    else paths.add(line);
+  }
+  return { names, paths };
+}
+
 /**
  * Parse a JS file and extract module information
  */
@@ -269,11 +329,15 @@ function extractIPC(content) {
 }
 
 /**
- * Get module key from file path
+ * Get module key from file path: repo-relative, with a leading "src/"
+ * stripped so the src-convention keys stay exactly what they always were.
+ * Files under any other source root keep their full repo-relative path —
+ * unambiguous across multiple roots (cmd/ + internal/, packages/*).
  */
 function getModuleKey(filePath) {
-  const relative = path.relative(SRC_DIR, filePath);
-  return relative.replace(/\.js$/, '').replace(/\\/g, '/');
+  let relative = path.relative(ROOT_DIR, filePath).replace(/\\/g, '/');
+  if (relative.startsWith('src/')) relative = relative.slice(4);
+  return relative.replace(/\.js$/, '');
 }
 
 /**
@@ -293,8 +357,10 @@ function getChangedFiles() {
       encoding: 'utf-8'
     });
 
+    const roots = getSourceRoots();
+    const inRoots = (f) => roots.some(root => root === '.' || f.startsWith(root.replace(/\\/g, '/') + '/'));
     const files = [...staged.split('\n'), ...unstaged.split('\n')]
-      .filter(f => f.endsWith('.js') && f.startsWith('src/'))
+      .filter(f => f.endsWith('.js') && inRoots(f))
       .map(f => path.join(ROOT_DIR, f));
 
     return [...new Set(files)];
@@ -305,23 +371,60 @@ function getChangedFiles() {
 }
 
 /**
- * Get all JS files in src directory
+ * Walk the configured source roots collecting source files.
+ * Skips the built-in ignore set plus simple .gitignore entries and hidden
+ * dirs, never follows symlinks (cycles, out-of-repo trees), and caps
+ * depth/file count with a warning instead of hanging on pathological trees.
  */
-function getAllJSFiles(dir = SRC_DIR) {
+function getAllSourceFiles(extensions = ['.js']) {
   const files = [];
+  const seen = new Set();
+  const ignore = loadGitignoreDirs();
+  const warnings = new Set();
 
-  const items = fs.readdirSync(dir);
-  for (const item of items) {
-    const fullPath = path.join(dir, item);
-    const stat = fs.statSync(fullPath);
+  function isIgnoredDir(name, relPath) {
+    return DEFAULT_IGNORED_DIRS.has(name) || ignore.names.has(name) || ignore.paths.has(relPath);
+  }
 
-    if (stat.isDirectory()) {
-      files.push(...getAllJSFiles(fullPath));
-    } else if (item.endsWith('.js')) {
-      files.push(fullPath);
+  function walk(dir, depth) {
+    if (depth > MAX_SCAN_DEPTH) {
+      warnings.add(`depth cap (${MAX_SCAN_DEPTH}) hit at ${path.relative(ROOT_DIR, dir)} — deeper files skipped`);
+      return;
+    }
+    let items;
+    try {
+      items = fs.readdirSync(dir);
+    } catch (e) {
+      return;
+    }
+    for (const item of items) {
+      if (files.length >= MAX_SCAN_FILES) {
+        warnings.add(`file cap (${MAX_SCAN_FILES}) hit — remaining files skipped`);
+        return;
+      }
+      const fullPath = path.join(dir, item);
+      let stat;
+      try {
+        stat = fs.lstatSync(fullPath);
+      } catch (e) {
+        continue;
+      }
+      if (stat.isSymbolicLink()) continue;
+      if (stat.isDirectory()) {
+        const relPath = path.relative(ROOT_DIR, fullPath).replace(/\\/g, '/');
+        if (item.startsWith('.') || isIgnoredDir(item, relPath)) continue;
+        walk(fullPath, depth + 1);
+      } else if (extensions.some(ext => item.endsWith(ext)) && !seen.has(fullPath)) {
+        seen.add(fullPath);
+        files.push(fullPath);
+      }
     }
   }
 
+  for (const root of getSourceRoots()) {
+    walk(root === '.' ? ROOT_DIR : path.join(ROOT_DIR, root), 0);
+  }
+  for (const w of warnings) console.warn(`⚠ ${w}`);
   return files;
 }
 
@@ -535,9 +638,7 @@ function runCheck() {
   const rebuilt = JSON.parse(JSON.stringify(current));
 
   reconcileDeletedModules(rebuilt, true);
-  if (fs.existsSync(SRC_DIR)) {
-    processFiles(rebuilt, getAllJSFiles(), true);
-  }
+  processFiles(rebuilt, getAllSourceFiles(), true);
   syncIPCChannels(rebuilt, true);
   generateIntentIndex(rebuilt);
   normalizeStructure(rebuilt);
@@ -587,7 +688,10 @@ function main() {
   } else {
     // Full mode: all files
     mode = 'full';
-    filesToProcess = getAllJSFiles();
+    filesToProcess = getAllSourceFiles();
+    if (filesToProcess.length === 0) {
+      console.warn('⚠ No source files found — review project.sourceRoots in .frame/config.json (regenerate it with detect-project.js).');
+    }
   }
 
   console.log(`Mode: ${mode}, Processing ${filesToProcess.length} file(s)...`);

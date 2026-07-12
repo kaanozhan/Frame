@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-06",
+  "lastUpdated": "2026-07-12",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -2463,7 +2463,7 @@
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 305,
+          "line": 296,
           "params": [
             "projectPath",
             "structureWasCreated"

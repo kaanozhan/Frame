@@ -2732,13 +2732,14 @@
       "title": "Generalize the walker in `scripts/update-structure.js` — config-driven `sourceRoots` (fallback `[\"src\"]`), built-in + `.gitignore` dir ignores, no symlink following, depth/file caps with printed warnings — and remove the `skipped-no-src` branch from `src/main/structureBootstrap.js`; golden file stays byte-identical",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T14:58:00.000Z",
+      "completedAt": "2026-07-12T14:58:00.000Z",
+      "notes": "Outcome: walker reads project.sourceRoots from .frame/config.json (fallback [\"src\"] — byte-compat), module keys repo-relative with src/ stripped (today's keys unchanged), built-in ignore set + simple .gitignore subset, lstat/no-symlink-follow, depth 12 / 5000-file caps with printed warnings, honest no-roots warning; --changed filters by configured roots; skipped-no-src branch removed from structureBootstrap. Verified live: multi-root scratch project (lib/+app/), symlink cycle no-hang, node_modules ignored, depth cap warns; Frame repo --check drift was only the structureBootstrap line shift; golden guard + suite 50/50 green."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T04",
