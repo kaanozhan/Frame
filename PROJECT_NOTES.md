@@ -19,6 +19,14 @@
 - **Context preservation:** Session notes, decisions, tasks - nothing should be lost.
 - **Manageability:** All projects can be viewed and managed from one place.
 
+> **[2026-07-02 evolution]** This Jan-2026 vision still holds, but the *center* has
+> moved: from **the terminal** to **spec-driven context production**. The core value
+> today is the durable, structural context the spec → plan → tasks → outcome
+> workflow produces for *future* agents — so an agent months later arrives knowing
+> what was done, why, and what resulted, instead of scanning code and guessing.
+> Terminal-first is now the *surface*, not the *center*. See the 2026-07-02 session
+> note at the end of this file.
+
 **Target User:** Developers who do daily development with Claude Code, working terminal-focused.
 
 **What Frame is NOT:**
@@ -897,3 +905,106 @@ runs in its own git worktree (`.frame/worktrees/<slug>`, branch
 `.frame/bin/*` orchestration scripts. Backend verified end-to-end headless
 (dispatch → worktree → conflict guard → report-done → merge+drift → teardown →
 rehydrate). Renderer compiles; live UI verification pending an app run.
+
+---
+
+### [2026-07-02] Vision sharpened — structural context as the compounding asset (+ Q3 deep-dive audit)
+
+**Context:** A full Q3 deep-dive review of the whole project was run — security,
+engineering/maintainability, team-collaboration, testing/CI/release, product/process,
+plus 9 forward-looking angles — and recorded as two synthesis reports
+(`.frame/FINDINGS-2026-07-02.md`, `.frame/FINDINGS-ENGINEERING-2026-07-02.md`) and
+9 `audit-q3-*` specs under `.frame/specs/`. Out of the competitive/strategic
+discussion, the founder crystallized the product vision.
+
+**The vision (founder's words, kept as discussed — not summarized):**
+
+> "Benim önceliğim spec-driven development'ı server üzerinden çalıştırarak takım
+> çalışmasına uygun hale getirmek. Spec-driven'la ürettiğimiz md dosyaları bize
+> gelecek için, agentlar için structural bir context oluşturma imkânı veriyor.
+> Yapısal olarak context'i bu şekilde oluşturduğumda, 6 ay sonra agent kodu tarayarak
+> anlamaya çalışmayacak — ne yapıldığını, neden yapıldığını ve sonucunda ne çıktığını
+> bilerek gelecek. Sadece koda bakarak da anlamlı sonuçlar çıkabilir ama biraz
+> varsayıma dayanmak zorunda. Biz bu noktada Jira'yla uğraşamayız; her şey bu kadar
+> hızlıyken Jira gibi eski paradigma için üretilmiş, sektörde de doğru kullanılmayan
+> bir aracı entegre etmek istemiyoruz. Ya da spec-driven dev için ayrı bir araç üretip
+> Claude ile konuşturmak istemiyoruz. İstiyoruz ki bunların hepsini tek bir yerden
+> yapabilelim — işte bu da Frame oluyor. Claude tek başına çok güçlü, zaten ben de her
+> şeyi Claude Code üzerine inşa ediyorum. Claude olmadan Frame anlamsız. Şu anki hâli
+> yetersiz ama bu olasılıklara imkân sağlıyor. Frame'i çok kullanıyoruz; agentlarla
+> geliştirme yaptıkça cevapları süreç içinde buluyoruz."
+
+**What this means for the project (decisions/framing captured):**
+
+1. **Context-as-compounding-asset is the core value** — not the orchestration
+   mechanics (those are being commoditized by the platform vendors themselves; see
+   `audit-q3-competitive-positioning`, incl. Claude Code's own Agent Teams). The moat
+   is the durable, structural context the spec → plan → tasks → outcome corpus builds
+   up over time.
+2. **One place, not tool-sprawl** — no Jira, no separate spec tool bolted onto
+   Claude. Everything lives in Frame.
+3. **Claude-native depth** — built on Claude Code; "without Claude, Frame is
+   meaningless." Depth-on-Claude over vendor-neutral breadth as the headline;
+   portability/neutrality is kept as a *hedge that protects the context corpus's
+   value*, not the lead wedge.
+4. **Not a finished product** — Frame is used heavily to build Frame; the roadmap is
+   discovered through dogfooding. Current state is admittedly insufficient but it's
+   what *enables* these possibilities.
+5. **Reconciled files-vs-DB** — files stay canonical (git-versioned, tool-agnostic,
+   readable without Frame); a **DB is a server-side retrieval/index layer** over the
+   md corpus for team scale, *not* a replacement for the files. The README's "Files
+   over databases — markdown is canonical" principle stands; the index layer makes
+   the corpus *usable as agent context at scale*.
+6. **Priority = spec-driven-over-server for teams** — a smaller, lower-risk first
+   slice than running agents server-side (which raises multi-tenant security/cost
+   stakes). It also naturally addresses the team merge-conflict problems the audit
+   found (shared-file conflicts, no cross-machine presence, single-machine conflict
+   guard).
+7. **Corollary:** because the moat = the context corpus, its *quality / freshness /
+   proven-efficacy* is now the strategic center, not a hygiene chore — see
+   `audit-q3-core-value-efficacy`. Today the context is stale in places (the
+   intentIndex still points at a deleted file) and its benefit is unmeasured; fixing
+   that is strategic, not cosmetic.
+
+This note supersedes the "the center is the terminal" framing in the Jan-2026 Project
+Vision section at the top of this file: terminal-first is now the *surface*,
+structural context production is the *center*.
+
+---
+
+### [2026-07-12] audit-q3-generic-any-project shipped — Frame is no longer hardcoded to its own shape
+
+**Context:** The Q3 audit's "self-hosting blind spot" spec (T01–T12) was implemented
+in full on `feat/audit-q3-generic-any-project`, task-by-task from the session (no
+conductor). The founder's worry — agents kept baking the Frame repo's shape
+(src/ + JS + CommonJS + Electron + macOS + Claude) into the product — is now
+addressed by making that shape a *detected input*:
+
+- **Detection is the single source of truth.** `scripts/detect-project.js`
+  (dependency-free module + CLI, shipped to user `.frame/bin/`) reads manifests and
+  persists `{languages, packageManager, sourceRoots, layout, commands, confidence}`
+  as the `project` block in `.frame/config.json`. Everything reads it: the parser
+  (multi-root walker, ignores, symlink/depth caps), the templates (QUICKSTART with
+  real commands — `todos.json` bug fixed; AGENTS.md "Project Facts" +
+  never-assume-generalization rule; generic STRUCTURE shape), init and onboarding.
+- **Frame's own vocabulary is out of the product.** `syncIPCChannels` is driven by
+  `project.ipcChannelsFile` (Frame's repo sets it; other projects no-op) with
+  token-derived categories; intentIndex auto-grouping is basename tokenization, not
+  the Manager/Panel suffix list. Sentinel tests assert no Frame vocabulary in any
+  shipped script or fixture output.
+- **Environment parity, fail-loud.** Usage falls back to `~/.claude/.credentials.json`
+  (Linux/Windows work); sessions use Claude Code's real path encoding (dots!);
+  plugins preflight git/network and surface classified reasons in the panel; first
+  run defaults to an *installed* CLI; shell fallbacks are platform-aware.
+- **The dogfooding loop is open.** Six fixtures (golden js-src-app byte-compat guard,
+  Django, Go, Rust workspace, pnpm monorepo, docs) run the real detect→parse→template
+  pipeline in tests; first-ever CI (`.github/workflows/ci.yml`, ubuntu+macos, no
+  `npm ci` — suite verified green without node_modules) gates every push.
+
+**Decisions of record:** parser stays dependency-free regex (tree-sitter remains
+`codebase-graph-onboarding`'s engine, swappable behind the extractor interface);
+`structure-non-standard-layouts` is superseded by this spec's T03; backwards compat
+held throughout — Frame's own repo detects to exactly its historical behavior, and
+the golden fixture pins the CJS output byte-for-byte. End-to-end verified inside
+Electron main on a scratch Django repo: populated STRUCTURE.json (the old
+`skipped-no-src` would have left it empty forever), poetry QUICKSTART, Project Facts.
