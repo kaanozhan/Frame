@@ -88,14 +88,28 @@ function loadGitignoreDirs() {
 
 // Per-language extractors (scripts/lang/*). Each declares its extensions and
 // extraction functions; the registry dispatches by file extension.
-const EXTRACTORS = [require('./lang/javascript')];
+const EXTRACTORS = [
+  require('./lang/javascript'),
+  require('./lang/python'),
+  require('./lang/go'),
+  require('./lang/rust'),
+  require('./lang/markdown')
+];
 const EXT_TO_EXTRACTOR = new Map();
 for (const extractor of EXTRACTORS) {
   for (const ext of extractor.extensions) EXT_TO_EXTRACTOR.set(ext, extractor);
 }
 
+/**
+ * Extensions to scan: every registered extension, minus opt-in languages
+ * (markdown) unless the detected project languages include them — a code
+ * repo shouldn't index its READMEs as modules, a docs repo should.
+ */
 function allExtensions() {
-  return [...EXT_TO_EXTRACTOR.keys()];
+  const languages = loadProjectConfig().languages || [];
+  return [...EXT_TO_EXTRACTOR.entries()]
+    .filter(([, ex]) => !ex.optInLanguage || languages.includes(ex.optInLanguage))
+    .map(([ext]) => ext);
 }
 
 /**
@@ -165,8 +179,9 @@ function getChangedFiles() {
 
     const roots = getSourceRoots();
     const inRoots = (f) => roots.some(root => root === '.' || f.startsWith(root.replace(/\\/g, '/') + '/'));
+    const active = allExtensions();
     const files = [...staged.split('\n'), ...unstaged.split('\n')]
-      .filter(f => EXT_TO_EXTRACTOR.has(path.extname(f)) && inRoots(f))
+      .filter(f => active.includes(path.extname(f)) && inRoots(f))
       .map(f => path.join(ROOT_DIR, f));
 
     return [...new Set(files)];

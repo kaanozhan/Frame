@@ -2760,13 +2760,14 @@
       "title": "Add `scripts/lang/python.js`, `go.js`, `rust.js`, `markdown.js` extractors with `test/langExtractors.test.js`, and wire `test/projectAgnostic.test.js` asserting non-empty, stack-appropriate modules per fixture",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T15:45:00.000Z",
+      "completedAt": "2026-07-12T15:45:00.000Z",
+      "notes": "Outcome: scripts/lang/{python,go,rust,markdown}.js regex extractors (docstrings/__all__/imports; package docs + exported names + import blocks; //! docs + top-level pub items + use roots; first-heading descriptions with nothing invented). markdown is opt-in via detected languages so code repos don't index READMEs. langExtractors.test.js unit-covers all extractors incl. JS ESM/TS; projectAgnostic.test.js runs the real detect-project --write → parse pipeline per fixture asserting non-empty stack-appropriate modules, plus a walker-safety test (symlink cycle + node_modules). 64/64 green, Frame repo --check clean."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T06",
