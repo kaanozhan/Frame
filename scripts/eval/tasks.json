@@ -1,0 +1,66 @@
+{
+  "_comment": "Orientation eval task suite. Each task runs in an ephemeral worktree at pinnedCommit, once per arm (frame = full Frame context, bare = AGENTS/CLAUDE/STRUCTURE/NOTES/tasks/find-module removed). successCheck is a shell command run in the worktree after the agent finishes; exit 0 = pass. Prompts name concepts, not files — finding the right file IS the thing being measured (except the scripts/* tasks, which name their file for both arms equally).",
+  "pinnedCommit": "ccbd47d7abee12d0922433d490b7196bfc1cbb16",
+  "tasks": [
+    {
+      "id": "cmd-github-toggle",
+      "prompt": "Add a command palette command named 'Toggle GitHub Panel' that emits the existing TOGGLE_GITHUB_PANEL IPC channel. Follow the pattern of the existing registered commands.",
+      "expectedFiles": ["src/renderer/commandRegistry.js"],
+      "successCheck": "grep -q TOGGLE_GITHUB_PANEL src/renderer/commandRegistry.js"
+    },
+    {
+      "id": "usage-poll-env",
+      "prompt": "Make the Claude usage polling interval configurable through a CLAUDE_USAGE_POLL_MS environment variable. The current default must stay unchanged when the variable is not set.",
+      "expectedFiles": ["src/main/claudeUsageManager.js"],
+      "successCheck": "grep -q CLAUDE_USAGE_POLL_MS src/main/claudeUsageManager.js"
+    },
+    {
+      "id": "logger-level-env",
+      "prompt": "Add a LOG_LEVEL environment variable (error | warn | info | debug) to the app's logging module so lower-severity output can be filtered out. Default behavior must stay as it is today when the variable is unset.",
+      "expectedFiles": ["src/main/logger.js"],
+      "successCheck": "grep -q LOG_LEVEL src/main/logger.js"
+    },
+    {
+      "id": "github-empty-state",
+      "prompt": "When the GitHub issues panel has zero issues to show, render the exact text 'No open issues' in the panel body instead of leaving it blank.",
+      "expectedFiles": ["src/renderer/githubPanel.js"],
+      "successCheck": "grep -q 'No open issues' src/renderer/githubPanel.js"
+    },
+    {
+      "id": "menu-freshness-item",
+      "prompt": "Add an application menu item labeled 'Check Freshness' that runs the project's freshness checker script (scripts/check-freshness.js) and logs its output to the console.",
+      "expectedFiles": ["src/main/menu.js"],
+      "successCheck": "grep -qi freshness src/main/menu.js"
+    },
+    {
+      "id": "tasks-priority-guard",
+      "prompt": "In the main-process module that owns tasks.json CRUD, validate the priority field when a task is added: only 'high', 'medium', or 'low' are allowed, anything else is coerced to 'medium'. Add the constant VALID_PRIORITIES for the allowed list.",
+      "expectedFiles": ["src/main/tasksManager.js"],
+      "successCheck": "grep -q VALID_PRIORITIES src/main/tasksManager.js"
+    },
+    {
+      "id": "sidebar-min-width",
+      "prompt": "Enforce a minimum sidebar width of 180px in the sidebar resize logic, using a named constant MIN_SIDEBAR_WIDTH.",
+      "expectedFiles": ["src/renderer/sidebarResize.js"],
+      "successCheck": "grep -q MIN_SIDEBAR_WIDTH src/renderer/sidebarResize.js"
+    },
+    {
+      "id": "freshness-verbose-flag",
+      "prompt": "Add a --verbose flag to scripts/check-freshness.js that, in the human-readable mode, also prints one '✓ [check-name] ok' line for every check that produced no findings.",
+      "expectedFiles": ["scripts/check-freshness.js"],
+      "successCheck": "grep -q '\\-\\-verbose' scripts/check-freshness.js && node scripts/check-freshness.js --verbose >/dev/null"
+    },
+    {
+      "id": "freshness-stale-days-env",
+      "prompt": "In scripts/check-freshness.js, allow the stuck-task threshold to be overridden with a FRAME_STALE_TASK_DAYS environment variable (default stays 14).",
+      "expectedFiles": ["scripts/check-freshness.js"],
+      "successCheck": "grep -q FRAME_STALE_TASK_DAYS scripts/check-freshness.js"
+    },
+    {
+      "id": "structure-skip-tests",
+      "prompt": "Teach scripts/update-structure.js to skip files ending in .test.js when it scans src/ so test files never become modules in STRUCTURE.json.",
+      "expectedFiles": ["scripts/update-structure.js"],
+      "successCheck": "grep -q 'test\\.js' scripts/update-structure.js && node -e \"const fs=require('fs');fs.mkdirSync('src/tmp-eval',{recursive:true});fs.writeFileSync('src/tmp-eval/foo.test.js','function fooBarEval(){}\\n');\" && node scripts/update-structure.js >/dev/null 2>&1 && node -e \"const s=JSON.parse(require('fs').readFileSync('STRUCTURE.json','utf-8'));process.exit(s.modules && s.modules['tmp-eval/foo.test'] ? 1 : 0)\""
+    }
+  ]
+}

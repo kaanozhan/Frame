@@ -186,29 +186,44 @@ function extractFunctions(content, lines) {
 }
 
 /**
- * Extract function purpose from preceding comment
+ * Extract function purpose from the comment block directly above a declaration.
+ * Only a comment that ends on the line immediately above counts. The purpose is
+ * always the block's FIRST content line — never a mid-comment fragment.
  */
 function extractFunctionPurpose(lines, lineIndex) {
-  // Look at previous lines for JSDoc or single-line comment
-  for (let i = lineIndex - 1; i >= Math.max(0, lineIndex - 5); i--) {
-    const line = lines[i].trim();
+  const above = lineIndex - 1;
+  if (above < 0) return null;
 
-    // JSDoc @description or first line after /**
-    if (line.startsWith('*') && !line.startsWith('*/') && !line.startsWith('/**')) {
-      const text = line.replace(/^\*\s*/, '').trim();
+  const aboveLine = lines[above].trim();
+
+  // Run of // comments: walk up to the start of the run, take its first line
+  if (aboveLine.startsWith('//')) {
+    let start = above;
+    while (start > 0 && lines[start - 1].trim().startsWith('//')) {
+      start--;
+    }
+    const text = lines[start].trim().replace(/^\/\/\s*/, '').trim();
+    return text || null;
+  }
+
+  // Block comment ending immediately above: walk up to /* and take the
+  // block's first content line (skipping JSDoc @tags)
+  if (aboveLine.endsWith('*/')) {
+    let start = above;
+    while (start >= 0 && !lines[start].includes('/*')) {
+      start--;
+    }
+    if (start < 0) return null;
+
+    for (let i = start; i <= above; i++) {
+      const text = lines[i].trim()
+        .replace(/^\/\*\*?/, '')
+        .replace(/\*\/$/, '')
+        .replace(/^\*\s?/, '')
+        .trim();
       if (text && !text.startsWith('@')) {
         return text;
       }
-    }
-
-    // Single line comment
-    if (line.startsWith('//')) {
-      return line.replace(/^\/\/\s*/, '').trim();
-    }
-
-    // Stop if we hit code
-    if (line && !line.startsWith('*') && !line.startsWith('/')) {
-      break;
     }
   }
 
@@ -289,23 +304,6 @@ function getChangedFiles() {
 }
 
 /**
- * Get list of deleted JS files from git
- */
-function getDeletedFiles() {
-  try {
-    const deleted = execSync('git diff --cached --name-only --diff-filter=D', {
-      cwd: ROOT_DIR,
-      encoding: 'utf-8'
-    });
-
-    return deleted.split('\n')
-      .filter(f => f.endsWith('.js') && f.startsWith('src/'));
-  } catch (e) {
-    return [];
-  }
-}
-
-/**
  * Get all JS files in src directory
  */
 function getAllJSFiles(dir = SRC_DIR) {
@@ -349,10 +347,63 @@ function loadStructure() {
 }
 
 /**
- * Save STRUCTURE.json
+ * Remove modules whose file no longer exists on disk.
+ * Runs in every mode so deletions are reconciled even when they never hit
+ * the staged diff (the phantom-module class of bug).
+ */
+function reconcileDeletedModules(structure) {
+  let removed = 0;
+  for (const [key, mod] of Object.entries(structure.modules)) {
+    const file = mod.file || path.join('src', `${key}.js`);
+    if (!fs.existsSync(path.join(ROOT_DIR, file))) {
+      delete structure.modules[key];
+      console.log(`  - Removed (missing on disk): ${key}`);
+      removed++;
+    }
+  }
+  return removed;
+}
+
+/**
+ * Return a copy of an object with keys sorted alphabetically
+ */
+function sortKeys(obj) {
+  const sorted = {};
+  for (const key of Object.keys(obj).sort()) {
+    sorted[key] = obj[key];
+  }
+  return sorted;
+}
+
+/**
+ * Save STRUCTURE.json.
+ * Modules are sorted for stable output, and lastUpdated is only bumped when
+ * content actually changed — a regen on an unchanged tree is byte-identical.
  */
 function saveStructure(structure) {
-  structure.lastUpdated = new Date().toISOString().split('T')[0];
+  structure.modules = sortKeys(structure.modules);
+
+  // architectureNotes is hand-written insight: preserved verbatim across
+  // regens when present, omitted entirely when empty — never emit an empty
+  // object that looks populated.
+  if (structure.architectureNotes && Object.keys(structure.architectureNotes).length === 0) {
+    delete structure.architectureNotes;
+  }
+
+  let previous = null;
+  try {
+    previous = JSON.parse(fs.readFileSync(STRUCTURE_FILE, 'utf-8'));
+  } catch (e) {
+    // No existing file — treat as changed
+  }
+
+  const withoutTimestamp = (s) => JSON.stringify({ ...s, lastUpdated: undefined });
+  if (previous && withoutTimestamp(previous) === withoutTimestamp(structure)) {
+    structure.lastUpdated = previous.lastUpdated;
+  } else {
+    structure.lastUpdated = new Date().toISOString().split('T')[0];
+  }
+
   fs.writeFileSync(STRUCTURE_FILE, JSON.stringify(structure, null, 2) + '\n');
   console.log(`✓ Updated STRUCTURE.json (${Object.keys(structure.modules).length} modules)`);
 }
@@ -447,22 +498,16 @@ function main() {
   let filesToProcess = [];
   let mode = 'full';
 
+  // Reconcile deletions against the disk in every mode, so a phantom module
+  // never survives just because its deletion wasn't in the staged diff.
+  const removedCount = reconcileDeletedModules(structure);
+
   if (args.includes('--changed')) {
     // Incremental mode: only changed files
     mode = 'incremental';
     filesToProcess = getChangedFiles();
 
-    // Handle deleted files
-    const deleted = getDeletedFiles();
-    for (const file of deleted) {
-      const key = getModuleKey(path.join(ROOT_DIR, file));
-      if (structure.modules[key]) {
-        delete structure.modules[key];
-        console.log(`- Removed: ${key}`);
-      }
-    }
-
-    if (filesToProcess.length === 0 && deleted.length === 0) {
+    if (filesToProcess.length === 0 && removedCount === 0) {
       console.log('No JS changes detected.');
       return;
     }
@@ -507,74 +552,75 @@ function main() {
 }
 
 /**
- * Generate intentIndex from module keys
- * Groups related modules by feature name (e.g. githubManager + githubPanel → "github")
+ * Load the curated concept→modules map (agent-editable).
+ * Lives next to this script so it works both in Frame's repo (scripts/) and
+ * in user projects (.frame/bin/). Missing file → pure auto-grouping.
+ */
+function loadIntentMap() {
+  try {
+    const map = JSON.parse(fs.readFileSync(path.join(__dirname, 'intent-map.json'), 'utf-8'));
+    delete map._comment;
+    return map;
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * Generate intentIndex: curated concepts from intent-map.json first, then
+ * auto-grouping by stripped filename suffix — but only for groups spanning
+ * ≥ 2 files. Thin single-file intents are dropped; find-module.js's deep
+ * search over module keys/descriptions still finds them.
  */
 function generateIntentIndex(structure) {
   const modules = structure.modules;
+  const intentMap = loadIntentMap();
   const groups = {};
+  const claimed = new Set();
 
-  // Suffixes to strip for grouping
+  const toEntry = (key) => ({
+    module: key,
+    file: modules[key].file,
+    description: modules[key].description || ''
+  });
+
+  // 1. Curated concepts — skip module keys that no longer exist
+  for (const [concept, entry] of Object.entries(intentMap)) {
+    const mods = (entry.modules || []).filter(key => modules[key]);
+    if (mods.length === 0) continue;
+    groups[concept] = mods.map(toEntry);
+    mods.forEach(key => claimed.add(key));
+  }
+
+  // 2. Auto-group unclaimed modules by stripped suffix
   const suffixes = ['Manager', 'Panel', 'UI', 'Selector', 'TabBar', 'Grid'];
+  const autoGroups = {};
 
-  // Special aliases: module base name → intent name
-  const aliases = {
-    'pty': 'terminal',
-    'ptyManager': 'terminal',
-    'terminal': 'terminal',
-    'terminalManager': 'terminal',
-    'terminalGrid': 'terminal',
-    'terminalTabBar': 'terminal',
-    'multiTerminalUI': 'terminal',
-    'promptLogger': 'history',
-    'historyPanel': 'history',
-    'fileTree': 'file-tree',
-    'fileTreeUI': 'file-tree',
-    'ipcChannels': 'ipc',
-    'frameConstants': 'frame-config',
-    'frameTemplates': 'frame-config',
-    'frameProject': 'frame-config',
-    'sidebarResize': 'sidebar',
-    'projectListUI': 'sidebar',
-    'structureMap': 'structure',
-    'claudeUsageManager': 'claude-usage',
-    'claudeSessionsManager': 'claude-sessions',
-    'gitBranchesManager': 'git-branches',
-    'aiToolManager': 'ai-tool',
-    'aiToolSelector': 'ai-tool'
-  };
+  for (const [key] of Object.entries(modules)) {
+    if (claimed.has(key)) continue;
 
-  for (const [key, mod] of Object.entries(modules)) {
-    const parts = key.split('/');
-    const baseName = parts[parts.length - 1]; // e.g. "githubManager"
-
-    let intentName;
-
-    // Check aliases first
-    if (aliases[baseName]) {
-      intentName = aliases[baseName];
-    } else {
-      // Strip known suffixes to get the feature name
-      intentName = baseName;
-      for (const suffix of suffixes) {
-        if (intentName.endsWith(suffix) && intentName.length > suffix.length) {
-          intentName = intentName.slice(0, -suffix.length);
-          break;
-        }
+    const baseName = key.split('/').pop();
+    let intentName = baseName;
+    for (const suffix of suffixes) {
+      if (intentName.endsWith(suffix) && intentName.length > suffix.length) {
+        intentName = intentName.slice(0, -suffix.length);
+        break;
       }
-      // Convert camelCase to kebab-case
-      intentName = intentName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
     }
+    intentName = intentName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 
-    if (!groups[intentName]) {
-      groups[intentName] = [];
+    // A curated concept owns its name — an unclaimed module that happens to
+    // strip to the same name stays out (deep search still finds it)
+    if (groups[intentName]) continue;
+
+    if (!autoGroups[intentName]) autoGroups[intentName] = [];
+    autoGroups[intentName].push(toEntry(key));
+  }
+
+  for (const [name, mods] of Object.entries(autoGroups)) {
+    if (mods.length >= 2) {
+      groups[name] = mods;
     }
-
-    groups[intentName].push({
-      module: key,
-      file: mod.file,
-      description: mod.description || ''
-    });
   }
 
   // Sort groups alphabetically and sort modules within each group

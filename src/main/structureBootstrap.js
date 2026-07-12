@@ -37,7 +37,7 @@ const {
 // the repo root; under electron-builder's asar the same relative path holds
 // because the asar mirrors the source tree.
 const SCRIPTS_SOURCE_DIR = path.join(__dirname, '..', '..', 'scripts');
-const PARSER_FILES = ['update-structure.js', 'find-module.js'];
+const PARSER_FILES = ['update-structure.js', 'find-module.js', 'check-freshness.js', 'intent-map.json'];
 
 /**
  * Copy parser scripts from Frame's bundled scripts/ into the project's
@@ -59,10 +59,28 @@ function copyParserScripts(projectPath) {
       console.warn(`[frame] parser script missing at ${src}, skipping`);
       continue;
     }
+    // intent-map.json is agent-editable per-project curation: seed a skeleton
+    // once (Frame's own curation would list modules the project doesn't
+    // have), never overwrite an existing copy. Scripts always ship the latest.
+    if (file === 'intent-map.json') {
+      if (!fs.existsSync(dst)) {
+        try {
+          fs.writeFileSync(dst, JSON.stringify({
+            _comment: 'Curated concept → modules map for STRUCTURE.json\'s intentIndex. Agent-editable: add a concept when a feature spans files whose names don\'t say what they do, and synonyms for the words people actually search. Format: { "<concept>": { "modules": ["main/fooManager", ...], "synonyms": ["bar", ...] } }. Module keys must match STRUCTURE.json (missing ones are skipped at generation).'
+          }, null, 2) + '\n');
+          copied.push(file);
+        } catch (err) {
+          console.warn(`[frame] failed to seed ${file}: ${err.message}`);
+        }
+      }
+      continue;
+    }
     try {
       fs.copyFileSync(src, dst);
-      // Make executable so `./` invocation works, though we always call via `node`.
-      fs.chmodSync(dst, 0o755);
+      if (file.endsWith('.js')) {
+        // Make executable so `./` invocation works, though we always call via `node`.
+        fs.chmodSync(dst, 0o755);
+      }
       copied.push(file);
     } catch (err) {
       console.warn(`[frame] failed to copy ${file}: ${err.message}`);

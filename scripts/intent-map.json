@@ -1,0 +1,87 @@
+{
+  "_comment": "Curated concept → modules map for STRUCTURE.json's intentIndex. Agent-editable: add a concept when a feature spans files whose names don't say what they do, and synonyms for the words people actually search. update-structure.js reads this first, then auto-groups only multi-file suffix groups. Module keys must match STRUCTURE.json (missing ones are skipped at generation).",
+  "terminal": {
+    "modules": ["main/pty", "main/ptyManager", "renderer/terminal", "renderer/terminalManager", "renderer/terminalGrid", "renderer/terminalTabBar", "renderer/multiTerminalUI"],
+    "synonyms": ["pty", "shell", "console", "xterm"]
+  },
+  "history": {
+    "modules": ["main/promptLogger", "renderer/historyPanel", "renderer/promptsPanel"],
+    "synonyms": ["prompt-history", "prompts", "prompt-log"]
+  },
+  "file-tree": {
+    "modules": ["main/fileTree", "renderer/fileTreeUI"],
+    "synonyms": ["files", "explorer", "file-browser"]
+  },
+  "ipc": {
+    "modules": ["shared/ipcChannels"],
+    "synonyms": ["channels", "ipc-channels", "preload"]
+  },
+  "frame-config": {
+    "modules": ["shared/frameConstants", "shared/frameTemplates", "main/frameProject"],
+    "synonyms": ["templates", "project-init", "init", "scaffold"]
+  },
+  "sidebar": {
+    "modules": ["renderer/sidebarResize", "renderer/projectListUI"],
+    "synonyms": ["project-list"]
+  },
+  "structure": {
+    "modules": ["renderer/structureMap", "main/structureBootstrap"],
+    "synonyms": ["structure-map", "codebase-map", "architecture", "intent-index"]
+  },
+  "claude-usage": {
+    "modules": ["main/claudeUsageManager"],
+    "synonyms": ["usage", "quota", "rate-limit"]
+  },
+  "claude-sessions": {
+    "modules": ["main/claudeSessionsManager"],
+    "synonyms": ["sessions"]
+  },
+  "git-branches": {
+    "modules": ["main/gitBranchesManager"],
+    "synonyms": ["branches", "worktree", "worktrees", "checkout"]
+  },
+  "git-changes": {
+    "modules": ["main/gitDiffManager", "main/gitStatusManager", "renderer/gitChangesPanel", "renderer/diffViewer", "renderer/diffSection"],
+    "synonyms": ["diff", "git-status", "changes", "staged"]
+  },
+  "ai-tool": {
+    "modules": ["main/aiToolManager", "renderer/aiToolSelector"],
+    "synonyms": ["auth", "cli", "codex", "gemini", "login", "agent-cli"]
+  },
+  "github": {
+    "modules": ["main/githubManager", "renderer/githubPanel"],
+    "synonyms": ["issues", "gh", "pull-requests", "pr"]
+  },
+  "orchestration": {
+    "modules": ["main/orchestrationManager", "renderer/orchestrator", "renderer/laneBoard", "renderer/laneRail", "renderer/laneDetailRail", "renderer/laneStatus", "renderer/agentDispatch", "renderer/agentPanel"],
+    "synonyms": ["conductor", "worker", "lanes", "orchestrator", "agents", "dispatch"]
+  },
+  "specs": {
+    "modules": ["main/specManager", "renderer/specPanel", "renderer/specSection", "renderer/specsDashboard", "renderer/specPanelResize"],
+    "synonyms": ["spec", "spec-driven", "plan"]
+  },
+  "tasks": {
+    "modules": ["main/tasksManager", "renderer/tasksPanel", "renderer/taskSection", "renderer/tasksDashboard", "renderer/taskConfirmModal", "renderer/taskInfoModal", "renderer/taskRunModal"],
+    "synonyms": ["todo", "task-list"]
+  },
+  "settings": {
+    "modules": ["main/userSettings", "renderer/settingsModal"],
+    "synonyms": ["preferences", "config"]
+  },
+  "editor": {
+    "modules": ["main/fileEditor", "renderer/editor"],
+    "synonyms": ["file-editor", "code-editor"]
+  },
+  "telemetry": {
+    "modules": ["main/telemetry", "renderer/telemetryNotice"],
+    "synonyms": ["analytics", "metrics"]
+  },
+  "crash": {
+    "modules": ["main/crashGuard", "renderer/healthNotice"],
+    "synonyms": ["crash-guard", "health", "recovery", "crash-recovery"]
+  },
+  "commands": {
+    "modules": ["renderer/commandPalette", "renderer/commandRegistry", "renderer/cheatSheet"],
+    "synonyms": ["palette", "shortcuts", "keybindings", "command-palette"]
+  }
+}

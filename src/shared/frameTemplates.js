@@ -91,13 +91,30 @@ session. Never force it — the spec is an offer, not a gate; the user's stated
 preference always wins.`;
 
 /**
- * AGENTS.md template - Main instructions file for AI assistants
- * This file is read by AI coding tools (Claude Code, Codex CLI, etc.)
+ * Short Spec-Driven section for the lean AGENTS.md core — the ladder and a
+ * pointer; the full workflow lives in .frame/docs/REFERENCE.md.
+ */
+const SPEC_DRIVEN_CORE_SECTION = `## Spec-Driven Development
+
+Significant work flows through a spec (\`spec.md\` → \`plan.md\` → \`tasks.md\`)
+before code. Rough ladder: *trivial → just do it · small but worth tracking →
+task · sizable feature or multi-file change → spec.* Offer a spec once for
+meaningful new work — never force it.
+
+Full workflow (file layout, lifecycle, slash commands): see
+**"Spec-Driven Development"** in \`.frame/docs/REFERENCE.md\`.`;
+
+/**
+ * AGENTS.md template - the lean always-on core read by AI coding tools
+ * (Claude Code, Codex CLI, etc.) every session: orientation only. The
+ * maintenance ceremony lives in .frame/docs/REFERENCE.md
+ * (getReferenceTemplate) and is loaded on demand.
  *
  * options:
- *   specDriven: include the Spec-Driven Development section. Off by default —
- *               the user opts in via the suggestion modal or Settings, after
- *               which we re-emit AGENTS.md (or append the section to it).
+ *   specDriven: include the short Spec-Driven Development section. Off by
+ *               default — the user opts in via the suggestion modal or
+ *               Settings, after which we re-emit AGENTS.md (or append the
+ *               section to it).
  */
 function getAgentsTemplate(projectName, options) {
   const opts = options || {};
@@ -105,7 +122,86 @@ function getAgentsTemplate(projectName, options) {
   const date = getDateString();
   return `# ${projectName} - Frame Project
 
-This project is managed with **Frame**. AI assistants should follow the rules below to keep documentation up to date.
+This project is managed with **Frame**: durable, structured context that keeps
+AI agents oriented across sessions. This file is the always-on core.
+**Before writing any Frame meta file, read the matching section of
+\`.frame/docs/REFERENCE.md\`** — the maintenance rules live there, not here.
+
+---
+
+## Core Working Principle
+
+**Only do what the user asks.** Do not go beyond the scope of the request.
+Additional ideas are suggestions, presented after the request is done — never
+implemented without approval.
+
+---
+
+## Project Navigation
+
+**Read these at the start of each session:**
+
+1. **STRUCTURE.json** — module map, which file is where
+2. **PROJECT_NOTES.md** — project vision, past decisions, session notes
+3. **tasks.json** — pending tasks
+
+**Fast file lookup** — before manual grep/glob, run:
+
+\`\`\`bash
+node .frame/bin/find-module.js <keyword>   # concept/synonym → files
+node .frame/bin/find-module.js --list      # all features
+\`\`\`
+
+**Freshness** — \`node .frame/bin/check-freshness.js\` reports when this
+context is likely to mislead (phantom modules, stale STRUCTURE/notes, stuck
+tasks). Trust its warnings over stale entries.
+
+${specDriven ? `---
+
+${SPEC_DRIVEN_CORE_SECTION}
+
+` : ''}---
+
+## Writing Frame meta files — read the reference first
+
+| Before writing…  | Read in \`.frame/docs/REFERENCE.md\` |
+| ---------------- | ------------------------------------ |
+| tasks.json       | "Task Management" (schema + rules)   |
+| PROJECT_NOTES.md | "PROJECT_NOTES.md Rules"             |
+| STRUCTURE.json   | "STRUCTURE.json Rules"               |
+| QUICKSTART.md    | "QUICKSTART.md Rules"                |
+
+Quick reminders that always apply:
+- Task work: \`status: "in_progress"\` when starting, \`"completed"\` +
+  \`completedAt\` when done; re-check statuses after commits.
+- Important decisions: append to PROJECT_NOTES.md as
+  \`### [YYYY-MM-DD] Title\` with the conversation's context (not a summary).
+- Documentation in English; dates in ISO 8601.
+
+---
+
+*This file was automatically created by Frame.*
+*Creation date: ${date}*
+
+---
+
+**Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.
+`;
+}
+
+/**
+ * REFERENCE.md template — the reference-on-demand companion to the lean
+ * AGENTS.md core. Holds the maintenance ceremony an agent only needs when
+ * it is about to write a Frame meta file. Written to .frame/docs/ on init
+ * and on the spec-driven upgrade path. Tool-agnostic.
+ */
+function getReferenceTemplate(projectName) {
+  const date = getDateString();
+  return `# ${projectName} — Frame Reference
+
+Read the relevant section of this file **before writing a Frame meta file**
+(tasks.json, PROJECT_NOTES.md, STRUCTURE.json, QUICKSTART.md). The always-on
+orientation lives in \`AGENTS.md\`; this file is loaded on demand.
 
 ---
 
@@ -155,11 +251,11 @@ This project is managed with **Frame**. AI assistants should follow the rules be
 - When task is completed: \`status: "completed"\`, update \`completedAt\`
 - After commit: Check and update the status of related tasks
 
-${specDriven ? `---
+---
 
 ${SPEC_DRIVEN_SECTION}
 
-` : ''}---
+---
 
 ## PROJECT_NOTES.md Rules
 
@@ -268,10 +364,6 @@ No problem, continue. The user can also say what they consider important themsel
 
 *This file was automatically created by Frame.*
 *Creation date: ${date}*
-
----
-
-**Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.
 `;
 }
 
@@ -661,12 +753,14 @@ function getOrchBinScripts() {
 
 module.exports = {
   getAgentsTemplate,
+  getReferenceTemplate,
   getStructureTemplate,
   getNotesTemplate,
   getTasksTemplate,
   getQuickstartTemplate,
   getFrameConfigTemplate,
   SPEC_DRIVEN_SECTION,
+  SPEC_DRIVEN_CORE_SECTION,
   getCodexWrapperTemplate,
   getGenericWrapperTemplate,
   getStructureHookSnippet,

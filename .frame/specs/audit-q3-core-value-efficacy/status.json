@@ -1,0 +1,23 @@
+{
+  "slug": "audit-q3-core-value-efficacy",
+  "title": "Core value-prop efficacy — does Frame actually help the agent?",
+  "phase": "done",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [
+    "task-spec-audit-q3-core-value-efficacy-T01",
+    "task-spec-audit-q3-core-value-efficacy-T02",
+    "task-spec-audit-q3-core-value-efficacy-T03",
+    "task-spec-audit-q3-core-value-efficacy-T04",
+    "task-spec-audit-q3-core-value-efficacy-T05",
+    "task-spec-audit-q3-core-value-efficacy-T06",
+    "task-spec-audit-q3-core-value-efficacy-T07",
+    "task-spec-audit-q3-core-value-efficacy-T08",
+    "task-spec-audit-q3-core-value-efficacy-T09",
+    "task-spec-audit-q3-core-value-efficacy-T10",
+    "task-spec-audit-q3-core-value-efficacy-T11",
+    "task-spec-audit-q3-core-value-efficacy-T12"
+  ],
+  "created_at": "2026-07-02T12:00:00Z",
+  "updated_at": "2026-07-06T15:39:09.169Z",
+  "last_phase_at": "2026-07-06T15:39:09.169Z"
+}
