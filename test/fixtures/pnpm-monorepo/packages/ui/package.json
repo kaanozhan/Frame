@@ -1,0 +1,4 @@
+{
+  "name": "@mono/ui",
+  "main": "src/button.ts"
+}

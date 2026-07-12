@@ -1,0 +1,64 @@
+{
+  "version": "1.0",
+  "description": "Auto-generated module structure",
+  "lastUpdated": "2026-07-12",
+  "architecture": {},
+  "modules": {
+    "index": {
+      "file": "src/index.js",
+      "description": "Entry point — wires the math helpers to the CLI.",
+      "exports": [
+        "greet",
+        "run"
+      ],
+      "depends": [
+        "lib/mathUtils"
+      ],
+      "functions": {
+        "greet": {
+          "line": 10,
+          "params": [
+            "name"
+          ],
+          "purpose": "Format a greeting with a computed sum"
+        },
+        "run": {
+          "line": 17,
+          "purpose": "Run the app"
+        }
+      }
+    },
+    "lib/mathUtils": {
+      "file": "src/lib/mathUtils.js",
+      "description": "Math helpers for the sample app.",
+      "exports": [
+        "add",
+        "multiply"
+      ],
+      "depends": [],
+      "functions": {
+        "add": {
+          "line": 8,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Add two numbers"
+        },
+        "multiply": {
+          "line": 15,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Multiply two numbers"
+        }
+      }
+    }
+  },
+  "ipcChannels": {},
+  "dataFlow": [],
+  "files": {},
+  "conventions": {},
+  "intentIndex": {}
+}

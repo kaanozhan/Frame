@@ -1,0 +1,9 @@
+{
+  "name": "js-src-app",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node src/index.js",
+    "build": "echo build",
+    "test": "node --test"
+  }
+}
