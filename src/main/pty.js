@@ -45,7 +45,9 @@ function getShell() {
       return 'powershell.exe';
     }
   } else {
-    const shell = process.env.SHELL || '/bin/zsh';
+    // zsh is the macOS default; Linux distros default to bash and often
+    // don't ship /bin/zsh at all
+    const shell = process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash');
     console.log('Using shell:', shell);
     return shell;
   }

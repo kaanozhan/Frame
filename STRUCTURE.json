@@ -31,66 +31,70 @@
       ],
       "functions": {
         "loginShell": {
-          "line": 17,
+          "line": 18,
           "purpose": "The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL"
         },
         "init": {
-          "line": 89,
+          "line": 90,
           "params": [
             "window",
             "app"
           ],
           "purpose": "Initialize the AI Tool Manager"
         },
+        "detectDefaultTool": {
+          "line": 104,
+          "purpose": "First run only: default the active tool to a CLI that is actually"
+        },
         "loadConfig": {
-          "line": 99,
+          "line": 120,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 112,
+          "line": 147,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 123,
+          "line": 158,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 130,
+          "line": 165,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 138,
+          "line": 173,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 157,
+          "line": 192,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 167,
+          "line": 202,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 184,
+          "line": 219,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "isPathLike": {
-          "line": 196,
+          "line": 231,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 214,
+          "line": 249,
           "params": [
             "command",
             "projectPath"
@@ -98,18 +102,18 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "setupIPC": {
-          "line": 275,
+          "line": 310,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 327,
+          "line": 362,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 335,
+          "line": 370,
           "purpose": "Get the start command for active tool"
         }
       },
@@ -120,6 +124,7 @@
           "CHECK_AI_TOOL_AVAILABLE"
         ],
         "emits": [
+          "AI_TOOL_CHANGED",
           "AI_TOOL_CHANGED"
         ]
       }
@@ -1916,21 +1921,21 @@
           "purpose": "Determine shell based on platform"
         },
         "startPTY": {
-          "line": 57,
+          "line": 59,
           "params": [
             "workingDir = null"
           ],
           "purpose": "Start PTY process"
         },
         "writeToPTY": {
-          "line": 99,
+          "line": 101,
           "params": [
             "data"
           ],
           "purpose": "Write data to PTY"
         },
         "resizePTY": {
-          "line": 108,
+          "line": 110,
           "params": [
             "cols",
             "rows"
@@ -1938,15 +1943,15 @@
           "purpose": "Resize PTY"
         },
         "killPTY": {
-          "line": 117,
+          "line": 119,
           "purpose": "Kill PTY process"
         },
         "getCurrentPTY": {
-          "line": 127,
+          "line": 129,
           "purpose": "Get current PTY process"
         },
         "setupIPC": {
-          "line": 134,
+          "line": 136,
           "params": [
             "ipcMain"
           ],

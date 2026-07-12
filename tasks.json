@@ -2830,13 +2830,14 @@
       "title": "Default `activeTool` to an installed CLI (probe `claude`/`codex`/`gemini` via login shell) and make shell fallback platform-aware in `src/main/aiToolManager.js` and legacy `src/main/pty.js`",
       "description": "",
       "source": "spec:audit-q3-generic-any-project:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: audit-q3-generic-any-project",
       "createdAt": "2026-07-12T14:01:36.698Z",
-      "updatedAt": "2026-07-12T14:01:36.698Z",
-      "completedAt": null
+      "updatedAt": "2026-07-12T17:35:00.000Z",
+      "completedAt": "2026-07-12T17:35:00.000Z",
+      "notes": "Outcome: first run (no saved ai-tool-config.json) probes claude→codex→gemini via the existing interactive-login isCommandAvailable preflight (async, non-blocking) and persists the first installed CLI as activeTool, notifying the renderer via AI_TOOL_CHANGED; corrupt-config path untouched. Shell fallbacks platform-aware in aiToolManager.loginShell and legacy pty.js (zsh on macOS, bash elsewhere; Windows pwsh/powershell branch already existed). Reused the robust -ilc probe instead of duplicating a weaker sync one. 71/71 + build green."
     },
     {
       "id": "task-spec-audit-q3-generic-any-project-T11",
