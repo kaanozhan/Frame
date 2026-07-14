@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-06",
+  "lastUpdated": "2026-07-12",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -31,66 +31,70 @@
       ],
       "functions": {
         "loginShell": {
-          "line": 17,
+          "line": 18,
           "purpose": "The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL"
         },
         "init": {
-          "line": 89,
+          "line": 90,
           "params": [
             "window",
             "app"
           ],
           "purpose": "Initialize the AI Tool Manager"
         },
+        "detectDefaultTool": {
+          "line": 104,
+          "purpose": "First run only: default the active tool to a CLI that is actually"
+        },
         "loadConfig": {
-          "line": 99,
+          "line": 120,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 112,
+          "line": 147,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 123,
+          "line": 158,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 130,
+          "line": 165,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 138,
+          "line": 173,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 157,
+          "line": 192,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 167,
+          "line": 202,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 184,
+          "line": 219,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "isPathLike": {
-          "line": 196,
+          "line": 231,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 214,
+          "line": 249,
           "params": [
             "command",
             "projectPath"
@@ -98,18 +102,18 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "setupIPC": {
-          "line": 275,
+          "line": 310,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 327,
+          "line": 362,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 335,
+          "line": 370,
           "purpose": "Get the start command for active tool"
         }
       },
@@ -120,6 +124,7 @@
           "CHECK_AI_TOOL_AVAILABLE"
         ],
         "emits": [
+          "AI_TOOL_CHANGED",
           "AI_TOOL_CHANGED"
         ]
       }
@@ -147,21 +152,21 @@
           "purpose": "Initialize sessions manager"
         },
         "encodeProjectPath": {
-          "line": 27,
+          "line": 30,
           "params": [
             "projectPath"
           ],
-          "purpose": "Encode project path to Claude's directory format"
+          "purpose": "Encode project path to Claude Code's directory format: every character"
         },
         "getSessionsForProject": {
-          "line": 34,
+          "line": 39,
           "params": [
             "projectPath"
           ],
-          "purpose": "Get sessions for a given project path"
+          "purpose": "Get sessions for a given project path."
         },
         "setupIPC": {
-          "line": 66,
+          "line": 75,
           "params": [
             "ipcMain"
           ],
@@ -189,56 +194,70 @@
       ],
       "depends": [
         "child_process",
+        "fs",
+        "os",
+        "path",
         "https",
         "shared/ipcChannels",
         "logger"
       ],
       "functions": {
+        "tokenSourceAvailable": {
+          "line": 25,
+          "purpose": "Is any credential source present on this system right now?"
+        },
         "init": {
-          "line": 28,
+          "line": 38,
           "params": [
             "window"
           ],
           "purpose": "Initialize the module with window reference"
         },
         "degradedPayload": {
-          "line": 44,
+          "line": 54,
           "params": [
             "reason"
           ]
         },
+        "parseAccessToken": {
+          "line": 69,
+          "params": [
+            "raw"
+          ],
+          "purpose": "Pull the access token out of a credentials JSON string"
+        },
         "getOAuthToken": {
-          "line": 62,
-          "purpose": "Get OAuth token from macOS Keychain"
+          "line": 85,
+          "purpose": "Get OAuth token: macOS Keychain first, then the file-based store"
         },
         "fetchUsage": {
-          "line": 95,
+          "line": 116,
           "purpose": "Fetch usage data from Claude OAuth API"
         },
         "sendUsageToRenderer": {
-          "line": 205,
+          "line": 226,
           "purpose": "Send usage data to renderer"
         },
         "startPolling": {
-          "line": 216,
+          "line": 237,
           "params": [
             "interval = 300000"
           ],
           "purpose": "Start periodic polling for usage updates"
         },
         "stopPolling": {
-          "line": 234,
+          "line": 255,
           "purpose": "Stop polling"
         },
         "setupIPC": {
-          "line": 245,
+          "line": 266,
           "params": [
             "ipcMain"
           ],
           "purpose": "Setup IPC handlers"
         },
         "cleanup": {
-          "line": 267,
+          "line": 288,
           "purpose": "Cleanup on app quit"
         }
       },
@@ -506,32 +525,33 @@
         "shared/frameConstants",
         "shared/frameTemplates",
         "workspace",
-        "structureBootstrap"
+        "structureBootstrap",
+        "../scripts/detect-project"
       ],
       "functions": {
         "init": {
-          "line": 20,
+          "line": 21,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 27,
+          "line": 28,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 35,
+          "line": 36,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 48,
+          "line": 49,
           "params": [
             "filePath",
             "content"
@@ -539,7 +559,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 65,
+          "line": 66,
           "params": [
             "target",
             "linkPath"
@@ -547,21 +567,21 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 106,
+          "line": 107,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 130,
+          "line": 131,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 174,
+          "line": 175,
           "params": [
             "projectPath",
             "projectName"
@@ -569,26 +589,26 @@
           "purpose": "Initialize a project as Frame project"
         },
         "isSpecDrivenEnabled": {
-          "line": 346,
+          "line": 360,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 351,
+          "line": 365,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 376,
+          "line": 390,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "setupIPC": {
-          "line": 437,
+          "line": 451,
           "params": [
             "ipcMain"
           ],
@@ -1750,22 +1770,29 @@
           "purpose": "Get all plugins with their status"
         },
         "togglePlugin": {
-          "line": 140,
+          "line": 149,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled status"
         },
+        "classifyGitError": {
+          "line": 200,
+          "params": [
+            "err"
+          ],
+          "purpose": "Classify a git failure into an actionable reason"
+        },
         "ensureOfficialMarketplace": {
-          "line": 188,
-          "purpose": "Ensure official marketplace exists"
+          "line": 211,
+          "purpose": "Ensure official marketplace exists. Preflights git before cloning and"
         },
         "refreshMarketplace": {
-          "line": 217,
+          "line": 254,
           "purpose": "Refresh marketplace plugins (git pull or clone)"
         },
         "setupIPC": {
-          "line": 245,
+          "line": 286,
           "params": [
             "ipcMain"
           ],
@@ -1894,21 +1921,21 @@
           "purpose": "Determine shell based on platform"
         },
         "startPTY": {
-          "line": 57,
+          "line": 59,
           "params": [
             "workingDir = null"
           ],
           "purpose": "Start PTY process"
         },
         "writeToPTY": {
-          "line": 99,
+          "line": 101,
           "params": [
             "data"
           ],
           "purpose": "Write data to PTY"
         },
         "resizePTY": {
-          "line": 108,
+          "line": 110,
           "params": [
             "cols",
             "rows"
@@ -1916,15 +1943,15 @@
           "purpose": "Resize PTY"
         },
         "killPTY": {
-          "line": 117,
+          "line": 119,
           "purpose": "Kill PTY process"
         },
         "getCurrentPTY": {
-          "line": 127,
+          "line": 129,
           "purpose": "Get current PTY process"
         },
         "setupIPC": {
-          "line": 134,
+          "line": 136,
           "params": [
             "ipcMain"
           ],
@@ -2426,28 +2453,28 @@
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "detectHookSetup": {
-          "line": 102,
+          "line": 120,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "hasFrameSnippet": {
-          "line": 157,
+          "line": 175,
           "params": [
             "hookFilePath"
           ],
           "purpose": "Check if our managed snippet is already present in a hook file."
         },
         "installPreCommitHook": {
-          "line": 174,
+          "line": 192,
           "params": [
             "projectPath"
           ],
           "purpose": "Install (or append) the pre-commit hook based on detected setup."
         },
         "appendToHookFile": {
-          "line": 229,
+          "line": 247,
           "params": [
             "hookPath",
             "createIfMissing",
@@ -2456,14 +2483,14 @@
           "purpose": "Append the Frame snippet to an existing hook file (husky case)."
         },
         "runInitialFullScan": {
-          "line": 265,
+          "line": 283,
           "params": [
             "projectPath"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 305,
+          "line": 314,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -4987,89 +5014,89 @@
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 29,
           "purpose": "Initialize plugins panel"
         },
         "setupEventListeners": {
-          "line": 44,
+          "line": 46,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 89,
+          "line": 91,
           "purpose": "Setup IPC listeners"
         },
         "loadPlugins": {
-          "line": 113,
+          "line": 115,
           "purpose": "Load plugins"
         },
         "refreshPlugins": {
-          "line": 127,
+          "line": 133,
           "purpose": "Refresh plugins from marketplace"
         },
         "show": {
-          "line": 161,
+          "line": 168,
           "purpose": "Show plugins panel"
         },
         "hide": {
-          "line": 178,
+          "line": 185,
           "purpose": "Hide plugins panel"
         },
         "toggle": {
-          "line": 188,
+          "line": 195,
           "purpose": "Toggle plugins panel visibility"
         },
         "setTab": {
-          "line": 199,
+          "line": 206,
           "params": [
             "tab"
           ],
           "purpose": "Set active tab"
         },
         "setFilter": {
-          "line": 221,
+          "line": 228,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredPlugins": {
-          "line": 235,
+          "line": 242,
           "purpose": "Get filtered plugins"
         },
         "render": {
-          "line": 251,
+          "line": 258,
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 295,
+          "line": 312,
           "params": [
             "plugin"
           ],
           "purpose": "Render single plugin item"
         },
         "getPluginIcon": {
-          "line": 341,
+          "line": 358,
           "params": [
             "name"
           ],
           "purpose": "Get icon for plugin based on name"
         },
         "togglePlugin": {
-          "line": 380,
+          "line": 397,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled"
         },
         "installPlugin": {
-          "line": 392,
+          "line": 409,
           "params": [
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
         },
         "showToast": {
-          "line": 409,
+          "line": 426,
           "params": [
             "message",
             "type = 'info'"
@@ -5077,54 +5104,54 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 444,
+          "line": 461,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
         "escapeHtml": {
-          "line": 458,
+          "line": 475,
           "params": [
             "text"
           ],
           "purpose": "Escape HTML for safe rendering"
         },
         "loadSessions": {
-          "line": 469,
+          "line": 486,
           "purpose": "Load sessions from Claude data"
         },
         "refreshSessions": {
-          "line": 494,
+          "line": 515,
           "purpose": "Refresh sessions with spinner animation"
         },
         "renderSessions": {
-          "line": 516,
+          "line": 537,
           "purpose": "Render sessions list"
         },
         "renderSessionItem": {
-          "line": 544,
+          "line": 571,
           "params": [
             "session"
           ],
           "purpose": "Render a single session item"
         },
         "renderSessionsEmpty": {
-          "line": 573,
+          "line": 600,
           "params": [
             "message"
           ],
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 595,
+          "line": 622,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a session by sending command to terminal"
         },
         "formatRelativeTime": {
-          "line": 609,
+          "line": 636,
           "params": [
             "dateString"
           ],
@@ -5470,25 +5497,52 @@
     },
     "renderer/sampleBanner": {
       "file": "src/renderer/sampleBanner.js",
-      "description": "Sample Mode (banner + auto-opened side panels)",
+      "description": "First-run banners (sample mode + post-init detection)",
       "exports": [
         "init"
       ],
       "depends": [
+        "electron",
+        "shared/ipcChannels",
         "state",
         "tasksPanel",
         "specPanel"
       ],
       "functions": {
+        "escapeHtml": {
+          "line": 30,
+          "params": [
+            "s"
+          ]
+        },
+        "detectionSummary": {
+          "line": 38,
+          "params": [
+            "project"
+          ],
+          "purpose": "One-line summary of the detected stack for the post-init banner"
+        },
+        "setDetectionVisible": {
+          "line": 50,
+          "params": [
+            "visible"
+          ]
+        },
         "init": {
-          "line": 24
+          "line": 55
         },
         "setVisible": {
-          "line": 58,
+          "line": 108,
           "params": [
             "visible"
           ]
         }
+      },
+      "ipc": {
+        "listens": [
+          "FRAME_PROJECT_INITIALIZED"
+        ],
+        "emits": []
       }
     },
     "renderer/sectionRail": {
@@ -7491,62 +7545,70 @@
           "line": 17,
           "purpose": "Get current ISO timestamp"
         },
+        "formatProjectFacts": {
+          "line": 124,
+          "params": [
+            "project"
+          ],
+          "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
+        },
         "getAgentsTemplate": {
-          "line": 119,
+          "line": 153,
           "params": [
             "projectName",
             "options"
-          ],
-          "purpose": "AGENTS.md template - the lean always-on core read by AI coding tools"
+          ]
         },
         "getReferenceTemplate": {
-          "line": 198,
+          "line": 236,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 373,
+          "line": 411,
           "params": [
-            "projectName"
+            "projectName",
+            "project"
           ],
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 397,
+          "line": 436,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 417,
+          "line": 456,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 463,
+          "line": 502,
           "params": [
-            "projectName"
+            "projectName",
+            "project"
           ],
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 529,
+          "line": 583,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 568,
+          "line": 622,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 605,
+          "line": 659,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -7554,27 +7616,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 651
+          "line": 705
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 672,
+          "line": 726,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 695,
+          "line": 749,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 707,
+          "line": 761,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 727
+          "line": 781
         },
         "getOrchBinScripts": {
-          "line": 745,
+          "line": 799,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
@@ -7721,6 +7783,41 @@
       "functions": {
         "start": {
           "line": 12
+        }
+      }
+    },
+    "templates/sample-project/src/ui/App": {
+      "file": "src/templates/sample-project/src/ui/App.jsx",
+      "description": "App root — routing + auth context",
+      "exports": [
+        "App"
+      ],
+      "depends": [
+        "react",
+        "react-router-dom",
+        "components/TaskList"
+      ],
+      "functions": {
+        "App": {
+          "line": 9
+        },
+        "Login": {
+          "line": 21
+        }
+      }
+    },
+    "templates/sample-project/src/ui/components/TaskList": {
+      "file": "src/templates/sample-project/src/ui/components/TaskList.jsx",
+      "description": "TaskList — renders the user's tasks with status filters",
+      "exports": [
+        "TaskList"
+      ],
+      "depends": [
+        "react"
+      ],
+      "functions": {
+        "TaskList": {
+          "line": 9
         }
       }
     }
@@ -8566,28 +8663,23 @@
         "description": "Prompts Panel Module"
       }
     ],
-    "index": [
-      {
-        "module": "main/index",
-        "file": "src/main/index.js",
-        "description": "Main Process Entry Point"
-      },
-      {
-        "module": "renderer/index",
-        "file": "src/renderer/index.js",
-        "description": "Renderer Entry Point"
-      },
-      {
-        "module": "templates/sample-project/src/index",
-        "file": "src/templates/sample-project/src/index.js",
-        "description": "TaskFlow — Application entry"
-      }
-    ],
     "ipc": [
       {
         "module": "shared/ipcChannels",
         "file": "src/shared/ipcChannels.js",
         "description": "IPC Channel Constants"
+      }
+    ],
+    "manager": [
+      {
+        "module": "main/overviewManager",
+        "file": "src/main/overviewManager.js",
+        "description": "Overview Manager Module"
+      },
+      {
+        "module": "main/pluginsManager",
+        "file": "src/main/pluginsManager.js",
+        "description": "Plugins Manager Module"
       }
     ],
     "orchestration": [
@@ -8644,6 +8736,18 @@
         "description": "Overview Panel Module"
       }
     ],
+    "panel": [
+      {
+        "module": "renderer/overviewPanel",
+        "file": "src/renderer/overviewPanel.js",
+        "description": "Overview Panel Module"
+      },
+      {
+        "module": "renderer/pluginsPanel",
+        "file": "src/renderer/pluginsPanel.js",
+        "description": "Plugins Panel Module"
+      }
+    ],
     "plugins": [
       {
         "module": "main/pluginsManager",
@@ -8654,6 +8758,35 @@
         "module": "renderer/pluginsPanel",
         "file": "src/renderer/pluginsPanel.js",
         "description": "Plugins Panel Module"
+      }
+    ],
+    "project": [
+      {
+        "module": "renderer/openProjectModal",
+        "file": "src/renderer/openProjectModal.js",
+        "description": "Open Project Modal"
+      },
+      {
+        "module": "renderer/projectSection",
+        "file": "src/renderer/projectSection.js",
+        "description": "Projects Section"
+      },
+      {
+        "module": "renderer/projectStatusBadges",
+        "file": "src/renderer/projectStatusBadges.js",
+        "description": "Project Status Badges"
+      }
+    ],
+    "section": [
+      {
+        "module": "renderer/projectSection",
+        "file": "src/renderer/projectSection.js",
+        "description": "Projects Section"
+      },
+      {
+        "module": "renderer/sectionRail",
+        "file": "src/renderer/sectionRail.js",
+        "description": "Section Rail Module"
       }
     ],
     "settings": [

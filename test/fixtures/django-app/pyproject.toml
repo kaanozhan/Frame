@@ -1,0 +1,9 @@
+[tool.poetry]
+name = "django-app"
+version = "0.1.0"
+description = "Sample Django fixture"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+django = "^5.0"
+pytest = "^8.0"

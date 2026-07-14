@@ -9,11 +9,13 @@ const state = require('./state');
 
 let isVisible = false;
 let pluginsData = [];
+let marketplaceInfo = null;
 let currentFilter = 'all'; // all, installed, enabled
 let currentTab = 'plugins';
 
 // Sessions state
 let sessionsData = [];
+let sessionsReason = null;
 let sessionsLoaded = false;
 
 // DOM Elements
@@ -112,11 +114,15 @@ function setupIPCListeners() {
  */
 async function loadPlugins() {
   try {
-    pluginsData = await ipcRenderer.invoke(IPC.LOAD_PLUGINS);
+    const result = await ipcRenderer.invoke(IPC.LOAD_PLUGINS);
+    // Main returns { plugins, marketplace }; tolerate the legacy plain array
+    pluginsData = Array.isArray(result) ? result : (result.plugins || []);
+    marketplaceInfo = Array.isArray(result) ? null : result.marketplace;
     render();
   } catch (err) {
     console.error('Error loading plugins:', err);
     pluginsData = [];
+    marketplaceInfo = null;
     render();
   }
 }
@@ -139,7 +145,8 @@ async function refreshPlugins() {
     if (result.error) {
       showToast('Failed to refresh: ' + result.error, 'error');
     } else {
-      pluginsData = result;
+      pluginsData = Array.isArray(result) ? result : (result.plugins || []);
+      marketplaceInfo = Array.isArray(result) ? null : result.marketplace;
       render();
       showToast('Plugins refreshed', 'success');
     }
@@ -254,6 +261,16 @@ function render() {
   const plugins = getFilteredPlugins();
 
   if (plugins.length === 0) {
+    // An unavailable marketplace explains itself — never a bare empty state
+    const reasonMessages = {
+      'git-missing': 'Marketplace needs git — install git, then refresh',
+      'network': 'Could not reach the plugin marketplace — check your connection, then refresh',
+      'other': 'Marketplace could not be loaded — check the logs, then refresh'
+    };
+    const marketplaceDown = marketplaceInfo && marketplaceInfo.available === false;
+    const emptyHint = marketplaceDown
+      ? reasonMessages[marketplaceInfo.reason] || reasonMessages.other
+      : (currentFilter === 'all' ? 'Claude Code plugins will appear here' : `No ${currentFilter} plugins`);
     contentElement.innerHTML = `
       <div class="plugins-empty">
         <div class="plugins-empty-icon">
@@ -262,7 +279,7 @@ function render() {
           </svg>
         </div>
         <p>No plugins found</p>
-        <span>${currentFilter === 'all' ? 'Claude Code plugins will appear here' : `No ${currentFilter} plugins`}</span>
+        <span>${emptyHint}</span>
       </div>
     `;
     return;
@@ -477,12 +494,16 @@ async function loadSessions() {
   }
 
   try {
-    sessionsData = await ipcRenderer.invoke(IPC.LOAD_CLAUDE_SESSIONS, projectPath);
+    const result = await ipcRenderer.invoke(IPC.LOAD_CLAUDE_SESSIONS, projectPath);
+    // Main returns { sessions, reason }; tolerate the legacy plain array too
+    sessionsData = Array.isArray(result) ? result : (result.sessions || []);
+    sessionsReason = Array.isArray(result) ? null : result.reason;
     sessionsLoaded = true;
     renderSessions();
   } catch (err) {
     console.error('Error loading sessions:', err);
     sessionsData = [];
+    sessionsReason = null;
     sessionsLoaded = true;
     renderSessionsEmpty('Failed to load sessions');
   }
@@ -523,7 +544,13 @@ function renderSessions() {
   }
 
   if (sessionsData.length === 0) {
-    renderSessionsEmpty('No sessions found for this project');
+    // Say WHY it's empty — an unexplained empty panel reads as broken
+    const reasonMessages = {
+      'no-claude-dir': 'Claude Code has no session history on this machine yet',
+      'no-project-sessions': 'No Claude Code sessions recorded for this project yet',
+      'read-error': 'Could not read Claude session data — check ~/.claude/projects'
+    };
+    renderSessionsEmpty(reasonMessages[sessionsReason] || 'No sessions found for this project');
     return;
   }
 

@@ -116,6 +116,40 @@ Full workflow (file layout, lifecycle, slash commands): see
  *               Settings, after which we re-emit AGENTS.md (or append the
  *               section to it).
  */
+/**
+ * Render the Project Facts section for AGENTS.md from the detected project
+ * block. The section exists even without detection — its job is to make the
+ * agent RECORD the user's real stack, not to celebrate Frame's bookkeeping.
+ */
+function formatProjectFacts(project) {
+  const record = `Record this project's own stack, conventions, entrypoints and commands here
+as you learn them; correct anything detection got wrong. **Never assume this
+project's shape generalizes** — verify layout/language/tooling before baking
+an assumption into code or docs.`;
+
+  if (!project || !project.languages || project.languages.length === 0) {
+    return `## Project Facts
+
+*Frame couldn't detect this project's stack.* ${record}`;
+  }
+
+  const cmds = project.commands || {};
+  const cmd = (c) => (c ? `\`${c}\`` : '*unknown — record it here*');
+  const roots = (project.sourceRoots || [])
+    .map(r => (r === '.' ? '*repo root*' : `\`${r}/\``))
+    .join(', ') || '*repo root*';
+
+  return `## Project Facts (detected — verify, then keep true)
+
+- **Languages:** ${project.languages.join(', ')}
+- **Package manager:** ${project.packageManager || '*none detected*'}
+- **Source roots:** ${roots}
+- **Layout:** ${project.layout || 'single'}
+- **Install:** ${cmd(cmds.install)} · **Dev:** ${cmd(cmds.dev)} · **Build:** ${cmd(cmds.build)} · **Test:** ${cmd(cmds.test)}
+
+${record}`;
+}
+
 function getAgentsTemplate(projectName, options) {
   const opts = options || {};
   const specDriven = opts.specDriven === true;
@@ -126,6 +160,10 @@ This project is managed with **Frame**: durable, structured context that keeps
 AI agents oriented across sessions. This file is the always-on core.
 **Before writing any Frame meta file, read the matching section of
 \`.frame/docs/REFERENCE.md\`** — the maintenance rules live there, not here.
+
+---
+
+${formatProjectFacts(opts.project)}
 
 ---
 
@@ -370,24 +408,25 @@ No problem, continue. The user can also say what they consider important themsel
 /**
  * STRUCTURE.json template
  */
-function getStructureTemplate(projectName) {
+function getStructureTemplate(projectName, project) {
+  const p = project || {};
   return {
     _frame_metadata: {
       purpose: "Project structure and module map for AI assistants",
-      forAI: "Read this file FIRST when starting work on this project. It contains the module structure, data flow, and conventions. Update this file when you add new modules or change the architecture.",
+      forAI: "Read this file FIRST when starting work on this project. It maps modules to files and intents. Update it when you add new modules or change the architecture.",
       lastUpdated: getDateString(),
       generatedBy: "Frame"
     },
     version: "1.0",
     description: `${projectName} - update this description`,
     architecture: {
-      type: "",
-      entryPoint: "",
+      languages: p.languages || [],
+      layout: p.layout || "",
+      sourceRoots: p.sourceRoots || [],
       notes: ""
     },
     modules: {},
-    dataFlow: [],
-    conventions: {}
+    intentIndex: {}
   };
 }
 
@@ -460,35 +499,53 @@ function getTasksTemplate(projectName) {
 /**
  * QUICKSTART.md template
  */
-function getQuickstartTemplate(projectName) {
+function getQuickstartTemplate(projectName, project) {
   const date = getDateString();
+  const p = project || {};
+  const cmds = p.commands || {};
+  // An unknown command renders as an explicit TODO — never a wrong guess.
+  const todo = "# TODO: confirm — Frame couldn't detect this";
+  const stackLine = p.languages && p.languages.length > 0
+    ? `**Stack (detected — verify):** ${p.languages.join(', ')}${p.packageManager ? ` · ${p.packageManager}` : ''}\n\n`
+    : '';
+  const roots = (p.sourceRoots && p.sourceRoots.length > 0 ? p.sourceRoots : ['src'])
+    .filter(r => r !== '.');
+  const tree = [
+    `${projectName}/`,
+    '├── .frame/           # Frame configuration',
+    ...roots.map(r => `├── ${r}/`),
+    '└── ...'
+  ].join('\n');
+
   return `<!-- FRAME AUTO-GENERATED FILE -->
 <!-- Purpose: Quick onboarding guide for developers and AI assistants -->
-<!-- For Claude: Read this FIRST to quickly understand how to work with this project. Contains setup instructions, common commands, and key files to know. -->
+<!-- For AI assistants: Read this FIRST to quickly understand how to work with this project. Contains setup instructions, common commands, and key files to know. -->
 <!-- Last Updated: ${date} -->
 
 # ${projectName} - Quick Start Guide
 
-## Setup
+${stackLine}## Setup
 
 \`\`\`bash
-# Clone and install
+# Clone and enter
 git clone <repo-url>
 cd ${projectName}
-npm install  # or appropriate package manager
+
+# Install dependencies
+${cmds.install || todo}
 \`\`\`
 
 ## Common Commands
 
 \`\`\`bash
 # Development
-npm run dev
+${cmds.dev || todo}
 
 # Build
-npm run build
+${cmds.build || todo}
 
 # Test
-npm test
+${cmds.test || todo}
 \`\`\`
 
 ## Key Files
@@ -497,23 +554,20 @@ npm test
 |------|---------|
 | \`STRUCTURE.json\` | Module map and architecture |
 | \`PROJECT_NOTES.md\` | Decisions and context |
-| \`todos.json\` | Task tracking |
+| \`tasks.json\` | Task tracking |
 | \`QUICKSTART.md\` | This file |
 
 ## Project Structure
 
 \`\`\`
-${projectName}/
-├── .frame/           # Frame configuration
-├── src/              # Source code
-└── ...
+${tree}
 \`\`\`
 
-## For AI Assistants (Claude)
+## For AI Assistants
 
 1. **First**: Read \`STRUCTURE.json\` for architecture overview
 2. **Then**: Check \`PROJECT_NOTES.md\` for current context and decisions
-3. **Check**: \`todos.json\` for pending tasks
+3. **Check**: \`tasks.json\` for pending tasks
 4. **Follow**: Existing code patterns and conventions
 5. **Update**: These files as you make changes
 

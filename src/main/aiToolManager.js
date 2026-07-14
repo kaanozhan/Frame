@@ -13,7 +13,8 @@ const logger = require('./logger');
 
 // The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL
 // is often unset, so fall back to the passwd entry — never to /bin/sh, which
-// doesn't source the zsh configs where PATH (claude/codex/gemini) usually lives.
+// doesn't source the shell configs where PATH (claude/codex/gemini) usually
+// lives. Last resort is platform-aware: zsh is macOS's default, bash Linux's.
 function loginShell() {
   try {
     const s = os.userInfo().shell;
@@ -21,7 +22,7 @@ function loginShell() {
   } catch (e) {
     logger.warn('aiToolManager', 'userInfo shell lookup failed:', e.message);
   }
-  return process.env.SHELL || '/bin/zsh';
+  return process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash');
 }
 const { IPC } = require('../shared/ipcChannels');
 
@@ -94,6 +95,26 @@ function init(window, app) {
 }
 
 /**
+ * First run only: default the active tool to a CLI that is actually
+ * installed (claude → codex → gemini), using the same interactive-login
+ * probe as the terminal preflight. A hard "claude" default on a machine
+ * that only has gemini presents a broken terminal as the first experience.
+ * Async and non-blocking — until it lands, the "claude" default stands.
+ */
+async function detectDefaultTool() {
+  for (const id of ['claude', 'codex', 'gemini']) {
+    const command = AI_TOOLS[id].fallbackCommand || AI_TOOLS[id].command;
+    const probe = await isCommandAvailable(command);
+    if (probe.found) {
+      logger.info('aiToolManager', `first run: defaulting active tool to installed CLI "${id}"`);
+      return id;
+    }
+  }
+  logger.info('aiToolManager', 'first run: no AI CLI found on PATH — keeping "claude" default');
+  return 'claude';
+}
+
+/**
  * Load configuration from file
  */
 function loadConfig() {
@@ -103,7 +124,21 @@ function loadConfig() {
   } else if (error) {
     console.error('aiToolManager: config load failed (corrupt copy preserved):', error.message);
   }
-  if (data) config = { ...config, ...data };
+  if (data) {
+    config = { ...config, ...data };
+  } else if (!error) {
+    // Fresh install, no saved choice yet — probe installed CLIs once in the
+    // background and persist the result
+    detectDefaultTool().then((toolId) => {
+      config.activeTool = toolId;
+      saveConfig();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, getActiveTool());
+      }
+    }).catch((err) => {
+      logger.warn('aiToolManager', 'default tool detection failed:', err.message);
+    });
+  }
 }
 
 /**

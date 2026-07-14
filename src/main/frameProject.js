@@ -11,6 +11,7 @@ const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('..
 const templates = require('../shared/frameTemplates');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
+const detector = require('../../scripts/detect-project');
 
 let mainWindow = null;
 
@@ -180,8 +181,21 @@ function initializeFrameProject(projectPath, projectName) {
     fs.mkdirSync(frameDirPath, { recursive: true });
   }
 
-  // Create .frame/config.json
+  // Detect the project's stack first — every template below is parameterized
+  // by it and the parser reads it back from config. Non-fatal: a failed
+  // detection degrades to the generic templates, never blocks init.
+  let detectedProject = null;
+  try {
+    detectedProject = detector.detectProject(projectPath);
+  } catch (err) {
+    console.warn('[frame] project detection failed (non-fatal):', err.message);
+  }
+
+  // Create .frame/config.json (carrying the detected project block)
   const config = templates.getFrameConfigTemplate(name);
+  if (detectedProject) {
+    config.project = detectedProject;
+  }
   fs.writeFileSync(
     path.join(frameDirPath, FRAME_CONFIG_FILE),
     JSON.stringify(config, null, 2),
@@ -234,7 +248,7 @@ function initializeFrameProject(projectPath, projectName) {
   // Spec-Driven Development section is OFF by default — user opts in via the
   // suggestion modal, which calls enableSpecDriven() to re-emit AGENTS.md
   // with the section.
-  let agentsContent = templates.getAgentsTemplate(name, { specDriven: false });
+  let agentsContent = templates.getAgentsTemplate(name, { specDriven: false, project: detectedProject });
   if (existingInstructions.length > 0) {
     const merged = existingInstructions
       .map(({ label, content }) => `## Existing Instructions (from ${label})\n\n${content}`)
@@ -284,7 +298,7 @@ function initializeFrameProject(projectPath, projectName) {
 
   const structureWasCreated = createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.STRUCTURE),
-    templates.getStructureTemplate(name)
+    templates.getStructureTemplate(name, detectedProject)
   );
 
   createFileIfNotExists(
@@ -299,7 +313,7 @@ function initializeFrameProject(projectPath, projectName) {
 
   createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.QUICKSTART),
-    templates.getQuickstartTemplate(name)
+    templates.getQuickstartTemplate(name, detectedProject)
   );
 
   // Create .frame/bin directory for AI tool wrappers
@@ -409,7 +423,7 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
     existing = '';
   }
   if (!existing) {
-    fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true }), 'utf8');
+    fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true, project: (config && config.project) || null }), 'utf8');
   } else if (!existing.includes('Spec-Driven Development')) {
     // Append the short core section — the full workflow lives in
     // .frame/docs/REFERENCE.md, which is guaranteed to exist above

@@ -33,6 +33,13 @@
     <button type="button" id="sample-banner-close" class="sample-banner-close" aria-label="Dismiss">&#x2715;</button>
   </div>
 
+  <!-- First-run detection banner (shown right after a project is initialized as a Frame project) -->
+  <div id="detection-banner" class="sample-banner" role="status">
+    <span class="sample-banner-icon">&#10022;</span>
+    <span id="detection-banner-text" class="sample-banner-text"></span>
+    <button type="button" id="detection-banner-close" class="sample-banner-close" aria-label="Dismiss">&#x2715;</button>
+  </div>
+
   <!-- App Loader (boot splash, hidden once workspace data arrives) -->
   <div id="app-loader" class="app-loader">
     <div class="app-loader-mark">&#10022;</div>
@@ -557,11 +564,11 @@
                 <span class="welcome-action-desc">Explore Frame on a fictional codebase — specs, tasks, notes already populated</span>
               </span>
             </button>
-            <button id="welcome-open-folder" class="welcome-action">
+            <button id="welcome-open-folder" class="welcome-action welcome-action-featured">
               <span class="welcome-action-icon">&#128193;</span>
               <span class="welcome-action-text">
-                <span class="welcome-action-title">Open Project Folder</span>
-                <span class="welcome-action-desc">Pick an existing folder on your machine</span>
+                <span class="welcome-action-title">Open Your Own Project</span>
+                <span class="welcome-action-desc">Any language, any layout — Frame detects the stack and sets up agent context</span>
               </span>
             </button>
             <button id="welcome-create-project" class="welcome-action">

@@ -37,7 +37,7 @@ const {
 // the repo root; under electron-builder's asar the same relative path holds
 // because the asar mirrors the source tree.
 const SCRIPTS_SOURCE_DIR = path.join(__dirname, '..', '..', 'scripts');
-const PARSER_FILES = ['update-structure.js', 'find-module.js', 'check-freshness.js', 'intent-map.json'];
+const PARSER_FILES = ['update-structure.js', 'find-module.js', 'check-freshness.js', 'detect-project.js', 'intent-map.json'];
 
 /**
  * Copy parser scripts from Frame's bundled scripts/ into the project's
@@ -84,6 +84,24 @@ function copyParserScripts(projectPath) {
       copied.push(file);
     } catch (err) {
       console.warn(`[frame] failed to copy ${file}: ${err.message}`);
+    }
+  }
+
+  // Ship the per-language extractors (scripts/lang/*) alongside the parser —
+  // update-structure.js requires them relative to its own location.
+  const langSrcDir = path.join(SCRIPTS_SOURCE_DIR, 'lang');
+  if (fs.existsSync(langSrcDir)) {
+    const langDstDir = path.join(binDir, 'lang');
+    if (!fs.existsSync(langDstDir)) {
+      fs.mkdirSync(langDstDir, { recursive: true });
+    }
+    for (const file of fs.readdirSync(langSrcDir).filter((f) => f.endsWith('.js'))) {
+      try {
+        fs.copyFileSync(path.join(langSrcDir, file), path.join(langDstDir, file));
+        copied.push(`lang/${file}`);
+      } catch (err) {
+        console.warn(`[frame] failed to copy lang/${file}: ${err.message}`);
+      }
     }
   }
   return copied;
@@ -266,15 +284,6 @@ function runInitialFullScan(projectPath) {
   const parserPath = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'update-structure.js');
   if (!fs.existsSync(parserPath)) {
     return { status: 'error', message: 'Parser script not found at .frame/bin/update-structure.js' };
-  }
-
-  // Skip if the project doesn't have a src/ folder — parser would produce
-  // an empty result and we'd needlessly bump STRUCTURE.json's mtime.
-  if (!fs.existsSync(path.join(projectPath, 'src'))) {
-    return {
-      status: 'skipped-no-src',
-      message: 'No src/ folder — initial scan skipped. (Non-standard layouts will be supported later; see .frame/specs/structure-non-standard-layouts/)'
-    };
   }
 
   try {
