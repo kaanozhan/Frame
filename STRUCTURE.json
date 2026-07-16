@@ -5831,26 +5831,26 @@
           "line": 226
         },
         "nextActionForPhase": {
-          "line": 292,
+          "line": 293,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 308,
+          "line": 309,
           "params": [
             "action",
             "lane"
           ]
         },
         "runSpecCommand": {
-          "line": 340,
+          "line": 341,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 352,
+          "line": 353,
           "params": [
             "tab",
             "label",
@@ -5858,90 +5858,97 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 358
+          "line": 359
         },
         "tasksTabLabel": {
-          "line": 364,
+          "line": 365,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 373,
+          "line": 374,
           "params": [
             "tab"
           ]
         },
+        "renderPlanReportRow": {
+          "line": 396,
+          "purpose": "\"View Plan Report\" — shown above the rendered plan only when the spec"
+        },
+        "attachPlanReportHandler": {
+          "line": 404
+        },
         "renderTasksTabBody": {
-          "line": 389
+          "line": 411
         },
         "renderSpecTaskRow": {
-          "line": 429,
+          "line": 451,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 478
+          "line": 500
         },
         "handleSpecTaskAction": {
-          "line": 491,
+          "line": 513,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 510,
+          "line": 532,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 520
+          "line": 543
         },
         "showNewSpecPrompt": {
-          "line": 535
+          "line": 558
         },
         "deriveSlugPreview": {
-          "line": 637,
+          "line": 660,
           "params": [
             "title"
           ],
           "purpose": "Same shape as specManager.generateSlug — duplicated here so the renderer"
         },
         "showSuggestionModal": {
-          "line": 655,
+          "line": 678,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 722,
+          "line": 745,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 815,
+          "line": 838,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 835,
+          "line": 858,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 845,
+          "line": 868,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 855,
+          "line": 878,
           "params": [
             "iso"
           ]
@@ -6213,53 +6220,53 @@
           "line": 484
         },
         "renderTasksTabBody": {
-          "line": 505
+          "line": 514
         },
         "renderSpecTaskRow": {
-          "line": 542,
+          "line": 551,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 591
+          "line": 600
         },
         "handleSpecTaskAction": {
-          "line": 604,
+          "line": 613,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 615
+          "line": 624
         },
         "tasksTabLabel": {
-          "line": 621,
+          "line": 630,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 630,
+          "line": 639,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 635,
+          "line": 644,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 641,
+          "line": 650,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 652,
+          "line": 661,
           "params": [
             "projectPath"
           ]

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-16T15:39:25.555Z",
+  "lastUpdated": "2026-07-16T15:43:59.648Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -2956,13 +2956,14 @@
       "title": "Render a **View Plan Report** button from `planReportPath` in the Plan tab of `src/renderer/specPanel.js` and `src/renderer/specsDashboard.js` (hidden when `null`), open via `require('electron').shell.openPath`, and add the wrapper-row styles to `src/renderer/styles/components/panels.css` reusing `.btn .btn-secondary`.",
       "description": "",
       "source": "spec:deep-spec-plan:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-plan",
       "createdAt": "2026-07-16T15:03:14.122Z",
-      "updatedAt": "2026-07-16T15:03:14.122Z",
-      "completedAt": null
+      "updatedAt": "2026-07-16T15:43:59.648Z",
+      "completedAt": "2026-07-16T15:43:59.648Z",
+      "notes": "Outcome: specPanel.js + specsDashboard.js — View Plan Report button row above the rendered plan markdown, rendered only when getSpec planReportPath is set (hidden otherwise); click → require(electron).shell.openPath (settingsModal precedent, no new IPC). Class-scoped (.spec-plan-report-btn) so both surfaces can coexist in the DOM; handlers attached per render like attachTaskActionHandlers. panels.css gains .spec-plan-report-row (right-aligned flex row); button visuals reuse .btn .btn-secondary. No freshness plumbing: specs watcher SPEC_DATA push → reloadDetail → GET_SPEC picks up the field."
     },
     {
       "id": "task-spec-deep-spec-plan-T08",

@@ -5022,6 +5022,14 @@
   padding: var(--space-sm) 0;
 }
 
+/* "View Plan Report" row above the rendered plan markdown (spec panel +
+   specs dashboard). Button itself reuses .btn .btn-secondary. */
+.spec-plan-report-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-md);
+}
+
 .spec-detail-body h1,
 .spec-detail-body h2,
 .spec-detail-body h3 {
