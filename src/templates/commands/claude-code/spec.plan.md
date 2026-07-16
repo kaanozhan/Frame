@@ -1,6 +1,7 @@
 You are generating an implementation plan for an existing Frame spec through a
 deep planning flow: verify the spec's claims against the codebase, resolve open
-forks with the user, then converge on the plan through self-critique.
+forks with the user, converge on the plan through self-critique, and ship a
+visual plan report alongside `plan.md`.
 
 ## Context
 
@@ -65,7 +66,7 @@ fails in your final message instead of silently shipping.
 
 ## Stage 4 — Write plan.md
 
-Write **exactly one file**: `.frame/specs/{slug}/plan.md`.
+Write **exactly one file in this stage**: `.frame/specs/{slug}/plan.md`.
 
 Use this structure:
 
@@ -86,6 +87,34 @@ Section guidance:
 - **Footprint** — A flat, machine-readable list of the source files this spec will create or modify, **one path per line as a plain `- ` bullet, nothing else on the line** (a path or a glob, e.g. `- src/main/foo.js` or `- src/renderer/styles/**`). This is parsed by the orchestrator to detect collisions between specs running in parallel, so keep it literal and accurate — it should mirror the New/Modified entries in **Files**. **Exclude Frame meta files** (`tasks.json`, `STRUCTURE.json`, `PROJECT_NOTES.md`, `AGENTS.md`/`CLAUDE.md`): they are reconciled separately and would otherwise mark every spec as conflicting.
 - **Dependencies** — Packages or services to add (with one-line rationale each), or `None`. If a dep already exists in `package.json`, don't re-list it.
 - **Sequencing** — Numbered steps in implementation order. Each step is small, end-to-end shippable. Do not bundle unrelated work into one step.
+
+## Stage 5 — Plan report
+
+Read the staged visual template at `{report_template_path}` (project-relative)
+and write `.frame/specs/{slug}/plan-report.html`, overwriting any existing
+report (a re-plan replaces it). Fill every `{{…}}` token; the template's head
+comment documents the component palette. The report carries what the strict
+plan format cannot:
+
+- **What & why** — problem and shape of the solution, for a reader who has
+  not seen the spec.
+- **Architecture walkthrough** — one diagram per flow using the template's
+  `.flowblock`/`.fd` palette; architectural notes under every flow.
+- **Decision story** — one card per gate decision, grouped under Business and
+  Technical, chosen vs rejected panels, each with its recorded rationale.
+- **Risks & edges** — matrix of edge cases/risks and the plan's answer to
+  each.
+- **Coverage matrix** — the Goals / Constraints / Success-criteria tables:
+  every G/C/S ID from Stage 1 mapped to the plan section that owns it, rows
+  in full words, IDs as tags.
+- **Verified claims** — the Stage 1 evidence table (claim → verified
+  `file:line`, or its drift note).
+- **Convergence log** — the Stage 3 iteration log.
+
+Keep the report fully self-contained: inline CSS only (already in the
+template), no external assets, no scripts. If the staged template is missing,
+say so in your final message and skip this stage — `plan.md` and
+`status.json` still count.
 
 ## After writing
 

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-16T15:35:27.756Z",
+  "lastUpdated": "2026-07-16T15:37:51.775Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -2928,13 +2928,14 @@
       "title": "Add report generation to the `spec.plan.md` template: read the staged asset at `{report_template_path}`, fill its `{{…}}` tokens (what & why, per-flow diagrams, business/technical decision cards with chosen vs rejected panels, risks & edge matrix, coverage matrix, verified-claims table, convergence log), and write `.frame/specs/{slug}/plan-report.html`, overwriting on re-plan.",
       "description": "",
       "source": "spec:deep-spec-plan:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-plan",
       "createdAt": "2026-07-16T15:03:14.122Z",
-      "updatedAt": "2026-07-16T15:03:14.122Z",
-      "completedAt": null
+      "updatedAt": "2026-07-16T15:37:51.775Z",
+      "completedAt": "2026-07-16T15:37:51.775Z",
+      "notes": "Outcome: src/templates/commands/claude-code/spec.plan.md — new Stage 5: read staged asset via {report_template_path}, fill every {{…}} token, write .frame/specs/<slug>/plan-report.html (overwrite on re-plan) with what-&-why, .flowblock/.fd flow diagrams, business/technical decision cards (chosen vs rejected + rationale), risks & edges matrix, G/C/S coverage matrix, verified-claims table, convergence log. Self-contained enforced; missing staged template → say so and skip stage, plan.md + status.json still count. Intro mentions the report; Stage 4 scoped to \"exactly one file in this stage\"."
     },
     {
       "id": "task-spec-deep-spec-plan-T06",
