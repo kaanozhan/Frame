@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-16T15:19:59.841Z",
+  "lastUpdated": "2026-07-16T15:32:07.690Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -2900,13 +2900,14 @@
       "title": "Restyle `src/templates/commands/claude-code/plan-report-template.html` in place to Frame's dark palette from `src/renderer/styles/variables.css` (bg `#0f0f10`, cards `#1a1a1c`, text `#e8e6e3`/`#a09b94`, amber `#d4a574`, local-first DM Sans / JetBrains Mono stacks, dark-only), rewrite the head comment for the Frame flow (`.frame/specs/<slug>/plan-report.html`, `/spec.plan`), and strip origin-project content; verify it opens standalone in a browser.",
       "description": "",
       "source": "spec:deep-spec-plan:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-plan",
       "createdAt": "2026-07-16T15:03:14.122Z",
-      "updatedAt": "2026-07-16T15:03:14.122Z",
-      "completedAt": null
+      "updatedAt": "2026-07-16T15:32:07.690Z",
+      "completedAt": "2026-07-16T15:32:07.690Z",
+      "notes": "Outcome: src/templates/commands/claude-code/plan-report-template.html — restyled in place to Frame dark (variables.css values: bg #0f0f10, card #1a1a1c, text #e8e6e3/#a09b94, amber #d4a574 headings/actors, info #78a5d4 decision nodes, borders rgba(255,255,255,0.08), success #7cb382, warning #e0a458), local-first DM Sans / JetBrains Mono stacks, color-scheme:dark, dark-only. Head comment flow copy → .frame/specs/<slug>/plan-report.html + /spec.plan. Verified: zero external refs, balanced tags, opens standalone."
     },
     {
       "id": "task-spec-deep-spec-plan-T04",

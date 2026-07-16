@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <!--
-  spec-plan overview template — project-agnostic; nothing here assumes a
-  specific stack. Copy to docs/reports/<slug>/plan/overview.html and fill
-  every {{...}}.
+  Frame plan report template — project-agnostic; nothing here assumes a
+  specific stack. Copy to .frame/specs/<slug>/plan-report.html and fill
+  every {{...}}. Produced by /spec.plan. Dark-only: styled to Frame's dark
+  design system (warm neutrals, amber accent).
   Component palette (use as many instances as the plan needs):
     .flowblock + .fd     -> flow DIAGRAM: rows of typed nodes joined by
                             labeled arrows; branch rows for alternate paths.
@@ -34,9 +35,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{SPEC_TITLE}} — Plan Overview</title>
 <style>
-  :root{--bg:#f6f5f2;--card:#ffffff;--ink:#1c2b33;--muted:#5c6b73;--primary:#1d5d6b;--accent:#5a96a0;--line:#e4e1da;--good:#2e7d52;--goodbg:#eef7f1;--warn:#b26a00;--code:#f0eee9;--dim:#f7f6f3;}
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
   .wrap{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
   h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
@@ -52,8 +53,8 @@
   table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
   th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
-  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
-  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto;margin:8px 0;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
   ul,ol{padding-left:20px;font-size:14px;}
   li{margin-bottom:5px;}
 
@@ -66,12 +67,12 @@
   .fd-node{position:relative;min-width:120px;max-width:210px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
   .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;}
   .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;}
-  .fd-node.actor{border-color:var(--primary);background:#eef4f5;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
   .fd-node.actor .fd-title{color:var(--primary);}
   .fd-node.system{border-color:var(--line);}
   .fd-node.data{border-color:var(--line);background:var(--code);}
-  .fd-node.data .fd-title{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;}
-  .fd-node.decision{border-color:var(--accent);background:#f2f7f8;border-style:dashed;}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
   .fd-node.decision .fd-title{color:var(--accent);}
   .fd-node.decision .fd-title::before{content:"◇ ";}
   .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
@@ -88,7 +89,7 @@
   .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
   .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
   .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
-  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:#eef4f5;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
   .fd-legend .l-data{background:var(--code);}
   .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
   .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
@@ -109,7 +110,7 @@
   .opt.chosen .optname::before{content:"✓ ";}
   .opt.rejected{opacity:.62;}
   .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
-  .badge.chosenb{background:var(--good);color:#fff;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
   .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
   .dwhy b{color:var(--ink);}
 
@@ -121,7 +122,7 @@
 
 <div class="card">
   <h1>{{SPEC_TITLE}} — Plan Overview</h1>
-  <p class="muted">{{DATE}} · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/{{SLUG}}/plan.md</code> · produced by <code>/spec-plan</code></p>
+  <p class="muted">{{DATE}} · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/{{SLUG}}/plan.md</code> · produced by <code>/spec.plan</code></p>
   <p><span class="pill good">{{N}} decisions taken</span><span class="pill">{{N}} loop iterations</span><!-- add headline pills: migrations, endpoints, notable facts --></p>
 </div>
 
