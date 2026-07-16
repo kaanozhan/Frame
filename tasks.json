@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-16T15:03:14.122Z",
+  "lastUpdated": "2026-07-16T15:14:01.905Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -2872,13 +2872,14 @@
       "title": "Add `PLAN_REPORT_FILE = 'plan-report.html'` constant to `src/main/specManager.js` and extend `getSpec` payload with `planReportPath` (absolute path when the file exists, else `null`).",
       "description": "",
       "source": "spec:deep-spec-plan:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-plan",
       "createdAt": "2026-07-16T15:03:14.122Z",
-      "updatedAt": "2026-07-16T15:03:14.122Z",
-      "completedAt": null
+      "updatedAt": "2026-07-16T15:14:01.905Z",
+      "completedAt": "2026-07-16T15:14:01.905Z",
+      "notes": "Outcome: src/main/specManager.js — PLAN_REPORT_FILE constant (plan-report.html) next to PLAN_FILE/OUTCOME_FILE; getSpec payload gains planReportPath (absolute path when <specDir>/plan-report.html exists, else null). No behavior change for existing consumers; renderer button (T07) reads this field."
     },
     {
       "id": "task-spec-deep-spec-plan-T02",
