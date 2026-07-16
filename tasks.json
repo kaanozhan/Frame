@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-16T15:14:01.905Z",
+  "lastUpdated": "2026-07-16T15:19:59.841Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -2886,13 +2886,14 @@
       "title": "Stage the report template in `src/main/specManager.js`: add `report_template_path: '.frame/runtime/assets/plan-report-template.html'` to `getCommandPrompt` vars, and in `buildSpecCommandFile` for `command === 'spec.plan'` copy the asset (override-first from `.frame/templates/commands/claude-code/`, falling back to the shipped default) into `<project>/.frame/runtime/assets/`, overwriting each dispatch; log and continue if the default asset is missing.",
       "description": "",
       "source": "spec:deep-spec-plan:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-plan",
       "createdAt": "2026-07-16T15:03:14.122Z",
-      "updatedAt": "2026-07-16T15:03:14.122Z",
-      "completedAt": null
+      "updatedAt": "2026-07-16T15:19:59.841Z",
+      "completedAt": "2026-07-16T15:19:59.841Z",
+      "notes": "Outcome: src/main/specManager.js — stageReportTemplateAsset() copies plan-report-template.html (override-first: .frame/templates/commands/<tool>/, fallback shipped default; asar-transparent fs read) into .frame/runtime/assets/ on every spec.plan dispatch via buildSpecCommandFile; missing/failed staging logs and continues, prompt build never fails. getCommandPrompt gains report_template_path var (.frame/runtime/assets/plan-report-template.html). Verified: staging, override precedence, spec.tasks no-op."
     },
     {
       "id": "task-spec-deep-spec-plan-T03",

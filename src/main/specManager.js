@@ -267,7 +267,8 @@ function getCommandPrompt(projectPath, slug, command, aiTool) {
     project_path: projectPath,
     slug,
     title: status.title,
-    description: '' // Slice 1.7: spec.new uses the seeded spec.md as input; description placeholder reserved for future use
+    description: '', // Slice 1.7: spec.new uses the seeded spec.md as input; description placeholder reserved for future use
+    report_template_path: REPORT_TEMPLATE_REL
   });
   return { prompt };
 }
@@ -282,6 +283,35 @@ function getCommandPrompt(projectPath, slug, command, aiTool) {
 // file directly — full prompt arrives intact.
 
 const RUNTIME_PROMPTS_DIR = path.join(FRAME_DIR, 'runtime', 'prompts');
+const RUNTIME_ASSETS_DIR = path.join(FRAME_DIR, 'runtime', 'assets');
+const REPORT_TEMPLATE_FILE = 'plan-report-template.html';
+const REPORT_TEMPLATE_REL = path.posix.join(
+  RUNTIME_ASSETS_DIR.replace(/\\/g, '/'), REPORT_TEMPLATE_FILE
+);
+
+// The spec.plan agent fills the report template from the terminal CLI,
+// which cannot read files inside app.asar — so the asset is staged into
+// .frame/runtime/assets/ on every dispatch (override edits are picked up).
+function stageReportTemplateAsset(projectPath, aiTool) {
+  const tool = aiTool || 'claude-code';
+  const override = path.join(projectPath, FRAME_DIR, 'templates', 'commands', tool, REPORT_TEMPLATE_FILE);
+  const fallback = path.join(FRAME_TEMPLATES_DIR, 'commands', tool, REPORT_TEMPLATE_FILE);
+  const source = fs.existsSync(override) ? override : fallback;
+  let content;
+  try {
+    content = fs.readFileSync(source, 'utf8');
+  } catch (err) {
+    console.error(`specManager: report template asset missing (${source}) — staging skipped`, err.message);
+    return;
+  }
+  try {
+    const assetsDir = path.join(projectPath, RUNTIME_ASSETS_DIR);
+    fs.mkdirSync(assetsDir, { recursive: true });
+    fs.writeFileSync(path.join(assetsDir, REPORT_TEMPLATE_FILE), content, 'utf8');
+  } catch (err) {
+    console.error('specManager: report template staging failed', err);
+  }
+}
 
 function buildSpecCommandFile(projectPath, slug, command, aiTool) {
   const result = getCommandPrompt(projectPath, slug, command, aiTool);
@@ -291,6 +321,7 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool) {
   const filename = `${slug}__${command}.md`;
   const absPath = path.join(promptsDir, filename);
   fs.writeFileSync(absPath, result.prompt, 'utf8');
+  if (command === 'spec.plan') stageReportTemplateAsset(projectPath, aiTool);
   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
   return {
     success: true,
