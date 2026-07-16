@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-16T15:32:07.690Z",
+  "lastUpdated": "2026-07-16T15:35:27.756Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -2914,13 +2914,14 @@
       "title": "Rewrite `src/templates/commands/claude-code/spec.plan.md` as the five-stage deep prompt: evidence pass with claim→`file:line` verification and G/C/S coverage IDs, two-stage business→technical `AskUserQuestion` decision gate (recommendation first, max 3 follow-up rounds per stage), convergence loop with fixed checklist and one-line iteration log (max 4 iterations, surface remaining failures), strict five-section `plan.md` with a `### Resolved plan-time decisions` subsection (carry the existing Footprint guidance verbatim), and `status.json` → `planned`.",
       "description": "",
       "source": "spec:deep-spec-plan:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-plan",
       "createdAt": "2026-07-16T15:03:14.122Z",
-      "updatedAt": "2026-07-16T15:03:14.122Z",
-      "completedAt": null
+      "updatedAt": "2026-07-16T15:35:27.756Z",
+      "completedAt": "2026-07-16T15:35:27.756Z",
+      "notes": "Outcome: src/templates/commands/claude-code/spec.plan.md — full rewrite as the four-stage deep prompt: Stage 1 evidence pass (claim → file:line, drift marking, G/C/S coverage IDs), Stage 2 AskUserQuestion decision gate (business then technical, recommendation first, causal follow-ups only, 3-round cap per stage, silent decisions recorded), Stage 3 convergence loop (fixed checklist, max 4 iterations, one-line log, surface residual failures), Stage 4 strict five-section plan.md opening Architecture with ### Resolved plan-time decisions. Footprint guidance carried verbatim (diff-verified); status.json → planned unchanged. Report stage lands in T05."
     },
     {
       "id": "task-spec-deep-spec-plan-T05",
