@@ -5023,11 +5023,36 @@
 }
 
 /* "View Plan Report" row above the rendered plan markdown (spec panel +
-   specs dashboard). Button itself reuses .btn .btn-secondary. */
+   specs dashboard). */
 .spec-plan-report-row {
   display: flex;
   justify-content: flex-end;
   margin-bottom: var(--space-md);
+}
+
+/* Accent-filled so the button stands out against the plan markdown.
+   --accent-primary / --bg-deep flip with the theme, so contrast holds in
+   both dark and light mode. Overrides .btn-secondary (this file loads
+   after ui.css). */
+.spec-plan-report-btn {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--bg-deep);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.spec-plan-report-btn:hover {
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  color: var(--bg-deep);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.spec-plan-report-btn:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .spec-detail-body h1,

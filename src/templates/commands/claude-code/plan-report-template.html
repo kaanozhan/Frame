@@ -38,7 +38,7 @@
   :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
-  .wrap{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
   h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
   h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
@@ -63,10 +63,10 @@
   .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
   .flowbody{padding:14px;}
   .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
-  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;max-width:100%;}
-  .fd-node{position:relative;min-width:120px;max-width:210px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
-  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;}
-  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
   .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
   .fd-node.actor .fd-title{color:var(--primary);}
   .fd-node.system{border-color:var(--line);}

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-16T15:43:59.648Z",
+  "lastUpdated": "2026-07-16T15:44:12.368Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -2970,12 +2970,12 @@
       "title": "Run an end-to-end pass on a `specified` spec in a dev build: gate questions appear before any plan text, `plan.md` parses via `getSpecFootprint`, phase flips to `planned`, `plan-report.html` opens standalone, and the button appears/hides correctly.",
       "description": "",
       "source": "spec:deep-spec-plan:T08",
-      "status": "pending",
+      "status": "in_progress",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-plan",
       "createdAt": "2026-07-16T15:03:14.122Z",
-      "updatedAt": "2026-07-16T15:03:14.122Z",
+      "updatedAt": "2026-07-16T15:44:12.368Z",
       "completedAt": null
     }
   ],
