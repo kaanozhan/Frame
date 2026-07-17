@@ -190,6 +190,16 @@ node .frame/bin/find-module.js <keyword>   # concept/synonym → files
 node .frame/bin/find-module.js --list      # all features
 \`\`\`
 
+**Code graph** — where/imports/blast-radius questions, before cold grep
+(built by Frame at onboarding; re-analyze from the Overview panel):
+
+\`\`\`bash
+node .frame/bin/graph-query.js where <symbol>    # file(s)+line defining a symbol
+node .frame/bin/graph-query.js imports <file>    # who imports this file
+node .frame/bin/graph-query.js deps <file>       # what this file imports
+node .frame/bin/graph-query.js affects <file>    # what changing it impacts
+\`\`\`
+
 **Freshness** — \`node .frame/bin/check-freshness.js\` reports when this
 context is likely to mislead (phantom modules, stale STRUCTURE/notes, stuck
 tasks). Trust its warnings over stale entries.
@@ -570,6 +580,15 @@ ${tree}
 3. **Check**: \`tasks.json\` for pending tasks
 4. **Follow**: Existing code patterns and conventions
 5. **Update**: These files as you make changes
+
+**Orientation queries** — the code graph answers where/imports/blast-radius
+questions faster than grep:
+
+\`\`\`bash
+node .frame/bin/graph-query.js where <symbol>    # where is X defined
+node .frame/bin/graph-query.js imports <file>    # who imports this file
+node .frame/bin/graph-query.js affects <file>    # what changing it impacts
+\`\`\`
 
 ## Quick Context
 

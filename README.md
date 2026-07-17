@@ -213,6 +213,7 @@ the context your work produces outlives any single tool, including Frame.
 | Desktop Framework | Electron |
 | Terminal Emulator | xterm.js |
 | PTY | node-pty |
+| Code Parsing | tree-sitter (WASM) |
 | Bundler | esbuild |
 | UI | HTML/CSS/JS |
 
@@ -320,6 +321,23 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan
 3. Commit: `git commit -m 'Add your feature'`
 4. Push: `git push origin feature/your-feature`
 5. Open a Pull Request
+
+---
+
+## Acknowledgments
+
+Frame's code graph is powered by [tree-sitter](https://tree-sitter.github.io/),
+the incremental parsing library from the open-source community — via
+[web-tree-sitter](https://github.com/tree-sitter/tree-sitter/tree/master/lib/binding_web)
+and the official grammars for
+[JavaScript](https://github.com/tree-sitter/tree-sitter-javascript),
+[TypeScript](https://github.com/tree-sitter/tree-sitter-typescript),
+[Python](https://github.com/tree-sitter/tree-sitter-python),
+[Go](https://github.com/tree-sitter/tree-sitter-go) and
+[Rust](https://github.com/tree-sitter/tree-sitter-rust) (all MIT licensed —
+see [resources/tree-sitter/LICENSES.md](./resources/tree-sitter/LICENSES.md)).
+Thanks as well to Electron, xterm.js, node-pty, esbuild and the rest of the
+open-source stack Frame is built on.
 
 ---
 

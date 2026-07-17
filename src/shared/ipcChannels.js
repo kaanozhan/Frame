@@ -108,6 +108,11 @@ const IPC = {
   OVERVIEW_DATA: 'overview-data',
   GET_FILE_GIT_HISTORY: 'get-file-git-history',
 
+  // Code Graph
+  LOAD_CODE_GRAPH_STATUS: 'load-code-graph-status',
+  REBUILD_CODE_GRAPH: 'rebuild-code-graph',
+  CODE_GRAPH_STATUS: 'code-graph-status',
+
   // Git Branches Panel
   LOAD_GIT_BRANCHES: 'load-git-branches',
   SWITCH_GIT_BRANCH: 'switch-git-branch',

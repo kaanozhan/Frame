@@ -26,11 +26,12 @@ async function loadOverview(projectPath) {
   }
 
   try {
-    const [structure, tasks, decisions, stats] = await Promise.all([
+    const [structure, tasks, decisions, stats, graph] = await Promise.all([
       loadStructure(projectPath),
       loadTasks(projectPath),
       loadDecisions(projectPath),
-      loadStats(projectPath)
+      loadStats(projectPath),
+      loadGraphMeta(projectPath)
     ]);
 
     return {
@@ -41,11 +42,29 @@ async function loadOverview(projectPath) {
       structure,
       tasks,
       decisions,
-      stats
+      stats,
+      graph
     };
   } catch (err) {
     console.error('Error loading overview:', err);
     return { error: err.message };
+  }
+}
+
+/**
+ * Load code-graph meta from .frame/graph/meta.json (null when never built —
+ * the panel renders its own "not analyzed" state for that).
+ */
+async function loadGraphMeta(projectPath) {
+  const metaPath = path.join(projectPath, '.frame', 'graph', 'meta.json');
+  try {
+    if (!fs.existsSync(metaPath)) {
+      return null;
+    }
+    return JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+  } catch (err) {
+    console.error('Error loading graph meta:', err);
+    return null;
   }
 }
 

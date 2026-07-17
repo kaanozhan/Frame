@@ -10,6 +10,7 @@ const structureMap = require('./structureMap');
 let isVisible = false;
 let overviewData = null;
 let containerElement = null;
+let graphBuilding = null; // { progress } while a build runs, else null
 
 /**
  * Initialize overview panel
@@ -17,6 +18,43 @@ let containerElement = null;
 function init() {
   // Initialize structure map
   structureMap.init();
+
+  // Live graph-build state: while building, the card shows progress; when a
+  // build finishes (any terminal status) the panel re-renders from disk.
+  ipcRenderer.on(IPC.CODE_GRAPH_STATUS, (event, payload) => {
+    const state = require('./state');
+    if (!payload || payload.projectPath !== state.getProjectPath()) return;
+    if (payload.status === 'building') {
+      graphBuilding = { progress: payload.progress || null };
+      updateGraphCard();
+    } else {
+      graphBuilding = null;
+      if (containerElement) refresh();
+    }
+  });
+}
+
+/** Re-render only the graph card in place (cheap progress updates). */
+function updateGraphCard() {
+  if (!containerElement) return;
+  const card = containerElement.querySelector('[data-card="graph"]');
+  if (!card) return;
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = renderGraphCard(overviewData ? overviewData.graph : null);
+  const newCard = wrapper.firstElementChild;
+  card.replaceWith(newCard);
+  // Re-wire the button — the in-place swap dropped the original listener.
+  const btn = newCard.querySelector('[data-action="graph-reanalyze"]');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const state = require('./state');
+      const projectPath = state.getProjectPath();
+      if (!projectPath) return;
+      graphBuilding = { progress: null };
+      updateGraphCard();
+      ipcRenderer.invoke(IPC.REBUILD_CODE_GRAPH, projectPath);
+    });
+  }
 }
 
 /**
@@ -99,6 +137,7 @@ function renderOverview(data) {
         ${renderProgressCard(data.tasks)}
         ${renderDecisionsCard(data.decisions)}
         ${renderStatsCard(data.stats)}
+        ${renderGraphCard(data.graph)}
       </div>
 
       <div class="overview-footer">
@@ -283,6 +322,87 @@ function renderStatsCard(stats) {
 }
 
 /**
+ * Render code-graph card. States mirror meta.json's degradation matrix:
+ * never built / building / built / partial / no-languages / error — each
+ * says what happened and (where useful) offers Re-analyze.
+ */
+function renderGraphCard(graph) {
+  const header = `
+    <div class="card-header">
+      <span class="card-icon">🕸️</span>
+      <span class="card-title">Code Graph</span>
+    </div>
+  `;
+  const reanalyzeBtn = '<button class="overview-refresh-btn" data-action="graph-reanalyze">Re-analyze</button>';
+
+  if (graphBuilding) {
+    const p = graphBuilding.progress;
+    return `
+      <div class="overview-card" data-card="graph">
+        ${header}
+        <div class="card-content">
+          <div class="card-stat-label">Analyzing codebase…${p ? ` (${p.parsed}/${p.total} files)` : ''}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (!graph) {
+    return `
+      <div class="overview-card" data-card="graph">
+        ${header}
+        <div class="card-empty">Not analyzed yet</div>
+        <div class="card-content">${reanalyzeBtn.replace('Re-analyze', 'Analyze')}</div>
+      </div>
+    `;
+  }
+
+  if (graph.status === 'no-languages') {
+    return `
+      <div class="overview-card" data-card="graph">
+        ${header}
+        <div class="card-content">
+          <div class="card-stat-label">Couldn't detect any languages — review .frame/config.json</div>
+          ${reanalyzeBtn}
+        </div>
+      </div>
+    `;
+  }
+
+  if (graph.status === 'error') {
+    return `
+      <div class="overview-card" data-card="graph">
+        ${header}
+        <div class="card-content">
+          <div class="card-stat-label">Analysis failed: ${escapeHtml(graph.error || 'unknown error')}</div>
+          ${reanalyzeBtn}
+        </div>
+      </div>
+    `;
+  }
+
+  // built / partial
+  const counts = graph.counts || {};
+  const notes = [];
+  if (graph.status === 'partial') notes.push('partial — time budget hit');
+  if ((graph.capsHit || []).length > 0) notes.push(`${graph.capsHit.length} cap(s) hit`);
+  if ((graph.skippedLanguages || []).length > 0) notes.push(`skipped: ${graph.skippedLanguages.join(', ')}`);
+
+  return `
+    <div class="overview-card" data-card="graph">
+      ${header}
+      <div class="card-content">
+        <div class="card-stat-big">${counts.symbols || 0}</div>
+        <div class="card-stat-label">symbols · ${counts.files || 0} files · ${counts.imports || 0} imports</div>
+        ${notes.length ? `<div class="card-meta">${escapeHtml(notes.join(' · '))}</div>` : ''}
+        <div class="card-meta">Built ${formatTime(graph.builtAt)} · query: node .frame/bin/graph-query.js</div>
+        ${reanalyzeBtn}
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Setup card click interactions
  */
 function setupCardInteractions(container, data) {
@@ -294,6 +414,16 @@ function setupCardInteractions(container, data) {
   if (structureCard && projectPath) {
     structureCard.addEventListener('click', () => {
       structureMap.show(projectPath);
+    });
+  }
+
+  // Graph card - trigger a rebuild (progress arrives via CODE_GRAPH_STATUS)
+  const reanalyzeBtn = container.querySelector('[data-action="graph-reanalyze"]');
+  if (reanalyzeBtn && projectPath) {
+    reanalyzeBtn.addEventListener('click', () => {
+      graphBuilding = { progress: null };
+      updateGraphCard();
+      ipcRenderer.invoke(IPC.REBUILD_CODE_GRAPH, projectPath);
     });
   }
 }

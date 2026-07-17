@@ -43,6 +43,7 @@
     "lucide": "^0.577.0",
     "marked": "^17.0.5",
     "node-pty": "^1.0.0",
+    "web-tree-sitter": "^0.26.11",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
   },
@@ -84,11 +85,20 @@
       "scripts/update-structure.js",
       "scripts/find-module.js",
       "scripts/check-freshness.js",
+      "scripts/detect-project.js",
+      "scripts/graph-query.js",
+      "scripts/lang/**",
       "scripts/intent-map.json",
       "node_modules/**/*",
       "!node_modules/**/*.md",
       "!node_modules/**/test/**",
       "!node_modules/**/tests/**"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/tree-sitter",
+        "to": "tree-sitter"
+      }
     ]
   }
 }

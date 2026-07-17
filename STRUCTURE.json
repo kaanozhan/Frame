@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-12",
+  "lastUpdated": "2026-07-17",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -526,7 +526,8 @@
         "shared/frameTemplates",
         "workspace",
         "structureBootstrap",
-        "../scripts/detect-project"
+        "../scripts/detect-project",
+        "graphManager"
       ],
       "functions": {
         "init": {
@@ -589,26 +590,26 @@
           "purpose": "Initialize a project as Frame project"
         },
         "isSpecDrivenEnabled": {
-          "line": 360,
+          "line": 374,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 365,
+          "line": 379,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 390,
+          "line": 404,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "setupIPC": {
-          "line": 451,
+          "line": 465,
           "params": [
             "ipcMain"
           ],
@@ -1073,6 +1074,214 @@
         "emits": []
       }
     },
+    "main/graphBuilder": {
+      "file": "src/main/graphBuilder.js",
+      "description": "Graph Builder",
+      "exports": [
+        "GRAPH_VERSION",
+        "GRAPH_DIR",
+        "MAX_GRAPH_FILES",
+        "MAX_GRAPH_DEPTH",
+        "MAX_FILE_SIZE",
+        "TIME_BUDGET_MS",
+        "LANGUAGE_EXT_GRAMMARS",
+        "collectSourceFiles",
+        "resolveImport",
+        "writeGraph",
+        "writeMetaOnly"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "loadProjectConfig": {
+          "line": 59,
+          "params": [
+            "rootDir"
+          ],
+          "purpose": "The `project` block of .frame/config.json (written by detect-project.js)."
+        },
+        "getSourceRoots": {
+          "line": 72,
+          "params": [
+            "rootDir",
+            "project"
+          ],
+          "purpose": "Source roots to scan — project.sourceRoots from config, falling back to"
+        },
+        "loadGitignoreDirs": {
+          "line": 86,
+          "params": [
+            "rootDir"
+          ],
+          "purpose": "Simple .gitignore subset (mirrors update-structure.js): bare directory"
+        },
+        "toFileId": {
+          "line": 107,
+          "params": [
+            "rootDir",
+            "absPath"
+          ],
+          "purpose": "POSIX-normalized repo-relative id — forward slashes on every platform."
+        },
+        "collectSourceFiles": {
+          "line": 119,
+          "params": [
+            "rootDir"
+          ],
+          "purpose": "Walk the detected source roots and classify every parseable file by"
+        },
+        "resolveImport": {
+          "line": 212,
+          "params": [
+            "fromId",
+            "rawTarget",
+            "fileIds",
+            "grammar"
+          ],
+          "purpose": "Resolve a raw import specifier to a known file id where possible."
+        },
+        "resolvePythonImport": {
+          "line": 236,
+          "params": [
+            "fromId",
+            "target",
+            "fileIds"
+          ],
+          "purpose": "Python import → file id: \"pkg.mod\" tries pkg/mod.py from the repo root,"
+        },
+        "writeGraph": {
+          "line": 263,
+          "params": [
+            "rootDir",
+            "parsedFiles",
+            "info",
+            "extras = {}"
+          ],
+          "purpose": "Assemble the final graph from the worker's per-file parse results and"
+        },
+        "writeMetaOnly": {
+          "line": 304,
+          "params": [
+            "rootDir",
+            "status",
+            "info",
+            "extras = {}"
+          ],
+          "purpose": "Write only meta.json (no graph) — used for the degraded outcomes"
+        },
+        "writeGraphFiles": {
+          "line": 323,
+          "params": [
+            "rootDir",
+            "graph",
+            "meta"
+          ],
+          "purpose": "Shared writer: mkdir -p .frame/graph, temp-file + rename per artifact."
+        }
+      }
+    },
+    "main/graphManager": {
+      "file": "src/main/graphManager.js",
+      "description": "Graph Manager",
+      "exports": [
+        "init",
+        "setupIPC",
+        "startBuild",
+        "getStatus"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 24,
+          "params": [
+            "window"
+          ],
+          "purpose": "Initialize graph manager"
+        },
+        "getWasmDir": {
+          "line": 34,
+          "purpose": "Vendored wasm directory: extraResources ships resources/tree-sitter to"
+        },
+        "pushStatus": {
+          "line": 42,
+          "params": [
+            "payload"
+          ],
+          "purpose": "Push a status payload to the renderer (no-op before the window exists)."
+        },
+        "startBuild": {
+          "line": 53,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Start a graph build for a project. Returns the initial status payload."
+        },
+        "getStatus": {
+          "line": 104,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Current status for a project: the running build if there is one, else"
+        },
+        "setupIPC": {
+          "line": 125,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "Setup IPC handlers"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LOAD_CODE_GRAPH_STATUS",
+          "REBUILD_CODE_GRAPH"
+        ],
+        "emits": [
+          "CODE_GRAPH_STATUS"
+        ]
+      }
+    },
+    "main/graphWorker": {
+      "file": "src/main/graphWorker.js",
+      "description": "Graph Worker",
+      "exports": [],
+      "depends": [
+        "fs",
+        "path",
+        "graphBuilder",
+        "web-tree-sitter"
+      ],
+      "functions": {
+        "post": {
+          "line": 26,
+          "params": [
+            "msg"
+          ]
+        },
+        "cleanImportText": {
+          "line": 109,
+          "params": [
+            "grammar",
+            "text"
+          ],
+          "purpose": "Go import paths keep their quotes in the CST — strip them."
+        },
+        "run": {
+          "line": 116,
+          "params": [
+            "rootDir",
+            "wasmDir"
+          ]
+        }
+      }
+    },
     "main/index": {
       "file": "src/main/index.js",
       "description": "Main Process Entry Point",
@@ -1099,6 +1308,7 @@
         "githubManager",
         "claudeUsageManager",
         "overviewManager",
+        "graphManager",
         "gitBranchesManager",
         "aiToolManager",
         "claudeSessionsManager",
@@ -1113,26 +1323,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 46,
+          "line": 47,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 64,
+          "line": 65,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 138
+          "line": 139
         },
         "setupAllIPC": {
-          "line": 164,
+          "line": 165,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 235,
+          "line": 237,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 262,
+          "line": 264,
           "params": [
             "window"
           ],
@@ -1617,57 +1827,64 @@
           ],
           "purpose": "Load overview data for a project"
         },
+        "loadGraphMeta": {
+          "line": 58,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Load code-graph meta from .frame/graph/meta.json (null when never built —"
+        },
         "loadStructure": {
-          "line": 55,
+          "line": 74,
           "params": [
             "projectPath"
           ],
           "purpose": "Load structure from STRUCTURE.json"
         },
         "loadTasks": {
-          "line": 95,
+          "line": 114,
           "params": [
             "projectPath"
           ],
           "purpose": "Load tasks from tasks.json"
         },
         "loadDecisions": {
-          "line": 148,
+          "line": 167,
           "params": [
             "projectPath"
           ],
           "purpose": "Load decisions from PROJECT_NOTES.md"
         },
         "loadStats": {
-          "line": 187,
+          "line": 206,
           "params": [
             "projectPath"
           ],
           "purpose": "Load project stats (lines of code, files, git info)"
         },
         "countLinesOfCode": {
-          "line": 209,
+          "line": 228,
           "params": [
             "projectPath"
           ],
           "purpose": "Count lines of code in src directory"
         },
         "countFiles": {
-          "line": 233,
+          "line": 252,
           "params": [
             "projectPath"
           ],
           "purpose": "Count files in src directory"
         },
         "getGitInfo": {
-          "line": 256,
+          "line": 275,
           "params": [
             "projectPath"
           ],
           "purpose": "Get git information"
         },
         "getFileGitHistory": {
-          "line": 286,
+          "line": 305,
           "params": [
             "projectPath",
             "filePath"
@@ -1675,7 +1892,7 @@
           "purpose": "Get file git history (contributors, commits, blame)"
         },
         "getFileCommits": {
-          "line": 323,
+          "line": 342,
           "params": [
             "projectPath",
             "filePath"
@@ -1683,7 +1900,7 @@
           "purpose": "Get recent commits for a file"
         },
         "getFileContributors": {
-          "line": 354,
+          "line": 373,
           "params": [
             "projectPath",
             "filePath"
@@ -1691,7 +1908,7 @@
           "purpose": "Get contributors for a file"
         },
         "getFileBlame": {
-          "line": 387,
+          "line": 406,
           "params": [
             "projectPath",
             "filePath"
@@ -1699,7 +1916,7 @@
           "purpose": "Get blame summary for a file (who wrote how many lines)"
         },
         "setupIPC": {
-          "line": 419,
+          "line": 438,
           "params": [
             "ipcMain"
           ],
@@ -4874,68 +5091,79 @@
       ],
       "functions": {
         "init": {
-          "line": 17,
+          "line": 18,
           "purpose": "Initialize overview panel"
         },
+        "updateGraphCard": {
+          "line": 38,
+          "purpose": "Re-render only the graph card in place (cheap progress updates)."
+        },
         "loadOverview": {
-          "line": 25,
+          "line": 63,
           "purpose": "Load overview data"
         },
         "render": {
-          "line": 45,
+          "line": 83,
           "params": [
             "container"
           ],
           "purpose": "Render overview in container"
         },
         "renderLoading": {
-          "line": 65,
+          "line": 103,
           "purpose": "Render loading state"
         },
         "renderError": {
-          "line": 77,
+          "line": 115,
           "params": [
             "message"
           ],
           "purpose": "Render error state"
         },
         "renderOverview": {
-          "line": 89,
+          "line": 127,
           "params": [
             "data"
           ],
           "purpose": "Render overview dashboard"
         },
         "renderStructureCard": {
-          "line": 115,
+          "line": 154,
           "params": [
             "structure"
           ],
           "purpose": "Render structure card"
         },
         "renderProgressCard": {
-          "line": 156,
+          "line": 195,
           "params": [
             "tasks"
           ],
           "purpose": "Render progress card"
         },
         "renderDecisionsCard": {
-          "line": 195,
+          "line": 234,
           "params": [
             "decisions"
           ],
           "purpose": "Render decisions card"
         },
         "renderStatsCard": {
-          "line": 235,
+          "line": 274,
           "params": [
             "stats"
           ],
           "purpose": "Render stats card"
         },
+        "renderGraphCard": {
+          "line": 329,
+          "params": [
+            "graph"
+          ],
+          "purpose": "Render code-graph card. States mirror meta.json's degradation matrix:"
+        },
         "setupCardInteractions": {
-          "line": 288,
+          "line": 408,
           "params": [
             "container",
             "data"
@@ -4943,30 +5171,36 @@
           "purpose": "Setup card click interactions"
         },
         "refresh": {
-          "line": 304,
+          "line": 434,
           "purpose": "Refresh overview"
         },
         "formatTime": {
-          "line": 316,
+          "line": 446,
           "params": [
             "isoString"
           ],
           "purpose": "Format time for display"
         },
         "formatNumber": {
-          "line": 324,
+          "line": 454,
           "params": [
             "num"
           ],
           "purpose": "Format number with commas"
         },
         "escapeHtml": {
-          "line": 331,
+          "line": 461,
           "params": [
             "text"
           ],
           "purpose": "Escape HTML"
         }
+      },
+      "ipc": {
+        "listens": [
+          "CODE_GRAPH_STATUS"
+        ],
+        "emits": []
       }
     },
     "renderer/platform": {
@@ -5510,29 +5744,43 @@
       ],
       "functions": {
         "escapeHtml": {
-          "line": 30,
+          "line": 31,
           "params": [
             "s"
           ]
         },
         "detectionSummary": {
-          "line": 38,
+          "line": 39,
           "params": [
             "project"
           ],
           "purpose": "One-line summary of the detected stack for the post-init banner"
         },
         "setDetectionVisible": {
-          "line": 50,
+          "line": 51,
           "params": [
             "visible"
           ]
         },
+        "graphStatusLine": {
+          "line": 57,
+          "params": [
+            "payload"
+          ],
+          "purpose": "One-line code-graph build state appended to the post-init banner."
+        },
+        "renderDetectionText": {
+          "line": 78,
+          "params": [
+            "graphPayload"
+          ],
+          "purpose": "Repaint the banner as base summary + current graph line."
+        },
         "init": {
-          "line": 55
+          "line": 84
         },
         "setVisible": {
-          "line": 108,
+          "line": 146,
           "params": [
             "visible"
           ]
@@ -5540,7 +5788,8 @@
       },
       "ipc": {
         "listens": [
-          "FRAME_PROJECT_INITIALIZED"
+          "FRAME_PROJECT_INITIALIZED",
+          "CODE_GRAPH_STATUS"
         ],
         "emits": []
       }
@@ -7560,14 +7809,14 @@
           ]
         },
         "getReferenceTemplate": {
-          "line": 236,
+          "line": 246,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 411,
+          "line": 421,
           "params": [
             "projectName",
             "project"
@@ -7575,21 +7824,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 436,
+          "line": 446,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 456,
+          "line": 466,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 502,
+          "line": 512,
           "params": [
             "projectName",
             "project"
@@ -7597,18 +7846,18 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 583,
+          "line": 602,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 622,
+          "line": 641,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 659,
+          "line": 678,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -7616,27 +7865,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 705
+          "line": 724
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 726,
+          "line": 745,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 749,
+          "line": 768,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 761,
+          "line": 780,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 781
+          "line": 800
         },
         "getOrchBinScripts": {
-          "line": 799,
+          "line": 818,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
@@ -8498,6 +8747,25 @@
         "direction": "",
         "description": ""
       }
+    },
+    "code": {
+      "LOAD_CODE_GRAPH_STATUS": {
+        "name": "load-code-graph-status",
+        "direction": "",
+        "description": ""
+      },
+      "CODE_GRAPH_STATUS": {
+        "name": "code-graph-status",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "rebuild": {
+      "REBUILD_CODE_GRAPH": {
+        "name": "rebuild-code-graph",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -8646,6 +8914,23 @@
         "description": "GitHub Panel Module"
       }
     ],
+    "graph": [
+      {
+        "module": "main/graphBuilder",
+        "file": "src/main/graphBuilder.js",
+        "description": "Graph Builder"
+      },
+      {
+        "module": "main/graphManager",
+        "file": "src/main/graphManager.js",
+        "description": "Graph Manager"
+      },
+      {
+        "module": "main/graphWorker",
+        "file": "src/main/graphWorker.js",
+        "description": "Graph Worker"
+      }
+    ],
     "history": [
       {
         "module": "main/promptLogger",
@@ -8671,6 +8956,11 @@
       }
     ],
     "manager": [
+      {
+        "module": "main/graphManager",
+        "file": "src/main/graphManager.js",
+        "description": "Graph Manager"
+      },
       {
         "module": "main/overviewManager",
         "file": "src/main/overviewManager.js",

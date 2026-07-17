@@ -343,10 +343,24 @@ function initializeFrameProject(projectPath, projectName) {
     console.warn('[frame] structure bootstrap failed (non-fatal):', err.message);
   }
 
+  // Kick off the code-graph build (tree-sitter, in a utilityProcess via
+  // graphManager). Async and non-fatal: the build outlives this call, so the
+  // summary only says "building" — completion reaches the renderer through
+  // the CODE_GRAPH_STATUS push channel.
+  let graphBuildStatus = null;
+  try {
+    const graphManager = require('./graphManager');
+    graphManager.startBuild(projectPath);
+    graphBuildStatus = { status: 'building' };
+  } catch (err) {
+    console.warn('[frame] graph build start failed (non-fatal):', err.message);
+    graphBuildStatus = { status: 'error', message: err.message };
+  }
+
   // Update workspace to mark as Frame project
   workspace.updateProjectFrameStatus(projectPath, true);
 
-  return { ...config, _structureBootstrap: structureBootstrapSummary };
+  return { ...config, _structureBootstrap: structureBootstrapSummary, _graphBuild: graphBuildStatus };
 }
 
 // ─── Spec-Driven Development opt-in (Slice 1.5) ──────────────

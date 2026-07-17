@@ -26,6 +26,7 @@ let detectionBannerEl = null;
 let detectionTextEl = null;
 let initialized = false;
 let dismissedForCurrentSession = false;
+let detectionBaseText = ''; // detection summary; graph status is appended live
 
 function escapeHtml(s) {
   return String(s)
@@ -52,6 +53,34 @@ function setDetectionVisible(visible) {
   detectionBannerEl.classList.toggle('visible', !!visible);
 }
 
+/** One-line code-graph build state appended to the post-init banner. */
+function graphStatusLine(payload) {
+  if (!payload) return '';
+  if (payload.status === 'building') {
+    const p = payload.progress;
+    return `Analyzing codebase…${p ? ` (${p.parsed}/${p.total} files)` : ''}`;
+  }
+  if (payload.status === 'built' || payload.status === 'partial') {
+    const c = (payload.meta && payload.meta.counts) || {};
+    const partial = payload.status === 'partial' ? ' (partial — time budget hit)' : '';
+    return `Code graph ready${partial} — ${c.files || 0} files, ${c.symbols || 0} symbols. Query it: <strong>node .frame/bin/graph-query.js</strong>`;
+  }
+  if (payload.status === 'no-languages') {
+    return 'Code graph skipped — no languages detected.';
+  }
+  if (payload.status === 'error') {
+    return 'Code graph build failed — re-analyze from the Overview panel.';
+  }
+  return '';
+}
+
+/** Repaint the banner as base summary + current graph line. */
+function renderDetectionText(graphPayload) {
+  if (!detectionTextEl) return;
+  const line = graphStatusLine(graphPayload);
+  detectionTextEl.innerHTML = detectionBaseText + (line ? ` ${line}` : '');
+}
+
 function init() {
   if (initialized) return;
   bannerEl = document.getElementById('sample-banner');
@@ -70,9 +99,18 @@ function init() {
     if (!success || !config) return;
     if (projectPath !== state.getProjectPath()) return;
     if (state.getIsSampleProject()) return;
-    if (detectionTextEl) detectionTextEl.innerHTML = detectionSummary(config.project || null);
+    detectionBaseText = detectionSummary(config.project || null);
+    renderDetectionText(config._graphBuild ? { status: 'building' } : null);
     setDetectionVisible(true);
   });
+
+  // Graph build progress/result, appended live while the banner is showing.
+  ipcRenderer.on(IPC.CODE_GRAPH_STATUS, (event, payload) => {
+    if (!detectionBannerEl || !detectionBannerEl.classList.contains('visible')) return;
+    if (!payload || payload.projectPath !== state.getProjectPath()) return;
+    renderDetectionText(payload);
+  });
+
   state.onProjectChange(() => setDetectionVisible(false));
 
   if (!bannerEl) return;
