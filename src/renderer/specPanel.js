@@ -281,6 +281,7 @@ function renderDetail() {
     if (activeSpec) showRenameModal(activeSpec.status);
   });
   if (activeTab === 'tasks') attachTaskActionHandlers();
+  if (activeTab === 'plan') attachPlanReportHandler();
 }
 
 // ─── Next-action bar ────────────────────────────────
@@ -378,12 +379,33 @@ function renderTabBody(tab) {
   if (tab === 'tasks') return renderTasksTabBody();
 
   const md = activeSpec?.[tab];
-  if (md) return renderMarkdown(md);
+  if (md) {
+    const reportRow = tab === 'plan' && activeSpec?.planReportPath ? renderPlanReportRow() : '';
+    return reportRow + renderMarkdown(md);
+  }
   if (tab === 'outcome') {
     return `<div class="spec-empty-tab">No outcomes yet — they're captured automatically as <code>/spec.implement</code> completes each task.</div>`;
   }
   const cmdMap = { spec: '/spec.new', plan: '/spec.plan', tasks: '/spec.tasks' };
   return `<div class="spec-empty-tab">No <code>${tab}.md</code> yet — run <code>${cmdMap[tab]}</code> from the terminal.</div>`;
+}
+
+// "View Plan Report" — shown above the rendered plan only when the spec
+// folder holds a plan-report.html (getSpec exposes it as planReportPath).
+// Opens in the system default browser; an in-app viewer is a follow-up spec.
+function renderPlanReportRow() {
+  return `
+    <div class="spec-plan-report-row">
+      <button class="btn btn-secondary spec-plan-report-btn">View Plan Report</button>
+    </div>
+  `;
+}
+
+function attachPlanReportHandler() {
+  contentEl.querySelector('.spec-plan-report-btn')?.addEventListener('click', () => {
+    const p = activeSpec?.planReportPath;
+    if (p) require('electron').shell.openPath(p);
+  });
 }
 
 function renderTasksTabBody() {
@@ -515,6 +537,7 @@ function switchTab(tab) {
   const body = contentEl.querySelector('#spec-detail-body');
   if (body) body.innerHTML = renderTabBody(tab);
   if (tab === 'tasks') attachTaskActionHandlers();
+  if (tab === 'plan') attachPlanReportHandler();
 }
 
 function backToList() {

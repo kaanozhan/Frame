@@ -44,6 +44,10 @@ release/
 # Frame runtime artifacts (staged spec / agent-dispatch prompts — regenerated)
 .frame/runtime/
 
+# Frame orchestration artifacts (materialized on every orchestration start — regenerated)
+.frame/bin/*.js
+.frame/orchestration/
+
 #Walkthroughs
 WALKTHROUGH/*.p8
 RELEASE.local.md

@@ -36,6 +36,15 @@ Section guidance:
 - **Success Criteria** — Testable acceptance criteria in "When X happens, then Y" form. Each one independently checkable.
 - **Out of Scope** — Adjacent work that should ship as a separate spec. List by name; don't elaborate.
 
+After the five sections, append one more **only when it applies**:
+
+- **Open Questions** — add an `## Open Questions` section **only when the
+  description genuinely leaves unresolved forks that need a developer or
+  business decision**. Each entry names the fork and lists 1–2 candidate
+  options. No forks → no section; never invent questions to fill it. This
+  section is the primary input to `/spec.plan`'s decision gate, where the
+  forks get resolved with the user.
+
 ## After writing
 
 Update `.frame/specs/{slug}/status.json`:

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-12",
+  "lastUpdated": "2026-07-17",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -2156,52 +2156,52 @@
       ],
       "functions": {
         "getSpecsRoot": {
-          "line": 43,
+          "line": 44,
           "params": [
             "projectPath"
           ]
         },
         "getSpecDir": {
-          "line": 47,
+          "line": 48,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "generateSlug": {
-          "line": 56,
+          "line": 57,
           "params": [
             "title"
           ]
         },
         "uniqueSlug": {
-          "line": 69,
+          "line": 70,
           "params": [
             "projectPath",
             "baseSlug"
           ]
         },
         "validateSpecStatus": {
-          "line": 82,
+          "line": 83,
           "params": [
             "obj"
           ]
         },
         "readFileSafe": {
-          "line": 101,
+          "line": 102,
           "params": [
             "p"
           ]
         },
         "readStatus": {
-          "line": 110,
+          "line": 111,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 121,
+          "line": 122,
           "params": [
             "projectPath",
             "slug",
@@ -2209,13 +2209,13 @@
           ]
         },
         "listSpecs": {
-          "line": 129,
+          "line": 130,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 184,
+          "line": 185,
           "params": [
             "projectPath",
             "slug",
@@ -2223,7 +2223,7 @@
           ]
         },
         "derivePhase": {
-          "line": 188,
+          "line": 189,
           "params": [
             "projectPath",
             "slug",
@@ -2232,14 +2232,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 207,
+          "line": 208,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 213,
+          "line": 214,
           "params": [
             "projectPath",
             "slug",
@@ -2247,14 +2247,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 237,
+          "line": 238,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 241,
+          "line": 242,
           "params": [
             "projectPath",
             "aiTool",
@@ -2262,7 +2262,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 245,
+          "line": 246,
           "params": [
             "projectPath",
             "aiTool",
@@ -2270,14 +2270,14 @@
           ]
         },
         "interpolate": {
-          "line": 251,
+          "line": 252,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 258,
+          "line": 259,
           "params": [
             "projectPath",
             "slug",
@@ -2285,8 +2285,16 @@
             "aiTool"
           ]
         },
+        "stageReportTemplateAsset": {
+          "line": 295,
+          "params": [
+            "projectPath",
+            "aiTool"
+          ],
+          "purpose": "The spec.plan agent fills the report template from the terminal CLI,"
+        },
         "buildSpecCommandFile": {
-          "line": 285,
+          "line": 316,
           "params": [
             "projectPath",
             "slug",
@@ -2295,53 +2303,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 313,
+          "line": 345,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 339,
+          "line": 371,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 358,
+          "line": 390,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 363,
+          "line": 395,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 443,
+          "line": 475,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 450,
+          "line": 482,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 467,
+          "line": 499,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 488,
+          "line": 522,
           "params": [
             "projectPath",
             "query"
@@ -2349,14 +2357,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 509,
+          "line": 543,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 551,
+          "line": 585,
           "params": [
             "projectPath",
             "slug",
@@ -2364,14 +2372,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 569,
+          "line": 603,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 586,
+          "line": 620,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2380,28 +2388,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 693,
+          "line": 727,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 735
+          "line": 769
         },
         "pushSpecData": {
-          "line": 755,
+          "line": 789,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 766,
+          "line": 800,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 770,
+          "line": 804,
           "params": [
             "ipcMain"
           ]
@@ -5823,26 +5831,26 @@
           "line": 226
         },
         "nextActionForPhase": {
-          "line": 292,
+          "line": 293,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 308,
+          "line": 309,
           "params": [
             "action",
             "lane"
           ]
         },
         "runSpecCommand": {
-          "line": 340,
+          "line": 341,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 352,
+          "line": 353,
           "params": [
             "tab",
             "label",
@@ -5850,90 +5858,97 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 358
+          "line": 359
         },
         "tasksTabLabel": {
-          "line": 364,
+          "line": 365,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 373,
+          "line": 374,
           "params": [
             "tab"
           ]
         },
+        "renderPlanReportRow": {
+          "line": 396,
+          "purpose": "\"View Plan Report\" — shown above the rendered plan only when the spec"
+        },
+        "attachPlanReportHandler": {
+          "line": 404
+        },
         "renderTasksTabBody": {
-          "line": 389
+          "line": 411
         },
         "renderSpecTaskRow": {
-          "line": 429,
+          "line": 451,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 478
+          "line": 500
         },
         "handleSpecTaskAction": {
-          "line": 491,
+          "line": 513,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 510,
+          "line": 532,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 520
+          "line": 543
         },
         "showNewSpecPrompt": {
-          "line": 535
+          "line": 558
         },
         "deriveSlugPreview": {
-          "line": 637,
+          "line": 660,
           "params": [
             "title"
           ],
           "purpose": "Same shape as specManager.generateSlug — duplicated here so the renderer"
         },
         "showSuggestionModal": {
-          "line": 655,
+          "line": 678,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 722,
+          "line": 745,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 815,
+          "line": 838,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 835,
+          "line": 858,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 845,
+          "line": 868,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 855,
+          "line": 878,
           "params": [
             "iso"
           ]
@@ -6034,51 +6049,51 @@
           "purpose": "Create a fresh spec viewport instance (the host calls this when needed)."
         },
         "nextActionForPhase": {
-          "line": 331,
+          "line": 354,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 347,
+          "line": 370,
           "params": [
             "action",
             "lane"
           ]
         },
         "stepIndexForPhase": {
-          "line": 383,
+          "line": 406,
           "params": [
             "phase"
           ]
         },
         "renderStepper": {
-          "line": 395,
+          "line": 418,
           "params": [
             "phase"
           ]
         },
         "renderSpecTaskRow": {
-          "line": 412,
+          "line": 435,
           "params": [
             "task"
           ]
         },
         "handleTaskAction": {
-          "line": 461,
+          "line": 484,
           "params": [
             "taskId",
             "action"
           ]
         },
         "renderMarkdown": {
-          "line": 470,
+          "line": 493,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 478,
+          "line": 501,
           "params": [
             "s"
           ]
@@ -6205,53 +6220,53 @@
           "line": 484
         },
         "renderTasksTabBody": {
-          "line": 505
+          "line": 514
         },
         "renderSpecTaskRow": {
-          "line": 542,
+          "line": 551,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 591
+          "line": 600
         },
         "handleSpecTaskAction": {
-          "line": 604,
+          "line": 613,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 615
+          "line": 624
         },
         "tasksTabLabel": {
-          "line": 621,
+          "line": 630,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 630,
+          "line": 639,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 635,
+          "line": 644,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 641,
+          "line": 650,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 652,
+          "line": 661,
           "params": [
             "projectPath"
           ]

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<!--
+  Frame plan report template — project-agnostic; nothing here assumes a
+  specific stack. Copy to .frame/specs/<slug>/plan-report.html and fill
+  every {{...}}. Produced by /spec.plan. Dark-only: styled to Frame's dark
+  design system (warm neutrals, amber accent).
+  Component palette (use as many instances as the plan needs):
+    .flowblock + .fd     -> flow DIAGRAM: rows of typed nodes joined by
+                            labeled arrows; branch rows for alternate paths.
+                            This diagram style is THE canonical way to draw
+                            flows in these reports — do not fall back to
+                            arrow-chain text, swimlanes, or step timelines.
+                            Node roles (rename freely per project):
+                              .actor    user/trigger side
+                              .system   app / API / service work
+                              .data     storage / external side-effects
+                              .decision a fork the flow branches on
+                              .outcome  end state the reader cares about
+    .fd-branch           -> indented alternate-path row after a .decision
+    .fd-legend           -> role legend chips (once, above the first flow)
+    .flownotes           -> architectural notes under EVERY flow
+    .dcard               -> one decision card per fork (no "recommended" badge),
+                            grouped under two h4 headings mirroring the gate
+                            stages: "Business decisions" then "Technical
+                            decisions". A decision born in the gate's
+                            follow-up loop appends a muted chain tag to its
+                            .dhead: <span class="tag">follows from D2</span>
+    coverage             -> three separately-headed tables (Goals / Constraints /
+                            Success criteria), rows in FULL WORDS, IDs only as .tag
+  Keep it self-contained: inline CSS only, no external assets, no build step.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{SPEC_TITLE}} — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  /* ── Flow blocks (diagram style) ── */
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  /* ── Decision cards ── */
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>{{SPEC_TITLE}} — Plan Overview</h1>
+  <p class="muted">{{DATE}} · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/{{SLUG}}/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">{{N}} decisions taken</span><span class="pill">{{N}} loop iterations</span><!-- add headline pills: migrations, endpoints, notable facts --></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>{{Problem + shape of the solution, for a reader who has not seen the spec.}}</p>
+  <p>{{Why this shape over the obvious alternatives.}}</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>{{One line: how many flows, what they are.}}</p>
+
+  <!-- Legend once, above the first flow. Rename roles to fit the project. -->
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>system / service</span>
+    <span class="l-data">storage / external</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <!-- Linear flow: one .fd-row of node → arrow → node. Arrows may carry a label. -->
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — {{flow name}}</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">{{trigger}}</div><div class="fd-sub">{{detail}}</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">{{work}}</div><div class="fd-sub">{{detail e.g. endpoint / module}}</div></div>
+          <div class="fd-arrow"><span class="lbl">{{arrow label}}</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">{{side effect}}</div><div class="fd-sub">{{store / call}}</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">{{result}}</div><div class="fd-sub">{{what the user sees}}</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>{{invariant/rationale}}:</b> {{where enforced, why}}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Branching flow: main row ends at a .decision node; each outcome is an
+       indented .fd-branch row with a labeled pill (.ok / .err / plain). -->
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — {{flow name}}</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">{{trigger}}</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">{{work}}</div><div class="fd-sub">{{detail}}</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">{{question?}}</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">{{yes-ish label}}</span>
+          <div class="fd-node data"><div class="fd-title">{{side effect}}</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">{{happy result}}</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">{{no-ish label}}</span>
+          <div class="fd-node system"><div class="fd-title">{{alternate handling}}</div><div class="fd-sub">{{detail}}</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>{{note}}:</b> {{detail}}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Optional: payload/contract snapshot -->
+  <h3>{{e.g. The payload, in one look}}</h3>
+  <pre>{{contract sketch}}</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <!-- Cards grouped by gate stage. No "recommended" badge — the
+       recommendation lives in the gate, not here. If a stage had no forks,
+       keep the heading with a one-line "no open questions" note. -->
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · {{product/scope/UX fork as a question}}</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">{{chosen option}}</div>
+        <div class="opttrade">{{its trade-off, one line}}</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">{{rejected option}}</div>
+        <div class="opttrade">{{its trade-off, one line}}</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> {{the recorded reasoning}}</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D{{n}} · {{implementation fork as a question}}</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">{{chosen option — the proposed implementation}}</div>
+        <div class="opttrade">{{its trade-off, one line}}</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">{{rejected option}}</div>
+        <div class="opttrade">{{its trade-off, one line}}</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> {{the recorded reasoning}}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>{{edge}}</td><td>{{answer}}</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: {{list, each with where it will land}}.</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <!-- Three separately-headed tables. Rows in FULL WORDS (faithful paraphrase
+       of the spec bullet); checklist IDs only as small .tag chips. -->
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>{{goal in full words}} <span class="tag">G1</span></td><td>{{plan section / flow}}</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>{{constraint in full words}} <span class="tag">C1</span></td><td>{{plan section / flow}}</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>{{criterion in full words}} <span class="tag">S1</span></td><td>{{plan section}} · proven by {{check}}</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>{{claim}}</td><td><span class="pill good">verified</span> {{file:line}} <!-- or .pill.warn drifted/new-evidence/absent --></td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — {{what the critique caught → what changed}}</li>
+  </ol>
+</div>
+
+<footer>Generated {{DATE}} · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/{{SLUG}}/plan.md</code></footer>
+</div>
+</body>
+</html>
