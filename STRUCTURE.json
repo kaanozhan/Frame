@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-16",
+  "lastUpdated": "2026-07-17",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -6049,51 +6049,51 @@
           "purpose": "Create a fresh spec viewport instance (the host calls this when needed)."
         },
         "nextActionForPhase": {
-          "line": 331,
+          "line": 354,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 347,
+          "line": 370,
           "params": [
             "action",
             "lane"
           ]
         },
         "stepIndexForPhase": {
-          "line": 383,
+          "line": 406,
           "params": [
             "phase"
           ]
         },
         "renderStepper": {
-          "line": 395,
+          "line": 418,
           "params": [
             "phase"
           ]
         },
         "renderSpecTaskRow": {
-          "line": 412,
+          "line": 435,
           "params": [
             "task"
           ]
         },
         "handleTaskAction": {
-          "line": 461,
+          "line": 484,
           "params": [
             "taskId",
             "action"
           ]
         },
         "renderMarkdown": {
-          "line": 470,
+          "line": 493,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 478,
+          "line": 501,
           "params": [
             "s"
           ]
