@@ -41,6 +41,7 @@ const { getOrchBinScripts } = require('../shared/frameTemplates');
 const ptyManager = require('./ptyManager');
 const gitBranches = require('./gitBranchesManager');
 const specManager = require('./specManager');
+const telemetry = require('./telemetry');
 
 const WORKER_TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'orchestration', 'WORKER.md');
 const CONDUCTOR_TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'orchestration', 'CONDUCTOR.md');
@@ -334,6 +335,7 @@ async function handleDispatch(session, slug) {
   // Create the isolated worktree (fresh base from current HEAD)
   const wt = await gitBranches.createOrchWorktree(session.projectPath, slug);
   if (wt.error) {
+    telemetry.track('error_occurred', { category: 'orch_worktree_failed' });
     relayToConductor(session, `DISPATCH FAILED: "${slug}" — worktree error: ${wt.error}`);
     return;
   }
@@ -423,6 +425,7 @@ async function handleMerge(session, slug, args = []) {
 
   const res = await gitBranches.mergeWorkToIntegration(session.projectPath, slug);
   if (res.error) {
+    telemetry.track('error_occurred', { category: 'orch_merge_failed' });
     relayToConductor(session, `MERGE FAILED: "${slug}" — ${res.error}`);
     return { status: 'failed', error: res.error };
   }
@@ -481,6 +484,7 @@ function pollStatuses(session) {
     if (!info) {
       w.status = 'failed';
       w.lastActivityAt = Date.now();
+      telemetry.track('error_occurred', { category: 'orch_worker_failed' });
       relayToConductor(session, `WORKER FAILED: "${w.slug}" — its lane exited unexpectedly.`);
       changed = true;
       continue;
@@ -564,6 +568,7 @@ async function startOrchestration(args = {}) {
     console.error('[orch] failed to materialize CONDUCTOR.md:', e.message);
   }
 
+  telemetry.track('orchestration_run_started');
   startBusWatcher(session);
   session.statusPoll = setInterval(() => pollStatuses(session), STATUS_POLL_MS);
   // Recover any worktrees/branches left by a prior (e.g. app-closed) session so

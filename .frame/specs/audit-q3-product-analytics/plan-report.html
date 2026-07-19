@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product analytics &amp; instrumentation — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  /* ── Flow blocks (diagram style) ── */
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  /* ── Decision cards ── */
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Product analytics &amp; instrumentation — Plan Overview</h1>
+  <p class="muted">2026-07-19 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/audit-q3-product-analytics/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">9 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill">10 events in registry</span><span class="pill">0 new dependencies</span><span class="pill warn">1 privacy bug closed</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Frame's telemetry today emits exactly one event — <code>app_started</code> — so the founder has zero signal on which features are used, whether users ever activate (init a project, create a spec, start an agent), or what fails in the wild. Worse, the opt-out is not fully durable: if <code>user-settings.json</code> is corrupted beyond its <code>.bak</code>'s reach, the settings cache resets to <code>{}</code> and <code>isEnabled()</code> silently flips an opted-out user back <b>on</b> — a direct contradiction of PRIVACY.md.</p>
+  <p>The plan extends the existing Aptabase integration with a small, deliberate registry of ten content-free events (activation, feature usage, coarse error counts), all validated at runtime against a declarative allowlist so nothing outside a fixed enum can ever leave the machine. The opt-out bug is fixed first, as its own shippable step: an unrecoverable settings load now <b>fails closed</b> (telemetry off for the session) instead of failing open. PRIVACY.md is updated in the same change set so disclosure never lags shipping. This shape — extend, don't replace; allowlist, don't trust call sites — was chosen over adding a heavier vendor (PostHog) or relying on review-time convention, because the spec's constraints (privacy commitments, low cardinality, Aptabase-first) make those alternatives strictly worse.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Two flows: the event pipeline (capture → validate → send) and the fail-closed opt-out decision at settings load.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>system / service</span>
+    <span class="l-data">storage / external</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Event pipeline: capture → registry validation → Aptabase</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">User action</div><div class="fd-sub">creates spec, starts agent, opens orchestrator, toggles plugin…</div></div>
+          <div class="fd-arrow"><span class="lbl">main: direct · renderer: IPC</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">telemetry.track(name, props)</div><div class="fd-sub">src/main/telemetry.js — renderer sites arrive via TELEMETRY_TRACK channel</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">enabled &amp;&amp; registered?</div><div class="fd-sub">isEnabled() gate, then registry lookup in telemetryEvents.js</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">valid</span>
+          <div class="fd-node system"><div class="fd-title">validateEvent strips props</div><div class="fd-sub">only registered enum values survive; unknown keys dropped</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">aptabase.trackEvent</div><div class="fd-sub">name + enum props only</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Dashboard answers founder's questions</div><div class="fd-sub">usage, activation, error counts</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">disabled / unregistered</span>
+          <div class="fd-node system"><div class="fd-title">Silently dropped</div><div class="fd-sub">no network call, no error — opt-out and allowlist are absolute</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Single choke point:</b> every event — main-process or renderer — passes through <code>track()</code>; the renderer's <code>TELEMETRY_TRACK</code> IPC channel lands on the same validation, so no call site can bypass the allowlist.</li>
+          <li><b>Registry is pure and testable:</b> <code>src/main/telemetryEvents.js</code> (New) has no Electron imports, so <code>node --test</code> can assert the registry contains only enum-typed props — the mechanical "no PII" guarantee.</li>
+          <li><b>Cardinality control:</b> <code>normalizeTool()</code> collapses user-defined tool ids to <code>custom</code> (and <code>claude-code</code> → <code>claude</code>); plugin identity is never sent, only <code>enabled|disabled</code>.</li>
+          <li><b>Ten events total:</b> <code>app_started</code> (existing), <code>project_initialized</code>, <code>spec_created</code>, <code>spec_phase_advanced</code>, <code>agent_run_started</code>, <code>orchestrator_opened</code>, <code>orchestration_run_started</code>, <code>plugin_toggled</code>, <code>ai_tool_selected</code>, <code>error_occurred</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Fail-closed opt-out at settings load</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">App boot</div><div class="fd-sub">userSettings.init() after app.whenReady()</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">fsSafe.readJsonWithRecovery</div><div class="fd-sub">user-settings.json, .bak fallback</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">load outcome?</div><div class="fd-sub">three cases, mapped explicitly</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">parsed / fresh (ENOENT)</span>
+          <div class="fd-node data"><div class="fd-title">cache = data</div><div class="fd-sub">loadFailed() → false</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Setting honored</div><div class="fd-sub">default-on only for genuinely fresh installs</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">corrupt, .bak recovered</span>
+          <div class="fd-node data"><div class="fd-title">cache = last good copy</div><div class="fd-sub">explicit opt-out is inside the recovered data</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Setting honored</div><div class="fd-sub">+ error_occurred: settings_corrupt_recovered</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">unrecoverable</span>
+          <div class="fd-node system"><div class="fd-title">loadFailed() → true</div><div class="fd-sub">effectiveEnabled(...) → false</div></div>
+          <div class="fd-arrow"><span class="lbl">fail closed</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Telemetry off for the session</div><div class="fd-sub">an opted-out user stays opted out</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The bug being closed:</b> today <code>cache = data || {}</code> (userSettings.js:33) plus <code>value !== false</code> (telemetry.js:70) means unrecoverable corruption silently re-opts a user in. The unrecoverable branch above is the fix.</li>
+          <li><b>ENOENT ≠ corruption:</b> <code>readJsonWithRecovery</code> already distinguishes them (<code>error: null</code> vs set), so fresh installs keep the spec-mandated default-on opt-out model untouched.</li>
+          <li><b>Pure decision function:</b> <code>effectiveEnabled({value, loadFailed})</code> lives in <code>telemetryEvents.js</code>, making all four states unit-testable — the regression test success criterion S2 demands.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The registry, in one look</h3>
+  <pre>// src/main/telemetryEvents.js (New) — every event + every allowed prop value
+{
+  app_started:               {},
+  project_initialized:       {},
+  spec_created:              {},
+  spec_phase_advanced:       { phase: ['draft','specified','planned','tasks_generated','implementing','done'] },
+  agent_run_started:         { tool: ['claude','codex','gemini','custom'] },
+  orchestrator_opened:       {},
+  orchestration_run_started: {},
+  plugin_toggled:            { action: ['enabled','disabled'] },
+  ai_tool_selected:          { tool: ['claude','codex','gemini','custom'] },
+  error_occurred:            { category: ['agent_cli_not_found','agent_cli_timeout','agent_spawn_error',
+                                          'terminal_create_failed','orch_worktree_failed','orch_merge_failed',
+                                          'orch_worker_failed','plugin_marketplace_failed',
+                                          'settings_corrupt_recovered'] }
+}</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · How is activation measured in the first cut?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Plain events only</div>
+        <div class="opttrade">Simplest set, no local state; activation read as Aptabase unique-users-per-event, so funnel precision is approximate.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Explicit first_* milestone events</div>
+        <div class="opttrade">Exact activation counts, but more events plus persistent client-side "first done" flags to maintain.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Unique-user counts on <code>project_initialized</code> / <code>spec_created</code> / <code>agent_run_started</code> already answer "do users activate?"; the extra precision of milestone events isn't worth the added event sprawl and local state.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D2 · What happens when user-settings.json is unreadable and .bak can't recover it?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Silent fail-closed</div>
+        <div class="opttrade">Zero nag; a user who never opted out loses at most one session of data.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Fail-closed + re-show consent banner</div>
+        <div class="opttrade">More transparent, but nags users who never opted out and adds banner-state logic for a rare corruption case.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Private-by-default with no UI cost; ENOENT (fresh install) is distinguished from corruption, so the default-on model the spec requires is preserved exactly where it should be.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D3 · How is "no PII / no content" enforced against future contributors?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Runtime event registry (allowlist)</div>
+        <div class="opttrade">Small runtime cost and a registry to maintain — but enforcement is mechanical, not social.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Review checklist only</div>
+        <div class="opttrade">Zero code, but nothing mechanically stops a content-bearing property from shipping.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>track()</code> drops unregistered events/props/values silently, and a unit test asserts the registry is enum-only — a contributor physically cannot ship free-form strings past it.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D4 · How do renderer-originated signals reach telemetry?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">TELEMETRY_TRACK IPC channel</div>
+        <div class="opttrade">One new channel to wire, but every signal is captured at its true source.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Main-process-only proxies</div>
+        <div class="opttrade">No new channel, but "orchestrator opened" and precise agent-launch semantics are lost or approximated.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The main process validates against the same registry before anything reaches Aptabase, so the renderer cannot bypass the allowlist — true-source capture with no trust extended.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D5 · Stay on Aptabase or evaluate PostHog? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Stay on Aptabase</div>
+        <div class="opttrade">Coarser funnel views, but zero migration and anonymous by design.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Switch to PostHog</div>
+        <div class="opttrade">Rich funnels/retention, but a heavier SDK and identity features the spec rules out of scope.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The spec's constraint prefers extending Aptabase absent a concrete reason; every founder question is answerable from event counts + unique-user counts, which Aptabase provides.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D6 · API shape for sending events <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">track(name, props) in telemetry.js</div>
+        <div class="opttrade">One gated helper; trackAppStarted becomes a thin wrapper.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Per-event functions (trackSpecCreated, …)</div>
+        <div class="opttrade">More explicit signatures, but ten near-identical wrappers and a wider surface to keep gated.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The spec's constraint literally suggests "a <code>track(name, props)</code> helper gated by <code>isEnabled()</code>" — matching the existing module's shape.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D7 · What goes in the tool / plugin props? <span class="tag">follows from D3</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Fixed enums; normalize everything else</div>
+        <div class="opttrade">Custom tools all read as "custom" on the dashboard — identity of user-defined tools is invisible by design.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Send raw tool/plugin ids</div>
+        <div class="opttrade">Full visibility, but user-defined tool names and marketplace plugin ids are user content — unbounded cardinality and a PII risk.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>normalizeTool()</code> maps to <code>claude|codex|gemini|custom</code> (and <code>claude-code</code>→<code>claude</code>); <code>plugin_toggled</code> carries only <code>enabled|disabled</code>. Low cardinality is a spec constraint, not a preference.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D8 · Error taxonomy <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">One error_occurred event, fixed category enum</div>
+        <div class="opttrade">Nine categories derived from failure paths the code already handles; new categories require a registry edit.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Per-error events with details</div>
+        <div class="opttrade">Richer debugging, but messages/stacks/paths are exactly what the spec forbids sending.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Counts and categories answer "what are the most common in-the-wild errors?" without any content; the enum is seeded from error sites the evidence pass located in code.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D9 · How do telemetry tests run under node --test? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Extract pure telemetryEvents.js module</div>
+        <div class="opttrade">One new file; registry, validation, normalization, and the enabled decision all testable without Electron.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Test telemetry.js directly with mocks</div>
+        <div class="opttrade">No new file, but telemetry.js requires @aptabase/electron and electron itself — heavy mocking in a runner with no built-in module mocks.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Matches how <code>fsSafe</code>/<code>logger</code> are tested today; the S2 regression test and the S1 enum-only assertion both land in plain <code>node --test</code>.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>Settings corrupt but <code>.bak</code> recovers</td><td>Trust the recovered copy (it contains any explicit opt-out); fire <code>error_occurred: settings_corrupt_recovered</code> so corruption frequency is visible. Not fail-closed — the data is the last known-good state.</td></tr>
+    <tr><td>Fresh install (no settings file at all)</td><td><code>readJsonWithRecovery</code> returns <code>error: null</code> on ENOENT — <code>loadFailed()</code> stays false and the spec-mandated default-on opt-out model is untouched.</td></tr>
+    <tr><td>A future contributor adds a free-form prop</td><td><code>validateEvent()</code> drops it at runtime, and the unit test asserting the registry is enum-only fails their PR.</td></tr>
+    <tr><td>Renderer compromise / stray IPC message</td><td><code>TELEMETRY_TRACK</code> payloads are validated in main against the same registry — an unregistered event or prop never reaches Aptabase.</td></tr>
+    <tr><td>Custom tool names leak identity</td><td><code>normalizeTool()</code> collapses anything outside <code>claude|codex|gemini</code> to <code>custom</code>; spec-side <code>claude-code</code> id normalizes to <code>claude</code>.</td></tr>
+    <tr><td>Orchestrator reattach inflates run counts</td><td><code>orchestration_run_started</code> fires only on the new-session path in <code>startOrchestration</code>, not on reattach.</td></tr>
+    <tr><td>Phase auto-advance vs explicit advance double-counting</td><td>Both <code>updateSpecStatus</code> and <code>reconcilePhase</code> instrument only where a <em>changed</em> phase is written, so one transition fires one event.</td></tr>
+    <tr><td>Events fire while telemetry disabled</td><td>Every path funnels through <code>track()</code>, which checks <code>isEnabled() &amp;&amp; initialized</code> first — disabled means no network call, ever.</td></tr>
+    <tr><td>PRIVACY.md lags the code</td><td>Sequencing step 7 lands the doc update with (not after) instrumentation, honoring the "reflected before/with shipping" constraint.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: explicit <code>first_*</code> milestone events (revisit if unique-user counts prove too coarse — would extend the registry); event timing/duration properties (a later spec; needs its own cardinality review); OpenCode tool id (added to the enum when the <code>add-opencode-cli-support</code> spec ships).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Activation milestones: project initialized, first spec created, first agent/orchestrator run started <span class="tag">G1</span></td><td>Architecture · event set (D1: unique-users reading) · Sequencing 4, 6</td></tr>
+    <tr><td>Feature usage by surface: orchestrator opened, spec phase advanced, plugin invoked, AI tool selected <span class="tag">G2</span></td><td>Architecture · event set · Sequencing 4, 6</td></tr>
+    <tr><td>Error occurrence counts with a coarse category enum — never messages, stacks, paths, or content <span class="tag">G3</span></td><td>Architecture · error taxonomy (D8) · Sequencing 5</td></tr>
+    <tr><td>Durable opt-out that survives settings corruption — fail closed, never silently re-enable <span class="tag">G4</span></td><td>Architecture · fail-closed design (D2) · Sequencing 1</td></tr>
+    <tr><td>Honest disclosure: PRIVACY.md enumerates every new event <span class="tag">G5</span></td><td>Files · PRIVACY.md · Sequencing 7</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Honor existing PRIVACY.md commitments: no paths, contents, project names, prompts, terminal I/O, PII, or IP retention <span class="tag">C1</span></td><td>Architecture · registry design — no prop can carry content (D3, D7)</td></tr>
+    <tr><td>Preserve the opt-out (default-on) model; keep the Settings toggle and one-time notice banner as the consent surface <span class="tag">C2</span></td><td>Architecture · fail-closed flow — toggle/banner untouched; ENOENT keeps default-on (D2)</td></tr>
+    <tr><td>Content-free events only: names + low-cardinality enum props <span class="tag">C3</span></td><td>Architecture · registry + validateEvent + normalizeTool (D3, D7)</td></tr>
+    <tr><td>Extend the existing Aptabase integration rather than adding a new vendor <span class="tag">C4</span></td><td>Architecture · D5, D6 — track() helper on the existing SDK; Dependencies: none</td></tr>
+    <tr><td>Every new event reflected in PRIVACY.md before/with shipping <span class="tag">C5</span></td><td>Sequencing 7 — doc lands in the same change set</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>A named, documented event set with explicit low-cardinality property schemas and zero content/PII fields <span class="tag">S1</span></td><td>Architecture · registry table · proven by the enum-only registry test in <code>test/telemetry.test.js</code></td></tr>
+    <tr><td>Opt-out honored even when user-settings.json is corrupt or unreadable; the re-opt-in bug fixed and covered by a test <span class="tag">S2</span></td><td>Sequencing 1 · proven by the four-state <code>effectiveEnabled</code> regression test</td></tr>
+    <tr><td>PRIVACY.md lists every new event and its properties and restates the "we do not collect" list <span class="tag">S3</span></td><td>Sequencing 7 · proven by doc review against the registry</td></tr>
+    <tr><td>Founder can answer "which features are used?", "do users activate?", "what fails most?" from the dashboard <span class="tag">S4</span></td><td>Architecture · event set — each question maps to named events (Flow A outcome)</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td><code>trackAppStarted()</code> fires <code>aptabase.trackEvent('app_started')</code> at telemetry.js:48</td><td><span class="pill good">verified</span> src/main/telemetry.js:48</td></tr>
+    <tr><td>Called once per launch from index.js:154</td><td><span class="pill warn">drifted</span> call site moved — now src/main/index.js:253 (init at :282); same single-call behavior</td></tr>
+    <tr><td>No other <code>trackEvent</code> call site exists</td><td><span class="pill good">verified</span> codebase-wide grep: only telemetry.js:48</td></tr>
+    <tr><td>Event carries app version, OS, anonymous launch count (PRIVACY.md:7-13)</td><td><span class="pill good">verified</span> PRIVACY.md:7-13</td></tr>
+    <tr><td><code>userSettings.load()</code> swallows any read/parse error and resets <code>cache = {}</code> (userSettings.js:34-37)</td><td><span class="pill warn">drifted</span> load now goes through <code>fsSafe.readJsonWithRecovery</code> with .bak restore (userSettings.js:26-34) — simple corruption self-heals; but on unrecoverable failure <code>cache = data || {}</code> (:33) still resets to <code>{}</code></td></tr>
+    <tr><td><code>isEnabled()</code> returns <code>null !== false === true</code> — silent re-opt-in (telemetry.js:68-71)</td><td><span class="pill good">verified</span> src/main/telemetry.js:68-71 — bug still real on the unrecoverable-corruption path</td></tr>
+    <tr><td>PRIVACY.md "we do not collect" commitments (PRIVACY.md:15-23)</td><td><span class="pill good">verified</span> PRIVACY.md:15-23</td></tr>
+    <tr><td>Aptabase already integrated (telemetry.js:14,34)</td><td><span class="pill good">verified</span> require at :14, initialize at :34; <code>@aptabase/electron ^0.3.1</code> in package.json</td></tr>
+    <tr><td>Settings toggle "Send anonymous usage stats" + one-time notice banner exist</td><td><span class="pill good">verified</span> src/renderer/settingsModal.js:34,57-61 · src/renderer/telemetryNotice.js:21-51 · IPC TELEMETRY_SET_ENABLED handler at src/main/index.js:200</td></tr>
+    <tr><td>New evidence: instrumentation points for every planned event</td><td><span class="pill good">verified</span> frameProject.js:474 (init) · specManager.js:543/585/214 (spec lifecycle) · agentDispatch.js:70/178/298 (agent runs) · orchestrator.js:90/108 + orchestrationManager.js:513 (orchestration) · pluginsManager.js:149 (plugins) · aiToolManager.js:173 (tool select) · error sites in aiToolManager.js:293-303, ptyManager.js:420, orchestrationManager.js:336/425/481, pluginsManager.js:199</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — caught that user-defined custom tool ids and marketplace plugin ids are user content → tool prop normalized to the fixed enum <code>claude|codex|gemini|custom</code>; plugin identity dropped from <code>plugin_toggled</code> (action only).</li>
+    <li><b>Iteration 2</b> — caught a testability gap: telemetry.js requires <code>@aptabase/electron</code> + electron so <code>node --test</code> can't import it → extracted the pure <code>telemetryEvents.js</code> module (registry, validation, <code>effectiveEnabled</code>) so the S1/S2 tests actually run.</li>
+    <li><b>Iteration 3</b> — caught two correctness holes: a <code>.bak</code>-recovered load must NOT fail closed (recovered data holds the real opt-out state), and <code>spec_phase_advanced</code> must hook both <code>updateSpecStatus</code> and <code>reconcilePhase</code> write paths without double-counting → fail-closed narrowed to <code>data === null &amp;&amp; error</code>; phase event fires only where a changed phase is written.</li>
+    <li><b>Iteration 4</b> — format/coverage audit: all five plan sections present, every G/C/S ID owned, zero TBDs, every referenced path/symbol verified in code or marked New. Pass — converged.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-19 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/audit-q3-product-analytics/plan.md</code></footer>
+</div>
+</body>
+</html>

@@ -11,6 +11,7 @@ const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('..
 const templates = require('../shared/frameTemplates');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
+const telemetry = require('./telemetry');
 const detector = require('../../scripts/detect-project');
 
 let mainWindow = null;
@@ -472,6 +473,7 @@ function setupIPC(ipcMain) {
       }
 
       const config = initializeFrameProject(projectPath, projectName);
+      telemetry.track('project_initialized');
       event.sender.send(IPC.FRAME_PROJECT_INITIALIZED, {
         projectPath,
         config,

@@ -1008,3 +1008,44 @@ held throughout — Frame's own repo detects to exactly its historical behavior,
 the golden fixture pins the CJS output byte-for-byte. End-to-end verified inside
 Electron main on a scratch Django repo: populated STRUCTURE.json (the old
 `skipped-no-src` would have left it empty forever), poetry QUICKSTART, Project Facts.
+
+### [2026-07-19] Product analytics shipped: event registry + fail-closed opt-out (audit-q3-product-analytics)
+
+Implemented the full `audit-q3-product-analytics` spec (spec → deep plan → 9 tasks → done)
+in one session. Frame's telemetry went from a single `app_started` event to a
+10-event set answering the founder's roadmap questions (feature usage, activation,
+in-the-wild errors) — without weakening the privacy stance.
+
+**Decisions of record (from the plan gate, user-confirmed):**
+
+- **Activation = unique users per plain event** (`project_initialized`, `spec_created`,
+  `agent_run_started`) on Aptabase — no `first_*` milestone events, no local
+  "first done" flags. Revisit only if unique-user counts prove too coarse.
+- **Fail-closed opt-out:** when `user-settings.json` is unreadable AND its `.bak`
+  can't recover it, telemetry is off for the whole session — silently, no
+  re-consent banner. ENOENT (fresh install) keeps default-on. This closed the
+  re-opt-in bug (`cache = data || {}` + `value !== false` used to silently
+  re-enable telemetry for opted-out users on corruption). A successful
+  `userSettings.set()` clears the degraded state.
+- **Runtime allowlist over convention:** every event + prop + value is declared in
+  `src/main/telemetryEvents.js` (pure module, no Electron imports — testable under
+  `node --test`). `track()` drops anything unregistered; a unit test asserts the
+  registry is enum-only. A future contributor mechanically cannot ship a
+  content-bearing property.
+- **Renderer events go through `TELEMETRY_TRACK` IPC**, validated in main against
+  the same registry — the renderer cannot bypass the allowlist.
+- **Stayed on Aptabase** (constraint preferred extending it; PostHog's
+  funnels/identity are out of scope for our no-user-tracking stance).
+- **Cardinality guards:** user-defined custom tool ids all normalize to `custom`
+  (`claude-code` → `claude`); `plugin_toggled` carries only `enabled|disabled`,
+  never the plugin id; `error_occurred` is a fixed 9-category enum — counts only,
+  never messages/stacks/paths.
+
+**Implementation notes:** `userSettings` fires `settings_corrupt_recovered` via a
+deferred lazy require (telemetry requires userSettings — circular otherwise).
+`agent_run_started` fires only when a CLI actually launches and reaches
+agent-ready, not when a prompt is injected into a running agent;
+`orchestration_run_started` fires only on new sessions, not reattach.
+PRIVACY.md now lists the full event table and the fail-closed guarantee — rule
+going forward: any registry addition lands in PRIVACY.md in the same change.
+Per-task story in `.frame/specs/audit-q3-product-analytics/outcome.md`.

@@ -143,6 +143,7 @@ const IPC = {
 
   // Telemetry (Aptabase, opt-out via Settings)
   TELEMETRY_SET_ENABLED: 'telemetry-set-enabled',
+  TELEMETRY_TRACK: 'telemetry-track',
 
   // Health / crash recovery (main → renderer notices)
   MAIN_PROCESS_ERROR: 'main-process-error',

@@ -7,6 +7,7 @@ const pty = require('node-pty');
 const { IPC } = require('../shared/ipcChannels');
 const logger = require('./logger');
 const promptLogger = require('./promptLogger');
+const telemetry = require('./telemetry');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
@@ -418,6 +419,7 @@ function setupIPC(ipcMain) {
       const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv);
       event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true });
     } catch (error) {
+      telemetry.track('error_occurred', { category: 'terminal_create_failed' });
       event.reply(IPC.TERMINAL_CREATED, { success: false, error: error.message });
     }
   });
