@@ -377,6 +377,15 @@ function addProject(projectPath, projectName, isFrameProject = false) {
  * Remove project from workspace
  */
 function removeProject(projectPath) {
+  // Drop the saved terminal session too — removed projects otherwise leave
+  // a localStorage record behind forever. Lazy require avoids a load cycle.
+  try {
+    const ui = require('./terminal').getMultiTerminalUI();
+    const manager = ui && ui.getManager && ui.getManager();
+    if (manager) manager.clearProjectSession(projectPath);
+  } catch (err) {
+    console.error('Failed to clear terminal session for removed project:', err);
+  }
   ipcRenderer.send(IPC.REMOVE_PROJECT_FROM_WORKSPACE, projectPath);
 }
 

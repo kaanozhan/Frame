@@ -115,11 +115,16 @@ class LaneBoard {
 
     // Current branch comes from the git status watcher fileTreeUI already
     // starts per project — cards show it instead of the (redundant) project.
-    ipcRenderer.on(IPC.GIT_STATUS_DATA, (event, payload) => {
-      this._branch = payload.isRepo ? payload.branch : null;
-      this._branchProject = payload.projectPath;
-      if (this._isVisible()) this._updateBranchChips();
-    });
+    // Init-once across instances: LaneBoard is a singleton; a second
+    // construction must not stack another GIT_STATUS_DATA listener.
+    if (!LaneBoard._gitListenerBound) {
+      LaneBoard._gitListenerBound = true;
+      ipcRenderer.on(IPC.GIT_STATUS_DATA, (event, payload) => {
+        this._branch = payload.isRepo ? payload.branch : null;
+        this._branchProject = payload.projectPath;
+        if (this._isVisible()) this._updateBranchChips();
+      });
+    }
   }
 
   /**

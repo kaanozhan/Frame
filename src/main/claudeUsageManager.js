@@ -3,13 +3,15 @@
  * Fetches Claude Code usage data from OAuth API and provides periodic updates
  */
 
-const { execSync } = require('child_process');
+const { execFile } = require('child_process');
 const fs = require('fs');
+const fsp = require('fs').promises;
 const os = require('os');
 const path = require('path');
 const https = require('https');
 const { IPC } = require('../shared/ipcChannels');
 const logger = require('./logger');
+const pollGate = require('./pollGate');
 
 // Token sources, in order: the macOS Keychain (`security` CLI), then Claude
 // Code's file-based store (~/.claude/.credentials.json) — the cross-platform
@@ -79,29 +81,43 @@ function parseAccessToken(raw) {
 }
 
 /**
- * Get OAuth token: macOS Keychain first, then the file-based store
- * @returns {string|null} Access token or null if not found
+ * Read the Keychain entry via the `security` CLI, asynchronously — the old
+ * execSync here blocked the whole main process for up to 5s on every poll.
  */
-function getOAuthToken() {
+function readKeychainCredentials() {
+  return new Promise((resolve) => {
+    execFile(
+      'security',
+      ['find-generic-password', '-s', 'Claude Code-credentials', '-w'],
+      { encoding: 'utf8', timeout: 5000 },
+      (err, stdout) => resolve(err ? { error: err } : { raw: stdout.trim() })
+    );
+  });
+}
+
+/**
+ * Get OAuth token: macOS Keychain first, then the file-based store
+ * @returns {Promise<string|null>} Access token or null if not found
+ */
+async function getOAuthToken() {
   if (KEYCHAIN_SUPPORTED) {
-    try {
-      const result = execSync(
-        'security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null',
-        { encoding: 'utf8', timeout: 5000 }
-      ).trim();
-      if (result) {
-        const token = parseAccessToken(result);
+    const { raw, error } = await readKeychainCredentials();
+    if (error) {
+      // Token not found, keychain locked, or exec error — try the file next
+      logger.warn('claudeUsage', 'keychain token lookup failed:', error.message);
+    } else if (raw) {
+      try {
+        const token = parseAccessToken(raw);
         if (token) return token;
+      } catch (err) {
+        logger.warn('claudeUsage', 'keychain credentials parse failed:', err.message);
       }
-    } catch (err) {
-      // Token not found, keychain locked, or parse error — try the file next
-      logger.warn('claudeUsage', 'keychain token lookup failed:', err.message);
     }
   }
 
   try {
     if (fs.existsSync(CREDENTIALS_FILE)) {
-      return parseAccessToken(fs.readFileSync(CREDENTIALS_FILE, 'utf8'));
+      return parseAccessToken(await fsp.readFile(CREDENTIALS_FILE, 'utf8'));
     }
   } catch (err) {
     logger.warn('claudeUsage', 'credentials file read failed:', err.message);
@@ -113,26 +129,24 @@ function getOAuthToken() {
  * Fetch usage data from Claude OAuth API
  * @returns {Promise<Object>} Usage data or error
  */
-function fetchUsage() {
+async function fetchUsage() {
+  if (!tokenSourceAvailable()) {
+    return degradedPayload('no-credentials');
+  }
+
+  const token = await getOAuthToken();
+
+  if (!token) {
+    consecutiveTokenMisses++;
+    if (consecutiveTokenMisses >= MAX_TOKEN_MISSES && pollingInterval) {
+      logger.info('claudeUsage', `no OAuth token after ${consecutiveTokenMisses} attempts — pausing usage polling (manual refresh re-arms it)`);
+      stopPolling();
+    }
+    return degradedPayload('no-token');
+  }
+  consecutiveTokenMisses = 0;
+
   return new Promise((resolve) => {
-    if (!tokenSourceAvailable()) {
-      resolve(degradedPayload('no-credentials'));
-      return;
-    }
-
-    const token = getOAuthToken();
-
-    if (!token) {
-      consecutiveTokenMisses++;
-      if (consecutiveTokenMisses >= MAX_TOKEN_MISSES && pollingInterval) {
-        logger.info('claudeUsage', `no OAuth token after ${consecutiveTokenMisses} attempts — pausing usage polling (manual refresh re-arms it)`);
-        stopPolling();
-      }
-      resolve(degradedPayload('no-token'));
-      return;
-    }
-    consecutiveTokenMisses = 0;
-
     const options = {
       hostname: 'api.anthropic.com',
       path: '/api/oauth/usage',
@@ -220,18 +234,27 @@ function fetchUsage() {
   });
 }
 
+// TTL-cached fetch: the poll cadence, the initial load, and the gate's
+// refresh-on-show all funnel through this, so a show-transition inside the
+// TTL window costs zero Keychain/network hits. Manual refresh bypasses it.
+const USAGE_TTL_MS = 300000;
+const fetchUsageCached = pollGate.ttlCache(() => fetchUsage(), USAGE_TTL_MS);
+
 /**
  * Send usage data to renderer
  */
 async function sendUsageToRenderer() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
 
-  const usage = await fetchUsage();
-  mainWindow.webContents.send(IPC.CLAUDE_USAGE_DATA, usage);
+  const usage = await fetchUsageCached();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC.CLAUDE_USAGE_DATA, usage);
+  }
 }
 
 /**
- * Start periodic polling for usage updates
+ * Start periodic polling for usage updates. Visibility-gated: pauses while
+ * all windows are hidden, refreshes immediately on show.
  * @param {number} interval - Polling interval in ms (default: 300000 = 5 minutes)
  */
 function startPolling(interval = 300000) {
@@ -244,7 +267,7 @@ function startPolling(interval = 300000) {
   }, 2000);
 
   // Start periodic updates
-  pollingInterval = setInterval(() => {
+  pollingInterval = pollGate.gatedInterval(() => {
     sendUsageToRenderer();
   }, interval);
 }
@@ -254,7 +277,7 @@ function startPolling(interval = 300000) {
  */
 function stopPolling() {
   if (pollingInterval) {
-    clearInterval(pollingInterval);
+    pollingInterval.dispose();
     pollingInterval = null;
   }
 }
@@ -264,10 +287,13 @@ function stopPolling() {
  * @param {Electron.IpcMain} ipcMain
  */
 function setupIPC(ipcMain) {
-  // Handle initial load request
+  // Handle initial load request — TTL-cached (a fresh panel open inside the
+  // TTL window reuses the last poll's result)
   ipcMain.on(IPC.LOAD_CLAUDE_USAGE, async (event) => {
-    const usage = await fetchUsage();
-    event.sender.send(IPC.CLAUDE_USAGE_DATA, usage);
+    const usage = await fetchUsageCached();
+    if (!event.sender.isDestroyed()) {
+      event.sender.send(IPC.CLAUDE_USAGE_DATA, usage);
+    }
   });
 
   // Handle manual refresh request. Also re-arms polling if it was paused

@@ -42,6 +42,7 @@ const ptyManager = require('./ptyManager');
 const gitBranches = require('./gitBranchesManager');
 const specManager = require('./specManager');
 const telemetry = require('./telemetry');
+const pollGate = require('./pollGate');
 
 const WORKER_TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'orchestration', 'WORKER.md');
 const CONDUCTOR_TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'orchestration', 'CONDUCTOR.md');
@@ -570,7 +571,7 @@ async function startOrchestration(args = {}) {
 
   telemetry.track('orchestration_run_started');
   startBusWatcher(session);
-  session.statusPoll = setInterval(() => pollStatuses(session), STATUS_POLL_MS);
+  session.statusPoll = pollGate.gatedInterval(() => pollStatuses(session), STATUS_POLL_MS);
   // Recover any worktrees/branches left by a prior (e.g. app-closed) session so
   // they reappear on the board instead of being orphaned.
   try { await rehydrate(session); } catch (e) { logger.warn('orch', 'rehydrate failed:', e.message); }
@@ -591,7 +592,8 @@ async function stopOrchestration(projectPath) {
 
   try { if (session.watcher) session.watcher.close(); } catch (e) { logger.warn('orch', 'bus watcher close failed:', e.message); }
   clearTimeout(session.debounce);
-  clearInterval(session.statusPoll);
+  if (session.statusPoll) session.statusPoll.dispose();
+  session.statusPoll = null;
 
   // Stop the conductor lane too (clean teardown).
   if (session.conductorTerminalId) {

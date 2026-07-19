@@ -1085,3 +1085,39 @@ the renderer's silent-failure pattern with one feedback discipline:
 
 Verified: esbuild bundle builds, `npm test` 82/82 green, sweep shows zero
 leftover local toast/escape definitions. Net diff −157 lines.
+
+### [2026-07-19] Performance & resource refactor (audit-q3-performance-resources)
+
+Implemented T01–T09 of the audit spec; T10's runtime half pends a dev launch
+(static acceptance record in the spec's measurements.md). Gate decisions
+(user-resolved): reload destroys-and-recreates PTYs (no re-attach protocol);
+incremental IPC = parse-once + skip-unchanged at the source, channels and
+payload shapes untouched; profiling = lightweight in-app perfMonitor, not a
+tracing harness. Key mechanics:
+
+- **perfMonitor** (new): event-loop-lag sampler (50ms budget), op timers,
+  startup marks; dev-gated (`NODE_ENV=development` / `FRAME_PERF=1`).
+- **Async hot paths:** the 30s `spawnSync` bootstrap scan → async spawn;
+  plugins clone/pull, Keychain read, fileTree walk → `fs.promises`/`execFile`.
+  Cheap existence stats deliberately stayed sync.
+- **Parse-once:** tasksManager `loadTasks` mtime+size cache (a spec push now
+  costs 1 tasks.json parse, was ~29); `writeStatus` write-if-changed; both
+  specManager watcher feedback loops broken with self-write guards
+  (`tasksManager.getLastSelfWriteAt()` exported for the cross-module guard);
+  SPEC_DATA sends gated on payload equality.
+- **PTY flow control:** 16ms coalescing + 1MB pause/resume backpressure in
+  ptyManager and legacy pty.js; laneStatus quiet detection is timestamp-based
+  (one timer per 1800ms window, not per chunk).
+- **pollGate** (new): every main-process poll (usage 5min, update 6h, orch 5s,
+  per-PTY 2.5s) is visibility-gated; hidden window = zero poll timers; usage
+  fetch behind a 5min TTL cache. Update recheck opts out of refresh-on-show.
+- **Reload:** `did-start-navigation` destroys PTYs immediately (complements
+  the existing RECONCILE_TERMINALS sweep); renderer init-once guards added.
+- **Bounds:** prompt logs 5MB + one `.log.1` rotation via async queue
+  (replaces the interim 1MB truncate-half; logger.test.js updated); terminal
+  sessions pruned to 20 MRU and `clearProjectSession` finally wired to
+  project removal; D3 vendored (`d3@7.9.0`, CDN tag removed) with the force
+  sim on a rAF loop (300-tick budget, alphaMin 0.005, 1500-node cap).
+
+Verified: 82/82 tests green; grep-verified zero hot-path exec/spawnSync and
+zero ungated setIntervals in src/main.

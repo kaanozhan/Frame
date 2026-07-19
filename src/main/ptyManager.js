@@ -8,12 +8,37 @@ const { IPC } = require('../shared/ipcChannels');
 const logger = require('./logger');
 const promptLogger = require('./promptLogger');
 const telemetry = require('./telemetry');
+const pollGate = require('./pollGate');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
 let mainWindow = null;
 let terminalCounter = 0;
 const MAX_TERMINALS = 9;
+
+// Output flow control: chunks coalesce per terminal and flush once per
+// display frame; past the high-water mark the PTY is paused until the next
+// flush drains it (see onData in createTerminal).
+const FLUSH_INTERVAL_MS = 16;
+const OUTPUT_HIGH_WATER_BYTES = 1024 * 1024;
+
+/** Flush a terminal's buffered output as one coalesced send. */
+function flushOutput(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  if (!inst) return;
+  inst.flushTimer = null;
+  if (inst.outputChunks.length === 0) return;
+  const data = inst.outputChunks.join('');
+  inst.outputChunks = [];
+  inst.outputBytes = 0;
+  if (inst.paused) {
+    try { inst.pty.resume(); } catch (_) { /* older node-pty */ }
+    inst.paused = false;
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC.TERMINAL_OUTPUT_ID, { terminalId, data });
+  }
+}
 
 /**
  * Initialize PTY manager with window reference
@@ -200,14 +225,25 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     }
   });
 
-  // Handle PTY output - send with terminal ID. Stamp lastOutputAt so the
-  // orchestrator can tell a quiet (idle) worker from an active one and drive
-  // its soft-done / long-idle heuristics.
+  // Handle PTY output — coalesced. Chunks buffer per terminal and flush as
+  // one TERMINAL_OUTPUT_ID send every FLUSH_INTERVAL_MS (one display frame),
+  // instead of one webContents.send per chunk for up to 9 PTYs. Stamp
+  // lastOutputAt so the orchestrator can tell a quiet (idle) worker from an
+  // active one and drive its soft-done / long-idle heuristics.
   ptyProcess.onData((data) => {
     const inst = ptyInstances.get(terminalId);
-    if (inst) inst.lastOutputAt = Date.now();
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC.TERMINAL_OUTPUT_ID, { terminalId, data });
+    if (!inst) return;
+    inst.lastOutputAt = Date.now();
+    inst.outputChunks.push(data);
+    inst.outputBytes += data.length;
+    // Backpressure: past the high-water mark, pause the PTY until the next
+    // flush drains the buffer — a runaway `yes`-style stream can no longer
+    // grow the buffer faster than the renderer consumes it.
+    if (inst.outputBytes >= OUTPUT_HIGH_WATER_BYTES && !inst.paused) {
+      try { ptyProcess.pause(); inst.paused = true; } catch (_) { /* older node-pty */ }
+    }
+    if (!inst.flushTimer) {
+      inst.flushTimer = setTimeout(() => flushOutput(terminalId), FLUSH_INTERVAL_MS);
     }
   });
 
@@ -215,7 +251,11 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
   ptyProcess.onExit(({ exitCode, signal }) => {
     console.log(`Terminal ${terminalId} exited:`, exitCode, signal);
     const inst = ptyInstances.get(terminalId);
-    if (inst && inst.processPoll) clearInterval(inst.processPoll);
+    if (inst) {
+      if (inst.processPoll) inst.processPoll.dispose();
+      flushOutput(terminalId); // trailing output must land before DESTROYED
+      if (inst.flushTimer) clearTimeout(inst.flushTimer);
+    }
     ptyInstances.delete(terminalId);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC.TERMINAL_DESTROYED, { terminalId, exitCode });
@@ -230,7 +270,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
   // the terminal's foreground process group — see getForegroundCommand.
   const spawnedShellName = shell.split(/[\\/]/).pop();
   let lastProcessName = null;
-  const processPoll = setInterval(() => {
+  const processPoll = pollGate.gatedInterval(() => {
     let name = null;
     try {
       name = ptyProcess.process || null;
@@ -250,9 +290,19 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
         }
       });
     }
-  }, 2500);
+  }, 2500); // visibility-gated: paused while all windows are hidden
 
-  ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath, processPoll, lastOutputAt: Date.now() });
+  ptyInstances.set(terminalId, {
+    pty: ptyProcess,
+    cwd,
+    projectPath,
+    processPoll,
+    lastOutputAt: Date.now(),
+    outputChunks: [],
+    outputBytes: 0,
+    flushTimer: null,
+    paused: false
+  });
   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
@@ -321,7 +371,8 @@ function resizeTerminal(terminalId, cols, rows) {
 function destroyTerminal(terminalId) {
   const instance = ptyInstances.get(terminalId);
   if (instance) {
-    if (instance.processPoll) clearInterval(instance.processPoll);
+    if (instance.processPoll) instance.processPoll.dispose();
+    if (instance.flushTimer) clearTimeout(instance.flushTimer);
     try {
       instance.pty.kill();
     } catch (e) {
@@ -337,7 +388,8 @@ function destroyTerminal(terminalId) {
  */
 function destroyAll() {
   for (const [terminalId, instance] of ptyInstances) {
-    if (instance.processPoll) clearInterval(instance.processPoll);
+    if (instance.processPoll) instance.processPoll.dispose();
+    if (instance.flushTimer) clearTimeout(instance.flushTimer);
     try {
       instance.pty.kill();
     } catch (e) {

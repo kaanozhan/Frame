@@ -20,10 +20,14 @@ const FADE_MS = 280;
 let loaderEl = null;
 let firstDataArrived = false;
 let failsafeTimer = null;
+let initialized = false;
 
 function init() {
   loaderEl = document.getElementById('app-loader');
   if (!loaderEl) return;
+  // Init-once: a re-init must not stack a second WORKSPACE_DATA listener.
+  if (initialized) return;
+  initialized = true;
 
   // Hide as soon as workspace data arrives the first time. Registered before
   // welcomeOverlay's listener so the loader fades out before the welcome

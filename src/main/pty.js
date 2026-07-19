@@ -9,6 +9,9 @@ const { IPC } = require('../shared/ipcChannels');
 let ptyProcess = null;
 let mainWindow = null;
 let currentProjectPath = null;
+// Output coalescing state (see onData in startPTY)
+let outputChunks = [];
+let outputFlushTimer = null;
 
 /**
  * Initialize PTY module with window reference
@@ -80,10 +83,20 @@ function startPTY(workingDir = null) {
     }
   });
 
-  // Send PTY output to renderer
+  // Send PTY output to renderer — coalesced to one send per 16ms frame,
+  // same flow control as ptyManager's multi-terminal path.
   ptyProcess.onData((data) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC.TERMINAL_OUTPUT, data);
+    outputChunks.push(data);
+    if (!outputFlushTimer) {
+      outputFlushTimer = setTimeout(() => {
+        outputFlushTimer = null;
+        if (outputChunks.length === 0) return;
+        const chunk = outputChunks.join('');
+        outputChunks = [];
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send(IPC.TERMINAL_OUTPUT, chunk);
+        }
+      }, 16);
     }
   });
 
@@ -121,6 +134,9 @@ function killPTY() {
     ptyProcess.kill();
     ptyProcess = null;
   }
+  if (outputFlushTimer) clearTimeout(outputFlushTimer);
+  outputFlushTimer = null;
+  outputChunks = [];
 }
 
 /**

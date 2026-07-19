@@ -60,6 +60,8 @@ function getTerminalTheme() {
 // Session storage key
 const SESSION_STORAGE_KEY = 'frame-terminal-sessions';
 const GLOBAL_PROJECT_KEY = '__global__';
+// Saved sessions are pruned to this many project records (MRU)
+const MAX_SAVED_SESSIONS = 20;
 
 // Format a dropped file's path the way the host's native terminals do
 // for drag-drop, so AI TUIs (Claude Code, Codex) recognize it as one
@@ -161,7 +163,8 @@ class TerminalManager {
       activeTerminalId: this.activeTerminalId,
       viewMode: this.viewMode,
       gridLayout: this.gridLayout,
-      terminalNames: {} // Map of terminalId -> customName
+      terminalNames: {}, // Map of terminalId -> customName
+      savedAt: Date.now() // MRU pruning key
     };
 
     // Save custom names
@@ -174,10 +177,28 @@ class TerminalManager {
     try {
       const allSessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}');
       allSessions[sessionKey] = sessionData;
+      this._pruneSessions(allSessions, sessionKey);
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(allSessions));
     } catch (err) {
       console.error('Failed to save terminal session:', err);
     }
+  }
+
+  /**
+   * Keep at most MAX_SAVED_SESSIONS project records (most-recently-used by
+   * savedAt; legacy records without a stamp count as oldest). The global
+   * session and the record just written are never pruned. Without this,
+   * one record per project path accumulated forever.
+   */
+  _pruneSessions(allSessions, keepKey) {
+    const prunable = Object.keys(allSessions)
+      .filter(k => k !== GLOBAL_PROJECT_KEY && k !== keepKey);
+    const excess = prunable.length - (MAX_SAVED_SESSIONS - 1);
+    if (excess <= 0) return;
+    prunable
+      .sort((a, b) => (allSessions[a].savedAt || 0) - (allSessions[b].savedAt || 0))
+      .slice(0, excess)
+      .forEach(k => delete allSessions[k]);
   }
 
   /**
@@ -774,6 +795,14 @@ class TerminalManager {
   }
 
   _setupIPC() {
+    // Init-once across instances: TerminalManager is a singleton; a second
+    // construction must not silently double every IPC handler.
+    if (TerminalManager._ipcBound) {
+      console.warn('TerminalManager: _setupIPC called twice — listeners not re-registered');
+      return;
+    }
+    TerminalManager._ipcBound = true;
+
     // Receive output from specific terminal
     ipcRenderer.on(IPC.TERMINAL_OUTPUT_ID, (event, { terminalId, data }) => {
       const instance = this.terminals.get(terminalId);

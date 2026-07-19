@@ -54,15 +54,19 @@ const APPROVAL_PATTERNS = [
 ];
 
 let manager = null;
+let initialized = false;
 // Map<terminalId, entry>
 const entries = new Map();
 const listeners = new Set();
 
 /**
  * Initialize with the TerminalManager (needed to read xterm buffers).
+ * Init-once: a re-init must not stack a second set of ipcRenderer listeners.
  */
 function init(terminalManager) {
   manager = terminalManager;
+  if (initialized) return;
+  initialized = true;
 
   ipcRenderer.on(IPC.TERMINAL_OUTPUT_ID, (event, { terminalId }) => {
     _onOutput(terminalId);
@@ -230,8 +234,29 @@ function _onOutput(terminalId) {
     }
   }
 
-  if (entry.quietTimer) clearTimeout(entry.quietTimer);
-  entry.quietTimer = setTimeout(() => _classifyQuiet(terminalId), QUIET_MS);
+  _armQuietTimer(terminalId, entry);
+}
+
+/**
+ * Quiet detection without per-chunk timer churn: `lastActivityAt` is the
+ * source of truth; one timer per activity burst checks it when it fires and
+ * re-arms for the remainder if output kept flowing. Under a busy stream this
+ * creates one timer per QUIET_MS window instead of one per chunk.
+ */
+function _armQuietTimer(terminalId, entry) {
+  if (entry.quietTimer) return; // already armed — nothing to reset
+  const delay = Math.max(0, QUIET_MS - (Date.now() - entry.lastActivityAt));
+  entry.quietTimer = setTimeout(() => {
+    entry.quietTimer = null;
+    const current = entries.get(terminalId);
+    if (!current) return;
+    // Timer resolution slack: treat "within one frame of quiet" as quiet.
+    if (Date.now() - current.lastActivityAt >= QUIET_MS - 16) {
+      _classifyQuiet(terminalId);
+    } else {
+      _armQuietTimer(terminalId, current);
+    }
+  }, delay);
 }
 
 function _classifyQuiet(terminalId) {

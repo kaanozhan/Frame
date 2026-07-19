@@ -4,6 +4,7 @@
  */
 
 const fs = require('fs');
+const fsp = require('fs').promises;
 const path = require('path');
 const { dialog } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
@@ -12,6 +13,7 @@ const templates = require('../shared/frameTemplates');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const telemetry = require('./telemetry');
+const perfMonitor = require('./perfMonitor');
 const detector = require('../../scripts/detect-project');
 
 let mainWindow = null;
@@ -47,12 +49,12 @@ function getFrameConfig(projectPath) {
 /**
  * Create file if it doesn't exist
  */
-function createFileIfNotExists(filePath, content) {
+async function createFileIfNotExists(filePath, content) {
   if (!fs.existsSync(filePath)) {
     const contentStr = typeof content === 'string'
       ? content
       : JSON.stringify(content, null, 2);
-    fs.writeFileSync(filePath, contentStr, 'utf8');
+    await fsp.writeFile(filePath, contentStr, 'utf8');
     return true;
   }
   return false;
@@ -64,14 +66,14 @@ function createFileIfNotExists(filePath, content) {
  * @param {string} linkPath - The full path for the symlink
  * @returns {boolean} - Whether the operation succeeded
  */
-function createSymlinkSafe(target, linkPath) {
+async function createSymlinkSafe(target, linkPath) {
   try {
     // Check if symlink/file already exists
     if (fs.existsSync(linkPath)) {
       const stats = fs.lstatSync(linkPath);
       if (stats.isSymbolicLink()) {
         // Remove existing symlink to recreate it
-        fs.unlinkSync(linkPath);
+        await fsp.unlink(linkPath);
       } else {
         // Regular file exists - don't overwrite, skip
         console.warn(`${linkPath} exists and is not a symlink, skipping`);
@@ -80,7 +82,7 @@ function createSymlinkSafe(target, linkPath) {
     }
 
     // Create relative symlink
-    fs.symlinkSync(target, linkPath);
+    await fsp.symlink(target, linkPath);
     return true;
   } catch (error) {
     // Windows without admin/Developer Mode - copy file as fallback
@@ -88,7 +90,7 @@ function createSymlinkSafe(target, linkPath) {
       try {
         const targetPath = path.resolve(path.dirname(linkPath), target);
         if (fs.existsSync(targetPath)) {
-          fs.copyFileSync(targetPath, linkPath);
+          await fsp.copyFile(targetPath, linkPath);
           console.warn(`Symlink not supported, copied ${target} to ${linkPath}`);
           return true;
         }
@@ -171,16 +173,36 @@ async function showInitializeConfirmation(projectPath) {
 }
 
 /**
- * Initialize a project as Frame project
+ * Initialize a project as Frame project.
+ *
+ * Async end-to-end; a per-project in-flight promise guard means a second
+ * IPC call during a running init awaits the first instead of racing it.
  */
+const inFlightInits = new Map();
+
 function initializeFrameProject(projectPath, projectName) {
+  if (inFlightInits.has(projectPath)) return inFlightInits.get(projectPath);
+  const run = doInitializeFrameProject(projectPath, projectName)
+    .finally(() => inFlightInits.delete(projectPath));
+  inFlightInits.set(projectPath, run);
+  return run;
+}
+
+async function doInitializeFrameProject(projectPath, projectName) {
+  perfMonitor.opStart('project-init');
+  try {
+    return await runProjectInit(projectPath, projectName);
+  } finally {
+    perfMonitor.opEnd('project-init');
+  }
+}
+
+async function runProjectInit(projectPath, projectName) {
   const name = projectName || path.basename(projectPath);
   const frameDirPath = path.join(projectPath, FRAME_DIR);
 
   // Create .frame directory
-  if (!fs.existsSync(frameDirPath)) {
-    fs.mkdirSync(frameDirPath, { recursive: true });
-  }
+  await fsp.mkdir(frameDirPath, { recursive: true });
 
   // Detect the project's stack first — every template below is parameterized
   // by it and the parser reads it back from config. Non-fatal: a failed
@@ -197,7 +219,7 @@ function initializeFrameProject(projectPath, projectName) {
   if (detectedProject) {
     config.project = detectedProject;
   }
-  fs.writeFileSync(
+  await fsp.writeFile(
     path.join(frameDirPath, FRAME_CONFIG_FILE),
     JSON.stringify(config, null, 2),
     'utf8'
@@ -219,8 +241,8 @@ function initializeFrameProject(projectPath, projectName) {
   if (fs.existsSync(claudeMdPath)) {
     const stats = fs.lstatSync(claudeMdPath);
     if (!stats.isSymbolicLink()) {
-      existingInstructions.push({ label: 'CLAUDE.md', content: fs.readFileSync(claudeMdPath, 'utf8') });
-      fs.unlinkSync(claudeMdPath);
+      existingInstructions.push({ label: 'CLAUDE.md', content: await fsp.readFile(claudeMdPath, 'utf8') });
+      await fsp.unlink(claudeMdPath);
     }
   }
 
@@ -231,7 +253,7 @@ function initializeFrameProject(projectPath, projectName) {
   ];
   for (const candidate of claudeDirCandidates) {
     if (fs.existsSync(candidate)) {
-      existingInstructions.push({ label: '.claude/CLAUDE.md', content: fs.readFileSync(candidate, 'utf8') });
+      existingInstructions.push({ label: '.claude/CLAUDE.md', content: await fsp.readFile(candidate, 'utf8') });
       break; // Only read one
     }
   }
@@ -240,9 +262,9 @@ function initializeFrameProject(projectPath, projectName) {
   const agentsMdPath = path.join(projectPath, FRAME_FILES.AGENTS);
   let existingAgentsContent = null;
   if (!wasAlreadyFrameProject && fs.existsSync(agentsMdPath)) {
-    existingAgentsContent = fs.readFileSync(agentsMdPath, 'utf8');
+    existingAgentsContent = await fsp.readFile(agentsMdPath, 'utf8');
     existingInstructions.push({ label: 'AGENTS.md', content: existingAgentsContent });
-    fs.unlinkSync(agentsMdPath);
+    await fsp.unlink(agentsMdPath);
   }
 
   // Build AGENTS.md content: Frame template + any existing instructions appended.
@@ -257,7 +279,7 @@ function initializeFrameProject(projectPath, projectName) {
     agentsContent += '\n\n---\n\n' + merged;
   }
 
-  createFileIfNotExists(
+  await createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.AGENTS),
     agentsContent
   );
@@ -265,16 +287,14 @@ function initializeFrameProject(projectPath, projectName) {
   // .frame/docs/REFERENCE.md — the reference-on-demand companion to the lean
   // AGENTS.md core (meta-file maintenance rules, loaded only when needed)
   const docsDirPath = path.join(frameDirPath, 'docs');
-  if (!fs.existsSync(docsDirPath)) {
-    fs.mkdirSync(docsDirPath, { recursive: true });
-  }
-  createFileIfNotExists(
+  await fsp.mkdir(docsDirPath, { recursive: true });
+  await createFileIfNotExists(
     path.join(docsDirPath, 'REFERENCE.md'),
     templates.getReferenceTemplate(name)
   );
 
   // CLAUDE.md - Symlink to AGENTS.md for Claude Code compatibility
-  createSymlinkSafe(
+  await createSymlinkSafe(
     FRAME_FILES.AGENTS,
     path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK)
   );
@@ -285,48 +305,46 @@ function initializeFrameProject(projectPath, projectName) {
   if (fs.existsSync(geminiMdPath)) {
     const geminiStats = fs.lstatSync(geminiMdPath);
     if (!geminiStats.isSymbolicLink()) {
-      const geminiContent = fs.readFileSync(geminiMdPath, 'utf8');
+      const geminiContent = await fsp.readFile(geminiMdPath, 'utf8');
       const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
-      const current = fs.readFileSync(agentsPath, 'utf8');
-      fs.writeFileSync(agentsPath, current + '\n\n---\n\n## Existing Instructions (from GEMINI.md)\n\n' + geminiContent, 'utf8');
-      fs.unlinkSync(geminiMdPath);
+      const current = await fsp.readFile(agentsPath, 'utf8');
+      await fsp.writeFile(agentsPath, current + '\n\n---\n\n## Existing Instructions (from GEMINI.md)\n\n' + geminiContent, 'utf8');
+      await fsp.unlink(geminiMdPath);
     }
   }
-  createSymlinkSafe(
+  await createSymlinkSafe(
     FRAME_FILES.AGENTS,
     path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK)
   );
 
-  const structureWasCreated = createFileIfNotExists(
+  const structureWasCreated = await createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.STRUCTURE),
     templates.getStructureTemplate(name, detectedProject)
   );
 
-  createFileIfNotExists(
+  await createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.NOTES),
     templates.getNotesTemplate(name)
   );
 
-  createFileIfNotExists(
+  await createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.TASKS),
     templates.getTasksTemplate(name)
   );
 
-  createFileIfNotExists(
+  await createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.QUICKSTART),
     templates.getQuickstartTemplate(name, detectedProject)
   );
 
   // Create .frame/bin directory for AI tool wrappers
   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);
-  if (!fs.existsSync(binDirPath)) {
-    fs.mkdirSync(binDirPath, { recursive: true });
-  }
+  await fsp.mkdir(binDirPath, { recursive: true });
 
   // Create Codex CLI wrapper script
   const codexWrapperPath = path.join(binDirPath, 'codex');
   if (!fs.existsSync(codexWrapperPath)) {
-    fs.writeFileSync(codexWrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
+    await fsp.writeFile(codexWrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
   }
 
   // Bootstrap STRUCTURE.json auto-fill: ship parser scripts to .frame/bin/,
@@ -335,7 +353,7 @@ function initializeFrameProject(projectPath, projectName) {
   // All steps are non-fatal — a failure here must not block the init.
   let structureBootstrapSummary = null;
   try {
-    structureBootstrapSummary = structureBootstrap.bootstrapStructure(
+    structureBootstrapSummary = await structureBootstrap.bootstrapStructure(
       projectPath,
       structureWasCreated
     );
@@ -472,7 +490,7 @@ function setupIPC(ipcMain) {
         }
       }
 
-      const config = initializeFrameProject(projectPath, projectName);
+      const config = await initializeFrameProject(projectPath, projectName);
       telemetry.track('project_initialized');
       event.sender.send(IPC.FRAME_PROJECT_INITIALIZED, {
         projectPath,

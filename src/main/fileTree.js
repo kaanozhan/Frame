@@ -3,22 +3,23 @@
  * Generates directory tree structure
  */
 
-const fs = require('fs');
+const fsp = require('fs').promises;
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 
 /**
- * Get file tree for a directory
+ * Get file tree for a directory (async — the whole-subtree walk must not
+ * block the main event loop)
  * @param {string} dirPath - Directory path
  * @param {number} maxDepth - Maximum depth to traverse
  * @param {number} currentDepth - Current depth level
- * @returns {Array} File tree structure
+ * @returns {Promise<Array>} File tree structure
  */
-function getFileTree(dirPath, maxDepth = 5, currentDepth = 0) {
+async function getFileTree(dirPath, maxDepth = 5, currentDepth = 0) {
   if (currentDepth >= maxDepth) return [];
 
   try {
-    const items = fs.readdirSync(dirPath, { withFileTypes: true });
+    const items = await fsp.readdir(dirPath, { withFileTypes: true });
     const files = [];
 
     // Sort: directories first, then files
@@ -41,7 +42,7 @@ function getFileTree(dirPath, maxDepth = 5, currentDepth = 0) {
 
       // Recursively get children for directories
       if (item.isDirectory()) {
-        fileInfo.children = getFileTree(fullPath, maxDepth, currentDepth + 1);
+        fileInfo.children = await getFileTree(fullPath, maxDepth, currentDepth + 1);
       }
 
       files.push(fileInfo);
@@ -58,9 +59,11 @@ function getFileTree(dirPath, maxDepth = 5, currentDepth = 0) {
  * Setup IPC handlers
  */
 function setupIPC(ipcMain) {
-  ipcMain.on(IPC.LOAD_FILE_TREE, (event, projectPath) => {
-    const files = getFileTree(projectPath);
-    event.sender.send(IPC.FILE_TREE_DATA, files);
+  ipcMain.on(IPC.LOAD_FILE_TREE, async (event, projectPath) => {
+    const files = await getFileTree(projectPath);
+    if (!event.sender.isDestroyed()) {
+      event.sender.send(IPC.FILE_TREE_DATA, files);
+    }
   });
 }
 
