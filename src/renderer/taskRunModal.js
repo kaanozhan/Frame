@@ -16,6 +16,7 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const aiToolSelector = require('./aiToolSelector');
 const state = require('./state');
+const { escapeHtml } = require('./htmlUtils');
 
 let modalEl = null;
 let titleEl = null;
@@ -61,12 +62,15 @@ function init() {
     cancel();
   }, true);
 
+  // Enter activates the focused button; anywhere else it cancels, so
+  // launching a Frame always takes an explicit Run activation.
   modalEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && modalEl.classList.contains('visible')) {
       // Don't hijack Enter while typing in the branch-name field
       if (e.target === newBranchNameInput) return;
       e.preventDefault();
-      confirm();
+      if (document.activeElement === runBtn) confirm();
+      else cancel();
     }
   });
 
@@ -162,7 +166,8 @@ function open(task, opts = {}) {
   loadCurrentBranch();
 
   modalEl.classList.add('visible');
-  requestAnimationFrame(() => runBtn && runBtn.focus());
+  // Focus Cancel so a blind Enter is safe; running requires Tab/click.
+  requestAnimationFrame(() => cancelBtn && cancelBtn.focus());
 }
 
 function close() {
@@ -188,15 +193,6 @@ function cancel() {
   const cb = activeOnCancel;
   close();
   if (cb) cb();
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 module.exports = {

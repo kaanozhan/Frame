@@ -6,6 +6,7 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const structureMap = require('./structureMap');
+const { escapeHtml } = require('./htmlUtils');
 
 let isVisible = false;
 let overviewData = null;
@@ -328,13 +329,6 @@ function formatNumber(num) {
 /**
  * Escape HTML
  */
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 module.exports = {
   init,
   render,

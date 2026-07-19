@@ -2967,18 +2967,20 @@
         "shared/ipcChannels",
         "laneStatus",
         "state",
+        "htmlUtils",
+        "notify",
         "aiToolSelector"
       ],
       "functions": {
         "init": {
-          "line": 32,
+          "line": 34,
           "params": [
             "ui"
           ],
           "purpose": "Initialize with the MultiTerminalUI instance."
         },
         "dispatch": {
-          "line": 70,
+          "line": 72,
           "params": [
             "{ terminalId = null",
             "createNew = false",
@@ -2990,11 +2992,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 182,
+          "line": 184,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 217,
+          "line": 219,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -3002,10 +3004,10 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_startAgentInNewFrame": {
-          "line": 232
+          "line": 234
         },
         "_askNewOrRestart": {
-          "line": 250,
+          "line": 252,
           "params": [
             "frameName",
             "hasAgent"
@@ -3013,7 +3015,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 307,
+          "line": 309,
           "params": [
             "{ slug",
             "title = null",
@@ -3022,110 +3024,97 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "getSpecLaneInfo": {
-          "line": 371,
+          "line": 373,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 390,
+          "line": 392,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 411,
+          "line": 413,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 415,
+          "line": 417,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 419,
+          "line": 421,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 436,
+          "line": 438,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 444,
+          "line": 446,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 464,
+          "line": 466,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 472,
+          "line": 474,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 490,
+          "line": 492,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 500,
+          "line": 502,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 509,
+          "line": 511,
           "params": [
             "frameName",
             "specName"
           ],
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
-        "_escapeHtml": {
-          "line": 541,
-          "params": [
-            "s"
-          ]
-        },
         "_waitForAgentReady": {
-          "line": 560,
+          "line": 552,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 595,
+          "line": 581,
           "params": [
             "terminalId",
             "message"
-          ]
-        },
-        "_showToast": {
-          "line": 600,
-          "params": [
-            "message",
-            "type = 'info'"
           ]
         }
       },
@@ -3282,17 +3271,25 @@
       ],
       "functions": {
         "init": {
-          "line": 19
+          "line": 24
+        },
+        "armFailsafe": {
+          "line": 41
+        },
+        "showFailureState": {
+          "line": 48
         },
         "hide": {
-          "line": 38
+          "line": 63
         }
       },
       "ipc": {
         "listens": [
           "WORKSPACE_DATA"
         ],
-        "emits": []
+        "emits": [
+          "LOAD_WORKSPACE"
+        ]
       }
     },
     "renderer/cheatSheet": {
@@ -3306,34 +3303,29 @@
       ],
       "depends": [
         "platform",
-        "commandRegistry"
+        "commandRegistry",
+        "htmlUtils"
       ],
       "functions": {
         "init": {
-          "line": 17
+          "line": 18
         },
         "open": {
-          "line": 39
+          "line": 40
         },
         "close": {
-          "line": 48
+          "line": 49
         },
         "toggle": {
-          "line": 57
+          "line": 58
         },
         "render": {
-          "line": 62
+          "line": 63
         },
         "groupShortcuts": {
-          "line": 97,
+          "line": 98,
           "params": [
             "query"
-          ]
-        },
-        "escapeHtml": {
-          "line": 129,
-          "params": [
-            "s"
           ]
         }
       }
@@ -3349,46 +3341,41 @@
       ],
       "depends": [
         "platform",
-        "commandRegistry"
+        "commandRegistry",
+        "htmlUtils"
       ],
       "functions": {
         "init": {
-          "line": 18
+          "line": 19
         },
         "open": {
-          "line": 35
+          "line": 36
         },
         "close": {
-          "line": 45
+          "line": 46
         },
         "toggle": {
-          "line": 54
+          "line": 55
         },
         "render": {
-          "line": 59
+          "line": 60
         },
         "updateSelection": {
-          "line": 106
+          "line": 107
         },
         "scrollSelectedIntoView": {
-          "line": 114
+          "line": 115
         },
         "onInputKeydown": {
-          "line": 119,
+          "line": 120,
           "params": [
             "e"
           ]
         },
         "runAt": {
-          "line": 139,
+          "line": 140,
           "params": [
             "idx"
-          ]
-        },
-        "escapeHtml": {
-          "line": 148,
-          "params": [
-            "s"
           ]
         }
       }
@@ -3893,133 +3880,113 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
+        "htmlUtils",
+        "notify",
         "state"
       ],
       "functions": {
         "init": {
-          "line": 26,
+          "line": 28,
           "purpose": "Initialize GitHub panel"
         },
         "setupEventListeners": {
-          "line": 45,
+          "line": 47,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 84,
+          "line": 86,
           "purpose": "Setup IPC listeners"
         },
         "loadIssues": {
-          "line": 93,
+          "line": 95,
           "purpose": "Load GitHub issues"
         },
         "refreshIssues": {
-          "line": 126,
+          "line": 128,
           "purpose": "Refresh issues"
         },
         "show": {
-          "line": 148,
+          "line": 150,
           "purpose": "Show GitHub panel"
         },
         "hide": {
-          "line": 159,
+          "line": 161,
           "purpose": "Hide GitHub panel"
         },
         "toggle": {
-          "line": 169,
+          "line": 171,
           "purpose": "Toggle GitHub panel visibility"
         },
         "setTab": {
-          "line": 180,
+          "line": 182,
           "params": [
             "tab"
           ],
           "purpose": "Set active tab"
         },
         "setFilter": {
-          "line": 213,
+          "line": 215,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "renderLoading": {
-          "line": 227,
+          "line": 229,
           "params": [
             "message = 'Loading...'"
           ],
           "purpose": "Render loading state"
         },
         "renderError": {
-          "line": 241,
+          "line": 243,
           "params": [
             "message"
           ],
           "purpose": "Render error state"
         },
         "renderComingSoon": {
-          "line": 269,
+          "line": 271,
           "params": [
             "tab"
           ],
           "purpose": "Render coming soon state for unimplemented tabs"
         },
         "render": {
-          "line": 294,
+          "line": 296,
           "purpose": "Render issues list"
         },
         "renderIssueItem": {
-          "line": 336,
+          "line": 338,
           "params": [
             "issue"
           ],
           "purpose": "Render single issue item"
         },
         "getContrastColor": {
-          "line": 375,
+          "line": 377,
           "params": [
             "hexColor"
           ],
           "purpose": "Get contrasting text color for a background color"
         },
         "formatRelativeTime": {
-          "line": 386,
+          "line": 388,
           "params": [
             "dateString"
           ],
           "purpose": "Format relative time"
         },
-        "showToast": {
-          "line": 411,
-          "params": [
-            "message",
-            "type = 'info'"
-          ],
-          "purpose": "Show toast notification"
-        },
-        "getToastIcon": {
-          "line": 441,
-          "params": [
-            "type"
-          ],
-          "purpose": "Get toast icon based on type"
-        },
-        "escapeHtml": {
-          "line": 455,
-          "params": [
-            "text"
-          ],
-          "purpose": "Escape HTML for safe rendering"
-        },
         "loadBranches": {
-          "line": 466,
+          "line": 418,
           "purpose": "Load git branches"
         },
         "renderBranches": {
-          "line": 495,
+          "line": 447,
           "purpose": "Render branches list"
         },
         "renderBranchItem": {
-          "line": 541,
+          "line": 493,
           "params": [
             "branch",
             "currentBranch"
@@ -4027,84 +3994,84 @@
           "purpose": "Render single branch item"
         },
         "attachBranchEventListeners": {
-          "line": 569,
+          "line": 521,
           "purpose": "Attach branch event listeners"
         },
         "handleSwitchBranch": {
-          "line": 592,
+          "line": 544,
           "params": [
             "branchName"
           ],
           "purpose": "Handle branch switch"
         },
         "handleDeleteBranch": {
-          "line": 619,
+          "line": 571,
           "params": [
             "branchName"
           ],
           "purpose": "Handle branch deletion"
         },
         "renderBranchesError": {
-          "line": 651,
+          "line": 603,
           "params": [
             "message"
           ],
           "purpose": "Render branches error"
         },
         "loadWorktrees": {
-          "line": 674,
+          "line": 626,
           "purpose": "Load git worktrees"
         },
         "renderWorktrees": {
-          "line": 703,
+          "line": 655,
           "purpose": "Render worktrees list"
         },
         "renderWorktreeItem": {
-          "line": 735,
+          "line": 687,
           "params": [
             "worktree"
           ],
           "purpose": "Render single worktree item"
         },
         "attachWorktreeEventListeners": {
-          "line": 764,
+          "line": 716,
           "purpose": "Attach worktree event listeners"
         },
         "handleRemoveWorktree": {
-          "line": 777,
+          "line": 729,
           "params": [
             "wtPath"
           ],
           "purpose": "Handle worktree removal"
         },
         "renderWorktreesError": {
-          "line": 805,
+          "line": 757,
           "params": [
             "message"
           ],
           "purpose": "Render worktrees error"
         },
         "setupModalListeners": {
-          "line": 825,
+          "line": 777,
           "purpose": "Setup modal event listeners"
         },
         "showCreateBranchModal": {
-          "line": 872,
+          "line": 824,
           "purpose": "Show create branch modal"
         },
         "populateBaseBranchSelect": {
-          "line": 898,
+          "line": 850,
           "params": [
             "select"
           ],
           "purpose": "Populate base branch select dropdown"
         },
         "hideCreateBranchModal": {
-          "line": 937,
+          "line": 889,
           "purpose": "Hide create branch modal"
         },
         "handleCreateBranch": {
-          "line": 947,
+          "line": 899,
           "purpose": "Handle create branch"
         }
       },
@@ -4218,6 +4185,22 @@
         ]
       }
     },
+    "renderer/htmlUtils": {
+      "file": "src/renderer/htmlUtils.js",
+      "description": "HTML Utils",
+      "exports": [
+        "escapeHtml"
+      ],
+      "depends": [],
+      "functions": {
+        "escapeHtml": {
+          "line": 12,
+          "params": [
+            "s"
+          ]
+        }
+      }
+    },
     "renderer/index": {
       "file": "src/renderer/index.js",
       "description": "Renderer Entry Point",
@@ -4269,27 +4252,31 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 238,
+          "line": 236,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 321,
+          "line": 294,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 410,
+          "line": 383,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 441,
+          "line": 414,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 467,
+          "line": 440,
           "purpose": "Register every app command with the central registry. Commands are the"
+        },
+        "startAiSession": {
+          "line": 712,
+          "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
       "ipc": {
@@ -4319,12 +4306,14 @@
         "laneStatus",
         "laneRail",
         "lucide",
+        "htmlUtils",
+        "notify",
         "orchestrator",
         "openProjectModal"
       ],
       "functions": {
         "statusLabel": {
-          "line": 29,
+          "line": 37,
           "params": [
             "status",
             "foreground",
@@ -4333,34 +4322,34 @@
           "purpose": "\"Running · npm run dev\" beats a bare \"Running\" when we know what's"
         },
         "cleanCommand": {
-          "line": 40,
+          "line": 48,
           "params": [
             "commandLine"
           ],
           "purpose": "\"/usr/local/bin/node /Users/x/proj/server.js --port 3000\""
         },
         "assignmentIcon": {
-          "line": 54,
+          "line": 62,
           "params": [
             "assignment"
           ],
           "purpose": "Assignment chip (what the lane works on): the icon already says spec vs"
         },
         "assignmentText": {
-          "line": 58,
+          "line": 66,
           "params": [
             "assignment"
           ]
         },
         "lucideIcon": {
-          "line": 63,
+          "line": 71,
           "params": [
             "data",
             "size = 14"
           ]
         },
         "formatRelativeTime": {
-          "line": 71,
+          "line": 79,
           "params": [
             "ts"
           ]
@@ -4382,40 +4371,35 @@
       "depends": [
         "laneStatus",
         "laneBoard",
-        "lucide"
+        "lucide",
+        "htmlUtils"
       ],
       "functions": {
         "itemStatusText": {
-          "line": 37,
+          "line": 38,
           "params": [
             "s"
           ],
           "purpose": "Same information as the Mainframe cards, compressed for the rail:"
         },
         "lucideIcon": {
-          "line": 51,
+          "line": 52,
           "params": [
             "data",
             "size = 14"
           ]
         },
-        "escapeHtml": {
-          "line": 59,
-          "params": [
-            "text"
-          ]
-        },
         "isHidden": {
-          "line": 65
+          "line": 60
         },
         "setHidden": {
-          "line": 73,
+          "line": 68,
           "params": [
             "hidden"
           ]
         },
         "render": {
-          "line": 83,
+          "line": 78,
           "params": [
             "el",
             "state",
@@ -4424,10 +4408,10 @@
           "purpose": "Render the rail. Called by multiTerminalUI on every detail render;"
         },
         "_renderInto": {
-          "line": 100
+          "line": 95
         },
         "_startTicker": {
-          "line": 193
+          "line": 188
         }
       }
     },
@@ -4440,6 +4424,7 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
+        "htmlUtils",
         "lucide",
         "agentDispatch",
         "specsDashboard",
@@ -4449,41 +4434,35 @@
       ],
       "functions": {
         "lucideIcon": {
-          "line": 36,
+          "line": 37,
           "params": [
             "data",
             "size = 14"
           ]
         },
-        "escapeHtml": {
-          "line": 44,
-          "params": [
-            "text"
-          ]
-        },
         "getUIState": {
-          "line": 58
+          "line": 53
         },
         "setUIState": {
-          "line": 66,
+          "line": 61,
           "params": [
             "partial"
           ]
         },
         "_initOnce": {
-          "line": 75
+          "line": 70
         },
         "_fetchForProject": {
-          "line": 97,
+          "line": 92,
           "params": [
             "projectPath"
           ]
         },
         "_rerenderIfVisible": {
-          "line": 108
+          "line": 103
         },
         "render": {
-          "line": 120,
+          "line": 115,
           "params": [
             "container",
             "projectPath"
@@ -4491,16 +4470,16 @@
           "purpose": "Render the rail into the given container for the given project."
         },
         "_renderInto": {
-          "line": 136,
+          "line": 131,
           "params": [
             "container"
           ]
         },
         "_renderCollapsedStrip": {
-          "line": 161
+          "line": 156
         },
         "_sectionHeader": {
-          "line": 185,
+          "line": 180,
           "params": [
             "{ title",
             "count",
@@ -4511,25 +4490,25 @@
           ]
         },
         "_renderSpecsSection": {
-          "line": 204,
+          "line": 199,
           "params": [
             "ui"
           ]
         },
         "_specProgress": {
-          "line": 258,
+          "line": 253,
           "params": [
             "spec"
           ]
         },
         "_renderTasksSection": {
-          "line": 275,
+          "line": 270,
           "params": [
             "ui"
           ]
         },
         "_popoverOption": {
-          "line": 355,
+          "line": 350,
           "params": [
             "name",
             "value",
@@ -4538,7 +4517,7 @@
           ]
         },
         "_taskControls": {
-          "line": 367,
+          "line": 362,
           "params": [
             "ui",
             "categories"
@@ -4546,10 +4525,10 @@
           "purpose": "Filter + Sort as compact icon buttons opening dashboard-style popovers —"
         },
         "_closeRailPopovers": {
-          "line": 442
+          "line": 437
         },
         "_moreLink": {
-          "line": 446,
+          "line": 441,
           "params": [
             "label",
             "onClick"
@@ -4701,9 +4680,32 @@
         "overviewPanel",
         "taskSection",
         "specSection",
-        "diffSection"
+        "diffSection",
+        "notify"
       ],
       "functions": {}
+    },
+    "renderer/notify": {
+      "file": "src/renderer/notify.js",
+      "description": "Notify",
+      "exports": [
+        "error",
+        "'error')",
+        "success",
+        "'success')",
+        "info",
+        "'info')"
+      ],
+      "depends": [],
+      "functions": {
+        "show": {
+          "line": 26,
+          "params": [
+            "message",
+            "type = 'info'"
+          ]
+        }
+      }
     },
     "renderer/openProjectModal": {
       "file": "src/renderer/openProjectModal.js",
@@ -4776,44 +4778,46 @@
         "shared/ipcChannels",
         "shared/frameConstants",
         "state",
-        "agentDispatch"
+        "agentDispatch",
+        "notify",
+        "htmlUtils"
       ],
       "functions": {
         "_sess": {
-          "line": 39,
+          "line": 41,
           "params": [
             "projectPath",
             "create = false"
           ]
         },
         "_curSess": {
-          "line": 50,
+          "line": 52,
           "params": [
             "create = false"
           ],
           "purpose": "The session for the project currently on screen (the visible viewport always"
         },
         "setHost": {
-          "line": 54,
+          "line": 56,
           "params": [
             "h"
           ]
         },
         "open": {
-          "line": 90,
+          "line": 92,
           "purpose": "Open (or focus) the orchestrator section tab."
         },
         "orchEnv": {
-          "line": 102,
+          "line": 104,
           "params": [
             "projectPath"
           ]
         },
         "ensureSession": {
-          "line": 109
+          "line": 111
         },
         "spawnWorkerLane": {
-          "line": 156,
+          "line": 158,
           "params": [
             "{ projectPath",
             "slug",
@@ -4823,102 +4827,89 @@
           ]
         },
         "createViewport": {
-          "line": 185
+          "line": 187
         },
         "stopSession": {
-          "line": 238,
+          "line": 240,
           "purpose": "Stop the whole session: teardown (worktrees removed, merged branches pruned,"
         },
         "renderConductorZone": {
-          "line": 249,
+          "line": 251,
           "params": [
             "root"
           ]
         },
         "stageOf": {
-          "line": 283,
+          "line": 285,
           "params": [
             "w"
           ]
         },
         "renderPipeline": {
-          "line": 296,
+          "line": 298,
           "params": [
             "root"
           ]
         },
         "renderWorkerZone": {
-          "line": 339,
+          "line": 341,
           "params": [
             "root"
           ]
         },
         "mergeWorkerAction": {
-          "line": 389,
+          "line": 391,
           "params": [
             "slug"
           ]
         },
         "resumeWorkerAction": {
-          "line": 408,
+          "line": 411,
           "params": [
             "slug"
           ]
         },
         "removeWorkerAction": {
-          "line": 416,
+          "line": 419,
           "params": [
             "slug"
           ]
         },
         "_shortPath": {
-          "line": 425,
+          "line": 428,
           "params": [
             "p"
           ]
         },
         "_relTime": {
-          "line": 431,
+          "line": 434,
           "params": [
             "ts"
           ]
         },
         "loadSpecs": {
-          "line": 442,
+          "line": 445,
           "params": [
             "root"
           ]
         },
         "renderSpecRail": {
-          "line": 457,
+          "line": 460,
           "params": [
             "root",
             "specs"
           ]
         },
         "assignSpec": {
-          "line": 491,
+          "line": 494,
           "params": [
             "slug"
           ]
         },
         "nudgeConductor": {
-          "line": 505,
+          "line": 508,
           "params": [
             "projectPath"
-          ]
-        },
-        "_esc": {
-          "line": 519,
-          "params": [
-            "s"
-          ]
-        },
-        "_toast": {
-          "line": 525,
-          "params": [
-            "message",
-            "type = 'info'"
           ]
         }
       },
@@ -4947,72 +4938,73 @@
         "electron",
         "shared/ipcChannels",
         "structureMap",
+        "htmlUtils",
         "state"
       ],
       "functions": {
         "init": {
-          "line": 17,
+          "line": 18,
           "purpose": "Initialize overview panel"
         },
         "loadOverview": {
-          "line": 25,
+          "line": 26,
           "purpose": "Load overview data"
         },
         "render": {
-          "line": 45,
+          "line": 46,
           "params": [
             "container"
           ],
           "purpose": "Render overview in container"
         },
         "renderLoading": {
-          "line": 65,
+          "line": 66,
           "purpose": "Render loading state"
         },
         "renderError": {
-          "line": 77,
+          "line": 78,
           "params": [
             "message"
           ],
           "purpose": "Render error state"
         },
         "renderOverview": {
-          "line": 89,
+          "line": 90,
           "params": [
             "data"
           ],
           "purpose": "Render overview dashboard"
         },
         "renderStructureCard": {
-          "line": 115,
+          "line": 116,
           "params": [
             "structure"
           ],
           "purpose": "Render structure card"
         },
         "renderProgressCard": {
-          "line": 156,
+          "line": 157,
           "params": [
             "tasks"
           ],
           "purpose": "Render progress card"
         },
         "renderDecisionsCard": {
-          "line": 195,
+          "line": 196,
           "params": [
             "decisions"
           ],
           "purpose": "Render decisions card"
         },
         "renderStatsCard": {
-          "line": 235,
+          "line": 236,
           "params": [
             "stats"
           ],
           "purpose": "Render stats card"
         },
         "setupCardInteractions": {
-          "line": 288,
+          "line": 289,
           "params": [
             "container",
             "data"
@@ -5020,29 +5012,22 @@
           "purpose": "Setup card click interactions"
         },
         "refresh": {
-          "line": 304,
+          "line": 305,
           "purpose": "Refresh overview"
         },
         "formatTime": {
-          "line": 316,
+          "line": 317,
           "params": [
             "isoString"
           ],
           "purpose": "Format time for display"
         },
         "formatNumber": {
-          "line": 324,
+          "line": 325,
           "params": [
             "num"
           ],
           "purpose": "Format number with commas"
-        },
-        "escapeHtml": {
-          "line": 331,
-          "params": [
-            "text"
-          ],
-          "purpose": "Escape HTML"
         }
       }
     },
@@ -5087,148 +5072,128 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "state"
+        "state",
+        "htmlUtils",
+        "notify"
       ],
       "functions": {
         "init": {
-          "line": 29,
+          "line": 31,
           "purpose": "Initialize plugins panel"
         },
         "setupEventListeners": {
-          "line": 46,
+          "line": 48,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 91,
+          "line": 93,
           "purpose": "Setup IPC listeners"
         },
         "loadPlugins": {
-          "line": 115,
+          "line": 116,
           "purpose": "Load plugins"
         },
         "refreshPlugins": {
-          "line": 133,
+          "line": 134,
           "purpose": "Refresh plugins from marketplace"
         },
         "show": {
-          "line": 168,
+          "line": 169,
           "purpose": "Show plugins panel"
         },
         "hide": {
-          "line": 185,
+          "line": 186,
           "purpose": "Hide plugins panel"
         },
         "toggle": {
-          "line": 195,
+          "line": 196,
           "purpose": "Toggle plugins panel visibility"
         },
         "setTab": {
-          "line": 206,
+          "line": 207,
           "params": [
             "tab"
           ],
           "purpose": "Set active tab"
         },
         "setFilter": {
-          "line": 228,
+          "line": 229,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredPlugins": {
-          "line": 242,
+          "line": 243,
           "purpose": "Get filtered plugins"
         },
         "render": {
-          "line": 258,
+          "line": 259,
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 312,
+          "line": 313,
           "params": [
             "plugin"
           ],
           "purpose": "Render single plugin item"
         },
         "getPluginIcon": {
-          "line": 358,
+          "line": 359,
           "params": [
             "name"
           ],
           "purpose": "Get icon for plugin based on name"
         },
         "togglePlugin": {
-          "line": 397,
+          "line": 398,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled"
         },
         "installPlugin": {
-          "line": 409,
+          "line": 410,
           "params": [
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
         },
-        "showToast": {
-          "line": 426,
-          "params": [
-            "message",
-            "type = 'info'"
-          ],
-          "purpose": "Show toast notification"
-        },
-        "getToastIcon": {
-          "line": 461,
-          "params": [
-            "type"
-          ],
-          "purpose": "Get toast icon based on type"
-        },
-        "escapeHtml": {
-          "line": 475,
-          "params": [
-            "text"
-          ],
-          "purpose": "Escape HTML for safe rendering"
-        },
         "loadSessions": {
-          "line": 486,
+          "line": 432,
           "purpose": "Load sessions from Claude data"
         },
         "refreshSessions": {
-          "line": 515,
+          "line": 461,
           "purpose": "Refresh sessions with spinner animation"
         },
         "renderSessions": {
-          "line": 537,
+          "line": 483,
           "purpose": "Render sessions list"
         },
         "renderSessionItem": {
-          "line": 571,
+          "line": 517,
           "params": [
             "session"
           ],
           "purpose": "Render a single session item"
         },
         "renderSessionsEmpty": {
-          "line": 600,
+          "line": 546,
           "params": [
             "message"
           ],
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 622,
+          "line": 568,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a session by sending command to terminal"
         },
         "formatRelativeTime": {
-          "line": 636,
+          "line": 582,
           "params": [
             "dateString"
           ],
@@ -5583,33 +5548,28 @@
         "shared/ipcChannels",
         "state",
         "tasksPanel",
-        "specPanel"
+        "specPanel",
+        "htmlUtils"
       ],
       "functions": {
-        "escapeHtml": {
-          "line": 30,
-          "params": [
-            "s"
-          ]
-        },
         "detectionSummary": {
-          "line": 38,
+          "line": 32,
           "params": [
             "project"
           ],
           "purpose": "One-line summary of the detected stack for the post-init banner"
         },
         "setDetectionVisible": {
-          "line": 50,
+          "line": 44,
           "params": [
             "visible"
           ]
         },
         "init": {
-          "line": 55
+          "line": 49
         },
         "setVisible": {
-          "line": 108,
+          "line": 102,
           "params": [
             "visible"
           ]
@@ -5842,84 +5802,85 @@
         "marked",
         "shared/ipcChannels",
         "state",
+        "htmlUtils",
         "specsDashboard",
         "agentDispatch"
       ],
       "functions": {
         "init": {
-          "line": 30
+          "line": 31
         },
         "setupEventListeners": {
-          "line": 41
+          "line": 42
         },
         "refresh": {
-          "line": 54,
+          "line": 55,
           "purpose": "Manual fallback for the rare case where the SPEC_DATA push from main"
         },
         "setupIPCListeners": {
-          "line": 69
+          "line": 70
         },
         "show": {
-          "line": 110
+          "line": 111
         },
         "hide": {
-          "line": 118
+          "line": 119
         },
         "toggle": {
-          "line": 127,
+          "line": 128,
           "purpose": "Public toggle. The first time the user invokes this on a project where"
         },
         "startWatchingForProject": {
-          "line": 145,
+          "line": 146,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 154
+          "line": 155
         },
         "renderList": {
-          "line": 161
+          "line": 162
         },
         "renderSpecRow": {
-          "line": 192,
+          "line": 193,
           "params": [
             "spec"
           ]
         },
         "openDetail": {
-          "line": 212,
+          "line": 213,
           "params": [
             "slug"
           ]
         },
         "reloadDetail": {
-          "line": 218
+          "line": 219
         },
         "renderDetail": {
-          "line": 226
+          "line": 227
         },
         "nextActionForPhase": {
-          "line": 293,
+          "line": 294,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 309,
+          "line": 310,
           "params": [
             "action",
             "lane"
           ]
         },
         "runSpecCommand": {
-          "line": 341,
+          "line": 342,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 353,
+          "line": 354,
           "params": [
             "tab",
             "label",
@@ -5927,97 +5888,91 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 359
+          "line": 360
         },
         "tasksTabLabel": {
-          "line": 365,
+          "line": 366,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 374,
+          "line": 375,
           "params": [
             "tab"
           ]
         },
         "renderPlanReportRow": {
-          "line": 396,
+          "line": 397,
           "purpose": "\"View Plan Report\" — shown above the rendered plan only when the spec"
         },
         "attachPlanReportHandler": {
-          "line": 404
+          "line": 405
         },
         "renderTasksTabBody": {
-          "line": 411
+          "line": 412
         },
         "renderSpecTaskRow": {
-          "line": 451,
+          "line": 452,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 500
+          "line": 501
         },
         "handleSpecTaskAction": {
-          "line": 513,
+          "line": 514,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 532,
+          "line": 533,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 543
+          "line": 544
         },
         "showNewSpecPrompt": {
-          "line": 558
+          "line": 559
         },
         "deriveSlugPreview": {
-          "line": 660,
+          "line": 661,
           "params": [
             "title"
           ],
           "purpose": "Same shape as specManager.generateSlug — duplicated here so the renderer"
         },
         "showSuggestionModal": {
-          "line": 678,
+          "line": 679,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 745,
+          "line": 746,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 838,
+          "line": 839,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 858,
+          "line": 859,
           "params": [
             "md"
           ]
         },
-        "escapeHtml": {
-          "line": 868,
-          "params": [
-            "s"
-          ]
-        },
         "relativeTime": {
-          "line": 878,
+          "line": 869,
           "params": [
             "iso"
           ]
@@ -6089,82 +6044,77 @@
         "state",
         "sectionRail",
         "lucide",
+        "htmlUtils",
         "agentDispatch",
         "specsDashboard"
       ],
       "functions": {
         "setHost": {
-          "line": 31,
+          "line": 32,
           "params": [
             "h"
           ]
         },
         "open": {
-          "line": 36,
+          "line": 37,
           "params": [
             "slug"
           ],
           "purpose": "Open a spec — reuses the open spec viewport, or creates one if none."
         },
         "openInNewTab": {
-          "line": 42,
+          "line": 43,
           "params": [
             "slug"
           ],
           "purpose": "Open a spec in a brand-new viewport tab."
         },
         "createViewport": {
-          "line": 48,
+          "line": 49,
           "purpose": "Create a fresh spec viewport instance (the host calls this when needed)."
         },
         "nextActionForPhase": {
-          "line": 354,
+          "line": 355,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 370,
+          "line": 371,
           "params": [
             "action",
             "lane"
           ]
         },
         "stepIndexForPhase": {
-          "line": 406,
+          "line": 407,
           "params": [
             "phase"
           ]
         },
         "renderStepper": {
-          "line": 418,
+          "line": 419,
           "params": [
             "phase"
           ]
         },
         "renderSpecTaskRow": {
-          "line": 435,
+          "line": 436,
           "params": [
             "task"
           ]
         },
         "handleTaskAction": {
-          "line": 484,
+          "line": 485,
           "params": [
             "taskId",
             "action"
           ]
         },
         "renderMarkdown": {
-          "line": 493,
+          "line": 494,
           "params": [
             "md"
-          ]
-        },
-        "escapeHtml": {
-          "line": 501,
-          "params": [
-            "s"
           ]
         }
       },
@@ -6193,92 +6143,93 @@
         "marked",
         "shared/ipcChannels",
         "state",
+        "htmlUtils",
         "specPanel",
         "agentDispatch",
         "taskInfoModal"
       ],
       "functions": {
         "init": {
-          "line": 54
+          "line": 55
         },
         "setupIPCListeners": {
-          "line": 90
+          "line": 91
         },
         "show": {
-          "line": 131
+          "line": 132
         },
         "hide": {
-          "line": 163
+          "line": 164
         },
         "toggle": {
-          "line": 170
+          "line": 171
         },
         "renderFilters": {
-          "line": 176
+          "line": 177
         },
         "applyFilter": {
-          "line": 190,
+          "line": 191,
           "params": [
             "specsList"
           ]
         },
         "setupSearch": {
-          "line": 206
+          "line": 207
         },
         "runSearch": {
-          "line": 220,
+          "line": 221,
           "params": [
             "rawQuery"
           ]
         },
         "clearSearch": {
-          "line": 243
+          "line": 244
         },
         "renderGrid": {
-          "line": 254
+          "line": 255
         },
         "renderCard": {
-          "line": 284,
+          "line": 285,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 316,
+          "line": 317,
           "params": [
             "slug"
           ]
         },
         "clearSelection": {
-          "line": 324
+          "line": 325
         },
         "reloadDetail": {
-          "line": 332
+          "line": 333
         },
         "renderDetailHeader": {
-          "line": 348
+          "line": 349
         },
         "nextActionForPhase": {
-          "line": 420,
+          "line": 421,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 436,
+          "line": 437,
           "params": [
             "action",
             "lane"
           ]
         },
         "runSpecCommand": {
-          "line": 467,
+          "line": 468,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 478,
+          "line": 479,
           "params": [
             "tab",
             "label",
@@ -6286,56 +6237,50 @@
           ]
         },
         "renderDetailBody": {
-          "line": 484
+          "line": 485
         },
         "renderTasksTabBody": {
-          "line": 514
+          "line": 515
         },
         "renderSpecTaskRow": {
-          "line": 551,
+          "line": 552,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 600
+          "line": 601
         },
         "handleSpecTaskAction": {
-          "line": 613,
+          "line": 614,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 624
+          "line": 625
         },
         "tasksTabLabel": {
-          "line": 630,
+          "line": 631,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 639,
+          "line": 640,
           "params": [
             "md"
           ]
         },
-        "escapeHtml": {
-          "line": 644,
-          "params": [
-            "s"
-          ]
-        },
         "relativeTime": {
-          "line": 650,
+          "line": 645,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 661,
+          "line": 656,
           "params": [
             "projectPath"
           ]
@@ -6538,80 +6483,81 @@
         "electron",
         "fs",
         "path",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "htmlUtils"
       ],
       "functions": {
         "init": {
-          "line": 32,
+          "line": 33,
           "purpose": "Initialize structure map"
         },
         "createOverlay": {
-          "line": 39,
+          "line": 40,
           "purpose": "Create overlay element"
         },
         "setupViewToggle": {
-          "line": 122,
+          "line": 123,
           "purpose": "Setup view toggle buttons"
         },
         "setupInfoPanelResize": {
-          "line": 150,
+          "line": 151,
           "purpose": "Setup info panel resize functionality"
         },
         "show": {
-          "line": 204,
+          "line": 205,
           "params": [
             "projectPath"
           ],
           "purpose": "Show structure map"
         },
         "hide": {
-          "line": 226,
+          "line": 227,
           "purpose": "Hide structure map"
         },
         "loadStructure": {
-          "line": 239,
+          "line": 240,
           "params": [
             "projectPath"
           ],
           "purpose": "Load structure data"
         },
         "showError": {
-          "line": 260,
+          "line": 261,
           "params": [
             "message"
           ],
           "purpose": "Show error in info panel"
         },
         "structureToGraph": {
-          "line": 268,
+          "line": 269,
           "params": [
             "data"
           ],
           "purpose": "Convert structure data to graph format"
         },
         "renderGraph": {
-          "line": 342,
+          "line": 343,
           "params": [
             "structureData"
           ],
           "purpose": "Render force-directed graph"
         },
         "renderTreeView": {
-          "line": 511,
+          "line": 512,
           "params": [
             "structureData"
           ],
           "purpose": "Render tree/hierarchy view using D3.js"
         },
         "buildHierarchy": {
-          "line": 820,
+          "line": 821,
           "params": [
             "structureData"
           ],
           "purpose": "Build hierarchy data for D3 tree"
         },
         "showModuleInfo": {
-          "line": 886,
+          "line": 887,
           "params": [
             "module",
             "showGitButton = true"
@@ -6619,7 +6565,7 @@
           "purpose": "Show module info in panel (1x3 grid layout)"
         },
         "selectNode": {
-          "line": 1048,
+          "line": 1049,
           "params": [
             "d",
             "nodeSelection"
@@ -6627,39 +6573,32 @@
           "purpose": "Select a node (visual indicator)"
         },
         "loadAndShowGitHistory": {
-          "line": 1056,
+          "line": 1057,
           "params": [
             "module"
           ],
           "purpose": "Load and show git history for a module"
         },
         "renderGitHistory": {
-          "line": 1139,
+          "line": 1140,
           "params": [
             "history"
           ],
           "purpose": "Render git history HTML (compact card format)"
         },
         "getInitials": {
-          "line": 1203,
+          "line": 1204,
           "params": [
             "name"
           ],
           "purpose": "Get initials from name"
         },
-        "escapeHtml": {
-          "line": 1210,
-          "params": [
-            "text"
-          ],
-          "purpose": "Escape HTML"
-        },
         "showPlaceholder": {
-          "line": 1220,
+          "line": 1214,
           "purpose": "Show placeholder in info panel"
         },
         "highlightConnections": {
-          "line": 1238,
+          "line": 1232,
           "params": [
             "d",
             "links",
@@ -6669,7 +6608,7 @@
           "purpose": "Highlight connections for a node"
         },
         "resetHighlight": {
-          "line": 1256,
+          "line": 1250,
           "params": [
             "nodeSelection",
             "linkSelection"
@@ -6677,7 +6616,7 @@
           "purpose": "Reset highlight"
         },
         "isMapVisible": {
-          "line": 1264,
+          "line": 1258,
           "purpose": "Check if visible"
         }
       }
@@ -6695,20 +6634,20 @@
           "line": 18
         },
         "open": {
-          "line": 60,
+          "line": 63,
           "params": [
             "opts = {}"
           ],
           "purpose": "Open the modal."
         },
         "close": {
-          "line": 82
+          "line": 84
         },
         "confirm": {
-          "line": 89
+          "line": 91
         },
         "cancel": {
-          "line": 95
+          "line": 97
         }
       }
     },
@@ -6746,29 +6685,30 @@
         "electron",
         "shared/ipcChannels",
         "aiToolSelector",
-        "state"
+        "state",
+        "htmlUtils"
       ],
       "functions": {
         "init": {
-          "line": 34
+          "line": 35
         },
         "updateBranchChoiceUI": {
-          "line": 76
+          "line": 80
         },
         "getBranchChoice": {
-          "line": 84
+          "line": 88
         },
         "getCliChoice": {
-          "line": 89
+          "line": 93
         },
         "populateCliOptions": {
-          "line": 94
+          "line": 98
         },
         "loadCurrentBranch": {
-          "line": 124
+          "line": 128
         },
         "open": {
-          "line": 144,
+          "line": 148,
           "params": [
             "task",
             "opts = {}"
@@ -6776,19 +6716,13 @@
           "purpose": "Open the modal for a given task."
         },
         "close": {
-          "line": 168
+          "line": 173
         },
         "confirm": {
-          "line": 176
+          "line": 181
         },
         "cancel": {
-          "line": 187
-        },
-        "escapeHtml": {
-          "line": 193,
-          "params": [
-            "s"
-          ]
+          "line": 192
         }
       }
     },
@@ -6802,37 +6736,38 @@
         "state",
         "sectionRail",
         "lucide",
+        "htmlUtils",
         "agentDispatch",
         "tasksDashboard",
         "tasksPanel"
       ],
       "functions": {
         "setHost": {
-          "line": 37,
+          "line": 38,
           "params": [
             "h"
           ]
         },
         "open": {
-          "line": 42,
+          "line": 43,
           "params": [
             "taskId"
           ],
           "purpose": "Open a task — reuses the open task viewport, or creates one if none."
         },
         "openInNewTab": {
-          "line": 48,
+          "line": 49,
           "params": [
             "taskId"
           ],
           "purpose": "Open a task in a brand-new viewport tab (explicit second context)."
         },
         "createViewport": {
-          "line": 54,
+          "line": 55,
           "purpose": "Create a fresh task viewport instance (the host calls this when needed)."
         },
         "block": {
-          "line": 206,
+          "line": 207,
           "params": [
             "heading",
             "content",
@@ -6840,34 +6775,28 @@
           ]
         },
         "actionButtons": {
-          "line": 221,
+          "line": 222,
           "params": [
             "status"
           ]
         },
         "handleAction": {
-          "line": 237,
+          "line": 238,
           "params": [
             "task",
             "action"
           ]
         },
         "sourceChip": {
-          "line": 260,
+          "line": 261,
           "params": [
             "source"
           ]
         },
         "formatDate": {
-          "line": 267,
+          "line": 268,
           "params": [
             "iso"
-          ]
-        },
-        "escapeHtml": {
-          "line": 274,
-          "params": [
-            "text"
           ]
         }
       },
@@ -7102,6 +7031,8 @@
         "electron",
         "shared/ipcChannels",
         "state",
+        "htmlUtils",
+        "notify",
         "tasksDashboard",
         "taskInfoModal",
         "taskRunModal",
@@ -7110,57 +7041,57 @@
       ],
       "functions": {
         "init": {
-          "line": 23,
+          "line": 25,
           "purpose": "Initialize tasks panel"
         },
         "setupEventListeners": {
-          "line": 39,
+          "line": 41,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 81,
+          "line": 83,
           "purpose": "Setup IPC listeners"
         },
         "loadTasks": {
-          "line": 103,
+          "line": 109,
           "purpose": "Load tasks for current project"
         },
         "show": {
-          "line": 114,
+          "line": 120,
           "purpose": "Show tasks panel. If there's no active project, surface an info modal"
         },
         "hide": {
-          "line": 131,
+          "line": 137,
           "purpose": "Hide tasks panel"
         },
         "toggle": {
-          "line": 141,
+          "line": 147,
           "purpose": "Toggle tasks panel visibility"
         },
         "setFilter": {
-          "line": 152,
+          "line": 158,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredTasks": {
-          "line": 166,
+          "line": 172,
           "purpose": "Get filtered tasks"
         },
         "render": {
-          "line": 191,
+          "line": 197,
           "purpose": "Render tasks list"
         },
         "renderTaskItem": {
-          "line": 237,
+          "line": 243,
           "params": [
             "task"
           ],
           "purpose": "Render single task item"
         },
         "handleTaskAction": {
-          "line": 315,
+          "line": 321,
           "params": [
             "taskId",
             "action"
@@ -7168,29 +7099,14 @@
           "purpose": "Handle task action buttons"
         },
         "openRunFlow": {
-          "line": 365,
+          "line": 372,
           "params": [
             "task"
           ],
           "purpose": "Open the run-config modal for a task and dispatch it on confirm."
         },
-        "showToast": {
-          "line": 386,
-          "params": [
-            "message",
-            "type = 'info'"
-          ],
-          "purpose": "Show toast notification"
-        },
-        "getToastIcon": {
-          "line": 422,
-          "params": [
-            "type"
-          ],
-          "purpose": "Get toast icon based on type"
-        },
         "buildTaskPrompt": {
-          "line": 442,
+          "line": 399,
           "params": [
             "task",
             "opts = {}"
@@ -7198,7 +7114,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. If the user"
         },
         "runTaskWithOptions": {
-          "line": 476,
+          "line": 433,
           "params": [
             "task",
             "opts = {}"
@@ -7206,72 +7122,65 @@
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
         "setClaudeRunning": {
-          "line": 493,
+          "line": 450,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 500,
+          "line": 457,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 509,
+          "line": 466,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 526,
+          "line": 483,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 545,
+          "line": 502,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 571,
+          "line": 528,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 581,
+          "line": 538,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 619,
+          "line": 576,
           "purpose": "Setup modal event listeners"
         },
-        "escapeHtml": {
-          "line": 659,
-          "params": [
-            "text"
-          ],
-          "purpose": "Escape HTML for safe rendering"
-        },
         "renderSourceChip": {
-          "line": 670,
+          "line": 621,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 681,
+          "line": 632,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 698,
+          "line": 649,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -7413,11 +7322,12 @@
       ],
       "depends": [
         "laneStatus",
-        "lucide"
+        "lucide",
+        "htmlUtils"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 27,
+          "line": 28,
           "params": [
             "data",
             "size = 13"
@@ -7483,11 +7393,13 @@
         "githubPanel",
         "promptsPanel",
         "specsDashboard",
-        "lucide"
+        "lucide",
+        "htmlUtils",
+        "notify"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 22,
+          "line": 24,
           "params": [
             "data",
             "size = 18"
@@ -7518,48 +7430,43 @@
         "electron",
         "shared/ipcChannels",
         "state",
-        "openProjectModal"
+        "openProjectModal",
+        "htmlUtils"
       ],
       "functions": {
         "init": {
-          "line": 24
+          "line": 25
         },
         "loadAITools": {
-          "line": 54
+          "line": 55
         },
         "maybeShowOnLaunch": {
-          "line": 65
+          "line": 66
         },
         "setupListeners": {
-          "line": 72
+          "line": 73
         },
         "persistDismissPreference": {
-          "line": 133
+          "line": 134
         },
         "renderToolOptions": {
-          "line": 141
+          "line": 142
         },
         "updateToolSelection": {
-          "line": 176
+          "line": 177
         },
         "open": {
-          "line": 187
+          "line": 188
         },
         "close": {
-          "line": 193
+          "line": 194
         },
         "reopen": {
-          "line": 207,
+          "line": 208,
           "purpose": "Reopen welcome from Command Palette. Resets the dismissed flag so the"
         },
-        "escapeHtml": {
-          "line": 215,
-          "params": [
-            "s"
-          ]
-        },
         "escapeAttr": {
-          "line": 224,
+          "line": 216,
           "params": [
             "s"
           ]

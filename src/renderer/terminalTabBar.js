@@ -18,6 +18,8 @@ const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
 const specsDashboard = require('./specsDashboard');
 const { Plus, MoreHorizontal, Bell, CheckSquare, Home, X, Boxes, FileText, FileDiff, Bot } = require('lucide');
+const { escapeHtml } = require('./htmlUtils');
+const notify = require('./notify');
 
 function lucideIcon(data, size = 18) {
   const children = data.map(([tag, attrs]) => {
@@ -251,18 +253,18 @@ class TerminalTabBar {
       ${hasFrames ? `
         <span class="lane-bar-divider"></span>
         ${terminals.map(t => `
-          <button class="btn-lane-frame ${onFrames && t.id === state.activeTerminalId ? 'current' : ''}" data-id="${this._escapeHtml(t.id)}" title="${this._escapeHtml(t.name || 'Frame')}">
+          <button class="btn-lane-frame ${onFrames && t.id === state.activeTerminalId ? 'current' : ''}" data-id="${escapeHtml(t.id)}" title="${escapeHtml(t.name || 'Frame')}">
             ${lucideIcon(Boxes, 15)}
-            <span class="btn-lane-frame-label">${this._escapeHtml(t.name || 'Frame')}</span>
+            <span class="btn-lane-frame-label">${escapeHtml(t.name || 'Frame')}</span>
           </button>
         `).join('')}
       ` : ''}
       ${sections.length ? `
         <span class="lane-bar-divider"></span>
         ${sections.map(sec => `
-          <button class="lane-bar-section ${sec.key === activeKey ? 'current' : ''}" data-key="${this._escapeHtml(sec.key)}" title="${this._escapeHtml(sec.title)}">
+          <button class="lane-bar-section ${sec.key === activeKey ? 'current' : ''}" data-key="${escapeHtml(sec.key)}" title="${escapeHtml(sec.title)}">
             ${lucideIcon(sec.type === 'spec' ? FileText : sec.type === 'diff' ? FileDiff : sec.type === 'orchestrator' ? Bot : CheckSquare, 13)}
-            <span class="lane-bar-section-label">${this._escapeHtml(sec.title)}</span>
+            <span class="lane-bar-section-label">${escapeHtml(sec.title)}</span>
             <span class="lane-bar-section-close" title="Close tab">${lucideIcon(X, 12)}</span>
           </button>
         `).join('')}
@@ -454,19 +456,23 @@ class TerminalTabBar {
     }
   }
 
-  _escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
   /**
    * Create a lane (optionally with a specific shell) and enter it.
    */
   async _createLane(shellPath = null) {
     const options = shellPath ? { shell: shellPath } : {};
-    const id = await this.manager.createTerminal(options);
-    if (id && this.onLaneCreated) this.onLaneCreated(id);
+    let id = null;
+    try {
+      id = await this.manager.createTerminal(options);
+    } catch (err) {
+      notify.error(`Could not create a new Frame: ${err.message || 'terminal creation failed'}`);
+      return;
+    }
+    if (!id) {
+      notify.error(`Could not create a new Frame — maximum (${this.manager.maxTerminals}) reached for this project`);
+      return;
+    }
+    if (this.onLaneCreated) this.onLaneCreated(id);
   }
 
   _createShellMenu() {

@@ -23,6 +23,8 @@ const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_BIN_DIR, ORCH_BUS_DIR } = require('../shared/frameConstants');
 const state = require('./state');
 const agentDispatch = require('./agentDispatch');
+const notify = require('./notify');
+const { escapeHtml } = require('./htmlUtils');
 
 let host = null;             // MultiTerminalUI
 let seq = 0;
@@ -90,7 +92,7 @@ function setHost(h) {
 function open() {
   if (!host) return;
   if (!state.getProjectPath()) {
-    _toast('Open a project first', 'error');
+    notify.error('Open a project first');
     return;
   }
   ipcRenderer.send(IPC.TELEMETRY_TRACK, 'orchestrator_opened');
@@ -125,7 +127,7 @@ async function ensureSession() {
     console.error('orchestrator: conductor lane creation failed', err);
   }
   if (!conductorId) {
-    _toast('Could not create the conductor Frame (terminal limit reached?)', 'error');
+    notify.error('Could not create the conductor Frame (terminal limit reached?)');
     return false;
   }
   host.getManager().setAssignment(conductorId, { kind: 'spec', label: 'conductor', ref: '__conductor__' });
@@ -164,7 +166,7 @@ async function spawnWorkerLane({ projectPath, slug, worktreePath, env, promptIns
     console.error('orchestrator: worker lane creation failed', err);
   }
   if (!terminalId) {
-    _toast(`Could not open a worker Frame for "${slug}"`, 'error');
+    notify.error(`Could not open a worker Frame for "${slug}"`);
     return;
   }
   ipcRenderer.send(IPC.ORCH_WORKER_LANE, { projectPath, slug, terminalId });
@@ -241,7 +243,7 @@ async function stopSession() {
   try { await ipcRenderer.invoke(IPC.STOP_ORCHESTRATION, { projectPath }); } catch (e) { console.error('orchestrator: stop failed', e); }
   sessions.delete(projectPath); // drop this project's view state (others untouched)
   if (host && activeVpKey) host.closeSection(activeVpKey);
-  _toast('Orchestration stopped — worktrees cleaned up', 'info');
+  notify.info('Orchestration stopped — worktrees cleaned up');
 }
 
 // ─── zones ────────────────────────────────────────────────
@@ -305,7 +307,7 @@ function renderPipeline(root) {
   const chip = (w) => {
     const st = stageOf(w);
     const idle = w.status === 'idle' ? ' is-idle' : '';
-    return `<button class="orch-pipe-chip stage-${st}${idle}" data-tid="${w.terminalId || ''}" title="${_esc(w.slug)} · ${_esc(w.status)}"><span class="orch-pipe-chip-dot"></span><span class="orch-pipe-chip-label">${_esc(w.slug)}</span></button>`;
+    return `<button class="orch-pipe-chip stage-${st}${idle}" data-tid="${w.terminalId || ''}" title="${escapeHtml(w.slug)} · ${escapeHtml(w.status)}"><span class="orch-pipe-chip-dot"></span><span class="orch-pipe-chip-label">${escapeHtml(w.slug)}</span></button>`;
   };
 
   let html = '<span class="orch-pipe-title">Pipeline</span><div class="orch-pipe-flow">';
@@ -357,16 +359,16 @@ function renderWorkerZone(root) {
       <div class="orch-worker-top">
         <span class="orch-worker-dot"></span>
         <span class="orch-worker-slug"></span>
-        <span class="orch-worker-status-chip">${WORKER_STATUS_LABEL[w.status] || w.status || '—'}${w.blockedBy ? ' · ' + _esc(w.blockedBy) : ''}</span>
+        <span class="orch-worker-status-chip">${WORKER_STATUS_LABEL[w.status] || w.status || '—'}${w.blockedBy ? ' · ' + escapeHtml(w.blockedBy) : ''}</span>
         <span class="orch-worker-time">${_relTime(w.lastActivityAt)}</span>
       </div>
       <div class="orch-worker-tree">
-        <span class="orch-worker-branch" title="${_esc(w.branch || '')}">${_esc(w.branch || '')}</span>
-        ${w.worktreePath ? `<span class="orch-worker-path" title="${_esc(w.worktreePath)}">${_esc(_shortPath(w.worktreePath))}</span>` : ''}
+        <span class="orch-worker-branch" title="${escapeHtml(w.branch || '')}">${escapeHtml(w.branch || '')}</span>
+        ${w.worktreePath ? `<span class="orch-worker-path" title="${escapeHtml(w.worktreePath)}">${escapeHtml(_shortPath(w.worktreePath))}</span>` : ''}
         ${files != null ? `<span class="orch-worker-diff">±${files} file${files === 1 ? '' : 's'}</span>` : ''}
         ${w.merged ? '<span class="orch-worker-merged">merged</span>' : ''}
       </div>
-      ${fp.length ? `<div class="orch-worker-fp" title="${_esc(fp.join('\n'))}">footprint: ${_esc(fp.slice(0, 3).join(', '))}${fp.length > 3 ? ` +${fp.length - 3}` : ''}</div>` : ''}
+      ${fp.length ? `<div class="orch-worker-fp" title="${escapeHtml(fp.join('\n'))}">footprint: ${escapeHtml(fp.slice(0, 3).join(', '))}${fp.length > 3 ? ` +${fp.length - 3}` : ''}</div>` : ''}
       <div class="orch-worker-actions">
         <button class="orch-wbtn act-open" ${w.terminalId ? '' : 'disabled'} title="Open this worker's terminal">Open</button>
         ${w.status === 'recovered' ? '<button class="orch-wbtn act-resume" title="Relaunch an agent lane in this worker\'s existing worktree — prior work is kept">Resume</button>' : ''}
@@ -393,15 +395,16 @@ async function mergeWorkerAction(slug) {
   catch (e) { res = { status: 'failed', error: e.message }; }
   if (!res) return;
   if (res.status === 'merged') {
-    _toast(`Approved "${slug}" → ${res.branch || 'integration'}`, 'info');
+    notify.info(`Approved "${slug}" → ${res.branch || 'integration'}`);
   } else if (res.status === 'drift') {
     const ok = window.confirm(`"${slug}" changed files outside its declared footprint:\n\n${(res.drift || []).join('\n')}\n\nApprove anyway?`);
     if (ok) {
       const f = await ipcRenderer.invoke(IPC.ORCH_MERGE_WORKER, { projectPath, slug, force: true }).catch((e) => ({ status: 'failed', error: e.message }));
-      _toast(f && f.status === 'merged' ? `Approved "${slug}" (forced)` : `Approve failed: ${(f && f.error) || 'unknown'}`, f && f.status === 'merged' ? 'info' : 'error');
+      if (f && f.status === 'merged') notify.info(`Approved "${slug}" (forced)`);
+      else notify.error(`Approve failed: ${(f && f.error) || 'unknown'}`);
     }
   } else {
-    _toast(`Approve failed: ${res.error || 'unknown'}`, 'error');
+    notify.error(`Approve failed: ${res.error || 'unknown'}`);
   }
 }
 
@@ -409,8 +412,8 @@ async function resumeWorkerAction(slug) {
   let res;
   try { res = await ipcRenderer.invoke(IPC.ORCH_RESUME_WORKER, { projectPath: state.getProjectPath(), slug }); }
   catch (e) { res = { error: e.message }; }
-  if (res && res.success) _toast(`Resuming "${slug}" in its existing worktree`, 'info');
-  else _toast(`Resume failed: ${(res && res.error) || 'unknown'}`, 'error');
+  if (res && res.success) notify.info(`Resuming "${slug}" in its existing worktree`);
+  else notify.error(`Resume failed: ${(res && res.error) || 'unknown'}`);
 }
 
 async function removeWorkerAction(slug) {
@@ -418,8 +421,8 @@ async function removeWorkerAction(slug) {
   let res;
   try { res = await ipcRenderer.invoke(IPC.ORCH_REMOVE_WORKER, { projectPath: state.getProjectPath(), slug }); }
   catch (e) { res = { error: e.message }; }
-  if (res && res.success) _toast(`Removed "${slug}"${res.branchKept ? ' (branch kept — un-merged)' : ''}`, 'info');
-  else _toast(`Remove failed: ${(res && res.error) || 'unknown'}`, 'error');
+  if (res && res.success) notify.info(`Removed "${slug}"${res.branchKept ? ' (branch kept — un-merged)' : ''}`);
+  else notify.error(`Remove failed: ${(res && res.error) || 'unknown'}`);
 }
 
 function _shortPath(p) {
@@ -475,7 +478,7 @@ function renderSpecRail(root, specs) {
     row.innerHTML = `
       <div class="orch-spec-main">
         <div class="orch-spec-title"></div>
-        <div class="orch-spec-phase">${_esc(phase)}</div>
+        <div class="orch-spec-phase">${escapeHtml(phase)}</div>
       </div>
       <button type="button" class="orch-spec-assign" ${assignable && !isAssigned ? '' : 'disabled'}>${isAssigned ? 'Assigned' : 'Assign'}</button>
     `;
@@ -515,23 +518,6 @@ function nudgeConductor(projectPath) {
 }
 
 // ─── helpers ──────────────────────────────────────────────
-
-function _esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
-function _toast(message, type = 'info') {
-  const existing = document.querySelector('.tasks-toast');
-  if (existing) existing.remove();
-  const toast = document.createElement('div');
-  toast.className = `tasks-toast tasks-toast-${type}`;
-  toast.innerHTML = `<span class="toast-message">${_esc(message)}</span>`;
-  document.body.appendChild(toast);
-  requestAnimationFrame(() => toast.classList.add('visible'));
-  setTimeout(() => { toast.classList.remove('visible'); setTimeout(() => toast.remove(), 300); }, 3000);
-}
 
 // Active only when the CURRENT project has a live session — the Home card shows
 // "Open Orchestrator" for a project with a running session and "Start

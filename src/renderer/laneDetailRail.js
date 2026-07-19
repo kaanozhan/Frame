@@ -14,6 +14,7 @@
 const laneStatus = require('./laneStatus');
 const { formatRelativeTime, cleanCommand, assignmentIcon, assignmentText } = require('./laneBoard');
 const { PanelRightClose, PanelRightOpen, Terminal, Bot, Plus } = require('lucide');
+const { escapeHtml } = require('./htmlUtils');
 
 const STORAGE_KEY = 'frame-detail-lanes-rail';
 
@@ -54,12 +55,6 @@ function lucideIcon(data, size = 14) {
     return `<${tag} ${attrStr}/>`;
   }).join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${children}</svg>`;
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text == null ? '' : String(text);
-  return div.innerHTML;
 }
 
 function isHidden() {

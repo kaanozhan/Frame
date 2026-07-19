@@ -8,6 +8,12 @@
  *
  * Rendered by MultiTerminalUI into its content container when
  * viewMode === 'board' — a view mode, not an overlay.
+ *
+ * Naming convention (deliberate, decided 2026-06-11, reaffirmed in the
+ * audit-q3-ux-error-feedback spec): code, module names, and DOM ids say
+ * "lane" (laneBoard, btn-lane-home, _createLane); user-facing vocabulary
+ * says "Frame" for a work stream and "Home" for this board. Keep new code
+ * on the same rule — don't half-rename in either direction.
  */
 
 const { ipcRenderer } = require('electron');
@@ -15,6 +21,8 @@ const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
 const laneRail = require('./laneRail');
 const { Plus, Pencil, X, FolderOpen, GitBranch, Bot, FileText, CheckSquare } = require('lucide');
+const { escapeHtml } = require('./htmlUtils');
+const notify = require('./notify');
 
 const STATUS_LABELS = {
   'idle': 'Idle',
@@ -168,23 +176,23 @@ class LaneBoard {
     card.innerHTML = `
       <div class="lane-card-header">
         <span class="lane-status-dot ${status}"></span>
-        <span class="lane-card-name">${this._escapeHtml(t.customName || t.name)}</span>
+        <span class="lane-card-name">${escapeHtml(t.customName || t.name)}</span>
         <button class="lane-card-action lane-card-rename" title="Rename frame">${lucideIcon(Pencil, 13)}</button>
         <button class="lane-card-action lane-card-close" title="Close frame">${lucideIcon(X, 14)}</button>
       </div>
       <div class="lane-card-meta">
-        <span class="lane-card-branch" style="${branch ? '' : 'display:none'}">${lucideIcon(GitBranch, 11)}<span class="lane-card-branch-name">${this._escapeHtml(branch || '')}</span></span>
+        <span class="lane-card-branch" style="${branch ? '' : 'display:none'}">${lucideIcon(GitBranch, 11)}<span class="lane-card-branch-name">${escapeHtml(branch || '')}</span></span>
         <span class="lane-card-agent-badge" style="${agentName ? '' : 'display:none'}">${lucideIcon(Bot, 11)}<span>Agent</span></span>
-        <span class="lane-card-tool" style="${agentName ? '' : 'display:none'}">${this._escapeHtml(agentName || '')}</span>
+        <span class="lane-card-tool" style="${agentName ? '' : 'display:none'}">${escapeHtml(agentName || '')}</span>
       </div>
       ${t.assignment ? `
       <div class="lane-card-assignment">
-        <span class="lane-assignment-chip${agentName ? '' : ' dimmed'}" title="${this._escapeHtml(t.assignment.label)}">
-          ${lucideIcon(assignmentIcon(t.assignment), 11)}<span class="lane-assignment-chip-label">${this._escapeHtml(assignmentText(t.assignment))}</span>
+        <span class="lane-assignment-chip${agentName ? '' : ' dimmed'}" title="${escapeHtml(t.assignment.label)}">
+          ${lucideIcon(assignmentIcon(t.assignment), 11)}<span class="lane-assignment-chip-label">${escapeHtml(assignmentText(t.assignment))}</span>
         </span>
       </div>` : ''}
       <div class="lane-card-footer">
-        <span class="lane-card-status-label ${status}" title="${this._escapeHtml(commandLine || '')}">${this._escapeHtml(statusLabel(status, foreground, commandLine))}</span>
+        <span class="lane-card-status-label ${status}" title="${escapeHtml(commandLine || '')}">${escapeHtml(statusLabel(status, foreground, commandLine))}</span>
         <span class="lane-card-activity" data-ts="${lastActivityAt || ''}">${formatRelativeTime(lastActivityAt)}</span>
       </div>
     `;
@@ -300,11 +308,21 @@ class LaneBoard {
 
   async _createLane(shellPath = null) {
     const options = shellPath ? { shell: shellPath } : {};
-    const id = await this.manager.createTerminal({
-      ...options,
-      projectPath: this.manager.getCurrentProject()
-    });
-    if (id) this.onEnterLane(id);
+    let id = null;
+    try {
+      id = await this.manager.createTerminal({
+        ...options,
+        projectPath: this.manager.getCurrentProject()
+      });
+    } catch (err) {
+      notify.error(`Could not create a new Frame: ${err.message || 'terminal creation failed'}`);
+      return;
+    }
+    if (!id) {
+      notify.error(`Could not create a new Frame — maximum (${this.manager.maxTerminals}) reached for this project`);
+      return;
+    }
+    this.onEnterLane(id);
   }
 
   // ─── Rename ─────────────────────────────────────────────
@@ -455,7 +473,7 @@ class LaneBoard {
         item.className = 'terminal-context-menu-item';
         if (shell.isDefault) item.classList.add('default');
         item.innerHTML = `
-          <span>${this._escapeHtml(shell.name)}</span>
+          <span>${escapeHtml(shell.name)}</span>
           ${shell.isDefault ? '<span class="shell-default-badge">default</span>' : ''}
         `;
         item.addEventListener('click', () => {
@@ -483,11 +501,6 @@ class LaneBoard {
     if (this.shellMenu) this.shellMenu.classList.remove('visible');
   }
 
-  _escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text == null ? '' : String(text);
-    return div.innerHTML;
-  }
 }
 
 module.exports = { LaneBoard, formatRelativeTime, STATUS_LABELS, cleanCommand, assignmentIcon, assignmentText };

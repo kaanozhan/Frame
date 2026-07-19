@@ -8,6 +8,7 @@
 
 const platform = require('./platform');
 const registry = require('./commandRegistry');
+const { escapeHtml } = require('./htmlUtils');
 
 let overlayEl = null;
 let searchEl = null;
@@ -124,15 +125,6 @@ function groupShortcuts(query) {
 
   groups.sort((a, b) => a.category.localeCompare(b.category));
   return groups;
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 module.exports = { init, open, close, toggle };

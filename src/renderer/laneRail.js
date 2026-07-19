@@ -16,6 +16,7 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
+const { escapeHtml } = require('./htmlUtils');
 const {
   PanelRightClose, PanelRightOpen, FileText, CheckSquare,
   ChevronRight, ChevronDown, ArrowUpRight
@@ -39,12 +40,6 @@ function lucideIcon(data, size = 14) {
     return `<${tag} ${attrStr}/>`;
   }).join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${children}</svg>`;
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text == null ? '' : String(text);
-  return div.innerHTML;
 }
 
 // ─── Persisted UI state ─────────────────────────────────────

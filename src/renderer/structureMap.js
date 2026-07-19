@@ -7,6 +7,7 @@ const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
+const { escapeHtml } = require('./htmlUtils');
 
 let isVisible = false;
 let overlay = null;
@@ -1207,13 +1208,6 @@ function getInitials(name) {
 /**
  * Escape HTML
  */
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 /**
  * Show placeholder in info panel
  */

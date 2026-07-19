@@ -18,6 +18,7 @@ const { ipcRenderer } = require('electron');
 const { marked } = require('marked');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
+const { escapeHtml } = require('./htmlUtils');
 
 const FILTERS = [
   { id: 'all',                 label: 'All' },
@@ -639,12 +640,6 @@ function tasksTabLabel(hasMarkdown) {
 function renderMarkdown(md) {
   if (!md) return '';
   return marked.parse(md).replace(/<script/gi, '&lt;script').replace(/on\w+=/gi, 'data-safe-');
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
 }
 
 function relativeTime(iso) {

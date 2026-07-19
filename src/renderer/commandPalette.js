@@ -7,6 +7,7 @@
 
 const platform = require('./platform');
 const registry = require('./commandRegistry');
+const { escapeHtml } = require('./htmlUtils');
 
 let overlayEl = null;
 let inputEl = null;
@@ -143,15 +144,6 @@ function runAt(idx) {
   // Defer so DOM focus changes (palette closing, terminal refocusing) settle
   // before the command actually runs.
   setTimeout(() => registry.runById(cmd.id), 0);
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 module.exports = { init, open, close, toggle };

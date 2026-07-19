@@ -11,6 +11,7 @@
 
 const laneStatus = require('./laneStatus');
 const { ChevronDown, Plus, Maximize2 } = require('lucide');
+const { escapeHtml } = require('./htmlUtils');
 
 const GRID_LAYOUTS = {
   '1x1': { rows: 1, cols: 1 },
@@ -107,7 +108,7 @@ class TerminalGrid {
       <div class="grid-cell-header">
         <button class="grid-cell-switcher" title="Switch frame in this cell">
           <span class="lane-status-dot ${status}"></span>
-          <span class="grid-cell-name">${this._escapeHtml(state.customName || state.name)}</span>
+          <span class="grid-cell-name">${escapeHtml(state.customName || state.name)}</span>
           ${lucideIcon(ChevronDown, 12)}
         </button>
         <div class="grid-cell-actions">
@@ -210,8 +211,8 @@ class TerminalGrid {
       if (t.id === currentTerminalId) item.classList.add('active-lane');
       item.innerHTML = `
         <span class="lane-status-dot ${status}"></span>
-        <span class="lane-menu-item-name">${this._escapeHtml(t.customName || t.name)}</span>
-        ${agentName ? `<span class="lane-menu-item-status">${this._escapeHtml(agentName)}</span>` : ''}
+        <span class="lane-menu-item-name">${escapeHtml(t.customName || t.name)}</span>
+        ${agentName ? `<span class="lane-menu-item-status">${escapeHtml(agentName)}</span>` : ''}
       `;
       item.addEventListener('click', () => {
         this._hideCellMenu();
@@ -239,11 +240,6 @@ class TerminalGrid {
     if (this.cellMenu) this.cellMenu.classList.remove('visible');
   }
 
-  _escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text == null ? '' : String(text);
-    return div.innerHTML;
-  }
 }
 
 module.exports = { TerminalGrid, GRID_LAYOUTS };

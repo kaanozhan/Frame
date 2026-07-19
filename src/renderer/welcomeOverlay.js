@@ -11,6 +11,7 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const openProjectModal = require('./openProjectModal');
+const { escapeHtml } = require('./htmlUtils');
 
 const DISMISSED_KEY = 'onboardingDismissed';
 
@@ -210,15 +211,6 @@ function reopen() {
     .catch((err) => console.error('Welcome: failed to reset setting', err));
   if (dontShowEl) dontShowEl.checked = false;
   open();
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function escapeAttr(s) {
