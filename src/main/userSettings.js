@@ -17,6 +17,7 @@ const fsSafe = require('./fsSafe');
 
 let settingsPath = null;
 let cache = {};
+let failed = false;
 
 function init() {
   settingsPath = path.join(app.getPath('userData'), 'user-settings.json');
@@ -27,9 +28,21 @@ function load() {
   const { data, source, error } = fsSafe.readJsonWithRecovery(settingsPath);
   if (source === 'bak') {
     console.error('userSettings: user-settings.json was corrupt — restored from .bak');
+    // Count the recovery. Lazy + deferred require: telemetry requires this
+    // module, so a top-level require here would be circular.
+    setImmediate(() => {
+      try {
+        require('./telemetry').track('error_occurred', { category: 'settings_corrupt_recovered' });
+      } catch (e) {}
+    });
   } else if (error) {
     console.error('userSettings: failed to load (corrupt copy preserved):', error.message);
   }
+  // Unrecoverable load (read/parse error with no .bak to fall back on) means
+  // the cache no longer reflects what the user chose — consumers that must
+  // not fail open (telemetry opt-out) check loadFailed(). A missing file
+  // (fresh install) or a successful .bak recovery is not a failure.
+  failed = data === null && error !== null;
   cache = data || {};
 }
 
@@ -45,6 +58,9 @@ function set(key, value) {
   }
   try {
     fsSafe.writeFileAtomic(settingsPath, JSON.stringify(cache, null, 2));
+    // A successful write makes the on-disk file match the cache again, so a
+    // degraded load is no longer the source of truth.
+    failed = false;
     return true;
   } catch (err) {
     console.error('userSettings: failed to write', err);
@@ -52,4 +68,13 @@ function set(key, value) {
   }
 }
 
-module.exports = { init, get, set };
+/**
+ * True when the last load ended in an unrecoverable failure — the settings
+ * file existed but could not be read or parsed, and no usable `.bak` was
+ * found. Distinct from a fresh install (no file), which is not a failure.
+ */
+function loadFailed() {
+  return failed;
+}
+
+module.exports = { init, get, set, loadFailed };

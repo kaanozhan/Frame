@@ -1,10 +1,13 @@
 /**
  * Telemetry
  *
- * Anonymous launch counter via Aptabase. Default opt-out: telemetry runs
- * unless the user disables it from Settings. We only ever send a single
- * `app_started` event per launch — no file paths, no project names, no
- * code, no personally identifying information.
+ * Anonymous usage events via Aptabase. Default opt-out: telemetry runs
+ * unless the user disables it from Settings, and fails closed when the
+ * settings file is unreadable. Every event must be declared in the
+ * registry in telemetryEvents.js — event names plus low-cardinality enum
+ * props only. No file paths, no project names, no code, no free-form
+ * strings, no personally identifying information. The full event list is
+ * documented in PRIVACY.md; keep the two in sync.
  *
  * The Aptabase app key below is a public identifier (not a secret). It
  * has write-only permissions and cannot read the dashboard or delete
@@ -13,6 +16,7 @@
 
 const aptabase = require('@aptabase/electron/main');
 const userSettings = require('./userSettings');
+const telemetryEvents = require('./telemetryEvents');
 
 const APTABASE_APP_KEY = 'A-EU-5590504973';
 const ENABLED_KEY = 'telemetryEnabled';
@@ -39,16 +43,28 @@ function init() {
 }
 
 /**
- * Send a single anonymous event marking this launch. No-op if disabled
- * or not initialized.
+ * Send a registered anonymous event. No-op if disabled or not initialized.
+ * The (name, props) pair is validated against the registry in
+ * telemetryEvents.js — unregistered events are dropped entirely, unknown
+ * props and out-of-enum values are stripped — so no call site (main or
+ * renderer via IPC) can ship content past the allowlist.
  */
-function trackAppStarted() {
+function track(name, props) {
   if (!isEnabled() || !initialized) return;
+  const validated = telemetryEvents.validateEvent(name, props);
+  if (validated === null) return;
   try {
-    aptabase.trackEvent('app_started');
+    aptabase.trackEvent(name, Object.keys(validated).length ? validated : undefined);
   } catch (err) {
     console.error('Telemetry: trackEvent failed', err);
   }
+}
+
+/**
+ * Anonymous event marking this launch.
+ */
+function trackAppStarted() {
+  track('app_started');
 }
 
 /**
@@ -63,11 +79,15 @@ function setEnabled(enabled) {
 
 /**
  * Effective enabled state. Default ON when the setting has never been
- * touched (opt-out semantics).
+ * touched (opt-out semantics) — but fails CLOSED when the settings file
+ * could not be loaded at all, so corruption can never silently re-enable
+ * telemetry for a user who opted out.
  */
 function isEnabled() {
-  const value = userSettings.get(ENABLED_KEY);
-  return value !== false;
+  return telemetryEvents.effectiveEnabled({
+    value: userSettings.get(ENABLED_KEY),
+    loadFailed: userSettings.loadFailed(),
+  });
 }
 
-module.exports = { init, trackAppStarted, setEnabled, isEnabled };
+module.exports = { init, track, trackAppStarted, setEnabled, isEnabled };

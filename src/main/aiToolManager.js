@@ -10,6 +10,7 @@ const { spawn } = require('child_process');
 const os = require('os');
 const fsSafe = require('./fsSafe');
 const logger = require('./logger');
+const telemetry = require('./telemetry');
 
 // The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL
 // is often unset, so fall back to the passwd entry — never to /bin/sh, which
@@ -175,6 +176,7 @@ function setActiveTool(toolId) {
   if (tools[toolId]) {
     config.activeTool = toolId;
     saveConfig();
+    telemetry.track('ai_tool_selected', { tool: toolId });
 
     // Notify renderer about the change
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -304,6 +306,19 @@ async function isCommandAvailable(command, projectPath) {
   });
 }
 
+// A failed CLI probe is the "agent launch failed" signal — count it by
+// coarse category only (never the command or path involved).
+const PROBE_FAILURE_CATEGORIES = {
+  'not-found': 'agent_cli_not_found',
+  timeout: 'agent_cli_timeout',
+  'spawn-error': 'agent_spawn_error'
+};
+
+function trackProbeFailure(reason) {
+  const category = PROBE_FAILURE_CATEGORIES[reason];
+  if (category) telemetry.track('error_occurred', { category });
+}
+
 /**
  * Setup IPC handlers
  */
@@ -338,6 +353,7 @@ function setupIPC() {
       if (fallback.found) {
         return { available: true, resolvedCommand: tool.command, name: tool.name };
       }
+      trackProbeFailure(fallback.reason);
       return { available: false, resolvedCommand: null, name: tool.name, reason: fallback.reason };
     }
 
@@ -352,6 +368,7 @@ function setupIPC() {
       }
     }
 
+    trackProbeFailure(primary.reason);
     return { available: false, resolvedCommand: null, name: tool.name, reason: primary.reason };
   });
 }

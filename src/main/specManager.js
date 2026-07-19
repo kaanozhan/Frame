@@ -17,6 +17,7 @@ const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
+const telemetry = require('./telemetry');
 
 const SPECS_DIR_NAME = 'specs';
 const STATUS_FILE = 'status.json';
@@ -223,6 +224,7 @@ function reconcilePhase(projectPath, slug, tasksDataOrNull) {
     updated_at: now,
     last_phase_at: now
   });
+  telemetry.track('spec_phase_advanced', { phase: newPhase });
 }
 
 // ─── Command template loading + interpolation ──────────────
@@ -566,6 +568,7 @@ function createSpec(projectPath, opts) {
     last_phase_at: now
   };
   writeStatus(projectPath, slug, status);
+  telemetry.track('spec_created');
 
   if (hasDescription) {
     const dir = getSpecDir(projectPath, slug);
@@ -597,6 +600,7 @@ function updateSpecStatus(projectPath, slug, partial) {
   const reason = validateSpecStatus(merged);
   if (reason) return { error: reason };
   writeStatus(projectPath, slug, merged);
+  if (phaseChanged) telemetry.track('spec_phase_advanced', { phase: merged.phase });
   return { status: merged };
 }
 

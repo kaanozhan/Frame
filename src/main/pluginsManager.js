@@ -8,6 +8,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 const { IPC } = require('../shared/ipcChannels');
+const telemetry = require('./telemetry');
 
 let mainWindow = null;
 
@@ -183,6 +184,9 @@ function togglePlugin(pluginId) {
   }
 
   const success = writeJsonFile(SETTINGS_FILE, settings);
+  if (success) {
+    telemetry.track('plugin_toggled', { action: !currentStatus ? 'enabled' : 'disabled' });
+  }
 
   return {
     success,
@@ -220,6 +224,7 @@ function ensureOfficialMarketplace() {
     execSync('git --version', { stdio: 'pipe', timeout: 5000 });
   } catch (err) {
     marketplaceFailure = { reason: 'git-missing', detail: 'git is not installed or not on PATH' };
+    telemetry.track('error_occurred', { category: 'plugin_marketplace_failed' });
     console.error('Marketplace clone skipped:', marketplaceFailure.detail);
     return false;
   }
@@ -243,6 +248,7 @@ function ensureOfficialMarketplace() {
       reason: classifyGitError(err),
       detail: String(err.stderr || err.message || '').split('\n')[0].slice(0, 200)
     };
+    telemetry.track('error_occurred', { category: 'plugin_marketplace_failed' });
     console.error('Error cloning official marketplace:', err);
     return false;
   }
@@ -276,6 +282,7 @@ function refreshMarketplace() {
     console.error('Error refreshing marketplace:', err);
     const reason = classifyGitError(err);
     marketplaceFailure = { reason, detail: String(err.stderr || err.message || '').split('\n')[0].slice(0, 200) };
+    telemetry.track('error_occurred', { category: 'plugin_marketplace_failed' });
     return { success: false, error: err.message, reason };
   }
 }

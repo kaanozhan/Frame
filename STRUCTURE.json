@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-17",
+  "lastUpdated": "2026-07-19",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -27,15 +27,16 @@
         "os",
         "fsSafe",
         "logger",
+        "telemetry",
         "shared/ipcChannels"
       ],
       "functions": {
         "loginShell": {
-          "line": 18,
+          "line": 19,
           "purpose": "The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL"
         },
         "init": {
-          "line": 90,
+          "line": 91,
           "params": [
             "window",
             "app"
@@ -43,77 +44,83 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "detectDefaultTool": {
-          "line": 104,
+          "line": 105,
           "purpose": "First run only: default the active tool to a CLI that is actually"
         },
         "loadConfig": {
-          "line": 120,
+          "line": 121,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 147,
+          "line": 148,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 158,
+          "line": 159,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 165,
+          "line": 166,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 173,
+          "line": 174,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 192,
+          "line": 194,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 202,
+          "line": 204,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 219,
+          "line": 221,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "isPathLike": {
-          "line": 231,
+          "line": 233,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 249,
+          "line": 251,
           "params": [
             "command",
             "projectPath"
           ],
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
+        "trackProbeFailure": {
+          "line": 317,
+          "params": [
+            "reason"
+          ]
+        },
         "setupIPC": {
-          "line": 310,
+          "line": 325,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 362,
+          "line": 379,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 370,
+          "line": 387,
           "purpose": "Get the start command for active tool"
         }
       },
@@ -526,32 +533,33 @@
         "shared/frameTemplates",
         "workspace",
         "structureBootstrap",
+        "telemetry",
         "../scripts/detect-project"
       ],
       "functions": {
         "init": {
-          "line": 21,
+          "line": 22,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 28,
+          "line": 29,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 36,
+          "line": 37,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 49,
+          "line": 50,
           "params": [
             "filePath",
             "content"
@@ -559,7 +567,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 66,
+          "line": 67,
           "params": [
             "target",
             "linkPath"
@@ -567,21 +575,21 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 107,
+          "line": 108,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 131,
+          "line": 132,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 175,
+          "line": 176,
           "params": [
             "projectPath",
             "projectName"
@@ -589,26 +597,26 @@
           "purpose": "Initialize a project as Frame project"
         },
         "isSpecDrivenEnabled": {
-          "line": 360,
+          "line": 361,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 365,
+          "line": 366,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 390,
+          "line": 391,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "setupIPC": {
-          "line": 451,
+          "line": 452,
           "params": [
             "ipcMain"
           ],
@@ -1128,11 +1136,11 @@
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 235,
+          "line": 241,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 262,
+          "line": 268,
           "params": [
             "window"
           ],
@@ -1144,6 +1152,7 @@
           "GET_USER_SETTING",
           "SET_USER_SETTING",
           "TELEMETRY_SET_ENABLED",
+          "TELEMETRY_TRACK",
           "GET_LOG_INFO",
           "TERMINAL_INPUT",
           "RECONCILE_TERMINALS"
@@ -1333,42 +1342,43 @@
         "shared/frameTemplates",
         "ptyManager",
         "gitBranchesManager",
-        "specManager"
+        "specManager",
+        "telemetry"
       ],
       "functions": {
         "init": {
-          "line": 64,
+          "line": 65,
           "params": [
             "window"
           ]
         },
         "sessionFor": {
-          "line": 68,
+          "line": 69,
           "params": [
             "projectPath"
           ]
         },
         "busDirFor": {
-          "line": 74,
+          "line": 75,
           "params": [
             "projectPath"
           ]
         },
         "binDirFor": {
-          "line": 77,
+          "line": 78,
           "params": [
             "projectPath"
           ]
         },
         "worktreeDirFor": {
-          "line": 80,
+          "line": 81,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "envForLane": {
-          "line": 86,
+          "line": 87,
           "params": [
             "session",
             "slug"
@@ -1376,27 +1386,27 @@
           "purpose": "Inject the bus path (+ optional slug) so a lane can reach Frame from any"
         },
         "toPrefix": {
-          "line": 100,
+          "line": 101,
           "params": [
             "entry"
           ]
         },
         "entriesOverlap": {
-          "line": 105,
+          "line": 106,
           "params": [
             "a",
             "b"
           ]
         },
         "footprintsOverlap": {
-          "line": 117,
+          "line": 118,
           "params": [
             "fa",
             "fb"
           ]
         },
         "findFootprintConflict": {
-          "line": 128,
+          "line": 129,
           "params": [
             "session",
             "slug",
@@ -1405,7 +1415,7 @@
           "purpose": "An in-flight spec whose footprint overlaps `footprint`, or null. done/failed"
         },
         "buildWorkerPrompt": {
-          "line": 141,
+          "line": 142,
           "params": [
             "projectPath",
             "slug"
@@ -1413,58 +1423,58 @@
           "purpose": "Write the interpolated worker prompt to the MAIN repo (worktrees lack .frame/"
         },
         "relayToConductor": {
-          "line": 163,
+          "line": 164,
           "params": [
             "session",
             "text"
           ]
         },
         "drainRelayQueue": {
-          "line": 169,
+          "line": 170,
           "params": [
             "session"
           ]
         },
         "materializeBinScripts": {
-          "line": 187,
+          "line": 188,
           "params": [
             "projectPath"
           ],
           "purpose": "Materialize the .frame/bin command scripts for this project."
         },
         "serializeState": {
-          "line": 199,
+          "line": 200,
           "params": [
             "session"
           ]
         },
         "publishState": {
-          "line": 224,
+          "line": 225,
           "params": [
             "session"
           ]
         },
         "startBusWatcher": {
-          "line": 241,
+          "line": 242,
           "params": [
             "session"
           ]
         },
         "drainBus": {
-          "line": 254,
+          "line": 255,
           "params": [
             "session"
           ]
         },
         "handleRequest": {
-          "line": 278,
+          "line": 279,
           "params": [
             "session",
             "req"
           ]
         },
         "handleDispatch": {
-          "line": 298,
+          "line": 299,
           "params": [
             "session",
             "slug"
@@ -1472,7 +1482,7 @@
           "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
         },
         "registerWorkerLane": {
-          "line": 369,
+          "line": 371,
           "params": [
             "projectPath",
             "slug",
@@ -1481,7 +1491,7 @@
           "purpose": "The renderer reports the terminalId it created for a worker lane, so the"
         },
         "handleReportDone": {
-          "line": 382,
+          "line": 384,
           "params": [
             "session",
             "slug"
@@ -1489,7 +1499,7 @@
           "purpose": "T15 — a worker reported completion: mark done, attach a diff stat, relay to"
         },
         "handleMerge": {
-          "line": 401,
+          "line": 403,
           "params": [
             "session",
             "slug",
@@ -1498,7 +1508,7 @@
           "purpose": "T22 (drift check + fast-forward merge into integration) + T23 (meta reconcile"
         },
         "mergeWorker": {
-          "line": 440,
+          "line": 443,
           "params": [
             "projectPath",
             "slug",
@@ -1507,7 +1517,7 @@
           "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
         },
         "removeWorker": {
-          "line": 448,
+          "line": 451,
           "params": [
             "projectPath",
             "slug"
@@ -1515,33 +1525,33 @@
           "purpose": "Per-worker cleanup from the board UI: stop its lane, remove the worktree, and"
         },
         "pollStatuses": {
-          "line": 473,
+          "line": 476,
           "params": [
             "session"
           ]
         },
         "startOrchestration": {
-          "line": 513,
+          "line": 517,
           "params": [
             "args = {}"
           ]
         },
         "stopOrchestration": {
-          "line": 578,
+          "line": 583,
           "params": [
             "projectPath"
           ],
           "purpose": "T25 — teardown: stop worker lanes, remove their worktrees, prune only MERGED"
         },
         "rehydrate": {
-          "line": 619,
+          "line": 624,
           "params": [
             "session"
           ],
           "purpose": "T26 — best-effort rehydration from frame/<slug>/* branches after a restart."
         },
         "resumeWorker": {
-          "line": 672,
+          "line": 677,
           "params": [
             "projectPath",
             "slug"
@@ -1549,20 +1559,20 @@
           "purpose": "Resume a recovered worker: spawn a fresh agent lane in its EXISTING"
         },
         "assignSpecs": {
-          "line": 697,
+          "line": 702,
           "params": [
             "projectPath",
             "slugs"
           ]
         },
         "getState": {
-          "line": 705,
+          "line": 710,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 711,
+          "line": 716,
           "params": [
             "ipcMain"
           ]
@@ -1728,25 +1738,26 @@
         "path",
         "os",
         "child_process",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "telemetry"
       ],
       "functions": {
         "init": {
-          "line": 24,
+          "line": 25,
           "params": [
             "window"
           ],
           "purpose": "Initialize plugins manager"
         },
         "readJsonFile": {
-          "line": 31,
+          "line": 32,
           "params": [
             "filePath"
           ],
           "purpose": "Read JSON file safely"
         },
         "writeJsonFile": {
-          "line": 45,
+          "line": 46,
           "params": [
             "filePath",
             "data"
@@ -1754,45 +1765,45 @@
           "purpose": "Write JSON file safely"
         },
         "getEnabledPlugins": {
-          "line": 58,
+          "line": 59,
           "purpose": "Get enabled plugins from settings"
         },
         "getInstalledPlugins": {
-          "line": 66,
+          "line": 67,
           "purpose": "Get installed plugins"
         },
         "getMarketplacePlugins": {
-          "line": 74,
+          "line": 75,
           "purpose": "Get all available plugins from marketplace"
         },
         "getAllPlugins": {
-          "line": 118,
+          "line": 119,
           "purpose": "Get all plugins with their status"
         },
         "togglePlugin": {
-          "line": 149,
+          "line": 150,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled status"
         },
         "classifyGitError": {
-          "line": 200,
+          "line": 204,
           "params": [
             "err"
           ],
           "purpose": "Classify a git failure into an actionable reason"
         },
         "ensureOfficialMarketplace": {
-          "line": 211,
+          "line": 215,
           "purpose": "Ensure official marketplace exists. Preflights git before cloning and"
         },
         "refreshMarketplace": {
-          "line": 254,
+          "line": 260,
           "purpose": "Refresh marketplace plugins (git pull or clone)"
         },
         "setupIPC": {
-          "line": 286,
+          "line": 293,
           "params": [
             "ipcMain"
           ],
@@ -1994,19 +2005,20 @@
         "shared/ipcChannels",
         "logger",
         "promptLogger",
+        "telemetry",
         "child_process",
         "fs"
       ],
       "functions": {
         "init": {
-          "line": 20,
+          "line": 21,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 35,
+          "line": 36,
           "params": [
             "shellPid",
             "callback"
@@ -2014,14 +2026,14 @@
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
         "getDefaultShell": {
-          "line": 54
+          "line": 55
         },
         "getAvailableShells": {
-          "line": 71,
+          "line": 72,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 157,
+          "line": 158,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -2031,28 +2043,28 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 265,
+          "line": 266,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 280,
+          "line": 281,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 292,
+          "line": 293,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 300,
+          "line": 301,
           "params": [
             "terminalId",
             "data"
@@ -2060,7 +2072,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 310,
+          "line": 311,
           "params": [
             "terminalId",
             "cols",
@@ -2069,40 +2081,40 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 320,
+          "line": 321,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 337,
+          "line": 338,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 353,
+          "line": 354,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 360,
+          "line": 361,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 370,
+          "line": 371,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 380,
+          "line": 381,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 387,
+          "line": 388,
           "params": [
             "ipcMain"
           ],
@@ -2152,56 +2164,57 @@
         "fsSafe",
         "shared/ipcChannels",
         "shared/frameConstants",
-        "tasksManager"
+        "tasksManager",
+        "telemetry"
       ],
       "functions": {
         "getSpecsRoot": {
-          "line": 44,
+          "line": 45,
           "params": [
             "projectPath"
           ]
         },
         "getSpecDir": {
-          "line": 48,
+          "line": 49,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "generateSlug": {
-          "line": 57,
+          "line": 58,
           "params": [
             "title"
           ]
         },
         "uniqueSlug": {
-          "line": 70,
+          "line": 71,
           "params": [
             "projectPath",
             "baseSlug"
           ]
         },
         "validateSpecStatus": {
-          "line": 83,
+          "line": 84,
           "params": [
             "obj"
           ]
         },
         "readFileSafe": {
-          "line": 102,
+          "line": 103,
           "params": [
             "p"
           ]
         },
         "readStatus": {
-          "line": 111,
+          "line": 112,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 122,
+          "line": 123,
           "params": [
             "projectPath",
             "slug",
@@ -2209,13 +2222,13 @@
           ]
         },
         "listSpecs": {
-          "line": 130,
+          "line": 131,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 185,
+          "line": 186,
           "params": [
             "projectPath",
             "slug",
@@ -2223,7 +2236,7 @@
           ]
         },
         "derivePhase": {
-          "line": 189,
+          "line": 190,
           "params": [
             "projectPath",
             "slug",
@@ -2232,14 +2245,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 208,
+          "line": 209,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 214,
+          "line": 215,
           "params": [
             "projectPath",
             "slug",
@@ -2247,14 +2260,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 238,
+          "line": 240,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 242,
+          "line": 244,
           "params": [
             "projectPath",
             "aiTool",
@@ -2262,7 +2275,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 246,
+          "line": 248,
           "params": [
             "projectPath",
             "aiTool",
@@ -2270,14 +2283,14 @@
           ]
         },
         "interpolate": {
-          "line": 252,
+          "line": 254,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 259,
+          "line": 261,
           "params": [
             "projectPath",
             "slug",
@@ -2286,7 +2299,7 @@
           ]
         },
         "stageReportTemplateAsset": {
-          "line": 295,
+          "line": 297,
           "params": [
             "projectPath",
             "aiTool"
@@ -2294,7 +2307,7 @@
           "purpose": "The spec.plan agent fills the report template from the terminal CLI,"
         },
         "buildSpecCommandFile": {
-          "line": 316,
+          "line": 318,
           "params": [
             "projectPath",
             "slug",
@@ -2303,53 +2316,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 345,
+          "line": 347,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 371,
+          "line": 373,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 390,
+          "line": 392,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 395,
+          "line": 397,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 475,
+          "line": 477,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 482,
+          "line": 484,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 499,
+          "line": 501,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 522,
+          "line": 524,
           "params": [
             "projectPath",
             "query"
@@ -2357,14 +2370,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 543,
+          "line": 545,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 585,
+          "line": 588,
           "params": [
             "projectPath",
             "slug",
@@ -2372,14 +2385,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 603,
+          "line": 607,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 620,
+          "line": 624,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2388,28 +2401,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 727,
+          "line": 731,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 769
+          "line": 773
         },
         "pushSpecData": {
-          "line": 789,
+          "line": 793,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 800,
+          "line": 804,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 804,
+          "line": 808,
           "params": [
             "ipcMain"
           ]
@@ -2653,33 +2666,79 @@
       "description": "Telemetry",
       "exports": [
         "init",
+        "track",
         "trackAppStarted",
         "setEnabled",
         "isEnabled"
       ],
       "depends": [
         "@aptabase/electron/main",
-        "userSettings"
+        "userSettings",
+        "telemetryEvents"
       ],
       "functions": {
         "init": {
-          "line": 31,
+          "line": 35,
           "purpose": "Initialize Aptabase. MUST be called before app.whenReady() because the"
         },
+        "track": {
+          "line": 52,
+          "params": [
+            "name",
+            "props"
+          ],
+          "purpose": "Send a registered anonymous event. No-op if disabled or not initialized."
+        },
         "trackAppStarted": {
-          "line": 45,
-          "purpose": "Send a single anonymous event marking this launch. No-op if disabled"
+          "line": 66,
+          "purpose": "Anonymous event marking this launch."
         },
         "setEnabled": {
-          "line": 58,
+          "line": 74,
           "params": [
             "enabled"
           ],
           "purpose": "Toggle telemetry from Settings. Persists the new state. Aptabase is"
         },
         "isEnabled": {
-          "line": 68,
+          "line": 86,
           "purpose": "Effective enabled state. Default ON when the setting has never been"
+        }
+      }
+    },
+    "main/telemetryEvents": {
+      "file": "src/main/telemetryEvents.js",
+      "description": "Telemetry events — pure policy module",
+      "exports": [
+        "EVENTS",
+        "normalizeTool",
+        "validateEvent",
+        "effectiveEnabled"
+      ],
+      "depends": [],
+      "functions": {
+        "normalizeTool": {
+          "line": 54,
+          "params": [
+            "id"
+          ],
+          "purpose": "Collapse a tool id to the fixed dashboard enum. User-defined custom tool"
+        },
+        "validateEvent": {
+          "line": 69,
+          "params": [
+            "name",
+            "props"
+          ],
+          "purpose": "Validate an (event, props) pair against the registry."
+        },
+        "effectiveEnabled": {
+          "line": 93,
+          "params": [
+            "{ value",
+            "loadFailed }"
+          ],
+          "purpose": "Effective telemetry state from the persisted setting plus settings-load"
         }
       }
     },
@@ -2739,32 +2798,38 @@
       "exports": [
         "init",
         "get",
-        "set"
+        "set",
+        "loadFailed"
       ],
       "depends": [
         "path",
         "electron",
-        "fsSafe"
+        "fsSafe",
+        "telemetry"
       ],
       "functions": {
         "init": {
-          "line": 21
+          "line": 22
         },
         "load": {
-          "line": 26
+          "line": 27
         },
         "get": {
-          "line": 36,
+          "line": 49,
           "params": [
             "key"
           ]
         },
         "set": {
-          "line": 40,
+          "line": 53,
           "params": [
             "key",
             "value"
           ]
+        },
+        "loadFailed": {
+          "line": 76,
+          "purpose": "True when the last load ended in an unrecoverable failure — the settings"
         }
       }
     },
@@ -2925,11 +2990,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 178,
+          "line": 182,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 213,
+          "line": 217,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -2937,10 +3002,10 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_startAgentInNewFrame": {
-          "line": 223
+          "line": 232
         },
         "_askNewOrRestart": {
-          "line": 241,
+          "line": 250,
           "params": [
             "frameName",
             "hasAgent"
@@ -2948,7 +3013,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 298,
+          "line": 307,
           "params": [
             "{ slug",
             "title = null",
@@ -2957,79 +3022,79 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "getSpecLaneInfo": {
-          "line": 362,
+          "line": 371,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 381,
+          "line": 390,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 402,
+          "line": 411,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 406,
+          "line": 415,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 410,
+          "line": 419,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 427,
+          "line": 436,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 435,
+          "line": 444,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 455,
+          "line": 464,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 463,
+          "line": 472,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 481,
+          "line": 490,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 491,
+          "line": 500,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 500,
+          "line": 509,
           "params": [
             "frameName",
             "specName"
@@ -3037,27 +3102,27 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_escapeHtml": {
-          "line": 532,
+          "line": 541,
           "params": [
             "s"
           ]
         },
         "_waitForAgentReady": {
-          "line": 551,
+          "line": 560,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 586,
+          "line": 595,
           "params": [
             "terminalId",
             "message"
           ]
         },
         "_showToast": {
-          "line": 591,
+          "line": 600,
           "params": [
             "message",
             "type = 'info'"
@@ -3068,7 +3133,10 @@
         "listens": [
           "TERMINAL_DESTROYED"
         ],
-        "emits": []
+        "emits": [
+          "TELEMETRY_TRACK",
+          "TELEMETRY_TRACK"
+        ]
       }
     },
     "renderer/agentPanel": {
@@ -4736,16 +4804,16 @@
           "purpose": "Open (or focus) the orchestrator section tab."
         },
         "orchEnv": {
-          "line": 101,
+          "line": 102,
           "params": [
             "projectPath"
           ]
         },
         "ensureSession": {
-          "line": 108
+          "line": 109
         },
         "spawnWorkerLane": {
-          "line": 155,
+          "line": 156,
           "params": [
             "{ projectPath",
             "slug",
@@ -4755,99 +4823,99 @@
           ]
         },
         "createViewport": {
-          "line": 184
+          "line": 185
         },
         "stopSession": {
-          "line": 237,
+          "line": 238,
           "purpose": "Stop the whole session: teardown (worktrees removed, merged branches pruned,"
         },
         "renderConductorZone": {
-          "line": 248,
+          "line": 249,
           "params": [
             "root"
           ]
         },
         "stageOf": {
-          "line": 282,
+          "line": 283,
           "params": [
             "w"
           ]
         },
         "renderPipeline": {
-          "line": 295,
+          "line": 296,
           "params": [
             "root"
           ]
         },
         "renderWorkerZone": {
-          "line": 338,
+          "line": 339,
           "params": [
             "root"
           ]
         },
         "mergeWorkerAction": {
-          "line": 388,
+          "line": 389,
           "params": [
             "slug"
           ]
         },
         "resumeWorkerAction": {
-          "line": 407,
+          "line": 408,
           "params": [
             "slug"
           ]
         },
         "removeWorkerAction": {
-          "line": 415,
+          "line": 416,
           "params": [
             "slug"
           ]
         },
         "_shortPath": {
-          "line": 424,
+          "line": 425,
           "params": [
             "p"
           ]
         },
         "_relTime": {
-          "line": 430,
+          "line": 431,
           "params": [
             "ts"
           ]
         },
         "loadSpecs": {
-          "line": 441,
+          "line": 442,
           "params": [
             "root"
           ]
         },
         "renderSpecRail": {
-          "line": 456,
+          "line": 457,
           "params": [
             "root",
             "specs"
           ]
         },
         "assignSpec": {
-          "line": 490,
+          "line": 491,
           "params": [
             "slug"
           ]
         },
         "nudgeConductor": {
-          "line": 504,
+          "line": 505,
           "params": [
             "projectPath"
           ]
         },
         "_esc": {
-          "line": 518,
+          "line": 519,
           "params": [
             "s"
           ]
         },
         "_toast": {
-          "line": 524,
+          "line": 525,
           "params": [
             "message",
             "type = 'info'"
@@ -4860,6 +4928,7 @@
           "ORCH_STATE"
         ],
         "emits": [
+          "TELEMETRY_TRACK",
           "ORCH_WORKER_LANE"
         ]
       }
@@ -8510,6 +8579,13 @@
       },
       "AI_TOOL_CHANGED": {
         "name": "ai-tool-changed",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "telemetry": {
+      "TELEMETRY_TRACK": {
+        "name": "telemetry-track",
         "direction": "",
         "description": ""
       }

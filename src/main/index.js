@@ -201,6 +201,12 @@ function setupAllIPC() {
     telemetry.setEnabled(enabled)
   );
 
+  // Telemetry — renderer-originated events; track() validates (name, props)
+  // against the registry, so the renderer cannot bypass the allowlist
+  ipcMain.on(IPC.TELEMETRY_TRACK, (event, name, props) => {
+    telemetry.track(name, props);
+  });
+
   // Diagnostics — Settings "Open Logs Folder"
   ipcMain.handle(IPC.GET_LOG_INFO, () => ({
     logPath: logger.getLogPath(),

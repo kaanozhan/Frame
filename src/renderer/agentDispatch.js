@@ -147,6 +147,10 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     if (!ready) {
       return _fail(targetId, `${check.name || chosenToolId} didn't become ready — prompt not sent`);
     }
+
+    // The CLI actually launched and reached ready — that is an agent run.
+    // Main normalizes the tool id to the registry enum before sending.
+    ipcRenderer.send(IPC.TELEMETRY_TRACK, 'agent_run_started', { tool: chosenToolId });
   }
 
   // ── Inject ───────────────────────────────────────────────
@@ -212,11 +216,16 @@ async function startDefaultAgent() {
 // spawned shell a beat to accept input before the command is typed.
 function _startAgentIn(terminalId, { fresh = false } = {}) {
   multiTerminalUI.enterLane(terminalId);
-  const startCommand = require('./aiToolSelector').getStartCommand();
+  const aiToolSelector = require('./aiToolSelector');
+  const startCommand = aiToolSelector.getStartCommand();
   if (!startCommand) {
     _showToast('No AI CLI selected', 'error');
     return;
   }
+  const currentTool = aiToolSelector.getCurrentTool();
+  ipcRenderer.send(IPC.TELEMETRY_TRACK, 'agent_run_started', {
+    tool: currentTool ? currentTool.id : null
+  });
   setTimeout(() => multiTerminalUI.sendCommand(startCommand, terminalId), fresh ? 800 : 50);
 }
 
