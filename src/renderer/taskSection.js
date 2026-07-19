@@ -20,6 +20,7 @@ const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const sectionRail = require('./sectionRail');
 const { CheckSquare } = require('lucide');
+const { escapeHtml } = require('./htmlUtils');
 
 let host = null; // multiTerminalUI — owns the tab collection + content area
 let seq = 0;     // unique viewport ids
@@ -269,12 +270,6 @@ function formatDate(iso) {
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return '';
   return new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text == null ? '' : String(text);
-  return div.innerHTML;
 }
 
 const api = { setHost, open, openInNewTab, createViewport };

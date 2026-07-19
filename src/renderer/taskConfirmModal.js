@@ -39,11 +39,14 @@ function init() {
     cancel();
   }, true);
 
-  // Enter triggers Delete (matches the focused button)
+  // Enter activates the focused button. Anywhere else (or focus lost),
+  // Enter cancels — delete is irreversible, so the safe action is the
+  // default and the destructive path needs an explicit choice.
   modalEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && modalEl.classList.contains('visible')) {
       e.preventDefault();
-      confirm();
+      if (document.activeElement === deleteBtn) confirm();
+      else cancel();
     }
   });
 
@@ -74,9 +77,8 @@ function open(opts = {}) {
   }
 
   modalEl.classList.add('visible');
-  // Focus the delete button so Enter confirms and the destructive action is
-  // clearly the active default in the dialog.
-  requestAnimationFrame(() => deleteBtn && deleteBtn.focus());
+  // Focus Cancel so a blind Enter is safe; deleting requires Tab/click.
+  requestAnimationFrame(() => cancelBtn && cancelBtn.focus());
 }
 
 function close() {

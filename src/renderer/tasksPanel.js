@@ -6,6 +6,8 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
+const { escapeHtml } = require('./htmlUtils');
+const notify = require('./notify');
 
 let isVisible = false;
 let currentFilter = 'all'; // all, pending, inProgress, completed
@@ -87,8 +89,12 @@ function setupIPCListeners() {
   });
 
   ipcRenderer.on(IPC.TASK_UPDATED, (event, { action, task, success }) => {
-    if (success) {
-      // Tasks data will be sent separately
+    // On success the fresh tasks data is sent separately (TASKS_DATA) —
+    // only failures need surfacing here, or a failed write to tasks.json
+    // looks identical to success.
+    if (!success) {
+      const what = { create: 'create task', update: 'update task', delete: 'delete task' }[action] || 'save task change';
+      notify.error(`Failed to ${what} — tasks.json was not updated`);
     }
   });
 
@@ -351,7 +357,8 @@ function handleTaskAction(taskId, action) {
       taskId,
       updates: { status: newStatus }
     });
-    showToast(toastMessage, action === 'complete' ? 'success' : 'info');
+    if (action === 'complete') notify.success(toastMessage);
+    else notify.info(toastMessage);
   }
 }
 
@@ -375,59 +382,9 @@ function openRunFlow(task) {
         taskId: task.id,
         updates: { status: 'in_progress' }
       });
-      showToast('Task sent', 'info');
+      notify.info('Task sent');
     }
   });
-}
-
-/**
- * Show toast notification
- */
-function showToast(message, type = 'info') {
-  // Remove existing toast
-  const existingToast = document.querySelector('.tasks-toast');
-  if (existingToast) {
-    existingToast.remove();
-  }
-
-  // Create toast element
-  const toast = document.createElement('div');
-  toast.className = `tasks-toast tasks-toast-${type}`;
-  toast.innerHTML = `
-    <span class="toast-icon">${getToastIcon(type)}</span>
-    <span class="toast-message">${message}</span>
-  `;
-
-  // Mount on body so the toast lives in the viewport's coordinate space
-  // rather than inside the narrow side panel — otherwise errors sit
-  // bottom-right where they're easy to miss.
-  document.body.appendChild(toast);
-
-  // Animate in
-  requestAnimationFrame(() => {
-    toast.classList.add('visible');
-  });
-
-  // Errors stay longer because they require user attention.
-  const visibleMs = type === 'error' ? 4000 : 2000;
-  setTimeout(() => {
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), 300);
-  }, visibleMs);
-}
-
-/**
- * Get toast icon based on type
- */
-function getToastIcon(type) {
-  switch (type) {
-    case 'success':
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    case 'error':
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-    default:
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
-  }
 }
 
 /**
@@ -656,12 +613,6 @@ function setupModalListeners() {
 /**
  * Escape HTML for safe rendering
  */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 /**
  * Render a small attribution chip for tasks that came from a Frame spec.
  * `source` looks like `spec:<slug>:T<n>`. We surface just the slug since

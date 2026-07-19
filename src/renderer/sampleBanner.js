@@ -19,6 +19,7 @@ const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const tasksPanel = require('./tasksPanel');
 const specPanel = require('./specPanel');
+const { escapeHtml } = require('./htmlUtils');
 
 let bannerEl = null;
 let closeBtnEl = null;
@@ -26,13 +27,6 @@ let detectionBannerEl = null;
 let detectionTextEl = null;
 let initialized = false;
 let dismissedForCurrentSession = false;
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 /** One-line summary of the detected stack for the post-init banner */
 function detectionSummary(project) {

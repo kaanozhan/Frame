@@ -23,6 +23,8 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
 const state = require('./state');
+const { escapeHtml } = require('./htmlUtils');
+const notify = require('./notify');
 
 let multiTerminalUI = null;
 
@@ -181,11 +183,11 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
  */
 async function startDefaultAgent() {
   if (!multiTerminalUI) {
-    _showToast('Terminal system is not ready yet', 'error');
+    notify.error('Terminal system is not ready yet');
     return;
   }
   if (!state.getProjectPath()) {
-    _showToast('Open a project first', 'error');
+    notify.error('Open a project first');
     return;
   }
 
@@ -219,7 +221,7 @@ function _startAgentIn(terminalId, { fresh = false } = {}) {
   const aiToolSelector = require('./aiToolSelector');
   const startCommand = aiToolSelector.getStartCommand();
   if (!startCommand) {
-    _showToast('No AI CLI selected', 'error');
+    notify.error('No AI CLI selected');
     return;
   }
   const currentTool = aiToolSelector.getCurrentTool();
@@ -238,7 +240,7 @@ async function _startAgentInNewFrame() {
   }
   if (!id) {
     const max = multiTerminalUI.getManager().maxTerminals;
-    _showToast(`Could not create a new Frame — maximum (${max}) may be reached for this project`, 'error');
+    notify.error(`Could not create a new Frame — maximum (${max}) may be reached for this project`);
     return;
   }
   _startAgentIn(id, { fresh: true });
@@ -255,7 +257,7 @@ function _askNewOrRestart(frameName, hasAgent) {
     overlay.innerHTML = `
       <div class="spec-modal" role="dialog" aria-modal="true" aria-labelledby="launch-lane-title">
         <h3 id="launch-lane-title">This Frame is busy</h3>
-        <p><strong>${_escapeHtml(frameName)}</strong> already has ${what}. Where should the agent start?</p>
+        <p><strong>${escapeHtml(frameName)}</strong> already has ${what}. Where should the agent start?</p>
         <div class="spec-modal-actions">
           <button type="button" class="btn btn-secondary launch-restart">Kill &amp; restart here</button>
           <button type="button" class="btn btn-primary launch-new-frame">Open a new Frame</button>
@@ -424,7 +426,7 @@ function _activityDotHtml(info) {
   const label = info.status === 'agent-working' ? 'Agent working'
     : info.status === 'agent-approval' ? 'Needs approval'
     : 'Awaiting input';
-  return `<span class="spec-activity-dot ${flavor}" title="${_escapeHtml(label)} · ${_escapeHtml(info.name)}"></span>`;
+  return `<span class="spec-activity-dot ${flavor}" title="${escapeHtml(label)} · ${escapeHtml(info.name)}"></span>`;
 }
 
 /**
@@ -513,10 +515,10 @@ function _askContinueOrNew(frameName, specName) {
     overlay.innerHTML = `
       <div class="spec-modal" role="dialog" aria-modal="true" aria-labelledby="dispatch-lane-title">
         <h3 id="dispatch-lane-title">Where should this run?</h3>
-        <p><strong>${_escapeHtml(specName)}</strong> is already working in <strong>${_escapeHtml(frameName)}</strong>.</p>
+        <p><strong>${escapeHtml(specName)}</strong> is already working in <strong>${escapeHtml(frameName)}</strong>.</p>
         <div class="spec-modal-actions">
           <button type="button" class="btn btn-secondary dispatch-new-frame">Open a new Frame</button>
-          <button type="button" class="btn btn-primary dispatch-continue">Continue in ${_escapeHtml(frameName)}</button>
+          <button type="button" class="btn btn-primary dispatch-continue">Continue in ${escapeHtml(frameName)}</button>
         </div>
       </div>
     `;
@@ -536,16 +538,6 @@ function _askContinueOrNew(frameName, specName) {
     });
     setTimeout(() => overlay.querySelector('.dispatch-continue').focus(), 30);
   });
-}
-
-function _escapeHtml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[c]));
 }
 
 // How long a cold-started CLI gets to reach its input box before the
@@ -586,39 +578,9 @@ function _waitForAgentReady(terminalId) {
   });
 }
 
-// ─── Toasts ─────────────────────────────────────────────────
-//
-// Same markup/classes as the Tasks panel toast so the existing
-// .tasks-toast styles apply; kept local to avoid a cross-module import
-// for what is presentation-only.
-
 function _fail(terminalId, message) {
-  _showToast(message, 'error');
+  notify.error(message);
   return { success: false, terminalId, error: message };
-}
-
-function _showToast(message, type = 'info') {
-  const existing = document.querySelector('.tasks-toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.className = `tasks-toast tasks-toast-${type}`;
-  const icon = type === 'error'
-    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
-    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
-  toast.innerHTML = `
-    <span class="toast-icon">${icon}</span>
-    <span class="toast-message">${message}</span>
-  `;
-  document.body.appendChild(toast);
-
-  requestAnimationFrame(() => toast.classList.add('visible'));
-
-  const visibleMs = type === 'error' ? 4000 : 2000;
-  setTimeout(() => {
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), 300);
-  }, visibleMs);
 }
 
 module.exports = {

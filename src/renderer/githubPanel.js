@@ -5,6 +5,8 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
+const { escapeHtml } = require('./htmlUtils');
+const notify = require('./notify');
 
 let isVisible = false;
 let issuesData = [];
@@ -133,7 +135,7 @@ async function refreshIssues() {
     }
 
     await loadIssues();
-    showToast('Issues refreshed', 'success');
+    notify.success('Issues refreshed');
   } finally {
     if (refreshBtn) {
       refreshBtn.classList.remove('spinning');
@@ -406,58 +408,8 @@ function formatRelativeTime(dateString) {
 }
 
 /**
- * Show toast notification
- */
-function showToast(message, type = 'info') {
-  const existingToast = document.querySelector('.github-toast');
-  if (existingToast) {
-    existingToast.remove();
-  }
-
-  const toast = document.createElement('div');
-  toast.className = `github-toast github-toast-${type}`;
-  toast.innerHTML = `
-    <span class="toast-icon">${getToastIcon(type)}</span>
-    <span class="toast-message">${message}</span>
-  `;
-
-  if (panelElement) {
-    panelElement.appendChild(toast);
-  }
-
-  requestAnimationFrame(() => {
-    toast.classList.add('visible');
-  });
-
-  setTimeout(() => {
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), 300);
-  }, 2000);
-}
-
-/**
- * Get toast icon based on type
- */
-function getToastIcon(type) {
-  switch (type) {
-    case 'success':
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    case 'error':
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-    default:
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
-  }
-}
-
-/**
  * Escape HTML for safe rendering
  */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 // ==================== BRANCHES FUNCTIONALITY ====================
 
 /**
@@ -597,19 +549,19 @@ async function handleSwitchBranch(branchName) {
     const result = await ipcRenderer.invoke(IPC.SWITCH_GIT_BRANCH, { projectPath, branchName });
 
     if (result.error === 'uncommitted_changes') {
-      showToast('Commit or stash changes first', 'error');
+      notify.error('Commit or stash changes first');
       return;
     }
 
     if (result.error) {
-      showToast(`Failed: ${result.error}`, 'error');
+      notify.error(`Failed: ${result.error}`);
       return;
     }
 
-    showToast(`Switched to ${result.branch}`, 'success');
+    notify.success(`Switched to ${result.branch}`);
     await loadBranches();
   } catch (err) {
-    showToast('Failed to switch branch', 'error');
+    notify.error('Failed to switch branch');
   }
 }
 
@@ -630,7 +582,7 @@ async function handleDeleteBranch(branchName) {
       if (forceDelete) {
         const forceResult = await ipcRenderer.invoke(IPC.DELETE_GIT_BRANCH, { projectPath, branchName, force: true });
         if (forceResult.error) {
-          showToast(`Failed: ${forceResult.error}`, 'error');
+          notify.error(`Failed: ${forceResult.error}`);
           return;
         }
       } else {
@@ -638,10 +590,10 @@ async function handleDeleteBranch(branchName) {
       }
     }
 
-    showToast(`Deleted ${branchName}`, 'success');
+    notify.success(`Deleted ${branchName}`);
     await loadBranches();
   } catch (err) {
-    showToast('Failed to delete branch', 'error');
+    notify.error('Failed to delete branch');
   }
 }
 
@@ -792,10 +744,10 @@ async function handleRemoveWorktree(wtPath) {
       }
     }
 
-    showToast('Worktree removed', 'success');
+    notify.success('Worktree removed');
     await loadWorktrees();
   } catch (err) {
-    showToast('Failed to remove worktree', 'error');
+    notify.error('Failed to remove worktree');
   }
 }
 
@@ -954,7 +906,7 @@ async function handleCreateBranch() {
   const shouldCheckout = checkbox?.checked ?? true;
 
   if (!branchName) {
-    showToast('Please enter a branch name', 'error');
+    notify.error('Please enter a branch name');
     return;
   }
 
@@ -970,7 +922,7 @@ async function handleCreateBranch() {
     });
 
     if (result.error) {
-      showToast(`Failed: ${result.error}`, 'error');
+      notify.error(`Failed: ${result.error}`);
       return;
     }
 
@@ -978,10 +930,10 @@ async function handleCreateBranch() {
     const message = shouldCheckout
       ? `Created and switched to ${branchName}`
       : `Created ${branchName}`;
-    showToast(message, 'success');
+    notify.success(message);
     await loadBranches();
   } catch (err) {
-    showToast('Failed to create branch', 'error');
+    notify.error('Failed to create branch');
   }
 }
 

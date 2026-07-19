@@ -607,7 +607,7 @@
 /* Toast Notifications — viewport-fixed, slides down from the top so
    important messages (especially errors) aren't tucked into a narrow
    side panel where they'd be easy to miss. */
-.tasks-toast {
+.app-toast {
   position: fixed;
   top: 16px;
   left: 50%;
@@ -626,19 +626,19 @@
   z-index: 10000;
 }
 
-.tasks-toast.visible {
+.app-toast.visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
-.tasks-toast .toast-icon {
+.app-toast .toast-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.tasks-toast .toast-message {
+.app-toast .toast-message {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
@@ -646,28 +646,28 @@
   word-break: break-word;
 }
 
-.tasks-toast-success .toast-icon {
+.app-toast-success .toast-icon {
   color: var(--success);
 }
 
-.tasks-toast-info .toast-icon {
+.app-toast-info .toast-icon {
   color: var(--info);
 }
 
 /* Error variant: louder background tint, accent border, larger text
    so a missed-CLI / failure message can't slip past the user. */
-.tasks-toast-error {
+.app-toast-error {
   background: var(--error-subtle);
   border-color: var(--error);
   padding: 14px 18px;
   box-shadow: var(--shadow-lg), 0 0 0 1px var(--error);
 }
 
-.tasks-toast-error .toast-icon {
+.app-toast-error .toast-icon {
   color: var(--error);
 }
 
-.tasks-toast-error .toast-message {
+.app-toast-error .toast-message {
   font-size: 14px;
   font-weight: 600;
   color: var(--error);
@@ -700,8 +700,6 @@
   color: var(--text-tertiary);
   font-size: 12px;
 }
-
-
 
 /* ==================== PLUGINS PANEL STYLES ==================== */
 #plugins-panel {
@@ -1140,53 +1138,6 @@
 }
 
 /* Plugins Toast */
-.plugins-toast {
-  position: absolute;
-  bottom: var(--space-lg);
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  transition: all var(--transition-normal);
-  z-index: 100;
-}
-
-.plugins-toast.visible {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.plugins-toast .toast-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.plugins-toast .toast-message {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.plugins-toast-success .toast-icon {
-  color: var(--success);
-}
-
-.plugins-toast-info .toast-icon {
-  color: var(--info);
-}
-
-.plugins-toast-error .toast-icon {
-  color: var(--error);
-}
-
 /* Plugins Toggle Button in Tab Bar */
 .btn-plugins-toggle {
   display: flex;
@@ -1205,7 +1156,6 @@
   border-color: var(--info) !important;
   color: var(--info) !important;
 }
-
 
 /* ==================== SESSIONS TAB STYLES ==================== */
 
@@ -1360,7 +1310,6 @@
   color: var(--text-tertiary);
   font-size: 12px;
 }
-
 
 /* ==================== GITHUB PANEL STYLES ==================== */
 #github-panel {
@@ -1712,53 +1661,6 @@
 }
 
 /* GitHub Toast */
-.github-toast {
-  position: absolute;
-  bottom: var(--space-lg);
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  transition: all var(--transition-normal);
-  z-index: 100;
-}
-
-.github-toast.visible {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.github-toast .toast-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.github-toast .toast-message {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.github-toast-success .toast-icon {
-  color: var(--success);
-}
-
-.github-toast-info .toast-icon {
-  color: var(--info);
-}
-
-.github-toast-error .toast-icon {
-  color: var(--error);
-}
-
 /* GitHub Toggle Button in Tab Bar */
 .btn-github-toggle {
   display: flex;
@@ -1777,7 +1679,6 @@
   border-color: var(--accent-primary) !important;
   color: var(--accent-primary) !important;
 }
-
 
 /* ==================== GIT BRANCHES PANEL STYLES ==================== */
 
@@ -2618,7 +2519,6 @@
   border-color: #6aa372;
 }
 
-
 /* ==================== OVERVIEW PANEL STYLES ==================== */
 
 /* Overview Toggle Button in Tab Bar */
@@ -2994,7 +2894,6 @@
   height: 200px;
   color: var(--error);
 }
-
 
 /* ==================== STRUCTURE MAP ==================== */
 #structure-map-overlay {

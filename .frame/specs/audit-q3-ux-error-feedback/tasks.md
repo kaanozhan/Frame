@@ -1,0 +1,12 @@
+# Tasks — UX & error-feedback hardening
+
+- T01 · Create `src/renderer/htmlUtils.js` exporting the shared string-replace `escapeHtml`; replace all 20 local definitions across the renderer with a `require('./htmlUtils')` (incl. `sampleBanner.js`, `terminalGrid.js`, `laneBoard.js`, `terminalTabBar.js`, `agentDispatch.js`).
+- T02 · Create `src/renderer/notify.js` (`error/success/info`, tasksPanel-baseline behavior: body-mounted single toast, icon, 4000 ms error / 2000 ms otherwise, message via `textContent`) and add the unified `.app-toast` block to `src/renderer/styles/components/panels.css`.
+- T03 · Migrate all `showToast`/`_showToast` call sites in `tasksPanel.js`, `githubPanel.js`, `pluginsPanel.js`, `agentDispatch.js` to `notify.*`; delete the four local implementations and the `.tasks-toast`/`.plugins-toast`/`.github-toast` CSS blocks.
+- T04 · Wrap the four terminal-create sites (`laneBoard._createLane`, `terminalTabBar._createLane`, `multiTerminalUI` rail `onNewLane` + `_newLaneInCell`) in try/catch + falsy-check routed to `notify.error`, with distinct messages for the per-project cap (null) and backend failure (rejection).
+- T05 · Add a `success:false` branch to the `TASK_UPDATED` handler in `src/renderer/tasksPanel.js` that calls `notify.error` naming the failed action; leave the success path unchanged.
+- T06 · Fix Enter handling in `taskConfirmModal.js` and `taskRunModal.js`: focus Cancel on open, Enter activates the focused modal button, fall back to cancel when focus is elsewhere, keep the branch-name-input exemption and Esc behavior.
+- T07 · Add the boot-failure state to `src/renderer/appLoader.js` + `app-loader.css`: failsafe with no data swaps the splash to "Couldn't load your workspace" with a Retry button that re-sends `IPC.LOAD_WORKSPACE` and re-arms the failsafe.
+- T08 · Remove the `#parked-project-actions` block from `index.html`; in `src/renderer/index.js` extract the start-AI click handler into a named function and have `ai.startSession` call it directly.
+- T09 · Add the naming-convention header comment to `src/renderer/laneBoard.js` documenting the rule: code/DOM ids say "lane", UI vocabulary says "Frame"/"Home".
+- T10 · Run the verification sweep: grep the audited files for leftover `escapeHtml`/`showToast` definitions, orphaned toast CSS classes, and `console.error`-only failure handling on user-triggered create/write actions; fix stragglers.

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX &amp; error-feedback hardening — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  /* ── Flow blocks (diagram style) ── */
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  /* ── Decision cards ── */
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>UX &amp; error-feedback hardening — Plan Overview</h1>
+  <p class="muted">2026-07-19 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/audit-q3-ux-error-feedback/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">10 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill warn">20 escapeHtml copies unified</span><span class="pill">4 toast implementations → 1</span><span class="pill">0 new dependencies</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>The Q3 audit's dominant renderer theme is <b>silent failure</b>: when something goes wrong, the user usually never finds out. Clicking "New Frame" when the backend fails does nothing — no toast, no message (four separate call-sites drop the failure). A failed <code>tasks.json</code> write looks identical to success because the <code>TASK_UPDATED</code> handler's failure branch is empty. Both confirm modals fire the <b>destructive</b> action on Enter even when Cancel is focused — a user who Tabs to Cancel and presses Enter still deletes their task. And if the workspace never loads at boot, the splash silently hides after 10&nbsp;seconds and drops the user into a blank app. Underneath it all: there is no shared notification layer (four divergent private <code>showToast</code> copies, one of which interpolates its message into <code>innerHTML</code> unescaped) and <b>twenty</b> duplicate <code>escapeHtml</code> definitions.</p>
+  <p>The plan establishes one error/feedback discipline: a single body-mounted <code>notify.error/success/info</code> module (behavior lifted from the best existing copy, message set via <code>textContent</code> so it is HTML-safe by construction), a single <code>escapeHtml</code> helper, an explicit rule that every user-triggered create/write failure routes to <code>notify.error</code>, focus-respecting Enter in both confirm modals with Cancel focused first, and a "couldn't load workspace" state with Retry in the boot loader. The vocabulary split (code says "lane", UI says "Frame"/"Home") is documented as a deliberate convention rather than half-renamed, and the parked hidden project-action buttons are removed while their palette commands are kept and properly rewired. This is hardening, not redesign — no IPC channels change, no visuals are restyled beyond what one shared component requires.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: Frame-creation failure surfacing, confirm-modal Enter discipline, and the boot-failure state.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>system / service</span>
+    <span class="l-data">storage / external</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Frame creation: every failure route ends in a visible toast</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">User clicks "New Frame"</div><div class="fd-sub">laneBoard · terminalTabBar · multiTerminalUI (rail + cell) — 4 call-sites</div></div>
+          <div class="fd-arrow"><span class="lbl">try/catch + await</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">manager.createTerminal(opts)</div><div class="fd-sub">terminalManager.js:272 — IPC round-trip to main</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">result?</div><div class="fd-sub">id · null (cap) · rejection (backend)</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">id returned</span>
+          <div class="fd-node outcome"><div class="fd-title">Enter the new Frame</div><div class="fd-sub">unchanged happy path</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">null — per-project cap</span>
+          <div class="fd-node system"><div class="fd-title">notify.error(cap message)</div><div class="fd-sub">names the limit — today this is a bare console.error (terminalManager.js:284)</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">rejected — backend failure</span>
+          <div class="fd-node system"><div class="fd-title">notify.error(create failed)</div><div class="fd-sub">today an unhandled promise rejection — fully silent</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Two distinct failure routes, both currently silent:</b> <code>createTerminal</code> returns <code>null</code> at the per-project cap but <b>rejects</b> on backend failure (terminalManager.js:291-302). All four call-sites only null-check, so a rejection today is an unhandled rejection. The standard is try/catch <i>plus</i> falsy-check, with distinct messages.</li>
+          <li><b>The same standard covers task writes:</b> the <code>TASK_UPDATED</code> handler's empty <code>success</code> branch (tasksPanel.js:89-93) gets an explicit <code>success:false</code> → <code>notify.error</code> naming the failed action; the success path (data re-sent via <code>TASKS_DATA</code>) is untouched.</li>
+          <li><b>notify.js is the single toast:</b> CommonJS, <code>module.exports = { error, success, info }</code>, body-mounted, one toast at a time, 4000&nbsp;ms errors / 2000&nbsp;ms otherwise — the tasksPanel baseline the spec designates. Message via <code>textContent</code>, which closes the unescaped-<code>innerHTML</code> hole (tasksPanel.js:398) by construction.</li>
+          <li><b>One CSS block:</b> a shared <code>.app-toast</code> component replaces the triplicated <code>.tasks-toast</code>/<code>.plugins-toast</code>/<code>.github-toast</code> blocks in panels.css (lines 610/1143/1715). Carried over, not redesigned.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Confirm modals: Enter respects focus, Cancel focused first</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Modal opens</div><div class="fd-sub">taskConfirmModal (delete) · taskRunModal (run)</div></div>
+          <div class="fd-arrow"><span class="lbl">initial focus</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Cancel button focused</div><div class="fd-sub">a blind Enter is now safe</div></div>
+          <div class="fd-arrow"><span class="lbl">user presses enter</span><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">document.activeElement?</div><div class="fd-sub">branch-name input exemption preserved (taskRunModal)</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">cancel focused</span>
+          <div class="fd-node outcome"><div class="fd-title">cancel()</div><div class="fd-sub">today this deletes/runs anyway — the inverted default being fixed</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">confirm focused</span>
+          <div class="fd-node outcome"><div class="fd-title">confirm()</div><div class="fd-sub">destructive path requires explicit choice</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">focus elsewhere / lost</span>
+          <div class="fd-node system"><div class="fd-title">Fall back to cancel()</div><div class="fd-sub">safe default when focus is ambiguous</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The bug being fixed:</b> both modals' keydown handlers call <code>confirm()</code> on <i>any</i> Enter while visible (taskConfirmModal.js:43-48, taskRunModal.js:64-71) — the comment claims "matches the focused button" but focus is ignored, so Cancel-focused Enter still deletes ("This action can't be undone").</li>
+          <li><b>Esc is untouched:</b> the existing capture-phase Escape-cancels handler stays exactly as it is.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Boot: the failsafe becomes a failure state with Retry</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">App boot</div><div class="fd-sub">splash shown; projectListUI sends LOAD_WORKSPACE (projectListUI.js:93)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">main: workspace.js</div><div class="fd-sub">replies WORKSPACE_DATA (workspace.js:203) — no error variant exists</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">data within 10 s?</div><div class="fd-sub">appLoader FAILSAFE_MS</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">arrived</span>
+          <div class="fd-node outcome"><div class="fd-title">Loader fades out</div><div class="fd-sub">unchanged happy path</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">timeout, no data</span>
+          <div class="fd-node system"><div class="fd-title">"Couldn't load your workspace"</div><div class="fd-sub">loader swaps content — today it silently hides into a blank app (appLoader.js:33-35)</div></div>
+          <div class="fd-arrow"><span class="lbl">retry</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Re-send LOAD_WORKSPACE</div><div class="fd-sub">re-arms the failsafe; existing WORKSPACE_DATA listener hides on success</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Renderer-only by decision:</b> main always replies to <code>LOAD_WORKSPACE</code> with <code>WORKSPACE_DATA</code> — there is no error variant — so the timeout is the only available signal. No new IPC channels (keep-channels-intact constraint); genuinely crashed-main cases are already partially covered by the separate <code>healthNotice</code> banner (<code>MAIN_PROCESS_ERROR</code>).</li>
+          <li><b>Retry needs no new wiring:</b> the loader's existing first-data listener already hides it whenever <code>WORKSPACE_DATA</code> lands, even after the failure state is showing.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The shared modules, in one look</h3>
+  <pre>// src/renderer/notify.js (New) — the one toast
+module.exports = { error(msg), success(msg), info(msg) }
+//  · body-mounted .app-toast, one at a time (new call replaces existing)
+//  · message via textContent — HTML-safe by construction
+//  · 4000 ms error / 2000 ms otherwise, 300 ms fade (tasksPanel baseline)
+
+// src/renderer/htmlUtils.js (New) — the one escapeHtml
+module.exports = { escapeHtml(s) }   // string-replace & &lt; &gt; " ' — no DOM dependency
+// replaces 20 local definitions across the renderer</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · What does Enter do in the confirm modals?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Respect the focused button</div>
+        <div class="opttrade">Standard platform behavior; needs focus management (initial focus on Cancel) so a blind Enter stays safe.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Enter always cancels</div>
+        <div class="opttrade">Safest possible and trivial to implement, but non-standard — users expecting Enter-to-confirm must click or Tab.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Focus-respecting Enter is what every native dialog does; combined with Cancel-first initial focus and a safe-cancel fallback for ambiguous focus, the destructive path always requires an explicit choice.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D2 · Naming: finish the lane→frame rename, or document the split?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Document the split</div>
+        <div class="opttrade">"Lane" stays in code/DOM ids, "Frame"/"Home" in UI — zero regression risk, but the two vocabularies persist.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Finish the rename in code</div>
+        <div class="opttrade">One vocabulary everywhere, but a large risky diff that would dominate this hardening spec.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> PROJECT_NOTES records a deliberate 2026-06-11 decision to keep "lane" internal-only, and the spec's constraint says respect it. The rule becomes explicit via a naming-convention header comment in <code>laneBoard.js</code>; the PROJECT_NOTES entry lands at meta-reconciliation (spec workers never touch meta files).</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D3 · What happens to the parked #parked-project-actions buttons?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Remove the DOM, keep the palette commands</div>
+        <div class="opttrade">No new UI surface; both capabilities live on in the command palette only.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Give them a real visible home</div>
+        <div class="opttrade">Restores discoverability, but that is new UI design — beyond hardening scope. (Removing the commands too was also rejected: it loses a working capability.)</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Evidence showed <code>ai.startSession</code> currently proxies a click on the hidden <b>disabled</b> button — a no-op. The fix extracts the real handler (index.js:255) into a named function the command calls directly; <code>project.initializeFrame</code> already calls state directly and needs nothing.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D4 · Where do the shared helpers live?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">notify.js + htmlUtils.js in src/renderer/</div>
+        <div class="opttrade">Two focused CommonJS modules; matches the flat one-concern-per-file renderer layout.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Single uiUtils.js grab-bag · or escapeHtml in src/shared/</div>
+        <div class="opttrade">One require per file, but couples unrelated concerns; shared/ holds only cross-process constants and nothing in main needs escapeHtml.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The renderer directory is already flat with one concern per file (state.js, platform.js, appLoader.js…); DOM-adjacent helpers stay renderer-side and <code>src/shared/</code> keeps its cross-process-constants meaning.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D5 · How is the boot-failure state triggered?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Renderer-only timeout state</div>
+        <div class="opttrade">No IPC changes; can't distinguish slow vs dead main, so the message says "couldn't load" with Retry.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Add a main-side error signal</div>
+        <div class="opttrade">Precise diagnostics, but a new IPC channel and main-process changes — beyond this renderer-focused spec.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Main has no failure path to report — it always replies <code>WORKSPACE_DATA</code> (workspace.js:203) — so a main-side signal would mean inventing new failure detection in main. The timeout is the honest signal the renderer actually has, and the keep-channels-intact constraint applies.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D6 · Toast behavior baseline <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">tasksPanel variant, verbatim</div>
+        <div class="opttrade">Body-mounted, icon + message, single toast, 4000/2000 ms — behavior users already see.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Design a new toast behavior</div>
+        <div class="opttrade">Any improvement here is redesign — explicitly out of scope, and a 5th variant is exactly what the constraint forbids.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The spec's consolidate-don't-fork constraint names this baseline (body-mounted, 4000 ms errors / 2000 ms otherwise per tasksPanel.js:412). The only behavioral change is the security fix: <code>textContent</code> instead of <code>innerHTML</code> interpolation.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D7 · Terminal-create call-sites: null-check only, or try/catch too? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">try/catch + falsy-check, distinct messages</div>
+        <div class="opttrade">Slightly more code per site; both failure routes (cap and backend) become visible with accurate messages.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Falsy-check only (what the spec implies)</div>
+        <div class="opttrade">Matches the spec's literal reading, but leaves backend failures as unhandled promise rejections — still silent.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Evidence pass found <code>createTerminal</code> <b>rejects</b> on backend failure and returns <code>null</code> only at the per-project cap (terminalManager.js:283-302). A null-check alone would fix half the bug; the success criterion is "no silent failure at all four sites".</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D8 · Consolidation scope: the 20 copies, not the listed 15 <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Migrate every definition found today</div>
+        <div class="opttrade">Five files beyond the spec's list (sampleBanner, terminalGrid, laneBoard, terminalTabBar, agentDispatch) join the migration.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Only the spec's enumerated files</div>
+        <div class="opttrade">Smaller diff, but the success criterion "exactly one escapeHtml" would fail on day one.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The spec says "15+" and the criterion is exactly-one-helper; the evidence pass is the source of truth for what exists today.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>Backend create-failure is a promise <i>rejection</i>, not a falsy return</td><td>All four sites get try/catch as well as the falsy-check (D7); cap and backend failures produce distinct <code>notify.error</code> messages.</td></tr>
+    <tr><td>Repeated failures spam toasts</td><td>The tasksPanel baseline is single-toast-at-a-time — a new call replaces the visible toast, never stacks.</td></tr>
+    <tr><td>Modal focus is lost (e.g. user clicked the backdrop) and Enter arrives</td><td>Enter falls back to <code>cancel()</code> when <code>document.activeElement</code> is not one of the modal's buttons — ambiguity resolves to the safe action.</td></tr>
+    <tr><td>Typing in the run-modal branch-name field</td><td>The existing exemption is preserved: Enter in that input is never hijacked.</td></tr>
+    <tr><td><code>WORKSPACE_DATA</code> arrives <i>after</i> the failure state is shown (slow main, not dead)</td><td>The loader's existing first-data listener still fires and hides the loader — the failure state self-resolves; Retry also re-arms the failsafe.</td></tr>
+    <tr><td>DOM-based vs string-replace <code>escapeHtml</code> behavior drift</td><td>Both approaches produce identical output for the five escaped characters; the shared helper is string-replace so it has no DOM dependency and one testable behavior.</td></tr>
+    <tr><td>Deleting per-panel toast CSS orphans selectors or misses a call site</td><td>Sequencing step 8 is a dedicated grep sweep for leftover <code>showToast</code>/<code>escapeHtml</code> definitions, toast class names, and <code>console.error</code>-only failure paths in the audited files.</td></tr>
+    <tr><td>Naming documentation vs the workers-never-touch-meta-files rule</td><td>The convention lands as a header comment in <code>laneBoard.js</code> (in scope); the PROJECT_NOTES.md decision entry is appended at meta-reconciliation, outside the worker's footprint.</td></tr>
+    <tr><td><code>ai.startSession</code> breaks when the hidden button is removed</td><td>It is already a no-op (clicks a <code>disabled</code> button); the handler body is extracted into a named function the command calls directly — strictly an improvement.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: the full lane→frame rename (documented split instead, per D2); a visible home for start-AI/init-frame (palette-only, per D3); a main-side workspace-load error signal (per D5); any toast/modal visual redesign (out of scope).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>One shared notification module (notify.error/success/info), HTML-safe, body-mounted, replacing all four showToast copies <span class="tag">G1</span></td><td>Architecture · notify.js design (D4, D6) · Sequencing 2</td></tr>
+    <tr><td>An error-surfacing standard: every awaited create/write failure routes to notify.error — the four terminal-create sites and the TASK_UPDATED failure path <span class="tag">G2</span></td><td>Architecture · error-surfacing standard (D7) · Sequencing 3, 4</td></tr>
+    <tr><td>Destructive-confirm defaults fixed: Enter respects the focused button; Cancel-focused Enter cancels <span class="tag">G3</span></td><td>Architecture · confirm-modal focus discipline (D1) · Sequencing 5</td></tr>
+    <tr><td>Boot/loading failure surface: "couldn't load workspace" instead of a silent blank app <span class="tag">G4</span></td><td>Architecture · boot-failure state (D5) · Sequencing 6</td></tr>
+    <tr><td>escapeHtml consolidated into one shared helper; the tasksPanel toast message escaped <span class="tag">G5</span></td><td>Architecture · htmlUtils.js + textContent-by-construction (D8) · Sequencing 1, 2</td></tr>
+    <tr><td>Vocabulary reconciled and the parked project-actions resolved <span class="tag">G6</span></td><td>Architecture · resolved decisions D2, D3 · Sequencing 7</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Renderer modules are CommonJS with nodeIntegration; shared helpers must be require-able without a bundler <span class="tag">C1</span></td><td>Architecture · both new modules are plain <code>module.exports</code> CommonJS (D4)</td></tr>
+    <tr><td>Consolidate, don't fork: unify existing behavior (body-mounted, 4000/2000 ms), no 5th variant <span class="tag">C2</span></td><td>Architecture · tasksPanel baseline verbatim + one .app-toast CSS block (D6)</td></tr>
+    <tr><td>Hardening, not redesign; keep existing IPC channels and data flows intact <span class="tag">C3</span></td><td>Architecture · renderer-only boot state (D5); no channel added or changed anywhere in the plan</td></tr>
+    <tr><td>Respect the deliberate keep-"lane"-internal decision; pick a rule and apply it consistently <span class="tag">C4</span></td><td>Architecture · D2 — split documented as an explicit convention, no half-rename</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Falsy createTerminal shows a visible error toast at all four call-sites <span class="tag">S1</span></td><td>Sequencing 3 · proven by triggering the per-project cap and a forced backend failure at each site</td></tr>
+    <tr><td>A failed tasks.json write (success:false) produces a visible error toast; success unchanged <span class="tag">S2</span></td><td>Sequencing 4 · proven by simulating a failed write</td></tr>
+    <tr><td>Enter while Cancel is focused cancels in both modals; destructive path requires explicit activation <span class="tag">S3</span></td><td>Sequencing 5 · proven by keyboard walkthrough (Tab to Cancel → Enter)</td></tr>
+    <tr><td>Exactly one notify module and one escapeHtml helper; no toast interpolates unescaped user text <span class="tag">S4</span></td><td>Sequencing 1, 2 · proven by the step-8 grep sweep (zero local definitions remain)</td></tr>
+    <tr><td>If WORKSPACE_DATA never arrives, the user sees an explanatory failure state, not a blank app <span class="tag">S5</span></td><td>Sequencing 6 · proven by blocking the reply and watching the failsafe</td></tr>
+    <tr><td>No remaining console.error-only failure handling on user-triggered create/write actions in the audited files <span class="tag">S6</span></td><td>Sequencing 8 · proven by the dedicated verification grep</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>laneBoard._createLane drops falsy id silently (laneBoard.js:301-308)</td><td><span class="pill good">verified</span> src/renderer/laneBoard.js:301-308 — <code>if (id) this.onEnterLane(id)</code>, no else</td></tr>
+    <tr><td>terminalTabBar same silent drop (terminalTabBar.js:463-467)</td><td><span class="pill warn">drifted</span> moved to terminalTabBar.js:466-470 — same silent behavior</td></tr>
+    <tr><td>multiTerminalUI onNewLane no else (339-342) and _newLaneInCell silent return (425-429)</td><td><span class="pill good">verified</span> multiTerminalUI.js:339-343 and :425-431</td></tr>
+    <tr><td>TASK_UPDATED handler has an empty success branch; failures fall through (tasksPanel.js:89-93)</td><td><span class="pill good">verified</span> src/renderer/tasksPanel.js:89-93</td></tr>
+    <tr><td>tasksPanel has showToast (:386) with unescaped innerHTML message (:398) and 4000/2000 ms (:412)</td><td><span class="pill good">verified</span> all three at the cited lines</td></tr>
+    <tr><td>taskConfirmModal Enter always confirms regardless of focus (:43-48)</td><td><span class="pill good">verified</span> taskConfirmModal.js:42-48 — comment claims focus-matching, code ignores focus</td></tr>
+    <tr><td>taskRunModal same pattern with branch-input exemption (:64-71)</td><td><span class="pill good">verified</span> taskRunModal.js:64-71</td></tr>
+    <tr><td>Four toast implementations: tasksPanel:386, githubPanel:411, pluginsPanel:409, agentDispatch:586</td><td><span class="pill warn">drifted</span> tasksPanel:386 and githubPanel:411 hold; pluginsPanel → :426, agentDispatch → :600. Still exactly four.</td></tr>
+    <tr><td>15+ duplicate escapeHtml copies at the listed locations</td><td><span class="pill warn">drifted</span> undercount — <b>20</b> definitions today: the listed ones (several with moved lines: pluginsPanel 458→475, specSection 478→501, specsDashboard 569→644, specPanel 845→868) plus sampleBanner.js:30, terminalGrid.js:242, laneBoard.js:486, terminalTabBar.js:457, agentDispatch.js:541</td></tr>
+    <tr><td>appLoader hides the splash silently after the 10 s failsafe (appLoader.js:33-35)</td><td><span class="pill good">verified</span> src/renderer/appLoader.js:33-35</td></tr>
+    <tr><td>#parked-project-actions hidden but wired (index.html:57-68)</td><td><span class="pill warn">drifted</span> lines moved (~:64-75); content verified — and <code>ai.startSession</code> clicks the hidden <b>disabled</b> button (index.js:726-733), a no-op today</td></tr>
+    <tr><td>Naming churn Lane → Frame → Mainframe → Home recorded in PROJECT_NOTES</td><td><span class="pill good">verified</span> 2026-06-11 entries "Naming: Mainframe &amp; Frames" (lane kept internal-only) and "Mainframe label → Home"</td></tr>
+    <tr><td>Open question: does main emit a distinguishable workspace-load error?</td><td><span class="pill good">resolved</span> No — <code>LOAD_WORKSPACE</code> always gets <code>WORKSPACE_DATA</code> (workspace.js:203), no error variant; renderer has only the timeout. Separate <code>healthNotice</code> banner covers MAIN_PROCESS_ERROR crash-guard cases.</td></tr>
+    <tr><td>New evidence: createTerminal failure semantics</td><td><span class="pill good">verified</span> returns <code>null</code> at the per-project cap with a bare console.error (terminalManager.js:283-286); <b>rejects</b> on backend failure (:291-302) — call-sites have no catch</td></tr>
+    <tr><td>New evidence: toast CSS triplicated</td><td><span class="pill good">verified</span> .tasks-toast / .plugins-toast / .github-toast blocks at panels.css:610/1143/1715</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — caught that the naming documentation targeted PROJECT_NOTES.md, a meta file spec workers must never touch → moved the convention to a <code>laneBoard.js</code> header comment; the PROJECT_NOTES entry is deferred to meta-reconciliation and PROJECT_NOTES stays out of the Footprint.</li>
+    <li><b>Iteration 2</b> — caught that a falsy-check alone leaves backend create-failures as unhandled promise rejections (createTerminal rejects; only the cap returns null) → Sequencing 3 now specifies try/catch <i>plus</i> falsy-check with distinct cap/backend messages (recorded as D7).</li>
+    <li><b>Iteration 3</b> — caught two unreality risks: the loader failure-state styles had no identified home, and Retry's channel was assumed → verified <code>app-loader.css</code> exists and <code>LOAD_WORKSPACE</code> is sent from projectListUI.js:93; both files/paths now cited literally in Files/Footprint.</li>
+    <li><b>Iteration 4</b> — format/coverage audit: five sections in order, every G1-G6 / C1-C4 / S1-S6 ID owned by a named plan section, zero TBDs, every referenced path verified in code or marked New, tasks derivable from Sequencing alone. Pass — converged.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-19 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/audit-q3-ux-error-feedback/plan.md</code></footer>
+</div>
+</body>
+</html>

@@ -1049,3 +1049,39 @@ agent-ready, not when a prompt is injected into a running agent;
 PRIVACY.md now lists the full event table and the fail-closed guarantee — rule
 going forward: any registry addition lands in PRIVACY.md in the same change.
 Per-task story in `.frame/specs/audit-q3-product-analytics/outcome.md`.
+
+### [2026-07-19] UX & error-feedback hardening implemented (audit-q3-ux-error-feedback)
+
+Spec implemented end-to-end in one session (plan → tasks → T01-T10), replacing
+the renderer's silent-failure pattern with one feedback discipline:
+
+- **`src/renderer/notify.js`** is now the single toast (`notify.error/success/info`).
+  Behavior is the old tasksPanel baseline (body-mounted, single toast, 4000 ms
+  error / 2000 ms otherwise); message set via `textContent`, closing the
+  unescaped-innerHTML hole. Old copies in tasksPanel/githubPanel/pluginsPanel/
+  agentDispatch **and a 5th undocumented copy in orchestrator.js** are gone;
+  CSS unified to one `.app-toast` block in panels.css.
+- **`src/renderer/htmlUtils.js`** is the single `escapeHtml`. The audit counted
+  15 copies; implementation found and removed **21** (extras: sampleBanner,
+  terminalGrid, laneBoard, terminalTabBar, agentDispatch, orchestrator `_esc`).
+  Rule going forward: never add a local escapeHtml/showToast — require these.
+- **Error-surfacing standard:** all four Frame-create call-sites now try/catch
+  + falsy-check → `notify.error` with distinct cap-vs-backend messages
+  (`createTerminal` returns null at the cap but *rejects* on backend failure —
+  that rejection used to be silently unhandled). `TASK_UPDATED` with
+  `success:false` now toasts instead of an empty branch.
+- **Confirm modals:** initial focus is Cancel; Enter activates the focused
+  button, anything else falls back to cancel. Destructive/run paths require an
+  explicit activation.
+- **Boot:** appLoader's 10 s failsafe now swaps the splash to a "Couldn't load
+  your workspace" state with Retry (re-sends LOAD_WORKSPACE, re-arms failsafe)
+  instead of silently hiding into a blank app.
+- **Parked buttons removed** from index.html; `ai.startSession` no longer
+  clicks a hidden disabled button (was a no-op) — extracted `startAiSession()`
+  in index.js, called by the palette command. `#init-frame-tooltip` markup is
+  now orphaned (harmless, guarded) — candidate for later cleanup.
+- **Naming rule documented** in laneBoard.js header: code/DOM ids say "lane",
+  UI says "Frame"/"Home" (reaffirms the 2026-06-11 decision — no rename).
+
+Verified: esbuild bundle builds, `npm test` 82/82 green, sweep shows zero
+leftover local toast/escape definitions. Net diff −157 lines.

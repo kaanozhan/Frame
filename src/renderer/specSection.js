@@ -20,6 +20,7 @@ const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const sectionRail = require('./sectionRail');
 const { FileText } = require('lucide');
+const { escapeHtml } = require('./htmlUtils');
 
 let host = null;
 let seq = 0;
@@ -496,12 +497,6 @@ function renderMarkdown(md) {
     .parse(md)
     .replace(/<script/gi, '&lt;script')
     .replace(/on\w+=/gi, 'data-safe-');
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
 }
 
 const api = { setHost, open, openInNewTab, createViewport };

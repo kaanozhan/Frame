@@ -66,9 +66,7 @@ function init() {
 
   // Initialize state management
   state.init({
-    startClaudeBtn: document.getElementById('btn-start-ai'),
-    fileExplorerHeader: document.getElementById('file-explorer-header'),
-    initializeFrameBtn: document.getElementById('btn-initialize-frame')
+    fileExplorerHeader: document.getElementById('file-explorer-header')
   });
 
   // Initialize AI tool selector
@@ -251,26 +249,6 @@ function setupButtonHandlers() {
     if (!consumed) alert('Clone failed:\n' + result.error);
   });
 
-  // Start AI Tool (Claude Code / Codex CLI / etc.)
-  document.getElementById('btn-start-ai').addEventListener('click', async () => {
-    const projectPath = state.getProjectPath();
-    if (projectPath) {
-      const newTerminalId = await terminal.restartTerminal(projectPath);
-
-      if (newTerminalId) {
-        // Ensure the new terminal is focused
-        terminal.setActiveTerminal(newTerminalId);
-
-        // Send start command for the selected AI tool. The board's agent
-        // chip is derived live from the foreground process, not tagged here.
-        const startCommand = aiToolSelector.getStartCommand();
-        setTimeout(() => {
-          terminal.sendCommand(startCommand, newTerminalId);
-        }, 1000);
-      }
-    }
-  });
-
   // Sidebar "Start default agent" shortcut — context decides whether it
   // starts in the focused Frame, a new Frame, or after a kill-and-restart
   // prompt (see agentDispatch.startDefaultAgent).
@@ -286,11 +264,6 @@ function setupButtonHandlers() {
   // Close history panel
   document.getElementById('history-close').addEventListener('click', () => {
     historyPanel.toggleHistoryPanel();
-  });
-
-  // Initialize as Frame project
-  document.getElementById('btn-initialize-frame').addEventListener('click', () => {
-    state.initializeAsFrameProject();
   });
 
   // Sidebar activity rail (Projects / Files / Changes). Bound to the button,
@@ -727,11 +700,31 @@ function registerCommands() {
     title: 'Start AI Session',
     category: 'AI',
     when: () => !!state.getProjectPath(),
-    run: () => {
-      const btn = document.getElementById('btn-start-ai');
-      if (btn) btn.click();
-    }
+    run: () => startAiSession()
   });
+}
+
+/**
+ * Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh
+ * terminal for the current project. Palette-only entry point — the old
+ * sidebar "Start" button was parked and has been removed.
+ */
+async function startAiSession() {
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return;
+
+  const newTerminalId = await terminal.restartTerminal(projectPath);
+  if (!newTerminalId) return;
+
+  // Ensure the new terminal is focused
+  terminal.setActiveTerminal(newTerminalId);
+
+  // Send start command for the selected AI tool. The board's agent
+  // chip is derived live from the foreground process, not tagged here.
+  const startCommand = aiToolSelector.getStartCommand();
+  setTimeout(() => {
+    terminal.sendCommand(startCommand, newTerminalId);
+  }, 1000);
 }
 
 /**

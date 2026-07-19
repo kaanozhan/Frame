@@ -6,6 +6,8 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
+const { escapeHtml } = require('./htmlUtils');
+const notify = require('./notify');
 
 let isVisible = false;
 let pluginsData = [];
@@ -97,9 +99,8 @@ function setupIPCListeners() {
         plugin.enabled = result.enabled;
         render();
       }
-      showToast(
-        result.enabled ? 'Plugin enabled - restart Claude Code to apply' : 'Plugin disabled - restart Claude Code to apply',
-        'info'
+      notify.info(
+        result.enabled ? 'Plugin enabled - restart Claude Code to apply' : 'Plugin disabled - restart Claude Code to apply'
       );
     }
   });
@@ -143,16 +144,16 @@ async function refreshPlugins() {
     const result = await ipcRenderer.invoke(IPC.REFRESH_PLUGINS);
 
     if (result.error) {
-      showToast('Failed to refresh: ' + result.error, 'error');
+      notify.error('Failed to refresh: ' + result.error);
     } else {
       pluginsData = Array.isArray(result) ? result : (result.plugins || []);
       marketplaceInfo = Array.isArray(result) ? null : result.marketplace;
       render();
-      showToast('Plugins refreshed', 'success');
+      notify.success('Plugins refreshed');
     }
   } catch (err) {
     console.error('Error refreshing plugins:', err);
-    showToast('Failed to refresh plugins', 'error');
+    notify.error('Failed to refresh plugins');
   } finally {
     // Remove spinning animation
     if (refreshBtn) {
@@ -399,7 +400,7 @@ async function togglePlugin(pluginId) {
     await ipcRenderer.invoke(IPC.TOGGLE_PLUGIN, pluginId);
   } catch (err) {
     console.error('Error toggling plugin:', err);
-    showToast('Failed to toggle plugin', 'error');
+    notify.error('Failed to toggle plugin');
   }
 }
 
@@ -412,72 +413,17 @@ function installPlugin(pluginName) {
   // Send command to terminal
   if (typeof window.terminalSendCommand === 'function') {
     window.terminalSendCommand(command);
-    showToast(`Installing ${pluginName}...`, 'info');
+    notify.info(`Installing ${pluginName}...`);
     // Hide panel so user can see terminal
     hide();
   } else {
-    showToast('Terminal not available', 'error');
-  }
-}
-
-/**
- * Show toast notification
- */
-function showToast(message, type = 'info') {
-  // Remove existing toast
-  const existingToast = document.querySelector('.plugins-toast');
-  if (existingToast) {
-    existingToast.remove();
-  }
-
-  // Create toast element
-  const toast = document.createElement('div');
-  toast.className = `plugins-toast plugins-toast-${type}`;
-  toast.innerHTML = `
-    <span class="toast-icon">${getToastIcon(type)}</span>
-    <span class="toast-message">${message}</span>
-  `;
-
-  // Add to panel
-  if (panelElement) {
-    panelElement.appendChild(toast);
-  }
-
-  // Animate in
-  requestAnimationFrame(() => {
-    toast.classList.add('visible');
-  });
-
-  // Remove after delay
-  setTimeout(() => {
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), 300);
-  }, 2000);
-}
-
-/**
- * Get toast icon based on type
- */
-function getToastIcon(type) {
-  switch (type) {
-    case 'success':
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    case 'error':
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-    default:
-      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    notify.error('Terminal not available');
   }
 }
 
 /**
  * Escape HTML for safe rendering
  */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 // ==================== SESSIONS ====================
 
 /**
@@ -626,7 +572,7 @@ function resumeSession(sessionId) {
     window.terminalSendCommand(command);
     hide();
   } else {
-    showToast('Terminal not available', 'error');
+    notify.error('Terminal not available');
   }
 }
 

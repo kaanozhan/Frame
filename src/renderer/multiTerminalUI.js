@@ -20,6 +20,7 @@ const overviewPanel = require('./overviewPanel');
 const taskSection = require('./taskSection');
 const specSection = require('./specSection');
 const diffSection = require('./diffSection');
+const notify = require('./notify');
 
 class MultiTerminalUI {
   constructor(containerId) {
@@ -141,6 +142,26 @@ class MultiTerminalUI {
       ...options,
       projectPath
     });
+  }
+
+  /**
+   * Create a terminal for the current project, surfacing both failure
+   * routes (per-project cap → null, backend failure → rejection) as an
+   * error toast. Returns the new terminal id, or null on failure.
+   */
+  async _createLaneOrNotify() {
+    let id = null;
+    try {
+      id = await this.createTerminalForCurrentProject();
+    } catch (err) {
+      notify.error(`Could not create a new Frame: ${err.message || 'terminal creation failed'}`);
+      return null;
+    }
+    if (!id) {
+      notify.error(`Could not create a new Frame — maximum (${this.manager.maxTerminals}) reached for this project`);
+      return null;
+    }
+    return id;
   }
 
   /**
@@ -336,10 +357,9 @@ class MultiTerminalUI {
     return {
       onEnterLane: (terminalId) => this.enterLane(terminalId),
       onLayoutChange: () => setTimeout(() => this.manager.fitAll(), 60),
-      onNewLane: () => {
-        this.createTerminalForCurrentProject().then((id) => {
-          if (id) this.enterLane(id);
-        });
+      onNewLane: async () => {
+        const id = await this._createLaneOrNotify();
+        if (id) this.enterLane(id);
       }
     };
   }
@@ -423,7 +443,7 @@ class MultiTerminalUI {
   }
 
   async _newLaneInCell(cellIndex) {
-    const newId = await this.createTerminalForCurrentProject();
+    const newId = await this._createLaneOrNotify();
     if (!newId) return;
     this._cellAssignments[cellIndex] = newId;
     this.manager.setActiveTerminal(newId);

@@ -61,19 +61,6 @@
       ></button>
     </div>
 
-    <!-- Parked per-project actions (Start AI / Initialize as Frame). Removed
-         from the Projects section for now; kept in the DOM so the ai.startSession
-         command and the init-frame flow stay wired until they get a new home.
-         The default-agent selector now lives in the sidebar footer below. -->
-    <div id="parked-project-actions" hidden>
-      <div class="ai-tool-row">
-        <button id="btn-start-ai" class="btn btn-success" tabindex="-1" disabled>Start Claude Code</button>
-      </div>
-      <div class="init-frame-wrapper">
-        <button id="btn-initialize-frame" class="btn btn-frame-init" tabindex="-1" style="display: none;">Initialize as Frame Project</button>
-      </div>
-    </div>
-
     <!-- Hover tooltip for Initialize Frame button (fixed position, escapes overflow) -->
     <div id="init-frame-tooltip" class="init-frame-tooltip">
       <div class="spotlight-card-header">
