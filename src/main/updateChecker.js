@@ -15,6 +15,7 @@
 const { ipcMain } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const https = require('https');
+const pollGate = require('./pollGate');
 
 const REPO_OWNER = 'kaanozhan';
 const REPO_NAME = 'Frame';
@@ -46,10 +47,12 @@ function setupIPC() {
 }
 
 function startPeriodicRecheck() {
-  if (recheckTimer) clearInterval(recheckTimer);
-  recheckTimer = setInterval(() => {
+  if (recheckTimer) recheckTimer.dispose();
+  // Visibility-gated; no refresh-on-show — a 6h cadence must not fire a
+  // network check every time the window reappears.
+  recheckTimer = pollGate.gatedInterval(() => {
     checkForUpdate().catch(() => {});
-  }, RECHECK_INTERVAL_MS);
+  }, RECHECK_INTERVAL_MS, { refreshOnShow: false });
 }
 
 /**

@@ -6,9 +6,23 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { execFile } = require('child_process');
 const { IPC } = require('../shared/ipcChannels');
 const telemetry = require('./telemetry');
+
+/** Run a git command async; rejects with stderr attached for classification. */
+function execGit(args, opts = {}) {
+  return new Promise((resolve, reject) => {
+    execFile('git', args, { ...opts }, (err, stdout, stderr) => {
+      if (err) {
+        err.stderr = stderr;
+        reject(err);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+}
 
 let mainWindow = null;
 
@@ -72,14 +86,14 @@ function getInstalledPlugins() {
 /**
  * Get all available plugins from marketplace
  */
-function getMarketplacePlugins() {
+async function getMarketplacePlugins() {
   const plugins = [];
   const officialMarketplace = path.join(MARKETPLACES_DIR, 'claude-plugins-official', 'plugins');
 
   if (!fs.existsSync(officialMarketplace)) {
     // Try to initialize it
-    ensureOfficialMarketplace();
-    
+    await ensureOfficialMarketplace();
+
     // Check again
     if (!fs.existsSync(officialMarketplace)) {
       return plugins;
@@ -116,8 +130,8 @@ function getMarketplacePlugins() {
 /**
  * Get all plugins with their status
  */
-function getAllPlugins() {
-  const marketplacePlugins = getMarketplacePlugins();
+async function getAllPlugins() {
+  const marketplacePlugins = await getMarketplacePlugins();
   const installedPlugins = getInstalledPlugins();
   const enabledPlugins = getEnabledPlugins();
 
@@ -212,7 +226,7 @@ function classifyGitError(err) {
  * Ensure official marketplace exists. Preflights git before cloning and
  * records a classified failure reason instead of failing silently.
  */
-function ensureOfficialMarketplace() {
+async function ensureOfficialMarketplace() {
   const officialMarketplace = path.join(MARKETPLACES_DIR, 'claude-plugins-official');
 
   if (fs.existsSync(officialMarketplace)) {
@@ -221,7 +235,7 @@ function ensureOfficialMarketplace() {
   }
 
   try {
-    execSync('git --version', { stdio: 'pipe', timeout: 5000 });
+    await execGit(['--version'], { timeout: 5000 });
   } catch (err) {
     marketplaceFailure = { reason: 'git-missing', detail: 'git is not installed or not on PATH' };
     telemetry.track('error_occurred', { category: 'plugin_marketplace_failed' });
@@ -236,9 +250,8 @@ function ensureOfficialMarketplace() {
     }
 
     console.log('Cloning official plugins repository...');
-    execSync('git clone https://github.com/anthropics/claude-plugins-official.git', {
+    await execGit(['clone', 'https://github.com/anthropics/claude-plugins-official.git'], {
       cwd: MARKETPLACES_DIR,
-      stdio: 'pipe',
       timeout: 60000
     });
     marketplaceFailure = null;
@@ -257,12 +270,12 @@ function ensureOfficialMarketplace() {
 /**
  * Refresh marketplace plugins (git pull or clone)
  */
-function refreshMarketplace() {
+async function refreshMarketplace() {
   const officialMarketplace = path.join(MARKETPLACES_DIR, 'claude-plugins-official');
 
   // If not exists, try to clone
   if (!fs.existsSync(officialMarketplace)) {
-    const success = ensureOfficialMarketplace();
+    const success = await ensureOfficialMarketplace();
     if (!success) {
       const why = marketplaceFailure || { reason: 'other', detail: '' };
       return { success: false, error: `Failed to clone marketplace (${why.reason}): ${why.detail}`, reason: why.reason };
@@ -271,9 +284,8 @@ function refreshMarketplace() {
   }
 
   try {
-    execSync('git pull', {
+    await execGit(['pull'], {
       cwd: officialMarketplace,
-      stdio: 'pipe',
       timeout: 30000
     });
     marketplaceFailure = null;
@@ -310,7 +322,7 @@ function setupIPC(ipcMain) {
 
   // Refresh plugins marketplace
   ipcMain.handle(IPC.REFRESH_PLUGINS, async () => {
-    const result = refreshMarketplace();
+    const result = await refreshMarketplace();
     if (result.success) {
       return getAllPlugins();
     }

@@ -12,6 +12,39 @@ const { escapeHtml } = require('./htmlUtils');
 let isVisible = false;
 let overlay = null;
 let simulation = null;
+// Manual rAF-driven simulation loop state (see renderGraph): one physics
+// tick + one batched DOM write per display frame, bounded by a tick budget.
+let rafHandle = null;
+let resumeSimulation = null;
+const TICK_BUDGET = 300;
+const SIM_ALPHA_MIN = 0.005; // raised from D3's 0.001 — settles sooner
+const NODE_CAP = 1500;
+
+function stopSimulationLoop() {
+  if (rafHandle) cancelAnimationFrame(rafHandle);
+  rafHandle = null;
+}
+
+/**
+ * Bound a graph to its `cap` highest-degree nodes (links pruned to the kept
+ * set). Never silent: the caller logs what was dropped.
+ */
+function capGraphByDegree(graph, cap) {
+  const idOf = (end) => (typeof end === 'object' ? end.id : end);
+  const degree = new Map();
+  for (const l of graph.links) {
+    degree.set(idOf(l.source), (degree.get(idOf(l.source)) || 0) + 1);
+    degree.set(idOf(l.target), (degree.get(idOf(l.target)) || 0) + 1);
+  }
+  const nodes = [...graph.nodes]
+    .sort((a, b) => (degree.get(b.id) || 0) - (degree.get(a.id) || 0))
+    .slice(0, cap);
+  const keptIds = new Set(nodes.map((n) => n.id));
+  const links = graph.links.filter(
+    (l) => keptIds.has(idOf(l.source)) && keptIds.has(idOf(l.target))
+  );
+  return { nodes, links };
+}
 let currentProjectPath = null;
 let selectedNode = null;
 let currentModule = null;
@@ -193,8 +226,9 @@ function setupInfoPanelResize() {
     overlay.classList.remove('resizing');
 
     // Refit terminals after resize
-    if (simulation) {
-      simulation.alpha(0.1).restart();
+    if (simulation && resumeSimulation) {
+      simulation.alpha(Math.max(simulation.alpha(), 0.1));
+      resumeSimulation();
     }
   });
 }
@@ -232,6 +266,7 @@ function hide() {
   if (simulation) {
     simulation.stop();
   }
+  stopSimulationLoop();
 }
 
 /**
@@ -358,11 +393,19 @@ function renderGraph(structureData) {
 
   svg.attr('width', width).attr('height', height);
 
-  const graph = structureToGraph(structureData);
+  let graph = structureToGraph(structureData);
 
   if (graph.nodes.length === 0) {
     showError('No modules found in STRUCTURE.json');
     return;
+  }
+
+  // Scaling ceiling: past NODE_CAP modules the force layout degrades
+  // super-linearly — render the highest-degree nodes and say so.
+  if (graph.nodes.length > NODE_CAP) {
+    const total = graph.nodes.length;
+    graph = capGraphByDegree(graph, NODE_CAP);
+    console.warn(`structureMap: graph capped to the ${NODE_CAP} highest-degree modules (of ${total})`);
   }
 
   // Create SVG groups
@@ -390,7 +433,9 @@ function renderGraph(structureData) {
     .attr('d', 'M 0,-5 L 10,0 L 0,5')
     .attr('fill', 'var(--border-strong)');
 
-  // Create force simulation
+  // Create force simulation — stopped: we drive ticks from a rAF loop below
+  // so physics steps and DOM writes are batched one-per-frame with a budget,
+  // instead of D3's internal timer writing O(nodes+links) attrs per tick.
   simulation = d3.forceSimulation(graph.nodes)
     .force('link', d3.forceLink(graph.links)
       .id(d => d.id)
@@ -400,7 +445,9 @@ function renderGraph(structureData) {
       .strength(-400)
       .distanceMax(400))
     .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius(50));
+    .force('collision', d3.forceCollide().radius(50))
+    .alphaMin(SIM_ALPHA_MIN)
+    .stop();
 
   // Create links
   const link = g.append('g')
@@ -459,8 +506,10 @@ function renderGraph(structureData) {
     showModuleInfo(d, true);
   });
 
-  // Update positions on tick
-  simulation.on('tick', () => {
+  // Manual tick loop: one simulation.tick() + one batched DOM write per
+  // animation frame, stopping when the layout settles (alpha < alphaMin
+  // with no alphaTarget pulling it up) or the tick budget runs out.
+  const renderPositions = () => {
     link
       .attr('x1', d => d.source.x)
       .attr('y1', d => d.source.y)
@@ -468,11 +517,35 @@ function renderGraph(structureData) {
       .attr('y2', d => d.target.y);
 
     node.attr('transform', d => `translate(${d.x},${d.y})`);
-  });
+  };
 
-  // Drag functions
+  let ticksLeft = TICK_BUDGET;
+  const runLoop = () => {
+    rafHandle = null;
+    if (!simulation) return;
+    simulation.tick();
+    ticksLeft--;
+    renderPositions();
+    const settled = simulation.alpha() < simulation.alphaMin() && simulation.alphaTarget() === 0;
+    if (settled || ticksLeft <= 0) return;
+    rafHandle = requestAnimationFrame(runLoop);
+  };
+
+  resumeSimulation = () => {
+    ticksLeft = TICK_BUDGET;
+    if (!rafHandle) rafHandle = requestAnimationFrame(runLoop);
+  };
+
+  stopSimulationLoop();
+  resumeSimulation();
+
+  // Drag functions — resume the manual loop instead of simulation.restart()
+  // (restart would spin D3's internal timer, which nothing listens to now)
   function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
+    if (!event.active) {
+      simulation.alphaTarget(0.3);
+      resumeSimulation();
+    }
     d.fx = d.x;
     d.fy = d.y;
   }
@@ -480,6 +553,7 @@ function renderGraph(structureData) {
   function dragged(event, d) {
     d.fx = event.x;
     d.fy = event.y;
+    resumeSimulation(); // keep the budget fresh through long drags
   }
 
   function dragended(event, d) {
@@ -520,6 +594,8 @@ function renderTreeView(structureData) {
     simulation.stop();
     simulation = null;
   }
+  stopSimulationLoop();
+  resumeSimulation = null;
 
   const svg = d3.select('#structure-map-svg');
   const width = container.clientWidth;

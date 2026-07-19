@@ -25,6 +25,23 @@ let watchedPath = null;
 let lastSelfWriteAt = 0;
 let watchDebounceTimer = null;
 
+// Parse-once cache: one tasks.json parse per on-disk version. Keyed on
+// path+mtime+size so any external write invalidates it; saveTasks refreshes
+// it after our own writes. A single spec push used to re-parse this file
+// once per spec directory — with the cache every caller inside one change
+// window shares the same parsed object. Safe because every mutation path
+// in this module (and specManager's) mutates-then-saves synchronously.
+let loadCache = { key: null, data: null };
+
+function cacheKeyFor(tasksPath) {
+  try {
+    const st = fs.statSync(tasksPath);
+    return `${tasksPath}:${st.mtimeMs}:${st.size}`;
+  } catch (_) {
+    return null; // missing file — never cached
+  }
+}
+
 function init(window) {
   mainWindow = window;
 }
@@ -81,6 +98,11 @@ function dedupById(tasks) {
 function loadTasks(projectPath) {
   const tasksPath = getTasksFilePath(projectPath);
 
+  const cacheKey = cacheKeyFor(tasksPath);
+  if (cacheKey && loadCache.key === cacheKey && loadCache.data) {
+    return loadCache.data;
+  }
+
   const { data, source, error } = fsSafe.readJsonWithRecovery(tasksPath);
   if (!data && !error) return null; // no tasks.json — not a Frame project yet
 
@@ -131,7 +153,9 @@ function loadTasks(projectPath) {
 
   if (mutated) {
     raw.version = '2.0';
-    saveTasks(projectPath, raw);
+    saveTasks(projectPath, raw); // refreshes the cache on success
+  } else {
+    loadCache = { key: cacheKeyFor(tasksPath), data: raw };
   }
 
   return raw;
@@ -144,9 +168,11 @@ function saveTasks(projectPath, tasksData) {
     delete tasksData.corrupt; // in-memory flag only — never persisted
     lastSelfWriteAt = Date.now();
     fsSafe.writeFileAtomic(tasksPath, JSON.stringify(tasksData, null, 2));
+    loadCache = { key: cacheKeyFor(tasksPath), data: tasksData };
     return true;
   } catch (err) {
     console.error('Error saving tasks:', err);
+    loadCache = { key: null, data: null };
     return false;
   }
 }
@@ -375,6 +401,15 @@ function setupIPC(ipcMain) {
   });
 }
 
+/**
+ * Timestamp of this module's last tasks.json write — exported so other
+ * watchers of the same file (specManager) can suppress the event our own
+ * save fires, exactly like this module's watcher does.
+ */
+function getLastSelfWriteAt() {
+  return lastSelfWriteAt;
+}
+
 module.exports = {
   init,
   setProjectPath,
@@ -385,5 +420,6 @@ module.exports = {
   deleteTask,
   reorderTasks,
   setupIPC,
-  stopWatching
+  stopWatching,
+  getLastSelfWriteAt
 };

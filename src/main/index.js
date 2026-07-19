@@ -9,6 +9,7 @@ const { IPC } = require('../shared/ipcChannels');
 
 // Import modules
 const logger = require('./logger');
+const perfMonitor = require('./perfMonitor');
 const crashGuard = require('./crashGuard');
 const pty = require('./pty');
 const ptyManager = require('./ptyManager');
@@ -103,6 +104,22 @@ function createWindow() {
     mainWindow = null;
   });
 
+  // Reload teardown (destroy-and-recreate policy): a main-frame navigation —
+  // menu Reload included — tears the renderer down, so destroy its PTYs (and
+  // their processPoll intervals) immediately instead of leaving them
+  // streaming until the fresh renderer's RECONCILE_TERMINALS sweep. On the
+  // initial load this is a no-op (no PTYs exist yet).
+  mainWindow.webContents.on('did-start-navigation', (event, _url, _isInPlace, legacyIsMainFrame) => {
+    const isMainFrame = typeof event.isMainFrame === 'boolean' ? event.isMainFrame : legacyIsMainFrame;
+    const isSameDocument = typeof event.isSameDocument === 'boolean' ? event.isSameDocument : false;
+    if (!isMainFrame || isSameDocument) return;
+    if (ptyManager.getTerminalCount() > 0) {
+      logger.warn('ptyManager', `main-frame navigation — destroying ${ptyManager.getTerminalCount()} PTY(s)`);
+    }
+    pty.killPTY();
+    ptyManager.destroyAll();
+  });
+
   // Initialize modules with window reference
   crashGuard.attachWindow(mainWindow);
   pty.init(mainWindow);
@@ -121,6 +138,7 @@ function createWindow() {
 
   // Check for updates after window is ready
   mainWindow.webContents.on('did-finish-load', () => {
+    perfMonitor.mark('did-finish-load');
     updateChecker.checkForUpdate();
     probeCoreDeps();
   });
@@ -242,6 +260,10 @@ function init() {
   // Initialize logging first so everything after has somewhere to write.
   logger.init();
 
+  // Perf instrumentation right after logging (dev-gated; no-op otherwise).
+  perfMonitor.init();
+  perfMonitor.mark('app-ready');
+
   // Initialize prompt logger with app paths
   promptLogger.init(app);
 
@@ -294,6 +316,7 @@ app.whenReady().then(() => {
 
   init();
   createWindow();
+  perfMonitor.mark('window-created');
 });
 
 // Confirm-on-quit: Cmd-Q / app menu / OS shutdown with live agents.

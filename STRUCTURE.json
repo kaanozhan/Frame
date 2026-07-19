@@ -206,65 +206,70 @@
         "path",
         "https",
         "shared/ipcChannels",
-        "logger"
+        "logger",
+        "pollGate"
       ],
       "functions": {
         "tokenSourceAvailable": {
-          "line": 25,
+          "line": 27,
           "purpose": "Is any credential source present on this system right now?"
         },
         "init": {
-          "line": 38,
+          "line": 40,
           "params": [
             "window"
           ],
           "purpose": "Initialize the module with window reference"
         },
         "degradedPayload": {
-          "line": 54,
+          "line": 56,
           "params": [
             "reason"
           ]
         },
         "parseAccessToken": {
-          "line": 69,
+          "line": 71,
           "params": [
             "raw"
           ],
           "purpose": "Pull the access token out of a credentials JSON string"
         },
+        "readKeychainCredentials": {
+          "line": 87,
+          "purpose": "Read the Keychain entry via the `security` CLI, asynchronously — the old"
+        },
         "getOAuthToken": {
-          "line": 85,
+          "line": 102,
           "purpose": "Get OAuth token: macOS Keychain first, then the file-based store"
         },
         "fetchUsage": {
-          "line": 116,
+          "line": 132,
           "purpose": "Fetch usage data from Claude OAuth API"
         },
         "sendUsageToRenderer": {
-          "line": 226,
+          "line": 246,
           "purpose": "Send usage data to renderer"
         },
         "startPolling": {
-          "line": 237,
+          "line": 260,
           "params": [
             "interval = 300000"
           ],
-          "purpose": "Start periodic polling for usage updates"
+          "purpose": "Start periodic polling for usage updates. Visibility-gated: pauses while"
         },
         "stopPolling": {
-          "line": 255,
+          "line": 278,
           "purpose": "Stop polling"
         },
         "setupIPC": {
-          "line": 266,
+          "line": 289,
           "params": [
             "ipcMain"
           ],
           "purpose": "Setup IPC handlers"
         },
         "cleanup": {
-          "line": 288,
+          "line": 314,
           "purpose": "Cleanup on app quit"
         }
       },
@@ -487,16 +492,16 @@
       ],
       "functions": {
         "getFileTree": {
-          "line": 17,
+          "line": 18,
           "params": [
             "dirPath",
             "maxDepth = 5",
             "currentDepth = 0"
           ],
-          "purpose": "Get file tree for a directory"
+          "purpose": "Get file tree for a directory (async — the whole-subtree walk must not"
         },
         "setupIPC": {
-          "line": 60,
+          "line": 61,
           "params": [
             "ipcMain"
           ],
@@ -534,32 +539,33 @@
         "workspace",
         "structureBootstrap",
         "telemetry",
+        "perfMonitor",
         "../scripts/detect-project"
       ],
       "functions": {
         "init": {
-          "line": 22,
+          "line": 24,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 29,
+          "line": 31,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 37,
+          "line": 39,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 50,
+          "line": 52,
           "params": [
             "filePath",
             "content"
@@ -567,7 +573,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 67,
+          "line": 69,
           "params": [
             "target",
             "linkPath"
@@ -575,48 +581,61 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 108,
+          "line": 110,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 132,
+          "line": 134,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 176,
+          "line": 183,
           "params": [
             "projectPath",
             "projectName"
-          ],
-          "purpose": "Initialize a project as Frame project"
+          ]
+        },
+        "doInitializeFrameProject": {
+          "line": 191,
+          "params": [
+            "projectPath",
+            "projectName"
+          ]
+        },
+        "runProjectInit": {
+          "line": 200,
+          "params": [
+            "projectPath",
+            "projectName"
+          ]
         },
         "isSpecDrivenEnabled": {
-          "line": 361,
+          "line": 379,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 366,
+          "line": 384,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 391,
+          "line": 409,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "setupIPC": {
-          "line": 452,
+          "line": 470,
           "params": [
             "ipcMain"
           ],
@@ -1092,6 +1111,7 @@
         "path",
         "shared/ipcChannels",
         "logger",
+        "perfMonitor",
         "crashGuard",
         "pty",
         "ptyManager",
@@ -1121,26 +1141,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 46,
+          "line": 47,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 64,
+          "line": 65,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 138
+          "line": 156
         },
         "setupAllIPC": {
-          "line": 164,
+          "line": 182,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 241,
+          "line": 259,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 268,
+          "line": 290,
           "params": [
             "window"
           ],
@@ -1343,42 +1363,43 @@
         "ptyManager",
         "gitBranchesManager",
         "specManager",
-        "telemetry"
+        "telemetry",
+        "pollGate"
       ],
       "functions": {
         "init": {
-          "line": 65,
+          "line": 66,
           "params": [
             "window"
           ]
         },
         "sessionFor": {
-          "line": 69,
+          "line": 70,
           "params": [
             "projectPath"
           ]
         },
         "busDirFor": {
-          "line": 75,
+          "line": 76,
           "params": [
             "projectPath"
           ]
         },
         "binDirFor": {
-          "line": 78,
+          "line": 79,
           "params": [
             "projectPath"
           ]
         },
         "worktreeDirFor": {
-          "line": 81,
+          "line": 82,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "envForLane": {
-          "line": 87,
+          "line": 88,
           "params": [
             "session",
             "slug"
@@ -1386,27 +1407,27 @@
           "purpose": "Inject the bus path (+ optional slug) so a lane can reach Frame from any"
         },
         "toPrefix": {
-          "line": 101,
+          "line": 102,
           "params": [
             "entry"
           ]
         },
         "entriesOverlap": {
-          "line": 106,
+          "line": 107,
           "params": [
             "a",
             "b"
           ]
         },
         "footprintsOverlap": {
-          "line": 118,
+          "line": 119,
           "params": [
             "fa",
             "fb"
           ]
         },
         "findFootprintConflict": {
-          "line": 129,
+          "line": 130,
           "params": [
             "session",
             "slug",
@@ -1415,7 +1436,7 @@
           "purpose": "An in-flight spec whose footprint overlaps `footprint`, or null. done/failed"
         },
         "buildWorkerPrompt": {
-          "line": 142,
+          "line": 143,
           "params": [
             "projectPath",
             "slug"
@@ -1423,58 +1444,58 @@
           "purpose": "Write the interpolated worker prompt to the MAIN repo (worktrees lack .frame/"
         },
         "relayToConductor": {
-          "line": 164,
+          "line": 165,
           "params": [
             "session",
             "text"
           ]
         },
         "drainRelayQueue": {
-          "line": 170,
+          "line": 171,
           "params": [
             "session"
           ]
         },
         "materializeBinScripts": {
-          "line": 188,
+          "line": 189,
           "params": [
             "projectPath"
           ],
           "purpose": "Materialize the .frame/bin command scripts for this project."
         },
         "serializeState": {
-          "line": 200,
+          "line": 201,
           "params": [
             "session"
           ]
         },
         "publishState": {
-          "line": 225,
+          "line": 226,
           "params": [
             "session"
           ]
         },
         "startBusWatcher": {
-          "line": 242,
+          "line": 243,
           "params": [
             "session"
           ]
         },
         "drainBus": {
-          "line": 255,
+          "line": 256,
           "params": [
             "session"
           ]
         },
         "handleRequest": {
-          "line": 279,
+          "line": 280,
           "params": [
             "session",
             "req"
           ]
         },
         "handleDispatch": {
-          "line": 299,
+          "line": 300,
           "params": [
             "session",
             "slug"
@@ -1482,7 +1503,7 @@
           "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
         },
         "registerWorkerLane": {
-          "line": 371,
+          "line": 372,
           "params": [
             "projectPath",
             "slug",
@@ -1491,7 +1512,7 @@
           "purpose": "The renderer reports the terminalId it created for a worker lane, so the"
         },
         "handleReportDone": {
-          "line": 384,
+          "line": 385,
           "params": [
             "session",
             "slug"
@@ -1499,7 +1520,7 @@
           "purpose": "T15 — a worker reported completion: mark done, attach a diff stat, relay to"
         },
         "handleMerge": {
-          "line": 403,
+          "line": 404,
           "params": [
             "session",
             "slug",
@@ -1508,7 +1529,7 @@
           "purpose": "T22 (drift check + fast-forward merge into integration) + T23 (meta reconcile"
         },
         "mergeWorker": {
-          "line": 443,
+          "line": 444,
           "params": [
             "projectPath",
             "slug",
@@ -1517,7 +1538,7 @@
           "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
         },
         "removeWorker": {
-          "line": 451,
+          "line": 452,
           "params": [
             "projectPath",
             "slug"
@@ -1525,33 +1546,33 @@
           "purpose": "Per-worker cleanup from the board UI: stop its lane, remove the worktree, and"
         },
         "pollStatuses": {
-          "line": 476,
+          "line": 477,
           "params": [
             "session"
           ]
         },
         "startOrchestration": {
-          "line": 517,
+          "line": 518,
           "params": [
             "args = {}"
           ]
         },
         "stopOrchestration": {
-          "line": 583,
+          "line": 584,
           "params": [
             "projectPath"
           ],
           "purpose": "T25 — teardown: stop worker lanes, remove their worktrees, prune only MERGED"
         },
         "rehydrate": {
-          "line": 624,
+          "line": 626,
           "params": [
             "session"
           ],
           "purpose": "T26 — best-effort rehydration from frame/<slug>/* branches after a restart."
         },
         "resumeWorker": {
-          "line": 677,
+          "line": 679,
           "params": [
             "projectPath",
             "slug"
@@ -1559,20 +1580,20 @@
           "purpose": "Resume a recovered worker: spawn a fresh agent lane in its EXISTING"
         },
         "assignSpecs": {
-          "line": 702,
+          "line": 704,
           "params": [
             "projectPath",
             "slugs"
           ]
         },
         "getState": {
-          "line": 710,
+          "line": 712,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 716,
+          "line": 718,
           "params": [
             "ipcMain"
           ]
@@ -1724,6 +1745,63 @@
         "emits": []
       }
     },
+    "main/perfMonitor": {
+      "file": "src/main/perfMonitor.js",
+      "description": "perfMonitor — lightweight main-process performance instrumentation.",
+      "exports": [
+        "init",
+        "isEnabled",
+        "mark",
+        "opStart",
+        "opEnd",
+        "getSummary",
+        "stopSampler"
+      ],
+      "depends": [
+        "perf_hooks",
+        "logger"
+      ],
+      "functions": {
+        "isEnabled": {
+          "line": 34
+        },
+        "init": {
+          "line": 38
+        },
+        "startSampler": {
+          "line": 49,
+          "purpose": "Event-loop-lag sampler. The interval is expected to fire every"
+        },
+        "stopSampler": {
+          "line": 65
+        },
+        "mark": {
+          "line": 71,
+          "params": [
+            "name"
+          ],
+          "purpose": "Record a named startup mark as ms since process start."
+        },
+        "opStart": {
+          "line": 82,
+          "params": [
+            "name"
+          ],
+          "purpose": "Start timing a named operation. Nested/overlapping names overwrite."
+        },
+        "opEnd": {
+          "line": 88,
+          "params": [
+            "name"
+          ],
+          "purpose": "Finish timing; logs the duration, warns past the block budget."
+        },
+        "getSummary": {
+          "line": 99,
+          "purpose": "Snapshot for the measurement pass (T10) — marks, worst lag, budgets."
+        }
+      }
+    },
     "main/pluginsManager": {
       "file": "src/main/pluginsManager.js",
       "description": "Plugins Manager Module",
@@ -1742,22 +1820,30 @@
         "telemetry"
       ],
       "functions": {
+        "execGit": {
+          "line": 14,
+          "params": [
+            "args",
+            "opts = {}"
+          ],
+          "purpose": "Run a git command async; rejects with stderr attached for classification."
+        },
         "init": {
-          "line": 25,
+          "line": 39,
           "params": [
             "window"
           ],
           "purpose": "Initialize plugins manager"
         },
         "readJsonFile": {
-          "line": 32,
+          "line": 46,
           "params": [
             "filePath"
           ],
           "purpose": "Read JSON file safely"
         },
         "writeJsonFile": {
-          "line": 46,
+          "line": 60,
           "params": [
             "filePath",
             "data"
@@ -1765,45 +1851,45 @@
           "purpose": "Write JSON file safely"
         },
         "getEnabledPlugins": {
-          "line": 59,
+          "line": 73,
           "purpose": "Get enabled plugins from settings"
         },
         "getInstalledPlugins": {
-          "line": 67,
+          "line": 81,
           "purpose": "Get installed plugins"
         },
         "getMarketplacePlugins": {
-          "line": 75,
+          "line": 89,
           "purpose": "Get all available plugins from marketplace"
         },
         "getAllPlugins": {
-          "line": 119,
+          "line": 133,
           "purpose": "Get all plugins with their status"
         },
         "togglePlugin": {
-          "line": 150,
+          "line": 164,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled status"
         },
         "classifyGitError": {
-          "line": 204,
+          "line": 218,
           "params": [
             "err"
           ],
           "purpose": "Classify a git failure into an actionable reason"
         },
         "ensureOfficialMarketplace": {
-          "line": 215,
+          "line": 229,
           "purpose": "Ensure official marketplace exists. Preflights git before cloning and"
         },
         "refreshMarketplace": {
-          "line": 260,
+          "line": 273,
           "purpose": "Refresh marketplace plugins (git pull or clone)"
         },
         "setupIPC": {
-          "line": 293,
+          "line": 305,
           "params": [
             "ipcMain"
           ],
@@ -1821,6 +1907,52 @@
         ]
       }
     },
+    "main/pollGate": {
+      "file": "src/main/pollGate.js",
+      "description": "pollGate — visibility-gated intervals + TTL caching for polling loops.",
+      "exports": [
+        "gatedInterval",
+        "ttlCache",
+        "anyWindowVisible"
+      ],
+      "depends": [
+        "electron"
+      ],
+      "functions": {
+        "anyWindowVisible": {
+          "line": 20
+        },
+        "reevaluateAll": {
+          "line": 26
+        },
+        "watchWindow": {
+          "line": 33,
+          "params": [
+            "win"
+          ]
+        },
+        "ensureWiring": {
+          "line": 41
+        },
+        "gatedInterval": {
+          "line": 56,
+          "params": [
+            "fn",
+            "ms",
+            "{ refreshOnShow = true } = {}"
+          ],
+          "purpose": "Visibility-gated setInterval. Returns a handle with dispose()."
+        },
+        "ttlCache": {
+          "line": 99,
+          "params": [
+            "fn",
+            "ttlMs"
+          ],
+          "purpose": "Memoize an async fn's result for ttlMs. Concurrent callers share the"
+        }
+      }
+    },
     "main/promptLogger": {
       "file": "src/main/promptLogger.js",
       "description": "Prompt Logger Module",
@@ -1830,7 +1962,8 @@
         "logInput",
         "getHistory",
         "getLogFilePath",
-        "setupIPC"
+        "setupIPC",
+        "flush"
       ],
       "depends": [
         "fs",
@@ -1840,44 +1973,52 @@
       ],
       "functions": {
         "init": {
-          "line": 24,
+          "line": 29,
           "params": [
             "app"
           ],
           "purpose": "Initialize prompt logger"
         },
         "setProject": {
-          "line": 39,
+          "line": 44,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project — switches log file to project-specific path"
         },
         "getLogFilePath": {
-          "line": 48,
+          "line": 53,
           "purpose": "Get log file path"
         },
         "logInput": {
-          "line": 56,
+          "line": 61,
           "params": [
             "data"
           ],
           "purpose": "Process and log input data"
         },
-        "enforceSizeCap": {
-          "line": 85,
-          "purpose": "Cap the history file: past MAX_LOG_SIZE, keep the newest half (whole"
+        "appendAndRotate": {
+          "line": 89,
+          "params": [
+            "filePath",
+            "entry"
+          ],
+          "purpose": "Append a line, then rotate past the cap: the live file moves to"
         },
         "getHistory": {
-          "line": 98,
-          "purpose": "Get prompt history"
+          "line": 102,
+          "purpose": "Get prompt history (live file only — bounded by MAX_LOG_SIZE)"
         },
         "setupIPC": {
-          "line": 112,
+          "line": 116,
           "params": [
             "ipcMain"
           ],
           "purpose": "Setup IPC handlers"
+        },
+        "flush": {
+          "line": 126,
+          "purpose": "Await all queued appends — tests and shutdown ordering."
         }
       },
       "ipc": {
@@ -1910,43 +2051,43 @@
       ],
       "functions": {
         "init": {
-          "line": 16,
+          "line": 19,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY module with window reference"
         },
         "getProjectPath": {
-          "line": 23,
+          "line": 26,
           "purpose": "Get current project path"
         },
         "setProjectPath": {
-          "line": 30,
+          "line": 33,
           "params": [
             "path"
           ],
           "purpose": "Set current project path"
         },
         "getShell": {
-          "line": 37,
+          "line": 40,
           "purpose": "Determine shell based on platform"
         },
         "startPTY": {
-          "line": 59,
+          "line": 62,
           "params": [
             "workingDir = null"
           ],
           "purpose": "Start PTY process"
         },
         "writeToPTY": {
-          "line": 101,
+          "line": 114,
           "params": [
             "data"
           ],
           "purpose": "Write data to PTY"
         },
         "resizePTY": {
-          "line": 110,
+          "line": 123,
           "params": [
             "cols",
             "rows"
@@ -1954,15 +2095,15 @@
           "purpose": "Resize PTY"
         },
         "killPTY": {
-          "line": 119,
+          "line": 132,
           "purpose": "Kill PTY process"
         },
         "getCurrentPTY": {
-          "line": 129,
+          "line": 145,
           "purpose": "Get current PTY process"
         },
         "setupIPC": {
-          "line": 136,
+          "line": 152,
           "params": [
             "ipcMain"
           ],
@@ -2006,19 +2147,27 @@
         "logger",
         "promptLogger",
         "telemetry",
+        "pollGate",
         "child_process",
         "fs"
       ],
       "functions": {
+        "flushOutput": {
+          "line": 26,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Flush a terminal's buffered output as one coalesced send."
+        },
         "init": {
-          "line": 21,
+          "line": 46,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 36,
+          "line": 61,
           "params": [
             "shellPid",
             "callback"
@@ -2026,14 +2175,14 @@
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
         "getDefaultShell": {
-          "line": 55
+          "line": 80
         },
         "getAvailableShells": {
-          "line": 72,
+          "line": 97,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 158,
+          "line": 183,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -2043,28 +2192,28 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 266,
+          "line": 316,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 281,
+          "line": 331,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 293,
+          "line": 343,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 301,
+          "line": 351,
           "params": [
             "terminalId",
             "data"
@@ -2072,7 +2221,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 311,
+          "line": 361,
           "params": [
             "terminalId",
             "cols",
@@ -2081,40 +2230,40 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 321,
+          "line": 371,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 338,
+          "line": 389,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 354,
+          "line": 406,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 361,
+          "line": 413,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 371,
+          "line": 423,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 381,
+          "line": 433,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 388,
+          "line": 440,
           "params": [
             "ipcMain"
           ],
@@ -2165,56 +2314,57 @@
         "shared/ipcChannels",
         "shared/frameConstants",
         "tasksManager",
-        "telemetry"
+        "telemetry",
+        "perfMonitor"
       ],
       "functions": {
         "getSpecsRoot": {
-          "line": 45,
+          "line": 52,
           "params": [
             "projectPath"
           ]
         },
         "getSpecDir": {
-          "line": 49,
+          "line": 56,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "generateSlug": {
-          "line": 58,
+          "line": 65,
           "params": [
             "title"
           ]
         },
         "uniqueSlug": {
-          "line": 71,
+          "line": 78,
           "params": [
             "projectPath",
             "baseSlug"
           ]
         },
         "validateSpecStatus": {
-          "line": 84,
+          "line": 91,
           "params": [
             "obj"
           ]
         },
         "readFileSafe": {
-          "line": 103,
+          "line": 110,
           "params": [
             "p"
           ]
         },
         "readStatus": {
-          "line": 112,
+          "line": 119,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 123,
+          "line": 130,
           "params": [
             "projectPath",
             "slug",
@@ -2222,13 +2372,13 @@
           ]
         },
         "listSpecs": {
-          "line": 131,
+          "line": 149,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 186,
+          "line": 204,
           "params": [
             "projectPath",
             "slug",
@@ -2236,7 +2386,7 @@
           ]
         },
         "derivePhase": {
-          "line": 190,
+          "line": 208,
           "params": [
             "projectPath",
             "slug",
@@ -2245,14 +2395,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 209,
+          "line": 227,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 215,
+          "line": 233,
           "params": [
             "projectPath",
             "slug",
@@ -2260,14 +2410,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 240,
+          "line": 258,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 244,
+          "line": 262,
           "params": [
             "projectPath",
             "aiTool",
@@ -2275,7 +2425,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 248,
+          "line": 266,
           "params": [
             "projectPath",
             "aiTool",
@@ -2283,14 +2433,14 @@
           ]
         },
         "interpolate": {
-          "line": 254,
+          "line": 272,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 261,
+          "line": 279,
           "params": [
             "projectPath",
             "slug",
@@ -2299,7 +2449,7 @@
           ]
         },
         "stageReportTemplateAsset": {
-          "line": 297,
+          "line": 315,
           "params": [
             "projectPath",
             "aiTool"
@@ -2307,7 +2457,7 @@
           "purpose": "The spec.plan agent fills the report template from the terminal CLI,"
         },
         "buildSpecCommandFile": {
-          "line": 318,
+          "line": 336,
           "params": [
             "projectPath",
             "slug",
@@ -2316,53 +2466,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 347,
+          "line": 365,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 373,
+          "line": 391,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 392,
+          "line": 410,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 397,
+          "line": 415,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 477,
+          "line": 495,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 484,
+          "line": 502,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 501,
+          "line": 519,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 524,
+          "line": 542,
           "params": [
             "projectPath",
             "query"
@@ -2370,14 +2520,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 545,
+          "line": 563,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 588,
+          "line": 606,
           "params": [
             "projectPath",
             "slug",
@@ -2385,14 +2535,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 607,
+          "line": 625,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 624,
+          "line": 642,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2401,28 +2551,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 731,
+          "line": 749,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 773
+          "line": 800
         },
         "pushSpecData": {
-          "line": 793,
+          "line": 820,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 804,
+          "line": 840,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 808,
+          "line": 844,
           "params": [
             "ipcMain"
           ]
@@ -2481,21 +2631,21 @@
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "hasFrameSnippet": {
-          "line": 175,
+          "line": 177,
           "params": [
             "hookFilePath"
           ],
           "purpose": "Check if our managed snippet is already present in a hook file."
         },
         "installPreCommitHook": {
-          "line": 192,
+          "line": 194,
           "params": [
             "projectPath"
           ],
           "purpose": "Install (or append) the pre-commit hook based on detected setup."
         },
         "appendToHookFile": {
-          "line": 247,
+          "line": 249,
           "params": [
             "hookPath",
             "createIfMissing",
@@ -2504,14 +2654,14 @@
           "purpose": "Append the Frame snippet to an existing hook file (husky case)."
         },
         "runInitialFullScan": {
-          "line": 283,
+          "line": 287,
           "params": [
             "projectPath"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 314,
+          "line": 325,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -2533,7 +2683,8 @@
         "deleteTask",
         "reorderTasks",
         "setupIPC",
-        "stopWatching"
+        "stopWatching",
+        "getLastSelfWriteAt"
       ],
       "depends": [
         "fs",
@@ -2543,53 +2694,59 @@
         "shared/frameConstants"
       ],
       "functions": {
+        "cacheKeyFor": {
+          "line": 36,
+          "params": [
+            "tasksPath"
+          ]
+        },
         "init": {
-          "line": 28,
+          "line": 45,
           "params": [
             "window"
           ]
         },
         "setProjectPath": {
-          "line": 32,
+          "line": 49,
           "params": [
             "projectPath"
           ]
         },
         "getTasksFilePath": {
-          "line": 36,
+          "line": 53,
           "params": [
             "projectPath"
           ]
         },
         "flattenLegacyTasks": {
-          "line": 47,
+          "line": 64,
           "params": [
             "legacy"
           ],
           "purpose": "Migrate the old nested shape ({ pending, inProgress, completed }) into a"
         },
         "dedupById": {
-          "line": 60,
+          "line": 77,
           "params": [
             "tasks"
           ]
         },
         "loadTasks": {
-          "line": 81,
+          "line": 98,
           "params": [
             "projectPath"
           ],
           "purpose": "Read tasks.json from disk, migrate/normalize, and return the canonical"
         },
         "saveTasks": {
-          "line": 140,
+          "line": 164,
           "params": [
             "projectPath",
             "tasksData"
           ]
         },
         "sendTasksFileError": {
-          "line": 158,
+          "line": 184,
           "params": [
             "projectPath",
             "info"
@@ -2597,17 +2754,17 @@
           "purpose": "Tell the renderer tasks.json is corrupt (or was auto-recovered from .bak)"
         },
         "generateTaskId": {
-          "line": 166
+          "line": 192
         },
         "addTask": {
-          "line": 170,
+          "line": 196,
           "params": [
             "projectPath",
             "task"
           ]
         },
         "updateTask": {
-          "line": 194,
+          "line": 220,
           "params": [
             "projectPath",
             "taskId",
@@ -2615,14 +2772,14 @@
           ]
         },
         "deleteTask": {
-          "line": 216,
+          "line": 242,
           "params": [
             "projectPath",
             "taskId"
           ]
         },
         "reorderTasks": {
-          "line": 235,
+          "line": 261,
           "params": [
             "projectPath",
             "order"
@@ -2630,20 +2787,24 @@
           "purpose": "Reorder tasks (used by the Kanban dashboard for drag-and-drop). The renderer"
         },
         "startWatching": {
-          "line": 287,
+          "line": 313,
           "params": [
             "projectPath"
           ],
           "purpose": "Watch the active project's directory for tasks.json changes. External"
         },
         "stopWatching": {
-          "line": 313
+          "line": 339
         },
         "setupIPC": {
-          "line": 323,
+          "line": 349,
           "params": [
             "ipcMain"
           ]
+        },
+        "getLastSelfWriteAt": {
+          "line": 409,
+          "purpose": "Timestamp of this module's last tasks.json write — exported so other"
         }
       },
       "ipc": {
@@ -2754,27 +2915,28 @@
         "electron",
         "shared/ipcChannels",
         "https",
+        "pollGate",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 30,
+          "line": 31,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 35
+          "line": 36
         },
         "startPeriodicRecheck": {
-          "line": 48
+          "line": 49
         },
         "checkForUpdate": {
-          "line": 65,
+          "line": 68,
           "purpose": "Check GitHub for a newer release."
         },
         "isNewerVersion": {
-          "line": 129,
+          "line": 132,
           "params": [
             "current",
             "latest"
@@ -3271,16 +3433,16 @@
       ],
       "functions": {
         "init": {
-          "line": 24
+          "line": 25
         },
         "armFailsafe": {
-          "line": 41
+          "line": 45
         },
         "showFailureState": {
-          "line": 48
+          "line": 52
         },
         "hide": {
-          "line": 63
+          "line": 67
         }
       },
       "ipc": {
@@ -4564,28 +4726,28 @@
       ],
       "functions": {
         "init": {
-          "line": 64,
+          "line": 66,
           "params": [
             "terminalManager"
           ],
           "purpose": "Initialize with the TerminalManager (needed to read xterm buffers)."
         },
         "onChange": {
-          "line": 95,
+          "line": 99,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to status changes. Returns an unsubscribe function."
         },
         "getStatus": {
-          "line": 104,
+          "line": 108,
           "params": [
             "terminalId"
           ],
           "purpose": "Current status for a terminal."
         },
         "_agentNameFor": {
-          "line": 124,
+          "line": 128,
           "params": [
             "terminalId",
             "entry"
@@ -4593,7 +4755,7 @@
           "purpose": "Agent identity for a lane. Process name first (reliable on Unix). On Windows"
         },
         "detectAgentName": {
-          "line": 138,
+          "line": 142,
           "params": [
             "foreground",
             "commandLine"
@@ -4601,27 +4763,27 @@
           "purpose": "Which known agent (if any) the foreground process / command line names."
         },
         "remove": {
-          "line": 152,
+          "line": 156,
           "params": [
             "terminalId"
           ],
           "purpose": "Drop tracking for a closed terminal."
         },
         "_isShellProcess": {
-          "line": 177,
+          "line": 181,
           "params": [
             "processName",
             "shellName"
           ]
         },
         "_ensureEntry": {
-          "line": 184,
+          "line": 188,
           "params": [
             "terminalId"
           ]
         },
         "_isAgentMode": {
-          "line": 203,
+          "line": 207,
           "params": [
             "entry",
             "tail"
@@ -4629,25 +4791,33 @@
           "purpose": "Agent mode: the foreground process is a known agent, or (fallback)"
         },
         "_onOutput": {
-          "line": 214,
+          "line": 218,
           "params": [
             "terminalId"
           ]
         },
+        "_armQuietTimer": {
+          "line": 246,
+          "params": [
+            "terminalId",
+            "entry"
+          ],
+          "purpose": "Quiet detection without per-chunk timer churn: `lastActivityAt` is the"
+        },
         "_classifyQuiet": {
-          "line": 237,
+          "line": 262,
           "params": [
             "terminalId"
           ]
         },
         "_readBufferTail": {
-          "line": 263,
+          "line": 288,
           "params": [
             "terminalId"
           ]
         },
         "_emit": {
-          "line": 283,
+          "line": 308,
           "params": [
             "terminalId",
             "entry"
@@ -5230,7 +5400,8 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "lucide"
+        "lucide",
+        "terminal"
       ],
       "functions": {
         "lucideIcon": {
@@ -5355,34 +5526,34 @@
           "purpose": "Remove project from workspace"
         },
         "setupIPC": {
-          "line": 386,
+          "line": 395,
           "purpose": "Setup IPC listeners"
         },
         "selectNextProject": {
-          "line": 399,
+          "line": 408,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 410,
+          "line": 419,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 421,
+          "line": 430,
           "purpose": "Focus project list for keyboard navigation"
         },
         "handleKeydown": {
-          "line": 444,
+          "line": 453,
           "params": [
             "e"
           ],
           "purpose": "Handle keyboard navigation in project list"
         },
         "blur": {
-          "line": 479,
+          "line": 488,
           "purpose": "Blur/unfocus project list"
         },
         "getProjects": {
-          "line": 488,
+          "line": 497,
           "purpose": "Snapshot of the workspace projects (used by the current-project dropdown in"
         }
       },
@@ -6487,77 +6658,88 @@
         "htmlUtils"
       ],
       "functions": {
+        "stopSimulationLoop": {
+          "line": 23
+        },
+        "capGraphByDegree": {
+          "line": 32,
+          "params": [
+            "graph",
+            "cap"
+          ],
+          "purpose": "Bound a graph to its `cap` highest-degree nodes (links pruned to the kept"
+        },
         "init": {
-          "line": 33,
+          "line": 66,
           "purpose": "Initialize structure map"
         },
         "createOverlay": {
-          "line": 40,
+          "line": 73,
           "purpose": "Create overlay element"
         },
         "setupViewToggle": {
-          "line": 123,
+          "line": 156,
           "purpose": "Setup view toggle buttons"
         },
         "setupInfoPanelResize": {
-          "line": 151,
+          "line": 184,
           "purpose": "Setup info panel resize functionality"
         },
         "show": {
-          "line": 205,
+          "line": 239,
           "params": [
             "projectPath"
           ],
           "purpose": "Show structure map"
         },
         "hide": {
-          "line": 227,
+          "line": 261,
           "purpose": "Hide structure map"
         },
         "loadStructure": {
-          "line": 240,
+          "line": 275,
           "params": [
             "projectPath"
           ],
           "purpose": "Load structure data"
         },
         "showError": {
-          "line": 261,
+          "line": 296,
           "params": [
             "message"
           ],
           "purpose": "Show error in info panel"
         },
         "structureToGraph": {
-          "line": 269,
+          "line": 304,
           "params": [
             "data"
           ],
           "purpose": "Convert structure data to graph format"
         },
         "renderGraph": {
-          "line": 343,
+          "line": 378,
           "params": [
             "structureData"
           ],
           "purpose": "Render force-directed graph"
         },
         "renderTreeView": {
-          "line": 512,
+          "line": 586,
           "params": [
             "structureData"
           ],
           "purpose": "Render tree/hierarchy view using D3.js"
         },
         "buildHierarchy": {
-          "line": 821,
+          "line": 897,
           "params": [
             "structureData"
           ],
           "purpose": "Build hierarchy data for D3 tree"
         },
         "showModuleInfo": {
-          "line": 887,
+          "line": 963,
           "params": [
             "module",
             "showGitButton = true"
@@ -6565,7 +6747,7 @@
           "purpose": "Show module info in panel (1x3 grid layout)"
         },
         "selectNode": {
-          "line": 1049,
+          "line": 1125,
           "params": [
             "d",
             "nodeSelection"
@@ -6573,32 +6755,32 @@
           "purpose": "Select a node (visual indicator)"
         },
         "loadAndShowGitHistory": {
-          "line": 1057,
+          "line": 1133,
           "params": [
             "module"
           ],
           "purpose": "Load and show git history for a module"
         },
         "renderGitHistory": {
-          "line": 1140,
+          "line": 1216,
           "params": [
             "history"
           ],
           "purpose": "Render git history HTML (compact card format)"
         },
         "getInitials": {
-          "line": 1204,
+          "line": 1280,
           "params": [
             "name"
           ],
           "purpose": "Get initials from name"
         },
         "showPlaceholder": {
-          "line": 1214,
+          "line": 1290,
           "purpose": "Show placeholder in info panel"
         },
         "highlightConnections": {
-          "line": 1232,
+          "line": 1308,
           "params": [
             "d",
             "links",
@@ -6608,7 +6790,7 @@
           "purpose": "Highlight connections for a node"
         },
         "resetHighlight": {
-          "line": 1250,
+          "line": 1326,
           "params": [
             "nodeSelection",
             "linkSelection"
@@ -6616,7 +6798,7 @@
           "purpose": "Reset highlight"
         },
         "isMapVisible": {
-          "line": 1258,
+          "line": 1334,
           "purpose": "Check if visible"
         }
       }
@@ -7353,13 +7535,13 @@
           "purpose": "Terminal theme based on current app theme"
         },
         "escapePathForShell": {
-          "line": 72,
+          "line": 74,
           "params": [
             "p"
           ]
         },
         "installGlobalDropGuard": {
-          "line": 88
+          "line": 90
         }
       },
       "ipc": {

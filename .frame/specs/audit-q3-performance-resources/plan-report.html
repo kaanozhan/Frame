@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Performance &amp; resource usage — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  /* ── Flow blocks (diagram style) ── */
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  /* ── Decision cards ── */
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Performance &amp; resource usage — Plan Overview</h1>
+  <p class="muted">2026-07-19 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/audit-q3-performance-resources/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">8 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill warn">206 sync calls in src/main</span><span class="pill warn">~29 parses per file change</span><span class="pill">2 new modules · 21 modified files</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Frame's main process is the IPC server for every window, yet it does most of its work synchronously and rebuilds full datasets on every change. A Q3 audit verified the damage: 206 synchronous fs/child_process calls in <code>src/main/</code> (including a <code>spawnSync</code> that can freeze the event loop for 30 seconds during project init), ~29 full <code>tasks.json</code> parses triggered by a single file change, unthrottled per-chunk PTY streaming to up to 9 terminals, four polling loops that never pause when the app is hidden, unbounded prompt logs, and PTYs orphaned by a window reload. The plan converts hot paths to async, makes task/spec pushes parse-once + skip-unchanged, coalesces PTY output with backpressure, gates every poll on window visibility, bounds logs and saved sessions, tears PTYs down on reload, and vendors D3 with a throttled force simulation.</p>
+  <p>This shape — fix the sources of waste rather than redesign the transport — was chosen because the datasets are small (237 tasks) while the redundancy is enormous. Keeping the existing IPC channels and payload shapes untouched preserves the spec's hard constraints (no contract changes, byte-identical behavior while visible) and keeps every step independently shippable.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Four flows: the async project-init path, the parse-once task/spec push, PTY output flow control, and visibility-gated polling.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>main-process module</span>
+    <span class="l-data">fs / child process / IPC send</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Project init &amp; structure bootstrap (the 30s blocker, made async)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">User opens a Frame project</div><div class="fd-sub">first-time init path</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">frameProject init (async)</div><div class="fd-sub">fs.promises replaces the sync cluster</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">STRUCTURE.json missing?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes — bootstrap</span>
+          <div class="fd-node data"><div class="fd-title">spawn('node', parser)</div><div class="fd-sub">async child, same 30s timeout</div></div>
+          <div class="fd-arrow"><span class="lbl">await</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">write STRUCTURE.json</div><div class="fd-sub">fs.promises</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">UI stays interactive</div><div class="fd-sub">event loop never blocks</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">no</span>
+          <div class="fd-node outcome"><div class="fd-title">Init completes directly</div><div class="fd-sub">no parser spawn</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Child process already exists:</b> the parser runs via <code>spawnSync('node', [parserPath])</code> today (<code>structureBootstrap.js:290</code>) — the only change is sync → async spawn, so no worker_threads architecture is introduced.</li>
+          <li><b>Concurrency guard:</b> the init path becomes awaitable; an in-flight promise prevents two concurrent inits for the same project.</li>
+          <li><b>Same pattern everywhere:</b> plugins git clone/pull, Keychain read, and the recursive file-tree walk convert identically (<code>fs.promises</code> / async <code>exec</code>/<code>spawn</code>).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Task/spec change push (parse-once + skip-unchanged + self-write guards)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">tasks.json / spec file changes</div><div class="fd-sub">CLI edit, agent write, or Frame itself</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Own write? (self-write stamp)</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">yes — ours</span>
+          <div class="fd-node outcome"><div class="fd-title">Event dropped</div><div class="fd-sub">feedback loop broken</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">no — external</span>
+          <div class="fd-node system"><div class="fd-title">Debounce → pushSpecData</div><div class="fd-sub">tasks loaded ONCE, shared</div></div>
+          <div class="fd-arrow"><span class="lbl">hash</span><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Payload changed?</div></div>
+        </div>
+        <div class="fd-row fd-branch" style="margin-left:68px;">
+          <span class="fd-branchlbl ok">changed</span>
+          <div class="fd-node data"><div class="fd-title">send SPEC_DATA / TASKS_DATA</div><div class="fd-sub">same channels, same shape</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">1 parse per change</div><div class="fd-sub">was ~29</div></div>
+        </div>
+        <div class="fd-row fd-branch" style="margin-left:68px;">
+          <span class="fd-branchlbl">unchanged</span>
+          <div class="fd-node outcome"><div class="fd-title">No broadcast</div><div class="fd-sub">renderer untouched</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Both loops closed:</b> <code>tasksManager</code> already guards its own writes (<code>lastSelfWriteAt</code>, <code>tasksManager.js:296</code>); the plan adds the missing guard to specManager's <code>tasks.json</code> watcher (<code>specManager.js:760</code>, unguarded today) and to its recursive specs watcher against its own <code>writeStatus</code> calls.</li>
+          <li><b>Write-if-changed:</b> <code>writeStatus</code> compares before writing, so <code>reconcilePhase</code> stops rewriting up to 28 <code>status.json</code> files per push.</li>
+          <li><b>Parse cache:</b> <code>tasksManager.loadTasks</code> keys a cache on mtime+size; <code>syncAllSpecTasks</code>, <code>reconcilePhase</code>, and <code>listSpecs</code> all share one load per push.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — PTY output (coalescing + backpressure, quiet detection without timer churn)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">PTY emits chunk</div><div class="fd-sub">up to 9 terminals</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Append to per-terminal buffer</div><div class="fd-sub">ptyManager onData</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Buffer &gt; 1MB high-water?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">yes</span>
+          <div class="fd-node system"><div class="fd-title">ptyProcess.pause()</div><div class="fd-sub">resume() after flush drains</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">16ms flush</span>
+          <div class="fd-node data"><div class="fd-title">send TERMINAL_OUTPUT_ID</div><div class="fd-sub">one coalesced chunk</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">term.write + lastOutputAt stamp</div><div class="fd-sub">laneStatus checks timestamps on its existing 600ms cadence</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Same fidelity, bounded rate</div><div class="fd-sub">zero per-chunk timers</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Semantics preserved:</b> quiet detection keeps the 1800ms <code>QUIET_MS</code> meaning — it compares <code>lastOutputAt</code> on the existing periodic check instead of resetting a timer per chunk (<code>laneStatus.js:233-234</code> today).</li>
+          <li><b>Legacy path included:</b> <code>pty.js:84-86</code> gets the same coalescing so no output path stays fire-and-forget.</li>
+          <li><b>Backpressure is safe:</b> <code>resume()</code> is unconditionally invoked by the flush timer, so a pause can never outlive one flush interval.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow D — Visibility-gated polling (pollGate) and reload teardown</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Window hidden / shown</div><div class="fd-sub">BrowserWindow hide/show events</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">pollGate.gatedInterval</div><div class="fd-sub">wraps every polling loop</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Any window visible?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">hidden</span>
+          <div class="fd-node outcome"><div class="fd-title">Intervals paused</div><div class="fd-sub">zero timer activity: usage 5min, orch 5s, update 6h, processPoll 2.5s</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">shown</span>
+          <div class="fd-node system"><div class="fd-title">Immediate refresh + resume</div><div class="fd-sub">TTL cache answers if fresh</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">User never sees staler data</div><div class="fd-sub">behavior identical while visible</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>fsSafe precedent:</b> <code>pollGate.js</code> mirrors the existing tiny-utility pattern (<code>fsSafe.js</code>) rather than introducing a framework.</li>
+          <li><b>TTL cache:</b> the macOS Keychain <code>exec</code> result is cached with a 5-minute TTL, so a show-refresh doesn't re-hit the Keychain if the poll just ran.</li>
+          <li><b>Reload teardown:</b> <code>index.js</code> hooks <code>did-start-navigation</code> (main-frame, not same-document) → <code>ptyManager.destroyAll()</code> — the reload path now behaves like window close, which already destroys PTYs and their <code>processPoll</code> intervals.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The pollGate contract, in one look</h3>
+  <pre>// src/main/pollGate.js (New) — in the spirit of fsSafe.js
+gatedInterval(fn, ms)  // runs fn every ms while any window is visible;
+                       // pauses on hide, fires fn immediately on show
+ttlCache(fn, ttlMs)    // memoizes fn's async result for ttlMs
+// IPC payloads are UNCHANGED: TASKS_DATA / SPEC_DATA / TERMINAL_OUTPUT_ID
+// keep today's exact shapes — only frequency and coalescing change.</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · What should a window reload do with running terminals?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Destroy and recreate</div>
+        <div class="opttrade">Simple and leak-free, but a reload interrupts long-running agent commands.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Persist and re-attach</div>
+        <div class="opttrade">Agents survive reload, but needs a re-attach handshake + scrollback replay protocol.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> matches the existing window-close semantics exactly; reload is rare, and a re-attach protocol is too much new surface for a perf-only spec.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D2 · When the window is hidden, do polls pause or merely slow down? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Pause fully, refresh immediately on show</div>
+        <div class="opttrade">Zero hidden-window cost; data can be stale only while nobody is looking.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Slow to a background cadence</div>
+        <div class="opttrade">Keeps data warm while hidden, but retains battery/CPU cost for no visible benefit.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the show-refresh guarantees the user never observes staler data than today, which satisfies the keep-behavior-identical constraint while maximizing the saving.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D3 · How do task/spec updates become incremental on the wire?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Parse-once + skip-unchanged at the source</div>
+        <div class="opttrade">Zero renderer changes and zero contract risk; payloads stay full-shape.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">New TASKS_DIFF / SPEC_DIFF channels</div>
+        <div class="opttrade">Smallest wire traffic and scales furthest, but touches every consumer and doubles the IPC surface.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> at 237 tasks the wire size is not the cost — the ~29 redundant parses and up-to-28 status rewrites are. Fixing the source removes ~95% of the waste with none of the contract risk.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D4 · How do we measure block time, IPC cost, and startup reproducibly?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Lightweight in-app instrumentation (perfMonitor)</div>
+        <div class="opttrade">Reproducible on every run and cheap to keep, but less deep than full tracing.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Electron tracing + synthetic 9-PTY harness</div>
+        <div class="opttrade">Deepest visibility, but significant build/maintenance cost that outlives this spec.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> an event-loop-lag sampler plus startup marks and op timers is sufficient to prove every success criterion with before/after numbers.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D5 · Do heavy scans move to a worker, or just become async? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Async only — no worker_threads</div>
+        <div class="opttrade">Minimal new architecture; relies on the existing child-process parser.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Move scans to worker threads</div>
+        <div class="opttrade">Isolates CPU work fully, but adds a new runtime concept the codebase doesn't have.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the one CPU-heavy scan already runs in a child process (<code>spawnSync</code> → the fix is async <code>spawn</code>); everything else is I/O-bound and <code>fs.promises</code> suffices.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D6 · What are the concrete budgets? <span class="tag">silent</span> <span class="tag">follows from D4</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Fixed defaults, measured by perfMonitor</div>
+        <div class="opttrade">TTI ≤ 1.5s · block ≤ 50ms/op · PTY flush 16ms · log cap 5MB+.1 · D3 ≤ 1500 nodes/~300 ticks · 20 MRU sessions.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Derive budgets from a benchmarking phase first</div>
+        <div class="opttrade">More principled numbers, but delays all implementation behind a measurement project.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> these defaults are conventional (16ms ≈ one frame, 50ms ≈ perceptibility threshold) and step 1 records baselines so the final measurement pass can prove them or adjust with data.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D7 · How is D3 vendored? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">npm dependency + node_modules script tag</div>
+        <div class="opttrade">Matches the existing xterm.css pattern in index.html; no bundler work.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Check a minified copy into the repo</div>
+        <div class="opttrade">No dependency added, but an unversioned vendored blob to maintain by hand.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>index.html:6</code> already loads <code>node_modules/xterm/css/xterm.css</code> directly — the same mechanism works for <code>node_modules/d3/dist/d3.min.js</code> with zero build changes.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D8 · How are localStorage terminal sessions pruned? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Cap at 20 MRU + wire clearProjectSession to project removal</div>
+        <div class="opttrade">Bounded by count; the dead code finally gets a caller.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Age-based expiry</div>
+        <div class="opttrade">Handles abandonment gracefully, but needs timestamps the records don't carry today.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> records are tiny (viewMode/gridLayout/names), so a simple MRU count cap on <code>saveProjectSession</code> is sufficient and behavior-neutral.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>Making init async lets two IPC calls run project init concurrently</td><td>The init path returns a shared in-flight promise; a second call awaits the first instead of racing it.</td></tr>
+    <tr><td><code>did-start-navigation</code> also fires on the first page load</td><td><code>destroyAll()</code> is idempotent — on first load there are no PTYs, so the hook is a no-op.</td></tr>
+    <tr><td>PTY <code>pause()</code> could stick if a flush never runs</td><td><code>resume()</code> is called unconditionally by the 16ms flush timer; a pause cannot outlive one flush interval.</td></tr>
+    <tr><td>Payload-hash skip could suppress a real update on hash collision</td><td>The "hash" is an equality check on the serialized payload (cheap at this size) — no lossy hashing, no false skips.</td></tr>
+    <tr><td>Self-write guard window could swallow a genuinely external write that lands within the stamp window</td><td>Guard windows stay short (matching <code>tasksManager</code>'s existing <code>SELF_WRITE_GUARD_MS</code>), and the payload-hash gate means a swallowed event would be corrected by the next real change; the debounce is retained as a safety net.</td></tr>
+    <tr><td>Coalescing changes terminal output pacing</td><td>16ms is one display frame — xterm renders per frame anyway, so perceived fidelity is unchanged; fidelity of content is byte-exact.</td></tr>
+    <tr><td>Node cap changes the structure map on giant repos</td><td>Only repos over 1500 modules are affected; the cap keeps the highest-degree nodes and logs a visible notice — a degradation bound, not a redesign.</td></tr>
+    <tr><td>Prompt-log rotation discards history beyond the cap</td><td>By design: 5MB + one <code>.log.1</code> generation keeps ~10MB of recent history; <code>getHistory</code> reads become bounded by the same cap.</td></tr>
+    <tr><td>Async Keychain read overlapping a quit</td><td>Poll intervals are cleared on quit as today; the TTL cache makes the last result reusable without re-exec.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: diff-message IPC channels (revisit only if datasets grow ~10×, would land as versioned channels alongside the full-payload ones); persist-and-re-attach PTYs across reload (would land as its own spec with a re-attach protocol); web/browser mode (out of scope by spec).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Convert hot-path fs/child_process to async or a child so the IPC loop never blocks <span class="tag">G1</span></td><td>Architecture "Async conversion" · Sequencing 2–3 · Flow A</td></tr>
+    <tr><td>Make task/spec updates incremental — parse once, diff, send only when changed; add self-write guards <span class="tag">G2</span></td><td>Architecture "Data-change gate" · Sequencing 4 · Flow B</td></tr>
+    <tr><td>Add PTY flow control — coalesce chunks, apply backpressure, stop per-chunk timer resets <span class="tag">G3</span></td><td>Architecture "PTY flow control" · Sequencing 5 · Flow C</td></tr>
+    <tr><td>Bound buffers and logs — scrollback, prompt-log rotation, localStorage pruning <span class="tag">G4</span></td><td>Architecture "Lifecycle &amp; bounds" · Sequencing 7</td></tr>
+    <tr><td>Add polling with TTL + focus-gating <span class="tag">G5</span></td><td>Architecture "Poll gating" · Sequencing 8 · Flow D</td></tr>
+    <tr><td>Clean up listeners and destroy PTYs on reload/navigation <span class="tag">G6</span></td><td>Architecture "Lifecycle &amp; bounds" · Sequencing 6</td></tr>
+    <tr><td>Vendor D3 locally and throttle/cap the force simulation <span class="tag">G7</span></td><td>Architecture "Structure map" · Sequencing 9</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>The main process is the IPC server for both windows — changes must not reintroduce blocking <span class="tag">C1</span></td><td>Architecture "Async conversion" (async-only patterns) + perfMonitor lag sampler as the watchdog</td></tr>
+    <tr><td>Electron main/renderer split and existing IPC channel contracts must be preserved <span class="tag">C2</span></td><td>Decision D3 — existing channels and payload shapes untouched</td></tr>
+    <tr><td>Behavior identical — perf refactor, not a feature change <span class="tag">C3</span></td><td>Decisions D2/D3 (skip-unchanged + pause-hidden semantics); every step preserves data and terminal fidelity</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>No synchronous fs/execSync/spawnSync on hot paths; the 30s bootstrap scan no longer blocks <span class="tag">S1</span></td><td>Sequencing 2–3 · proven by perfMonitor lag sampler staying under 50ms during init</td></tr>
+    <tr><td>Task/spec changes cost one parse, not ~29, with feedback loops broken <span class="tag">S2</span></td><td>Sequencing 4 · proven by parse-count logging in the measurement pass</td></tr>
+    <tr><td>PTY output is batched/coalesced with backpressure; no per-chunk timer churn <span class="tag">S3</span></td><td>Sequencing 5 · proven by send-rate counters under a busy-terminal test</td></tr>
+    <tr><td>Scrollback bounded, prompt logs rotated, localStorage pruned <span class="tag">S4</span></td><td>Sequencing 7 (scrollback already 10k, <code>terminalManager.js:346</code>) · proven by cap behavior at the 5MB/20-session boundaries</td></tr>
+    <tr><td>Polling is focus-gated and TTL-cached; hidden-window cost drops measurably <span class="tag">S5</span></td><td>Sequencing 8 · proven by zero timer fires while hidden in the measurement pass</td></tr>
+    <tr><td>No leaks across project switch / lane close / reload <span class="tag">S6</span></td><td>Sequencing 6 · proven by PTY/interval/listener counts before and after a reload cycle</td></tr>
+    <tr><td>A measured startup budget is established and met <span class="tag">S7</span></td><td>Sequencing 1 (baseline) + 10 (acceptance) · proven by startup marks ≤ 1.5s TTI</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>172 synchronous calls in <code>src/main/</code></td><td><span class="pill warn">drifted</span> now <b>206</b> (frameProject 46, structureBootstrap 30, specManager 28, pluginsManager 18, orchestrationManager 17) — worse, same shape</td></tr>
+    <tr><td><code>spawnSync('node', [parserPath], { timeout: 30000 })</code> at structureBootstrap.js:263</td><td><span class="pill warn">drifted</span> now <code>structureBootstrap.js:290-294</code>, same 30s timeout</td></tr>
+    <tr><td>Bootstrap called from frameProject.js:174/312/438</td><td><span class="pill warn">drifted</span> now a single call site, <code>frameProject.js:338</code></td></tr>
+    <tr><td>execSync git clone / git pull in pluginsManager.js:177/:205</td><td><span class="pill warn">drifted</span> now <code>pluginsManager.js:239</code> (clone) and <code>:274</code> (pull), plus <code>:224</code> (git --version)</td></tr>
+    <tr><td>execSync Keychain read (claudeUsageManager.js:31), 5-min poll (:186)</td><td><span class="pill warn">drifted</span> now <code>claudeUsageManager.js:88-89</code> (exec) and <code>:237/:247</code> (300000ms poll)</td></tr>
+    <tr><td>execSync git config in structureBootstrap.js:102</td><td><span class="pill warn">drifted</span> now <code>structureBootstrap.js:138</code></td></tr>
+    <tr><td>fileTree readdirSync recursing to maxDepth=5</td><td><span class="pill good">verified</span> <code>fileTree.js:17/:21/:44</code></td></tr>
+    <tr><td>tasksManager watcher: 50ms debounce, full parse + full TASKS_DATA push, self-write guard</td><td><span class="pill good">verified</span> <code>tasksManager.js:294-303</code> (guard at <code>:296</code>)</td></tr>
+    <tr><td>specManager recursive watcher + tasks.json watcher funnel into pushSpecData; tasks watcher has no self-write guard</td><td><span class="pill good">verified</span> <code>specManager.js:735-763</code> (unguarded tasks watch at <code>:760</code>), pushSpecData <code>:793-798</code>, WATCH_DEBOUNCE_MS=250 <code>:33</code></td></tr>
+    <tr><td>~18 full tasks.json parses per change (17 specs / 166 tasks)</td><td><span class="pill warn">drifted</span> repo now has <b>28 specs / 237 tasks</b> → ~29 parses per change (syncAllSpecTasks <code>:484→:496</code>, per-spec loadTasks <code>:410</code>, listSpecs <code>:142</code>)</td></tr>
+    <tr><td>PTY onData forwards every chunk unbatched; MAX_TERMINALS = 9</td><td><span class="pill good">verified</span> <code>ptyManager.js:206-210</code>, <code>:16</code>; legacy path <code>pty.js:84-86</code></td></tr>
+    <tr><td>laneStatus resets a timer per chunk (QUIET_MS=1800, 600ms scan throttle)</td><td><span class="pill good">verified</span> <code>laneStatus.js:233-234</code>, <code>:27</code> (QUIET_MS), <code>:31</code> (FLAVOR_CHECK_MS=600)</td></tr>
+    <tr><td>Polls: usage 5min, update 6h, orchestration 5s, per-PTY processPoll ~2.5s — none focus-gated</td><td><span class="pill good">verified</span> <code>claudeUsageManager.js:247</code>, <code>updateChecker.js:21/:50</code>, <code>orchestrationManager.js:51/:573</code>, <code>ptyManager.js:233/:253</code></td></tr>
+    <tr><td>Prompt logs unbounded (appendFileSync, whole-file getHistory)</td><td><span class="pill good">verified</span> <code>promptLogger.js:64</code>, <code>:98-101</code></td></tr>
+    <tr><td>PTY cleanup only on window 'closed'; no will-navigate/beforeunload; menu has role:'reload'</td><td><span class="pill good">verified</span> <code>index.js:100-102</code>, <code>menu.js:56</code>; no navigation hooks exist</td></tr>
+    <tr><td>clearProjectSession has zero callers (dead code); sessions accumulate per project</td><td><span class="pill good">verified</span> defined at <code>terminalManager.js:755</code>, no callers repo-wide; saveProjectSession <code>:152</code> (called <code>:119</code>)</td></tr>
+    <tr><td>Listener registrations without paired removal in laneRail/laneBoard/laneStatus/terminalManager/appLoader</td><td><span class="pill warn">drifted</span> confirmed at shifted lines: <code>laneRail.js:74/:79/:89</code>, <code>laneBoard.js:118</code>, <code>laneStatus.js:67/:73/:86</code>, <code>terminalManager.js:306/:331/:778/:796</code>, <code>appLoader.js:32</code></td></tr>
+    <tr><td>index.js requires ~24 modules then runs sequential inits before interactivity</td><td><span class="pill warn">drifted</span> now 30 top-level requires; init chains at <code>index.js:108-116</code> and <code>:243-278</code></td></tr>
+    <tr><td>D3 loaded from CDN; structureMap simulates the full module graph with per-tick DOM writes and no caps</td><td><span class="pill good">verified</span> <code>index.html:10</code>, <code>structureMap.js:394</code> (forceSimulation), <code>:463</code> (tick handler); no alphaMin/alphaDecay/rAF anywhere</td></tr>
+    <tr><td>Scrollback bounded at 10k</td><td><span class="pill good">verified</span> <code>terminalManager.js:346</code></td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — budgets existed as numbers with no measurable owner → added the instrumentation-baseline step (Sequencing 1) and the final measurement pass (Sequencing 10), giving S7 a concrete owner and every budget a proof point.</li>
+    <li><b>Iteration 2</b> — the self-write guard covered specManager's <code>tasks.json</code> watcher but not its own <code>status.json</code> writes re-triggering the recursive specs watcher → Architecture and Sequencing 4 extended with write-if-changed <code>writeStatus</code> plus a specManager-local self-write stamp checked by both watchers.</li>
+    <li><b>Iteration 3</b> — the legacy <code>pty.js</code> output path and the per-PTY <code>processPoll</code> gating were unowned → <code>pty.js</code> added to Sequencing 5 and <code>processPoll</code> to Sequencing 8; Footprint reconciled to mirror the Files list exactly.</li>
+    <li><b>Iteration 4</b> — full format/coverage/reality re-check: five sections in order, all G/C/S IDs mapped, every referenced path exists or is marked New, tasks derivable from Sequencing alone → pass, no changes.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-19 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/audit-q3-performance-resources/plan.md</code></footer>
+</div>
+</body>
+</html>

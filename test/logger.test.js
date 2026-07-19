@@ -71,22 +71,28 @@ function initPromptLogger() {
   return promptLogger;
 }
 
-test('promptLogger redacts secrets typed into the terminal', () => {
+test('promptLogger redacts secrets typed into the terminal', async () => {
   const promptLogger = initPromptLogger();
   promptLogger.logInput('export API_KEY=sk-ant-secret0123456789\r');
+  await promptLogger.flush();
   const logged = fs.readFileSync(promptLogger.getLogFilePath(), 'utf8');
   assert.ok(!logged.includes('sk-ant-secret0123456789'), `secret persisted: ${logged}`);
   assert.ok(logged.includes('[REDACTED]'));
   assert.ok(logged.includes('export'), 'non-secret part of the line is kept');
 });
 
-test('promptLogger caps the history file at 1MB (keeps newest half)', () => {
+test('promptLogger rotates the history file past 5MB to <name>.log.1', async () => {
   const promptLogger = initPromptLogger();
-  const filler = 'x'.repeat(1000);
-  fs.writeFileSync(promptLogger.getLogFilePath(), `[old] first-line\n${'y'.repeat(1100 * 1024)}\n`, 'utf8');
-  promptLogger.logInput(`${filler} newest-line\r`);
-  const content = fs.readFileSync(promptLogger.getLogFilePath(), 'utf8');
-  assert.ok(content.length <= 600 * 1024, `not truncated: ${content.length} bytes`);
-  assert.ok(content.includes('newest-line'), 'newest entry survives the cap');
-  assert.ok(!content.includes('first-line'), 'oldest content is dropped');
+  const livePath = promptLogger.getLogFilePath();
+  fs.writeFileSync(livePath, `[old] first-line\n${'y'.repeat(5 * 1024 * 1024)}\n`, 'utf8');
+  promptLogger.logInput('newest-line\r');
+  await promptLogger.flush();
+  const archive = fs.readFileSync(`${livePath}.1`, 'utf8');
+  assert.ok(archive.includes('newest-line'), 'oversized live file rotated with the newest entry');
+  assert.ok(archive.includes('first-line'), 'rotation preserves prior history in the archive');
+  assert.ok(!fs.existsSync(livePath) || fs.statSync(livePath).size === 0, 'live file reset by rotation');
+  promptLogger.logInput('fresh-line\r');
+  await promptLogger.flush();
+  const fresh = fs.readFileSync(livePath, 'utf8');
+  assert.ok(fresh.includes('fresh-line') && !fresh.includes('first-line'), 'appends land in a fresh live file');
 });

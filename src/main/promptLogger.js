@@ -4,19 +4,24 @@
  */
 
 const fs = require('fs');
+const fsp = require('fs').promises;
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 const { redact } = require('./logger');
 
 // Prompt history is a feature, not a debug log — but it must never persist
 // secrets typed into a terminal (API keys, tokens, passwords), and it must
-// not grow unbounded. Every line is redacted before append; past MAX_SIZE
-// the file is truncated to its newest half.
-const MAX_LOG_SIZE = 1024 * 1024;
+// not grow unbounded. Every line is redacted before append (async, through
+// a serialized queue so lines never interleave); past MAX_LOG_SIZE the live
+// file rotates to <name>.log.1 (single generation), so ~2× the cap of
+// recent history survives while the live file stays bounded.
+const MAX_LOG_SIZE = 5 * 1024 * 1024;
 
 let logFilePath = null;
 let inputBuffer = '';
 let framePromptsDir = null;
+// Serialized append queue — keeps line order without blocking the loop.
+let writeQueue = Promise.resolve();
 
 /**
  * Initialize prompt logger
@@ -60,12 +65,10 @@ function logInput(data) {
       if (inputBuffer.trim().length > 0) {
         const timestamp = new Date().toISOString();
         const logEntry = `[${timestamp}] ${redact(inputBuffer)}\n`;
-        try {
-          fs.appendFileSync(logFilePath, logEntry, 'utf8');
-          enforceSizeCap();
-        } catch (err) {
-          console.error('promptLogger: append failed:', err.message);
-        }
+        const targetPath = logFilePath; // capture — project may switch mid-queue
+        writeQueue = writeQueue
+          .then(() => appendAndRotate(targetPath, logEntry))
+          .catch((err) => console.error('promptLogger: append failed:', err.message));
       }
       inputBuffer = '';
     } else if (char === '\x7f' || char === '\b') {
@@ -79,26 +82,27 @@ function logInput(data) {
 }
 
 /**
- * Cap the history file: past MAX_LOG_SIZE, keep the newest half (whole
- * lines). Runs after append, so at most one oversized write ever exists.
+ * Append a line, then rotate past the cap: the live file moves to
+ * <name>.log.1 (replacing the previous archive) and the next append starts
+ * a fresh live file. Bounded at ~2× MAX_LOG_SIZE total per project.
  */
-function enforceSizeCap() {
-  const { size } = fs.statSync(logFilePath);
+async function appendAndRotate(filePath, entry) {
+  await fsp.appendFile(filePath, entry, 'utf8');
+  const { size } = await fsp.stat(filePath);
   if (size <= MAX_LOG_SIZE) return;
-  const content = fs.readFileSync(logFilePath, 'utf8');
-  const half = content.slice(Math.floor(content.length / 2));
-  const firstLine = half.indexOf('\n');
-  fs.writeFileSync(logFilePath, half.slice(firstLine + 1), 'utf8');
+  const archivePath = `${filePath}.1`;
+  await fsp.rm(archivePath, { force: true }); // Windows can't rename onto an existing file
+  await fsp.rename(filePath, archivePath);
 }
 
 /**
- * Get prompt history
- * @returns {string} History file contents
+ * Get prompt history (live file only — bounded by MAX_LOG_SIZE)
+ * @returns {Promise<string>} History file contents
  */
-function getHistory() {
+async function getHistory() {
   try {
     if (fs.existsSync(logFilePath)) {
-      return fs.readFileSync(logFilePath, 'utf8');
+      return await fsp.readFile(logFilePath, 'utf8');
     }
   } catch (err) {
     console.error('Error reading prompt history:', err);
@@ -110,10 +114,17 @@ function getHistory() {
  * Setup IPC handlers
  */
 function setupIPC(ipcMain) {
-  ipcMain.on(IPC.LOAD_PROMPT_HISTORY, (event) => {
-    const data = getHistory();
-    event.sender.send(IPC.PROMPT_HISTORY_DATA, data);
+  ipcMain.on(IPC.LOAD_PROMPT_HISTORY, async (event) => {
+    const data = await getHistory();
+    if (!event.sender.isDestroyed()) {
+      event.sender.send(IPC.PROMPT_HISTORY_DATA, data);
+    }
   });
+}
+
+/** Await all queued appends — tests and shutdown ordering. */
+function flush() {
+  return writeQueue;
 }
 
 module.exports = {
@@ -122,5 +133,6 @@ module.exports = {
   logInput,
   getHistory,
   getLogFilePath,
-  setupIPC
+  setupIPC,
+  flush
 };

@@ -24,7 +24,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync, spawnSync } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { FRAME_DIR, FRAME_BIN_DIR } = require('../shared/frameConstants');
 const {
   getStructureHookSnippet,
@@ -117,7 +117,7 @@ function copyParserScripts(projectPath) {
  *   - 'custom'   — .git/hooks/pre-commit exists with non-default content
  *   - 'vanilla'  — no existing hook (or only the .sample), safe to write
  */
-function detectHookSetup(projectPath) {
+async function detectHookSetup(projectPath) {
   const gitDir = path.join(projectPath, '.git');
   if (!fs.existsSync(gitDir)) {
     return 'no-git';
@@ -135,11 +135,13 @@ function detectHookSetup(projectPath) {
   const huskyDir = path.join(projectPath, '.husky');
   if (fs.existsSync(huskyDir) && fs.statSync(huskyDir).isDirectory()) {
     try {
-      const hooksPath = execSync('git config --get core.hooksPath', {
-        cwd: projectPath,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore']
-      }).trim();
+      const hooksPath = await new Promise((resolve, reject) => {
+        exec('git config --get core.hooksPath', {
+          cwd: projectPath,
+          encoding: 'utf8',
+          timeout: 5000
+        }, (err, stdout) => (err ? reject(err) : resolve(stdout.trim())));
+      });
       if (hooksPath && hooksPath.replace(/\/$/, '').endsWith('.husky')) {
         return 'husky';
       }
@@ -189,8 +191,8 @@ function hasFrameSnippet(hookFilePath) {
  *           | 'skipped-no-git' | 'skipped-lefthook' | 'error'
  *   manualInstructions: string shown to user when we can't auto-install
  */
-function installPreCommitHook(projectPath) {
-  const setup = detectHookSetup(projectPath);
+async function installPreCommitHook(projectPath) {
+  const setup = await detectHookSetup(projectPath);
 
   if (setup === 'no-git') {
     return {
@@ -275,34 +277,43 @@ function appendToHookFile(hookPath, createIfMissing, needsShebang) {
 
 /**
  * Run the parser in full mode once so STRUCTURE.json gets populated with
- * the project's existing files. Spawns node synchronously with the
- * FRAME_PROJECT_ROOT env var so the bundled script targets the right repo.
+ * the project's existing files. Spawns node asynchronously (same 30s kill
+ * timeout as before) with the FRAME_PROJECT_ROOT env var so the bundled
+ * script targets the right repo — the main event loop stays free while the
+ * child scans.
  *
- * Returns: { status, message }
+ * Returns: Promise<{ status, message }>
  */
 function runInitialFullScan(projectPath) {
   const parserPath = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'update-structure.js');
   if (!fs.existsSync(parserPath)) {
-    return { status: 'error', message: 'Parser script not found at .frame/bin/update-structure.js' };
+    return Promise.resolve({ status: 'error', message: 'Parser script not found at .frame/bin/update-structure.js' });
   }
 
-  try {
-    const result = spawnSync('node', [parserPath], {
+  return new Promise((resolve) => {
+    let stderr = '';
+    const child = spawn('node', [parserPath], {
       cwd: projectPath,
       env: { ...process.env, FRAME_PROJECT_ROOT: projectPath },
-      encoding: 'utf8',
       timeout: 30000
     });
-    if (result.status === 0) {
-      return { status: 'ok', message: 'Initial STRUCTURE.json scan complete' };
-    }
-    return {
-      status: 'error',
-      message: `Initial scan exited with code ${result.status}: ${(result.stderr || '').slice(0, 200)}`
-    };
-  } catch (err) {
-    return { status: 'error', message: `Initial scan failed: ${err.message}` };
-  }
+    child.stderr.on('data', (chunk) => {
+      if (stderr.length < 4096) stderr += chunk.toString();
+    });
+    child.on('error', (err) => {
+      resolve({ status: 'error', message: `Initial scan failed: ${err.message}` });
+    });
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ status: 'ok', message: 'Initial STRUCTURE.json scan complete' });
+      } else {
+        resolve({
+          status: 'error',
+          message: `Initial scan exited with code ${code}: ${stderr.slice(0, 200)}`
+        });
+      }
+    });
+  });
 }
 
 /**
@@ -311,7 +322,7 @@ function runInitialFullScan(projectPath) {
  * created STRUCTURE.json (vs. preserving an existing one) — we only do the
  * initial scan when we created the file, never overwriting user content.
  */
-function bootstrapStructure(projectPath, structureWasCreated) {
+async function bootstrapStructure(projectPath, structureWasCreated) {
   const summary = {
     copied: [],
     hook: null,
@@ -319,10 +330,10 @@ function bootstrapStructure(projectPath, structureWasCreated) {
   };
 
   summary.copied = copyParserScripts(projectPath);
-  summary.hook = installPreCommitHook(projectPath);
+  summary.hook = await installPreCommitHook(projectPath);
 
   if (structureWasCreated) {
-    summary.initialScan = runInitialFullScan(projectPath);
+    summary.initialScan = await runInitialFullScan(projectPath);
   } else {
     summary.initialScan = {
       status: 'skipped-existing',

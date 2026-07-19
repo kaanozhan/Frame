@@ -18,6 +18,7 @@ const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
 const telemetry = require('./telemetry');
+const perfMonitor = require('./perfMonitor');
 
 const SPECS_DIR_NAME = 'specs';
 const STATUS_FILE = 'status.json';
@@ -31,6 +32,7 @@ const PHASES = ['draft', 'specified', 'planned', 'tasks_generated', 'implementin
 const AI_TOOLS = ['claude-code', 'codex', 'gemini'];
 
 const WATCH_DEBOUNCE_MS = 250;
+const SELF_WRITE_GUARD_MS = 250;
 const SLUG_MAX_LEN = 48;
 
 let mainWindow = null;
@@ -39,6 +41,11 @@ let activeTasksWatcher = null;
 let activeWatchedProject = null;
 let watchDebounce = null;
 let tasksWatchDebounce = null;
+// Stamped by writeStatus so the recursive specs watcher can drop the events
+// our own status.json writes fire (mirrors tasksManager's lastSelfWriteAt).
+let lastSelfWriteAt = 0;
+// Last SPEC_DATA payload sent — skip-unchanged gate for pushSpecData.
+let lastSpecPayloadJson = '';
 
 // ─── Path helpers ──────────────────────────────────────────
 
@@ -123,7 +130,18 @@ function readStatus(projectPath, slug) {
 function writeStatus(projectPath, slug, status) {
   const dir = getSpecDir(projectPath, slug);
   fs.mkdirSync(dir, { recursive: true });
-  fsSafe.writeFileAtomic(path.join(dir, STATUS_FILE), JSON.stringify(status, null, 2) + '\n');
+  const statusPath = path.join(dir, STATUS_FILE);
+  const next = JSON.stringify(status, null, 2) + '\n';
+  // Write-if-changed: reconcile/sync passes call this for every spec on
+  // every push — identical content must not touch the disk (or re-fire the
+  // recursive watcher).
+  try {
+    if (fs.readFileSync(statusPath, 'utf8') === next) return;
+  } catch (_) {
+    // missing/unreadable — fall through to write
+  }
+  lastSelfWriteAt = Date.now();
+  fsSafe.writeFileAtomic(statusPath, next);
 }
 
 // ─── Public API ────────────────────────────────────────────
@@ -731,6 +749,9 @@ function renameSpec(projectPath, oldSlug, opts) {
 function startWatching(projectPath) {
   stopWatching();
   if (!projectPath) return;
+  // A fresh watch means a fresh renderer (boot, reload, project switch) —
+  // force the next push through the skip-unchanged gate so it always paints.
+  lastSpecPayloadJson = '';
   const root = getSpecsRoot(projectPath);
   // Ensure the directory exists so fs.watch doesn't throw on a fresh project
   try {
@@ -741,6 +762,8 @@ function startWatching(projectPath) {
   }
   try {
     activeWatcher = fsSafe.safeWatch(root, { recursive: true }, () => {
+      // Our own writeStatus calls fire this watcher too — drop them.
+      if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) return;
       if (watchDebounce) clearTimeout(watchDebounce);
       watchDebounce = setTimeout(() => pushSpecData(projectPath), WATCH_DEBOUNCE_MS);
     }, () => { activeWatcher = null; });
@@ -758,6 +781,10 @@ function startWatching(projectPath) {
   if (fs.existsSync(tasksJsonPath)) {
     try {
       activeTasksWatcher = fsSafe.safeWatch(tasksJsonPath, null, () => {
+        // tasks.json writes we caused ourselves (syncTasksFromMarkdown /
+        // renameSpec go through tasksManager.saveTasks) must not re-trigger
+        // a push — that was the audit's watcher feedback loop.
+        if (Date.now() - tasksManager.getLastSelfWriteAt() < SELF_WRITE_GUARD_MS) return;
         if (tasksWatchDebounce) clearTimeout(tasksWatchDebounce);
         tasksWatchDebounce = setTimeout(() => pushSpecData(projectPath), WATCH_DEBOUNCE_MS);
       }, () => { activeTasksWatcher = null; });
@@ -792,10 +819,19 @@ function stopWatching() {
 
 function pushSpecData(projectPath) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  perfMonitor.opStart('spec-push');
   // Sync any spec with tasks.md → tasks.json before listing, so renderer
-  // sees consistent task counts and the Tasks panel auto-refreshes.
+  // sees consistent task counts and the Tasks panel auto-refreshes. The
+  // tasks.json parse behind both calls is served once by tasksManager's
+  // load cache.
   syncAllSpecTasks(projectPath);
   const specs = listSpecs(projectPath);
+  perfMonitor.opEnd('spec-push');
+  // Skip-unchanged: same channel, same payload shape — but only send when
+  // the data actually changed since the last push.
+  const payloadJson = JSON.stringify({ projectPath, specs });
+  if (payloadJson === lastSpecPayloadJson) return;
+  lastSpecPayloadJson = payloadJson;
   mainWindow.webContents.send(IPC.SPEC_DATA, { projectPath, specs });
 }
 
