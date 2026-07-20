@@ -3451,13 +3451,13 @@
       "title": "Update the `/spec.tasks` one-line description in `src/templates/sample-project/AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` to mention the plan-report cross-check",
       "description": "",
       "source": "spec:deep-spec-tasks:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-tasks",
       "createdAt": "2026-07-20T09:48:10.121Z",
-      "updatedAt": "2026-07-20T09:48:10.121Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T11:00:00.000Z",
+      "completedAt": "2026-07-20T11:00:00.000Z"
     }
   ],
   "metadata": {

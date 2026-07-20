@@ -84,7 +84,7 @@ When the user types a Frame slash command, write **exactly one file** and then u
 
 - `/spec.new <description>` → write `spec.md` (sections: Problem, Goal, Constraints, Success Criteria, Out of Scope). Phase → `specified`.
 - `/spec.plan` → read `spec.md`, write `plan.md` (sections: Architecture, Files, Dependencies, Sequencing). Phase → `planned`.
-- `/spec.tasks` → read `spec.md` + `plan.md`, write `tasks.md` as a flat `- T01 · ...` bullet list (5–12 tasks, imperative voice). Phase → `tasks_generated`.
+- `/spec.tasks` → read `spec.md` + `plan.md`, cross-check the derived list against `plan-report.html` when one exists, and write `tasks.md` as a flat `- T01 · ...` bullet list (5–12 tasks, imperative voice). Phase → `tasks_generated`.
 
 After `/spec.tasks`, **do not** also write entries to `tasks.json` — Frame's watcher imports them automatically with `source: "spec:<slug>:T<n>"` markers.
 
