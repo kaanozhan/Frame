@@ -58,6 +58,30 @@ has gone stale in that direction would suppress tests that are now possible,
 and it is the only direction where staleness changes what you plan. Everywhere
 else, take the record as written; a user who corrected it by hand meant it.
 
+**When the section is missing, establish it yourself.** Two signals, answering
+two different questions — gather both, every time:
+
+- **How tests are invoked** — `project.commands.test` in `.frame/config.json`,
+  written by Frame's project detection from the manifest. Treat it as the
+  invocation, not the runner: it is often an alias that stands in for whatever
+  the project has configured underneath, so follow it through to what actually
+  executes. A null value means detection found no declared way to run tests.
+- **What the project's tests look like** — the filesystem. Where test files
+  live, how they are named, and which source areas they exercise. This side
+  **always runs**; it is not a fallback for a missing config value. It is also
+  the only signal that can tell you whether any test actually exists, and the
+  only one that is the same question in every language.
+
+Derive the convention from what you find, not from a list of names you already
+know. Do not check for particular runners, assertion libraries, or directory
+layouts — read what the project does and describe it. A stack you have never
+seen must come out of this with a filled-in record, and a stack you know well
+must not come out with details the project does not actually use.
+
+Report the two signals separately. They can disagree, and their disagreement is
+itself a finding rather than a conflict to resolve — a declared way to run tests
+with nothing written against it is a real and meaningful state.
+
 The finding — from the record or from your own look — enters the evidence table
 like any other Stage 1 claim.
 

@@ -3477,13 +3477,13 @@
       "title": "Add detection for when the record is missing: `project.commands.test` for the invocation and the filesystem for location, naming and which source areas existing tests exercise, with the filesystem side always running and no runner, library or directory name hardcoded",
       "description": "",
       "source": "spec:test-aware-planning:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: test-aware-planning",
       "createdAt": "2026-07-20T12:26:39.443Z",
-      "updatedAt": "2026-07-20T12:26:39.443Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T12:47:00.000Z",
+      "completedAt": "2026-07-20T12:47:00.000Z"
     },
     {
       "id": "task-spec-test-aware-planning-T03",
