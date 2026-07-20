@@ -233,6 +233,29 @@ Section guidance:
 - **Dependencies** — Packages or services to add (with one-line rationale each), or `None`. If a dep already exists in `package.json`, don't re-list it.
 - **Sequencing** — Numbered steps in implementation order. Each step is small, end-to-end shippable. Do not bundle unrelated work into one step.
 
+### Carrying the test posture
+
+When the gate put tests in scope, they are work like any other and appear in
+the same three places — never as prose about testing:
+
+- **Files** — every test file the plan adds or changes, marked **New** where
+  it is, with its one-line purpose. Follow the location and naming convention
+  the testing record describes; do not start a second convention alongside the
+  project's own.
+- **Footprint** — those same paths. Tests omitted here are invisible to the
+  collision check, so an implementation that writes them is working outside its
+  declared footprint.
+- **Sequencing** — attach the authoring to the step that produces the code it
+  covers. A step's work is not finished until its tests are. Do not park
+  testing in a trailing "write the tests" step: it reads as optional, it is
+  the first thing dropped under pressure, and it turns a property of each step
+  into a task that can be skipped whole.
+
+When the posture is **none this time**, the plan says nothing about testing at
+all. Record the decision and its reasoning under "Resolved plan-time
+decisions" and leave the five sections free of test work — an empty gesture
+toward testing is worse than an honest absence.
+
 ## Stage 5 — Plan report
 
 Read the staged visual template at `{report_template_path}` (project-relative)

@@ -3555,13 +3555,13 @@
       "title": "Add the carrying rules to Stage 4: planned test files listed in `## Files` marked **New**, their paths in `## Footprint`, and authoring attached in `## Sequencing` to the step that produces the code it covers",
       "description": "",
       "source": "spec:test-aware-planning:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: test-aware-planning",
       "createdAt": "2026-07-20T12:26:39.443Z",
-      "updatedAt": "2026-07-20T12:26:39.443Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T13:38:00.000Z",
+      "completedAt": "2026-07-20T13:38:00.000Z"
     },
     {
       "id": "task-spec-test-aware-planning-T09",
