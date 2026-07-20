@@ -28,7 +28,24 @@ Rules for the list:
 - Aim for 5–12 tasks. If the work is bigger, suggest splitting the spec rather than producing 30+ tasks.
 - Tasks should map to commits. Roughly: one task ≈ one PR-worthy change.
 
-## Stage 2 — Write
+## Stage 2 — Report pass
+
+`/spec.plan` may have produced a visual plan report next to `plan.md`. It
+carries what the strict plan format cannot: a risk and edge matrix, a coverage
+matrix mapping every spec item to the plan section that owns it, the decision
+story, the evidence pass's verified claims, and the convergence log.
+
+If `.frame/specs/{slug}/plan-report.html` exists, read it **in full** before
+going on, then reconcile the draft list against what it reveals.
+
+Locate what you need **semantically** — "the table listing edge cases and risks
+against the plan's answer to each", "the tables mapping each spec goal,
+constraint and success criterion to its owning plan section". Do **not** match
+on heading text or card number. The report template evolves independently of
+this prompt, and a literal anchor fails *silently* the day a heading changes:
+the pass would find nothing, alter nothing, and still report success.
+
+## Stage 3 — Write
 
 Write **exactly one file**: `.frame/specs/{slug}/tasks.md`.
 

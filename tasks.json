@@ -3373,13 +3373,13 @@
       "title": "Add the report pass to `spec.tasks.md`: when `.frame/specs/{slug}/plan-report.html` exists, read it in full and locate its risk table and coverage matrix semantically, never by heading text or card number",
       "description": "",
       "source": "spec:deep-spec-tasks:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-tasks",
       "createdAt": "2026-07-20T09:48:10.121Z",
-      "updatedAt": "2026-07-20T09:48:10.121Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T10:11:00.000Z",
+      "completedAt": "2026-07-20T10:11:00.000Z"
     },
     {
       "id": "task-spec-deep-spec-tasks-T03",
