@@ -3542,13 +3542,13 @@
       "title": "Add the posture question to Stage 2's technical stage — three options with the recommendation first, asked only when the record shows infrastructure runnable for this spec's kind of work, inside the existing round cap",
       "description": "",
       "source": "spec:test-aware-planning:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: test-aware-planning",
       "createdAt": "2026-07-20T12:26:39.443Z",
-      "updatedAt": "2026-07-20T12:26:39.443Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T13:30:00.000Z",
+      "completedAt": "2026-07-20T13:30:00.000Z"
     },
     {
       "id": "task-spec-test-aware-planning-T08",

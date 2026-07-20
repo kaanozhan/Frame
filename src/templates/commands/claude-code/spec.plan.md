@@ -160,6 +160,38 @@ Rules:
 - Record every decision (asked or silent) with its rationale; Stage 4 embeds
   them under "Resolved plan-time decisions".
 
+### Test posture
+
+The technical stage carries one standing question, when — and only when — the
+testing record from Stage 1 shows infrastructure that can actually run tests
+for **this spec's kind of work**:
+
+> Should this spec's work ship with tests?
+>
+> - **Pure logic and data transforms only** — test what can be tested without
+>   standing up the surrounding machinery.
+> - **Everything testable** — every part of the work its infrastructure can
+>   reach.
+> - **None this time** — nothing in this spec warrants a test.
+
+Order the options by what the project already does: the record's **Covered**
+line shows the convention in force, and the option matching it goes first.
+Recommending a posture the project does not practise is how a plan acquires
+tests nobody maintains.
+
+Do not ask when the record reads **None detected**, or when the kinds it shows
+as runnable do not reach this spec's work. Asking for tests the project has no
+way to execute produces a task that cannot be run — the plan looks more
+rigorous and is less true.
+
+**None this time** is a real answer, not a failure. A spec whose output is
+documentation, a template, or configuration has nothing a test could assert;
+choosing it there is the correct call and gets recorded with its reasoning like
+any other decision.
+
+This is one question inside the technical stage, counting against the same
+3-round cap. It does not get a stage of its own.
+
 ## Stage 3 — Convergence loop
 
 Draft the plan internally — do not write the file yet. Self-critique the draft
