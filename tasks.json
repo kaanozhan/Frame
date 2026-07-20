@@ -3529,13 +3529,13 @@
       "title": "Handle a project with no `PROJECT_NOTES.md`: detect fresh, skip the write, and never create the file on the project's behalf",
       "description": "",
       "source": "spec:test-aware-planning:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: test-aware-planning",
       "createdAt": "2026-07-20T12:26:39.443Z",
-      "updatedAt": "2026-07-20T12:26:39.443Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T13:20:00.000Z",
+      "completedAt": "2026-07-20T13:20:00.000Z"
     },
     {
       "id": "task-spec-test-aware-planning-T07",

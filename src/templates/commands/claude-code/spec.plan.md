@@ -127,6 +127,14 @@ learns to click through. Say what you recorded in **one line** of your closing
 message — enough that a change to a shared file is never silent, short enough
 that it does not compete with the plan itself.
 
+**A project without `PROJECT_NOTES.md` still gets planned.** The record is a
+convenience, not a prerequisite. When the file is absent, establish the testing
+facts the same way, use them for this run, and skip the write — do not create
+the file. Frame creates `PROJECT_NOTES.md` when a project is initialised, so
+its absence means this project was never set up that way, and a planning run is
+the wrong moment to decide otherwise on the user's behalf. Note in your closing
+message that the facts could not be recorded, so the next run will look again.
+
 The finding — from the record or from your own look — enters the evidence table
 like any other Stage 1 claim.
 
