@@ -97,6 +97,23 @@ Later stages decide what to ask by reading **this record**, never the config
 field on its own. A declared invocation is not proof that tests exist, and its
 absence is not proof that they are impossible.
 
+**If looking cannot settle it, ask — once.** Detection answers most projects,
+but not all: a project may run a kind of test through machinery that leaves no
+trace where you looked, or the areas the tests cover may genuinely be
+ambiguous. When that happens, ask the user a single question naming exactly
+what you could not determine, and offer the possibilities you actually see.
+
+Then **look for what the answer implies** — do not write the answer down as
+given. If the user says a kind of test is runnable, find the machinery that
+runs it and record that, so the record names something real rather than
+something asserted. If you cannot find it, record what the user said and note
+that it was not located.
+
+Ask about what you could not determine, never about what you already found.
+This is a fallback for genuine ambiguity, not a substitute for looking, and it
+happens once — the answer becomes part of the record, so no later planning run
+has to ask again.
+
 The finding — from the record or from your own look — enters the evidence table
 like any other Stage 1 claim.
 

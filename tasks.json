@@ -3503,13 +3503,13 @@
       "title": "Add the ask-then-look fallback: when detection cannot settle whether a kind of test is runnable, ask the user once and then look for what the answer implies rather than trusting the answer alone",
       "description": "",
       "source": "spec:test-aware-planning:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: test-aware-planning",
       "createdAt": "2026-07-20T12:26:39.443Z",
-      "updatedAt": "2026-07-20T12:26:39.443Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T13:03:00.000Z",
+      "completedAt": "2026-07-20T13:03:00.000Z"
     },
     {
       "id": "task-spec-test-aware-planning-T05",
