@@ -82,6 +82,21 @@ Report the two signals separately. They can disagree, and their disagreement is
 itself a finding rather than a conflict to resolve — a declared way to run tests
 with nothing written against it is a real and meaningful state.
 
+**The record has three states. Do not collapse them into two.**
+
+| State | What it means | Record it as |
+| --- | --- | --- |
+| **None detected** | No declared way to run tests, and no test files. Someone has to choose and set up a runner before any test can exist. | `**None detected** — no test runner, no test files.` |
+| **Runner, nothing written** | Tests can be run, but none have been written. Some toolchains ship a runner with the language distribution, so a working invocation can exist before a single test does. Elsewhere a script may be configured and unused. | The full shape, with `**Covered:** none yet` and the reason. |
+| **Populated** | Runner, convention and covered areas all known. | The full shape. |
+
+"No tests" and "no way to run tests" are different findings. The second state is
+**not** an absence of test infrastructure — in it, a test is one file away.
+
+Later stages decide what to ask by reading **this record**, never the config
+field on its own. A declared invocation is not proof that tests exist, and its
+absence is not proof that they are impossible.
+
 The finding — from the record or from your own look — enters the evidence table
 like any other Stage 1 claim.
 
