@@ -24,6 +24,42 @@ Stage 2 is complete.
 3. Build a coverage checklist: assign an ID to every item under Goal (G1,
    G2, …), Constraints (C1, …), and Success Criteria (S1, …). Every ID must
    later map to an owning plan section.
+4. Establish how this project tests — see **The testing record** below.
+
+### The testing record
+
+Whether this spec's work should ship with tests depends on what the project
+can actually run. That is a fact about the project, not about this spec, so it
+is established once and recorded rather than re-derived on every planning run.
+
+The record is a standing `## Testing` section in `PROJECT_NOTES.md`, sitting
+with the other topical sections (beside `## Tech Stack`) — never in
+`## Session Notes`, which is an append-only log of dated events. It looks like
+this:
+
+```markdown
+## Testing
+
+- **Runner:** <how tests are invoked → what that actually executes>
+- **Location & naming:** <where tests live, how they are named>
+- **Covered:** <source areas exercised by existing tests>
+- **Not covered:** <areas with no test path, and why>
+- **CI:** <workflow and what it runs, or None>
+
+- _Recorded <ISO date> by /spec.plan_
+```
+
+**Read it before doing anything else.** When the section is present, use it and
+scan nothing — that is the point of recording it.
+
+The one exception: if this spec's work touches an area the record lists under
+**Not covered**, verify that area once before trusting the line. A record that
+has gone stale in that direction would suppress tests that are now possible,
+and it is the only direction where staleness changes what you plan. Everywhere
+else, take the record as written; a user who corrected it by hand meant it.
+
+The finding — from the record or from your own look — enters the evidence table
+like any other Stage 1 claim.
 
 ## Stage 2 — Decision gate (before any plan text)
 
