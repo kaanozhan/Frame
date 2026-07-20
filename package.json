@@ -9,7 +9,7 @@
     "build": "esbuild src/renderer/index.js --bundle --outfile=dist/renderer.js --platform=node --external:electron",
     "watch": "esbuild src/renderer/index.js --bundle --outfile=dist/renderer.js --platform=node --external:electron --watch",
     "start": "npm run build && electron .",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.js",
     "dev": "npm run watch & electron .",
     "structure": "node scripts/update-structure.js",
     "structure:changed": "node scripts/update-structure.js --changed",
