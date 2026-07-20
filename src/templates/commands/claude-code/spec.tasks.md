@@ -22,7 +22,7 @@ weaken it.
 
 Rules for the list:
 
-- IDs are zero-padded: T01, T02, ..., T09, T10. Numbered in implementation order.
+- IDs are zero-padded: T01, T02, ..., T09, T10. The list is ordered by implementation order; see **Task IDs** below for how numbers are assigned.
 - Each task is independently completable. Don't bundle "do X then Y" into one bullet.
 - Each task is specific enough to act on without re-reading the plan. Reference file paths when relevant.
 - Aim for 5–12 tasks. If the work is bigger, suggest splitting the spec rather than producing 30+ tasks.
@@ -79,6 +79,32 @@ What this pass may and may not do:
   list past twelve, stop and recommend splitting the spec instead of shipping
   twenty tasks. A spec whose real work does not fit was already too big — the
   report has just made that visible. Raising the ceiling would hide it.
+
+## Task IDs
+
+An ID is an identity, not a position. The list's *order* carries implementation
+order; a task's *number* carries which work it is.
+
+- **First generation** — number the list T01, T02, T03 … in implementation
+  order.
+- **Regeneration** — a `tasks.md` already exists. Read it first: every ID
+  already bound to a piece of work keeps that work. New work takes the next
+  unused number and is inserted at its correct position in the list.
+
+**Never renumber an existing task** — not to tidy the sequence, not because a
+number looks high, not for any task in any status. Frame keys tasks by
+`spec:{slug}:T<n>` and preserves the status the user set. Moving a number
+transplants that status onto different work: a task the user marked completed
+would silently come to describe work nobody has done.
+
+Two consequences follow, and both are correct output:
+
+- A regenerated list may read `T01, T02, T05, T03, T04`. Ascending order is
+  deliberately given up so that numbers stay bound to their work.
+- Numbers are allocated and never reclaimed, so the highest number drifts above
+  the task count — a nine-task list may legitimately end at `T14`. **The 5–12
+  ceiling counts tasks, not numbers.** Never renumber to bring a high number
+  "back into range".
 
 ## Stage 3 — Write
 

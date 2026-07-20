@@ -3412,13 +3412,13 @@
       "title": "Add the ID assignment rules to `spec.tasks.md`: first-generation numbering, regeneration binding read from the existing `tasks.md` alone, no task renumbered in any status, new work taking the next unused number inserted in implementation order, non-ascending output declared correct, and the ceiling counting tasks rather than numbers",
       "description": "",
       "source": "spec:deep-spec-tasks:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: deep-spec-tasks",
       "createdAt": "2026-07-20T09:48:10.121Z",
-      "updatedAt": "2026-07-20T09:48:10.121Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T10:33:00.000Z",
+      "completedAt": "2026-07-20T10:33:00.000Z"
     },
     {
       "id": "task-spec-deep-spec-tasks-T06",
