@@ -24,6 +24,119 @@ Stage 2 is complete.
 3. Build a coverage checklist: assign an ID to every item under Goal (G1,
    G2, …), Constraints (C1, …), and Success Criteria (S1, …). Every ID must
    later map to an owning plan section.
+4. Establish how this project tests — see **The testing record** below.
+
+### The testing record
+
+Whether this spec's work should ship with tests depends on what the project
+can actually run. That is a fact about the project, not about this spec, so it
+is established once and recorded rather than re-derived on every planning run.
+
+The record is a standing `## Testing` section in `PROJECT_NOTES.md`, sitting
+with the other topical sections (beside `## Tech Stack`) — never in
+`## Session Notes`, which is an append-only log of dated events. It looks like
+this:
+
+```markdown
+## Testing
+
+- **Runner:** <how tests are invoked → what that actually executes>
+- **Location & naming:** <where tests live, how they are named>
+- **Covered:** <source areas exercised by existing tests>
+- **Not covered:** <areas with no test path, and why>
+- **CI:** <workflow and what it runs, or None>
+
+- _Recorded <ISO date> by /spec.plan_
+```
+
+**Read it before doing anything else.** When the section is present, use it and
+scan nothing — that is the point of recording it.
+
+The one exception: if this spec's work touches an area the record lists under
+**Not covered**, verify that area once before trusting the line. A record that
+has gone stale in that direction would suppress tests that are now possible,
+and it is the only direction where staleness changes what you plan. Everywhere
+else, take the record as written; a user who corrected it by hand meant it.
+
+**When the section is missing, establish it yourself.** Two signals, answering
+two different questions — gather both, every time:
+
+- **How tests are invoked** — `project.commands.test` in `.frame/config.json`,
+  written by Frame's project detection from the manifest. Treat it as the
+  invocation, not the runner: it is often an alias that stands in for whatever
+  the project has configured underneath, so follow it through to what actually
+  executes. A null value means detection found no declared way to run tests.
+- **What the project's tests look like** — the filesystem. Where test files
+  live, how they are named, and which source areas they exercise. This side
+  **always runs**; it is not a fallback for a missing config value. It is also
+  the only signal that can tell you whether any test actually exists, and the
+  only one that is the same question in every language.
+
+Derive the convention from what you find, not from a list of names you already
+know. Do not check for particular runners, assertion libraries, or directory
+layouts — read what the project does and describe it. A stack you have never
+seen must come out of this with a filled-in record, and a stack you know well
+must not come out with details the project does not actually use.
+
+Report the two signals separately. They can disagree, and their disagreement is
+itself a finding rather than a conflict to resolve — a declared way to run tests
+with nothing written against it is a real and meaningful state.
+
+**The record has three states. Do not collapse them into two.**
+
+| State | What it means | Record it as |
+| --- | --- | --- |
+| **None detected** | No declared way to run tests, and no test files. Someone has to choose and set up a runner before any test can exist. | `**None detected** — no test runner, no test files.` |
+| **Runner, nothing written** | Tests can be run, but none have been written. Some toolchains ship a runner with the language distribution, so a working invocation can exist before a single test does. Elsewhere a script may be configured and unused. | The full shape, with `**Covered:** none yet` and the reason. |
+| **Populated** | Runner, convention and covered areas all known. | The full shape. |
+
+"No tests" and "no way to run tests" are different findings. The second state is
+**not** an absence of test infrastructure — in it, a test is one file away.
+
+Later stages decide what to ask by reading **this record**, never the config
+field on its own. A declared invocation is not proof that tests exist, and its
+absence is not proof that they are impossible.
+
+**If looking cannot settle it, ask — once.** Detection answers most projects,
+but not all: a project may run a kind of test through machinery that leaves no
+trace where you looked, or the areas the tests cover may genuinely be
+ambiguous. When that happens, ask the user a single question naming exactly
+what you could not determine, and offer the possibilities you actually see.
+
+Then **look for what the answer implies** — do not write the answer down as
+given. If the user says a kind of test is runnable, find the machinery that
+runs it and record that, so the record names something real rather than
+something asserted. If you cannot find it, record what the user said and note
+that it was not located.
+
+Ask about what you could not determine, never about what you already found.
+This is a fallback for genuine ambiguity, not a substitute for looking, and it
+happens once — the answer becomes part of the record, so no later planning run
+has to ask again.
+
+**Write what you established back to `PROJECT_NOTES.md`.** Whenever you had to
+look — because the section was missing, or because re-verifying an area the
+record called uncovered turned up something new — write the section in the
+place described above, stamped with today's date. Rewrite it in full rather
+than appending; it is a current picture, not a history. When the section was
+present and you had no reason to doubt it, leave it alone.
+
+Do this without asking. Recording a project fact you just established is
+routine, and a confirmation prompt on every planning run is noise the user
+learns to click through. Say what you recorded in **one line** of your closing
+message — enough that a change to a shared file is never silent, short enough
+that it does not compete with the plan itself.
+
+**A project without `PROJECT_NOTES.md` still gets planned.** The record is a
+convenience, not a prerequisite. When the file is absent, establish the testing
+facts the same way, use them for this run, and skip the write — do not create
+the file. Frame creates `PROJECT_NOTES.md` when a project is initialised, so
+its absence means this project was never set up that way, and a planning run is
+the wrong moment to decide otherwise on the user's behalf. Note in your closing
+message that the facts could not be recorded, so the next run will look again.
+
+The finding — from the record or from your own look — enters the evidence table
+like any other Stage 1 claim.
 
 ## Stage 2 — Decision gate (before any plan text)
 
@@ -46,6 +159,38 @@ Rules:
   recorded — don't ask.
 - Record every decision (asked or silent) with its rationale; Stage 4 embeds
   them under "Resolved plan-time decisions".
+
+### Test posture
+
+The technical stage carries one standing question, when — and only when — the
+testing record from Stage 1 shows infrastructure that can actually run tests
+for **this spec's kind of work**:
+
+> Should this spec's work ship with tests?
+>
+> - **Pure logic and data transforms only** — test what can be tested without
+>   standing up the surrounding machinery.
+> - **Everything testable** — every part of the work its infrastructure can
+>   reach.
+> - **None this time** — nothing in this spec warrants a test.
+
+Order the options by what the project already does: the record's **Covered**
+line shows the convention in force, and the option matching it goes first.
+Recommending a posture the project does not practise is how a plan acquires
+tests nobody maintains.
+
+Do not ask when the record reads **None detected**, or when the kinds it shows
+as runnable do not reach this spec's work. Asking for tests the project has no
+way to execute produces a task that cannot be run — the plan looks more
+rigorous and is less true.
+
+**None this time** is a real answer, not a failure. A spec whose output is
+documentation, a template, or configuration has nothing a test could assert;
+choosing it there is the correct call and gets recorded with its reasoning like
+any other decision.
+
+This is one question inside the technical stage, counting against the same
+3-round cap. It does not get a stage of its own.
 
 ## Stage 3 — Convergence loop
 
@@ -87,6 +232,44 @@ Section guidance:
 - **Footprint** — A flat, machine-readable list of the source files this spec will create or modify, **one path per line as a plain `- ` bullet, nothing else on the line** (a path or a glob, e.g. `- src/main/foo.js` or `- src/renderer/styles/**`). This is parsed by the orchestrator to detect collisions between specs running in parallel, so keep it literal and accurate — it should mirror the New/Modified entries in **Files**. **Exclude Frame meta files** (`tasks.json`, `STRUCTURE.json`, `PROJECT_NOTES.md`, `AGENTS.md`/`CLAUDE.md`): they are reconciled separately and would otherwise mark every spec as conflicting.
 - **Dependencies** — Packages or services to add (with one-line rationale each), or `None`. If a dep already exists in `package.json`, don't re-list it.
 - **Sequencing** — Numbered steps in implementation order. Each step is small, end-to-end shippable. Do not bundle unrelated work into one step.
+
+### Carrying the test posture
+
+When the gate put tests in scope, they are work like any other and appear in
+the same three places — never as prose about testing:
+
+- **Files** — every test file the plan adds or changes, marked **New** where
+  it is, with its one-line purpose. Follow the location and naming convention
+  the testing record describes; do not start a second convention alongside the
+  project's own.
+- **Footprint** — those same paths. Tests omitted here are invisible to the
+  collision check, so an implementation that writes them is working outside its
+  declared footprint.
+- **Sequencing** — attach the authoring to the step that produces the code it
+  covers. A step's work is not finished until its tests are. Do not park
+  testing in a trailing "write the tests" step: it reads as optional, it is
+  the first thing dropped under pressure, and it turns a property of each step
+  into a task that can be skipped whole.
+
+When the posture is **none this time**, the plan says nothing about testing at
+all. Record the decision and its reasoning under "Resolved plan-time
+decisions" and leave the five sections free of test work — an empty gesture
+toward testing is worse than an honest absence.
+
+**Authoring is planned. Verification is not.** Writing new test code is work:
+it takes time, it produces files, and it belongs in the plan. Running the
+project's existing checks after a change is an implementation-time step that
+happens on every change regardless of what any spec decided.
+
+So never emit running an existing check as a step. "Run the test suite" is not
+a unit of work — it is what finishing any step already means, and listing it
+turns a habit into something that can be marked done once and forgotten.
+
+The converse binds implementation: whatever this plan does not put in scope is
+out of scope. An implementation run that decides the plan forgot some tests and
+writes them anyway is writing unplanned files, outside the footprint, with no
+task accounting for them. If the posture looks wrong once the code is in front
+of you, that is a reason to say so — not to quietly widen the plan.
 
 ## Stage 5 — Plan report
 

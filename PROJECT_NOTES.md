@@ -59,6 +59,30 @@ IDE-style desktop application for Claude Code. Features a 3-panel layout with pr
 
 ---
 
+## Testing
+
+- **Runner:** `npm test` → `node --test test/*.test.js` (Node's built-in
+  runner; no test framework dependency)
+- **Location & naming:** `test/*.test.js`, flat, one file per module under
+  test. `test/fixtures/` holds sample repos as data — the glob deliberately
+  excludes it, since Node would otherwise execute those files as tests.
+- **Covered:** `src/main/`, `src/shared/`, `scripts/` — 8 files. The
+  convention is to target the **pure** module and skip its Electron-coupled
+  wrapper (`telemetryEvents.js` is tested, `telemetry.js` is not); where a
+  test must load an Electron-coupled module, it stubs the external requires
+  (`specTasksSync.test.js`).
+- **Not covered:** `src/renderer/` — no DOM/UI harness present (`jsdom`,
+  `playwright`, `@testing-library`, `puppeteer` all absent). Renderer work
+  is not testable here today without first choosing and installing one.
+- **CI:** `.github/workflows/ci.yml` — `npm test` on ubuntu + macos.
+  Deliberately runs **no** `npm ci`: the suite must work from repo-local
+  modules alone, so any test that reaches a package in `node_modules` will
+  pass locally and fail in CI.
+
+- _Recorded 2026-07-20 by /spec.plan (test-aware-planning)_
+
+---
+
 ## Architecture
 
 ### Modular Structure
