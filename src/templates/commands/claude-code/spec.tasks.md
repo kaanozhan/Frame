@@ -68,6 +68,18 @@ Reconcile rule by rule:
   and a task that contradicts a recorded decision is corrected to match the
   decision.
 
+What this pass may and may not do:
+
+- **Add and revise. Never delete.** No task the plan pass produced may be
+  dropped here, however redundant the report makes it look.
+- **`plan.md` wins every conflict.** The report denounces gaps; it is not a
+  second source of truth. Where the two disagree about what the work is, the
+  plan is right and the report is context.
+- **The 5–12 ceiling still holds.** If closing the report's gaps would push the
+  list past twelve, stop and recommend splitting the spec instead of shipping
+  twenty tasks. A spec whose real work does not fit was already too big — the
+  report has just made that visible. Raising the ceiling would hide it.
+
 ## Stage 3 — Write
 
 Write **exactly one file**: `.frame/specs/{slug}/tasks.md`.
