@@ -3568,13 +3568,13 @@
       "title": "Add the authoring-versus-verification line to `spec.plan.md`, stating that writing new test code is planned work while running the project's existing checks is an implement-time step",
       "description": "",
       "source": "spec:test-aware-planning:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: test-aware-planning",
       "createdAt": "2026-07-20T12:26:39.443Z",
-      "updatedAt": "2026-07-20T12:26:39.443Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T13:46:00.000Z",
+      "completedAt": "2026-07-20T13:46:00.000Z"
     }
   ],
   "metadata": {

@@ -256,6 +256,21 @@ all. Record the decision and its reasoning under "Resolved plan-time
 decisions" and leave the five sections free of test work — an empty gesture
 toward testing is worse than an honest absence.
 
+**Authoring is planned. Verification is not.** Writing new test code is work:
+it takes time, it produces files, and it belongs in the plan. Running the
+project's existing checks after a change is an implementation-time step that
+happens on every change regardless of what any spec decided.
+
+So never emit running an existing check as a step. "Run the test suite" is not
+a unit of work — it is what finishing any step already means, and listing it
+turns a habit into something that can be marked done once and forgotten.
+
+The converse binds implementation: whatever this plan does not put in scope is
+out of scope. An implementation run that decides the plan forgot some tests and
+writes them anyway is writing unplanned files, outside the footprint, with no
+task accounting for them. If the posture looks wrong once the code is in front
+of you, that is a reason to say so — not to quietly widen the plan.
+
 ## Stage 5 — Plan report
 
 Read the staged visual template at `{report_template_path}` (project-relative)
