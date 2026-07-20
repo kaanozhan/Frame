@@ -80,6 +80,12 @@ What this pass may and may not do:
   twenty tasks. A spec whose real work does not fit was already too big — the
   report has just made that visible. Raising the ceiling would hide it.
 
+If the report does not exist, or a section of it cannot be located, this stage
+changes nothing and the plan pass's list stands as written. Mention it **once**
+in your closing message — a single line naming what was missing. Do not warn
+per section, do not treat it as a failure, and do not ask the user to produce a
+report. A spec planned before the report existed is normal, not broken.
+
 ## Task IDs
 
 An ID is an identity, not a position. The list's *order* carries implementation
@@ -119,6 +125,11 @@ Format — a flat markdown bullet list, no nesting:
 - T02 · <imperative one-line description>
 - T03 · ...
 ```
+
+Emit nothing beyond the heading and the bullets — no cross-check section, no
+provenance annotations, no note about what the report changed. The
+reconciliation is an internal step, not an artifact. (A stray `- T…` bullet
+inside such a note would also be imported as a task.)
 
 Then update `.frame/specs/{slug}/status.json`:
 - `phase` → `"tasks_generated"`
