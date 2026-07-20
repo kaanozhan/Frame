@@ -114,6 +114,19 @@ This is a fallback for genuine ambiguity, not a substitute for looking, and it
 happens once — the answer becomes part of the record, so no later planning run
 has to ask again.
 
+**Write what you established back to `PROJECT_NOTES.md`.** Whenever you had to
+look — because the section was missing, or because re-verifying an area the
+record called uncovered turned up something new — write the section in the
+place described above, stamped with today's date. Rewrite it in full rather
+than appending; it is a current picture, not a history. When the section was
+present and you had no reason to doubt it, leave it alone.
+
+Do this without asking. Recording a project fact you just established is
+routine, and a confirmation prompt on every planning run is noise the user
+learns to click through. Say what you recorded in **one line** of your closing
+message — enough that a change to a shared file is never silent, short enough
+that it does not compete with the plan itself.
+
 The finding — from the record or from your own look — enters the evidence table
 like any other Stage 1 claim.
 

@@ -3516,13 +3516,13 @@
       "title": "Add the write-back to `spec.plan.md`: record the finding in `PROJECT_NOTES.md` beside `## Tech Stack` and never in `## Session Notes`, dated, written without asking, named in one line of the closing message, including the D4 refresh rule",
       "description": "",
       "source": "spec:test-aware-planning:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: test-aware-planning",
       "createdAt": "2026-07-20T12:26:39.443Z",
-      "updatedAt": "2026-07-20T12:26:39.443Z",
-      "completedAt": null
+      "updatedAt": "2026-07-20T13:12:00.000Z",
+      "completedAt": "2026-07-20T13:12:00.000Z"
     },
     {
       "id": "task-spec-test-aware-planning-T06",
