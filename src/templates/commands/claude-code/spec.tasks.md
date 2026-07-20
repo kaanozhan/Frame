@@ -45,6 +45,29 @@ on heading text or card number. The report template evolves independently of
 this prompt, and a literal anchor fails *silently* the day a heading changes:
 the pass would find nothing, alter nothing, and still report success.
 
+Reconcile rule by rule:
+
+- **Risks and edges** — a row becomes a new task **only** when the plan's
+  answer names concrete behavior that no `## Sequencing` step describes. An
+  answer that states what already holds ("the panel is already
+  single-toast-at-a-time") or that cites a step outright ("Sequencing step 8 is
+  a grep sweep") yields nothing. On a nine-row table this rule typically leaves
+  one or two candidates; if it leaves eight, you are reading it too loosely.
+
+- **Coverage matrix** — every goal, constraint and success-criterion ID is
+  mapped there to the plan section that owns it. An ID whose owning section
+  produced no task is a gap: close it with a new task, or fold it into an
+  existing task where it genuinely belongs.
+
+- **Verified claims** — where the evidence pass recorded drift, check whether
+  any task rests on the claim that drifted. If one does, correct that task's
+  description to match what the codebase actually contains.
+
+- **Decision story** — **context only.** It explains why the plan looks the way
+  it does. An option the report records as *rejected* must never become a task,
+  and a task that contradicts a recorded decision is corrected to match the
+  decision.
+
 ## Stage 3 — Write
 
 Write **exactly one file**: `.frame/specs/{slug}/tasks.md`.
