@@ -3633,13 +3633,13 @@
       "title": "Add `test/implementReport.test.js` covering the pure `report-data.json → HTML` transform with no git and no filesystem",
       "description": "",
       "source": "spec:implement-modes:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T10:39:37.833Z",
+      "completedAt": "2026-07-21T10:39:37.833Z"
     },
     {
       "id": "task-spec-implement-modes-T06",

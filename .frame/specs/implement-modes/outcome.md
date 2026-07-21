@@ -109,6 +109,39 @@ success/error pair when the design system ships dedicated GitHub-style diff
 colours — the same ones `diff-viewer.css` applies to the app's own diffs. A
 changed line is not a status, so it should not borrow the status palette.
 
+On the user's direction the whole layout — not just the diff — was rebuilt on
+the design system: variable *names* copied from `variables.css` too, so drift
+shows up as a one-line diff, plus the dashboard's gradient header bar, card
+head strips and the spacing/radius scales. An audit script confirmed 28 shared
+variables with zero value differences. The user chose to keep the markup
+inside the generator rather than adding a second staged template asset, so
+T06 stages one file.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T05 — Cover the pure transform
+
+`test/implementReport.test.js`, 21 cases over `escapeHtml`, `diffLineClass`,
+`renderDiff`, `renderVerification`, `renderTask` and `renderReport` — no git,
+no filesystem, which is what the split in T04 exists to allow. CommonJS with a
+dynamic `import()` in a `before` hook, since `npm test` globs `test/*.test.js`
+and the generator is ESM.
+
+The cases worth naming: `+++`/`---` must classify as file headers rather than
+additions and deletions; a missing check must read as "not verified" and never
+as a pass; malformed `report-data.json` must still produce a readable page,
+because the report is never load-bearing; and `renderReport` must be
+byte-identical across two calls with equal input, which fails the moment a
+clock creeps into the transform.
+
+Mutation-checked rather than assumed: removing the file-header guard and
+making a missing check pass turned 3 tests red, then the file was restored.
+Full suite 105 passing.
+
+_Captured: 2026-07-21 · 1 file change_
+
 _Captured: 2026-07-21 · 1 file change_
 
 ---
