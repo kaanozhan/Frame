@@ -365,8 +365,14 @@ function setupIPC() {
 
     // Availability is probed on the bare command; the flags only ever reach
     // the composed line the lane types.
+    // bareCommand is the same launch without the flags — the caller retries
+    // with it when a flagged launch never comes up, since flag support
+    // cannot be probed from out here.
     const ok = (command, name) => ({
-      available: true, resolvedCommand: composeLaunchCommand(command, launchFlags), name
+      available: true,
+      resolvedCommand: composeLaunchCommand(command, launchFlags),
+      bareCommand: command,
+      name
     });
 
     const primary = await isCommandAvailable(tool.command, projectPath);

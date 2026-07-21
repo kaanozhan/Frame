@@ -58,10 +58,27 @@ mismatch D10 resolves with one re-dispatch. Also added
 `.frame/implement-permissions.json` to `.gitignore`; it is regenerated on
 every autonomous dispatch, like the other `.frame/runtime` artifacts.
 
-Followup: nothing yet detects an ineligible account rejecting
-`--permission-mode auto` — the lane would show a CLI usage error instead of
-falling back to a bare launch.
-
 _Captured: 2026-07-21 · 4 file changes_
+
+---
+
+## T03 (polish) — Fall back when the CLI refuses the flags
+
+Closed the followup above rather than leaving it open. `--permission-mode
+auto` needs an eligible account, an enabled org and Opus/Sonnet 4.6+, and the
+CLI documents no way to probe any of that from outside — so the flags are
+best-effort: if a flagged launch never reaches its input box and no agent
+process is in the foreground, `agentDispatch` relaunches once with the bare
+command (`bareCommand`, new on the availability result). A slow CLI is
+already detected by process name, which is what keeps this from double-
+launching.
+
+The fallback states the limit instead of asking about it, per the user's
+direction: a toast to the UI, and a note appended to the prompt telling the
+agent to say so in one line, continue step by step, and mention the
+describe-your-own option once. Cost is a second 15s readiness wait on a
+genuinely dead launch.
+
+_Captured: 2026-07-21 · 2 file changes_
 
 ---
