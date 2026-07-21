@@ -44,6 +44,9 @@ release/
 # Frame runtime artifacts (staged spec / agent-dispatch prompts — regenerated)
 .frame/runtime/
 
+# Frame implement-mode permissions (written on every autonomous dispatch — regenerated)
+.frame/implement-permissions.json
+
 # Frame orchestration artifacts (materialized on every orchestration start — regenerated)
 .frame/bin/*.js
 .frame/orchestration/

@@ -15,6 +15,7 @@
         "getConfig",
         "getCommand",
         "getStartCommand",
+        "composeLaunchCommand",
         "addCustomTool",
         "removeCustomTool",
         "AI_TOOLS"
@@ -88,14 +89,28 @@
           ],
           "purpose": "Remove a custom AI tool"
         },
+        "quoteArg": {
+          "line": 241,
+          "params": [
+            "arg"
+          ],
+          "purpose": "Compose the command line a lane actually types: the resolved CLI plus any"
+        },
+        "composeLaunchCommand": {
+          "line": 249,
+          "params": [
+            "command",
+            "launchFlags"
+          ]
+        },
         "isPathLike": {
-          "line": 233,
+          "line": 254,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 251,
+          "line": 272,
           "params": [
             "command",
             "projectPath"
@@ -103,24 +118,24 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "trackProbeFailure": {
-          "line": 317,
+          "line": 338,
           "params": [
             "reason"
           ]
         },
         "setupIPC": {
-          "line": 325,
+          "line": 346,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 379,
+          "line": 406,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 387,
+          "line": 414,
           "purpose": "Get the start command for active tool"
         }
       },
@@ -2305,6 +2320,8 @@
         "buildImplementPermissions",
         "resolveVerificationCommand",
         "writeImplementPermissions",
+        "resolveImplementLaunchHint",
+        "getImplementLaunchFlags",
         "parseTasksMarkdown",
         "syncTasksFromMarkdown",
         "parseFootprintMarkdown",
@@ -2479,8 +2496,23 @@
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
+        "resolveImplementLaunchHint": {
+          "line": 443,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "getImplementLaunchFlags": {
+          "line": 459,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
+        },
         "buildSpecCommandFile": {
-          "line": 432,
+          "line": 466,
           "params": [
             "projectPath",
             "slug",
@@ -2489,53 +2521,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 461,
+          "line": 499,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 487,
+          "line": 525,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 506,
+          "line": 544,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 511,
+          "line": 549,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 591,
+          "line": 629,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 598,
+          "line": 636,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 615,
+          "line": 653,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 638,
+          "line": 676,
           "params": [
             "projectPath",
             "query"
@@ -2543,14 +2575,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 659,
+          "line": 697,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 702,
+          "line": 740,
           "params": [
             "projectPath",
             "slug",
@@ -2558,14 +2590,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 721,
+          "line": 759,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 738,
+          "line": 776,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2574,28 +2606,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 845,
+          "line": 883,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 896
+          "line": 934
         },
         "pushSpecData": {
-          "line": 916,
+          "line": 954,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 936,
+          "line": 974,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 940,
+          "line": 978,
           "params": [
             "ipcMain"
           ]
@@ -3165,23 +3197,24 @@
           "purpose": "Initialize with the MultiTerminalUI instance."
         },
         "dispatch": {
-          "line": 72,
+          "line": 75,
           "params": [
             "{ terminalId = null",
             "createNew = false",
             "toolId = null",
             "prompt",
             "assignment = null",
-            "enter = true } = {}"
+            "enter = true",
+            "launchFlags = null } = {}"
           ],
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 184,
+          "line": 188,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 219,
+          "line": 223,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -3189,10 +3222,10 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_startAgentInNewFrame": {
-          "line": 234
+          "line": 238
         },
         "_askNewOrRestart": {
-          "line": 252,
+          "line": 256,
           "params": [
             "frameName",
             "hasAgent"
@@ -3200,7 +3233,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 309,
+          "line": 313,
           "params": [
             "{ slug",
             "title = null",
@@ -3209,79 +3242,79 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "getSpecLaneInfo": {
-          "line": 373,
+          "line": 385,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 392,
+          "line": 404,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 413,
+          "line": 425,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 417,
+          "line": 429,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 421,
+          "line": 433,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 438,
+          "line": 450,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 446,
+          "line": 458,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 466,
+          "line": 478,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 474,
+          "line": 486,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 492,
+          "line": 504,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 502,
+          "line": 514,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 511,
+          "line": 523,
           "params": [
             "frameName",
             "specName"
@@ -3289,14 +3322,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 552,
+          "line": 564,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 581,
+          "line": 593,
           "params": [
             "terminalId",
             "message"

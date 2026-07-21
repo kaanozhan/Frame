@@ -67,9 +67,12 @@ function init(ui) {
  *                                           running (default: current tool)
  * @param {string}      opts.prompt        - text to inject when ready
  * @param {object|null} [opts.assignment]  - { kind: 'task'|'spec', label, ref }
+ * @param {string[]}    [opts.launchFlags] - flags appended to the CLI launch
+ *                                           line; only apply when this
+ *                                           dispatch starts the agent itself
  * @returns {Promise<{success: boolean, terminalId: string|null, error: string|null}>}
  */
-async function dispatch({ terminalId = null, createNew = false, toolId = null, prompt, assignment = null, enter = true } = {}) {
+async function dispatch({ terminalId = null, createNew = false, toolId = null, prompt, assignment = null, enter = true, launchFlags = null } = {}) {
   if (!multiTerminalUI) {
     return _fail(null, 'Terminal system is not ready yet');
   }
@@ -118,7 +121,8 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     try {
       check = await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, {
         toolId: chosenToolId,
-        projectPath: state.getProjectPath()
+        projectPath: state.getProjectPath(),
+        launchFlags
       });
     } catch (err) {
       console.error('agentDispatch: CLI availability check failed', err);
@@ -334,9 +338,16 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
   const assignment = { kind: 'spec', label: `spec: ${slug}`, ref: slug };
   const assignedId = _assignedLane(slug);
 
+  // Staging decides these — spec.implement's autonomous mode needs its
+  // permission file and mode flag on the launch line. They only take effect
+  // when this dispatch starts the CLI: continuing in a lane whose agent is
+  // already running keeps whatever flags that session was launched with, and
+  // the prompt handles the mismatch by asking for one re-dispatch.
+  const launchFlags = staged.launchFlags || null;
+
   let result;
   if (!assignedId) {
-    result = await dispatch({ createNew: true, prompt: staged.instruction, assignment });
+    result = await dispatch({ createNew: true, prompt: staged.instruction, assignment, launchFlags });
   } else {
     const choice = await _askContinueOrNew(_laneName(assignedId), title || slug);
     if (choice === 'cancel') {
@@ -346,7 +357,8 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
       terminalId: choice === 'continue' ? assignedId : null,
       createNew: choice !== 'continue',
       prompt: staged.instruction,
-      assignment
+      assignment,
+      launchFlags
     });
   }
 

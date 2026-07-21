@@ -36,3 +36,32 @@ rejected.
 _Captured: 2026-07-21 · 1 file change_
 
 ---
+
+## T03 — Carry launch flags through the dispatch
+
+`composeLaunchCommand` in `src/main/aiToolManager.js` appends flags to the
+resolved CLI and owns the quoting; the availability probe still runs on the
+bare command, and all three success returns in `CHECK_AI_TOOL_AVAILABLE` now
+go through one `ok()` helper so the composition happens in a single place.
+`specManager` resolves the launch hint (`status.json` `implement_mode`, else
+`.frame/config.json` `implement.defaultMode`, else none) and
+`buildSpecCommandFile` returns `launchFlags` — `--settings <path>
+--permission-mode auto` for an autonomous hint on `spec.implement`, empty
+otherwise — which `agentDispatch` passes through both dispatch paths without
+interpreting. Deviation from the T02 note: writing the permission file is
+called from here rather than T06, because `--settings <path>` cannot be passed
+for a file that does not exist yet; T06 keeps the report-asset staging.
+
+Flags only take effect on the branch that starts the CLI — continuing in a
+lane with a live agent keeps that session's flags, which is exactly the
+mismatch D10 resolves with one re-dispatch. Also added
+`.frame/implement-permissions.json` to `.gitignore`; it is regenerated on
+every autonomous dispatch, like the other `.frame/runtime` artifacts.
+
+Followup: nothing yet detects an ineligible account rejecting
+`--permission-mode auto` — the lane would show a CLI usage error instead of
+falling back to a bare launch.
+
+_Captured: 2026-07-21 · 4 file changes_
+
+---

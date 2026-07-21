@@ -3607,13 +3607,13 @@
       "title": "Extend the AI-tool launch path (`src/main/aiToolManager.js`, `src/renderer/agentDispatch.js`) so a dispatch can append flags, passing `--settings` and `--permission-mode auto` when the launch hint — this spec's last choice, else the project default — is autonomous",
       "description": "",
       "source": "spec:implement-modes:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T09:56:19.074Z",
+      "completedAt": "2026-07-21T09:56:19.074Z"
     },
     {
       "id": "task-spec-implement-modes-T04",

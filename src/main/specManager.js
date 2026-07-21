@@ -429,6 +429,40 @@ function writeImplementPermissions(projectPath) {
   return { success: true, absPath, verification };
 }
 
+// ─── Implement launch hint (D10) ──────────────────────────────
+//
+// Frame launches the CLI before the prompt can ask which mode the user
+// wants, so it launches with the flags matching the *last* choice on this
+// spec (status.json `implement_mode`), else the project default
+// (.frame/config.json `implement.defaultMode`), else none. Picking a less
+// autonomous mode than the flags allow is harmless; picking a more
+// autonomous one costs one re-dispatch, which the prompt asks for.
+
+const IMPLEMENT_MODE_AUTONOMOUS = 'autonomous';
+
+function resolveImplementLaunchHint(projectPath, slug) {
+  const status = readStatus(projectPath, slug);
+  if (status && typeof status.implement_mode === 'string' && status.implement_mode) {
+    return status.implement_mode;
+  }
+  try {
+    const config = JSON.parse(fs.readFileSync(path.join(projectPath, FRAME_DIR, FRAME_CONFIG_FILE), 'utf8'));
+    const mode = config && config.implement && config.implement.defaultMode;
+    if (typeof mode === 'string' && mode) return mode;
+  } catch (_) { /* no config, or unreadable — no hint */ }
+  return null;
+}
+
+// The flags the lane's launch line needs for this dispatch. Only the
+// autonomous mode needs any: without them every edit stops on a permission
+// prompt, which is the exact thing that mode exists to avoid.
+function getImplementLaunchFlags(projectPath, slug) {
+  if (resolveImplementLaunchHint(projectPath, slug) !== IMPLEMENT_MODE_AUTONOMOUS) return [];
+  const perms = writeImplementPermissions(projectPath);
+  if (!perms.success) return [];
+  return ['--settings', perms.absPath, '--permission-mode', 'auto'];
+}
+
 function buildSpecCommandFile(projectPath, slug, command, aiTool) {
   const result = getCommandPrompt(projectPath, slug, command, aiTool);
   if (result.error) return result;
@@ -442,6 +476,10 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool) {
   return {
     success: true,
     relPath,
+    // Empty for every command but spec.implement, and for spec.implement
+    // unless the launch hint is autonomous. The renderer passes these
+    // through to the CLI launch line without interpreting them.
+    launchFlags: command === 'spec.implement' ? getImplementLaunchFlags(projectPath, slug) : [],
     instruction: `Read ${relPath} and follow its instructions exactly.`
   };
 }
@@ -989,6 +1027,8 @@ module.exports = {
   buildImplementPermissions,
   resolveVerificationCommand,
   writeImplementPermissions,
+  resolveImplementLaunchHint,
+  getImplementLaunchFlags,
   parseTasksMarkdown,
   syncTasksFromMarkdown,
   parseFootprintMarkdown,
