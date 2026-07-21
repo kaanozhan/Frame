@@ -1,7 +1,7 @@
 {
   "slug": "implement-modes",
   "title": "Implement modes — selectable and user-definable spec.implement flows",
-  "phase": "implementing",
+  "phase": "done",
   "ai_tool": "claude-code",
   "generated_task_ids": [
     "task-spec-implement-modes-T01",
@@ -18,6 +18,6 @@
     "task-spec-implement-modes-T12"
   ],
   "created_at": "2026-07-20T00:00:00Z",
-  "updated_at": "2026-07-21T09:43:44.185Z",
-  "last_phase_at": "2026-07-21T09:43:44.185Z"
+  "updated_at": "2026-07-21T15:12:08.197Z",
+  "last_phase_at": "2026-07-21T15:12:08.197Z"
 }

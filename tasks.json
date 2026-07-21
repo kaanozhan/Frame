@@ -3724,13 +3724,13 @@
       "title": "Add the described-flow mode to `spec.implement.md`: gather the description, run it over the shared core, and offer to save it to `.frame/implement-flow.md` referenced from `.frame/config.json`",
       "description": "",
       "source": "spec:implement-modes:T12",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T15:12:07.930Z",
+      "completedAt": "2026-07-21T15:12:07.930Z"
     }
   ],
   "metadata": {

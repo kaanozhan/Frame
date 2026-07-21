@@ -283,3 +283,32 @@ prompt picking differently would run something the rules do not cover.
 _Captured: 2026-07-21 · 1 file change_
 
 ---
+
+## T12 — Described-flow mode
+
+Added "Mode C · Describe your own": read `.frame/implement-flow.md` when the
+saved flow was picked, otherwise ask for the description in one question with
+at most one follow-up naming exactly what is unclear. The section states the
+boundary the plan drew — a description owns the loop, the commits, the
+verification and the reporting, and nothing else — and says what to do when a
+description contradicts the core: follow the core, name the part you didn't
+honour in one line, carry on. Neither stop over it nor quietly comply.
+Anything the description leaves unsaid falls back to Mode A, so silence never
+buys autonomy.
+
+Decided the saved-flow storage shape, which the plan left at "config
+references it by name": `.frame/config.json` gets
+`"implement": { "flowFile": "implement-flow.md" }` and the flow file's own
+`# heading` is the picker's entry name. That avoids both a second config key
+and an extra question at save time. Updated the T07 picker text to match.
+Replacing an existing flow asks first — overwriting a saved flow silently is
+not a save, it is a loss.
+
+Fixed an ordering wart from T07 while reading the whole template through: the
+save-a-default offer came before the deliverability check, so a run about to
+stop for a re-dispatch would still have asked a second question. Check first,
+offer only if the run is proceeding.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---

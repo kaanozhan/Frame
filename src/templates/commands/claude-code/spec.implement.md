@@ -34,7 +34,8 @@ In this order:
 - **A · Step by step** — always present.
 - **B · Autonomous + report** — always present.
 - **C · <the saved flow's name>** — only when `.frame/config.json` names an
-  implement flow file; read it for the description.
+  implement flow file (`implement.flowFile`). Its `# heading` is the name;
+  the rest of the file is the description you summarise for the entry.
 - **Last · Describe your own** — always last, lettered C when no flow is saved
   and D when one is.
 
@@ -65,11 +66,12 @@ user's behalf, do not fall through to a default, do not start "while waiting".
    Merge into the existing object; leave every other key untouched. This is the
    *last choice*, not a resolved setting — the next dispatch uses it as its
    launch hint and still asks.
-2. **Offer to save a project default** — once, and only when
+2. **Check the session can deliver the mode**, below. If it can't, stop there —
+   don't ask anything further of a run that is about to end.
+3. **Offer to save a project default** — once, and only when
    `.frame/config.json` has no `implement.defaultMode`. On yes, write
    `"implement": { "defaultMode": "<the choice>" }`. Once a default exists the
    offer never repeats; changing it later is an explicit ask or a config edit.
-3. **Check the session can deliver the mode**, below.
 
 ### When the session cannot deliver the chosen mode
 
@@ -273,6 +275,49 @@ which task, why, and what state the tree is in.
 
 When no tasks remain: the spec phase goes to `"done"`, and you state what
 shipped, which tasks are unverified, and the report's path.
+
+## Mode C · Describe your own
+
+The user says how they want this run to go, and you run it that way.
+
+**If they picked the saved flow**, its description is `.frame/implement-flow.md`
+— read it and run it. Don't ask them to describe it again.
+
+**If they picked "describe your own"**, ask for the description in one
+question, then run it. If what comes back is too thin to act on — "be careful",
+"go fast" — ask one follow-up naming exactly what is unclear (how often to
+commit? verify or not? report or not?). One follow-up, not an interview.
+
+### A description governs, the core does not bend
+
+The description decides the loop, the commit policy, the verification and the
+reporting. Those four are its whole territory. Everything in **The shared
+core** holds regardless: which task is next, `plan.md` as scope authority, task
+state, spec phase, one outcome entry per task, never push, never touch `main`.
+
+If a description contradicts the core — "push when the spec is done", "skip the
+outcome entries, they slow you down" — follow the core, say in one line which
+part you did not honour and why, and carry on. Don't stop the run over it and
+don't quietly do it anyway.
+
+Anything the description leaves unsaid falls back to Mode A's behaviour: hand
+control back rather than assume more autonomy than you were given.
+
+### Offering to save it
+
+After a described run reaches its end, offer **once** to save the flow so it
+becomes a picker entry next time. On yes:
+
+- Write `.frame/implement-flow.md`. First line is `# <short name>` — that
+  heading is what the picker shows as entry C — then the description in the
+  user's own words, tidied but not rewritten.
+- Add `"implement": { "flowFile": "implement-flow.md" }` to `.frame/config.json`,
+  merging into whatever is already there.
+- If a flow file already exists, say what it is called and ask before replacing
+  it. Overwriting someone's saved flow silently is not a save, it is a loss.
+
+The offer is once per run and never repeats after a no. A described flow that
+the user doesn't want to keep is a perfectly good outcome.
 
 ## Stop conditions
 
