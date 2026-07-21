@@ -184,6 +184,76 @@ Verification is not part of this mode. If a check is worth running, the user
 asks — the point of turning the loop by hand is that they decide what each
 step is worth.
 
+## Mode B · Autonomous + report
+
+You turn the loop. The user watches the report. Take the pending tasks in
+order and keep going until none remain — no confirmation between tasks, no
+"shall I continue". Asking almost nothing is the mode's entire reason to
+exist; a confirmation between tasks turns it back into Mode A.
+
+Per task, in this order:
+
+1. Mark the task `in_progress`.
+2. Implement it.
+3. **Verify** — run the project's check from `.frame/config.json`
+   `project.commands` and record the result.
+4. Append the task's entry to `.frame/specs/{slug}/report-data.json` with
+   `"commit": ""` — the hash does not exist yet. Create the file on the first
+   task, using the shape documented at the top of the generator.
+5. Append the outcome entry.
+6. Mark the task `completed`.
+7. **One atomic commit** — code, outcome entry, report data and state files
+   together. A task is one commit; a reader should never have to assemble it
+   from three.
+8. Read the new commit's short hash, write it into that task's report entry,
+   regenerate the report, then `git commit --amend --no-edit` so the entry and
+   its hash ride in the same commit they describe. The amend is safe precisely
+   because nothing is pushed.
+
+### Producing the report
+
+The generator is staged at `{report_generator_path}` (project-relative). Run
+it as:
+
+```
+ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" {report_generator_path} \
+  .frame/specs/{slug}/report-data.json
+```
+
+Quote `$FRAME_NODE` — Frame injects its own executable there, and the packaged
+path contains spaces. It writes `implement-report.html` next to the data file,
+openable as each task completes.
+
+Never transcribe a diff into the report yourself. The generator reads each
+commit from git by hash; that is the one place an invented line would silently
+corrupt the artifact, and the reason the report is generated rather than
+written.
+
+**If the runtime is missing**, in order: `$FRAME_NODE` → `node` on `PATH` →
+skip the report, say so once, and keep writing `report-data.json` so a later
+run can produce it. Never stop the work over a missing report — the code, the
+commit and the outcome entry never depended on it.
+
+### When to stop
+
+Narrow, on purpose. Stop only when:
+
+- a task is too ambiguous to implement, or `plan.md` is materially out of date
+  (the shared stop conditions);
+- the check fails and your fix does not make it pass. Do not loosen the check,
+  do not skip the task, do not commit it red;
+- the work would go outside `plan.md`'s Files and Sequencing;
+- a command is refused by the permission layer. A deny rule is a decision that
+  was already made — surface it, do not route around it.
+
+Everything else you decide yourself and report at the end. When you stop, say
+which task, why, and what state the tree is in.
+
+### Closing summary
+
+When no tasks remain: the spec phase goes to `"done"`, and you state what
+shipped, which tasks are unverified, and the report's path.
+
 ## Stop conditions
 
 These bind every mode too — a mode may add its own, none may drop these.

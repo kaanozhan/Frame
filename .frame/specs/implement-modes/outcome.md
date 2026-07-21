@@ -235,3 +235,28 @@ job, which is the line that keeps it distinct from the autonomous one.
 _Captured: 2026-07-21 · 1 file change_
 
 ---
+
+## T10 — Autonomous mode
+
+Added "Mode B · Autonomous + report": the eight-step per-task order the plan
+specified (implement → verify → report entry with an empty hash → outcome
+entry → completed → one atomic commit → fill the real hash → regenerate and
+`--amend --no-edit`), the generator invocation, the D8 fallback order, narrow
+stop conditions and the closing summary.
+
+Verified the documented invocation rather than only writing it: ran the
+interpolated line verbatim from the repo root with `FRAME_NODE` pointing at
+Frame's binary, and it produced a report with real diffs from
+`.frame/runtime/assets/`.
+
+Two emphases the prompt needed beyond the plan's wording. "No confirmation
+between tasks, no 'shall I continue'" is stated as the mode's reason to exist,
+because a model's instinct under uncertainty is to check in — and a check-in
+per task silently turns this back into Mode A. And a permission denial is
+listed as a stop condition phrased as "a deny rule is a decision that was
+already made — surface it, do not route around it", which is the prompt-side
+half of what D9 enforces mechanically.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---

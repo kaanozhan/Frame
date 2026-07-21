@@ -3698,13 +3698,13 @@
       "title": "Add the autonomous mode to `spec.implement.md`: the per-task loop through verification, the atomic commit carrying code, outcome entry, report data and state files, the amend that folds in the real hash, narrow stop conditions, and the runtime fallback order",
       "description": "",
       "source": "spec:implement-modes:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T15:08:34.617Z",
+      "completedAt": "2026-07-21T15:08:34.617Z"
     },
     {
       "id": "task-spec-implement-modes-T11",
