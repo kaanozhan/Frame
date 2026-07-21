@@ -142,6 +142,27 @@ Full suite 105 passing.
 
 _Captured: 2026-07-21 · 1 file change_
 
+---
+
+## T06 — Stage assets per command
+
+Replaced the hardcoded `if (command === 'spec.plan')` with a `COMMAND_ASSETS`
+map and `stageCommandAssets(projectPath, command, aiTool)`;
+`stageReportTemplateAsset` became `stageCommandAsset(projectPath, aiTool,
+file)`, same override → packaged-fallback resolution as before. `spec.plan`
+stages the plan template, `spec.implement` the report generator, every other
+command stages nothing. Also added `{report_generator_path}` alongside
+`{report_template_path}` as an interpolation variable, so T10's prompt has a
+path to invoke.
+
+Verified rather than assumed: each command stages exactly its own assets, the
+staged generator is byte-identical to its source, a project-local override
+under `.frame/templates/commands/claude-code/` wins and stops winning when
+removed, and the staged copy runs from `.frame/runtime/assets/` under Frame's
+bundled Node — the whole dispatch path end to end.
+
+_Captured: 2026-07-21 · 1 file change_
+
 _Captured: 2026-07-21 · 1 file change_
 
 ---

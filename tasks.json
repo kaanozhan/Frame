@@ -3646,13 +3646,13 @@
       "title": "Generalise asset staging at `src/main/specManager.js:344` so it is driven by the command rather than hardcoded to `spec.plan`, staging the generator on `spec.implement` dispatch",
       "description": "",
       "source": "spec:implement-modes:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T11:20:04.698Z",
+      "completedAt": "2026-07-21T11:20:04.698Z"
     },
     {
       "id": "task-spec-implement-modes-T07",
