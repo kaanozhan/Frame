@@ -163,6 +163,30 @@ bundled Node — the whole dispatch path end to end.
 
 _Captured: 2026-07-21 · 1 file change_
 
+---
+
+## T07 — The picker
+
+Added the mode section to `spec.implement.md`: composition (A/B, the saved
+flow as C, describe-your-own last, a saved default hoisted and marked),
+description by what the user gets rather than by name, the choice recorded to
+`status.json` as the *last* choice, the one-time default offer, and the
+CLI-agnostic asking rule — structured tool when there is one, otherwise print
+and stop, with "an unanswered picker is a hard stop" spelled out because a
+model's default is to keep going.
+
+Resolved something the plan left implicit: how the agent knows whether its
+session actually carries the autonomous flags. It can derive it — Frame
+launches from the hint, so the session has the flags exactly when the
+**pre-answer** `implement_mode` / `implement.defaultMode` was `autonomous`.
+That only works if the hint is read before the new choice overwrites it, so
+the prompt now says to note it up front. The T03 fallback note is the
+override: if the CLI refused the flags, the mode is unavailable however the
+session was launched.
+
+Also made the opening paragraph mode-neutral — it promised "one task in this
+single turn", which the autonomous mode contradicts.
+
 _Captured: 2026-07-21 · 1 file change_
 
 ---

@@ -3659,13 +3659,13 @@
       "title": "Add the picker to `spec.implement.md`: shown at every dispatch before any work, built-in modes plus the saved flow as C when one exists and describe-your-own last, a saved default moved to the top and marked, the choice written to `status.json` as the last choice, the one-time offer to save a project default, the upgrade seam that records the choice and requests one re-dispatch when the picked mode needs flags the session lacks, and the CLI-agnostic asking rule with a hard stop-and-wait when no structured-question tool exists",
       "description": "",
       "source": "spec:implement-modes:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T11:33:13.282Z",
+      "completedAt": "2026-07-21T11:33:13.282Z"
     },
     {
       "id": "task-spec-implement-modes-T08",
