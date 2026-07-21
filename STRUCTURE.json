@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-19",
+  "lastUpdated": "2026-07-21",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -2192,28 +2192,28 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 316,
+          "line": 321,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 331,
+          "line": 336,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 343,
+          "line": 348,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 351,
+          "line": 356,
           "params": [
             "terminalId",
             "data"
@@ -2221,7 +2221,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 361,
+          "line": 366,
           "params": [
             "terminalId",
             "cols",
@@ -2230,40 +2230,40 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 371,
+          "line": 376,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 389,
+          "line": 394,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 406,
+          "line": 411,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 413,
+          "line": 418,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 423,
+          "line": 428,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 433,
+          "line": 438,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 440,
+          "line": 445,
           "params": [
             "ipcMain"
           ],

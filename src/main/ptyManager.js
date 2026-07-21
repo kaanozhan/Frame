@@ -218,6 +218,11 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
       ...process.env,
       TERM: 'xterm-256color',
       COLORTERM: 'truecolor',
+      // Frame's own binary, so a dispatched command can run Node without
+      // depending on the user's PATH. Use it as
+      // `ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" script.mjs` — quote it, the
+      // packaged macOS path contains spaces.
+      FRAME_NODE: process.execPath,
       // Orchestration: FRAME_ORCH_BUS / FRAME_ORCH_SLUG let conductor + worker
       // terminals reach Frame's command bus from any worktree (see
       // orchestrationManager). Null for normal terminals.

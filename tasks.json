@@ -3581,13 +3581,13 @@
       "title": "Inject Frame's own runtime into dispatched terminals: expose the executable via an environment variable on the PTY (`src/main/ptyManager.js`), alongside the existing orchestration variables, quoted at the point of use so packaged macOS paths with spaces survive",
       "description": "",
       "source": "spec:implement-modes:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T09:39:49.383Z",
+      "completedAt": "2026-07-21T09:39:49.383Z"
     },
     {
       "id": "task-spec-implement-modes-T02",
