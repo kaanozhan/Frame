@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
-const { FRAME_DIR, ORCH_META_FILES } = require('../shared/frameConstants');
+const { FRAME_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
 const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
@@ -331,6 +331,102 @@ function stageReportTemplateAsset(projectPath, aiTool) {
   } catch (err) {
     console.error('specManager: report template staging failed', err);
   }
+}
+
+// ─── Implement-mode permissions ───────────────────────────────
+//
+// The autonomous implement mode runs a whole spec without a prompt between
+// tasks, which is a launch-time concern: permissions cannot be set from
+// inside a running session. Frame writes this file and the dispatch passes
+// it as `--settings <path> --permission-mode auto`. It lives under .frame/
+// so nothing is ever written to the user's own .claude/.
+//
+// The denylist carries the safety load. Deny is evaluated before anything
+// else and cannot be overridden at a lower scope, so "never push" stops
+// being a request in the prompt and becomes mechanically impossible — auto
+// mode's classifier would otherwise permit pushing to the working repo.
+// The allowlist only covers the known hot path so it resolves as rules
+// without a classifier pass; anything else unanticipated but harmless is
+// the classifier's job, not ours to enumerate.
+
+const IMPLEMENT_PERMISSIONS_FILE = 'implement-permissions.json';
+
+// Pushing, and history rewrites other than the mode's own `commit --amend`
+// (which is safe precisely because nothing is pushed).
+const IMPLEMENT_DENY = [
+  'Bash(git push)',
+  'Bash(git push *)',
+  'Bash(git reset --hard *)',
+  'Bash(git rebase *)',
+  'Bash(git filter-branch *)',
+  'Bash(git filter-repo *)',
+  'Bash(git reflog expire *)',
+  'Bash(git update-ref -d *)'
+];
+
+// Editing, and the git plumbing the loop needs: stage, commit, read a hash,
+// read a diff. `Edit` covers Write and NotebookEdit too — file permission
+// checks only match Edit() and Read() rules, so a Write() rule would be
+// accepted and then never consulted.
+const IMPLEMENT_ALLOW = [
+  'Edit',
+  'Read',
+  'Bash(git add *)',
+  'Bash(git commit *)',
+  'Bash(git status*)',
+  'Bash(git diff*)',
+  'Bash(git show *)',
+  'Bash(git log *)',
+  'Bash(git rev-parse *)'
+];
+
+// The project's own check, in descending order of what actually verifies a
+// change. Absent or blank means the run proceeds without one and says so —
+// inventing a command is worse than admitting there isn't one.
+function resolveVerificationCommand(projectPath) {
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(path.join(projectPath, FRAME_DIR, FRAME_CONFIG_FILE), 'utf8'));
+  } catch (_) {
+    return null;
+  }
+  const commands = (config && config.project && config.project.commands) || {};
+  for (const key of ['test', 'lint', 'build']) {
+    const value = typeof commands[key] === 'string' ? commands[key].trim() : '';
+    if (value) return value;
+  }
+  return null;
+}
+
+function buildImplementPermissions(verification) {
+  const allow = [...IMPLEMENT_ALLOW];
+  if (verification) {
+    // Exact plus prefix: `npm test` and `npm test -- --watch=false` both
+    // resolve as rules. The space before `*` is load-bearing — `npm test*`
+    // would also match an unrelated `npm testfoo`.
+    allow.push(`Bash(${verification})`, `Bash(${verification} *)`);
+  }
+  return {
+    permissions: {
+      allow,
+      deny: [...IMPLEMENT_DENY]
+    }
+  };
+}
+
+// Writes .frame/implement-permissions.json and reports what it resolved, so
+// the dispatch can pass the path and the prompt can state the check it has.
+function writeImplementPermissions(projectPath) {
+  const verification = resolveVerificationCommand(projectPath);
+  const absPath = path.join(projectPath, FRAME_DIR, IMPLEMENT_PERMISSIONS_FILE);
+  try {
+    fs.mkdirSync(path.join(projectPath, FRAME_DIR), { recursive: true });
+    fsSafe.writeFileAtomic(absPath, JSON.stringify(buildImplementPermissions(verification), null, 2) + '\n');
+  } catch (err) {
+    console.error('specManager: implement permissions write failed', err);
+    return { success: false, error: err.message };
+  }
+  return { success: true, absPath, verification };
 }
 
 function buildSpecCommandFile(projectPath, slug, command, aiTool) {
@@ -890,6 +986,9 @@ module.exports = {
   derivePhase,
   getCommandPrompt,
   buildSpecCommandFile,
+  buildImplementPermissions,
+  resolveVerificationCommand,
+  writeImplementPermissions,
   parseTasksMarkdown,
   syncTasksFromMarkdown,
   parseFootprintMarkdown,

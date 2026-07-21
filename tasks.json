@@ -3594,13 +3594,13 @@
       "title": "Generate `.frame/implement-permissions.json` in `src/main/specManager.js` from the mode's needs and the project's verification command, with the denylist that makes `git push` and history rewrites mechanically impossible",
       "description": "",
       "source": "spec:implement-modes:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T09:47:38.822Z",
+      "completedAt": "2026-07-21T09:47:38.822Z"
     },
     {
       "id": "task-spec-implement-modes-T03",
