@@ -3685,13 +3685,13 @@
       "title": "Add the step-by-step mode to `spec.implement.md`: today's behaviour plus a what-changed / why-changed close-out per task and exactly one question — commit and continue, or stop",
       "description": "",
       "source": "spec:implement-modes:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T15:06:37.257Z",
+      "completedAt": "2026-07-21T15:06:37.257Z"
     },
     {
       "id": "task-spec-implement-modes-T10",

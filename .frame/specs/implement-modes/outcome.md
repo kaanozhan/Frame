@@ -214,3 +214,24 @@ is step-by-step's behaviour, and it lands with that mode in T09.
 _Captured: 2026-07-21 · 1 file change_
 
 ---
+
+## T09 — Step-by-step mode
+
+Added "Mode A · Step by step": the five-step per-task loop, the what-changed /
+why-changed close-out in the reply rather than in a file, and the single
+question. Wrote "nothing else in that question — not which commit message, not
+whether to run the tests" explicitly, because the failure mode here is a model
+bundling three decisions into one turn and calling it one question.
+
+Two ambiguities the plan left open, resolved and written down rather than
+left to vary per run. **Continue** stays in the same session and does not
+re-show the picker — the mode was chosen for the session, and re-asking would
+make the mode's cost its own argument against it. **Stop** leaves the change
+uncommitted in the working tree: stopping is what the user does when they want
+to look at the work before it becomes a commit, so committing it for them
+defeats the point. Also said outright that verification is not this mode's
+job, which is the line that keeps it distinct from the autonomous one.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---

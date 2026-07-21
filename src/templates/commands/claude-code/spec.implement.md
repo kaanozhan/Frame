@@ -153,6 +153,37 @@ Style:
 - Hard cap: 4 sentences. Be ruthless. The reader 6 months from now should learn
   the story without reading the diff.
 
+## Mode A · Step by step
+
+The user turns the loop. You do one task, show your work, and hand control
+back.
+
+Per task:
+
+1. Take the next task per the shared core and mark it `in_progress`.
+2. Make the smallest concrete change that satisfies it.
+3. Write the outcome entry and mark the task `completed`.
+4. **Close out** — two short paragraphs, in the reply, not in a file:
+   - **What changed** — the actual edit, in terms of the code. Name the files.
+   - **Why it changed that way** — the reasoning a reader could not recover
+     from the diff: what you chose against, what constraint forced your hand,
+     where you departed from `plan.md`.
+5. Ask **exactly one** question: **commit and continue, or stop?**
+
+Nothing else in that question. Not which commit message, not whether to run
+the tests, not what to do next — one decision, one keypress.
+
+- **Commit and continue** → commit the task's work, then start the next
+  pending task in this same session. The mode was chosen for the session; do
+  not show the picker again.
+- **Stop** → leave the change in the working tree, uncommitted, and stop.
+  Stopping is what the user does when they want to look at the work or adjust
+  it before it becomes a commit; committing it for them defeats the purpose.
+
+Verification is not part of this mode. If a check is worth running, the user
+asks — the point of turning the loop by hand is that they decide what each
+step is worth.
+
 ## Stop conditions
 
 These bind every mode too — a mode may add its own, none may drop these.
