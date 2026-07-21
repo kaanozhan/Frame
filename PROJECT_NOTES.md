@@ -1145,3 +1145,52 @@ tracing harness. Key mechanics:
 
 Verified: 82/82 tests green; grep-verified zero hot-path exec/spawnSync and
 zero ungated setIntervals in src/main.
+
+### [2026-07-21] Implement modes (implement-modes spec, T01–T12)
+
+`/spec.implement` is no longer one fixed loop. It now asks — at **every**
+dispatch, before touching anything — which of three modes to run: step by
+step, autonomous + report, or a flow the user describes (plus their saved flow
+as a fourth entry once one exists). A saved default doesn't silence the
+question, it moves to the top marked `(default)`; that was a deliberate
+reversal during planning, because always-asking is what makes switching modes
+mid-spec free — run the first tasks by hand, hand the rest over once trust is
+earned.
+
+The spec said this would live purely in the prompt template. Two decisions
+crossed that line, both at dispatch rather than in the UI, and both because
+the autonomous mode is a launch-time concern:
+
+- **Permissions.** Frame writes `.frame/implement-permissions.json` and
+  dispatches with `--settings <file> --permission-mode auto`. The denylist
+  carries the safety: deny is evaluated first and can't be overridden at a
+  lower scope, so "never push" stopped being a request in prose and became
+  mechanically impossible. Nothing is ever written to `.claude/`.
+- **Runtime.** `FRAME_NODE` now carries Frame's own executable into every
+  PTY's environment, so a dispatched command runs Node through
+  `ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE"` instead of depending on the user's
+  `PATH`. Verified: Frame's bundled runtime is Node 18.18.2.
+
+Two plan claims turned out wrong when checked against the CLI docs at
+implementation time, and both are recorded in the plan as corrections rather
+than quietly patched: `--settings` sits at the *top* of the precedence chain
+rather than merging into the user's settings (the deny-wins half survives,
+which is what the safety argument rested on), and a `Write()` permission rule
+parses and is then never consulted — file checks only match `Edit()` and
+`Read()`.
+
+`--permission-mode auto` needs an eligible account, org enablement and a
+recent enough model, and the CLI documents no way to probe any of that. So the
+flags are best-effort: a flagged launch that never comes up is relaunched once
+bare, and the run *states* the limit — a toast plus a note telling the agent
+to say so in one line and continue step by step. It doesn't ask.
+
+The implementation report is generated, never written: the agent only appends
+to `report-data.json`, and `build-implement-report.mjs` pulls each commit's
+real diff from git by hash. That split is the point — a transcribed diff is
+the one place a hallucination would silently corrupt the artifact. Its pure
+`report-data.json → HTML` half is the tested part (21 cases, mutation-checked);
+the git and filesystem half isn't, per the plan's test posture. Styling is
+Frame's own design system, variable names included, so drift shows up as a
+one-line diff.
+
