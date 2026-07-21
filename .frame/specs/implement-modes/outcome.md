@@ -260,3 +260,26 @@ half of what D9 enforces mechanically.
 _Captured: 2026-07-21 · 1 file change_
 
 ---
+
+## T11 — Missing verification
+
+Added "When there is no check" to the autonomous mode: run without
+verification, record each task as `"status": "none"` so the report shows *not
+verified* instead of silently green, and state it once in the closing summary
+as a fact rather than an apology per task.
+
+The "never invent a command" rule is written as a list of the specific
+temptations — a command guessed from the project's shape, one lifted from a
+README, `npm test` because the directory looks like it might have it — because
+the abstract instruction is easy to obey in principle and hard to obey in the
+moment. The reasoning is on the page: a command nobody configured is a command
+nobody promised would pass.
+
+Also pinned the resolution order in the prompt to `test` → `lint` → `build`,
+matching `resolveVerificationCommand` in `specManager.js`. They have to agree:
+that is the command Frame wrote into the session's permission allowlist, so a
+prompt picking differently would run something the rules do not cover.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---

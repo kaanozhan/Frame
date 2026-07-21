@@ -3711,13 +3711,13 @@
       "title": "Define the missing-verification behaviour in the autonomous mode: when `.frame/config.json` `project.commands` supplies no usable check, proceed without one and say so in the closing summary — never invent a command",
       "description": "",
       "source": "spec:implement-modes:T11",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T15:09:58.854Z",
+      "completedAt": "2026-07-21T15:09:58.854Z"
     },
     {
       "id": "task-spec-implement-modes-T12",

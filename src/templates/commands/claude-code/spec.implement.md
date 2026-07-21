@@ -196,7 +196,9 @@ Per task, in this order:
 1. Mark the task `in_progress`.
 2. Implement it.
 3. **Verify** — run the project's check from `.frame/config.json`
-   `project.commands` and record the result.
+   `project.commands`, taking the first of `test`, `lint`, `build` that holds a
+   command, and record the result. That order is also the one Frame allowed in
+   this session's permissions. If none of them holds a command, see below.
 4. Append the task's entry to `.frame/specs/{slug}/report-data.json` with
    `"commit": ""` — the hash does not exist yet. Create the file on the first
    task, using the shape documented at the top of the generator.
@@ -209,6 +211,24 @@ Per task, in this order:
    regenerate the report, then `git commit --amend --no-edit` so the entry and
    its hash ride in the same commit they describe. The amend is safe precisely
    because nothing is pushed.
+
+### When there is no check
+
+`project.commands` may hold nothing usable — an empty block, or only commands
+that start something rather than check it. Then the mode runs **without
+verification**: implement, commit, and carry on exactly as above, recording
+each task's verification as `"status": "none"` so the report shows it as *not
+verified* rather than silently green.
+
+**Never invent a command.** Not one guessed from the project's shape, not one
+lifted from a README, not `npm test` because the directory looks like it might
+have it. A command that was never configured is a command nobody promised
+would pass, and a run that reports a check it made up is worse than a run that
+reports none.
+
+Say it plainly in the closing summary — that the project supplies no check, and
+that every task therefore shipped unverified. Once, as a fact, not as an
+apology repeated per task.
 
 ### Producing the report
 
