@@ -190,3 +190,27 @@ single turn", which the autonomous mode contradicts.
 _Captured: 2026-07-21 · 1 file change_
 
 ---
+
+## T08 — The shared core
+
+Pulled the accounting out of what used to be step-by-step's prose into "The
+shared core — every mode obeys this": task selection by `spec:{slug}:T<n>`,
+`plan.md`'s Files and Sequencing as scope authority, task state, spec phase,
+one outcome entry per task, never push and never touch `main`. Stated up front
+that a described flow may change the loop, the commits, the verification and
+the reporting but not the accounting — that line is what separates describing
+a flow from replacing the template.
+
+Two things changed while moving rather than after: the unplanned-scope rule
+became a property of scope authority ("every mode surfaces it; the modes differ
+only in whether they stop for an answer"), so T09 and T10 can each define their
+reaction without contradicting the core; and the stop conditions gained a
+sentence making them binding on every mode, with the "no pending tasks" case
+now setting the phase rather than suggesting the user do it.
+
+The per-turn loop deliberately did not move here — "one task then back to you"
+is step-by-step's behaviour, and it lands with that mode in T09.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---

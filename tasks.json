@@ -3672,13 +3672,13 @@
       "title": "Add the shared core to `spec.implement.md` as binding on every mode including a described one: task selection by `spec:<slug>:T<n>`, `plan.md` as scope authority, task state and phase transitions, one `outcome.md` entry per task, never push",
       "description": "",
       "source": "spec:implement-modes:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T15:04:03.005Z",
+      "completedAt": "2026-07-21T15:04:03.005Z"
     },
     {
       "id": "task-spec-implement-modes-T09",

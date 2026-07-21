@@ -94,27 +94,41 @@ If a Frame note in this prompt says the CLI refused the flags, that settles it:
 the autonomous mode is unavailable in this session however it was launched.
 Say so once and continue with the mode the user picked instead.
 
-## What "implement" means
+## The shared core — every mode obeys this
 
-Pick exactly ONE pending task. Don't bundle. You'll be invoked again per task.
-Within this single turn:
+Binding on all three modes, **including a flow the user describes**. A
+described flow may change the loop, the commit policy, the verification and the
+reporting. It may not drop the accounting below — that is what separates
+describing a flow from replacing this file wholesale.
 
-1. Decide on the smallest concrete change that satisfies the task
-2. Edit the relevant files (use the Edit / Write tools as needed)
-3. If the change requires anything the plan didn't predict — a missed constraint,
-   a refactor that should be its own task, a dependency you have to add — STOP and
-   surface it to the user before continuing. Don't silently expand scope.
+**Which task.** The lowest-numbered task in `tasks.json` whose `source` is
+`spec:{slug}:T<n>` and whose `status` is `pending`. One task at a time, in
+order; never bundle two into one unit of work.
 
-## When the change is in place
+**Scope authority.** `plan.md`'s **Files** and **Sequencing** sections decide
+what a task is allowed to touch. Work the plan did not predict — a missed
+constraint, a refactor that wants its own task, a dependency you have to add —
+is not yours to do silently. Every mode surfaces it; the modes differ only in
+whether they stop for an answer.
 
-**Mark the task completed** by editing `tasks.json` directly:
-- Find the task object whose `source === "spec:{slug}:T<n>"`
-- Set `status: "completed"`
-- Set `completedAt` and `updatedAt` to the current ISO timestamp
+**Task state.** `status: "in_progress"` when you start it, `status:
+"completed"` plus `completedAt` and `updatedAt` (ISO 8601) when it is done.
+Edit `tasks.json` directly.
 
-**Capture what shipped** by appending to `.frame/specs/{slug}/outcome.md`. Create
-the file if it doesn't exist; otherwise append to the end. Each entry uses this
-exact shape:
+**Spec phase.** `.frame/specs/{slug}/status.json` goes to `"implementing"` when
+work starts, and to `"done"` once no pending task remains. Merge into the
+existing object — other keys, `implement_mode` among them, must survive.
+
+**One outcome entry per completed task**, in the format below. Not one per
+session, not one per commit: per task.
+
+**Never push. Never touch `main`.** Commits are local, on the branch you are
+already on. A branch is cheap to throw away; a push is not.
+
+### The outcome entry
+
+Append to `.frame/specs/{slug}/outcome.md`, creating the file if it doesn't
+exist. Each entry uses this exact shape:
 
 ```
 ## T<n> — <task title>
@@ -129,7 +143,7 @@ _Captured: <ISO date> · <N> file change(s)_
 
 The trailing `---` keeps multiple entries readable.
 
-## Style for the outcome entry
+Style:
 
 - Imperative voice, past tense actions ("Wired the…", "Replaced X with Y because…").
 - If the implementation diverged from `plan.md`, **name the divergence**. That's the
@@ -141,8 +155,10 @@ The trailing `---` keeps multiple entries readable.
 
 ## Stop conditions
 
+These bind every mode too — a mode may add its own, none may drop these.
+
 - Task is ambiguous → ask one focused clarifying question, do nothing else.
 - Plan is materially out of date (file paths gone, approach contradicts current code)
   → flag it, do nothing else, do not implement.
-- No pending tasks remain → tell the user the spec is fully implemented and suggest
-  marking phase `"done"` in `status.json`.
+- No pending tasks remain → say the spec is fully implemented, and set the spec
+  phase to `"done"`.
