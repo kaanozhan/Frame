@@ -167,6 +167,7 @@ const IPC = {
   TOGGLE_SPECS_DASHBOARD: 'toggle-specs-dashboard',
   GET_SPEC_PROMPT: 'get-spec-prompt',
   BUILD_SPEC_COMMAND_FILE: 'build-spec-command-file',
+  SPEC_AGENT_ACTIVITY: 'spec-agent-activity',        // renderer → main: { slug, busy } — live agent on this spec's lane
 
   // Spec-Driven Development opt-in (Slice 1.5)
   IS_SPEC_DRIVEN_ENABLED: 'is-spec-driven-enabled',

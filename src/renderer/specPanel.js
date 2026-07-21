@@ -281,7 +281,10 @@ function renderDetail() {
   contentEl.querySelector('#spec-rename-btn')?.addEventListener('click', () => {
     if (activeSpec) showRenameModal(activeSpec.status);
   });
-  if (activeTab === 'tasks') attachTaskActionHandlers();
+  if (activeTab === 'tasks') {
+    attachTaskActionHandlers();
+    attachImplementReportHandler();
+  }
   if (activeTab === 'plan') attachPlanReportHandler();
 }
 
@@ -377,7 +380,10 @@ function renderTabBody(tab) {
   // from tasks.json with the spec source marker filter. Falls back to
   // the raw tasks.md markdown if the import hasn't run yet (e.g., user
   // is mid-/spec.tasks generation).
-  if (tab === 'tasks') return renderTasksTabBody();
+  if (tab === 'tasks') {
+    const reportRow = activeSpec?.implementReportPath ? renderImplementReportRow() : '';
+    return reportRow + renderTasksTabBody();
+  }
 
   const md = activeSpec?.[tab];
   if (md) {
@@ -405,6 +411,25 @@ function renderPlanReportRow() {
 function attachPlanReportHandler() {
   contentEl.querySelector('.spec-plan-report-btn')?.addEventListener('click', () => {
     const p = activeSpec?.planReportPath;
+    if (p) require('electron').shell.openPath(p);
+  });
+}
+
+// "View Implementation Report" — shown above the task list only when the spec
+// folder holds an implement-report.html (getSpec exposes it as
+// implementReportPath). The autonomous implement mode regenerates the file
+// after each task, so reopening (or refreshing) it follows the run live.
+function renderImplementReportRow() {
+  return `
+    <div class="spec-plan-report-row">
+      <button class="btn btn-secondary spec-implement-report-btn">View Implementation Report</button>
+    </div>
+  `;
+}
+
+function attachImplementReportHandler() {
+  contentEl.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
+    const p = activeSpec?.implementReportPath;
     if (p) require('electron').shell.openPath(p);
   });
 }
@@ -537,7 +562,10 @@ function switchTab(tab) {
   });
   const body = contentEl.querySelector('#spec-detail-body');
   if (body) body.innerHTML = renderTabBody(tab);
-  if (tab === 'tasks') attachTaskActionHandlers();
+  if (tab === 'tasks') {
+    attachTaskActionHandlers();
+    attachImplementReportHandler();
+  }
   if (tab === 'plan') attachPlanReportHandler();
 }
 

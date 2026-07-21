@@ -488,7 +488,18 @@ function renderDetailBody() {
   if (!body) return;
 
   if (selectedTab === 'tasks') {
-    body.innerHTML = renderTasksTabBody();
+    // "View Implementation Report" — only when the spec folder holds an
+    // implement-report.html (getSpec exposes it as implementReportPath).
+    // The autonomous implement mode regenerates the file after each task,
+    // so reopening (or refreshing) it follows the run live.
+    const reportRow = selectedSpec.implementReportPath
+      ? `<div class="spec-plan-report-row"><button class="btn btn-secondary spec-implement-report-btn">View Implementation Report</button></div>`
+      : '';
+    body.innerHTML = reportRow + renderTasksTabBody();
+    body.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
+      const p = selectedSpec && selectedSpec.implementReportPath;
+      if (p) require('electron').shell.openPath(p);
+    });
     return;
   }
 

@@ -27,6 +27,7 @@ const PLAN_FILE = 'plan.md';
 const TASKS_FILE = 'tasks.md';
 const OUTCOME_FILE = 'outcome.md';
 const PLAN_REPORT_FILE = 'plan-report.html';
+const IMPLEMENT_REPORT_FILE = 'implement-report.html';
 
 const PHASES = ['draft', 'specified', 'planned', 'tasks_generated', 'implementing', 'done'];
 const AI_TOOLS = ['claude-code', 'codex', 'gemini'];
@@ -46,6 +47,11 @@ let tasksWatchDebounce = null;
 let lastSelfWriteAt = 0;
 // Last SPEC_DATA payload sent — skip-unchanged gate for pushSpecData.
 let lastSpecPayloadJson = '';
+// Slugs with a live agent mid-turn on their lane (renderer-fed via
+// SPEC_AGENT_ACTIVITY). While a slug is here, file-existence phase
+// advancement is deferred: command templates write plan.md / tasks.md
+// stages before the turn (and its status.json update) is finished.
+const busySpecSlugs = new Set();
 
 // ─── Path helpers ──────────────────────────────────────────
 
@@ -217,6 +223,13 @@ function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
     if (anyStarted) return 'implementing';
     // No started tasks → fall through to file-based check
   }
+
+  // A live agent is mid-turn on this spec: the command templates write
+  // plan.md / tasks.md before their later stages (report, status.json
+  // update) run, so advancing on file existence here would show a phase
+  // ahead of reality. Hold the recorded phase — the busy→idle signal
+  // triggers a reconcile that applies the fallback once the turn ends.
+  if (busySpecSlugs.has(slug)) return currentPhase;
 
   if (fileExists(projectPath, slug, TASKS_FILE)) return 'tasks_generated';
   if (fileExists(projectPath, slug, PLAN_FILE)) return 'planned';
@@ -672,13 +685,15 @@ function getSpec(projectPath, slug) {
   const status = readStatus(projectPath, slug);
   if (!status) return null;
   const reportPath = path.join(dir, PLAN_REPORT_FILE);
+  const implementReportPath = path.join(dir, IMPLEMENT_REPORT_FILE);
   return {
     status,
     spec: readFileSafe(path.join(dir, SPEC_FILE)),
     plan: readFileSafe(path.join(dir, PLAN_FILE)),
     tasks: readFileSafe(path.join(dir, TASKS_FILE)),
     outcome: readFileSafe(path.join(dir, OUTCOME_FILE)),
-    planReportPath: fs.existsSync(reportPath) ? reportPath : null
+    planReportPath: fs.existsSync(reportPath) ? reportPath : null,
+    implementReportPath: fs.existsSync(implementReportPath) ? implementReportPath : null
   };
 }
 
@@ -900,8 +915,11 @@ function startWatching(projectPath) {
   stopWatching();
   if (!projectPath) return;
   // A fresh watch means a fresh renderer (boot, reload, project switch) —
-  // force the next push through the skip-unchanged gate so it always paints.
+  // force the next push through the skip-unchanged gate so it always paints,
+  // and drop stale busy flags: the new renderer re-derives lane activity
+  // from scratch and re-sends it.
   lastSpecPayloadJson = '';
+  busySpecSlugs.clear();
   const root = getSpecsRoot(projectPath);
   // Ensure the directory exists so fs.watch doesn't throw on a fresh project
   try {
@@ -957,6 +975,7 @@ function stopWatching() {
   }
   activeTasksWatcher = null;
   activeWatchedProject = null;
+  busySpecSlugs.clear();
   if (watchDebounce) {
     clearTimeout(watchDebounce);
     watchDebounce = null;
@@ -1021,6 +1040,16 @@ function setupIPC(ipcMain) {
   });
   ipcMain.on(IPC.UNWATCH_SPECS, () => {
     stopWatching();
+  });
+  ipcMain.on(IPC.SPEC_AGENT_ACTIVITY, (event, payload) => {
+    const { slug, busy } = payload || {};
+    if (typeof slug !== 'string' || !slug) return;
+    const wasBusy = busySpecSlugs.has(slug);
+    if (busy) busySpecSlugs.add(slug);
+    else busySpecSlugs.delete(slug);
+    // Busy → idle is the moment the deferred file-based reconcile runs —
+    // catches agents that wrote artifacts but never updated status.json.
+    if (wasBusy && !busy && activeWatchedProject) pushSpecData(activeWatchedProject);
   });
 }
 

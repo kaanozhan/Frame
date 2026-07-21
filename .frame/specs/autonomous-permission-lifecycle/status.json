@@ -1,0 +1,10 @@
+{
+  "slug": "autonomous-permission-lifecycle",
+  "title": "Autonomous permissions as a managed lifecycle — no re-dispatch, no leakage",
+  "phase": "specified",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [],
+  "created_at": "2026-07-21T16:19:09.000Z",
+  "updated_at": "2026-07-21T16:19:09.000Z",
+  "last_phase_at": "2026-07-21T16:19:09.000Z"
+}

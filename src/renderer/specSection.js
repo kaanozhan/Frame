@@ -211,7 +211,10 @@ function createViewport() {
     contentEl.querySelector('#spec-section-action-btn')?.addEventListener('click', () => {
       if (nextAction) runSpecCommand(nextAction.command);
     });
-    if (activeTab === 'tasks') attachTaskActionHandlers(contentEl);
+    if (activeTab === 'tasks') {
+      attachTaskActionHandlers(contentEl);
+      attachImplementReportHandler(contentEl);
+    }
     if (activeTab === 'plan') attachPlanReportHandler(contentEl);
   }
 
@@ -225,7 +228,10 @@ function createViewport() {
     });
     const body = contentEl.querySelector('#spec-section-detail-body');
     if (body) body.innerHTML = renderTabBody(tab);
-    if (tab === 'tasks') attachTaskActionHandlers(contentEl);
+    if (tab === 'tasks') {
+      attachTaskActionHandlers(contentEl);
+      attachImplementReportHandler(contentEl);
+    }
     if (tab === 'plan') attachPlanReportHandler(contentEl);
   }
 
@@ -249,7 +255,10 @@ function createViewport() {
   }
 
   function renderTabBody(tab) {
-    if (tab === 'tasks') return renderTasksTabBody();
+    if (tab === 'tasks') {
+      const reportRow = activeSpec?.implementReportPath ? renderImplementReportRow() : '';
+      return reportRow + renderTasksTabBody();
+    }
     const md = activeSpec?.[tab];
     if (md) {
       const reportRow = tab === 'plan' && activeSpec?.planReportPath ? renderPlanReportRow() : '';
@@ -276,6 +285,25 @@ function createViewport() {
   function attachPlanReportHandler(contentEl) {
     contentEl.querySelector('.spec-plan-report-btn')?.addEventListener('click', () => {
       const p = activeSpec?.planReportPath;
+      if (p) require('electron').shell.openPath(p);
+    });
+  }
+
+  // "View Implementation Report" — shown above the task list only when the
+  // spec folder holds an implement-report.html (getSpec exposes it as
+  // implementReportPath). The autonomous implement mode regenerates the file
+  // after each task, so reopening (or refreshing) it follows the run live.
+  function renderImplementReportRow() {
+    return `
+      <div class="spec-plan-report-row">
+        <button class="btn btn-secondary spec-implement-report-btn">View Implementation Report</button>
+      </div>
+    `;
+  }
+
+  function attachImplementReportHandler(contentEl) {
+    contentEl.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
+      const p = activeSpec?.implementReportPath;
       if (p) require('electron').shell.openPath(p);
     });
   }

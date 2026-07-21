@@ -502,6 +502,9 @@ function _notifySpecLane(slug) {
   const key = info ? `${info.terminalId}|${info.status}|${info.busy}` : 'none';
   if (lastSpecLaneKey.get(slug) === key) return;
   lastSpecLaneKey.set(slug, key);
+  // Feed main's specManager so it defers file-based phase advancement
+  // while an agent is mid-turn on this spec (and reconciles on idle).
+  ipcRenderer.send(IPC.SPEC_AGENT_ACTIVITY, { slug, busy: !!(info && info.busy) });
   for (const cb of specLaneListeners) {
     try {
       cb(slug);

@@ -42,7 +42,9 @@ In this order:
 Describe each entry by **what the user gets**, never by its name. For B in
 particular, say that it produces an HTML report, openable as each task
 completes, showing that task's real diff, a what-changed / why-changed summary
-and its test result. Naming a mode is not describing it.
+and its test result — and that it is reachable from the spec page in Frame:
+a **View Implementation Report** button on the spec's Tasks tab, appearing
+once the first task lands. Naming a mode is not describing it.
 
 When `.frame/config.json` has an `implement.defaultMode`, move that entry to
 the **top** and mark it `(default)`, so confirming it is a single keypress. A
@@ -192,6 +194,12 @@ You turn the loop. The user watches the report. Take the pending tasks in
 order and keep going until none remain — no confirmation between tasks, no
 "shall I continue". Asking almost nothing is the mode's entire reason to
 exist; a confirmation between tasks turns it back into Mode A.
+
+Before the first task, tell the user — once, as a statement, not a question —
+where to watch: the report opens from the **View Implementation Report**
+button on the spec's Tasks tab in Frame (the button appears when the first
+task lands), and it is regenerated after every task, so refreshing the opened
+page follows the run live. Then start; do not wait for a reply.
 
 Per task, in this order:
 
