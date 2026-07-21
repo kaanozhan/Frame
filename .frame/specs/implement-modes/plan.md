@@ -35,9 +35,18 @@
   revised) — Frame generates `.frame/implement-permissions.json` and passes it
   at dispatch with `--settings`, together with `--permission-mode auto`.
   *Rationale:* verified against the CLI — `--settings <file-or-json>` takes an
-  arbitrary path and loads *additional* settings, so the file lives under
-  `.frame/` and `.claude/` is never written (C2 holds) and the user's own
-  settings are not overridden.
+  arbitrary path, so the file lives under `.frame/` and `.claude/` is never
+  written (C2 holds).
+  **Corrected at T02, against the CLI documentation:** `--settings` does not
+  merely *add*. It sits at the top of the precedence chain — above
+  `.claude/settings.local.json`, `.claude/settings.json` and the user's
+  `~/.claude/settings.json` — so on a same-key collision the user's own
+  `permissions.allow` can be superseded for the dispatched session. The
+  safety half of this decision is unaffected: a deny at any scope still wins
+  and cannot be overridden from a lower one, so D9 holds exactly as argued.
+  What does not hold is the claim that the user's own permissions stay in
+  force; the cost is scoped to the dispatched session and nothing on disk
+  changes.
   **First decided as `dontAsk` and reversed on review.** `dontAsk` silently
   denies everything outside the allowlist with no way to ask — so any
   unanticipated but harmless command (`mkdir`, `mv`, `git status`, a formatter)
@@ -180,9 +189,16 @@ approved by the classifier rather than stalling the run; anything genuinely
 dangerous is blocked; and repeated blocks (3 consecutive / 20 total) pause the
 run and put a real question to the user.
 
-Nothing is written to `.claude/`, so C2 holds. Because `--settings` *adds*
-rather than replaces, a user's own rules stay in force, and a deny at any scope
-still wins.
+The allowlist names `Edit` bare rather than listing `Write`: file permission
+checks only ever match `Edit()` and `Read()` rules, so a `Write()` rule is
+accepted by the parser and then never consulted. One `Edit` entry covers
+`Write` and `NotebookEdit` as well. **Corrected at T02** — the earlier reading
+of this section as "file edits and writes" would have produced a rule that
+silently does nothing.
+
+Nothing is written to `.claude/`, so C2 holds. A deny at any scope still wins;
+the user's own allow rules, however, may be superseded for the dispatched
+session — see the correction under D4.
 
 ### The implementation report
 
