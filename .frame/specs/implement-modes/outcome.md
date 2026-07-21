@@ -82,3 +82,33 @@ genuinely dead launch.
 _Captured: 2026-07-21 · 2 file changes_
 
 ---
+
+## T04 — Report generator
+
+Wrote `src/templates/commands/claude-code/build-implement-report.mjs`: pure
+render functions (`renderReport`, `renderTask`, `renderDiff`, `diffLineClass`,
+`escapeHtml`, `renderVerification`) above the git/filesystem half, all
+exported so T05 can cover the transform with neither. Diffs come from
+`git show --format= --no-color <hash> -- . :(exclude)...`; an unknown hash
+logs and yields an empty diff rather than killing the report, which is what an
+entry written before its commit lands looks like. The `report-data.json` shape
+is documented in the file header as the contract the prompt template must
+write to.
+
+Extended the plan's exclusion list from `.frame/` to also drop `tasks.json`
+and `STRUCTURE.json` — verified against real commits from this session, where
+the pre-commit hook's regenerated module map otherwise dominated the diff.
+`PROJECT_NOTES.md` and `AGENTS.md` stay visible: they are hand-written, so a
+change there is a real one. Confirmed the generator runs under Frame's bundled
+runtime (`ELECTRON_RUN_AS_NODE=1` → Node 18.18.2), which is D6's whole premise.
+
+Styling checked value-by-value against `src/renderer/styles/variables.css`
+rather than eyeballed from the plan-report template: the error colour was a
+made-up `#d47a7a` (system is `#d47878`), and diff rows were using the semantic
+success/error pair when the design system ships dedicated GitHub-style diff
+colours — the same ones `diff-viewer.css` applies to the app's own diffs. A
+changed line is not a status, so it should not borrow the status palette.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---

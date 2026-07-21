@@ -3620,13 +3620,13 @@
       "title": "Write `src/templates/commands/claude-code/build-implement-report.mjs`: `report-data.json` plus per-commit `git show` with the `.frame`/report exclusion pathspec into one self-contained HTML file, Node 18, no dependencies, the pure transform separated from the git and filesystem calls",
       "description": "",
       "source": "spec:implement-modes:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: implement-modes",
       "createdAt": "2026-07-21T09:34:02.536Z",
-      "updatedAt": "2026-07-21T09:34:02.536Z",
-      "completedAt": null
+      "updatedAt": "2026-07-21T10:08:01.015Z",
+      "completedAt": "2026-07-21T10:08:01.015Z"
     },
     {
       "id": "task-spec-implement-modes-T05",
