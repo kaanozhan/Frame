@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
-const { FRAME_DIR, ORCH_META_FILES } = require('../shared/frameConstants');
+const { FRAME_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
 const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
@@ -288,7 +288,8 @@ function getCommandPrompt(projectPath, slug, command, aiTool) {
     slug,
     title: status.title,
     description: '', // Slice 1.7: spec.new uses the seeded spec.md as input; description placeholder reserved for future use
-    report_template_path: REPORT_TEMPLATE_REL
+    report_template_path: REPORT_TEMPLATE_REL,
+    report_generator_path: REPORT_GENERATOR_REL
   });
   return { prompt };
 }
@@ -305,32 +306,177 @@ function getCommandPrompt(projectPath, slug, command, aiTool) {
 const RUNTIME_PROMPTS_DIR = path.join(FRAME_DIR, 'runtime', 'prompts');
 const RUNTIME_ASSETS_DIR = path.join(FRAME_DIR, 'runtime', 'assets');
 const REPORT_TEMPLATE_FILE = 'plan-report-template.html';
-const REPORT_TEMPLATE_REL = path.posix.join(
-  RUNTIME_ASSETS_DIR.replace(/\\/g, '/'), REPORT_TEMPLATE_FILE
-);
+const REPORT_GENERATOR_FILE = 'build-implement-report.mjs';
 
-// The spec.plan agent fills the report template from the terminal CLI,
-// which cannot read files inside app.asar — so the asset is staged into
-// .frame/runtime/assets/ on every dispatch (override edits are picked up).
-function stageReportTemplateAsset(projectPath, aiTool) {
+const assetRelPath = (file) => path.posix.join(RUNTIME_ASSETS_DIR.replace(/\\/g, '/'), file);
+const REPORT_TEMPLATE_REL = assetRelPath(REPORT_TEMPLATE_FILE);
+const REPORT_GENERATOR_REL = assetRelPath(REPORT_GENERATOR_FILE);
+
+// Which packaged assets each command needs on disk. Driven by the command
+// rather than hardcoded: spec.plan's agent fills a template, spec.implement's
+// runs a generator, and a terminal CLI can read neither from inside app.asar.
+const COMMAND_ASSETS = {
+  'spec.plan': [REPORT_TEMPLATE_FILE],
+  'spec.implement': [REPORT_GENERATOR_FILE]
+};
+
+// Copied into .frame/runtime/assets/ on every dispatch, so a project's own
+// override under .frame/templates/commands/<tool>/ is picked up as it changes.
+function stageCommandAsset(projectPath, aiTool, file) {
   const tool = aiTool || 'claude-code';
-  const override = path.join(projectPath, FRAME_DIR, 'templates', 'commands', tool, REPORT_TEMPLATE_FILE);
-  const fallback = path.join(FRAME_TEMPLATES_DIR, 'commands', tool, REPORT_TEMPLATE_FILE);
+  const override = path.join(projectPath, FRAME_DIR, 'templates', 'commands', tool, file);
+  const fallback = path.join(FRAME_TEMPLATES_DIR, 'commands', tool, file);
   const source = fs.existsSync(override) ? override : fallback;
   let content;
   try {
     content = fs.readFileSync(source, 'utf8');
   } catch (err) {
-    console.error(`specManager: report template asset missing (${source}) — staging skipped`, err.message);
+    console.error(`specManager: command asset missing (${source}) — staging skipped`, err.message);
     return;
   }
   try {
     const assetsDir = path.join(projectPath, RUNTIME_ASSETS_DIR);
     fs.mkdirSync(assetsDir, { recursive: true });
-    fs.writeFileSync(path.join(assetsDir, REPORT_TEMPLATE_FILE), content, 'utf8');
+    fs.writeFileSync(path.join(assetsDir, file), content, 'utf8');
   } catch (err) {
-    console.error('specManager: report template staging failed', err);
+    console.error(`specManager: staging ${file} failed`, err);
   }
+}
+
+function stageCommandAssets(projectPath, command, aiTool) {
+  for (const file of COMMAND_ASSETS[command] || []) {
+    stageCommandAsset(projectPath, aiTool, file);
+  }
+}
+
+// ─── Implement-mode permissions ───────────────────────────────
+//
+// The autonomous implement mode runs a whole spec without a prompt between
+// tasks, which is a launch-time concern: permissions cannot be set from
+// inside a running session. Frame writes this file and the dispatch passes
+// it as `--settings <path> --permission-mode auto`. It lives under .frame/
+// so nothing is ever written to the user's own .claude/.
+//
+// The denylist carries the safety load. Deny is evaluated before anything
+// else and cannot be overridden at a lower scope, so "never push" stops
+// being a request in the prompt and becomes mechanically impossible — auto
+// mode's classifier would otherwise permit pushing to the working repo.
+// The allowlist only covers the known hot path so it resolves as rules
+// without a classifier pass; anything else unanticipated but harmless is
+// the classifier's job, not ours to enumerate.
+
+const IMPLEMENT_PERMISSIONS_FILE = 'implement-permissions.json';
+
+// Pushing, and history rewrites other than the mode's own `commit --amend`
+// (which is safe precisely because nothing is pushed).
+const IMPLEMENT_DENY = [
+  'Bash(git push)',
+  'Bash(git push *)',
+  'Bash(git reset --hard *)',
+  'Bash(git rebase *)',
+  'Bash(git filter-branch *)',
+  'Bash(git filter-repo *)',
+  'Bash(git reflog expire *)',
+  'Bash(git update-ref -d *)'
+];
+
+// Editing, and the git plumbing the loop needs: stage, commit, read a hash,
+// read a diff. `Edit` covers Write and NotebookEdit too — file permission
+// checks only match Edit() and Read() rules, so a Write() rule would be
+// accepted and then never consulted.
+const IMPLEMENT_ALLOW = [
+  'Edit',
+  'Read',
+  'Bash(git add *)',
+  'Bash(git commit *)',
+  'Bash(git status*)',
+  'Bash(git diff*)',
+  'Bash(git show *)',
+  'Bash(git log *)',
+  'Bash(git rev-parse *)'
+];
+
+// The project's own check, in descending order of what actually verifies a
+// change. Absent or blank means the run proceeds without one and says so —
+// inventing a command is worse than admitting there isn't one.
+function resolveVerificationCommand(projectPath) {
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(path.join(projectPath, FRAME_DIR, FRAME_CONFIG_FILE), 'utf8'));
+  } catch (_) {
+    return null;
+  }
+  const commands = (config && config.project && config.project.commands) || {};
+  for (const key of ['test', 'lint', 'build']) {
+    const value = typeof commands[key] === 'string' ? commands[key].trim() : '';
+    if (value) return value;
+  }
+  return null;
+}
+
+function buildImplementPermissions(verification) {
+  const allow = [...IMPLEMENT_ALLOW];
+  if (verification) {
+    // Exact plus prefix: `npm test` and `npm test -- --watch=false` both
+    // resolve as rules. The space before `*` is load-bearing — `npm test*`
+    // would also match an unrelated `npm testfoo`.
+    allow.push(`Bash(${verification})`, `Bash(${verification} *)`);
+  }
+  return {
+    permissions: {
+      allow,
+      deny: [...IMPLEMENT_DENY]
+    }
+  };
+}
+
+// Writes .frame/implement-permissions.json and reports what it resolved, so
+// the dispatch can pass the path and the prompt can state the check it has.
+function writeImplementPermissions(projectPath) {
+  const verification = resolveVerificationCommand(projectPath);
+  const absPath = path.join(projectPath, FRAME_DIR, IMPLEMENT_PERMISSIONS_FILE);
+  try {
+    fs.mkdirSync(path.join(projectPath, FRAME_DIR), { recursive: true });
+    fsSafe.writeFileAtomic(absPath, JSON.stringify(buildImplementPermissions(verification), null, 2) + '\n');
+  } catch (err) {
+    console.error('specManager: implement permissions write failed', err);
+    return { success: false, error: err.message };
+  }
+  return { success: true, absPath, verification };
+}
+
+// ─── Implement launch hint (D10) ──────────────────────────────
+//
+// Frame launches the CLI before the prompt can ask which mode the user
+// wants, so it launches with the flags matching the *last* choice on this
+// spec (status.json `implement_mode`), else the project default
+// (.frame/config.json `implement.defaultMode`), else none. Picking a less
+// autonomous mode than the flags allow is harmless; picking a more
+// autonomous one costs one re-dispatch, which the prompt asks for.
+
+const IMPLEMENT_MODE_AUTONOMOUS = 'autonomous';
+
+function resolveImplementLaunchHint(projectPath, slug) {
+  const status = readStatus(projectPath, slug);
+  if (status && typeof status.implement_mode === 'string' && status.implement_mode) {
+    return status.implement_mode;
+  }
+  try {
+    const config = JSON.parse(fs.readFileSync(path.join(projectPath, FRAME_DIR, FRAME_CONFIG_FILE), 'utf8'));
+    const mode = config && config.implement && config.implement.defaultMode;
+    if (typeof mode === 'string' && mode) return mode;
+  } catch (_) { /* no config, or unreadable — no hint */ }
+  return null;
+}
+
+// The flags the lane's launch line needs for this dispatch. Only the
+// autonomous mode needs any: without them every edit stops on a permission
+// prompt, which is the exact thing that mode exists to avoid.
+function getImplementLaunchFlags(projectPath, slug) {
+  if (resolveImplementLaunchHint(projectPath, slug) !== IMPLEMENT_MODE_AUTONOMOUS) return [];
+  const perms = writeImplementPermissions(projectPath);
+  if (!perms.success) return [];
+  return ['--settings', perms.absPath, '--permission-mode', 'auto'];
 }
 
 function buildSpecCommandFile(projectPath, slug, command, aiTool) {
@@ -341,11 +487,15 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool) {
   const filename = `${slug}__${command}.md`;
   const absPath = path.join(promptsDir, filename);
   fs.writeFileSync(absPath, result.prompt, 'utf8');
-  if (command === 'spec.plan') stageReportTemplateAsset(projectPath, aiTool);
+  stageCommandAssets(projectPath, command, aiTool);
   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
   return {
     success: true,
     relPath,
+    // Empty for every command but spec.implement, and for spec.implement
+    // unless the launch hint is autonomous. The renderer passes these
+    // through to the CLI launch line without interpreting them.
+    launchFlags: command === 'spec.implement' ? getImplementLaunchFlags(projectPath, slug) : [],
     instruction: `Read ${relPath} and follow its instructions exactly.`
   };
 }
@@ -890,6 +1040,11 @@ module.exports = {
   derivePhase,
   getCommandPrompt,
   buildSpecCommandFile,
+  buildImplementPermissions,
+  resolveVerificationCommand,
+  writeImplementPermissions,
+  resolveImplementLaunchHint,
+  getImplementLaunchFlags,
   parseTasksMarkdown,
   syncTasksFromMarkdown,
   parseFootprintMarkdown,

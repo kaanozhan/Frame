@@ -67,9 +67,15 @@ function init(ui) {
  *                                           running (default: current tool)
  * @param {string}      opts.prompt        - text to inject when ready
  * @param {object|null} [opts.assignment]  - { kind: 'task'|'spec', label, ref }
+ * @param {string[]}    [opts.launchFlags] - flags appended to the CLI launch
+ *                                           line; only apply when this
+ *                                           dispatch starts the agent itself
+ * @param {string|null} [opts.flagsDroppedNote] - appended to the prompt when
+ *                                           the CLI refused those flags and
+ *                                           was relaunched bare
  * @returns {Promise<{success: boolean, terminalId: string|null, error: string|null}>}
  */
-async function dispatch({ terminalId = null, createNew = false, toolId = null, prompt, assignment = null, enter = true } = {}) {
+async function dispatch({ terminalId = null, createNew = false, toolId = null, prompt, assignment = null, enter = true, launchFlags = null, flagsDroppedNote = null } = {}) {
   if (!multiTerminalUI) {
     return _fail(null, 'Terminal system is not ready yet');
   }
@@ -102,6 +108,9 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
   if (enter) multiTerminalUI.enterLane(targetId);
 
   // ── Ensure an agent is running there ─────────────────────
+  // Set when the CLI refused the launch flags and came up bare — the prompt
+  // is told so it doesn't promise a mode this session cannot deliver.
+  let flagsDropped = false;
   const { agentName } = laneStatus.getStatus(targetId);
   if (!agentName) {
     // Lazy-required to avoid load-order coupling with the sidebar wiring.
@@ -118,7 +127,8 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     try {
       check = await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, {
         toolId: chosenToolId,
-        projectPath: state.getProjectPath()
+        projectPath: state.getProjectPath(),
+        launchFlags
       });
     } catch (err) {
       console.error('agentDispatch: CLI availability check failed', err);
@@ -145,7 +155,29 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
       multiTerminalUI.getManager().sendCommand(check.resolvedCommand, targetId);
     }
 
-    const ready = await readyPromise;
+    let ready = await readyPromise;
+
+    // A launch that carried flags and never came up is most likely the CLI
+    // rejecting one of them — `--permission-mode auto` needs an eligible
+    // account, an enabled org and a recent enough model, and none of that
+    // can be probed from out here (the CLI documents no pre-flight check).
+    // So the flags are treated as best-effort: retry bare, once. The guard
+    // is that no agent process is in the foreground — a merely slow CLI is
+    // already detected by name, so this only fires when the launch died.
+    if (!ready && launchFlags && launchFlags.length && !laneStatus.getStatus(targetId).agentName) {
+      const bareReady = _waitForAgentReady(targetId);
+      if (enter) {
+        multiTerminalUI.sendCommand(check.bareCommand || check.resolvedCommand, targetId);
+      } else {
+        multiTerminalUI.getManager().sendCommand(check.bareCommand || check.resolvedCommand, targetId);
+      }
+      ready = await bareReady;
+      if (ready) {
+        flagsDropped = true;
+        notify.info('Autonomous mode is not available with this CLI — continuing without it');
+      }
+    }
+
     if (!ready) {
       return _fail(targetId, `${check.name || chosenToolId} didn't become ready — prompt not sent`);
     }
@@ -159,7 +191,10 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
   if (typeof window.terminalSendPromptThenEnter !== 'function') {
     return _fail(targetId, 'Terminal input bridge not available');
   }
-  window.terminalSendPromptThenEnter(prompt, targetId);
+  window.terminalSendPromptThenEnter(
+    flagsDropped && flagsDroppedNote ? `${prompt}\n\n${flagsDroppedNote}` : prompt,
+    targetId
+  );
 
   // Label the lane with what it's now working on — most recent dispatch
   // wins. Failed dispatches above never relabel.
@@ -334,9 +369,26 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
   const assignment = { kind: 'spec', label: `spec: ${slug}`, ref: slug };
   const assignedId = _assignedLane(slug);
 
+  // Staging decides these — spec.implement's autonomous mode needs its
+  // permission file and mode flag on the launch line. They only take effect
+  // when this dispatch starts the CLI: continuing in a lane whose agent is
+  // already running keeps whatever flags that session was launched with, and
+  // the prompt handles the mismatch by asking for one re-dispatch.
+  const launchFlags = staged.launchFlags || null;
+
+  // Said, not asked. If the CLI won't take the flags the autonomous mode
+  // needs, the run doesn't stall on a question — it states the limit and
+  // carries on with the mode that works without them.
+  const flagsDroppedNote = launchFlags && launchFlags.length
+    ? 'Frame note: this CLI refused the permission flags the autonomous mode '
+      + 'needs, so that mode is unavailable in this session — do not offer it. '
+      + 'Say so in one line, then continue with the step-by-step mode. Mention '
+      + 'once that describing your own flow is still available.'
+    : null;
+
   let result;
   if (!assignedId) {
-    result = await dispatch({ createNew: true, prompt: staged.instruction, assignment });
+    result = await dispatch({ createNew: true, prompt: staged.instruction, assignment, launchFlags, flagsDroppedNote });
   } else {
     const choice = await _askContinueOrNew(_laneName(assignedId), title || slug);
     if (choice === 'cancel') {
@@ -346,7 +398,9 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
       terminalId: choice === 'continue' ? assignedId : null,
       createNew: choice !== 'continue',
       prompt: staged.instruction,
-      assignment
+      assignment,
+      launchFlags,
+      flagsDroppedNote
     });
   }
 

@@ -1,0 +1,314 @@
+# Outcome — Implement modes
+
+## T01 — Inject Frame's own runtime into dispatched terminals
+
+Added `FRAME_NODE: process.execPath` to the PTY environment in
+`createTerminal` (`src/main/ptyManager.js`), set on the base env just before
+`extraEnv` spreads in, so every terminal gets it — not only orchestration
+lanes. The comment states the call shape (`ELECTRON_RUN_AS_NODE=1
+"$FRAME_NODE" script.mjs`) and why the quotes are required, since the packaged
+macOS path contains spaces. No deviation from plan.md (D6).
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T02 — Generate `.frame/implement-permissions.json`
+
+Added `resolveVerificationCommand` / `buildImplementPermissions` /
+`writeImplementPermissions` to `src/main/specManager.js`, exported for the
+dispatch path and for tests; the verification command is read from
+`.frame/config.json` `project.commands` in the order test → lint → build, and
+its absence yields a file without a check rather than an invented one (T11).
+Two deviations from plan.md, both from verifying the CLI docs: the allowlist
+uses a bare `Edit` because file permission checks only ever match `Edit()` and
+`Read()` rules — a `Write()` rule is accepted and then never consulted — and
+the plan's claim that `--settings` *adds* to the user's own rules is wrong for
+same-key collisions (it takes precedence over every settings file), so the
+user's own `permissions.allow` may be superseded for the dispatched session;
+deny still wins at any scope, so the safety argument for D4/D9 is unaffected.
+Generation only — wiring the call into dispatch belongs to T06.
+
+Followup: `--permission-mode auto` requires an eligible account, org
+enablement and Opus/Sonnet 4.6+ — T03 needs a fallback when the flag is
+rejected.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T03 — Carry launch flags through the dispatch
+
+`composeLaunchCommand` in `src/main/aiToolManager.js` appends flags to the
+resolved CLI and owns the quoting; the availability probe still runs on the
+bare command, and all three success returns in `CHECK_AI_TOOL_AVAILABLE` now
+go through one `ok()` helper so the composition happens in a single place.
+`specManager` resolves the launch hint (`status.json` `implement_mode`, else
+`.frame/config.json` `implement.defaultMode`, else none) and
+`buildSpecCommandFile` returns `launchFlags` — `--settings <path>
+--permission-mode auto` for an autonomous hint on `spec.implement`, empty
+otherwise — which `agentDispatch` passes through both dispatch paths without
+interpreting. Deviation from the T02 note: writing the permission file is
+called from here rather than T06, because `--settings <path>` cannot be passed
+for a file that does not exist yet; T06 keeps the report-asset staging.
+
+Flags only take effect on the branch that starts the CLI — continuing in a
+lane with a live agent keeps that session's flags, which is exactly the
+mismatch D10 resolves with one re-dispatch. Also added
+`.frame/implement-permissions.json` to `.gitignore`; it is regenerated on
+every autonomous dispatch, like the other `.frame/runtime` artifacts.
+
+_Captured: 2026-07-21 · 4 file changes_
+
+---
+
+## T03 (polish) — Fall back when the CLI refuses the flags
+
+Closed the followup above rather than leaving it open. `--permission-mode
+auto` needs an eligible account, an enabled org and Opus/Sonnet 4.6+, and the
+CLI documents no way to probe any of that from outside — so the flags are
+best-effort: if a flagged launch never reaches its input box and no agent
+process is in the foreground, `agentDispatch` relaunches once with the bare
+command (`bareCommand`, new on the availability result). A slow CLI is
+already detected by process name, which is what keeps this from double-
+launching.
+
+The fallback states the limit instead of asking about it, per the user's
+direction: a toast to the UI, and a note appended to the prompt telling the
+agent to say so in one line, continue step by step, and mention the
+describe-your-own option once. Cost is a second 15s readiness wait on a
+genuinely dead launch.
+
+_Captured: 2026-07-21 · 2 file changes_
+
+---
+
+## T04 — Report generator
+
+Wrote `src/templates/commands/claude-code/build-implement-report.mjs`: pure
+render functions (`renderReport`, `renderTask`, `renderDiff`, `diffLineClass`,
+`escapeHtml`, `renderVerification`) above the git/filesystem half, all
+exported so T05 can cover the transform with neither. Diffs come from
+`git show --format= --no-color <hash> -- . :(exclude)...`; an unknown hash
+logs and yields an empty diff rather than killing the report, which is what an
+entry written before its commit lands looks like. The `report-data.json` shape
+is documented in the file header as the contract the prompt template must
+write to.
+
+Extended the plan's exclusion list from `.frame/` to also drop `tasks.json`
+and `STRUCTURE.json` — verified against real commits from this session, where
+the pre-commit hook's regenerated module map otherwise dominated the diff.
+`PROJECT_NOTES.md` and `AGENTS.md` stay visible: they are hand-written, so a
+change there is a real one. Confirmed the generator runs under Frame's bundled
+runtime (`ELECTRON_RUN_AS_NODE=1` → Node 18.18.2), which is D6's whole premise.
+
+Styling checked value-by-value against `src/renderer/styles/variables.css`
+rather than eyeballed from the plan-report template: the error colour was a
+made-up `#d47a7a` (system is `#d47878`), and diff rows were using the semantic
+success/error pair when the design system ships dedicated GitHub-style diff
+colours — the same ones `diff-viewer.css` applies to the app's own diffs. A
+changed line is not a status, so it should not borrow the status palette.
+
+On the user's direction the whole layout — not just the diff — was rebuilt on
+the design system: variable *names* copied from `variables.css` too, so drift
+shows up as a one-line diff, plus the dashboard's gradient header bar, card
+head strips and the spacing/radius scales. An audit script confirmed 28 shared
+variables with zero value differences. The user chose to keep the markup
+inside the generator rather than adding a second staged template asset, so
+T06 stages one file.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T05 — Cover the pure transform
+
+`test/implementReport.test.js`, 21 cases over `escapeHtml`, `diffLineClass`,
+`renderDiff`, `renderVerification`, `renderTask` and `renderReport` — no git,
+no filesystem, which is what the split in T04 exists to allow. CommonJS with a
+dynamic `import()` in a `before` hook, since `npm test` globs `test/*.test.js`
+and the generator is ESM.
+
+The cases worth naming: `+++`/`---` must classify as file headers rather than
+additions and deletions; a missing check must read as "not verified" and never
+as a pass; malformed `report-data.json` must still produce a readable page,
+because the report is never load-bearing; and `renderReport` must be
+byte-identical across two calls with equal input, which fails the moment a
+clock creeps into the transform.
+
+Mutation-checked rather than assumed: removing the file-header guard and
+making a missing check pass turned 3 tests red, then the file was restored.
+Full suite 105 passing.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T06 — Stage assets per command
+
+Replaced the hardcoded `if (command === 'spec.plan')` with a `COMMAND_ASSETS`
+map and `stageCommandAssets(projectPath, command, aiTool)`;
+`stageReportTemplateAsset` became `stageCommandAsset(projectPath, aiTool,
+file)`, same override → packaged-fallback resolution as before. `spec.plan`
+stages the plan template, `spec.implement` the report generator, every other
+command stages nothing. Also added `{report_generator_path}` alongside
+`{report_template_path}` as an interpolation variable, so T10's prompt has a
+path to invoke.
+
+Verified rather than assumed: each command stages exactly its own assets, the
+staged generator is byte-identical to its source, a project-local override
+under `.frame/templates/commands/claude-code/` wins and stops winning when
+removed, and the staged copy runs from `.frame/runtime/assets/` under Frame's
+bundled Node — the whole dispatch path end to end.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T07 — The picker
+
+Added the mode section to `spec.implement.md`: composition (A/B, the saved
+flow as C, describe-your-own last, a saved default hoisted and marked),
+description by what the user gets rather than by name, the choice recorded to
+`status.json` as the *last* choice, the one-time default offer, and the
+CLI-agnostic asking rule — structured tool when there is one, otherwise print
+and stop, with "an unanswered picker is a hard stop" spelled out because a
+model's default is to keep going.
+
+Resolved something the plan left implicit: how the agent knows whether its
+session actually carries the autonomous flags. It can derive it — Frame
+launches from the hint, so the session has the flags exactly when the
+**pre-answer** `implement_mode` / `implement.defaultMode` was `autonomous`.
+That only works if the hint is read before the new choice overwrites it, so
+the prompt now says to note it up front. The T03 fallback note is the
+override: if the CLI refused the flags, the mode is unavailable however the
+session was launched.
+
+Also made the opening paragraph mode-neutral — it promised "one task in this
+single turn", which the autonomous mode contradicts.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T08 — The shared core
+
+Pulled the accounting out of what used to be step-by-step's prose into "The
+shared core — every mode obeys this": task selection by `spec:{slug}:T<n>`,
+`plan.md`'s Files and Sequencing as scope authority, task state, spec phase,
+one outcome entry per task, never push and never touch `main`. Stated up front
+that a described flow may change the loop, the commits, the verification and
+the reporting but not the accounting — that line is what separates describing
+a flow from replacing the template.
+
+Two things changed while moving rather than after: the unplanned-scope rule
+became a property of scope authority ("every mode surfaces it; the modes differ
+only in whether they stop for an answer"), so T09 and T10 can each define their
+reaction without contradicting the core; and the stop conditions gained a
+sentence making them binding on every mode, with the "no pending tasks" case
+now setting the phase rather than suggesting the user do it.
+
+The per-turn loop deliberately did not move here — "one task then back to you"
+is step-by-step's behaviour, and it lands with that mode in T09.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T09 — Step-by-step mode
+
+Added "Mode A · Step by step": the five-step per-task loop, the what-changed /
+why-changed close-out in the reply rather than in a file, and the single
+question. Wrote "nothing else in that question — not which commit message, not
+whether to run the tests" explicitly, because the failure mode here is a model
+bundling three decisions into one turn and calling it one question.
+
+Two ambiguities the plan left open, resolved and written down rather than
+left to vary per run. **Continue** stays in the same session and does not
+re-show the picker — the mode was chosen for the session, and re-asking would
+make the mode's cost its own argument against it. **Stop** leaves the change
+uncommitted in the working tree: stopping is what the user does when they want
+to look at the work before it becomes a commit, so committing it for them
+defeats the point. Also said outright that verification is not this mode's
+job, which is the line that keeps it distinct from the autonomous one.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T10 — Autonomous mode
+
+Added "Mode B · Autonomous + report": the eight-step per-task order the plan
+specified (implement → verify → report entry with an empty hash → outcome
+entry → completed → one atomic commit → fill the real hash → regenerate and
+`--amend --no-edit`), the generator invocation, the D8 fallback order, narrow
+stop conditions and the closing summary.
+
+Verified the documented invocation rather than only writing it: ran the
+interpolated line verbatim from the repo root with `FRAME_NODE` pointing at
+Frame's binary, and it produced a report with real diffs from
+`.frame/runtime/assets/`.
+
+Two emphases the prompt needed beyond the plan's wording. "No confirmation
+between tasks, no 'shall I continue'" is stated as the mode's reason to exist,
+because a model's instinct under uncertainty is to check in — and a check-in
+per task silently turns this back into Mode A. And a permission denial is
+listed as a stop condition phrased as "a deny rule is a decision that was
+already made — surface it, do not route around it", which is the prompt-side
+half of what D9 enforces mechanically.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T11 — Missing verification
+
+Added "When there is no check" to the autonomous mode: run without
+verification, record each task as `"status": "none"` so the report shows *not
+verified* instead of silently green, and state it once in the closing summary
+as a fact rather than an apology per task.
+
+The "never invent a command" rule is written as a list of the specific
+temptations — a command guessed from the project's shape, one lifted from a
+README, `npm test` because the directory looks like it might have it — because
+the abstract instruction is easy to obey in principle and hard to obey in the
+moment. The reasoning is on the page: a command nobody configured is a command
+nobody promised would pass.
+
+Also pinned the resolution order in the prompt to `test` → `lint` → `build`,
+matching `resolveVerificationCommand` in `specManager.js`. They have to agree:
+that is the command Frame wrote into the session's permission allowlist, so a
+prompt picking differently would run something the rules do not cover.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
+
+## T12 — Described-flow mode
+
+Added "Mode C · Describe your own": read `.frame/implement-flow.md` when the
+saved flow was picked, otherwise ask for the description in one question with
+at most one follow-up naming exactly what is unclear. The section states the
+boundary the plan drew — a description owns the loop, the commits, the
+verification and the reporting, and nothing else — and says what to do when a
+description contradicts the core: follow the core, name the part you didn't
+honour in one line, carry on. Neither stop over it nor quietly comply.
+Anything the description leaves unsaid falls back to Mode A, so silence never
+buys autonomy.
+
+Decided the saved-flow storage shape, which the plan left at "config
+references it by name": `.frame/config.json` gets
+`"implement": { "flowFile": "implement-flow.md" }` and the flow file's own
+`# heading` is the picker's entry name. That avoids both a second config key
+and an extra question at save time. Updated the T07 picker text to match.
+Replacing an existing flow asks first — overwriting a saved flow silently is
+not a save, it is a loss.
+
+Fixed an ordering wart from T07 while reading the whole template through: the
+save-a-default offer came before the deliverability check, so a run about to
+stop for a re-dispatch would still have asked a second question. Check first,
+offer only if the run is proceeding.
+
+_Captured: 2026-07-21 · 1 file change_
+
+---
