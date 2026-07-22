@@ -102,3 +102,19 @@ touched: `.claude/settings.json` (new), `src/main/frameProject.js`,
 _Captured: 2026-07-22 · 3 file change(s)_
 
 ---
+## T07 — specManager wiring (index refresh + catalog embed)
+
+`writeStatus` now schedules a debounced (2s, unref'd) `ensureFresh` after
+every real status write — riding the existing write-if-changed guard, so
+reconcile no-ops never trigger it; the refresh itself no-ops when the index
+is fresh (perf-spec discipline preserved). `getCommandPrompt` gains
+`spec_catalog`, filled only for `spec.new`: sync read of the warm index via
+`catalogLines` (getCommandPrompt is a sync IPC path — kept sync by design),
+falling back to a bare slug/title/phase listing on a cold index while the
+scheduled refresh warms it. Also truncated catalog titles at 90 chars in
+`catalogLines` — the agentlar spec's paragraph-length title was bloating the
+embed. Files touched: `src/main/specManager.js`, `scripts/spec-index.js`.
+
+_Captured: 2026-07-22 · 2 file change(s)_
+
+---

@@ -391,7 +391,10 @@ async function ensureFresh(projectPath) {
 /** One compact line per spec — the {spec_catalog} embed for spec.new. */
 function catalogLines(index) {
   return Object.entries(index.topics)
-    .map(([slug, t]) => `- ${slug} · ${t.title} · ${t.phase}${t.keywords.length ? ' · ' + t.keywords.slice(0, 8).join(', ') : ''}`);
+    .map(([slug, t]) => {
+      const title = t.title.length > 90 ? t.title.slice(0, 87) + '…' : t.title;
+      return `- ${slug} · ${title} · ${t.phase}${t.keywords.length ? ' · ' + t.keywords.slice(0, 8).join(', ') : ''}`;
+    });
 }
 
 module.exports = { build, writeIndex, ensureFresh, indexPath, catalogLines, parseFrontMatter, parseFootprint, parseOutcome, parseDigest };

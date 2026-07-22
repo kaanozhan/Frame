@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:19:40.602Z",
+  "lastUpdated": "2026-07-22T14:21:18.682Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3373,13 +3373,13 @@
       "title": "Wire `src/main/specManager.js`: debounced `ensureFresh` on spec phase transitions (inside the existing self-write-guard discipline) and a `{spec_catalog}` var (one line per non-excluded spec) embedded into the `spec.new` dispatch via `getCommandPrompt`.",
       "description": "",
       "source": "spec:spec-knowledge-layer:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:21:18.682Z",
+      "completedAt": "2026-07-22T14:21:18.682Z"
     },
     {
       "id": "task-spec-spec-knowledge-layer-T08",

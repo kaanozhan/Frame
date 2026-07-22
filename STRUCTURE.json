@@ -2379,14 +2379,27 @@
             "status"
           ]
         },
+        "scheduleIndexRefresh": {
+          "line": 160,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "buildSpecCatalog": {
+          "line": 177,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
+        },
         "listSpecs": {
-          "line": 149,
+          "line": 197,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 204,
+          "line": 252,
           "params": [
             "projectPath",
             "slug",
@@ -2394,7 +2407,7 @@
           ]
         },
         "derivePhase": {
-          "line": 208,
+          "line": 256,
           "params": [
             "projectPath",
             "slug",
@@ -2403,14 +2416,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 227,
+          "line": 275,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 233,
+          "line": 281,
           "params": [
             "projectPath",
             "slug",
@@ -2418,14 +2431,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 258,
+          "line": 306,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 262,
+          "line": 310,
           "params": [
             "projectPath",
             "aiTool",
@@ -2433,7 +2446,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 266,
+          "line": 314,
           "params": [
             "projectPath",
             "aiTool",
@@ -2441,14 +2454,14 @@
           ]
         },
         "interpolate": {
-          "line": 272,
+          "line": 320,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 279,
+          "line": 327,
           "params": [
             "projectPath",
             "slug",
@@ -2457,7 +2470,7 @@
           ]
         },
         "stageReportTemplateAsset": {
-          "line": 315,
+          "line": 366,
           "params": [
             "projectPath",
             "aiTool"
@@ -2465,7 +2478,7 @@
           "purpose": "The spec.plan agent fills the report template from the terminal CLI,"
         },
         "buildSpecCommandFile": {
-          "line": 336,
+          "line": 387,
           "params": [
             "projectPath",
             "slug",
@@ -2474,53 +2487,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 365,
+          "line": 416,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 391,
+          "line": 442,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 410,
+          "line": 461,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 415,
+          "line": 466,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 495,
+          "line": 546,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 502,
+          "line": 553,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 519,
+          "line": 570,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 542,
+          "line": 593,
           "params": [
             "projectPath",
             "query"
@@ -2528,14 +2541,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 563,
+          "line": 614,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 606,
+          "line": 657,
           "params": [
             "projectPath",
             "slug",
@@ -2543,14 +2556,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 625,
+          "line": 676,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 642,
+          "line": 693,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2559,28 +2572,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 749,
+          "line": 800,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 800
+          "line": 851
         },
         "pushSpecData": {
-          "line": 820,
+          "line": 871,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 840,
+          "line": 891,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 844,
+          "line": 895,
           "params": [
             "ipcMain"
           ]

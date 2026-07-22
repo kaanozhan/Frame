@@ -142,6 +142,54 @@ function writeStatus(projectPath, slug, status) {
   }
   lastSelfWriteAt = Date.now();
   fsSafe.writeFileAtomic(statusPath, next);
+  // A real status write = a phase/content transition → refresh the
+  // spec-knowledge index (debounced; ensureFresh itself no-ops when fresh).
+  scheduleIndexRefresh(projectPath);
+}
+
+// ─── Spec-knowledge index refresh ─────────────────────────
+//
+// The derived .frame/index/spec-index.json is gitignored and lazily
+// rebuilt; Frame's job is keeping it warm so the read-only hook
+// (scripts/spec-hint.js) and the {spec_catalog} embed find it fresh.
+// Same bundled-scripts location contract as structureBootstrap.
+
+const specIndexLib = require(path.join(__dirname, '..', '..', 'scripts', 'spec-index.js'));
+
+let indexRefreshTimer = null;
+function scheduleIndexRefresh(projectPath) {
+  if (indexRefreshTimer) clearTimeout(indexRefreshTimer);
+  indexRefreshTimer = setTimeout(() => {
+    indexRefreshTimer = null;
+    specIndexLib.ensureFresh(projectPath).catch((err) => {
+      console.warn('specManager: spec-index refresh failed (non-fatal):', err.message);
+    });
+  }, 2000);
+  if (typeof indexRefreshTimer.unref === 'function') indexRefreshTimer.unref();
+}
+
+/**
+ * One line per non-excluded spec for the spec.new catalog embed. Reads the
+ * warm index synchronously (getCommandPrompt is a sync IPC path); a cold
+ * index falls back to a bare slug/title/phase listing and the scheduled
+ * refresh warms it for the next dispatch.
+ */
+function buildSpecCatalog(projectPath) {
+  scheduleIndexRefresh(projectPath);
+  try {
+    const idx = JSON.parse(fs.readFileSync(
+      path.join(projectPath, FRAME_DIR, 'index', 'spec-index.json'), 'utf8'));
+    const lines = specIndexLib.catalogLines(idx);
+    if (lines.length) return lines.join('\n');
+  } catch (_) { /* cold start — fall through */ }
+  try {
+    return listSpecs(projectPath)
+      .filter((s) => !s.superseded_by)
+      .map((s) => `- ${s.slug} · ${s.title} · ${s.phase}`)
+      .join('\n');
+  } catch (_) {
+    return '';
+  }
 }
 
 // ─── Public API ────────────────────────────────────────────
@@ -288,7 +336,10 @@ function getCommandPrompt(projectPath, slug, command, aiTool) {
     slug,
     title: status.title,
     description: '', // Slice 1.7: spec.new uses the seeded spec.md as input; description placeholder reserved for future use
-    report_template_path: REPORT_TEMPLATE_REL
+    report_template_path: REPORT_TEMPLATE_REL,
+    // Full spec catalog only where it's consumed (spec.new's relatedness
+    // evaluation) — other templates carry no {spec_catalog} token.
+    spec_catalog: command === 'spec.new' ? buildSpecCatalog(projectPath) : ''
   });
   return { prompt };
 }
