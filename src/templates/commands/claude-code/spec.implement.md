@@ -51,7 +51,8 @@ Then offer the modes that this session can actually run to completion:
 - **Guided** — you run every task in order with no check-ins between them (the
   CLI's own permission prompts pace it), one commit per task, producing the
   HTML report — openable from the **View Implementation Report** button on the
-  spec's Tasks tab in Frame, refreshed as each task lands.
+  spec's Tasks tab in Frame or directly from the spec folder, refreshed as
+  each task lands.
 - **Describe your own** — you tell me how to run it and I run it that way.
 
 Ask with your structured-question tool (`AskUserQuestion` in Claude Code); with
@@ -184,8 +185,9 @@ back into step-by-step, which is not what the user picked.
 Before the first task, tell the user — once, as a statement, not a question —
 where to watch: the report opens from the **View Implementation Report** button
 on the spec's Tasks tab in Frame (the button appears when the first task
-lands), and it is regenerated after every task, so refreshing the opened page
-follows the run live. Then start; do not wait for a reply.
+lands), or directly at `.frame/specs/{slug}/implement-report.html` when no
+Frame window is open, and it is regenerated after every task, so refreshing
+the opened page follows the run live. Then start; do not wait for a reply.
 
 Per task, in this order:
 
@@ -236,9 +238,11 @@ ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" {report_generator_path} \
   .frame/specs/{slug}/report-data.json
 ```
 
-Quote `$FRAME_NODE` — Frame injects its own executable there, and the packaged
-path contains spaces. It writes `implement-report.html` next to the data file,
-openable as each task completes.
+Quote `$FRAME_NODE` — when Frame launched this session it injects its own
+executable there, and the packaged path contains spaces. In a session Frame did
+not launch, `$FRAME_NODE` is unset — use `node` from `PATH` instead (the
+missing-runtime order below). It writes `implement-report.html` next to the
+data file, openable as each task completes.
 
 **On the first task only, add `--open`** so the report opens in the browser
 once, at the moment there's something to see:

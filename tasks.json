@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T15:55:35.366Z",
+  "lastUpdated": "2026-07-22T15:57:10.234Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3962,18 +3962,18 @@
       "title": "Sweep `src/templates/commands/claude-code/spec.new.md`, `spec.plan.md`, `spec.tasks.md` and `spec.implement.md` for wording that assumes a Frame-launched session and make it entry-agnostic without changing any stage, mode or output contract",
       "description": "",
       "source": "spec:cli-spec-command-parity:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: cli-spec-command-parity",
       "createdAt": "2026-07-22T15:35:45.884Z",
-      "updatedAt": "2026-07-22T15:35:45.884Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T15:57:10.234Z",
+      "completedAt": "2026-07-22T15:57:10.234Z"
     }
   ],
   "metadata": {
     "totalCreated": 282,
-    "totalCompleted": 27
+    "totalCompleted": 28
   },
   "categories": {
     "feature": "New features",

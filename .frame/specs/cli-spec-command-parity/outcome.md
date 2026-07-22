@@ -47,3 +47,11 @@ Added `upgradeSpecDocs` to `frameProject.js` — runs the managed-block engine o
 _Captured: 2026-07-22 · 2 file change(s)_
 
 ---
+
+## T07 — Entry-agnostic wording sweep of the four command templates
+
+Swept all four claude-code command templates for Frame-launched-session assumptions. `spec.new.md`, `spec.plan.md` and `spec.tasks.md` had none — left byte-identical. `spec.implement.md`: reworded `$FRAME_NODE` as injected only by a Frame launch (falling back to `node` on PATH otherwise), and added the direct `implement-report.html` path beside the Frame-window button in the watch statement and the guided picker bullet. No stage, mode or output contract changed, so the UI-dispatched run reads identically in behavior (C5).
+
+_Captured: 2026-07-22 · 1 file change(s)_
+
+---

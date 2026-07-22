@@ -143,18 +143,17 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">6 tasks</span>
-    <span class="pill good">6 verified</span>
+    <span class="pill">7 tasks</span>
+    <span class="pill good">7 verified</span>
     
     <span class="chip">2026-07-22</span>
   </div>
 </header>
 
 <div class="wrap">
-<div class="run-status live">
-  <span class="rs-badge">In progress</span>
-  <span class="rs-count">6 of 7 tasks done · next: <span class="rs-task">T07 — Sweep `src/templates/commands/claude-code/spec.new.md`, `spec.plan.md`…</span></span>
-  <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
+<div class="run-status done">
+  <span class="rs-badge">Complete</span>
+  <span class="rs-count">7 of 7 tasks done</span>
 </div>
 <section class="report-head">
   <h1>CLI parity for spec commands — the full flow without the button</h1>
@@ -1378,6 +1377,62 @@
 <span class="dl-ctx">     } catch (err) {</span>
 <span class="dl-ctx">       console.error(&#39;specManager: command staging failed&#39;, err);</span>
 <span class="dl-ctx">     }</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T07</span>
+    <h2>Entry-agnostic wording sweep of the four command templates</h2>
+    <span class="card-meta"><span class="chip">f6871d6</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">153/153 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Swept spec.new.md, spec.plan.md, spec.tasks.md and spec.implement.md for wording that assumes Frame launched the session. spec.new/spec.plan/spec.tasks contained no such assumptions and are unchanged. spec.implement.md: FRAME_NODE is now described as injected only when Frame launched the session (with node-from-PATH named for other sessions), and the watch-the-report statement plus the guided picker bullet name the direct implement-report.html path alongside the Frame button.</p></div>
+    <div class="field"><span class="label">Why</span><p>The conversational-entry and handoff sections were already entry-agnostic per v2 (as the plan predicted), so the sweep only had to fix the two spots that presumed a Frame-launched environment: the injected env var and the Frame-window-only report access. No stage, mode or output contract changed.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/templates/commands/claude-code/spec.implement.md b/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-meta">index aeceda2..e8a4c76 100644</span>
+<span class="dl-file">--- a/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-file">+++ b/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-hunk">@@ -51,7 +51,8 @@ Then offer the modes that this session can actually run to completion:</span>
+<span class="dl-ctx"> - **Guided** — you run every task in order with no check-ins between them (the</span>
+<span class="dl-ctx">   CLI&#39;s own permission prompts pace it), one commit per task, producing the</span>
+<span class="dl-ctx">   HTML report — openable from the **View Implementation Report** button on the</span>
+<span class="dl-del">-  spec&#39;s Tasks tab in Frame, refreshed as each task lands.</span>
+<span class="dl-add">+  spec&#39;s Tasks tab in Frame or directly from the spec folder, refreshed as</span>
+<span class="dl-add">+  each task lands.</span>
+<span class="dl-ctx"> - **Describe your own** — you tell me how to run it and I run it that way.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Ask with your structured-question tool (`AskUserQuestion` in Claude Code); with</span>
+<span class="dl-hunk">@@ -184,8 +185,9 @@ back into step-by-step, which is not what the user picked.</span>
+<span class="dl-ctx"> Before the first task, tell the user — once, as a statement, not a question —</span>
+<span class="dl-ctx"> where to watch: the report opens from the **View Implementation Report** button</span>
+<span class="dl-ctx"> on the spec&#39;s Tasks tab in Frame (the button appears when the first task</span>
+<span class="dl-del">-lands), and it is regenerated after every task, so refreshing the opened page</span>
+<span class="dl-del">-follows the run live. Then start; do not wait for a reply.</span>
+<span class="dl-add">+lands), or directly at `.frame/specs/{slug}/implement-report.html` when no</span>
+<span class="dl-add">+Frame window is open, and it is regenerated after every task, so refreshing</span>
+<span class="dl-add">+the opened page follows the run live. Then start; do not wait for a reply.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Per task, in this order:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -236,9 +238,11 @@ ELECTRON_RUN_AS_NODE=1 &quot;$FRAME_NODE&quot; {report_generator_path} \</span>
+<span class="dl-ctx">   .frame/specs/{slug}/report-data.json</span>
+<span class="dl-ctx"> ```</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Quote `$FRAME_NODE` — Frame injects its own executable there, and the packaged</span>
+<span class="dl-del">-path contains spaces. It writes `implement-report.html` next to the data file,</span>
+<span class="dl-del">-openable as each task completes.</span>
+<span class="dl-add">+Quote `$FRAME_NODE` — when Frame launched this session it injects its own</span>
+<span class="dl-add">+executable there, and the packaged path contains spaces. In a session Frame did</span>
+<span class="dl-add">+not launch, `$FRAME_NODE` is unset — use `node` from `PATH` instead (the</span>
+<span class="dl-add">+missing-runtime order below). It writes `implement-report.html` next to the</span>
+<span class="dl-add">+data file, openable as each task completes.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **On the first task only, add `--open`** so the report opens in the browser</span>
+<span class="dl-ctx"> once, at the moment there&#39;s something to see:</span></pre>
     </details>
   </div>
 </section>

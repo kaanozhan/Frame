@@ -75,6 +75,18 @@
         "status": "pass",
         "detail": "153/153 tests pass"
       }
+    },
+    {
+      "id": "T07",
+      "title": "Entry-agnostic wording sweep of the four command templates",
+      "commit": "f6871d6",
+      "whatChanged": "Swept spec.new.md, spec.plan.md, spec.tasks.md and spec.implement.md for wording that assumes Frame launched the session. spec.new/spec.plan/spec.tasks contained no such assumptions and are unchanged. spec.implement.md: FRAME_NODE is now described as injected only when Frame launched the session (with node-from-PATH named for other sessions), and the watch-the-report statement plus the guided picker bullet name the direct implement-report.html path alongside the Frame button.",
+      "whyChanged": "The conversational-entry and handoff sections were already entry-agnostic per v2 (as the plan predicted), so the sweep only had to fix the two spots that presumed a Frame-launched environment: the injected env var and the Frame-window-only report access. No stage, mode or output contract changed.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "153/153 tests pass"
+      }
     }
   ]
 }
