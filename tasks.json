@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:05:52.336Z",
+  "lastUpdated": "2026-07-22T14:09:36.415Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3334,13 +3334,13 @@
       "title": "Create `scripts/spec-hint.js` PreToolUse Edit/Write mode: stdin JSON → files-view lookup, session dedup in `.frame/runtime/spec-hint/<session_id>.json` with 7-day cleanup, full-content default with `FRAME_SPEC_HINT_MODE=signal` override, budget with overflow-to-pointer (3+ specs → one line each, never dropping an entry), in-flight footprint warnings, the user-relay instruction, and the exit-0 never-break contract.",
       "description": "",
       "source": "spec:spec-knowledge-layer:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:09:36.415Z",
+      "completedAt": "2026-07-22T14:09:36.415Z"
     },
     {
       "id": "task-spec-spec-knowledge-layer-T05",

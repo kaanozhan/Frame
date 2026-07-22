@@ -49,3 +49,22 @@ reliability history + perf in-flight warning. Files touched:
 _Captured: 2026-07-22 · 1 file change(s)_
 
 ---
+## T04 — Hook script (`scripts/spec-hint.js`), pre-edit mode
+
+Wrote the PreToolUse entry: stdin JSON → posix-normalized files-view lookup →
+`additionalContext` with chronological records, STALE/IN-FLIGHT warnings and
+the user-relay instruction; session dedup (once per file) in
+`.frame/runtime/spec-hint/<session_id>.json` with 7-day opportunistic
+cleanup; `FRAME_SPEC_HINT_MODE=signal` one-liner mode; budget = full records
+≤2 entries, one-line-per-spec + pointer at 3+ (entries never dropped).
+Read-only by contract — the hook never rebuilds the index; `.frame/` targets
+and out-of-project paths are skipped. Whole main wrapped in try/catch →
+exit 0. Deviation from plan: the `prompt` (UserPromptSubmit) mode landed in
+this task too — the df-weighted scoring shares the tokenizer and state file,
+splitting it made no sense; T05 keeps the test suite. Smoke: 21ms end-to-end
+(budget 50ms), dedup silent, corrupt stdin silent. Files touched:
+`scripts/spec-hint.js` (new).
+
+_Captured: 2026-07-22 · 1 file change(s)_
+
+---
