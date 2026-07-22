@@ -136,6 +136,64 @@ test('section at end of file migrates and trailing separator stays outside the b
   assert.ok(migrated.includes(renderBlock(NEW_BODY, 2)));
 });
 
+// ─── template round-trip (T03) ────────────────────────────────
+//
+// The docs Frame emits must parse as managed blocks stamped current, and the
+// frozen legacy constants must still pass the migration gate — otherwise a
+// Frame release would either re-migrate its own docs or strand old ones.
+
+const templates = require('../src/shared/frameTemplates');
+
+test('freshly emitted REFERENCE.md parses at the current version', () => {
+  const doc = templates.getReferenceTemplate('proj');
+  const block = findBlock(doc);
+  assert.ok(block);
+  assert.equal(block.version, templates.SPEC_SECTION_VERSION);
+  // stamped current → the upgrade driver leaves it alone
+  assert.equal(upgradeDoc(doc, {
+    body: templates.SPEC_DRIVEN_SECTION,
+    version: templates.SPEC_SECTION_VERSION,
+    legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS
+  }), null);
+});
+
+test('freshly emitted AGENTS.md (specDriven) parses at the current version', () => {
+  const doc = templates.getAgentsTemplate('proj', { specDriven: true });
+  const block = findBlock(doc);
+  assert.ok(block);
+  assert.equal(block.version, templates.SPEC_SECTION_VERSION);
+  assert.equal(upgradeDoc(doc, {
+    body: templates.SPEC_DRIVEN_CORE_SECTION,
+    version: templates.SPEC_SECTION_VERSION,
+    legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
+  }), null);
+});
+
+test('AGENTS.md without specDriven has no managed block', () => {
+  assert.equal(findBlock(templates.getAgentsTemplate('proj', { specDriven: false })), null);
+});
+
+test('legacy matchers migrate the previously shipped section bodies', () => {
+  const legacyRef = `# proj — Frame Reference\n\nIntro.\n\n---\n\n${templates.LEGACY_SPEC_DRIVEN_SECTION}\n\n---\n\n## PROJECT_NOTES.md Rules\n\nStuff.\n`;
+  const migratedRef = upgradeDoc(legacyRef, {
+    body: templates.SPEC_DRIVEN_SECTION,
+    version: templates.SPEC_SECTION_VERSION,
+    legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS
+  });
+  assert.ok(migratedRef);
+  assert.ok(migratedRef.includes(templates.renderSpecSection()));
+  assert.ok(migratedRef.includes('## PROJECT_NOTES.md Rules'));
+
+  const legacyAgents = `# proj\n\n---\n\n${templates.LEGACY_SPEC_DRIVEN_CORE_SECTION}\n\n---\n\nFooter.\n`;
+  const migratedAgents = upgradeDoc(legacyAgents, {
+    body: templates.SPEC_DRIVEN_CORE_SECTION,
+    version: templates.SPEC_SECTION_VERSION,
+    legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
+  });
+  assert.ok(migratedAgents);
+  assert.ok(migratedAgents.includes(templates.renderSpecCoreSection()));
+});
+
 test('subheadings inside the section do not truncate the match', () => {
   // LEGACY_SECTION contains an H3; the span must run to the next H1/H2.
   const migrated = upgradeDoc(docWith(LEGACY_SECTION), {

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T15:48:26.859Z",
+  "lastUpdated": "2026-07-22T15:50:38.415Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3910,13 +3910,13 @@
       "title": "Wire marked emission into `getReferenceTemplate`, `getAgentsTemplate` and the `enableSpecDriven` append path in `src/main/frameProject.js`; extend `test/docsManagedBlock.test.js` with round-trip assertions (freshly emitted docs parse at current version, matchers match the previously shipped bodies)",
       "description": "",
       "source": "spec:cli-spec-command-parity:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: cli-spec-command-parity",
       "createdAt": "2026-07-22T15:35:45.884Z",
-      "updatedAt": "2026-07-22T15:35:45.884Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T15:50:38.415Z",
+      "completedAt": "2026-07-22T15:50:38.415Z"
     },
     {
       "id": "task-spec-cli-spec-command-parity-T04",
@@ -3973,7 +3973,7 @@
   ],
   "metadata": {
     "totalCreated": 282,
-    "totalCompleted": 23
+    "totalCompleted": 24
   },
   "categories": {
     "feature": "New features",

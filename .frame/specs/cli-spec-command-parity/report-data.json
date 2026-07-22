@@ -27,6 +27,18 @@
         "status": "pass",
         "detail": "144/144 tests pass"
       }
+    },
+    {
+      "id": "T03",
+      "title": "Marked emission wired into templates + round-trip tests",
+      "commit": "1db2660",
+      "whatChanged": "getReferenceTemplate and getAgentsTemplate now emit the spec sections wrapped in managed-block markers stamped SPEC_SECTION_VERSION (new renderSpecSection/renderSpecCoreSection helpers in frameTemplates.js), and enableSpecDriven's append path in frameProject.js appends the wrapped core section. Extended test/docsManagedBlock.test.js with round-trip assertions: freshly emitted docs parse at the current version and are left alone by upgradeDoc; the frozen legacy constants still pass the migration gate.",
+      "whyChanged": "The round-trip test exposed a boundary gap: a legacy section followed by a --- separator and non-heading content overran its span, so findLegacySpan now also stops at a thematic break — the docs' own section separator.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "148/148 tests pass (4 new)"
+      }
     }
   ]
 }

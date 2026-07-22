@@ -4,6 +4,8 @@
  * Each template includes instructions header for Claude Code
  */
 
+const managedBlock = require('./docsManagedBlock');
+
 /**
  * Get current date in YYYY-MM-DD format
  */
@@ -232,6 +234,19 @@ follow exactly) lives in **"Spec-Driven Development"** in
 \`.frame/docs/REFERENCE.md\`.`;
 
 /**
+ * The spec sections as actually emitted into docs: wrapped in managed-block
+ * markers stamped with the current version, so new projects are born managed
+ * and the upgrade driver can version-gate them later.
+ */
+function renderSpecSection() {
+  return managedBlock.renderBlock(SPEC_DRIVEN_SECTION, SPEC_SECTION_VERSION);
+}
+
+function renderSpecCoreSection() {
+  return managedBlock.renderBlock(SPEC_DRIVEN_CORE_SECTION, SPEC_SECTION_VERSION);
+}
+
+/**
  * AGENTS.md template - the lean always-on core read by AI coding tools
  * (Claude Code, Codex CLI, etc.) every session: orientation only. The
  * maintenance ceremony lives in .frame/docs/REFERENCE.md
@@ -323,7 +338,7 @@ tasks). Trust its warnings over stale entries.
 
 ${specDriven ? `---
 
-${SPEC_DRIVEN_CORE_SECTION}
+${renderSpecCoreSection()}
 
 ` : ''}---
 
@@ -418,7 +433,7 @@ orientation lives in \`AGENTS.md\`; this file is loaded on demand.
 
 ---
 
-${SPEC_DRIVEN_SECTION}
+${renderSpecSection()}
 
 ---
 
@@ -942,6 +957,8 @@ module.exports = {
   getFrameConfigTemplate,
   SPEC_DRIVEN_SECTION,
   SPEC_DRIVEN_CORE_SECTION,
+  renderSpecSection,
+  renderSpecCoreSection,
   SPEC_SECTION_VERSION,
   LEGACY_SPEC_DRIVEN_SECTION,
   LEGACY_SPEC_DRIVEN_CORE_SECTION,

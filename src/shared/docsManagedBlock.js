@@ -91,8 +91,10 @@ function findLegacySpan(text, matcher) {
     const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);
     if (line.trim() !== heading || lineStart !== idx) continue;
 
-    // Section ends at the next heading of the same or higher level, or EOF.
-    const boundary = new RegExp(`^#{1,${level}}\\s`, 'm');
+    // Section ends at the next heading of the same or higher level, at the
+    // next thematic break (`---` on its own line — the docs' section
+    // separator), or at EOF. The shipped section bodies contain neither.
+    const boundary = new RegExp(`^(#{1,${level}}\\s|-{3,}\\s*$)`, 'm');
     const rest = text.slice(from);
     const next = boundary.exec(rest);
     let end = next ? from + next.index : text.length;

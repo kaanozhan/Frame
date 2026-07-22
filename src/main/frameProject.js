@@ -444,9 +444,9 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
   if (!existing) {
     fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true, project: (config && config.project) || null }), 'utf8');
   } else if (!existing.includes('Spec-Driven Development')) {
-    // Append the short core section — the full workflow lives in
-    // .frame/docs/REFERENCE.md, which is guaranteed to exist above
-    const sectionBlock = `\n\n---\n\n${templates.SPEC_DRIVEN_CORE_SECTION}\n`;
+    // Append the short core section (marker-wrapped, stamped current) — the
+    // full workflow lives in .frame/docs/REFERENCE.md, guaranteed above
+    const sectionBlock = `\n\n---\n\n${templates.renderSpecCoreSection()}\n`;
     const footerMarker = '*This file was automatically created by Frame.';
     const footerIdx = existing.indexOf(footerMarker);
     let updated;

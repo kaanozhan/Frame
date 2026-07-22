@@ -15,3 +15,11 @@ Added `SPEC_SECTION_VERSION = 1` and froze the previously shipped section texts 
 _Captured: 2026-07-22 · 1 file change(s)_
 
 ---
+
+## T03 — Marked emission wired into templates + round-trip tests
+
+Added `renderSpecSection`/`renderSpecCoreSection` to `frameTemplates.js` and wired them into `getReferenceTemplate`, `getAgentsTemplate` and `enableSpecDriven`'s append path (`frameProject.js`), so new projects are born with marker-wrapped, version-stamped spec sections. Round-trip tests assert emitted docs parse at the current version and legacy constants still migrate. Divergence from T01: `findLegacySpan` now also bounds a section at a thematic break (`---` line) — the round-trip test showed a heading-only boundary overruns when a legacy section is followed by a separator and non-heading prose.
+
+_Captured: 2026-07-22 · 4 file change(s)_
+
+---

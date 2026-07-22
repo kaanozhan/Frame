@@ -143,8 +143,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">2 tasks</span>
-    <span class="pill good">2 verified</span>
+    <span class="pill">3 tasks</span>
+    <span class="pill good">3 verified</span>
     
     <span class="chip">2026-07-22</span>
   </div>
@@ -153,7 +153,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">2 of 7 tasks done · next: <span class="rs-task">T03 — Wire marked emission into `getReferenceTemplate`, `getAgentsTemplate`…</span></span>
+  <span class="rs-count">3 of 7 tasks done · next: <span class="rs-task">T04 — Create `src/main/commandStaging.js` (pure `resolveStagingPlan`…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -682,6 +682,184 @@
 <span class="dl-ctx">   getCodexWrapperTemplate,</span>
 <span class="dl-ctx">   getGenericWrapperTemplate,</span>
 <span class="dl-ctx">   getStructureHookSnippet,</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T03</span>
+    <h2>Marked emission wired into templates + round-trip tests</h2>
+    <span class="card-meta"><span class="chip">1db2660</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">148/148 tests pass (4 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>getReferenceTemplate and getAgentsTemplate now emit the spec sections wrapped in managed-block markers stamped SPEC_SECTION_VERSION (new renderSpecSection/renderSpecCoreSection helpers in frameTemplates.js), and enableSpecDriven&#39;s append path in frameProject.js appends the wrapped core section. Extended test/docsManagedBlock.test.js with round-trip assertions: freshly emitted docs parse at the current version and are left alone by upgradeDoc; the frozen legacy constants still pass the migration gate.</p></div>
+    <div class="field"><span class="label">Why</span><p>The round-trip test exposed a boundary gap: a legacy section followed by a --- separator and non-heading content overran its span, so findLegacySpan now also stops at a thematic break — the docs&#39; own section separator.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 26d2aaf..4d992c6 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -444,9 +444,9 @@ function ensureSpecDrivenArtifacts(projectPath, config) {</span>
+<span class="dl-ctx">   if (!existing) {</span>
+<span class="dl-ctx">     fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true, project: (config &amp;&amp; config.project) || null }), &#39;utf8&#39;);</span>
+<span class="dl-ctx">   } else if (!existing.includes(&#39;Spec-Driven Development&#39;)) {</span>
+<span class="dl-del">-    // Append the short core section — the full workflow lives in</span>
+<span class="dl-del">-    // .frame/docs/REFERENCE.md, which is guaranteed to exist above</span>
+<span class="dl-del">-    const sectionBlock = `\n\n---\n\n${templates.SPEC_DRIVEN_CORE_SECTION}\n`;</span>
+<span class="dl-add">+    // Append the short core section (marker-wrapped, stamped current) — the</span>
+<span class="dl-add">+    // full workflow lives in .frame/docs/REFERENCE.md, guaranteed above</span>
+<span class="dl-add">+    const sectionBlock = `\n\n---\n\n${templates.renderSpecCoreSection()}\n`;</span>
+<span class="dl-ctx">     const footerMarker = &#39;*This file was automatically created by Frame.&#39;;</span>
+<span class="dl-ctx">     const footerIdx = existing.indexOf(footerMarker);</span>
+<span class="dl-ctx">     let updated;</span>
+<span class="dl-meta">diff --git a/src/shared/docsManagedBlock.js b/src/shared/docsManagedBlock.js</span>
+<span class="dl-meta">index a8b5361..cc0c8eb 100644</span>
+<span class="dl-file">--- a/src/shared/docsManagedBlock.js</span>
+<span class="dl-file">+++ b/src/shared/docsManagedBlock.js</span>
+<span class="dl-hunk">@@ -91,8 +91,10 @@ function findLegacySpan(text, matcher) {</span>
+<span class="dl-ctx">     const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);</span>
+<span class="dl-ctx">     if (line.trim() !== heading || lineStart !== idx) continue;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-    // Section ends at the next heading of the same or higher level, or EOF.</span>
+<span class="dl-del">-    const boundary = new RegExp(`^#{1,${level}}\\s`, &#39;m&#39;);</span>
+<span class="dl-add">+    // Section ends at the next heading of the same or higher level, at the</span>
+<span class="dl-add">+    // next thematic break (`---` on its own line — the docs&#39; section</span>
+<span class="dl-add">+    // separator), or at EOF. The shipped section bodies contain neither.</span>
+<span class="dl-add">+    const boundary = new RegExp(`^(#{1,${level}}\\s|-{3,}\\s*$)`, &#39;m&#39;);</span>
+<span class="dl-ctx">     const rest = text.slice(from);</span>
+<span class="dl-ctx">     const next = boundary.exec(rest);</span>
+<span class="dl-ctx">     let end = next ? from + next.index : text.length;</span>
+<span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 2771ba8..a3d4ff2 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -4,6 +4,8 @@</span>
+<span class="dl-ctx">  * Each template includes instructions header for Claude Code</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+const managedBlock = require(&#39;./docsManagedBlock&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Get current date in YYYY-MM-DD format</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -231,6 +233,19 @@ The self-serve protocol (resolve spec → resolve template → interpolate →</span>
+<span class="dl-ctx"> follow exactly) lives in **&quot;Spec-Driven Development&quot;** in</span>
+<span class="dl-ctx"> \`.frame/docs/REFERENCE.md\`.`;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The spec sections as actually emitted into docs: wrapped in managed-block</span>
+<span class="dl-add">+ * markers stamped with the current version, so new projects are born managed</span>
+<span class="dl-add">+ * and the upgrade driver can version-gate them later.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function renderSpecSection() {</span>
+<span class="dl-add">+  return managedBlock.renderBlock(SPEC_DRIVEN_SECTION, SPEC_SECTION_VERSION);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function renderSpecCoreSection() {</span>
+<span class="dl-add">+  return managedBlock.renderBlock(SPEC_DRIVEN_CORE_SECTION, SPEC_SECTION_VERSION);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * AGENTS.md template - the lean always-on core read by AI coding tools</span>
+<span class="dl-ctx">  * (Claude Code, Codex CLI, etc.) every session: orientation only. The</span>
+<span class="dl-hunk">@@ -323,7 +338,7 @@ tasks). Trust its warnings over stale entries.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ${specDriven ? `---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-${SPEC_DRIVEN_CORE_SECTION}</span>
+<span class="dl-add">+${renderSpecCoreSection()}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ` : &#39;&#39;}---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -418,7 +433,7 @@ orientation lives in \`AGENTS.md\`; this file is loaded on demand.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-${SPEC_DRIVEN_SECTION}</span>
+<span class="dl-add">+${renderSpecSection()}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -942,6 +957,8 @@ module.exports = {</span>
+<span class="dl-ctx">   getFrameConfigTemplate,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_SECTION,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+  renderSpecSection,</span>
+<span class="dl-add">+  renderSpecCoreSection,</span>
+<span class="dl-ctx">   SPEC_SECTION_VERSION,</span>
+<span class="dl-ctx">   LEGACY_SPEC_DRIVEN_SECTION,</span>
+<span class="dl-ctx">   LEGACY_SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-meta">diff --git a/test/docsManagedBlock.test.js b/test/docsManagedBlock.test.js</span>
+<span class="dl-meta">index 397a1a9..1beec25 100644</span>
+<span class="dl-file">--- a/test/docsManagedBlock.test.js</span>
+<span class="dl-file">+++ b/test/docsManagedBlock.test.js</span>
+<span class="dl-hunk">@@ -136,6 +136,64 @@ test(&#39;section at end of file migrates and trailing separator stays outside the b</span>
+<span class="dl-ctx">   assert.ok(migrated.includes(renderBlock(NEW_BODY, 2)));</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── template round-trip (T03) ────────────────────────────────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// The docs Frame emits must parse as managed blocks stamped current, and the</span>
+<span class="dl-add">+// frozen legacy constants must still pass the migration gate — otherwise a</span>
+<span class="dl-add">+// Frame release would either re-migrate its own docs or strand old ones.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const templates = require(&#39;../src/shared/frameTemplates&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;freshly emitted REFERENCE.md parses at the current version&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = templates.getReferenceTemplate(&#39;proj&#39;);</span>
+<span class="dl-add">+  const block = findBlock(doc);</span>
+<span class="dl-add">+  assert.ok(block);</span>
+<span class="dl-add">+  assert.equal(block.version, templates.SPEC_SECTION_VERSION);</span>
+<span class="dl-add">+  // stamped current → the upgrade driver leaves it alone</span>
+<span class="dl-add">+  assert.equal(upgradeDoc(doc, {</span>
+<span class="dl-add">+    body: templates.SPEC_DRIVEN_SECTION,</span>
+<span class="dl-add">+    version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+    legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+  }), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;freshly emitted AGENTS.md (specDriven) parses at the current version&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = templates.getAgentsTemplate(&#39;proj&#39;, { specDriven: true });</span>
+<span class="dl-add">+  const block = findBlock(doc);</span>
+<span class="dl-add">+  assert.ok(block);</span>
+<span class="dl-add">+  assert.equal(block.version, templates.SPEC_SECTION_VERSION);</span>
+<span class="dl-add">+  assert.equal(upgradeDoc(doc, {</span>
+<span class="dl-add">+    body: templates.SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+    version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+    legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+  }), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;AGENTS.md without specDriven has no managed block&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(findBlock(templates.getAgentsTemplate(&#39;proj&#39;, { specDriven: false })), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;legacy matchers migrate the previously shipped section bodies&#39;, () =&gt; {</span>
+<span class="dl-add">+  const legacyRef = `# proj — Frame Reference\n\nIntro.\n\n---\n\n${templates.LEGACY_SPEC_DRIVEN_SECTION}\n\n---\n\n## PROJECT_NOTES.md Rules\n\nStuff.\n`;</span>
+<span class="dl-add">+  const migratedRef = upgradeDoc(legacyRef, {</span>
+<span class="dl-add">+    body: templates.SPEC_DRIVEN_SECTION,</span>
+<span class="dl-add">+    version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+    legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.ok(migratedRef);</span>
+<span class="dl-add">+  assert.ok(migratedRef.includes(templates.renderSpecSection()));</span>
+<span class="dl-add">+  assert.ok(migratedRef.includes(&#39;## PROJECT_NOTES.md Rules&#39;));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const legacyAgents = `# proj\n\n---\n\n${templates.LEGACY_SPEC_DRIVEN_CORE_SECTION}\n\n---\n\nFooter.\n`;</span>
+<span class="dl-add">+  const migratedAgents = upgradeDoc(legacyAgents, {</span>
+<span class="dl-add">+    body: templates.SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+    version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+    legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.ok(migratedAgents);</span>
+<span class="dl-add">+  assert.ok(migratedAgents.includes(templates.renderSpecCoreSection()));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> test(&#39;subheadings inside the section do not truncate the match&#39;, () =&gt; {</span>
+<span class="dl-ctx">   // LEGACY_SECTION contains an H3; the span must run to the next H1/H2.</span>
+<span class="dl-ctx">   const migrated = upgradeDoc(docWith(LEGACY_SECTION), {</span></pre>
     </details>
   </div>
 </section>

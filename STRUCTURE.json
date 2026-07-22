@@ -7847,7 +7847,7 @@
           "purpose": "Find the heading-bounded span of a legacy section that passes the"
         },
         "upgradeDoc": {
-          "line": 125,
+          "line": 127,
           "params": [
             "text",
             "options"
@@ -7891,6 +7891,8 @@
         "getFrameConfigTemplate",
         "SPEC_DRIVEN_SECTION",
         "SPEC_DRIVEN_CORE_SECTION",
+        "renderSpecSection",
+        "renderSpecCoreSection",
         "SPEC_SECTION_VERSION",
         "LEGACY_SPEC_DRIVEN_SECTION",
         "LEGACY_SPEC_DRIVEN_CORE_SECTION",
@@ -7905,41 +7907,49 @@
         "FRAME_HOOK_MARKER_END"
       ],
       "depends": [
+        "docsManagedBlock",
         "fs",
         "path"
       ],
       "functions": {
         "getDateString": {
-          "line": 10,
+          "line": 12,
           "purpose": "Get current date in YYYY-MM-DD format"
         },
         "getISOTimestamp": {
-          "line": 17,
+          "line": 19,
           "purpose": "Get current ISO timestamp"
         },
+        "renderSpecSection": {
+          "line": 241,
+          "purpose": "The spec sections as actually emitted into docs: wrapped in managed-block"
+        },
+        "renderSpecCoreSection": {
+          "line": 245
+        },
         "formatProjectFacts": {
-          "line": 251,
+          "line": 266,
           "params": [
             "project"
           ],
           "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
         },
         "getAgentsTemplate": {
-          "line": 280,
+          "line": 295,
           "params": [
             "projectName",
             "options"
           ]
         },
         "getReferenceTemplate": {
-          "line": 363,
+          "line": 378,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 538,
+          "line": 553,
           "params": [
             "projectName",
             "project"
@@ -7947,21 +7957,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 563,
+          "line": 578,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 583,
+          "line": 598,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 629,
+          "line": 644,
           "params": [
             "projectName",
             "project"
@@ -7969,18 +7979,18 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 710,
+          "line": 725,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 749,
+          "line": 764,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 786,
+          "line": 801,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -7988,27 +7998,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 832
+          "line": 847
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 853,
+          "line": 868,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 876,
+          "line": 891,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 888,
+          "line": 903,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 908
+          "line": 923
         },
         "getOrchBinScripts": {
-          "line": 926,
+          "line": 941,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
