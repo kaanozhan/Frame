@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:22:38.911Z",
+  "lastUpdated": "2026-07-22T14:23:25.316Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3399,13 +3399,13 @@
       "title": "Preload footprint file histories in `buildWorkerPrompt` (`src/main/orchestrationManager.js`): append a \"File history for your footprint\" section built from the files view to the staged worker prompt.",
       "description": "",
       "source": "spec:spec-knowledge-layer:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:23:25.316Z",
+      "completedAt": "2026-07-22T14:23:25.316Z"
     },
     {
       "id": "task-spec-spec-knowledge-layer-T10",

@@ -137,3 +137,16 @@ completion steps. Files touched: all four templates.
 _Captured: 2026-07-22 · 4 file change(s)_
 
 ---
+## T09 — Worker footprint-history preload
+
+`buildWorkerPrompt` now appends a "File history for your footprint" section:
+sync read of the warm index, per-footprint-file chronological entries with
+STALE / IN-FLIGHT marks and a respect-or-surface-to-conductor instruction;
+the worker's own in-flight entry is filtered out as noise. Any failure →
+empty section (prompt unchanged from today). Verified against the real
+index: cross-platform's 17-file footprint resolves prior history for 12.
+Files touched: `src/main/orchestrationManager.js`.
+
+_Captured: 2026-07-22 · 1 file change(s)_
+
+---

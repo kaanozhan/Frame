@@ -1443,67 +1443,74 @@
           ],
           "purpose": "An in-flight spec whose footprint overlaps `footprint`, or null. done/failed"
         },
-        "buildWorkerPrompt": {
-          "line": 143,
+        "footprintHistorySection": {
+          "line": 147,
           "params": [
             "projectPath",
             "slug"
           ],
           "purpose": "Write the interpolated worker prompt to the MAIN repo (worktrees lack .frame/"
         },
+        "buildWorkerPrompt": {
+          "line": 175,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
         "relayToConductor": {
-          "line": 165,
+          "line": 198,
           "params": [
             "session",
             "text"
           ]
         },
         "drainRelayQueue": {
-          "line": 171,
+          "line": 204,
           "params": [
             "session"
           ]
         },
         "materializeBinScripts": {
-          "line": 189,
+          "line": 222,
           "params": [
             "projectPath"
           ],
           "purpose": "Materialize the .frame/bin command scripts for this project."
         },
         "serializeState": {
-          "line": 201,
+          "line": 234,
           "params": [
             "session"
           ]
         },
         "publishState": {
-          "line": 226,
+          "line": 259,
           "params": [
             "session"
           ]
         },
         "startBusWatcher": {
-          "line": 243,
+          "line": 276,
           "params": [
             "session"
           ]
         },
         "drainBus": {
-          "line": 256,
+          "line": 289,
           "params": [
             "session"
           ]
         },
         "handleRequest": {
-          "line": 280,
+          "line": 313,
           "params": [
             "session",
             "req"
           ]
         },
         "handleDispatch": {
-          "line": 300,
+          "line": 333,
           "params": [
             "session",
             "slug"
@@ -1511,7 +1518,7 @@
           "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
         },
         "registerWorkerLane": {
-          "line": 372,
+          "line": 405,
           "params": [
             "projectPath",
             "slug",
@@ -1520,7 +1527,7 @@
           "purpose": "The renderer reports the terminalId it created for a worker lane, so the"
         },
         "handleReportDone": {
-          "line": 385,
+          "line": 418,
           "params": [
             "session",
             "slug"
@@ -1528,7 +1535,7 @@
           "purpose": "T15 — a worker reported completion: mark done, attach a diff stat, relay to"
         },
         "handleMerge": {
-          "line": 404,
+          "line": 437,
           "params": [
             "session",
             "slug",
@@ -1537,7 +1544,7 @@
           "purpose": "T22 (drift check + fast-forward merge into integration) + T23 (meta reconcile"
         },
         "mergeWorker": {
-          "line": 444,
+          "line": 477,
           "params": [
             "projectPath",
             "slug",
@@ -1546,7 +1553,7 @@
           "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
         },
         "removeWorker": {
-          "line": 452,
+          "line": 485,
           "params": [
             "projectPath",
             "slug"
@@ -1554,33 +1561,33 @@
           "purpose": "Per-worker cleanup from the board UI: stop its lane, remove the worktree, and"
         },
         "pollStatuses": {
-          "line": 477,
+          "line": 510,
           "params": [
             "session"
           ]
         },
         "startOrchestration": {
-          "line": 518,
+          "line": 551,
           "params": [
             "args = {}"
           ]
         },
         "stopOrchestration": {
-          "line": 584,
+          "line": 617,
           "params": [
             "projectPath"
           ],
           "purpose": "T25 — teardown: stop worker lanes, remove their worktrees, prune only MERGED"
         },
         "rehydrate": {
-          "line": 626,
+          "line": 659,
           "params": [
             "session"
           ],
           "purpose": "T26 — best-effort rehydration from frame/<slug>/* branches after a restart."
         },
         "resumeWorker": {
-          "line": 679,
+          "line": 712,
           "params": [
             "projectPath",
             "slug"
@@ -1588,20 +1595,20 @@
           "purpose": "Resume a recovered worker: spawn a fresh agent lane in its EXISTING"
         },
         "assignSpecs": {
-          "line": 704,
+          "line": 737,
           "params": [
             "projectPath",
             "slugs"
           ]
         },
         "getState": {
-          "line": 712,
+          "line": 745,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 718,
+          "line": 751,
           "params": [
             "ipcMain"
           ]
