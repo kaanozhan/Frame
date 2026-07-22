@@ -38,6 +38,19 @@ node scripts/find-module.js <keyword>   # concept/synonym → files (e.g. github
 node scripts/find-module.js --list      # all features
 ```
 
+**Spec history** — before working a topic or changing a file, check what
+earlier specs did there and why (Claude Code sessions also get this injected
+automatically via hooks; other CLIs: run it yourself):
+
+```bash
+node scripts/spec-context.js <keyword>       # topic → related specs + digests
+node scripts/spec-context.js --file <path>   # file → who changed it, why, result
+```
+
+On a hit, read the chain (`spec.md → plan.md → tasks.md → outcome.md`)
+before working — respect recorded decisions or overturn them explicitly,
+never silently. Details: "Spec Knowledge Layer" in `.frame/docs/REFERENCE.md`.
+
 **Freshness** — `npm run freshness` reports when this context is likely to
 mislead (phantom modules, stale STRUCTURE/notes, stuck tasks). Trust its
 warnings over stale entries.

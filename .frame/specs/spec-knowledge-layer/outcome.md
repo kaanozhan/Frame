@@ -168,3 +168,22 @@ lines; verified via spec-context on tasksManager.js, `telemetry` and
 _Captured: 2026-07-22 · 12 file change(s)_
 
 ---
+## T11 — Documentation (advisory layer + reference)
+
+Added the "Spec history" advisory block (spec-context commands + read-the-
+chain rule) next to find-module in Frame's own AGENTS.md and in the LIVE
+user-project template — which the hook's STALE warning correctly revealed to
+be `getAgentsTemplate()` in `src/shared/frameTemplates.js`, not
+`src/templates/CLAUDE.md` (core-value-efficacy T08 moved it; the md file has
+zero code references — dead copy, edited for consistency, deletion
+candidate). Wrote the "Spec Knowledge Layer" section in
+`.frame/docs/REFERENCE.md`: index contract + views + flags, digest rules,
+hook behavior + modes, worker no-regenerate rule, respect-or-overturn rule.
+Note: `frameTemplates.js` is also in in-flight cross-platform's footprint
+(Codex wrapper work) — additive doc block, but merge order matters. Files
+touched: `AGENTS.md`, `.frame/docs/REFERENCE.md`,
+`src/shared/frameTemplates.js`, `src/templates/CLAUDE.md`.
+
+_Captured: 2026-07-22 · 4 file change(s)_
+
+---

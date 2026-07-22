@@ -7761,14 +7761,14 @@
           ]
         },
         "getReferenceTemplate": {
-          "line": 236,
+          "line": 249,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 411,
+          "line": 424,
           "params": [
             "projectName",
             "project"
@@ -7776,21 +7776,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 436,
+          "line": 449,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 456,
+          "line": 469,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 502,
+          "line": 515,
           "params": [
             "projectName",
             "project"
@@ -7798,18 +7798,18 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 583,
+          "line": 596,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 622,
+          "line": 635,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 659,
+          "line": 672,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -7817,27 +7817,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 705
+          "line": 718
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 726,
+          "line": 739,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 749,
+          "line": 762,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 761,
+          "line": 774,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 781
+          "line": 794
         },
         "getOrchBinScripts": {
-          "line": 799,
+          "line": 812,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

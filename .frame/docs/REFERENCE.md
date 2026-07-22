@@ -249,6 +249,49 @@ step.
 
 ---
 
+## Spec Knowledge Layer
+
+The spec archive doubles as durable memory: what was done, why that path won
+(rejected alternatives included), and what actually happened. The layer
+delivers it deterministically.
+
+**Index (generated — never edit, never commit).**
+`.frame/index/spec-index.json`, built by `scripts/spec-index.js` from spec
+artifacts: plan `## Footprint` (intent) + outcome `Files touched:` (actuals)
++ `spec.md`/`digest.md` front-matter (`keywords:/related:/supersedes:`).
+Git adds enrichment only (renames, post-close stale flags). Two views:
+`topics` (slug → catalog record) and `files` (path → chronological records,
+newest = current truth; flags: `current`, `stale`, `laterSpecs`, `inflight`,
+`movedTo`). Phase filter: done → full records; planned/implementing →
+in-flight warnings; specified → topics only; `superseded_by` in status.json
+→ excluded. Frame refreshes it on spec status writes (debounced
+`ensureFresh`); it rebuilds lazily on read paths. **Orchestration workers
+never regenerate it** (extension of the meta-file rule).
+
+**digest.md** — written when a spec's last task completes (spec.implement /
+WORKER.md step): front-matter + ≤15 lines from *outcome actuals* (what, why
+this path won, result, rules established) + the chain line. It is the entry
+point, not the substitute: on a hit, read
+`spec.md → plan.md → tasks.md → outcome.md`.
+
+**Delivery.** Claude Code sessions get history injected by hooks
+(`scripts/spec-hint.js` via `.claude/settings.json`): PreToolUse on
+Edit/Write (moment of intent — deliberately not Grep/Read), UserPromptSubmit
+for topics. Once per file/topic per session; 3+ specs on one file → one line
+each + pointer (entries are never dropped); `FRAME_SPEC_HINT_MODE=signal`
+switches to signal-only. Hooks are read-only and never-break: any failure →
+exit 0, silence. `spec.plan`'s evidence pass and worker prompts preload
+footprint history; `spec.new` embeds the full catalog for relatedness
+evaluation. Other CLIs use the advisory commands in AGENTS.md
+(`spec-context.js`).
+
+**Rules that always apply.** Respect recorded decisions or overturn them
+explicitly — never silently contradict a prior spec. Treat `STALE` records
+as leads to verify, not truth. Declare `supersedes:` when a spec replaces
+one; mark dead specs with `"superseded_by"` in their status.json.
+
+---
+
 ## General Rules
 
 1. **Language:** Write documentation in English (except code examples)
