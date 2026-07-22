@@ -1121,3 +1121,40 @@ tracing harness. Key mechanics:
 
 Verified: 82/82 tests green; grep-verified zero hot-path exec/spawnSync and
 zero ungated setIntervals in src/main.
+
+### [2026-07-22] Spec Knowledge Layer shipped — specs became delivered memory (spec-knowledge-layer)
+
+Implemented the full spec (T01–T12) in one session on `feat/spec-knowledge-layer`,
+from the 2026-07-20 design conversation: the founder's vision that an agent
+taking on work should scan the spec archive twice — by topic (understand the
+context) and by file (what was done here, why, how, with what result) — and
+that this must *always* work, not depend on AGENTS.md being read.
+
+**Architecture of record:** source artifacts untouched → per-spec `digest.md`
+(written in the last implement turn — there is no spec.done command, `done` is
+derived) → derived gitignored `.frame/index/spec-index.json` (topics + files
+views; Footprint = intent, outcome `Files touched:` = actuals, front-matter =
+declared relationships; git only enriches: rename chains, post-close stale
+flags) → `spec-context.js` queries → delivery via two deterministic channels:
+Claude Code hooks (`spec-hint.js`: PreToolUse Edit/Write + UserPromptSubmit,
+session-deduped, budget-with-overflow-to-pointer, never-block/never-break,
+~20ms measured) and Frame-composed prompts (spec.new full-catalog relatedness
+step + `keywords/related/supersedes` front-matter; spec.plan footprint-history
+evidence step; worker prompt preload; digest step in spec.implement/WORKER).
+
+**Decisions of record (gate):** full-content injection default
+(`FRAME_SPEC_HINT_MODE=signal` kept for comparison); UI file-history panel →
+follow-on spec; hygiene+backfill in-spec (test-orch purged, deep-spec-plan
+corrected to done, `superseded_by` marker born); index gitignored + lazy
+`ensureFresh` (STRUCTURE.json tracked-generated-file conflict trap explicitly
+avoided); hooks registered in tracked `.claude/settings.json` (whole team +
+worktrees, merge-safe init install for user projects, gated `ai_tool: claude`).
+
+**The layer caught its first real miss while being built:** editing
+`src/templates/CLAUDE.md` for the T11 advisory, the injected STALE record for
+core-value-efficacy T08 forced verification → the live AGENTS template is
+`getAgentsTemplate()` in `frameTemplates.js`; the md file has zero code refs
+(dead copy, deletion candidate). Backfilled 12 digests for done specs.
+Eval: `run-eval.js --hooks` ready; the injected-vs-not comparison is a
+budgeted run, not yet executed. Follow-ups: UI panel spec, dead-template
+cleanup, frameTemplates.js merge-order care vs in-flight cross-platform.

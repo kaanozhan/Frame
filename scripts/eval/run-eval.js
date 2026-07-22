@@ -14,6 +14,7 @@
  *   node scripts/eval/run-eval.js --arm frame|bare    # one arm
  *   node scripts/eval/run-eval.js --timeout 600       # seconds per run (default 600)
  *   node scripts/eval/run-eval.js --out <dir>         # results dir override
+ *   node scripts/eval/run-eval.js --hooks             # frame arm runs with spec-knowledge hooks (injected-vs-not comparison)
  *
  * Agent CLI is configurable so other tools can slot in:
  *   FRAME_EVAL_AGENT       binary (default: claude)
@@ -58,7 +59,11 @@ function parseArgs() {
     task: get('--task'),
     arm: get('--arm'),
     timeoutSec: Number(get('--timeout')) || 600,
-    out: get('--out')
+    out: get('--out'),
+    // --hooks: frame-arm worktrees get the spec-knowledge hooks
+    // (.claude/settings.json + freshly built index + hint scripts), so runs
+    // measure injected vs non-injected agent behavior. Bare arm never hooks.
+    hooks: args.includes('--hooks')
   };
 }
 
@@ -66,7 +71,38 @@ function git(cmd, cwd) {
   return execSync(cmd, { cwd: cwd || ROOT_DIR, encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024 });
 }
 
-function runOne(task, arm, resultsDir, timeoutSec) {
+// Frame-arm hook setup for --hooks runs: current hint scripts + a fresh
+// index built inside the worktree (the pinned commit predates the layer),
+// plus the hook registration. Best-effort — a failure degrades the run to
+// un-hooked rather than aborting it.
+const HOOK_SCRIPT_FILES = ['scripts/spec-index.js', 'scripts/spec-context.js', 'scripts/spec-hint.js'];
+
+function setupHooks(wt) {
+  try {
+    for (const rel of HOOK_SCRIPT_FILES) {
+      const dst = path.join(wt, rel);
+      fs.mkdirSync(path.dirname(dst), { recursive: true });
+      fs.copyFileSync(path.join(ROOT_DIR, rel), dst);
+    }
+    const settingsDir = path.join(wt, '.claude');
+    fs.mkdirSync(settingsDir, { recursive: true });
+    fs.writeFileSync(path.join(settingsDir, 'settings.json'), JSON.stringify({
+      hooks: {
+        PreToolUse: [{ matcher: 'Edit|Write', hooks: [{ type: 'command', command: 'node scripts/spec-hint.js pre-edit' }] }],
+        UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'node scripts/spec-hint.js prompt' }] }]
+      }
+    }, null, 2) + '\n');
+    const built = spawnSync('node', [path.join(wt, 'scripts', 'spec-index.js'), '--force'], {
+      cwd: wt, encoding: 'utf-8', timeout: 60000
+    });
+    return built.status === 0;
+  } catch (e) {
+    console.warn(`  (hook setup failed, running un-hooked: ${e.message})`);
+    return false;
+  }
+}
+
+function runOne(task, arm, resultsDir, timeoutSec, hooks) {
   const runDir = path.join(resultsDir, `${task.id}--${arm}`);
   fs.mkdirSync(runDir, { recursive: true });
 
@@ -85,6 +121,14 @@ function runOne(task, arm, resultsDir, timeoutSec) {
       // did — the removed context files must not show up as its changes.
       git('git add -A', wt);
       git('git -c user.email=eval@frame -c user.name=frame-eval commit -q --no-verify -m "strip frame context (bare arm)"', wt);
+    }
+
+    let hooksActive = false;
+    if (hooks && arm === 'frame') {
+      hooksActive = setupHooks(wt);
+      // Commit the setup so it never shows up as agent-produced diff.
+      git('git add -A', wt);
+      git('git -c user.email=eval@frame -c user.name=frame-eval commit -q --no-verify -m "spec-knowledge hooks (frame arm)"', wt);
     }
 
     // Diff base: some agents commit their own work in the worktree, which
@@ -125,6 +169,7 @@ function runOne(task, arm, resultsDir, timeoutSec) {
     const meta = {
       task: task.id,
       arm,
+      hooksActive,
       pinnedCommit: SUITE.pinnedCommit,
       agent: `${AGENT_CMD} ${AGENT_ARGS.join(' ')}`,
       exitCode: result.status,
@@ -169,7 +214,7 @@ function main() {
   for (const task of tasks) {
     for (const arm of arms) {
       try {
-        all.push(runOne(task, arm, resultsDir, opts.timeoutSec));
+        all.push(runOne(task, arm, resultsDir, opts.timeoutSec, opts.hooks));
       } catch (e) {
         console.error(`  ✗ ${task.id} [${arm}] crashed: ${e.message}`);
         all.push({ task: task.id, arm, crashed: true, error: e.message });

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-19",
+  "lastUpdated": "2026-07-22",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -540,7 +540,8 @@
         "structureBootstrap",
         "telemetry",
         "perfMonitor",
-        "../scripts/detect-project"
+        "../scripts/detect-project",
+        "aiToolManager"
       ],
       "functions": {
         "init": {
@@ -615,27 +616,34 @@
             "projectName"
           ]
         },
+        "installSpecHintHook": {
+          "line": 409,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
+        },
         "isSpecDrivenEnabled": {
-          "line": 379,
+          "line": 462,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 384,
+          "line": 467,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 409,
+          "line": 492,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "setupIPC": {
-          "line": 470,
+          "line": 553,
           "params": [
             "ipcMain"
           ],
@@ -1435,67 +1443,74 @@
           ],
           "purpose": "An in-flight spec whose footprint overlaps `footprint`, or null. done/failed"
         },
-        "buildWorkerPrompt": {
-          "line": 143,
+        "footprintHistorySection": {
+          "line": 147,
           "params": [
             "projectPath",
             "slug"
           ],
           "purpose": "Write the interpolated worker prompt to the MAIN repo (worktrees lack .frame/"
         },
+        "buildWorkerPrompt": {
+          "line": 175,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
         "relayToConductor": {
-          "line": 165,
+          "line": 198,
           "params": [
             "session",
             "text"
           ]
         },
         "drainRelayQueue": {
-          "line": 171,
+          "line": 204,
           "params": [
             "session"
           ]
         },
         "materializeBinScripts": {
-          "line": 189,
+          "line": 222,
           "params": [
             "projectPath"
           ],
           "purpose": "Materialize the .frame/bin command scripts for this project."
         },
         "serializeState": {
-          "line": 201,
+          "line": 234,
           "params": [
             "session"
           ]
         },
         "publishState": {
-          "line": 226,
+          "line": 259,
           "params": [
             "session"
           ]
         },
         "startBusWatcher": {
-          "line": 243,
+          "line": 276,
           "params": [
             "session"
           ]
         },
         "drainBus": {
-          "line": 256,
+          "line": 289,
           "params": [
             "session"
           ]
         },
         "handleRequest": {
-          "line": 280,
+          "line": 313,
           "params": [
             "session",
             "req"
           ]
         },
         "handleDispatch": {
-          "line": 300,
+          "line": 333,
           "params": [
             "session",
             "slug"
@@ -1503,7 +1518,7 @@
           "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
         },
         "registerWorkerLane": {
-          "line": 372,
+          "line": 405,
           "params": [
             "projectPath",
             "slug",
@@ -1512,7 +1527,7 @@
           "purpose": "The renderer reports the terminalId it created for a worker lane, so the"
         },
         "handleReportDone": {
-          "line": 385,
+          "line": 418,
           "params": [
             "session",
             "slug"
@@ -1520,7 +1535,7 @@
           "purpose": "T15 — a worker reported completion: mark done, attach a diff stat, relay to"
         },
         "handleMerge": {
-          "line": 404,
+          "line": 437,
           "params": [
             "session",
             "slug",
@@ -1529,7 +1544,7 @@
           "purpose": "T22 (drift check + fast-forward merge into integration) + T23 (meta reconcile"
         },
         "mergeWorker": {
-          "line": 444,
+          "line": 477,
           "params": [
             "projectPath",
             "slug",
@@ -1538,7 +1553,7 @@
           "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
         },
         "removeWorker": {
-          "line": 452,
+          "line": 485,
           "params": [
             "projectPath",
             "slug"
@@ -1546,33 +1561,33 @@
           "purpose": "Per-worker cleanup from the board UI: stop its lane, remove the worktree, and"
         },
         "pollStatuses": {
-          "line": 477,
+          "line": 510,
           "params": [
             "session"
           ]
         },
         "startOrchestration": {
-          "line": 518,
+          "line": 551,
           "params": [
             "args = {}"
           ]
         },
         "stopOrchestration": {
-          "line": 584,
+          "line": 617,
           "params": [
             "projectPath"
           ],
           "purpose": "T25 — teardown: stop worker lanes, remove their worktrees, prune only MERGED"
         },
         "rehydrate": {
-          "line": 626,
+          "line": 659,
           "params": [
             "session"
           ],
           "purpose": "T26 — best-effort rehydration from frame/<slug>/* branches after a restart."
         },
         "resumeWorker": {
-          "line": 679,
+          "line": 712,
           "params": [
             "projectPath",
             "slug"
@@ -1580,20 +1595,20 @@
           "purpose": "Resume a recovered worker: spawn a fresh agent lane in its EXISTING"
         },
         "assignSpecs": {
-          "line": 704,
+          "line": 737,
           "params": [
             "projectPath",
             "slugs"
           ]
         },
         "getState": {
-          "line": 712,
+          "line": 745,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 718,
+          "line": 751,
           "params": [
             "ipcMain"
           ]
@@ -2371,14 +2386,27 @@
             "status"
           ]
         },
+        "scheduleIndexRefresh": {
+          "line": 160,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "buildSpecCatalog": {
+          "line": 177,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
+        },
         "listSpecs": {
-          "line": 149,
+          "line": 197,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 204,
+          "line": 252,
           "params": [
             "projectPath",
             "slug",
@@ -2386,7 +2414,7 @@
           ]
         },
         "derivePhase": {
-          "line": 208,
+          "line": 256,
           "params": [
             "projectPath",
             "slug",
@@ -2395,14 +2423,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 227,
+          "line": 275,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 233,
+          "line": 281,
           "params": [
             "projectPath",
             "slug",
@@ -2410,14 +2438,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 258,
+          "line": 306,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 262,
+          "line": 310,
           "params": [
             "projectPath",
             "aiTool",
@@ -2425,7 +2453,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 266,
+          "line": 314,
           "params": [
             "projectPath",
             "aiTool",
@@ -2433,14 +2461,14 @@
           ]
         },
         "interpolate": {
-          "line": 272,
+          "line": 320,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 279,
+          "line": 327,
           "params": [
             "projectPath",
             "slug",
@@ -2449,7 +2477,7 @@
           ]
         },
         "stageReportTemplateAsset": {
-          "line": 315,
+          "line": 366,
           "params": [
             "projectPath",
             "aiTool"
@@ -2457,7 +2485,7 @@
           "purpose": "The spec.plan agent fills the report template from the terminal CLI,"
         },
         "buildSpecCommandFile": {
-          "line": 336,
+          "line": 387,
           "params": [
             "projectPath",
             "slug",
@@ -2466,53 +2494,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 365,
+          "line": 416,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 391,
+          "line": 442,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 410,
+          "line": 461,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 415,
+          "line": 466,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 495,
+          "line": 546,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 502,
+          "line": 553,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 519,
+          "line": 570,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 542,
+          "line": 593,
           "params": [
             "projectPath",
             "query"
@@ -2520,14 +2548,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 563,
+          "line": 614,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 606,
+          "line": 657,
           "params": [
             "projectPath",
             "slug",
@@ -2535,14 +2563,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 625,
+          "line": 676,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 642,
+          "line": 693,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2551,28 +2579,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 749,
+          "line": 800,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 800
+          "line": 851
         },
         "pushSpecData": {
-          "line": 820,
+          "line": 871,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 840,
+          "line": 891,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 844,
+          "line": 895,
           "params": [
             "ipcMain"
           ]
@@ -7733,14 +7761,14 @@
           ]
         },
         "getReferenceTemplate": {
-          "line": 236,
+          "line": 249,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 411,
+          "line": 424,
           "params": [
             "projectName",
             "project"
@@ -7748,21 +7776,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 436,
+          "line": 449,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 456,
+          "line": 469,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 502,
+          "line": 515,
           "params": [
             "projectName",
             "project"
@@ -7770,18 +7798,18 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 583,
+          "line": 596,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 622,
+          "line": 635,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 659,
+          "line": 672,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -7789,27 +7817,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 705
+          "line": 718
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 726,
+          "line": 739,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 749,
+          "line": 762,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 761,
+          "line": 774,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 781
+          "line": 794
         },
         "getOrchBinScripts": {
-          "line": 799,
+          "line": 812,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

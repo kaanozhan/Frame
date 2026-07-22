@@ -140,10 +140,43 @@ function findFootprintConflict(session, slug, footprint) {
 // Write the interpolated worker prompt to the MAIN repo (worktrees lack .frame/
 // runtime), return an instruction the agent reads. Absolute path so it resolves
 // from inside the worktree.
+// Preload the spec history of every footprint file into the worker's
+// opening prompt — the worker starts armed before its first tool call
+// (the edit-time hook still covers files outside the declared footprint).
+// Read-only over the warm index; any failure → empty section.
+function footprintHistorySection(projectPath, slug) {
+  try {
+    const idx = JSON.parse(fs.readFileSync(
+      path.join(projectPath, FRAME_DIR, 'index', 'spec-index.json'), 'utf8'));
+    if (!idx || !idx.files) return '';
+    const lines = [];
+    for (const fp of specManager.getSpecFootprint(projectPath, slug)) {
+      const key = String(fp).split(path.sep).join('/');
+      const hist = (idx.files[key] || []).filter((r) => r.slug !== slug); // own in-flight entry is noise here
+      if (!hist.length) continue;
+      lines.push(`- \`${key}\`:`);
+      for (const r of hist) {
+        const marks = [];
+        if (r.flags.stale) marks.push('STALE — verify against the code');
+        if (r.flags.inflight) marks.push('IN-FLIGHT in another spec — flag to the conductor');
+        lines.push(`  - ${r.date || '?'} ${r.slug}${r.task ? ' ' + r.task : ''} — ${r.line}${marks.length ? ` [${marks.join(' · ')}]` : ''}`);
+      }
+    }
+    if (!lines.length) return '';
+    return '\n\n## File history for your footprint\n\n' +
+      'Prior specs shaped the files you are about to change. Respect their recorded ' +
+      'decisions or surface the conflict to the conductor — never silently contradict them. ' +
+      'Deep read: `.frame/specs/<slug>/outcome.md`.\n\n' + lines.join('\n') + '\n';
+  } catch (_) {
+    return '';
+  }
+}
+
 function buildWorkerPrompt(projectPath, slug) {
   let tpl = '';
   try { tpl = fs.readFileSync(WORKER_TEMPLATE_PATH, 'utf8'); } catch (e) { logger.warn('orch', 'worker template read failed:', e.message); }
-  const body = (tpl || `You are a worker for spec ${slug}. Implement .frame/specs/${slug}/tasks.md in order, commit only to frame/${slug}/work, then run: node "$FRAME_ORCH_BIN/report-done.js".`).replace(/\{slug\}/g, slug);
+  const body = (tpl || `You are a worker for spec ${slug}. Implement .frame/specs/${slug}/tasks.md in order, commit only to frame/${slug}/work, then run: node "$FRAME_ORCH_BIN/report-done.js".`).replace(/\{slug\}/g, slug)
+    + footprintHistorySection(projectPath, slug);
   const dir = path.join(projectPath, FRAME_DIR, 'runtime', 'prompts');
   fs.mkdirSync(dir, { recursive: true });
   const abs = path.join(dir, `${slug}__worker.md`);
