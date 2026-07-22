@@ -150,3 +150,21 @@ Files touched: `src/main/orchestrationManager.js`.
 _Captured: 2026-07-22 · 1 file change(s)_
 
 ---
+## T10 — Digest backfill for done specs
+
+Authored `digest.md` (front-matter keywords/related + ≤15-line distillation
++ chain pointer) for all 12 done specs, written from outcome actuals and
+PROJECT_NOTES decision records — rejected alternatives and standing rules
+included (e.g. agent-approval ≠ ready, no-user-tracking constraint, fsSafe
+mandatory rule). `audit-q3-generic-any-project` declares
+`supersedes: structure-non-standard-layouts` in front-matter, matching the
+status-level marker from T01. deep-spec-plan (no outcome.md exists) cites
+its commit range + PROJECT_NOTES entry in the chain line instead.
+Regenerated the index: topic and footprint-level records now carry digest
+lines; verified via spec-context on tasksManager.js, `telemetry` and
+`worktree` queries. Files touched: 12 × `.frame/specs/<slug>/digest.md`
+(new; spec-folder artifacts, outside Footprint by convention).
+
+_Captured: 2026-07-22 · 12 file change(s)_
+
+---

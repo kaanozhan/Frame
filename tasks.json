@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:23:25.316Z",
+  "lastUpdated": "2026-07-22T14:26:42.053Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3412,13 +3412,13 @@
       "title": "Backfill `digest.md` (front-matter included) for every existing `done` spec, regenerate the index, and verify each storied file resolves its full chronological history via `spec-context.js --file`.",
       "description": "",
       "source": "spec:spec-knowledge-layer:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:26:42.053Z",
+      "completedAt": "2026-07-22T14:26:42.053Z"
     },
     {
       "id": "task-spec-spec-knowledge-layer-T11",
