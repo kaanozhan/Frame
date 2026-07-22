@@ -16,3 +16,22 @@ in-flight rather than done.
 _Captured: 2026-07-22 · 4 folders deleted, 3 files changed_
 
 ---
+## T02 — Index builder (`scripts/spec-index.js`)
+
+Built the dependency-free builder lib+CLI: topics + files views, front-matter
+parsed declared-first (spec.md then digest.md), plan `## Footprint` as intent
+and outcome `Files touched:` backticked paths as actuals, phase filter
+(done→full, in-flight→warning, specified→topics-only, `superseded_by`→skip),
+posix keys, and single-call git enrichment (rename chains via
+`log -M --diff-filter=R`, stale flags via one `log --name-only` since the
+oldest close — never per-file). `ensureFresh` rebuilds on mtime staleness
+only. Deviation from plan: footprint parsing is imperative line-walking, not
+regex — the multiline-`$` regex approach truncated at the first bullet in
+testing. `.frame/index/` gitignored. 9 tests green incl. a real-git rename
+fixture; real-archive smoke: 24 specs → 121 storied files, perf spec
+correctly surfaces as in-flight. Files touched: `scripts/spec-index.js`
+(new), `test/spec-index.test.js` (new), `.gitignore`.
+
+_Captured: 2026-07-22 · 3 file change(s)_
+
+---
