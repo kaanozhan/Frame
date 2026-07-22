@@ -1248,3 +1248,83 @@ Two-part fix, mirroring the existing plan-report pattern:
 Placement decision: the button lives on the **Tasks** tab (not spec/plan),
 since the implement report is per-task output and that tab is where progress
 is already watched.
+
+### [2026-07-22] Implement modes v2 — mid-session permission grant rejected, mode selection moves before the session
+
+While reviewing `feat/autonomous-permission-lifecycle` (the mid-session
+autonomous grant: Frame rules merged into `.claude/settings.local.json` with
+a manifest, refcounted holders, idle-strip and open-sweep), the user rejected
+the approach outright: it writes Frame's ephemeral state into a user-owned,
+repo-scoped file, and permission prompts still appear anyway (Edit/Read are
+deliberately left to a mode only the user can switch). Verdict: the branch is
+dead and will not be merged; the elaborateness of the cleanup machinery was
+read as evidence the state lives in the wrong place.
+
+The replacement design, converged over the conversation and specced as
+`implement-modes-v2`:
+
+- **Three-mode ladder**: step-by-step (v1 Mode A unchanged — task → what/why
+  report → one question → commit on approval), **guided** (new: Mode B's
+  loop without flags, the CLI's own permission prompts pace the run, no
+  check-in between tasks, same HTML report), and autonomous (launch-path
+  only — never offered or upgraded-to mid-session).
+- **UI**: the implement button opens one unified modal (mode + continue-in-
+  lane/new-Frame destination, absorbing `_askContinueOrNew`). Autonomous
+  allows "Continue" only into a lane that was itself launched flagged
+  (`launchedAutonomousBySlug`). Ordering flips to modal → record
+  `implement_mode` → stage → dispatch, so flags are derived from the actual
+  choice, not the hint's guess — the re-dispatch flow becomes unreachable.
+- **Button state machine**: label follows the mode ("Implement Next Task" is
+  correct only for step-by-step); guided/autonomous lock the button for
+  run-liveness (lane alive ∧ tasks remain), not turn-liveness, with progress
+  shown — the turn-scoped lock would unlock mid-run and invite double
+  dispatch.
+- **CLI**: conversational `spec.implement` offers step/guided as runnable;
+  an autonomous answer is record-then-handoff — write the mode to
+  status.json first, then point at the Frame button or at
+  `node .frame/bin/implement-launch.js <slug>`, a new single-source helper
+  that writes the permission file, stages the prompt from the staged
+  templates (works with Frame closed), and execs the CLI with the flags plus
+  the initial prompt as launch argument. Agents never hand-compose the line.
+- **Deliberately deferred (V2 polish, design kept here):** a watcher-based
+  CLI→UI bridge — agent writes a nonce'd request file under the spec dir
+  (the recursive specs watcher provably fires on agent writes), Frame opens
+  the modal, answers via a response file while the agent polls with a
+  timeout, falling back to the terminal ask. Two queueing insights worth
+  keeping: only queue a *question* while its asker is provably alive
+  (heartbeat-refreshed request file, stale ones swept silently — no ghost
+  modals), but a *decision* queues indefinitely (recorded
+  `implement_mode: autonomous` + ready phase can prompt "start it?" on the
+  next project open — no lost intent).
+
+Also noted: `cli-spec-command-parity`'s "autonomous handoff wording" open
+question resolves to the helper command; its "re-dispatch is the ceiling"
+constraint is retired by this spec.
+
+### [2026-07-22] T09 — implementation report made live-followable from the terminal
+
+Added `implement-modes-v2:T09` as a follow-up. The [2026-07-21] fix surfaced
+the report through a Frame **UI button**, but the v2 launch helper
+(`implement-launch.js`) starts a run from a bare terminal with no Frame app to
+click — so a terminal-launched autonomous run generates the report but the user
+has no obvious way to reach it. T09 closes that gap in the artifact itself,
+three parts:
+
+1. **Auto-open** — `build-implement-report.mjs` gains an `--open` flag that
+   opens the written HTML cross-platform, best-effort in `main()`, never
+   failing the build (same posture as the missing-runtime rule). Open-once is
+   kept in the prompt, not the code: `spec.implement.md` passes `--open` only on
+   the first generation, so no new browser tab per task.
+2. **Progress banner** — `main()` reads `tasks.json` (canonical state, not
+   agent-transcribed — consistent with "diffs read from git, never transcribed")
+   and passes a pure `{ total, completed, current }` into `renderReport`. Banner
+   reads "In progress — N/M done · next: T0x <title>" while tasks remain,
+   "Complete — M/M" when done. `renderReport` stays pure/clock-free; all fs work
+   lives in `main()`.
+3. **Reload note** — folded into the banner (only shown while in progress), not
+   a standalone line: telling a finished report to "reload" is stale advice.
+
+Decision: **manual reload, not `<meta http-equiv="refresh">` auto-refresh.**
+Auto-refresh would deliver "always current" without a keypress, but it resets
+scroll and collapses any open `<details>` diff mid-read, and a stray refresh
+tag surviving into the final report is worse than a note. Manual note chosen.

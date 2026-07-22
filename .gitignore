@@ -51,6 +51,13 @@ release/
 .frame/bin/*.js
 .frame/orchestration/
 
+# Frame durable-write artifacts (src/main/fsSafe.js) — the .bak of the last good
+# copy, the .tmp mid-write scratch, and any .corrupt-<ts> preserved on recovery.
+# All local crash-safety state, regenerated on the next write; never committed.
+*.bak
+*.tmp
+*.corrupt-*
+
 #Walkthroughs
 WALKTHROUGH/*.p8
 RELEASE.local.md

@@ -36,7 +36,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 // Frame's own bookkeeping, kept out of every diff so the report shows the
@@ -99,6 +99,60 @@ export function renderVerification(verification) {
   return `<span class="pill ${cls}">${escapeHtml(verification.status)}</span>${command}${detail}`;
 }
 
+/**
+ * The run-status banner at the top of the report — the one thing that makes a
+ * report worth reloading. `progress` is the pure { total, completed, current }
+ * shape from computeProgress; main() reads it from tasks.json so this stays a
+ * function of its argument. No progress (no data, no matching tasks) → no
+ * banner, which is exactly right for a report opened outside a live run.
+ *
+ * While tasks remain the banner names how far along the run is and which task
+ * is next, and tells the reader the page is regenerated so a reload follows the
+ * run live. Once every task is done that note would be stale advice, so the
+ * complete state drops it.
+ */
+// Inline (no external asset — the report is one self-contained file) info
+// glyph for the reload note; `currentColor` lets it inherit the note's colour.
+const INFO_ICON = '<svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">'
+  + '<circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/>'
+  + '<circle cx="8" cy="4.7" r="1" fill="currentColor"/>'
+  + '<rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>';
+
+// Task titles can run long — a spec's tasks.json title is often a full
+// sentence — and the banner is a one-line status, not a description. Clamp on a
+// word boundary so "next: T09 — …" stays scannable.
+export function truncateTitle(title, max = 72) {
+  const text = String(title == null ? '' : title).trim();
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const space = cut.lastIndexOf(' ');
+  return (space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s—–,.:;-]+$/, '') + '…';
+}
+
+export function renderProgress(progress) {
+  if (!progress || typeof progress.total !== 'number' || progress.total <= 0) return '';
+  const total = progress.total;
+  const completed = typeof progress.completed === 'number' ? progress.completed : 0;
+
+  if (completed >= total) {
+    return `<div class="run-status done">
+  <span class="rs-badge">Complete</span>
+  <span class="rs-count">${completed} of ${total} task${total === 1 ? '' : 's'} done</span>
+</div>`;
+  }
+
+  const cur = progress.current;
+  const title = cur && cur.title ? truncateTitle(cur.title) : '';
+  const next = cur && cur.id
+    ? ` · next: <span class="rs-task">${escapeHtml(cur.id)}${title ? ' — ' + escapeHtml(title) : ''}</span>`
+    : '';
+  return `<div class="run-status live">
+  <span class="rs-badge">In progress</span>
+  <span class="rs-count">${completed} of ${total} tasks done${next}</span>
+  <span class="rs-note">${INFO_ICON}Regenerated after each task. Reload for the latest.</span>
+</div>`;
+}
+
 export function renderTask(task) {
   const id = escapeHtml(task.id || '');
   const commit = task.commit
@@ -131,6 +185,7 @@ export function renderTask(task) {
 export function renderReport(data) {
   const spec = (data && data.spec) || {};
   const tasks = Array.isArray(data && data.tasks) ? data.tasks : [];
+  const progress = data && data.progress;
   const title = escapeHtml(spec.title || spec.slug || 'Spec');
   const generatedAt = escapeHtml(data && data.generatedAt ? data.generatedAt : '');
   const verified = tasks.filter((t) => t.verification && t.verification.status === 'pass').length;
@@ -242,9 +297,30 @@ export function renderReport(data) {
   .dl-file{color:var(--text-primary);}
   .dl-meta{color:var(--text-tertiary);}
 
+  /* Run-status banner — a live run's progress at the top of the report, the
+     reason a terminal-launched run's report is worth reloading. Live borrows
+     the accent tint; complete switches to success. */
+  .run-status{display:flex;align-items:center;gap:var(--space-sm) var(--space-md);flex-wrap:wrap;
+    padding:var(--space-md) var(--space-lg);border-radius:var(--radius-lg);
+    border:1px solid var(--border-default);background:var(--bg-secondary);font-size:13px;}
+  .run-status.live{border-color:rgba(212,165,116,0.35);background:var(--accent-subtle);}
+  .run-status.done{border-color:var(--success);background:rgba(124,179,130,0.12);}
+  .rs-badge{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+    padding:3px 10px;border-radius:999px;flex-shrink:0;}
+  .run-status.live .rs-badge{color:var(--accent-primary);background:rgba(212,165,116,0.18);
+    border:1px solid rgba(212,165,116,0.4);}
+  .run-status.done .rs-badge{color:var(--success);background:rgba(124,179,130,0.15);
+    border:1px solid var(--success);}
+  .rs-count{color:var(--text-primary);font-weight:500;min-width:0;}
+  .rs-task{font-family:var(--font-mono);font-size:12px;color:var(--accent-primary);}
+  .rs-note{color:var(--text-primary);font-size:12px;margin-left:auto;
+    display:inline-flex;align-items:center;gap:6px;}
+  .rs-info{flex-shrink:0;opacity:0.85;}
+
   footer{color:var(--text-tertiary);font-size:11.5px;text-align:center;
     padding:var(--space-lg);border-top:1px solid var(--border-subtle);}
-  @media (max-width:560px){.card-head{gap:var(--space-sm);}.report-head h1{font-size:20px;}}
+  @media (max-width:560px){.card-head{gap:var(--space-sm);}.report-head h1{font-size:20px;}
+    .rs-note{margin-left:0;}}
 </style>
 </head>
 <body>
@@ -268,6 +344,7 @@ export function renderReport(data) {
 </header>
 
 <div class="wrap">
+${renderProgress(progress)}
 <section class="report-head">
   <h1>${title}</h1>
 </section>
@@ -278,6 +355,58 @@ ${tasks.length ? tasks.map(renderTask).join('\n\n') : '<section class="card"><di
 </body>
 </html>
 `;
+}
+
+/**
+ * Reduce a parsed tasks.json `tasks` array to the report's progress shape for
+ * one spec: how many of its tasks are done, and which one is live. Pure — main()
+ * reads the file and hands the array in, so this is testable without disk.
+ *
+ * `current` is the in-progress task if one is marked, else the next pending one
+ * — at report-generation time (right after a commit) the just-finished task is
+ * already `completed` and the next isn't `in_progress` yet, so "next pending" is
+ * what the reader actually wants to see coming. No matching tasks → null, and
+ * the banner disappears rather than inventing a run.
+ */
+export function computeProgress(tasks, slug) {
+  if (!Array.isArray(tasks) || !slug) return null;
+  const prefix = `spec:${slug}:`;
+  const specTasks = tasks.filter(
+    (t) => t && typeof t.source === 'string' && t.source.startsWith(prefix)
+  );
+  if (!specTasks.length) return null;
+
+  const idOf = (t) => t.source.slice(prefix.length);          // "spec:slug:T09" → "T09"
+  const numOf = (t) => { const m = /T(\d+)/.exec(idOf(t)); return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER; };
+  specTasks.sort((a, b) => numOf(a) - numOf(b));
+
+  const total = specTasks.length;
+  const completed = specTasks.filter((t) => t.status === 'completed').length;
+  const active = specTasks.find((t) => t.status === 'in_progress')
+    || specTasks.find((t) => t.status === 'pending')
+    || null;
+  const current = active ? { id: idOf(active), title: active.title || '' } : null;
+  return { total, completed, current };
+}
+
+// Split argv into the two positionals (data path, optional out path) and the
+// `--open` flag, which may sit anywhere. Pure so the parsing is testable.
+export function parseArgs(argv) {
+  const positional = [];
+  let open = false;
+  for (const arg of argv.slice(2)) {
+    if (arg === '--open') open = true;
+    else positional.push(arg);
+  }
+  return { dataPath: positional[0], outPath: positional[1], open };
+}
+
+// The platform's "open this file in its default app" command. Pure so the
+// per-platform mapping is testable without spawning anything.
+export function openCommand(platform) {
+  if (platform === 'darwin') return { cmd: 'open', args: [] };
+  if (platform === 'win32') return { cmd: 'cmd', args: ['/c', 'start', ''] };
+  return { cmd: 'xdg-open', args: [] };
 }
 
 // ─── Impure: git + filesystem ─────────────────────────────────
@@ -310,14 +439,37 @@ function repoRootFrom(dir) {
   }
 }
 
+// The repo's tasks.json `tasks` array, or [] if it can't be read — the banner
+// is a convenience layered on the report, never a reason to fail it.
+function readTasks(repoRoot) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(repoRoot, 'tasks.json'), 'utf8'));
+    return Array.isArray(parsed.tasks) ? parsed.tasks : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+// Open the finished report in the default browser, detached so it never blocks
+// the implement loop and best-effort so a headless box (no `open`/`xdg-open`)
+// costs the convenience, not the run. Nothing downstream depends on it.
+function openInBrowser(filePath, platform = process.platform) {
+  try {
+    const { cmd, args } = openCommand(platform);
+    const child = spawn(cmd, [...args, filePath], { stdio: 'ignore', detached: true });
+    child.on('error', () => {});   // ENOENT etc. must not throw past here
+    child.unref();
+  } catch (_) { /* best effort */ }
+}
+
 function main(argv) {
-  const dataPath = argv[2];
+  const { dataPath, outPath: outArg, open } = parseArgs(argv);
   if (!dataPath) {
-    console.error('usage: build-implement-report.mjs <report-data.json> [out.html]');
+    console.error('usage: build-implement-report.mjs [--open] <report-data.json> [out.html]');
     return 1;
   }
   const absData = path.resolve(dataPath);
-  const outPath = argv[3] ? path.resolve(argv[3]) : path.join(path.dirname(absData), 'implement-report.html');
+  const outPath = outArg ? path.resolve(outArg) : path.join(path.dirname(absData), 'implement-report.html');
 
   let data;
   try {
@@ -332,11 +484,21 @@ function main(argv) {
     (task) => ({ ...task, diff: readCommitDiff(task.commit, repoRoot) })
   );
 
+  // Progress is read from tasks.json — the canonical run state — not transcribed
+  // into report-data.json, for the same reason diffs are read from git: the one
+  // source that can't drift is the one that isn't copied.
+  const slug = (data.spec && data.spec.slug) || '';
+  const progress = slug ? computeProgress(readTasks(repoRoot), slug) : null;
+
   // Stamped here, not in the transform — renderReport stays a pure function
   // of its input, which is what makes it testable without a clock.
   const generatedAt = data.generatedAt || new Date().toISOString().slice(0, 10);
-  fs.writeFileSync(outPath, renderReport({ ...data, generatedAt, tasks }), 'utf8');
+  fs.writeFileSync(outPath, renderReport({ ...data, generatedAt, tasks, progress }), 'utf8');
   console.log(outPath);
+
+  // Opening is the last thing and never gates success — the report is already
+  // written and its path already printed by the time we try.
+  if (open) openInBrowser(outPath);
   return 0;
 }
 

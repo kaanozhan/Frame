@@ -25,8 +25,20 @@ const laneStatus = require('./laneStatus');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
+const implementModeModal = require('./implementModeModal');
 
 let multiTerminalUI = null;
+
+// Which lanes were launched with the autonomous permission flags still on
+// (the CLI accepted `--settings/--permission-mode` — the flags were not
+// dropped). Keyed by terminalId, set at the CLI start that carried them,
+// cleared when the terminal is destroyed. This is a property of how the
+// lane's agent session was *launched*, fixed for its lifetime — a reused
+// lane never restarts the CLI, so its launch flags never change. The unified
+// implement modal reads it to decide whether "Continue in <Frame>" may keep
+// the autonomous mode, which only holds when the live session already carries
+// those flags.
+const launchedAutonomousLanes = new Map(); // Map<terminalId, boolean>
 
 /**
  * Initialize with the MultiTerminalUI instance.
@@ -48,6 +60,7 @@ function init(ui) {
     if (a && a.kind === 'task') _notifyTaskLane(a.ref);
   });
   ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) => {
+    launchedAutonomousLanes.delete(terminalId);
     for (const [slug, laneId] of specLanes) {
       if (laneId === terminalId) _notifySpecLane(slug);
     }
@@ -174,7 +187,7 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
       ready = await bareReady;
       if (ready) {
         flagsDropped = true;
-        notify.info('Autonomous mode is not available with this CLI — continuing without it');
+        notify.info('Autonomous permissions were refused by this CLI — continuing in guided mode (same loop and report, paced by the CLI’s own prompts)');
       }
     }
 
@@ -185,6 +198,13 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     // The CLI actually launched and reached ready — that is an agent run.
     // Main normalizes the tool id to the registry enum before sending.
     ipcRenderer.send(IPC.TELEMETRY_TRACK, 'agent_run_started', { tool: chosenToolId });
+
+    // This dispatch started the session. Record whether it carried the
+    // autonomous permission flags and the CLI kept them (didn't come up
+    // bare) — that pins the lane as autonomous-launched for its lifetime.
+    if (launchFlags && launchFlags.length && !flagsDropped) {
+      launchedAutonomousLanes.set(targetId, true);
+    }
   }
 
   // ── Inject ───────────────────────────────────────────────
@@ -350,6 +370,19 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
     return _fail(null, 'Open a project first');
   }
 
+  const assignment = { kind: 'spec', label: `spec: ${slug}`, ref: slug };
+
+  // spec.implement flips the ordering: the mode is chosen in the unified
+  // modal *before* anything is staged, so the recorded implement_mode is what
+  // getImplementLaunchFlags reads — a fresh autonomous dispatch carries its
+  // flags on the first launch and the re-dispatch flow is unreachable.
+  if (command === 'spec.implement') {
+    return _dispatchImplement({ slug, title, projectPath, assignment });
+  }
+
+  // Every other spec command keeps the stage-first + continue-or-new flow;
+  // these never carry launch flags (BUILD_SPEC_COMMAND_FILE returns them for
+  // spec.implement only), so _askContinueOrNew is unchanged here.
   let staged;
   try {
     staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
@@ -366,29 +399,11 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
     return _fail(null, 'Could not stage prompt: ' + ((staged && staged.error) || 'unknown error'));
   }
 
-  const assignment = { kind: 'spec', label: `spec: ${slug}`, ref: slug };
   const assignedId = _assignedLane(slug);
-
-  // Staging decides these — spec.implement's autonomous mode needs its
-  // permission file and mode flag on the launch line. They only take effect
-  // when this dispatch starts the CLI: continuing in a lane whose agent is
-  // already running keeps whatever flags that session was launched with, and
-  // the prompt handles the mismatch by asking for one re-dispatch.
-  const launchFlags = staged.launchFlags || null;
-
-  // Said, not asked. If the CLI won't take the flags the autonomous mode
-  // needs, the run doesn't stall on a question — it states the limit and
-  // carries on with the mode that works without them.
-  const flagsDroppedNote = launchFlags && launchFlags.length
-    ? 'Frame note: this CLI refused the permission flags the autonomous mode '
-      + 'needs, so that mode is unavailable in this session — do not offer it. '
-      + 'Say so in one line, then continue with the step-by-step mode. Mention '
-      + 'once that describing your own flow is still available.'
-    : null;
 
   let result;
   if (!assignedId) {
-    result = await dispatch({ createNew: true, prompt: staged.instruction, assignment, launchFlags, flagsDroppedNote });
+    result = await dispatch({ createNew: true, prompt: staged.instruction, assignment });
   } else {
     const choice = await _askContinueOrNew(_laneName(assignedId), title || slug);
     if (choice === 'cancel') {
@@ -398,14 +413,94 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
       terminalId: choice === 'continue' ? assignedId : null,
       createNew: choice !== 'continue',
       prompt: staged.instruction,
-      assignment,
-      launchFlags,
-      flagsDroppedNote
+      assignment
     });
   }
 
   if (result.success) {
     // New-Frame runs re-assign; the old lane is simply unassigned, not closed
+    specLanes.set(slug, result.terminalId);
+    _notifySpecLane(slug);
+  }
+  return result;
+}
+
+// The spec.implement path: modal → record implement_mode → stage → dispatch.
+// The order matters — recording the mode before staging is exactly what lets
+// the launch flags derive from the user's actual choice rather than a guess.
+async function _dispatchImplement({ slug, title, projectPath, assignment }) {
+  const assignedId = _assignedLane(slug);
+
+  // Resolve the hint for the modal's preselection; a live lane feeds the
+  // destination section and the autonomous-Continue gate.
+  let hint = null;
+  try {
+    const spec = await ipcRenderer.invoke(IPC.GET_SPEC, { projectPath, slug });
+    hint = (spec && spec.implementHint) || null;
+  } catch (_) { /* no hint — the modal defaults to step-by-step */ }
+  const lane = assignedId ? getSpecLaneInfo(slug) : null;
+
+  const choice = await implementModeModal.open({ slug, title, hint, lane });
+  // Cancel writes nothing and dispatches nothing.
+  if (!choice) {
+    return { success: false, terminalId: null, error: null };
+  }
+
+  // Record the chosen mode *before* staging so the flags follow the choice.
+  try {
+    const res = await ipcRenderer.invoke(IPC.UPDATE_SPEC_STATUS, {
+      projectPath,
+      slug,
+      partial: { implement_mode: choice.mode }
+    });
+    if (res && res.error) throw new Error(res.error);
+  } catch (err) {
+    console.error('agentDispatch: recording implement_mode failed', err);
+    return _fail(null, 'Could not record the implement mode');
+  }
+
+  let staged;
+  try {
+    staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
+      projectPath,
+      slug,
+      command: 'spec.implement',
+      aiTool: 'claude-code'
+    });
+  } catch (err) {
+    console.error('agentDispatch: prompt staging failed', err);
+    staged = null;
+  }
+  if (!staged || !staged.success) {
+    return _fail(null, 'Could not stage prompt: ' + ((staged && staged.error) || 'unknown error'));
+  }
+
+  // Only the autonomous mode yields flags. If the CLI refuses them the run
+  // doesn't stall — it falls back to guided (same loop, report and commits,
+  // paced by the CLI's own prompts) and says so.
+  const launchFlags = staged.launchFlags || null;
+  const flagsDroppedNote = launchFlags && launchFlags.length
+    ? 'Frame note: this CLI refused the permission flags the autonomous mode '
+      + 'needs, so this run continues in guided mode — the same task-by-task '
+      + 'loop, report-data.json/report and one commit per task, paced by the '
+      + 'CLI’s own permission prompts instead of pre-granted ones. Run the '
+      + 'guided loop; do not ask to re-dispatch.'
+    : null;
+
+  // Destination from the modal. When there is no live lane the modal already
+  // forced 'new'; a stale assignedId (lane closed between reads) also falls
+  // through to a new Frame.
+  const useContinue = choice.destination === 'continue' && !!assignedId;
+  const result = await dispatch({
+    terminalId: useContinue ? assignedId : null,
+    createNew: !useContinue,
+    prompt: staged.instruction,
+    assignment,
+    launchFlags,
+    flagsDroppedNote
+  });
+
+  if (result.success) {
     specLanes.set(slug, result.terminalId);
     _notifySpecLane(slug);
   }
@@ -433,7 +528,12 @@ function getSpecLaneInfo(slug) {
     name: _laneName(id),
     status: s.status,
     agentName: s.agentName,
-    busy: !!s.agentName && (s.status === 'agent-working' || s.status === 'agent-approval')
+    busy: !!s.agentName && (s.status === 'agent-working' || s.status === 'agent-approval'),
+    // True only while a live agent owns a lane that was launched with the
+    // autonomous flags intact — the modal's gate for allowing autonomous
+    // "Continue". Requires agentName so a dead-but-remembered lane never
+    // reports a session that no longer exists.
+    launchedAutonomous: !!s.agentName && !!launchedAutonomousLanes.get(id)
   };
 }
 

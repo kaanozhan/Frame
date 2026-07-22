@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-21",
+  "lastUpdated": "2026-07-22",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -2485,35 +2485,51 @@
             "aiTool"
           ]
         },
+        "copyIfChanged": {
+          "line": 384,
+          "params": [
+            "src",
+            "dst"
+          ],
+          "purpose": "Copy only when the destination content differs, so project-open staging"
+        },
+        "stageImplementCommandFiles": {
+          "line": 409,
+          "params": [
+            "projectPath",
+            "aiTool"
+          ],
+          "purpose": "Stage the raw implement template + report generator into"
+        },
         "resolveVerificationCommand": {
-          "line": 415,
+          "line": 478,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 430,
+          "line": 493,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 448,
+          "line": 511,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 472,
+          "line": 535,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 488,
+          "line": 551,
           "params": [
             "projectPath",
             "slug"
@@ -2521,7 +2537,7 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "buildSpecCommandFile": {
-          "line": 495,
+          "line": 558,
           "params": [
             "projectPath",
             "slug",
@@ -2530,53 +2546,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 528,
+          "line": 594,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 554,
+          "line": 620,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 573,
+          "line": 639,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 578,
+          "line": 644,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 658,
+          "line": 724,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 665,
+          "line": 731,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 682,
+          "line": 748,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 707,
+          "line": 778,
           "params": [
             "projectPath",
             "query"
@@ -2584,14 +2600,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 728,
+          "line": 799,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 771,
+          "line": 842,
           "params": [
             "projectPath",
             "slug",
@@ -2599,14 +2615,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 790,
+          "line": 861,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 807,
+          "line": 878,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2615,28 +2631,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 914,
+          "line": 985,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 968
+          "line": 1039
         },
         "pushSpecData": {
-          "line": 989,
+          "line": 1060,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1009,
+          "line": 1080,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1013,
+          "line": 1084,
           "params": [
             "ipcMain"
           ]
@@ -3196,18 +3212,19 @@
         "state",
         "htmlUtils",
         "notify",
+        "implementModeModal",
         "aiToolSelector"
       ],
       "functions": {
         "init": {
-          "line": 34,
+          "line": 46,
           "params": [
             "ui"
           ],
           "purpose": "Initialize with the MultiTerminalUI instance."
         },
         "dispatch": {
-          "line": 78,
+          "line": 91,
           "params": [
             "{ terminalId = null",
             "createNew = false",
@@ -3221,11 +3238,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 219,
+          "line": 239,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 254,
+          "line": 274,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -3233,10 +3250,10 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_startAgentInNewFrame": {
-          "line": 269
+          "line": 289
         },
         "_askNewOrRestart": {
-          "line": 287,
+          "line": 307,
           "params": [
             "frameName",
             "hasAgent"
@@ -3244,7 +3261,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 344,
+          "line": 364,
           "params": [
             "{ slug",
             "title = null",
@@ -3252,80 +3269,90 @@
           ],
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
+        "_dispatchImplement": {
+          "line": 431,
+          "params": [
+            "{ slug",
+            "title",
+            "projectPath",
+            "assignment }"
+          ],
+          "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
+        },
         "getSpecLaneInfo": {
-          "line": 427,
+          "line": 522,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 446,
+          "line": 546,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 467,
+          "line": 567,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 471,
+          "line": 571,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 475,
+          "line": 575,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 492,
+          "line": 592,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 500,
+          "line": 600,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 523,
+          "line": 623,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 531,
+          "line": 631,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 549,
+          "line": 649,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 559,
+          "line": 659,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 568,
+          "line": 668,
           "params": [
             "frameName",
             "specName"
@@ -3333,14 +3360,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 609,
+          "line": 709,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 638,
+          "line": 738,
           "params": [
             "terminalId",
             "message"
@@ -4428,6 +4455,28 @@
           "params": [
             "s"
           ]
+        }
+      }
+    },
+    "renderer/implementModeModal": {
+      "file": "src/renderer/implementModeModal.js",
+      "description": "Implement Mode Modal",
+      "exports": [
+        "open"
+      ],
+      "depends": [
+        "htmlUtils"
+      ],
+      "functions": {
+        "open": {
+          "line": 71,
+          "params": [
+            "{ slug",
+            "title = null",
+            "hint = null",
+            "lane = null } = {}"
+          ],
+          "purpose": "Open the modal."
         }
       }
     },
@@ -6023,6 +6072,54 @@
         }
       }
     },
+    "renderer/specNextAction": {
+      "file": "src/renderer/specNextAction.js",
+      "description": "Spec Next-Action Bar (shared)",
+      "exports": [
+        "nextActionForPhase",
+        "taskCounts",
+        "renderNextActionBar"
+      ],
+      "depends": [
+        "htmlUtils"
+      ],
+      "functions": {
+        "nextActionForPhase": {
+          "line": 40,
+          "params": [
+            "phase"
+          ],
+          "purpose": "Base next-action per phase. Every phase carries a fixed label; the implement"
+        },
+        "taskCounts": {
+          "line": 65,
+          "params": [
+            "allTasks",
+            "slug"
+          ],
+          "purpose": "Count this spec's tasks from the full task list. Shared so all three"
+        },
+        "renderNextActionBar": {
+          "line": 89,
+          "params": [
+            "{ action",
+            "lane",
+            "hint = null",
+            "counts = null",
+            "buttonId = 'spec-action-btn' } = {}"
+          ],
+          "purpose": "Render the next-action bar."
+        },
+        "_lockedBar": {
+          "line": 143,
+          "params": [
+            "{ heading",
+            "sub",
+            "label }"
+          ]
+        }
+      }
+    },
     "renderer/specPanel": {
       "file": "src/renderer/specPanel.js",
       "description": "Specs Panel Module",
@@ -6042,84 +6139,72 @@
         "shared/ipcChannels",
         "state",
         "htmlUtils",
+        "specNextAction",
         "specsDashboard",
         "agentDispatch"
       ],
       "functions": {
         "init": {
-          "line": 31
+          "line": 32
         },
         "setupEventListeners": {
-          "line": 42
+          "line": 43
         },
         "refresh": {
-          "line": 55,
+          "line": 56,
           "purpose": "Manual fallback for the rare case where the SPEC_DATA push from main"
         },
         "setupIPCListeners": {
-          "line": 70
+          "line": 71
         },
         "show": {
-          "line": 111
+          "line": 112
         },
         "hide": {
-          "line": 119
+          "line": 120
         },
         "toggle": {
-          "line": 128,
+          "line": 129,
           "purpose": "Public toggle. The first time the user invokes this on a project where"
         },
         "startWatchingForProject": {
-          "line": 146,
+          "line": 147,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 155
+          "line": 156
         },
         "renderList": {
-          "line": 162
+          "line": 163
         },
         "renderSpecRow": {
-          "line": 193,
+          "line": 194,
           "params": [
             "spec"
           ]
         },
         "openDetail": {
-          "line": 213,
+          "line": 214,
           "params": [
             "slug"
           ]
         },
         "reloadDetail": {
-          "line": 219
+          "line": 220
         },
         "renderDetail": {
-          "line": 227
-        },
-        "nextActionForPhase": {
-          "line": 297,
-          "params": [
-            "phase"
-          ]
-        },
-        "renderNextActionBar": {
-          "line": 313,
-          "params": [
-            "action",
-            "lane"
-          ]
+          "line": 228
         },
         "runSpecCommand": {
-          "line": 345,
+          "line": 301,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 357,
+          "line": 313,
           "params": [
             "tab",
             "label",
@@ -6127,98 +6212,98 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 363
+          "line": 319
         },
         "tasksTabLabel": {
-          "line": 369,
+          "line": 325,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 378,
+          "line": 334,
           "params": [
             "tab"
           ]
         },
         "renderPlanReportRow": {
-          "line": 403,
+          "line": 359,
           "purpose": "\"View Plan Report\" — shown above the rendered plan only when the spec"
         },
         "attachPlanReportHandler": {
-          "line": 411
+          "line": 367
         },
         "renderImplementReportRow": {
-          "line": 422,
+          "line": 378,
           "purpose": "\"View Implementation Report\" — shown above the task list only when the spec"
         },
         "attachImplementReportHandler": {
-          "line": 430
+          "line": 386
         },
         "renderTasksTabBody": {
-          "line": 437
+          "line": 393
         },
         "renderSpecTaskRow": {
-          "line": 477,
+          "line": 433,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 526
+          "line": 482
         },
         "handleSpecTaskAction": {
-          "line": 539,
+          "line": 495,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 558,
+          "line": 514,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 572
+          "line": 528
         },
         "showNewSpecPrompt": {
-          "line": 587
+          "line": 543
         },
         "deriveSlugPreview": {
-          "line": 689,
+          "line": 645,
           "params": [
             "title"
           ],
           "purpose": "Same shape as specManager.generateSlug — duplicated here so the renderer"
         },
         "showSuggestionModal": {
-          "line": 707,
+          "line": 663,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 774,
+          "line": 730,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 867,
+          "line": 823,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 887,
+          "line": 843,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 897,
+          "line": 853,
           "params": [
             "iso"
           ]
@@ -6291,74 +6376,62 @@
         "sectionRail",
         "lucide",
         "htmlUtils",
+        "specNextAction",
         "agentDispatch",
         "specsDashboard"
       ],
       "functions": {
         "setHost": {
-          "line": 32,
+          "line": 33,
           "params": [
             "h"
           ]
         },
         "open": {
-          "line": 37,
+          "line": 38,
           "params": [
             "slug"
           ],
           "purpose": "Open a spec — reuses the open spec viewport, or creates one if none."
         },
         "openInNewTab": {
-          "line": 43,
+          "line": 44,
           "params": [
             "slug"
           ],
           "purpose": "Open a spec in a brand-new viewport tab."
         },
         "createViewport": {
-          "line": 49,
+          "line": 50,
           "purpose": "Create a fresh spec viewport instance (the host calls this when needed)."
         },
-        "nextActionForPhase": {
-          "line": 383,
-          "params": [
-            "phase"
-          ]
-        },
-        "renderNextActionBar": {
-          "line": 399,
-          "params": [
-            "action",
-            "lane"
-          ]
-        },
         "stepIndexForPhase": {
-          "line": 435,
+          "line": 392,
           "params": [
             "phase"
           ]
         },
         "renderStepper": {
-          "line": 447,
+          "line": 404,
           "params": [
             "phase"
           ]
         },
         "renderSpecTaskRow": {
-          "line": 464,
+          "line": 421,
           "params": [
             "task"
           ]
         },
         "handleTaskAction": {
-          "line": 513,
+          "line": 470,
           "params": [
             "taskId",
             "action"
           ]
         },
         "renderMarkdown": {
-          "line": 522,
+          "line": 479,
           "params": [
             "md"
           ]
@@ -6390,92 +6463,80 @@
         "shared/ipcChannels",
         "state",
         "htmlUtils",
+        "specNextAction",
         "specPanel",
         "agentDispatch",
         "taskInfoModal"
       ],
       "functions": {
         "init": {
-          "line": 55
+          "line": 56
         },
         "setupIPCListeners": {
-          "line": 91
+          "line": 92
         },
         "show": {
-          "line": 132
+          "line": 133
         },
         "hide": {
-          "line": 164
+          "line": 165
         },
         "toggle": {
-          "line": 171
+          "line": 172
         },
         "renderFilters": {
-          "line": 177
+          "line": 178
         },
         "applyFilter": {
-          "line": 191,
+          "line": 192,
           "params": [
             "specsList"
           ]
         },
         "setupSearch": {
-          "line": 207
+          "line": 208
         },
         "runSearch": {
-          "line": 221,
+          "line": 222,
           "params": [
             "rawQuery"
           ]
         },
         "clearSearch": {
-          "line": 244
+          "line": 245
         },
         "renderGrid": {
-          "line": 255
+          "line": 256
         },
         "renderCard": {
-          "line": 285,
+          "line": 286,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 317,
+          "line": 318,
           "params": [
             "slug"
           ]
         },
         "clearSelection": {
-          "line": 325
+          "line": 326
         },
         "reloadDetail": {
-          "line": 333
+          "line": 334
         },
         "renderDetailHeader": {
-          "line": 349
-        },
-        "nextActionForPhase": {
-          "line": 421,
-          "params": [
-            "phase"
-          ]
-        },
-        "renderNextActionBar": {
-          "line": 437,
-          "params": [
-            "action",
-            "lane"
-          ]
+          "line": 350
         },
         "runSpecCommand": {
-          "line": 468,
+          "line": 431,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 479,
+          "line": 442,
           "params": [
             "tab",
             "label",
@@ -6483,50 +6544,50 @@
           ]
         },
         "renderDetailBody": {
-          "line": 485
+          "line": 448
         },
         "renderTasksTabBody": {
-          "line": 526
+          "line": 489
         },
         "renderSpecTaskRow": {
-          "line": 563,
+          "line": 526,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 612
+          "line": 575
         },
         "handleSpecTaskAction": {
-          "line": 625,
+          "line": 588,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 636
+          "line": 599
         },
         "tasksTabLabel": {
-          "line": 642,
+          "line": 605,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 651,
+          "line": 614,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 656,
+          "line": 619,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 667,
+          "line": 630,
           "params": [
             "projectPath"
           ]
@@ -7898,6 +7959,114 @@
       "depends": [],
       "functions": {}
     },
+    "templates/bin/implement-launch": {
+      "file": "src/templates/bin/implement-launch.js",
+      "description": "",
+      "exports": [
+        "interpolate",
+        "resolveVerificationCommand",
+        "buildPermissions",
+        "buildLaunchArgs",
+        "resolveRawTemplatePath",
+        "findProjectRoot",
+        "IMPLEMENT_ALLOW",
+        "IMPLEMENT_DENY",
+        "REPORT_GENERATOR_REL",
+        "TEMPLATE_OVERRIDE_REL",
+        "TEMPLATE_STAGED_REL"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "interpolate": {
+          "line": 73,
+          "params": [
+            "template",
+            "vars"
+          ],
+          "purpose": "{key} → vars[key]; unknown placeholders are left intact (same contract as"
+        },
+        "resolveVerificationCommand": {
+          "line": 80,
+          "params": [
+            "config"
+          ],
+          "purpose": "The project's own check, in descending order of what actually verifies a"
+        },
+        "buildPermissions": {
+          "line": 92,
+          "params": [
+            "verification"
+          ],
+          "purpose": "The implement-permissions.json body. When a verification command exists,"
+        },
+        "buildLaunchArgs": {
+          "line": 102,
+          "params": [
+            "settingsAbsPath",
+            "promptRelPath"
+          ],
+          "purpose": "The CLI launch line: the permission flags plus the short read-this-file"
+        },
+        "resolveRawTemplatePath": {
+          "line": 112,
+          "params": [
+            "projectRoot",
+            "existsFn = fs.existsSync"
+          ],
+          "purpose": "Raw template path: override → staged. `existsFn` is injectable for tests."
+        },
+        "findProjectRoot": {
+          "line": 124,
+          "params": [
+            "startDir"
+          ],
+          "purpose": "Walk up from a starting dir to the nearest ancestor that holds a .frame/"
+        },
+        "readJson": {
+          "line": 134,
+          "params": [
+            "absPath"
+          ]
+        },
+        "recordAutonomousMode": {
+          "line": 144,
+          "params": [
+            "projectRoot",
+            "slug"
+          ],
+          "purpose": "Merge implement_mode: autonomous into the spec's status.json, preserving"
+        },
+        "writePermissions": {
+          "line": 154,
+          "params": [
+            "projectRoot"
+          ]
+        },
+        "ensureReportGenerator": {
+          "line": 166,
+          "params": [
+            "projectRoot"
+          ],
+          "purpose": "Ensure the report generator sits at runtime/assets/, copying the staged"
+        },
+        "fail": {
+          "line": 177,
+          "params": [
+            "message"
+          ]
+        },
+        "main": {
+          "line": 182,
+          "params": [
+            "argv"
+          ]
+        }
+      }
+    },
     "templates/commands/claude-code/build-implement-report": {
       "file": "src/templates/commands/claude-code/build-implement-report.mjs",
       "description": "",
@@ -9006,6 +9175,23 @@
         "description": "Prompts Panel Module"
       }
     ],
+    "implement": [
+      {
+        "module": "renderer/implementModeModal",
+        "file": "src/renderer/implementModeModal.js",
+        "description": "Implement Mode Modal"
+      },
+      {
+        "module": "templates/bin/implement-launch",
+        "file": "src/templates/bin/implement-launch.js",
+        "description": ""
+      },
+      {
+        "module": "templates/commands/claude-code/build-implement-report",
+        "file": "src/templates/commands/claude-code/build-implement-report.mjs",
+        "description": ""
+      }
+    ],
     "ipc": [
       {
         "module": "shared/ipcChannels",
@@ -9023,6 +9209,18 @@
         "module": "main/pluginsManager",
         "file": "src/main/pluginsManager.js",
         "description": "Plugins Manager Module"
+      }
+    ],
+    "modal": [
+      {
+        "module": "renderer/implementModeModal",
+        "file": "src/renderer/implementModeModal.js",
+        "description": "Implement Mode Modal"
+      },
+      {
+        "module": "renderer/openProjectModal",
+        "file": "src/renderer/openProjectModal.js",
+        "description": "Open Project Modal"
       }
     ],
     "orchestration": [

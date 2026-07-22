@@ -1,6 +1,7 @@
-You are running the implementation loop for an existing Frame spec. Read the
-inputs, ask which mode to run in, then ship the spec's pending work in that
-mode — capturing what you actually did so the next session has context.
+You are running the implementation loop for an existing Frame spec. The mode
+was chosen **before** this session — read the inputs, resolve which mode is in
+force, and ship the spec's pending work in that mode, capturing what you
+actually did so the next session has context.
 
 How much you do in one turn is the mode's call, not this file's: one task and
 back to the user, or the whole spec unattended.
@@ -16,94 +17,69 @@ back to the user, or the whole spec unattended.
   - `.frame/specs/{slug}/outcome.md` — what previous tasks actually shipped (read this if it exists; it tells you why the codebase may differ from the plan)
   - `tasks.json` — find the next task where `source` starts with `spec:{slug}:` AND `status === "pending"` (lowest T-number first)
 
-## Mode — asked at every dispatch, before any work
+## Which mode is in force — resolve it, don't ask for it
 
-Read the inputs above. Then show the picker and **wait**. Do not edit a file,
-mark a task, or write a line of code before the answer lands: a task executed
-before the mode is chosen obeys no mode — uncommitted, absent from any report —
-and repairing that afterwards costs far more than asking cost.
+Frame v2 chooses the mode in the UI (or the launch helper) and records it
+**before** this session starts. So the first thing you do is read
+`implement_mode` from `.frame/specs/{slug}/status.json`:
 
-Before you write anything, note the **existing** `implement_mode` in
-`status.json` and `implement.defaultMode` in `.frame/config.json`. That pair is
-the launch hint Frame already used, and you need its pre-answer value below.
+- **It names a mode** (`step-by-step`, `guided`, `autonomous`, `custom`) →
+  that is the mode. Run its loop directly. **Do not show a picker** — the user
+  already picked, and re-asking here is exactly the mid-session picker v2
+  removed. Jump to that mode's section below.
+- **It is empty or absent** → you were started conversationally, not from the
+  modal. See **Conversational entry** below.
 
-### Composing the picker
+There is one override, checked first: **if a Frame note in this prompt says the
+CLI refused the autonomous permission flags**, then the autonomous mode cannot
+run in this session however `implement_mode` reads. Run the **guided** loop
+instead — the same task-by-task loop, report and commits, paced by the CLI's
+own permission prompts — and say so once. Leave `implement_mode: autonomous`
+untouched: it is the user's real choice, and the next flagged launch should
+honor it.
 
-In this order:
+### Conversational entry (no recorded mode)
 
-- **A · Step by step** — always present.
-- **B · Autonomous + report** — always present.
-- **C · <the saved flow's name>** — only when `.frame/config.json` names an
-  implement flow file (`implement.flowFile`). Its `# heading` is the name;
-  the rest of the file is the description you summarise for the entry.
-- **Last · Describe your own** — always last, lettered C when no flow is saved
-  and D when one is.
+You got here by a plain "implement the tasks", not the modal. First, **check
+for a saved described-flow skill** (see *Describe your own* → *Saved flows are
+skills*). If one exists, offer to run it as one option.
 
-Describe each entry by **what the user gets**, never by its name. For B in
-particular, say that it produces an HTML report, openable as each task
-completes, showing that task's real diff, a what-changed / why-changed summary
-and its test result — and that it is reachable from the spec page in Frame:
-a **View Implementation Report** button on the spec's Tasks tab, appearing
-once the first task lands. Naming a mode is not describing it.
+Then offer the modes that this session can actually run to completion:
 
-When `.frame/config.json` has an `implement.defaultMode`, move that entry to
-the **top** and mark it `(default)`, so confirming it is a single keypress. A
-saved default does not silence the question — asking every time is what makes
-switching modes mid-spec free: run the first tasks step by step, hand the rest
-to the autonomous mode once it has earned the trust.
+- **Step by step** — you implement one task, report what changed and why, and
+  wait for a go-ahead before committing and moving on.
+- **Guided** — you run every task in order with no check-ins between them (the
+  CLI's own permission prompts pace it), one commit per task, producing the
+  HTML report — openable from the **View Implementation Report** button on the
+  spec's Tasks tab in Frame, refreshed as each task lands.
+- **Describe your own** — you tell me how to run it and I run it that way.
 
-### How to ask
+Ask with your structured-question tool (`AskUserQuestion` in Claude Code); with
+none, print a numbered list and **wait** — an unanswered picker is a hard stop.
 
-Use your structured-question tool when you have one — in Claude Code that is
-`AskUserQuestion`. When you have none, print the entries as a numbered list and
-**stop there**. Wait for the answer to arrive as a new message.
+**Autonomous is not runnable from here.** A conversational session was not
+launched with the permission flags that mode needs, and this file never routes
+around a permission decision. If the user wants autonomous, do exactly two
+things and then stop:
 
-An unanswered picker is a hard stop, not a soft one. Do not choose on the
-user's behalf, do not fall through to a default, do not start "while waiting".
+1. Write `implement_mode: "autonomous"` into `.frame/specs/{slug}/status.json`
+   (merge; leave every other key untouched).
+2. Hand off in one message: *"Autonomous needs a flagged launch. Click the
+   implement button on this spec's page in Frame and pick Autonomous, or run
+   `node .frame/bin/implement-launch.js {slug}` in a fresh terminal — either
+   one starts implementing with no further input."*
 
-### After the answer
+No re-dispatch negotiation, no second picker, no settings-file writes.
 
-1. **Record the choice** in `.frame/specs/{slug}/status.json` as
-   `"implement_mode"`, one of `"step-by-step"`, `"autonomous"`, `"custom"`.
-   Merge into the existing object; leave every other key untouched. This is the
-   *last choice*, not a resolved setting — the next dispatch uses it as its
-   launch hint and still asks.
-2. **Check the session can deliver the mode**, below. If it can't, stop there —
-   don't ask anything further of a run that is about to end.
-3. **Offer to save a project default** — once, and only when
-   `.frame/config.json` has no `implement.defaultMode`. On yes, write
-   `"implement": { "defaultMode": "<the choice>" }`. Once a default exists the
-   offer never repeats; changing it later is an explicit ask or a config edit.
-
-### When the session cannot deliver the chosen mode
-
-The autonomous mode needs permission flags that can only be set as the CLI
-launches — and Frame launches before it can ask you anything, so it guesses
-from the launch hint you noted above.
-
-So: the session has those flags exactly when that **pre-answer** hint was
-`autonomous`. If the user picks the autonomous mode and it wasn't, the session
-cannot keep that mode's promise — every edit would stop on a permission prompt,
-the precise thing the mode exists to avoid.
-
-In that case: record the choice anyway (step 1 — that is what makes the *next*
-launch correct), tell the user in one line that this mode needs one
-re-dispatch, and stop. One re-dispatch, not a negotiation.
-
-Picking a **less** autonomous mode than the flags allow is harmless — proceed.
-Step by step's control point is your own question between tasks, not the
-permission layer.
-
-If a Frame note in this prompt says the CLI refused the flags, that settles it:
-the autonomous mode is unavailable in this session however it was launched.
-Say so once and continue with the mode the user picked instead.
+Once the user picks a runnable mode, record it in `status.json`
+(`implement_mode`) so the next dispatch resolves without asking, then run it.
 
 ## The shared core — every mode obeys this
 
-Binding on all three modes, **including a flow the user describes**. A
-described flow may change the loop, the commit policy, the verification and the
-reporting. It may not drop the accounting below — that is what separates
-describing a flow from replacing this file wholesale.
+Binding on all modes, **including a flow the user describes**. A described flow
+may change the loop, the commit policy, the verification and the reporting. It
+may not drop the accounting below — that is what separates describing a flow
+from replacing this file wholesale.
 
 **Which task.** The lowest-numbered task in `tasks.json` whose `source` is
 `spec:{slug}:T<n>` and whose `status` is `pending`. One task at a time, in
@@ -157,7 +133,7 @@ Style:
 - Hard cap: 4 sentences. Be ruthless. The reader 6 months from now should learn
   the story without reading the diff.
 
-## Mode A · Step by step
+## Mode · Step by step
 
 The user turns the loop. You do one task, show your work, and hand control
 back.
@@ -188,18 +164,28 @@ Verification is not part of this mode. If a check is worth running, the user
 asks — the point of turning the loop by hand is that they decide what each
 step is worth.
 
-## Mode B · Autonomous + report
+## Mode · Guided, and Mode · Autonomous + report
 
-You turn the loop. The user watches the report. Take the pending tasks in
-order and keep going until none remain — no confirmation between tasks, no
-"shall I continue". Asking almost nothing is the mode's entire reason to
-exist; a confirmation between tasks turns it back into Mode A.
+These two modes run the **same loop**. The only difference is the permission
+posture:
+
+- **Autonomous** was launched with the permission flags, so edits and commands
+  never stop on a prompt — the run is genuinely unattended.
+- **Guided** runs in a normal-permission session, so the CLI's own permission
+  prompts pace it. You still take every task in order without check-ins; the
+  pauses are the CLI asking to allow a command, not you asking whether to
+  continue.
+
+In both, you turn the loop and the user watches the report. Take the pending
+tasks in order and keep going until none remain — no confirmation between
+tasks, no "shall I continue". A confirmation between tasks turns either mode
+back into step-by-step, which is not what the user picked.
 
 Before the first task, tell the user — once, as a statement, not a question —
-where to watch: the report opens from the **View Implementation Report**
-button on the spec's Tasks tab in Frame (the button appears when the first
-task lands), and it is regenerated after every task, so refreshing the opened
-page follows the run live. Then start; do not wait for a reply.
+where to watch: the report opens from the **View Implementation Report** button
+on the spec's Tasks tab in Frame (the button appears when the first task
+lands), and it is regenerated after every task, so refreshing the opened page
+follows the run live. Then start; do not wait for a reply.
 
 Per task, in this order:
 
@@ -254,6 +240,24 @@ Quote `$FRAME_NODE` — Frame injects its own executable there, and the packaged
 path contains spaces. It writes `implement-report.html` next to the data file,
 openable as each task completes.
 
+**On the first task only, add `--open`** so the report opens in the browser
+once, at the moment there's something to see:
+
+```
+ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" {report_generator_path} --open \
+  .frame/specs/{slug}/report-data.json
+```
+
+This matters most for a terminal-launched autonomous run, where there's no
+Frame window to click the **View Implementation Report** button. Pass `--open`
+**only on the first generation** — every later task regenerates the same file,
+and the reader follows the run by reloading the tab they already have open, so
+re-passing it would spawn a new tab per task. Opening is best-effort: on a box
+with no browser opener it silently does nothing and the run is unaffected. The
+report itself now carries a live status banner (how many tasks are done, which
+is next, and a reload hint), so the reader always knows whether the page in
+front of them is mid-run or final.
+
 Never transcribe a diff into the report yourself. The generator reads each
 commit from git by hash; that is the one place an invented line would silently
 corrupt the artifact, and the reason the report is generated rather than
@@ -274,7 +278,9 @@ Narrow, on purpose. Stop only when:
   do not skip the task, do not commit it red;
 - the work would go outside `plan.md`'s Files and Sequencing;
 - a command is refused by the permission layer. A deny rule is a decision that
-  was already made — surface it, do not route around it.
+  was already made — surface it, do not route around it. (In guided this is a
+  hard deny, not the routine allow-this-command prompt, which you simply
+  answer and continue.)
 
 Everything else you decide yourself and report at the end. When you stop, say
 which task, why, and what state the tree is in.
@@ -284,17 +290,18 @@ which task, why, and what state the tree is in.
 When no tasks remain: the spec phase goes to `"done"`, and you state what
 shipped, which tasks are unverified, and the report's path.
 
-## Mode C · Describe your own
+## Mode · Describe your own
 
 The user says how they want this run to go, and you run it that way.
 
-**If they picked the saved flow**, its description is `.frame/implement-flow.md`
-— read it and run it. Don't ask them to describe it again.
+**If a saved flow skill was chosen** (or you detected one on conversational
+entry and the user said to use it), read that skill and run it. Don't ask them
+to describe it again.
 
-**If they picked "describe your own"**, ask for the description in one
-question, then run it. If what comes back is too thin to act on — "be careful",
-"go fast" — ask one follow-up naming exactly what is unclear (how often to
-commit? verify or not? report or not?). One follow-up, not an interview.
+**Otherwise ask for the description in one question**, then run it. If what
+comes back is too thin to act on — "be careful", "go fast" — ask one follow-up
+naming exactly what is unclear (how often to commit? verify or not? report or
+not?). One follow-up, not an interview.
 
 ### A description governs, the core does not bend
 
@@ -308,24 +315,36 @@ outcome entries, they slow you down" — follow the core, say in one line which
 part you did not honour and why, and carry on. Don't stop the run over it and
 don't quietly do it anyway.
 
-Anything the description leaves unsaid falls back to Mode A's behaviour: hand
-control back rather than assume more autonomy than you were given.
+Anything the description leaves unsaid falls back to step-by-step behaviour:
+hand control back rather than assume more autonomy than you were given.
 
-### Offering to save it
+### Saved flows are skills
 
-After a described run reaches its end, offer **once** to save the flow so it
-becomes a picker entry next time. On yes:
+v2 saves a described flow as a real Claude Code **project skill**, not the old
+`.frame/implement-flow.md` file — a skill is committable and shows up wherever
+the user works, and no Frame code path writes under `.claude/`, so you (the CLI
+agent) are the only writer.
 
-- Write `.frame/implement-flow.md`. First line is `# <short name>` — that
-  heading is what the picker shows as entry C — then the description in the
-  user's own words, tidied but not rewritten.
-- Add `"implement": { "flowFile": "implement-flow.md" }` to `.frame/config.json`,
-  merging into whatever is already there.
-- If a flow file already exists, say what it is called and ask before replacing
-  it. Overwriting someone's saved flow silently is not a save, it is a loss.
+**Detecting one.** A saved implement flow lives at
+`.claude/skills/<name>/SKILL.md` and its front-matter `description` marks it as
+a Frame implement flow (it will say so — a previous run wrote it). On
+conversational entry, scan `.claude/skills/*/SKILL.md` for one and, if found,
+offer it as a runnable option.
 
-The offer is once per run and never repeats after a no. A described flow that
-the user doesn't want to keep is a perfectly good outcome.
+**Offering to save.** After a described run reaches its end, offer **once** to
+save the flow so it's a one-click option next time. On yes:
+
+- Write `.claude/skills/<name>/SKILL.md`. Pick a short kebab-case `<name>`; the
+  front-matter `name` and a `description` that begins "Frame implement flow —"
+  so future detection finds it. The body is the description in the user's own
+  words, tidied but not rewritten, followed by a one-line pointer that it drives
+  `/spec.implement` for this project.
+- If such a skill already exists, say what it is called and ask before
+  replacing it. Overwriting someone's saved flow silently is not a save, it is
+  a loss.
+
+The offer is once per run and never repeats after a no. A described flow the
+user doesn't want to keep is a perfectly good outcome.
 
 ## Stop conditions
 

@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implement modes v2 — the mode is chosen before the session, never inside it — Implementation Report</title>
+<style>
+  /* Frame's design system, dark theme — variable names and values copied
+     from src/renderer/styles/variables.css so a drift there is a one-line
+     diff here. Layout follows the app's dashboards: a gradient header bar
+     over a bg-deep page, content in bordered cards with a tinted head strip.
+     Diff rows use the system's dedicated diff colours rather than the
+     semantic success/error pair — a changed line is not a status. */
+  :root{
+    --bg-deep:#0f0f10;--bg-primary:#151516;--bg-secondary:#1a1a1c;--bg-tertiary:#222225;
+    --text-primary:#e8e6e3;--text-secondary:#a09b94;--text-tertiary:#6b6660;
+    --accent-primary:#d4a574;--accent-subtle:rgba(212,165,116,0.15);
+    --success:#7cb382;--warning:#e0a458;--error:#d47878;--info:#78a5d4;
+    --diff-ins-bg:rgba(63,185,80,0.15);--diff-del-bg:rgba(248,81,73,0.15);--diff-fg:#c9d1d9;
+    --border-subtle:rgba(255,255,255,0.06);--border-default:rgba(255,255,255,0.08);
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
+    --space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;
+    --radius-sm:6px;--radius-md:8px;--radius-lg:12px;
+    --font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-primary);line-height:1.55;}
+
+  /* Header bar — the app's dashboard header, verbatim in spirit. */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-md);flex-wrap:wrap;
+    padding:var(--space-lg) var(--space-xl);border-bottom:1px solid var(--border-subtle);
+    background:linear-gradient(180deg,var(--bg-secondary) 0%,var(--bg-primary) 100%);}
+  .topbar-title{display:flex;align-items:center;gap:var(--space-md);min-width:0;}
+  .logo{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
+    display:block;flex-shrink:0;}
+  .brand{font-size:16px;font-weight:700;letter-spacing:-0.2px;color:var(--accent-primary);}
+  .brand-sep{width:1px;align-self:stretch;background:var(--border-default);flex-shrink:0;}
+  .doc-block{display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+  .doc-type{font-size:14px;font-weight:600;color:var(--text-primary);
+    text-transform:uppercase;letter-spacing:.08em;}
+  .topbar-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:var(--space-xl) var(--space-lg);
+    display:flex;flex-direction:column;gap:var(--space-lg);}
+
+  /* Report head — the spec's full name lives here, not in the topbar, so the
+     bar stays a stable brand strip while the title gets document scale. */
+  .report-head{padding:var(--space-md) 0 var(--space-xs);}
+  .slug-chip{font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+    color:var(--accent-primary);background:var(--accent-subtle);
+    border:1px solid rgba(212,165,116,0.35);padding:3px 10px;border-radius:999px;}
+  .report-head h1{font-size:27px;font-weight:700;letter-spacing:-0.6px;
+    line-height:1.25;color:var(--text-primary);max-width:900px;}
+
+  .chip{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);
+    background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+    padding:3px 8px;border-radius:var(--radius-sm);}
+  .pill{display:inline-block;font-size:11px;color:var(--text-secondary);
+    background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+    padding:3px 10px;border-radius:999px;}
+  .pill.good{color:var(--success);border-color:var(--success);}
+  .pill.warn{color:var(--warning);border-color:var(--warning);}
+  .pill.bad{color:var(--error);border-color:var(--error);}
+
+  .card{background:var(--bg-secondary);border:1px solid var(--border-default);
+    border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .card-head{display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap;
+    padding:var(--space-md) var(--space-lg);background:var(--bg-tertiary);
+    border-bottom:1px solid var(--border-subtle);}
+  .card-id{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent-primary);
+    background:var(--accent-subtle);padding:2px 8px;border-radius:var(--radius-sm);}
+  .card-head h2{font-size:14px;font-weight:600;letter-spacing:-0.2px;color:var(--text-primary);flex:1;min-width:180px;}
+  .card-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+  .card-body{padding:var(--space-lg);}
+
+  .field{margin-bottom:var(--space-md);}
+  .label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-tertiary);margin-bottom:2px;}
+  .field p{font-size:13.5px;color:var(--text-primary);}
+  .muted{color:var(--text-secondary);font-size:13px;}
+  code{background:var(--bg-tertiary);border-radius:var(--radius-sm);padding:1px 5px;
+    font-size:12px;font-family:var(--font-mono);}
+
+  details{border-top:1px solid var(--border-subtle);padding-top:var(--space-md);}
+  summary{cursor:pointer;display:inline-flex;align-items:center;gap:var(--space-sm);
+    font-size:12px;font-weight:600;color:var(--accent-primary);text-transform:uppercase;
+    letter-spacing:.06em;background:var(--accent-subtle);
+    border:1px solid rgba(212,165,116,0.35);border-radius:var(--radius-sm);
+    padding:6px 14px;list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:'\25B8';font-size:11px;line-height:1;}
+  details[open] summary::before{content:'\25BE';}
+  summary:hover{border-color:var(--accent-primary);background:rgba(212,165,116,0.22);}
+  pre.diff{background:var(--bg-deep);border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+    padding:var(--space-md) 0;font-size:12px;font-family:var(--font-mono);line-height:1.5;
+    overflow-x:auto;margin-top:var(--space-sm);display:flex;flex-direction:column;}
+  pre.diff span{white-space:pre;padding:0 var(--space-lg);min-width:100%;width:max-content;}
+  .dl-add{background:var(--diff-ins-bg);color:var(--diff-fg);}
+  .dl-del{background:var(--diff-del-bg);color:var(--diff-fg);}
+  .dl-ctx{color:var(--text-secondary);}
+  .dl-hunk{color:var(--info);}
+  .dl-file{color:var(--text-primary);}
+  .dl-meta{color:var(--text-tertiary);}
+
+  footer{color:var(--text-tertiary);font-size:11.5px;text-align:center;
+    padding:var(--space-lg);border-top:1px solid var(--border-subtle);}
+  @media (max-width:560px){.card-head{gap:var(--space-sm);}.report-head h1{font-size:20px;}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-title">
+    <img class="logo" src="data:image/png;base64,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" alt="Frame logo">
+    <span class="brand">Frame</span>
+    <span class="brand-sep"></span>
+    <div class="doc-block">
+      <span class="doc-type">Spec Implementation Report</span>
+      <span class="slug-chip">implement-modes-v2</span>
+    </div>
+  </div>
+  <div class="topbar-meta">
+    <span class="pill">8 tasks</span>
+    <span class="pill good">8 verified</span>
+    
+    <span class="chip">2026-07-22</span>
+  </div>
+</header>
+
+<div class="wrap">
+<section class="report-head">
+  <h1>Implement modes v2 — the mode is chosen before the session, never inside it</h1>
+</section>
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T01</span>
+    <h2>Flagged-launch tracking on lanes (launchedAutonomous)</h2>
+    <span class="card-meta"><span class="chip">48a5fb3</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">105/105 passing; renderer change is not unit-covered per plan&#39;s pure-logic-only test posture</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added a module-level launchedAutonomousLanes Map to src/renderer/agentDispatch.js, set when a dispatch starts the CLI carrying launch flags the CLI kept (not dropped), cleared on TERMINAL_DESTROYED, and surfaced as launchedAutonomous on getSpecLaneInfo (gated on a live agentName).</p></div>
+    <div class="field"><span class="label">Why</span><p>The unified implement modal (later tasks) needs to know whether a live lane was launched with the autonomous permission flags before it may offer autonomous &#39;Continue&#39;. Recording this at CLI-start — the only moment launch flags exist — makes it a fixed property of the session for the lane&#39;s lifetime, since a reused lane never restarts the CLI.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/renderer/agentDispatch.js b/src/renderer/agentDispatch.js</span>
+<span class="dl-meta">index 0d58e9f..526fe05 100644</span>
+<span class="dl-file">--- a/src/renderer/agentDispatch.js</span>
+<span class="dl-file">+++ b/src/renderer/agentDispatch.js</span>
+<span class="dl-hunk">@@ -28,6 +28,17 @@ const notify = require(&#39;./notify&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> let multiTerminalUI = null;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// Which lanes were launched with the autonomous permission flags still on</span>
+<span class="dl-add">+// (the CLI accepted `--settings/--permission-mode` — the flags were not</span>
+<span class="dl-add">+// dropped). Keyed by terminalId, set at the CLI start that carried them,</span>
+<span class="dl-add">+// cleared when the terminal is destroyed. This is a property of how the</span>
+<span class="dl-add">+// lane&#39;s agent session was *launched*, fixed for its lifetime — a reused</span>
+<span class="dl-add">+// lane never restarts the CLI, so its launch flags never change. The unified</span>
+<span class="dl-add">+// implement modal reads it to decide whether &quot;Continue in &lt;Frame&gt;&quot; may keep</span>
+<span class="dl-add">+// the autonomous mode, which only holds when the live session already carries</span>
+<span class="dl-add">+// those flags.</span>
+<span class="dl-add">+const launchedAutonomousLanes = new Map(); // Map&lt;terminalId, boolean&gt;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Initialize with the MultiTerminalUI instance.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -48,6 +59,7 @@ function init(ui) {</span>
+<span class="dl-ctx">     if (a &amp;&amp; a.kind === &#39;task&#39;) _notifyTaskLane(a.ref);</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx">   ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) =&gt; {</span>
+<span class="dl-add">+    launchedAutonomousLanes.delete(terminalId);</span>
+<span class="dl-ctx">     for (const [slug, laneId] of specLanes) {</span>
+<span class="dl-ctx">       if (laneId === terminalId) _notifySpecLane(slug);</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-hunk">@@ -185,6 +197,13 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p</span>
+<span class="dl-ctx">     // The CLI actually launched and reached ready — that is an agent run.</span>
+<span class="dl-ctx">     // Main normalizes the tool id to the registry enum before sending.</span>
+<span class="dl-ctx">     ipcRenderer.send(IPC.TELEMETRY_TRACK, &#39;agent_run_started&#39;, { tool: chosenToolId });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // This dispatch started the session. Record whether it carried the</span>
+<span class="dl-add">+    // autonomous permission flags and the CLI kept them (didn&#39;t come up</span>
+<span class="dl-add">+    // bare) — that pins the lane as autonomous-launched for its lifetime.</span>
+<span class="dl-add">+    if (launchFlags &amp;&amp; launchFlags.length &amp;&amp; !flagsDropped) {</span>
+<span class="dl-add">+      launchedAutonomousLanes.set(targetId, true);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // ── Inject ───────────────────────────────────────────────</span>
+<span class="dl-hunk">@@ -433,7 +452,12 @@ function getSpecLaneInfo(slug) {</span>
+<span class="dl-ctx">     name: _laneName(id),</span>
+<span class="dl-ctx">     status: s.status,</span>
+<span class="dl-ctx">     agentName: s.agentName,</span>
+<span class="dl-del">-    busy: !!s.agentName &amp;&amp; (s.status === &#39;agent-working&#39; || s.status === &#39;agent-approval&#39;)</span>
+<span class="dl-add">+    busy: !!s.agentName &amp;&amp; (s.status === &#39;agent-working&#39; || s.status === &#39;agent-approval&#39;),</span>
+<span class="dl-add">+    // True only while a live agent owns a lane that was launched with the</span>
+<span class="dl-add">+    // autonomous flags intact — the modal&#39;s gate for allowing autonomous</span>
+<span class="dl-add">+    // &quot;Continue&quot;. Requires agentName so a dead-but-remembered lane never</span>
+<span class="dl-add">+    // reports a session that no longer exists.</span>
+<span class="dl-add">+    launchedAutonomous: !!s.agentName &amp;&amp; !!launchedAutonomousLanes.get(id)</span>
+<span class="dl-ctx">   };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T02</span>
+    <h2>Expose implementHint on getSpec</h2>
+    <span class="card-meta"><span class="chip">1646ecb</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">105/105 passing; getSpec&#39;s payload is not unit-covered per plan&#39;s pure-logic-only test posture</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>getSpec in src/main/specManager.js now returns implementHint, computed by the already-present resolveImplementLaunchHint (status.implement_mode → config implement.defaultMode → null).</p></div>
+    <div class="field"><span class="label">Why</span><p>The modal&#39;s mode preselection and the next-action button&#39;s label both need the resolved hint; sourcing it from getSpec means the renderer never re-implements the status→config→null precedence. resolveImplementLaunchHint already existed (D10), so this is purely surfacing it on the spec payload.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/specManager.js b/src/main/specManager.js</span>
+<span class="dl-meta">index 06e9c5e..0db3d98 100644</span>
+<span class="dl-file">--- a/src/main/specManager.js</span>
+<span class="dl-file">+++ b/src/main/specManager.js</span>
+<span class="dl-hunk">@@ -693,7 +693,12 @@ function getSpec(projectPath, slug) {</span>
+<span class="dl-ctx">     tasks: readFileSafe(path.join(dir, TASKS_FILE)),</span>
+<span class="dl-ctx">     outcome: readFileSafe(path.join(dir, OUTCOME_FILE)),</span>
+<span class="dl-ctx">     planReportPath: fs.existsSync(reportPath) ? reportPath : null,</span>
+<span class="dl-del">-    implementReportPath: fs.existsSync(implementReportPath) ? implementReportPath : null</span>
+<span class="dl-add">+    implementReportPath: fs.existsSync(implementReportPath) ? implementReportPath : null,</span>
+<span class="dl-add">+    // Resolved implement-mode hint (status.implement_mode → config</span>
+<span class="dl-add">+    // implement.defaultMode → null), so the modal&#39;s preselection and the</span>
+<span class="dl-add">+    // next-action button&#39;s label read one authoritative value instead of</span>
+<span class="dl-add">+    // re-deriving the resolution in the renderer.</span>
+<span class="dl-add">+    implementHint: resolveImplementLaunchHint(projectPath, slug)</span>
+<span class="dl-ctx">   };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T03</span>
+    <h2>Unified implement mode + destination modal</h2>
+    <span class="card-meta"><span class="chip">e96269c</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">105/105 passing; node --check clean. Renderer/CSS not unit-covered per plan&#39;s pure-logic-only test posture</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>New src/renderer/implementModeModal.js: a Promise-based spec-modal-overlay with four mode entries (hinted mode preselected), a destination section rendered only when the spec&#39;s lane is alive, autonomous &#39;Continue&#39; disabled with a stated reason and forced to a new Frame unless lane.launchedAutonomous, and Escape/backdrop/Cancel all resolving null. Added matching styles to src/renderer/styles/components/panels.css.</p></div>
+    <div class="field"><span class="label">Why</span><p>Absorbs the old _askContinueOrNew into one modal so two dialogs never stack, per the spec. Built as a dynamic overlay (like agentDispatch&#39;s own dialogs) rather than the pre-baked-HTML taskConfirmModal pattern, because the mode and destination sections react to each other and would otherwise need markup kept in sync in index.html.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/renderer/implementModeModal.js b/src/renderer/implementModeModal.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..535c6d2</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/renderer/implementModeModal.js</span>
+<span class="dl-hunk">@@ -0,0 +1,187 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Implement Mode Modal</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The single door the implement button opens: pick a mode, and — only when</span>
+<span class="dl-add">+ * the spec already has a live lane — pick where it runs. It absorbs the old</span>
+<span class="dl-add">+ * `_askContinueOrNew` dialog so two stacked modals never appear; the ordering</span>
+<span class="dl-add">+ * flip (modal → record implement_mode → stage → dispatch) lives in the caller</span>
+<span class="dl-add">+ * (agentDispatch.dispatchSpecCommand).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Built the same way as agentDispatch&#39;s own overlays — a dynamically created</span>
+<span class="dl-add">+ * `spec-modal-overlay`, resolved through a Promise — rather than the</span>
+<span class="dl-add">+ * pre-baked-HTML pattern of taskConfirmModal, because it must render four</span>
+<span class="dl-add">+ * mode entries and a conditional destination section that react to each</span>
+<span class="dl-add">+ * other. No pre-existing markup in index.html to keep in sync.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Result contract:</span>
+<span class="dl-add">+ *   { mode: &#39;step-by-step&#39;|&#39;guided&#39;|&#39;autonomous&#39;|&#39;custom&#39;,</span>
+<span class="dl-add">+ *     destination: &#39;continue&#39;|&#39;new&#39; }   on confirm</span>
+<span class="dl-add">+ *   null                                 on Escape / backdrop / Cancel</span>
+<span class="dl-add">+ *     (the caller writes nothing and dispatches nothing on null)</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// The four rungs of the mode ladder. Order is the display order; `id` is the</span>
+<span class="dl-add">+// persisted `implement_mode` value. Descriptions say what the user *gets*,</span>
+<span class="dl-add">+// not just what the mode is called.</span>
+<span class="dl-add">+const MODES = [</span>
+<span class="dl-add">+  {</span>
+<span class="dl-add">+    id: &#39;step-by-step&#39;,</span>
+<span class="dl-add">+    label: &#39;Step by step&#39;,</span>
+<span class="dl-add">+    desc: &#39;Implement one task, report what changed and why, then wait for your approval to commit and move on.&#39;</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  {</span>
+<span class="dl-add">+    id: &#39;guided&#39;,</span>
+<span class="dl-add">+    label: &#39;Guided run&#39;,</span>
+<span class="dl-add">+    desc: &#39;Run every task in order with no check-ins between them — the CLI’s own permission prompts pace it — and build the live implementation report.&#39;</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  {</span>
+<span class="dl-add">+    id: &#39;autonomous&#39;,</span>
+<span class="dl-add">+    label: &#39;Autonomous + report&#39;,</span>
+<span class="dl-add">+    desc: &#39;Run every task unattended, one commit each, refreshing the HTML report as each lands. Needs a session launched with the autonomous permission flags.&#39;</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  {</span>
+<span class="dl-add">+    id: &#39;custom&#39;,</span>
+<span class="dl-add">+    label: &#39;Describe your own&#39;,</span>
+<span class="dl-add">+    desc: &#39;Tell the agent how to run this — commit cadence, whether to verify, whether to report — in its own session.&#39;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const VALID_MODES = new Set(MODES.map((m) =&gt; m.id));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const AUTONOMOUS_CONTINUE_REASON =</span>
+<span class="dl-add">+  &#39;Autonomous needs a session launched with its permission flags, and this &#39;</span>
+<span class="dl-add">+  + &#39;Frame wasn’t — continuing here couldn’t keep that mode. Open a new Frame instead.&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Open the modal.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * @param {object} opts</span>
+<span class="dl-add">+ * @param {string}      opts.slug   - spec slug</span>
+<span class="dl-add">+ * @param {string}      [opts.title]- spec title (heading copy only)</span>
+<span class="dl-add">+ * @param {string|null} [opts.hint] - resolved implement hint; the matching</span>
+<span class="dl-add">+ *                                     mode is preselected</span>
+<span class="dl-add">+ * @param {object|null} [opts.lane] - getSpecLaneInfo(slug); the destination</span>
+<span class="dl-add">+ *                                     section shows only when its agent is</span>
+<span class="dl-add">+ *                                     live. `lane.launchedAutonomous` gates</span>
+<span class="dl-add">+ *                                     autonomous &quot;Continue&quot;.</span>
+<span class="dl-add">+ * @returns {Promise&lt;{mode:string, destination:&#39;continue&#39;|&#39;new&#39;}|null&gt;}</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function open({ slug, title = null, hint = null, lane = null } = {}) {</span>
+<span class="dl-add">+  return new Promise((resolve) =&gt; {</span>
+<span class="dl-add">+    const laneAlive = !!(lane &amp;&amp; lane.agentName);</span>
+<span class="dl-add">+    let mode = VALID_MODES.has(hint) ? hint : &#39;step-by-step&#39;;</span>
+<span class="dl-add">+    // Continue is the natural default for a live lane; a hidden section (no</span>
+<span class="dl-add">+    // live lane) always resolves to a new Frame.</span>
+<span class="dl-add">+    let destination = laneAlive ? &#39;continue&#39; : &#39;new&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const overlay = document.createElement(&#39;div&#39;);</span>
+<span class="dl-add">+    overlay.className = &#39;spec-modal-overlay&#39;;</span>
+<span class="dl-add">+    overlay.innerHTML = `</span>
+<span class="dl-add">+      &lt;div class=&quot;spec-modal spec-implement-modal&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-labelledby=&quot;impl-mode-title&quot;&gt;</span>
+<span class="dl-add">+        &lt;h3 id=&quot;impl-mode-title&quot;&gt;How should this run?&lt;/h3&gt;</span>
+<span class="dl-add">+        &lt;p&gt;Choose how &lt;strong&gt;${escapeHtml(title || slug)}&lt;/strong&gt; implements its remaining tasks.&lt;/p&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;impl-mode-list&quot; role=&quot;radiogroup&quot; aria-label=&quot;Implement mode&quot;&gt;&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;impl-dest-section&quot;&gt;&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;spec-modal-actions&quot;&gt;</span>
+<span class="dl-add">+          &lt;button type=&quot;button&quot; class=&quot;btn btn-secondary impl-cancel&quot;&gt;Cancel&lt;/button&gt;</span>
+<span class="dl-add">+          &lt;button type=&quot;button&quot; class=&quot;btn btn-primary impl-confirm&quot;&gt;Start&lt;/button&gt;</span>
+<span class="dl-add">+        &lt;/div&gt;</span>
+<span class="dl-add">+      &lt;/div&gt;</span>
+<span class="dl-add">+    `;</span>
+<span class="dl-add">+    document.body.appendChild(overlay);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const listEl = overlay.querySelector(&#39;.impl-mode-list&#39;);</span>
+<span class="dl-add">+    const destEl = overlay.querySelector(&#39;.impl-dest-section&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // Autonomous &quot;Continue&quot; is impossible unless the live lane was itself</span>
+<span class="dl-add">+    // launched with the autonomous flags — otherwise every edit would stop on</span>
+<span class="dl-add">+    // a prompt, the precise thing the mode avoids.</span>
+<span class="dl-add">+    const autonomousContinueBlocked = () =&gt;</span>
+<span class="dl-add">+      mode === &#39;autonomous&#39; &amp;&amp; laneAlive &amp;&amp; !lane.launchedAutonomous;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    function renderModes() {</span>
+<span class="dl-add">+      listEl.innerHTML = MODES.map((m) =&gt; `</span>
+<span class="dl-add">+        &lt;button type=&quot;button&quot; class=&quot;impl-mode-option${m.id === mode ? &#39; selected&#39; : &#39;&#39;}&quot;</span>
+<span class="dl-add">+                role=&quot;radio&quot; aria-checked=&quot;${m.id === mode ? &#39;true&#39; : &#39;false&#39;}&quot; data-mode=&quot;${m.id}&quot;&gt;</span>
+<span class="dl-add">+          &lt;span class=&quot;impl-mode-name&quot;&gt;${escapeHtml(m.label)}&lt;/span&gt;</span>
+<span class="dl-add">+          &lt;span class=&quot;impl-mode-desc&quot;&gt;${escapeHtml(m.desc)}&lt;/span&gt;</span>
+<span class="dl-add">+        &lt;/button&gt;`).join(&#39;&#39;);</span>
+<span class="dl-add">+      listEl.querySelectorAll(&#39;.impl-mode-option&#39;).forEach((btn) =&gt; {</span>
+<span class="dl-add">+        btn.addEventListener(&#39;click&#39;, () =&gt; {</span>
+<span class="dl-add">+          mode = btn.dataset.mode;</span>
+<span class="dl-add">+          renderModes();</span>
+<span class="dl-add">+          renderDest();</span>
+<span class="dl-add">+        });</span>
+<span class="dl-add">+      });</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    function renderDest() {</span>
+<span class="dl-add">+      if (!laneAlive) {</span>
+<span class="dl-add">+        destEl.innerHTML = &#39;&#39;;</span>
+<span class="dl-add">+        destination = &#39;new&#39;;</span>
+<span class="dl-add">+        return;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+      const blocked = autonomousContinueBlocked();</span>
+<span class="dl-add">+      // A blocked autonomous choice forces a new Frame; any other switch that</span>
+<span class="dl-add">+      // left destination undefined falls back to Continue.</span>
+<span class="dl-add">+      if (blocked) destination = &#39;new&#39;;</span>
+<span class="dl-add">+      else if (destination !== &#39;continue&#39; &amp;&amp; destination !== &#39;new&#39;) destination = &#39;continue&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+      const frameName = escapeHtml(lane.name || &#39;this Frame&#39;);</span>
+<span class="dl-add">+      destEl.innerHTML = `</span>
+<span class="dl-add">+        &lt;div class=&quot;impl-dest-label&quot;&gt;Where should it run?&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;impl-dest-options&quot;&gt;</span>
+<span class="dl-add">+          &lt;button type=&quot;button&quot;</span>
+<span class="dl-add">+                  class=&quot;impl-dest-option${destination === &#39;continue&#39; ? &#39; selected&#39; : &#39;&#39;}${blocked ? &#39; disabled&#39; : &#39;&#39;}&quot;</span>
+<span class="dl-add">+                  data-dest=&quot;continue&quot; ${blocked ? &#39;disabled aria-disabled=&quot;true&quot;&#39; : &#39;&#39;}&gt;</span>
+<span class="dl-add">+            &lt;span class=&quot;impl-dest-name&quot;&gt;Continue in ${frameName}&lt;/span&gt;</span>
+<span class="dl-add">+            ${blocked ? `&lt;span class=&quot;impl-dest-reason&quot;&gt;${escapeHtml(AUTONOMOUS_CONTINUE_REASON)}&lt;/span&gt;` : &#39;&#39;}</span>
+<span class="dl-add">+          &lt;/button&gt;</span>
+<span class="dl-add">+          &lt;button type=&quot;button&quot; class=&quot;impl-dest-option${destination === &#39;new&#39; ? &#39; selected&#39; : &#39;&#39;}&quot; data-dest=&quot;new&quot;&gt;</span>
+<span class="dl-add">+            &lt;span class=&quot;impl-dest-name&quot;&gt;Open a new Frame&lt;/span&gt;</span>
+<span class="dl-add">+          &lt;/button&gt;</span>
+<span class="dl-add">+        &lt;/div&gt;`;</span>
+<span class="dl-add">+      destEl.querySelectorAll(&#39;.impl-dest-option&#39;).forEach((btn) =&gt; {</span>
+<span class="dl-add">+        if (btn.disabled) return;</span>
+<span class="dl-add">+        btn.addEventListener(&#39;click&#39;, () =&gt; {</span>
+<span class="dl-add">+          destination = btn.dataset.dest;</span>
+<span class="dl-add">+          renderDest();</span>
+<span class="dl-add">+        });</span>
+<span class="dl-add">+      });</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const done = (result) =&gt; {</span>
+<span class="dl-add">+      overlay.remove();</span>
+<span class="dl-add">+      document.removeEventListener(&#39;keydown&#39;, onKey, true);</span>
+<span class="dl-add">+      resolve(result);</span>
+<span class="dl-add">+    };</span>
+<span class="dl-add">+    // Capture phase so Escape beats any surface-level Esc handler, matching</span>
+<span class="dl-add">+    // taskConfirmModal&#39;s contract.</span>
+<span class="dl-add">+    const onKey = (e) =&gt; {</span>
+<span class="dl-add">+      if (e.key === &#39;Escape&#39;) {</span>
+<span class="dl-add">+        e.stopPropagation();</span>
+<span class="dl-add">+        done(null);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    overlay.querySelector(&#39;.impl-cancel&#39;).addEventListener(&#39;click&#39;, () =&gt; done(null));</span>
+<span class="dl-add">+    overlay.querySelector(&#39;.impl-confirm&#39;).addEventListener(&#39;click&#39;, () =&gt; {</span>
+<span class="dl-add">+      done({ mode, destination: laneAlive ? destination : &#39;new&#39; });</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    overlay.addEventListener(&#39;click&#39;, (e) =&gt; {</span>
+<span class="dl-add">+      if (e.target === overlay) done(null);</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    document.addEventListener(&#39;keydown&#39;, onKey, true);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    renderModes();</span>
+<span class="dl-add">+    renderDest();</span>
+<span class="dl-add">+    requestAnimationFrame(() =&gt; {</span>
+<span class="dl-add">+      const confirm = overlay.querySelector(&#39;.impl-confirm&#39;);</span>
+<span class="dl-add">+      if (confirm) confirm.focus();</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = { open };</span>
+<span class="dl-meta">diff --git a/src/renderer/styles/components/panels.css b/src/renderer/styles/components/panels.css</span>
+<span class="dl-meta">index e28c942..4fda178 100644</span>
+<span class="dl-file">--- a/src/renderer/styles/components/panels.css</span>
+<span class="dl-file">+++ b/src/renderer/styles/components/panels.css</span>
+<span class="dl-hunk">@@ -5443,6 +5443,112 @@</span>
+<span class="dl-ctx">   gap: var(--space-sm);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/* Implement mode modal — the unified mode + destination picker opened by the</span>
+<span class="dl-add">+   implement button. Wider than the default shell to give the four mode</span>
+<span class="dl-add">+   entries room to breathe. */</span>
+<span class="dl-add">+.spec-implement-modal {</span>
+<span class="dl-add">+  width: 500px;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-mode-list {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  flex-direction: column;</span>
+<span class="dl-add">+  gap: var(--space-sm);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-mode-option {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  flex-direction: column;</span>
+<span class="dl-add">+  gap: 3px;</span>
+<span class="dl-add">+  text-align: left;</span>
+<span class="dl-add">+  padding: var(--space-md);</span>
+<span class="dl-add">+  background: var(--bg-tertiary);</span>
+<span class="dl-add">+  border: 1px solid var(--border-default);</span>
+<span class="dl-add">+  border-radius: var(--radius-md);</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+  transition: border-color var(--transition-fast), background var(--transition-fast);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-mode-option:hover {</span>
+<span class="dl-add">+  border-color: var(--border-strong, var(--accent-primary));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-mode-option.selected {</span>
+<span class="dl-add">+  border-color: var(--accent-primary);</span>
+<span class="dl-add">+  background: var(--accent-subtle, rgba(212, 165, 116, 0.12));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-mode-name {</span>
+<span class="dl-add">+  font-size: 13px;</span>
+<span class="dl-add">+  font-weight: 600;</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-mode-desc {</span>
+<span class="dl-add">+  font-size: 11.5px;</span>
+<span class="dl-add">+  color: var(--text-tertiary);</span>
+<span class="dl-add">+  line-height: 1.45;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* Destination section — present only when the spec&#39;s lane is alive. */</span>
+<span class="dl-add">+.impl-dest-section:empty {</span>
+<span class="dl-add">+  display: none;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-dest-label {</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  text-transform: uppercase;</span>
+<span class="dl-add">+  letter-spacing: 0.5px;</span>
+<span class="dl-add">+  color: var(--text-tertiary);</span>
+<span class="dl-add">+  font-weight: 600;</span>
+<span class="dl-add">+  margin-bottom: var(--space-xs);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-dest-options {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  flex-direction: column;</span>
+<span class="dl-add">+  gap: var(--space-sm);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-dest-option {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  flex-direction: column;</span>
+<span class="dl-add">+  gap: 3px;</span>
+<span class="dl-add">+  text-align: left;</span>
+<span class="dl-add">+  padding: var(--space-sm) var(--space-md);</span>
+<span class="dl-add">+  background: var(--bg-tertiary);</span>
+<span class="dl-add">+  border: 1px solid var(--border-default);</span>
+<span class="dl-add">+  border-radius: var(--radius-md);</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+  transition: border-color var(--transition-fast), background var(--transition-fast);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-dest-option:hover:not(.disabled) {</span>
+<span class="dl-add">+  border-color: var(--border-strong, var(--accent-primary));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-dest-option.selected {</span>
+<span class="dl-add">+  border-color: var(--accent-primary);</span>
+<span class="dl-add">+  background: var(--accent-subtle, rgba(212, 165, 116, 0.12));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-dest-option.disabled {</span>
+<span class="dl-add">+  opacity: 0.55;</span>
+<span class="dl-add">+  cursor: not-allowed;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-dest-name {</span>
+<span class="dl-add">+  font-size: 12.5px;</span>
+<span class="dl-add">+  font-weight: 600;</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.impl-dest-reason {</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  color: var(--warning);</span>
+<span class="dl-add">+  line-height: 1.45;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /* Suggestion (opt-in) modal — softer presentation than the New Spec modal */</span>
+<span class="dl-ctx"> .spec-modal-suggestion {</span>
+<span class="dl-ctx">   width: 540px;</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T04</span>
+    <h2>Route spec.implement through the modal (ordering flip)</h2>
+    <span class="card-meta"><span class="chip">b3e663a</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">105/105 passing; node --check clean and npm run build bundles the renderer without error. Dispatch flow not unit-covered per plan&#39;s pure-logic-only test posture</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>dispatchSpecCommand in src/renderer/agentDispatch.js now branches spec.implement into a new _dispatchImplement: open the modal → record implement_mode via UPDATE_SPEC_STATUS → stage (flags derive from the recorded mode) → dispatch to the chosen destination; cancel writes and dispatches nothing. The flags-dropped notice and prompt note were rewritten to the guided-fallback wording. Non-implement commands keep the stage-first + _askContinueOrNew flow untouched.</p></div>
+    <div class="field"><span class="label">Why</span><p>The ordering flip (modal-before-stage) is what makes a fresh autonomous dispatch carry its flags on the first launch, so the re-dispatch flow is unreachable from the UI. Kept _askContinueOrNew only on the non-implement path since those commands never carry launch flags.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/renderer/agentDispatch.js b/src/renderer/agentDispatch.js</span>
+<span class="dl-meta">index 526fe05..b8cc3c0 100644</span>
+<span class="dl-file">--- a/src/renderer/agentDispatch.js</span>
+<span class="dl-file">+++ b/src/renderer/agentDispatch.js</span>
+<span class="dl-hunk">@@ -25,6 +25,7 @@ const laneStatus = require(&#39;./laneStatus&#39;);</span>
+<span class="dl-ctx"> const state = require(&#39;./state&#39;);</span>
+<span class="dl-ctx"> const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-ctx"> const notify = require(&#39;./notify&#39;);</span>
+<span class="dl-add">+const implementModeModal = require(&#39;./implementModeModal&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> let multiTerminalUI = null;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -186,7 +187,7 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p</span>
+<span class="dl-ctx">       ready = await bareReady;</span>
+<span class="dl-ctx">       if (ready) {</span>
+<span class="dl-ctx">         flagsDropped = true;</span>
+<span class="dl-del">-        notify.info(&#39;Autonomous mode is not available with this CLI — continuing without it&#39;);</span>
+<span class="dl-add">+        notify.info(&#39;Autonomous permissions were refused by this CLI — continuing in guided mode (same loop and report, paced by the CLI’s own prompts)&#39;);</span>
+<span class="dl-ctx">       }</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -369,6 +370,19 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {</span>
+<span class="dl-ctx">     return _fail(null, &#39;Open a project first&#39;);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  const assignment = { kind: &#39;spec&#39;, label: `spec: ${slug}`, ref: slug };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // spec.implement flips the ordering: the mode is chosen in the unified</span>
+<span class="dl-add">+  // modal *before* anything is staged, so the recorded implement_mode is what</span>
+<span class="dl-add">+  // getImplementLaunchFlags reads — a fresh autonomous dispatch carries its</span>
+<span class="dl-add">+  // flags on the first launch and the re-dispatch flow is unreachable.</span>
+<span class="dl-add">+  if (command === &#39;spec.implement&#39;) {</span>
+<span class="dl-add">+    return _dispatchImplement({ slug, title, projectPath, assignment });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Every other spec command keeps the stage-first + continue-or-new flow;</span>
+<span class="dl-add">+  // these never carry launch flags (BUILD_SPEC_COMMAND_FILE returns them for</span>
+<span class="dl-add">+  // spec.implement only), so _askContinueOrNew is unchanged here.</span>
+<span class="dl-ctx">   let staged;</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-ctx">     staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {</span>
+<span class="dl-hunk">@@ -385,29 +399,11 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {</span>
+<span class="dl-ctx">     return _fail(null, &#39;Could not stage prompt: &#39; + ((staged &amp;&amp; staged.error) || &#39;unknown error&#39;));</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const assignment = { kind: &#39;spec&#39;, label: `spec: ${slug}`, ref: slug };</span>
+<span class="dl-ctx">   const assignedId = _assignedLane(slug);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  // Staging decides these — spec.implement&#39;s autonomous mode needs its</span>
+<span class="dl-del">-  // permission file and mode flag on the launch line. They only take effect</span>
+<span class="dl-del">-  // when this dispatch starts the CLI: continuing in a lane whose agent is</span>
+<span class="dl-del">-  // already running keeps whatever flags that session was launched with, and</span>
+<span class="dl-del">-  // the prompt handles the mismatch by asking for one re-dispatch.</span>
+<span class="dl-del">-  const launchFlags = staged.launchFlags || null;</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  // Said, not asked. If the CLI won&#39;t take the flags the autonomous mode</span>
+<span class="dl-del">-  // needs, the run doesn&#39;t stall on a question — it states the limit and</span>
+<span class="dl-del">-  // carries on with the mode that works without them.</span>
+<span class="dl-del">-  const flagsDroppedNote = launchFlags &amp;&amp; launchFlags.length</span>
+<span class="dl-del">-    ? &#39;Frame note: this CLI refused the permission flags the autonomous mode &#39;</span>
+<span class="dl-del">-      + &#39;needs, so that mode is unavailable in this session — do not offer it. &#39;</span>
+<span class="dl-del">-      + &#39;Say so in one line, then continue with the step-by-step mode. Mention &#39;</span>
+<span class="dl-del">-      + &#39;once that describing your own flow is still available.&#39;</span>
+<span class="dl-del">-    : null;</span>
+<span class="dl-del">-</span>
+<span class="dl-ctx">   let result;</span>
+<span class="dl-ctx">   if (!assignedId) {</span>
+<span class="dl-del">-    result = await dispatch({ createNew: true, prompt: staged.instruction, assignment, launchFlags, flagsDroppedNote });</span>
+<span class="dl-add">+    result = await dispatch({ createNew: true, prompt: staged.instruction, assignment });</span>
+<span class="dl-ctx">   } else {</span>
+<span class="dl-ctx">     const choice = await _askContinueOrNew(_laneName(assignedId), title || slug);</span>
+<span class="dl-ctx">     if (choice === &#39;cancel&#39;) {</span>
+<span class="dl-hunk">@@ -417,9 +413,7 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {</span>
+<span class="dl-ctx">       terminalId: choice === &#39;continue&#39; ? assignedId : null,</span>
+<span class="dl-ctx">       createNew: choice !== &#39;continue&#39;,</span>
+<span class="dl-ctx">       prompt: staged.instruction,</span>
+<span class="dl-del">-      assignment,</span>
+<span class="dl-del">-      launchFlags,</span>
+<span class="dl-del">-      flagsDroppedNote</span>
+<span class="dl-add">+      assignment</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -431,6 +425,88 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {</span>
+<span class="dl-ctx">   return result;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// The spec.implement path: modal → record implement_mode → stage → dispatch.</span>
+<span class="dl-add">+// The order matters — recording the mode before staging is exactly what lets</span>
+<span class="dl-add">+// the launch flags derive from the user&#39;s actual choice rather than a guess.</span>
+<span class="dl-add">+async function _dispatchImplement({ slug, title, projectPath, assignment }) {</span>
+<span class="dl-add">+  const assignedId = _assignedLane(slug);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Resolve the hint for the modal&#39;s preselection; a live lane feeds the</span>
+<span class="dl-add">+  // destination section and the autonomous-Continue gate.</span>
+<span class="dl-add">+  let hint = null;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const spec = await ipcRenderer.invoke(IPC.GET_SPEC, { projectPath, slug });</span>
+<span class="dl-add">+    hint = (spec &amp;&amp; spec.implementHint) || null;</span>
+<span class="dl-add">+  } catch (_) { /* no hint — the modal defaults to step-by-step */ }</span>
+<span class="dl-add">+  const lane = assignedId ? getSpecLaneInfo(slug) : null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const choice = await implementModeModal.open({ slug, title, hint, lane });</span>
+<span class="dl-add">+  // Cancel writes nothing and dispatches nothing.</span>
+<span class="dl-add">+  if (!choice) {</span>
+<span class="dl-add">+    return { success: false, terminalId: null, error: null };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Record the chosen mode *before* staging so the flags follow the choice.</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const res = await ipcRenderer.invoke(IPC.UPDATE_SPEC_STATUS, {</span>
+<span class="dl-add">+      projectPath,</span>
+<span class="dl-add">+      slug,</span>
+<span class="dl-add">+      partial: { implement_mode: choice.mode }</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    if (res &amp;&amp; res.error) throw new Error(res.error);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.error(&#39;agentDispatch: recording implement_mode failed&#39;, err);</span>
+<span class="dl-add">+    return _fail(null, &#39;Could not record the implement mode&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  let staged;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {</span>
+<span class="dl-add">+      projectPath,</span>
+<span class="dl-add">+      slug,</span>
+<span class="dl-add">+      command: &#39;spec.implement&#39;,</span>
+<span class="dl-add">+      aiTool: &#39;claude-code&#39;</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.error(&#39;agentDispatch: prompt staging failed&#39;, err);</span>
+<span class="dl-add">+    staged = null;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (!staged || !staged.success) {</span>
+<span class="dl-add">+    return _fail(null, &#39;Could not stage prompt: &#39; + ((staged &amp;&amp; staged.error) || &#39;unknown error&#39;));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Only the autonomous mode yields flags. If the CLI refuses them the run</span>
+<span class="dl-add">+  // doesn&#39;t stall — it falls back to guided (same loop, report and commits,</span>
+<span class="dl-add">+  // paced by the CLI&#39;s own prompts) and says so.</span>
+<span class="dl-add">+  const launchFlags = staged.launchFlags || null;</span>
+<span class="dl-add">+  const flagsDroppedNote = launchFlags &amp;&amp; launchFlags.length</span>
+<span class="dl-add">+    ? &#39;Frame note: this CLI refused the permission flags the autonomous mode &#39;</span>
+<span class="dl-add">+      + &#39;needs, so this run continues in guided mode — the same task-by-task &#39;</span>
+<span class="dl-add">+      + &#39;loop, report-data.json/report and one commit per task, paced by the &#39;</span>
+<span class="dl-add">+      + &#39;CLI’s own permission prompts instead of pre-granted ones. Run the &#39;</span>
+<span class="dl-add">+      + &#39;guided loop; do not ask to re-dispatch.&#39;</span>
+<span class="dl-add">+    : null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Destination from the modal. When there is no live lane the modal already</span>
+<span class="dl-add">+  // forced &#39;new&#39;; a stale assignedId (lane closed between reads) also falls</span>
+<span class="dl-add">+  // through to a new Frame.</span>
+<span class="dl-add">+  const useContinue = choice.destination === &#39;continue&#39; &amp;&amp; !!assignedId;</span>
+<span class="dl-add">+  const result = await dispatch({</span>
+<span class="dl-add">+    terminalId: useContinue ? assignedId : null,</span>
+<span class="dl-add">+    createNew: !useContinue,</span>
+<span class="dl-add">+    prompt: staged.instruction,</span>
+<span class="dl-add">+    assignment,</span>
+<span class="dl-add">+    launchFlags,</span>
+<span class="dl-add">+    flagsDroppedNote</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (result.success) {</span>
+<span class="dl-add">+    specLanes.set(slug, result.terminalId);</span>
+<span class="dl-add">+    _notifySpecLane(slug);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return result;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Live info about the lane a spec is assigned to, or null when unassigned</span>
+<span class="dl-ctx">  * (including: the lane was closed). Computed fresh on every call — never</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T05</span>
+    <h2>Shared next-action bar with mode-driven label and lock</h2>
+    <span class="card-meta"><span class="chip">47ef87d</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">105/105 passing; node --check clean on all four files; npm run build bundles without error. Renderer not unit-covered per plan&#39;s pure-logic-only test posture</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>New src/renderer/specNextAction.js holds one nextActionForPhase + renderNextActionBar + taskCounts: a mode-driven implement label (step-by-step→Implement Next Task, guided→Start Guided Run, autonomous→Start Autonomous Run, custom→Run Custom Flow, none→Implement Tasks…), turn-scoped lock for step-by-step/custom/no-mode and run-liveness lock for guided/autonomous (live lane ∧ tasks pending → locked with &#39;Running — X/Y tasks&#39; / &#39;Waiting for permission&#39;). Wired specSection.js, specPanel.js and specsDashboard.js to it and deleted their three local copies; each surface keeps its own click wiring.</p></div>
+    <div class="field"><span class="label">Why</span><p>Three drifting near-copies plus the new label×lock×progress logic would be a bug farm. Unified the previously-divergent idle labels (specSection&#39;s &#39;Write the Spec&#39; set won over specPanel/dashboard&#39;s &#39;Run /spec.new&#39;); dropped specSection&#39;s inline command-code chip for one uniform bar. Task counts are computed by a shared taskCounts() so all surfaces agree.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/renderer/specNextAction.js b/src/renderer/specNextAction.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..54c6170</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/renderer/specNextAction.js</span>
+<span class="dl-hunk">@@ -0,0 +1,151 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Spec Next-Action Bar (shared)</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * One implementation of the &quot;what&#39;s the next step&quot; bar that the spec detail</span>
+<span class="dl-add">+ * surfaces (specSection, specPanel, specsDashboard) all render. It used to</span>
+<span class="dl-add">+ * live as three near-identical `nextActionForPhase` + `renderNextActionBar`</span>
+<span class="dl-add">+ * copies; the label × lock × progress logic this module adds would have been</span>
+<span class="dl-add">+ * a bug farm in triplicate.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The surfaces keep their own click wiring — they call `nextActionForPhase`</span>
+<span class="dl-add">+ * for the command and null-check, render `renderNextActionBar(...)`, and</span>
+<span class="dl-add">+ * attach their own listener to the button (each passing its own `buttonId`).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Two lock regimes:</span>
+<span class="dl-add">+ *   - turn-scoped (today&#39;s behaviour): a live agent mid-turn locks the button</span>
+<span class="dl-add">+ *     until it finishes. Correct for step-by-step / custom / the pre-mode</span>
+<span class="dl-add">+ *     state, where the button means &quot;do the next task&quot; and idling for approval</span>
+<span class="dl-add">+ *     between tasks is expected.</span>
+<span class="dl-add">+ *   - run-liveness: for the continuous modes (guided, autonomous) the lock</span>
+<span class="dl-add">+ *     must survive turn boundaries — the run keeps going on its own, so the</span>
+<span class="dl-add">+ *     button stays locked while the lane is alive and tasks remain, showing</span>
+<span class="dl-add">+ *     live progress, and self-releases when the agent dies or the last task</span>
+<span class="dl-add">+ *     completes. All inputs are derived per render (no stored busy flag), so</span>
+<span class="dl-add">+ *     a closed Frame drops the lane and the lock releases on its own.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Base next-action per phase. For the implement phase the label is resolved</span>
+<span class="dl-add">+// from the mode (IMPLEMENT_LABELS); the other phases carry a fixed label.</span>
+<span class="dl-add">+function nextActionForPhase(phase) {</span>
+<span class="dl-add">+  switch (phase) {</span>
+<span class="dl-add">+    case &#39;draft&#39;:</span>
+<span class="dl-add">+      return { command: &#39;spec.new&#39;, label: &#39;Write the Spec&#39;, hint: &#39;Frame turns your description into a structured spec.md.&#39; };</span>
+<span class="dl-add">+    case &#39;specified&#39;:</span>
+<span class="dl-add">+      return { command: &#39;spec.plan&#39;, label: &#39;Generate Plan&#39;, hint: &#39;Frame breaks this spec into a technical plan (plan.md).&#39; };</span>
+<span class="dl-add">+    case &#39;planned&#39;:</span>
+<span class="dl-add">+      return { command: &#39;spec.tasks&#39;, label: &#39;Break into Tasks&#39;, hint: &#39;Frame splits the plan into discrete, trackable tasks.&#39; };</span>
+<span class="dl-add">+    case &#39;tasks_generated&#39;:</span>
+<span class="dl-add">+    case &#39;implementing&#39;:</span>
+<span class="dl-add">+      return { command: &#39;spec.implement&#39;, label: &#39;Implement Tasks…&#39;, hint: &#39;Choose how Frame implements the remaining tasks.&#39; };</span>
+<span class="dl-add">+    default:</span>
+<span class="dl-add">+      return null; // &#39;done&#39; or unknown — no action</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Idle button label per resolved implement mode. A missing/unknown hint means</span>
+<span class="dl-add">+// no mode has been chosen yet — the modal will ask, so the label invites that.</span>
+<span class="dl-add">+const IMPLEMENT_LABELS = {</span>
+<span class="dl-add">+  &#39;step-by-step&#39;: &#39;Implement Next Task&#39;,</span>
+<span class="dl-add">+  guided: &#39;Start Guided Run&#39;,</span>
+<span class="dl-add">+  autonomous: &#39;Start Autonomous Run&#39;,</span>
+<span class="dl-add">+  custom: &#39;Run Custom Flow&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Modes whose run spans multiple agent turns — their lock is run-liveness,</span>
+<span class="dl-add">+// not turn-scoped.</span>
+<span class="dl-add">+const CONTINUOUS_MODES = new Set([&#39;guided&#39;, &#39;autonomous&#39;]);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function implementLabel(hint) {</span>
+<span class="dl-add">+  return IMPLEMENT_LABELS[hint] || &#39;Implement Tasks…&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Count this spec&#39;s tasks from the full task list. Shared so all three</span>
+<span class="dl-add">+ * surfaces compute progress identically.</span>
+<span class="dl-add">+ * @returns {{completed:number, total:number, pending:number}}</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function taskCounts(allTasks, slug) {</span>
+<span class="dl-add">+  const prefix = `spec:${slug}:`;</span>
+<span class="dl-add">+  const items = (Array.isArray(allTasks) ? allTasks : [])</span>
+<span class="dl-add">+    .filter((t) =&gt; t &amp;&amp; typeof t.source === &#39;string&#39; &amp;&amp; t.source.startsWith(prefix));</span>
+<span class="dl-add">+  const completed = items.filter((t) =&gt; t.status === &#39;completed&#39;).length;</span>
+<span class="dl-add">+  const pending = items.filter((t) =&gt; t.status !== &#39;completed&#39;).length;</span>
+<span class="dl-add">+  return { completed, total: items.length, pending };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Render the next-action bar.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * @param {object} opts</span>
+<span class="dl-add">+ * @param {object} opts.action   - from nextActionForPhase(phase)</span>
+<span class="dl-add">+ * @param {object|null} opts.lane - getSpecLaneInfo(slug)</span>
+<span class="dl-add">+ * @param {string|null} [opts.hint] - resolved implement hint (mode)</span>
+<span class="dl-add">+ * @param {object|null} [opts.counts] - taskCounts(allTasks, slug); drives the</span>
+<span class="dl-add">+ *                                       progress copy and the run-liveness gate</span>
+<span class="dl-add">+ * @param {string} [opts.buttonId] - id for the idle button (surface&#39;s click</span>
+<span class="dl-add">+ *                                    wiring queries it)</span>
+<span class="dl-add">+ * @returns {string} HTML</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function renderNextActionBar({ action, lane, hint = null, counts = null, buttonId = &#39;spec-action-btn&#39; } = {}) {</span>
+<span class="dl-add">+  if (!action) return &#39;&#39;;</span>
+<span class="dl-add">+  const isImplement = action.command === &#39;spec.implement&#39;;</span>
+<span class="dl-add">+  const label = isImplement ? implementLabel(hint) : action.label;</span>
+<span class="dl-add">+  const alive = !!(lane &amp;&amp; lane.agentName);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Run-liveness lock — continuous mode, live agent, tasks still pending.</span>
+<span class="dl-add">+  // When counts are unknown, a live agent alone holds the lock (fail closed</span>
+<span class="dl-add">+  // against a double dispatch; the lane going away still releases it).</span>
+<span class="dl-add">+  if (isImplement &amp;&amp; CONTINUOUS_MODES.has(hint) &amp;&amp; alive &amp;&amp; (!counts || counts.pending &gt; 0)) {</span>
+<span class="dl-add">+    const waiting = lane.status === &#39;agent-approval&#39;;</span>
+<span class="dl-add">+    const heading = waiting</span>
+<span class="dl-add">+      ? &#39;Waiting for permission&#39;</span>
+<span class="dl-add">+      : (counts ? `Running — ${counts.completed}/${counts.total} tasks` : &#39;Running&#39;);</span>
+<span class="dl-add">+    return _lockedBar({ heading, sub: `in ${lane.name}`, label });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Turn-scoped lock — a live agent mid-turn locks the button until it</span>
+<span class="dl-add">+  // finishes its turn (step-by-step / custom / no-mode-yet).</span>
+<span class="dl-add">+  if (lane &amp;&amp; lane.busy) {</span>
+<span class="dl-add">+    const verb = lane.status === &#39;agent-approval&#39; ? &#39;Waiting for approval&#39; : &#39;Working&#39;;</span>
+<span class="dl-add">+    return _lockedBar({</span>
+<span class="dl-add">+      heading: `${verb} in ${lane.name}`,</span>
+<span class="dl-add">+      sub: &#39;Unlocks when the agent finishes its turn.&#39;,</span>
+<span class="dl-add">+      label</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Idle — the actionable button.</span>
+<span class="dl-add">+  return `</span>
+<span class="dl-add">+    &lt;div class=&quot;spec-next-action&quot;&gt;</span>
+<span class="dl-add">+      &lt;div class=&quot;spec-next-action-text&quot;&gt;</span>
+<span class="dl-add">+        &lt;strong&gt;${escapeHtml(label)}&lt;/strong&gt;</span>
+<span class="dl-add">+        &lt;span&gt;${escapeHtml(action.hint)}&lt;/span&gt;</span>
+<span class="dl-add">+      &lt;/div&gt;</span>
+<span class="dl-add">+      &lt;button class=&quot;btn btn-primary spec-action-btn&quot; id=&quot;${escapeHtml(buttonId)}&quot;&gt;</span>
+<span class="dl-add">+        ${escapeHtml(label)}</span>
+<span class="dl-add">+      &lt;/button&gt;</span>
+<span class="dl-add">+    &lt;/div&gt;</span>
+<span class="dl-add">+  `;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function _lockedBar({ heading, sub, label }) {</span>
+<span class="dl-add">+  return `</span>
+<span class="dl-add">+    &lt;div class=&quot;spec-next-action spec-next-action-busy&quot;&gt;</span>
+<span class="dl-add">+      &lt;div class=&quot;spec-next-action-text&quot;&gt;</span>
+<span class="dl-add">+        &lt;strong&gt;${escapeHtml(heading)}&lt;/strong&gt;</span>
+<span class="dl-add">+        &lt;span&gt;${escapeHtml(sub)}&lt;/span&gt;</span>
+<span class="dl-add">+      &lt;/div&gt;</span>
+<span class="dl-add">+      &lt;button class=&quot;btn btn-primary spec-action-btn&quot; disabled&gt;</span>
+<span class="dl-add">+        &lt;span class=&quot;spec-action-spinner&quot;&gt;&lt;/span&gt;${escapeHtml(label)}</span>
+<span class="dl-add">+      &lt;/button&gt;</span>
+<span class="dl-add">+    &lt;/div&gt;</span>
+<span class="dl-add">+  `;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  nextActionForPhase,</span>
+<span class="dl-add">+  taskCounts,</span>
+<span class="dl-add">+  renderNextActionBar</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/src/renderer/specPanel.js b/src/renderer/specPanel.js</span>
+<span class="dl-meta">index e81713a..ee6bb3e 100644</span>
+<span class="dl-file">--- a/src/renderer/specPanel.js</span>
+<span class="dl-file">+++ b/src/renderer/specPanel.js</span>
+<span class="dl-hunk">@@ -18,6 +18,7 @@ const { marked } = require(&#39;marked&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const state = require(&#39;./state&#39;);</span>
+<span class="dl-ctx"> const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-add">+const specNextAction = require(&#39;./specNextAction&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> let isVisible = false;</span>
+<span class="dl-ctx"> let panelEl = null;</span>
+<span class="dl-hunk">@@ -233,7 +234,7 @@ function renderDetail() {</span>
+<span class="dl-ctx">   const { status, spec, plan, tasks, outcome } = activeSpec;</span>
+<span class="dl-ctx">   const phaseLabel = status.phase.replace(/_/g, &#39; &#39;);</span>
+<span class="dl-ctx">   const aiLabel = status.ai_tool || &#39;&#39;;</span>
+<span class="dl-del">-  const nextAction = nextActionForPhase(status.phase);</span>
+<span class="dl-add">+  const nextAction = specNextAction.nextActionForPhase(status.phase);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   contentEl.innerHTML = `</span>
+<span class="dl-ctx">     &lt;div class=&quot;spec-detail&quot;&gt;</span>
+<span class="dl-hunk">@@ -258,7 +259,12 @@ function renderDetail() {</span>
+<span class="dl-ctx">           ${aiLabel ? `&lt;span class=&quot;spec-detail-ai&quot;&gt;${escapeHtml(aiLabel)}&lt;/span&gt;` : &#39;&#39;}</span>
+<span class="dl-ctx">         &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-del">-      ${nextAction ? renderNextActionBar(nextAction, require(&#39;./agentDispatch&#39;).getSpecLaneInfo(status.slug)) : &#39;&#39;}</span>
+<span class="dl-add">+      ${nextAction ? specNextAction.renderNextActionBar({</span>
+<span class="dl-add">+        action: nextAction,</span>
+<span class="dl-add">+        lane: require(&#39;./agentDispatch&#39;).getSpecLaneInfo(status.slug),</span>
+<span class="dl-add">+        hint: activeSpec.implementHint,</span>
+<span class="dl-add">+        counts: specNextAction.taskCounts(allTasks, status.slug)</span>
+<span class="dl-add">+      }) : &#39;&#39;}</span>
+<span class="dl-ctx">       &lt;div class=&quot;spec-detail-tabs&quot;&gt;</span>
+<span class="dl-ctx">         ${renderTabButton(&#39;spec&#39;, &#39;Spec&#39;, !!spec)}</span>
+<span class="dl-ctx">         ${renderTabButton(&#39;plan&#39;, &#39;Plan&#39;, !!plan)}</span>
+<span class="dl-hunk">@@ -288,59 +294,9 @@ function renderDetail() {</span>
+<span class="dl-ctx">   if (activeTab === &#39;plan&#39;) attachPlanReportHandler();</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// ─── Next-action bar ────────────────────────────────</span>
+<span class="dl-del">-//</span>
+<span class="dl-del">-// One primary &quot;what&#39;s next?&quot; button per phase. Clicking it sends the</span>
+<span class="dl-del">-// appropriate prompt template to the active terminal so Claude (or whichever</span>
+<span class="dl-del">-// AI tool is running) can produce the next artifact.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-function nextActionForPhase(phase) {</span>
+<span class="dl-del">-  switch (phase) {</span>
+<span class="dl-del">-    case &#39;draft&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.new&#39;,  label: &#39;Run /spec.new&#39;, hint: &#39;Have Claude write spec.md from your description.&#39; };</span>
+<span class="dl-del">-    case &#39;specified&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.plan&#39;, label: &#39;Run /spec.plan&#39;, hint: &#39;Generate plan.md from the spec.&#39; };</span>
+<span class="dl-del">-    case &#39;planned&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.tasks&#39;, label: &#39;Run /spec.tasks&#39;, hint: &#39;Break the plan into discrete tasks.&#39; };</span>
+<span class="dl-del">-    case &#39;tasks_generated&#39;:</span>
+<span class="dl-del">-    case &#39;implementing&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.implement&#39;, label: &#39;Run /spec.implement&#39;, hint: &#39;Implement the next pending task — one per click.&#39; };</span>
+<span class="dl-del">-    default:</span>
+<span class="dl-del">-      return null; // &#39;done&#39; or unknown</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-function renderNextActionBar(action, lane) {</span>
+<span class="dl-del">-  // The spec&#39;s assigned Frame has a live agent mid-turn — lock the button</span>
+<span class="dl-del">-  // so the same command can&#39;t be double-dispatched. Purely derived state:</span>
+<span class="dl-del">-  // the bar re-renders from getSpecLaneInfo on lane activity, so a crashed</span>
+<span class="dl-del">-  // agent or closed Frame re-enables it within a status cycle.</span>
+<span class="dl-del">-  if (lane &amp;&amp; lane.busy) {</span>
+<span class="dl-del">-    const verb = lane.status === &#39;agent-approval&#39; ? &#39;Waiting for approval&#39; : &#39;Working&#39;;</span>
+<span class="dl-del">-    return `</span>
+<span class="dl-del">-    &lt;div class=&quot;spec-next-action spec-next-action-busy&quot;&gt;</span>
+<span class="dl-del">-      &lt;div class=&quot;spec-next-action-text&quot;&gt;</span>
+<span class="dl-del">-        &lt;strong&gt;${escapeHtml(verb)} in ${escapeHtml(lane.name)}&lt;/strong&gt;</span>
+<span class="dl-del">-        &lt;span&gt;Unlocks when the agent finishes its turn.&lt;/span&gt;</span>
+<span class="dl-del">-      &lt;/div&gt;</span>
+<span class="dl-del">-      &lt;button class=&quot;btn btn-primary spec-action-btn&quot; disabled&gt;</span>
+<span class="dl-del">-        &lt;span class=&quot;spec-action-spinner&quot;&gt;&lt;/span&gt;${escapeHtml(action.label)}</span>
+<span class="dl-del">-      &lt;/button&gt;</span>
+<span class="dl-del">-    &lt;/div&gt;</span>
+<span class="dl-del">-  `;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-  return `</span>
+<span class="dl-del">-    &lt;div class=&quot;spec-next-action&quot;&gt;</span>
+<span class="dl-del">-      &lt;div class=&quot;spec-next-action-text&quot;&gt;</span>
+<span class="dl-del">-        &lt;strong&gt;${escapeHtml(action.label)}&lt;/strong&gt;</span>
+<span class="dl-del">-        &lt;span&gt;${escapeHtml(action.hint)}&lt;/span&gt;</span>
+<span class="dl-del">-      &lt;/div&gt;</span>
+<span class="dl-del">-      &lt;button class=&quot;btn btn-primary spec-action-btn&quot; id=&quot;spec-action-btn&quot;&gt;</span>
+<span class="dl-del">-        ${escapeHtml(action.label)}</span>
+<span class="dl-del">-      &lt;/button&gt;</span>
+<span class="dl-del">-    &lt;/div&gt;</span>
+<span class="dl-del">-  `;</span>
+<span class="dl-del">-}</span>
+<span class="dl-add">+// The next-action bar is shared across the spec surfaces — see</span>
+<span class="dl-add">+// specNextAction.js. This surface passes activeSpec.implementHint and the</span>
+<span class="dl-add">+// spec&#39;s task counts; the click wiring stays here (#spec-action-btn above).</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> async function runSpecCommand(command) {</span>
+<span class="dl-ctx">   if (!activeSlug) return;</span>
+<span class="dl-meta">diff --git a/src/renderer/specSection.js b/src/renderer/specSection.js</span>
+<span class="dl-meta">index 78cbc15..5b96fe8 100644</span>
+<span class="dl-file">--- a/src/renderer/specSection.js</span>
+<span class="dl-file">+++ b/src/renderer/specSection.js</span>
+<span class="dl-hunk">@@ -21,6 +21,7 @@ const state = require(&#39;./state&#39;);</span>
+<span class="dl-ctx"> const sectionRail = require(&#39;./sectionRail&#39;);</span>
+<span class="dl-ctx"> const { FileText } = require(&#39;lucide&#39;);</span>
+<span class="dl-ctx"> const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-add">+const specNextAction = require(&#39;./specNextAction&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> let host = null;</span>
+<span class="dl-ctx"> let seq = 0;</span>
+<span class="dl-hunk">@@ -181,7 +182,7 @@ function createViewport() {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">     const { status, spec, plan, tasks, outcome } = activeSpec;</span>
+<span class="dl-ctx">     const aiLabel = status.ai_tool || &#39;&#39;;</span>
+<span class="dl-del">-    const nextAction = nextActionForPhase(status.phase);</span>
+<span class="dl-add">+    const nextAction = specNextAction.nextActionForPhase(status.phase);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">     contentEl.innerHTML = `</span>
+<span class="dl-ctx">       &lt;div class=&quot;spec-detail-header&quot;&gt;</span>
+<span class="dl-hunk">@@ -193,7 +194,13 @@ function createViewport() {</span>
+<span class="dl-ctx">         &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       ${renderStepper(status.phase)}</span>
+<span class="dl-del">-      ${nextAction ? renderNextActionBar(nextAction, require(&#39;./agentDispatch&#39;).getSpecLaneInfo(slug)) : &#39;&#39;}</span>
+<span class="dl-add">+      ${nextAction ? specNextAction.renderNextActionBar({</span>
+<span class="dl-add">+        action: nextAction,</span>
+<span class="dl-add">+        lane: require(&#39;./agentDispatch&#39;).getSpecLaneInfo(slug),</span>
+<span class="dl-add">+        hint: activeSpec.implementHint,</span>
+<span class="dl-add">+        counts: specNextAction.taskCounts(allTasks, slug),</span>
+<span class="dl-add">+        buttonId: &#39;spec-section-action-btn&#39;</span>
+<span class="dl-add">+      }) : &#39;&#39;}</span>
+<span class="dl-ctx">       &lt;div class=&quot;spec-detail-tabs&quot;&gt;</span>
+<span class="dl-ctx">         ${renderTabButton(&#39;spec&#39;, &#39;Spec&#39;, !!spec)}</span>
+<span class="dl-ctx">         ${renderTabButton(&#39;plan&#39;, &#39;Plan&#39;, !!plan)}</span>
+<span class="dl-hunk">@@ -380,56 +387,6 @@ function createViewport() {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // ─── Pure helpers ───────────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-function nextActionForPhase(phase) {</span>
+<span class="dl-del">-  switch (phase) {</span>
+<span class="dl-del">-    case &#39;draft&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.new&#39;, label: &#39;Write the Spec&#39;, hint: &#39;Frame turns your description into a structured spec.md.&#39; };</span>
+<span class="dl-del">-    case &#39;specified&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.plan&#39;, label: &#39;Generate Plan&#39;, hint: &#39;Frame breaks this spec into a technical plan (plan.md).&#39; };</span>
+<span class="dl-del">-    case &#39;planned&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.tasks&#39;, label: &#39;Break into Tasks&#39;, hint: &#39;Frame splits the plan into discrete, trackable tasks.&#39; };</span>
+<span class="dl-del">-    case &#39;tasks_generated&#39;:</span>
+<span class="dl-del">-    case &#39;implementing&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.implement&#39;, label: &#39;Implement Next Task&#39;, hint: &#39;Frame implements the next pending task — one per click.&#39; };</span>
+<span class="dl-del">-    default:</span>
+<span class="dl-del">-      return null;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-function renderNextActionBar(action, lane) {</span>
+<span class="dl-del">-  // Live agent mid-turn in the assigned Frame → lock the button against</span>
+<span class="dl-del">-  // double-dispatch. Derived from getSpecLaneInfo on every render; lane</span>
+<span class="dl-del">-  // activity re-renders the section, so a dead agent or closed Frame</span>
+<span class="dl-del">-  // unlocks it again on its own.</span>
+<span class="dl-del">-  if (lane &amp;&amp; lane.busy) {</span>
+<span class="dl-del">-    const verb = lane.status === &#39;agent-approval&#39; ? &#39;Waiting for approval&#39; : &#39;Working&#39;;</span>
+<span class="dl-del">-    return `</span>
+<span class="dl-del">-    &lt;div class=&quot;spec-next-action spec-next-action-busy&quot;&gt;</span>
+<span class="dl-del">-      &lt;div class=&quot;spec-next-action-text&quot;&gt;</span>
+<span class="dl-del">-        &lt;strong&gt;${escapeHtml(verb)} in ${escapeHtml(lane.name)}&lt;/strong&gt;</span>
+<span class="dl-del">-        &lt;span&gt;Unlocks when the agent finishes its turn.&lt;/span&gt;</span>
+<span class="dl-del">-        &lt;code class=&quot;spec-next-action-cmd&quot;&gt;/${escapeHtml(action.command)}&lt;/code&gt;</span>
+<span class="dl-del">-      &lt;/div&gt;</span>
+<span class="dl-del">-      &lt;button class=&quot;btn btn-primary spec-action-btn&quot; disabled&gt;</span>
+<span class="dl-del">-        &lt;span class=&quot;spec-action-spinner&quot;&gt;&lt;/span&gt;${escapeHtml(action.label)}</span>
+<span class="dl-del">-      &lt;/button&gt;</span>
+<span class="dl-del">-    &lt;/div&gt;</span>
+<span class="dl-del">-  `;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-  return `</span>
+<span class="dl-del">-    &lt;div class=&quot;spec-next-action&quot;&gt;</span>
+<span class="dl-del">-      &lt;div class=&quot;spec-next-action-text&quot;&gt;</span>
+<span class="dl-del">-        &lt;strong&gt;Next step: ${escapeHtml(action.label)}&lt;/strong&gt;</span>
+<span class="dl-del">-        &lt;span&gt;${escapeHtml(action.hint)}&lt;/span&gt;</span>
+<span class="dl-del">-        &lt;code class=&quot;spec-next-action-cmd&quot;&gt;/${escapeHtml(action.command)}&lt;/code&gt;</span>
+<span class="dl-del">-      &lt;/div&gt;</span>
+<span class="dl-del">-      &lt;button class=&quot;btn btn-primary spec-action-btn&quot; id=&quot;spec-section-action-btn&quot;&gt;</span>
+<span class="dl-del">-        ${escapeHtml(action.label)}</span>
+<span class="dl-del">-      &lt;/button&gt;</span>
+<span class="dl-del">-    &lt;/div&gt;</span>
+<span class="dl-del">-  `;</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-</span>
+<span class="dl-ctx"> const STEPPER_STEPS = [&#39;Spec&#39;, &#39;Plan&#39;, &#39;Tasks&#39;, &#39;Implement&#39;, &#39;Done&#39;];</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> function stepIndexForPhase(phase) {</span>
+<span class="dl-meta">diff --git a/src/renderer/specsDashboard.js b/src/renderer/specsDashboard.js</span>
+<span class="dl-meta">index 4c0ccc9..4d248af 100644</span>
+<span class="dl-file">--- a/src/renderer/specsDashboard.js</span>
+<span class="dl-file">+++ b/src/renderer/specsDashboard.js</span>
+<span class="dl-hunk">@@ -19,6 +19,7 @@ const { marked } = require(&#39;marked&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const state = require(&#39;./state&#39;);</span>
+<span class="dl-ctx"> const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-add">+const specNextAction = require(&#39;./specNextAction&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const FILTERS = [</span>
+<span class="dl-ctx">   { id: &#39;all&#39;,                 label: &#39;All&#39; },</span>
+<span class="dl-hunk">@@ -351,7 +352,7 @@ function renderDetailHeader() {</span>
+<span class="dl-ctx">   const { status, spec, plan, tasks, outcome } = selectedSpec;</span>
+<span class="dl-ctx">   const phaseLabel = status.phase.replace(/_/g, &#39; &#39;);</span>
+<span class="dl-ctx">   const aiLabel = status.ai_tool || &#39;&#39;;</span>
+<span class="dl-del">-  const nextAction = nextActionForPhase(status.phase);</span>
+<span class="dl-add">+  const nextAction = specNextAction.nextActionForPhase(status.phase);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   detailContentEl.innerHTML = `</span>
+<span class="dl-ctx">     &lt;div class=&quot;specs-dashboard-detail-head&quot;&gt;</span>
+<span class="dl-hunk">@@ -370,7 +371,12 @@ function renderDetailHeader() {</span>
+<span class="dl-ctx">         ${require(&#39;./agentDispatch&#39;).specStatusDotHtml(status.slug)}</span>
+<span class="dl-ctx">         &lt;span class=&quot;spec-phase-badge phase-${status.phase}&quot;&gt;${phaseLabel}&lt;/span&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-del">-      ${nextAction ? renderNextActionBar(nextAction, require(&#39;./agentDispatch&#39;).getSpecLaneInfo(status.slug)) : &#39;&#39;}</span>
+<span class="dl-add">+      ${nextAction ? specNextAction.renderNextActionBar({</span>
+<span class="dl-add">+        action: nextAction,</span>
+<span class="dl-add">+        lane: require(&#39;./agentDispatch&#39;).getSpecLaneInfo(status.slug),</span>
+<span class="dl-add">+        hint: selectedSpec.implementHint,</span>
+<span class="dl-add">+        counts: specNextAction.taskCounts(allTasks, status.slug)</span>
+<span class="dl-add">+      }) : &#39;&#39;}</span>
+<span class="dl-ctx">       &lt;div class=&quot;specs-dashboard-detail-tabs&quot;&gt;</span>
+<span class="dl-ctx">         ${tabBtn(&#39;spec&#39;,  &#39;Spec&#39;,  !!spec)}</span>
+<span class="dl-ctx">         ${tabBtn(&#39;plan&#39;,  &#39;Plan&#39;,  !!plan)}</span>
+<span class="dl-hunk">@@ -418,52 +424,9 @@ function renderDetailHeader() {</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-function nextActionForPhase(phase) {</span>
+<span class="dl-del">-  switch (phase) {</span>
+<span class="dl-del">-    case &#39;draft&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.new&#39;,  label: &#39;Run /spec.new&#39;, hint: &#39;Have Claude write spec.md from your description.&#39; };</span>
+<span class="dl-del">-    case &#39;specified&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.plan&#39;, label: &#39;Run /spec.plan&#39;, hint: &#39;Generate plan.md from the spec.&#39; };</span>
+<span class="dl-del">-    case &#39;planned&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.tasks&#39;, label: &#39;Run /spec.tasks&#39;, hint: &#39;Break the plan into discrete tasks.&#39; };</span>
+<span class="dl-del">-    case &#39;tasks_generated&#39;:</span>
+<span class="dl-del">-    case &#39;implementing&#39;:</span>
+<span class="dl-del">-      return { command: &#39;spec.implement&#39;, label: &#39;Run /spec.implement&#39;, hint: &#39;Implement the next pending task — one per click.&#39; };</span>
+<span class="dl-del">-    default:</span>
+<span class="dl-del">-      return null;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-function renderNextActionBar(action, lane) {</span>
+<span class="dl-del">-  // Live agent mid-turn in the assigned Frame → lock the button against</span>
+<span class="dl-del">-  // double-dispatch. Derived state only; lane activity re-renders the</span>
+<span class="dl-del">-  // header, so a dead agent or closed Frame unlocks it on its own.</span>
+<span class="dl-del">-  if (lane &amp;&amp; lane.busy) {</span>
+<span class="dl-del">-    const verb = lane.status === &#39;agent-approval&#39; ? &#39;Waiting for approval&#39; : &#39;Working&#39;;</span>
+<span class="dl-del">-    return `</span>
+<span class="dl-del">-    &lt;div class=&quot;spec-next-action spec-next-action-busy&quot;&gt;</span>
+<span class="dl-del">-      &lt;div class=&quot;spec-next-action-text&quot;&gt;</span>
+<span class="dl-del">-        &lt;strong&gt;${escapeHtml(verb)} in ${escapeHtml(lane.name)}&lt;/strong&gt;</span>
+<span class="dl-del">-        &lt;span&gt;Unlocks when the agent finishes its turn.&lt;/span&gt;</span>
+<span class="dl-del">-      &lt;/div&gt;</span>
+<span class="dl-del">-      &lt;button class=&quot;btn btn-primary spec-action-btn&quot; disabled&gt;</span>
+<span class="dl-del">-        &lt;span class=&quot;spec-action-spinner&quot;&gt;&lt;/span&gt;${escapeHtml(action.label)}</span>
+<span class="dl-del">-      &lt;/button&gt;</span>
+<span class="dl-del">-    &lt;/div&gt;</span>
+<span class="dl-del">-  `;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-  return `</span>
+<span class="dl-del">-    &lt;div class=&quot;spec-next-action&quot;&gt;</span>
+<span class="dl-del">-      &lt;div class=&quot;spec-next-action-text&quot;&gt;</span>
+<span class="dl-del">-        &lt;strong&gt;${escapeHtml(action.label)}&lt;/strong&gt;</span>
+<span class="dl-del">-        &lt;span&gt;${escapeHtml(action.hint)}&lt;/span&gt;</span>
+<span class="dl-del">-      &lt;/div&gt;</span>
+<span class="dl-del">-      &lt;button class=&quot;btn btn-primary spec-action-btn&quot; id=&quot;spec-action-btn&quot;&gt;</span>
+<span class="dl-del">-        ${escapeHtml(action.label)}</span>
+<span class="dl-del">-      &lt;/button&gt;</span>
+<span class="dl-del">-    &lt;/div&gt;</span>
+<span class="dl-del">-  `;</span>
+<span class="dl-del">-}</span>
+<span class="dl-add">+// The next-action bar is shared across the spec surfaces — see</span>
+<span class="dl-add">+// specNextAction.js. This surface passes selectedSpec.implementHint and the</span>
+<span class="dl-add">+// spec&#39;s task counts; the click wiring stays here (#spec-action-btn above).</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> async function runSpecCommand(command) {</span>
+<span class="dl-ctx">   if (!selectedSlug) return;</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T06</span>
+    <h2>Rewrite spec.implement.md: recorded-mode dispatch, guided, autonomous handoff, skill flows</h2>
+    <span class="card-meta"><span class="chip">dd65c94</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">105/105 passing; template placeholders unchanged from the prior version, so the interpolation contract holds. Template prose is not unit-covered per plan&#39;s pure-logic-only test posture</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Rewrote src/templates/commands/claude-code/spec.implement.md so a recorded implement_mode runs its loop with no in-session picker; conversational entry offers step-by-step/guided/describe-your-own as runnable and resolves autonomous to one status.json write plus one handoff (Frame button + node .frame/bin/implement-launch.js &lt;slug&gt;). Added the guided mode (sharing the autonomous loop, no flags, CLI prompts pace, same report-data.json contract), a flags-refused override that runs guided, and the described-flow skill lifecycle (detect/offer/save under .claude/skills/&lt;name&gt;/SKILL.md) superseding the flowFile picker entry. Kept the same {project_path}/{slug}/{report_generator_path} interpolation contract.</p></div>
+    <div class="field"><span class="label">Why</span><p>The whole spec: move mode selection ahead of the session, kill the in-session picker and the re-dispatch dead end, add the middle rung (guided), and make saved flows committable skills instead of an untracked .frame file.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/templates/commands/claude-code/spec.implement.md b/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-meta">index 8c7f7e3..e44eb4a 100644</span>
+<span class="dl-file">--- a/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-file">+++ b/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-hunk">@@ -1,6 +1,7 @@</span>
+<span class="dl-del">-You are running the implementation loop for an existing Frame spec. Read the</span>
+<span class="dl-del">-inputs, ask which mode to run in, then ship the spec&#39;s pending work in that</span>
+<span class="dl-del">-mode — capturing what you actually did so the next session has context.</span>
+<span class="dl-add">+You are running the implementation loop for an existing Frame spec. The mode</span>
+<span class="dl-add">+was chosen **before** this session — read the inputs, resolve which mode is in</span>
+<span class="dl-add">+force, and ship the spec&#39;s pending work in that mode, capturing what you</span>
+<span class="dl-add">+actually did so the next session has context.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> How much you do in one turn is the mode&#39;s call, not this file&#39;s: one task and</span>
+<span class="dl-ctx"> back to the user, or the whole spec unattended.</span>
+<span class="dl-hunk">@@ -16,94 +17,69 @@ back to the user, or the whole spec unattended.</span>
+<span class="dl-ctx">   - `.frame/specs/{slug}/outcome.md` — what previous tasks actually shipped (read this if it exists; it tells you why the codebase may differ from the plan)</span>
+<span class="dl-ctx">   - `tasks.json` — find the next task where `source` starts with `spec:{slug}:` AND `status === &quot;pending&quot;` (lowest T-number first)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-## Mode — asked at every dispatch, before any work</span>
+<span class="dl-add">+## Which mode is in force — resolve it, don&#39;t ask for it</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Read the inputs above. Then show the picker and **wait**. Do not edit a file,</span>
+<span class="dl-del">-mark a task, or write a line of code before the answer lands: a task executed</span>
+<span class="dl-del">-before the mode is chosen obeys no mode — uncommitted, absent from any report —</span>
+<span class="dl-del">-and repairing that afterwards costs far more than asking cost.</span>
+<span class="dl-add">+Frame v2 chooses the mode in the UI (or the launch helper) and records it</span>
+<span class="dl-add">+**before** this session starts. So the first thing you do is read</span>
+<span class="dl-add">+`implement_mode` from `.frame/specs/{slug}/status.json`:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Before you write anything, note the **existing** `implement_mode` in</span>
+<span class="dl-del">-`status.json` and `implement.defaultMode` in `.frame/config.json`. That pair is</span>
+<span class="dl-del">-the launch hint Frame already used, and you need its pre-answer value below.</span>
+<span class="dl-add">+- **It names a mode** (`step-by-step`, `guided`, `autonomous`, `custom`) →</span>
+<span class="dl-add">+  that is the mode. Run its loop directly. **Do not show a picker** — the user</span>
+<span class="dl-add">+  already picked, and re-asking here is exactly the mid-session picker v2</span>
+<span class="dl-add">+  removed. Jump to that mode&#39;s section below.</span>
+<span class="dl-add">+- **It is empty or absent** → you were started conversationally, not from the</span>
+<span class="dl-add">+  modal. See **Conversational entry** below.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-### Composing the picker</span>
+<span class="dl-add">+There is one override, checked first: **if a Frame note in this prompt says the</span>
+<span class="dl-add">+CLI refused the autonomous permission flags**, then the autonomous mode cannot</span>
+<span class="dl-add">+run in this session however `implement_mode` reads. Run the **guided** loop</span>
+<span class="dl-add">+instead — the same task-by-task loop, report and commits, paced by the CLI&#39;s</span>
+<span class="dl-add">+own permission prompts — and say so once. Leave `implement_mode: autonomous`</span>
+<span class="dl-add">+untouched: it is the user&#39;s real choice, and the next flagged launch should</span>
+<span class="dl-add">+honor it.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-In this order:</span>
+<span class="dl-add">+### Conversational entry (no recorded mode)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-- **A · Step by step** — always present.</span>
+<span class="dl-del">-- **B · Autonomous + report** — always present.</span>
+<span class="dl-del">-- **C · &lt;the saved flow&#39;s name&gt;** — only when `.frame/config.json` names an</span>
+<span class="dl-del">-  implement flow file (`implement.flowFile`). Its `# heading` is the name;</span>
+<span class="dl-del">-  the rest of the file is the description you summarise for the entry.</span>
+<span class="dl-del">-- **Last · Describe your own** — always last, lettered C when no flow is saved</span>
+<span class="dl-del">-  and D when one is.</span>
+<span class="dl-add">+You got here by a plain &quot;implement the tasks&quot;, not the modal. First, **check</span>
+<span class="dl-add">+for a saved described-flow skill** (see *Describe your own* → *Saved flows are</span>
+<span class="dl-add">+skills*). If one exists, offer to run it as one option.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Describe each entry by **what the user gets**, never by its name. For B in</span>
+<span class="dl-del">-particular, say that it produces an HTML report, openable as each task</span>
+<span class="dl-del">-completes, showing that task&#39;s real diff, a what-changed / why-changed summary</span>
+<span class="dl-del">-and its test result — and that it is reachable from the spec page in Frame:</span>
+<span class="dl-del">-a **View Implementation Report** button on the spec&#39;s Tasks tab, appearing</span>
+<span class="dl-del">-once the first task lands. Naming a mode is not describing it.</span>
+<span class="dl-add">+Then offer the modes that this session can actually run to completion:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-When `.frame/config.json` has an `implement.defaultMode`, move that entry to</span>
+<span class="dl-del">-the **top** and mark it `(default)`, so confirming it is a single keypress. A</span>
+<span class="dl-del">-saved default does not silence the question — asking every time is what makes</span>
+<span class="dl-del">-switching modes mid-spec free: run the first tasks step by step, hand the rest</span>
+<span class="dl-del">-to the autonomous mode once it has earned the trust.</span>
+<span class="dl-add">+- **Step by step** — you implement one task, report what changed and why, and</span>
+<span class="dl-add">+  wait for a go-ahead before committing and moving on.</span>
+<span class="dl-add">+- **Guided** — you run every task in order with no check-ins between them (the</span>
+<span class="dl-add">+  CLI&#39;s own permission prompts pace it), one commit per task, producing the</span>
+<span class="dl-add">+  HTML report — openable from the **View Implementation Report** button on the</span>
+<span class="dl-add">+  spec&#39;s Tasks tab in Frame, refreshed as each task lands.</span>
+<span class="dl-add">+- **Describe your own** — you tell me how to run it and I run it that way.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-### How to ask</span>
+<span class="dl-add">+Ask with your structured-question tool (`AskUserQuestion` in Claude Code); with</span>
+<span class="dl-add">+none, print a numbered list and **wait** — an unanswered picker is a hard stop.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Use your structured-question tool when you have one — in Claude Code that is</span>
+<span class="dl-del">-`AskUserQuestion`. When you have none, print the entries as a numbered list and</span>
+<span class="dl-del">-**stop there**. Wait for the answer to arrive as a new message.</span>
+<span class="dl-add">+**Autonomous is not runnable from here.** A conversational session was not</span>
+<span class="dl-add">+launched with the permission flags that mode needs, and this file never routes</span>
+<span class="dl-add">+around a permission decision. If the user wants autonomous, do exactly two</span>
+<span class="dl-add">+things and then stop:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-An unanswered picker is a hard stop, not a soft one. Do not choose on the</span>
+<span class="dl-del">-user&#39;s behalf, do not fall through to a default, do not start &quot;while waiting&quot;.</span>
+<span class="dl-add">+1. Write `implement_mode: &quot;autonomous&quot;` into `.frame/specs/{slug}/status.json`</span>
+<span class="dl-add">+   (merge; leave every other key untouched).</span>
+<span class="dl-add">+2. Hand off in one message: *&quot;Autonomous needs a flagged launch. Click the</span>
+<span class="dl-add">+   implement button on this spec&#39;s page in Frame and pick Autonomous, or run</span>
+<span class="dl-add">+   `node .frame/bin/implement-launch.js {slug}` in a fresh terminal — either</span>
+<span class="dl-add">+   one starts implementing with no further input.&quot;*</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-### After the answer</span>
+<span class="dl-add">+No re-dispatch negotiation, no second picker, no settings-file writes.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-1. **Record the choice** in `.frame/specs/{slug}/status.json` as</span>
+<span class="dl-del">-   `&quot;implement_mode&quot;`, one of `&quot;step-by-step&quot;`, `&quot;autonomous&quot;`, `&quot;custom&quot;`.</span>
+<span class="dl-del">-   Merge into the existing object; leave every other key untouched. This is the</span>
+<span class="dl-del">-   *last choice*, not a resolved setting — the next dispatch uses it as its</span>
+<span class="dl-del">-   launch hint and still asks.</span>
+<span class="dl-del">-2. **Check the session can deliver the mode**, below. If it can&#39;t, stop there —</span>
+<span class="dl-del">-   don&#39;t ask anything further of a run that is about to end.</span>
+<span class="dl-del">-3. **Offer to save a project default** — once, and only when</span>
+<span class="dl-del">-   `.frame/config.json` has no `implement.defaultMode`. On yes, write</span>
+<span class="dl-del">-   `&quot;implement&quot;: { &quot;defaultMode&quot;: &quot;&lt;the choice&gt;&quot; }`. Once a default exists the</span>
+<span class="dl-del">-   offer never repeats; changing it later is an explicit ask or a config edit.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When the session cannot deliver the chosen mode</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-The autonomous mode needs permission flags that can only be set as the CLI</span>
+<span class="dl-del">-launches — and Frame launches before it can ask you anything, so it guesses</span>
+<span class="dl-del">-from the launch hint you noted above.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-So: the session has those flags exactly when that **pre-answer** hint was</span>
+<span class="dl-del">-`autonomous`. If the user picks the autonomous mode and it wasn&#39;t, the session</span>
+<span class="dl-del">-cannot keep that mode&#39;s promise — every edit would stop on a permission prompt,</span>
+<span class="dl-del">-the precise thing the mode exists to avoid.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-In that case: record the choice anyway (step 1 — that is what makes the *next*</span>
+<span class="dl-del">-launch correct), tell the user in one line that this mode needs one</span>
+<span class="dl-del">-re-dispatch, and stop. One re-dispatch, not a negotiation.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Picking a **less** autonomous mode than the flags allow is harmless — proceed.</span>
+<span class="dl-del">-Step by step&#39;s control point is your own question between tasks, not the</span>
+<span class="dl-del">-permission layer.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-If a Frame note in this prompt says the CLI refused the flags, that settles it:</span>
+<span class="dl-del">-the autonomous mode is unavailable in this session however it was launched.</span>
+<span class="dl-del">-Say so once and continue with the mode the user picked instead.</span>
+<span class="dl-add">+Once the user picks a runnable mode, record it in `status.json`</span>
+<span class="dl-add">+(`implement_mode`) so the next dispatch resolves without asking, then run it.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ## The shared core — every mode obeys this</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Binding on all three modes, **including a flow the user describes**. A</span>
+<span class="dl-del">-described flow may change the loop, the commit policy, the verification and the</span>
+<span class="dl-del">-reporting. It may not drop the accounting below — that is what separates</span>
+<span class="dl-del">-describing a flow from replacing this file wholesale.</span>
+<span class="dl-add">+Binding on all modes, **including a flow the user describes**. A described flow</span>
+<span class="dl-add">+may change the loop, the commit policy, the verification and the reporting. It</span>
+<span class="dl-add">+may not drop the accounting below — that is what separates describing a flow</span>
+<span class="dl-add">+from replacing this file wholesale.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **Which task.** The lowest-numbered task in `tasks.json` whose `source` is</span>
+<span class="dl-ctx"> `spec:{slug}:T&lt;n&gt;` and whose `status` is `pending`. One task at a time, in</span>
+<span class="dl-hunk">@@ -157,7 +133,7 @@ Style:</span>
+<span class="dl-ctx"> - Hard cap: 4 sentences. Be ruthless. The reader 6 months from now should learn</span>
+<span class="dl-ctx">   the story without reading the diff.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-## Mode A · Step by step</span>
+<span class="dl-add">+## Mode · Step by step</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> The user turns the loop. You do one task, show your work, and hand control</span>
+<span class="dl-ctx"> back.</span>
+<span class="dl-hunk">@@ -188,18 +164,28 @@ Verification is not part of this mode. If a check is worth running, the user</span>
+<span class="dl-ctx"> asks — the point of turning the loop by hand is that they decide what each</span>
+<span class="dl-ctx"> step is worth.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-## Mode B · Autonomous + report</span>
+<span class="dl-add">+## Mode · Guided, and Mode · Autonomous + report</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+These two modes run the **same loop**. The only difference is the permission</span>
+<span class="dl-add">+posture:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+- **Autonomous** was launched with the permission flags, so edits and commands</span>
+<span class="dl-add">+  never stop on a prompt — the run is genuinely unattended.</span>
+<span class="dl-add">+- **Guided** runs in a normal-permission session, so the CLI&#39;s own permission</span>
+<span class="dl-add">+  prompts pace it. You still take every task in order without check-ins; the</span>
+<span class="dl-add">+  pauses are the CLI asking to allow a command, not you asking whether to</span>
+<span class="dl-add">+  continue.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-You turn the loop. The user watches the report. Take the pending tasks in</span>
+<span class="dl-del">-order and keep going until none remain — no confirmation between tasks, no</span>
+<span class="dl-del">-&quot;shall I continue&quot;. Asking almost nothing is the mode&#39;s entire reason to</span>
+<span class="dl-del">-exist; a confirmation between tasks turns it back into Mode A.</span>
+<span class="dl-add">+In both, you turn the loop and the user watches the report. Take the pending</span>
+<span class="dl-add">+tasks in order and keep going until none remain — no confirmation between</span>
+<span class="dl-add">+tasks, no &quot;shall I continue&quot;. A confirmation between tasks turns either mode</span>
+<span class="dl-add">+back into step-by-step, which is not what the user picked.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Before the first task, tell the user — once, as a statement, not a question —</span>
+<span class="dl-del">-where to watch: the report opens from the **View Implementation Report**</span>
+<span class="dl-del">-button on the spec&#39;s Tasks tab in Frame (the button appears when the first</span>
+<span class="dl-del">-task lands), and it is regenerated after every task, so refreshing the opened</span>
+<span class="dl-del">-page follows the run live. Then start; do not wait for a reply.</span>
+<span class="dl-add">+where to watch: the report opens from the **View Implementation Report** button</span>
+<span class="dl-add">+on the spec&#39;s Tasks tab in Frame (the button appears when the first task</span>
+<span class="dl-add">+lands), and it is regenerated after every task, so refreshing the opened page</span>
+<span class="dl-add">+follows the run live. Then start; do not wait for a reply.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Per task, in this order:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -274,7 +260,9 @@ Narrow, on purpose. Stop only when:</span>
+<span class="dl-ctx">   do not skip the task, do not commit it red;</span>
+<span class="dl-ctx"> - the work would go outside `plan.md`&#39;s Files and Sequencing;</span>
+<span class="dl-ctx"> - a command is refused by the permission layer. A deny rule is a decision that</span>
+<span class="dl-del">-  was already made — surface it, do not route around it.</span>
+<span class="dl-add">+  was already made — surface it, do not route around it. (In guided this is a</span>
+<span class="dl-add">+  hard deny, not the routine allow-this-command prompt, which you simply</span>
+<span class="dl-add">+  answer and continue.)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Everything else you decide yourself and report at the end. When you stop, say</span>
+<span class="dl-ctx"> which task, why, and what state the tree is in.</span>
+<span class="dl-hunk">@@ -284,17 +272,18 @@ which task, why, and what state the tree is in.</span>
+<span class="dl-ctx"> When no tasks remain: the spec phase goes to `&quot;done&quot;`, and you state what</span>
+<span class="dl-ctx"> shipped, which tasks are unverified, and the report&#39;s path.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-## Mode C · Describe your own</span>
+<span class="dl-add">+## Mode · Describe your own</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> The user says how they want this run to go, and you run it that way.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-**If they picked the saved flow**, its description is `.frame/implement-flow.md`</span>
+<span class="dl-del">-— read it and run it. Don&#39;t ask them to describe it again.</span>
+<span class="dl-add">+**If a saved flow skill was chosen** (or you detected one on conversational</span>
+<span class="dl-add">+entry and the user said to use it), read that skill and run it. Don&#39;t ask them</span>
+<span class="dl-add">+to describe it again.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-**If they picked &quot;describe your own&quot;**, ask for the description in one</span>
+<span class="dl-del">-question, then run it. If what comes back is too thin to act on — &quot;be careful&quot;,</span>
+<span class="dl-del">-&quot;go fast&quot; — ask one follow-up naming exactly what is unclear (how often to</span>
+<span class="dl-del">-commit? verify or not? report or not?). One follow-up, not an interview.</span>
+<span class="dl-add">+**Otherwise ask for the description in one question**, then run it. If what</span>
+<span class="dl-add">+comes back is too thin to act on — &quot;be careful&quot;, &quot;go fast&quot; — ask one follow-up</span>
+<span class="dl-add">+naming exactly what is unclear (how often to commit? verify or not? report or</span>
+<span class="dl-add">+not?). One follow-up, not an interview.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ### A description governs, the core does not bend</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -308,24 +297,36 @@ outcome entries, they slow you down&quot; — follow the core, say in one line which</span>
+<span class="dl-ctx"> part you did not honour and why, and carry on. Don&#39;t stop the run over it and</span>
+<span class="dl-ctx"> don&#39;t quietly do it anyway.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Anything the description leaves unsaid falls back to Mode A&#39;s behaviour: hand</span>
+<span class="dl-del">-control back rather than assume more autonomy than you were given.</span>
+<span class="dl-add">+Anything the description leaves unsaid falls back to step-by-step behaviour:</span>
+<span class="dl-add">+hand control back rather than assume more autonomy than you were given.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### Saved flows are skills</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+v2 saves a described flow as a real Claude Code **project skill**, not the old</span>
+<span class="dl-add">+`.frame/implement-flow.md` file — a skill is committable and shows up wherever</span>
+<span class="dl-add">+the user works, and no Frame code path writes under `.claude/`, so you (the CLI</span>
+<span class="dl-add">+agent) are the only writer.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-### Offering to save it</span>
+<span class="dl-add">+**Detecting one.** A saved implement flow lives at</span>
+<span class="dl-add">+`.claude/skills/&lt;name&gt;/SKILL.md` and its front-matter `description` marks it as</span>
+<span class="dl-add">+a Frame implement flow (it will say so — a previous run wrote it). On</span>
+<span class="dl-add">+conversational entry, scan `.claude/skills/*/SKILL.md` for one and, if found,</span>
+<span class="dl-add">+offer it as a runnable option.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-After a described run reaches its end, offer **once** to save the flow so it</span>
+<span class="dl-del">-becomes a picker entry next time. On yes:</span>
+<span class="dl-add">+**Offering to save.** After a described run reaches its end, offer **once** to</span>
+<span class="dl-add">+save the flow so it&#39;s a one-click option next time. On yes:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-- Write `.frame/implement-flow.md`. First line is `# &lt;short name&gt;` — that</span>
+<span class="dl-del">-  heading is what the picker shows as entry C — then the description in the</span>
+<span class="dl-del">-  user&#39;s own words, tidied but not rewritten.</span>
+<span class="dl-del">-- Add `&quot;implement&quot;: { &quot;flowFile&quot;: &quot;implement-flow.md&quot; }` to `.frame/config.json`,</span>
+<span class="dl-del">-  merging into whatever is already there.</span>
+<span class="dl-del">-- If a flow file already exists, say what it is called and ask before replacing</span>
+<span class="dl-del">-  it. Overwriting someone&#39;s saved flow silently is not a save, it is a loss.</span>
+<span class="dl-add">+- Write `.claude/skills/&lt;name&gt;/SKILL.md`. Pick a short kebab-case `&lt;name&gt;`; the</span>
+<span class="dl-add">+  front-matter `name` and a `description` that begins &quot;Frame implement flow —&quot;</span>
+<span class="dl-add">+  so future detection finds it. The body is the description in the user&#39;s own</span>
+<span class="dl-add">+  words, tidied but not rewritten, followed by a one-line pointer that it drives</span>
+<span class="dl-add">+  `/spec.implement` for this project.</span>
+<span class="dl-add">+- If such a skill already exists, say what it is called and ask before</span>
+<span class="dl-add">+  replacing it. Overwriting someone&#39;s saved flow silently is not a save, it is</span>
+<span class="dl-add">+  a loss.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-The offer is once per run and never repeats after a no. A described flow that</span>
+<span class="dl-del">-the user doesn&#39;t want to keep is a perfectly good outcome.</span>
+<span class="dl-add">+The offer is once per run and never repeats after a no. A described flow the</span>
+<span class="dl-add">+user doesn&#39;t want to keep is a perfectly good outcome.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ## Stop conditions</span>
+<span class="dl-ctx"> </span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T07</span>
+    <h2>Stage the implement template, generator and helper into the project</h2>
+    <span class="card-meta"><span class="chip">7e70003</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">105/105 passing; node --check clean. Staged runtime/bin files are gitignored, so only specManager.js is tracked. Not unit-covered per plan&#39;s pure-logic-only test posture</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added stageImplementCommandFiles + a copyIfChanged content-diff helper to src/main/specManager.js: on WATCH_SPECS (project open) and on every spec.implement staging, it copies the raw spec.implement.md and build-implement-report.mjs into .frame/runtime/commands/claude-code/ (override→packaged precedence) and the launch helper into .frame/bin/, imported FRAME_BIN_DIR for the bin path.</p></div>
+    <div class="field"><span class="label">Why</span><p>The bin helper runs with the app closed and can&#39;t read app.asar, so Frame stages its raw material to disk. copyIfChanged skips a missing source (the helper isn&#39;t built until T08) and skips unchanged destinations so project-open staging doesn&#39;t churn watchers.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/specManager.js b/src/main/specManager.js</span>
+<span class="dl-meta">index 0db3d98..cdc8f62 100644</span>
+<span class="dl-file">--- a/src/main/specManager.js</span>
+<span class="dl-file">+++ b/src/main/specManager.js</span>
+<span class="dl-hunk">@@ -15,7 +15,7 @@ const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const fsSafe = require(&#39;./fsSafe&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-del">-const { FRAME_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-add">+const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const tasksManager = require(&#39;./tasksManager&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-hunk">@@ -362,6 +362,69 @@ function stageCommandAssets(projectPath, command, aiTool) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── Implement helper staging (v2) ────────────────────────────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// The bin launch helper (implement-launch.js) runs with the Frame app closed,</span>
+<span class="dl-add">+// so it can&#39;t reach into app.asar for the raw implement template or the report</span>
+<span class="dl-add">+// generator. Frame stages both — plus the helper itself — into the project on</span>
+<span class="dl-add">+// project open (WATCH_SPECS) and on every implement dispatch, so either entry</span>
+<span class="dl-add">+// path (Frame button or `node .frame/bin/implement-launch.js &lt;slug&gt;`) finds</span>
+<span class="dl-add">+// them on disk. cli-spec-command-parity will later generalize the same</span>
+<span class="dl-add">+// runtime/commands/&lt;tool&gt;/ location to all four commands; this is the minimal</span>
+<span class="dl-add">+// slice v2 needs, at the same path, so there&#39;s no conflict.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const RUNTIME_COMMANDS_DIR = path.join(FRAME_DIR, &#39;runtime&#39;, &#39;commands&#39;);</span>
+<span class="dl-add">+const IMPLEMENT_TEMPLATE_FILE = &#39;spec.implement.md&#39;;</span>
+<span class="dl-add">+const IMPLEMENT_HELPER_FILE = &#39;implement-launch.js&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Copy only when the destination content differs, so project-open staging</span>
+<span class="dl-add">+// doesn&#39;t rewrite unchanged files (and re-trigger watchers) every time. A</span>
+<span class="dl-add">+// missing source is skipped, not fatal — the helper isn&#39;t shipped in every</span>
+<span class="dl-add">+// build stage, and a stale runtime copy is better than a crash on open.</span>
+<span class="dl-add">+function copyIfChanged(src, dst) {</span>
+<span class="dl-add">+  let content;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    content = fs.readFileSync(src, &#39;utf8&#39;);</span>
+<span class="dl-add">+  } catch (_) {</span>
+<span class="dl-add">+    return false; // source not present — nothing to stage</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    let existing = null;</span>
+<span class="dl-add">+    try { existing = fs.readFileSync(dst, &#39;utf8&#39;); } catch (_) { /* new file */ }</span>
+<span class="dl-add">+    if (existing === content) return false;</span>
+<span class="dl-add">+    fs.mkdirSync(path.dirname(dst), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(dst, content, &#39;utf8&#39;);</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.error(`specManager: staging ${dst} failed`, err);</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Stage the raw implement template + report generator into</span>
+<span class="dl-add">+// .frame/runtime/commands/&lt;tool&gt;/ and the launch helper into .frame/bin/.</span>
+<span class="dl-add">+// Template and generator resolve through the project&#39;s own override</span>
+<span class="dl-add">+// (.frame/templates/commands/&lt;tool&gt;/) before the packaged copy — the same</span>
+<span class="dl-add">+// precedence loadCommandTemplate/stageCommandAsset use.</span>
+<span class="dl-add">+function stageImplementCommandFiles(projectPath, aiTool) {</span>
+<span class="dl-add">+  if (!projectPath) return;</span>
+<span class="dl-add">+  const tool = aiTool || &#39;claude-code&#39;;</span>
+<span class="dl-add">+  const runtimeCmdDir = path.join(projectPath, RUNTIME_COMMANDS_DIR, tool);</span>
+<span class="dl-add">+  for (const file of [IMPLEMENT_TEMPLATE_FILE, REPORT_GENERATOR_FILE]) {</span>
+<span class="dl-add">+    const override = path.join(projectPath, FRAME_DIR, &#39;templates&#39;, &#39;commands&#39;, tool, file);</span>
+<span class="dl-add">+    const packaged = path.join(FRAME_TEMPLATES_DIR, &#39;commands&#39;, tool, file);</span>
+<span class="dl-add">+    const src = fs.existsSync(override) ? override : packaged;</span>
+<span class="dl-add">+    copyIfChanged(src, path.join(runtimeCmdDir, file));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  // The helper ships from templates/bin/ (no per-project override — it&#39;s Frame</span>
+<span class="dl-add">+  // machinery, not user-authored prose). Missing until it&#39;s built; skipped</span>
+<span class="dl-add">+  // cleanly by copyIfChanged until then.</span>
+<span class="dl-add">+  const helperDst = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, IMPLEMENT_HELPER_FILE);</span>
+<span class="dl-add">+  if (copyIfChanged(path.join(FRAME_TEMPLATES_DIR, &#39;bin&#39;, IMPLEMENT_HELPER_FILE), helperDst)) {</span>
+<span class="dl-add">+    try { fs.chmodSync(helperDst, 0o755); } catch (_) { /* best effort */ }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // ─── Implement-mode permissions ───────────────────────────────</span>
+<span class="dl-ctx"> //</span>
+<span class="dl-ctx"> // The autonomous implement mode runs a whole spec without a prompt between</span>
+<span class="dl-hunk">@@ -501,6 +564,9 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool) {</span>
+<span class="dl-ctx">   const absPath = path.join(promptsDir, filename);</span>
+<span class="dl-ctx">   fs.writeFileSync(absPath, result.prompt, &#39;utf8&#39;);</span>
+<span class="dl-ctx">   stageCommandAssets(projectPath, command, aiTool);</span>
+<span class="dl-add">+  // Implement dispatches also refresh the raw template, generator and helper</span>
+<span class="dl-add">+  // so an out-of-app helper launch always finds the latest on disk.</span>
+<span class="dl-add">+  if (command === &#39;spec.implement&#39;) stageImplementCommandFiles(projectPath, aiTool);</span>
+<span class="dl-ctx">   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, &#39;/&#39;), filename);</span>
+<span class="dl-ctx">   return {</span>
+<span class="dl-ctx">     success: true,</span>
+<span class="dl-hunk">@@ -1042,6 +1108,13 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx">   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) =&gt; {</span>
+<span class="dl-ctx">     startWatching(projectPath);</span>
+<span class="dl-add">+    // Project open: stage the implement template, generator and helper so a</span>
+<span class="dl-add">+    // helper-driven launch works even before any in-app implement dispatch.</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      stageImplementCommandFiles(projectPath, &#39;claude-code&#39;);</span>
+<span class="dl-add">+    } catch (err) {</span>
+<span class="dl-add">+      console.error(&#39;specManager: implement helper staging failed&#39;, err);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx">   ipcMain.on(IPC.UNWATCH_SPECS, () =&gt; {</span>
+<span class="dl-ctx">     stopWatching();</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T08</span>
+    <h2>The launch helper plus its tests</h2>
+    <span class="card-meta"><span class="chip">d4bb5da</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">119/119 passing (14 new); node --check clean on the helper</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>New src/templates/bin/implement-launch.js: a self-contained helper that records implement_mode: autonomous, writes .frame/implement-permissions.json (own copies of the allow/deny sets and the test→lint→build verification resolution), resolves the raw implement template (override → staged), interpolates project_path/slug/report_generator_path, stages the prompt, ensures the report generator, and execs `claude --settings &lt;abs&gt; --permission-mode auto &quot;Read &lt;rel&gt; …&quot;` — with a clear error when claude isn&#39;t on PATH. Everything above main() is pure and require-able. Added test/implementLaunch.test.js (14 tests) covering interpolation, verification resolution, permission-file shape, launch-line composition and template resolution order.</p></div>
+    <div class="field"><span class="label">Why</span><p>The helper is the single producer of the flagged launch line outside Frame&#39;s dispatch, and must run with the app closed, so it carries its own copies of specManager&#39;s rule sets and resolution (comment cross-links the source of truth). Pure/main split follows the report generator&#39;s testable-core pattern.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/templates/bin/implement-launch.js b/src/templates/bin/implement-launch.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..e813fe0</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/templates/bin/implement-launch.js</span>
+<span class="dl-hunk">@@ -0,0 +1,244 @@</span>
+<span class="dl-add">+#!/usr/bin/env node</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Frame implement-launch helper.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The single source of the flagged autonomous launch line, runnable with the</span>
+<span class="dl-add">+ * Frame app closed. Given a spec slug it records the autonomous mode, writes</span>
+<span class="dl-add">+ * the implement permission file, stages and interpolates the implement prompt</span>
+<span class="dl-add">+ * from the templates Frame already copied to disk, and execs the CLI with the</span>
+<span class="dl-add">+ * permission flags plus the read-this-file instruction — so the new session</span>
+<span class="dl-add">+ * reaches its first task with zero typed input.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   node .frame/bin/implement-launch.js &lt;slug&gt;</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Self-contained on purpose: `.frame/bin` scripts can&#39;t read app.asar, so the</span>
+<span class="dl-add">+ * allow/deny rule sets and the verification-command resolution are carried</span>
+<span class="dl-add">+ * here as copies of src/main/specManager.js&#39;s (unchanged by this spec — keep</span>
+<span class="dl-add">+ * them in sync if that file&#39;s sets change). Everything above main() is pure</span>
+<span class="dl-add">+ * (no filesystem, no exec) so it can be tested directly.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Node 18, no dependencies.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+&#39;use strict&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { spawnSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── Constants (mirror of specManager.js) ─────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const FRAME_DIR = &#39;.frame&#39;;</span>
+<span class="dl-add">+const CONFIG_FILE = &#39;config.json&#39;;</span>
+<span class="dl-add">+const STATUS_REL = (slug) =&gt; path.posix.join(FRAME_DIR, &#39;specs&#39;, slug, &#39;status.json&#39;);</span>
+<span class="dl-add">+const PERMISSIONS_REL = path.posix.join(FRAME_DIR, &#39;implement-permissions.json&#39;);</span>
+<span class="dl-add">+const PROMPT_REL = (slug) =&gt; path.posix.join(FRAME_DIR, &#39;runtime&#39;, &#39;prompts&#39;, `${slug}__spec.implement.md`);</span>
+<span class="dl-add">+const REPORT_GENERATOR_REL = path.posix.join(FRAME_DIR, &#39;runtime&#39;, &#39;assets&#39;, &#39;build-implement-report.mjs&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Template resolution order: the project&#39;s own override first, then the copy</span>
+<span class="dl-add">+// Frame staged into runtime/commands/ on project open / implement dispatch.</span>
+<span class="dl-add">+const TEMPLATE_OVERRIDE_REL = path.posix.join(FRAME_DIR, &#39;templates&#39;, &#39;commands&#39;, &#39;claude-code&#39;, &#39;spec.implement.md&#39;);</span>
+<span class="dl-add">+const TEMPLATE_STAGED_REL = path.posix.join(FRAME_DIR, &#39;runtime&#39;, &#39;commands&#39;, &#39;claude-code&#39;, &#39;spec.implement.md&#39;);</span>
+<span class="dl-add">+const GENERATOR_STAGED_REL = path.posix.join(FRAME_DIR, &#39;runtime&#39;, &#39;commands&#39;, &#39;claude-code&#39;, &#39;build-implement-report.mjs&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Pushing and history rewrites other than the mode&#39;s own `commit --amend`.</span>
+<span class="dl-add">+const IMPLEMENT_DENY = [</span>
+<span class="dl-add">+  &#39;Bash(git push)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git push *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git reset --hard *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git rebase *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git filter-branch *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git filter-repo *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git reflog expire *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git update-ref -d *)&#39;</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Editing plus the git plumbing the loop needs. `Edit` covers Write/NotebookEdit.</span>
+<span class="dl-add">+const IMPLEMENT_ALLOW = [</span>
+<span class="dl-add">+  &#39;Edit&#39;,</span>
+<span class="dl-add">+  &#39;Read&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git add *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git commit *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git status*)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git diff*)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git show *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git log *)&#39;,</span>
+<span class="dl-add">+  &#39;Bash(git rev-parse *)&#39;</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── Pure helpers ─────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// {key} → vars[key]; unknown placeholders are left intact (same contract as</span>
+<span class="dl-add">+// specManager.interpolate).</span>
+<span class="dl-add">+function interpolate(template, vars) {</span>
+<span class="dl-add">+  if (!template) return &#39;&#39;;</span>
+<span class="dl-add">+  return template.replace(/\{(\w+)\}/g, (m, key) =&gt; (vars[key] != null ? String(vars[key]) : m));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// The project&#39;s own check, in descending order of what actually verifies a</span>
+<span class="dl-add">+// change. Blank/absent → null (the run proceeds without one and says so).</span>
+<span class="dl-add">+function resolveVerificationCommand(config) {</span>
+<span class="dl-add">+  const commands = (config &amp;&amp; config.project &amp;&amp; config.project.commands) || {};</span>
+<span class="dl-add">+  for (const key of [&#39;test&#39;, &#39;lint&#39;, &#39;build&#39;]) {</span>
+<span class="dl-add">+    const value = typeof commands[key] === &#39;string&#39; ? commands[key].trim() : &#39;&#39;;</span>
+<span class="dl-add">+    if (value) return value;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// The implement-permissions.json body. When a verification command exists,</span>
+<span class="dl-add">+// both its exact and prefixed forms resolve as rules (the space before `*`</span>
+<span class="dl-add">+// is load-bearing).</span>
+<span class="dl-add">+function buildPermissions(verification) {</span>
+<span class="dl-add">+  const allow = [...IMPLEMENT_ALLOW];</span>
+<span class="dl-add">+  if (verification) {</span>
+<span class="dl-add">+    allow.push(`Bash(${verification})`, `Bash(${verification} *)`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return { permissions: { allow, deny: [...IMPLEMENT_DENY] } };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// The CLI launch line: the permission flags plus the short read-this-file</span>
+<span class="dl-add">+// instruction as the initial prompt argument.</span>
+<span class="dl-add">+function buildLaunchArgs(settingsAbsPath, promptRelPath) {</span>
+<span class="dl-add">+  return [</span>
+<span class="dl-add">+    &#39;--settings&#39;, settingsAbsPath,</span>
+<span class="dl-add">+    &#39;--permission-mode&#39;, &#39;auto&#39;,</span>
+<span class="dl-add">+    `Read ${promptRelPath} and follow its instructions exactly.`</span>
+<span class="dl-add">+  ];</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Raw template path: override → staged. `existsFn` is injectable for tests.</span>
+<span class="dl-add">+// Returns the chosen absolute path, or null when neither is present.</span>
+<span class="dl-add">+function resolveRawTemplatePath(projectRoot, existsFn = fs.existsSync) {</span>
+<span class="dl-add">+  const override = path.join(projectRoot, TEMPLATE_OVERRIDE_REL);</span>
+<span class="dl-add">+  if (existsFn(override)) return override;</span>
+<span class="dl-add">+  const staged = path.join(projectRoot, TEMPLATE_STAGED_REL);</span>
+<span class="dl-add">+  if (existsFn(staged)) return staged;</span>
+<span class="dl-add">+  return null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── Impure: filesystem + exec ────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Walk up from a starting dir to the nearest ancestor that holds a .frame/</span>
+<span class="dl-add">+// directory. Returns that dir, or null.</span>
+<span class="dl-add">+function findProjectRoot(startDir) {</span>
+<span class="dl-add">+  let dir = path.resolve(startDir);</span>
+<span class="dl-add">+  while (true) {</span>
+<span class="dl-add">+    if (fs.existsSync(path.join(dir, FRAME_DIR))) return dir;</span>
+<span class="dl-add">+    const parent = path.dirname(dir);</span>
+<span class="dl-add">+    if (parent === dir) return null;</span>
+<span class="dl-add">+    dir = parent;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function readJson(absPath) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return JSON.parse(fs.readFileSync(absPath, &#39;utf8&#39;));</span>
+<span class="dl-add">+  } catch (_) {</span>
+<span class="dl-add">+    return null;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Merge implement_mode: autonomous into the spec&#39;s status.json, preserving</span>
+<span class="dl-add">+// every other key.</span>
+<span class="dl-add">+function recordAutonomousMode(projectRoot, slug) {</span>
+<span class="dl-add">+  const statusPath = path.join(projectRoot, STATUS_REL(slug));</span>
+<span class="dl-add">+  const status = readJson(statusPath);</span>
+<span class="dl-add">+  if (!status) return false;</span>
+<span class="dl-add">+  status.implement_mode = &#39;autonomous&#39;;</span>
+<span class="dl-add">+  status.updated_at = new Date().toISOString();</span>
+<span class="dl-add">+  fs.writeFileSync(statusPath, JSON.stringify(status, null, 2) + &#39;\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  return true;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function writePermissions(projectRoot) {</span>
+<span class="dl-add">+  const config = readJson(path.join(projectRoot, FRAME_DIR, CONFIG_FILE));</span>
+<span class="dl-add">+  const verification = resolveVerificationCommand(config);</span>
+<span class="dl-add">+  const absPath = path.join(projectRoot, PERMISSIONS_REL);</span>
+<span class="dl-add">+  fs.mkdirSync(path.dirname(absPath), { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(absPath, JSON.stringify(buildPermissions(verification), null, 2) + &#39;\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  return absPath;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Ensure the report generator sits at runtime/assets/, copying the staged</span>
+<span class="dl-add">+// runtime/commands/ copy if Frame hasn&#39;t put it there yet. Best-effort — a</span>
+<span class="dl-add">+// missing generator only costs the report, never the run.</span>
+<span class="dl-add">+function ensureReportGenerator(projectRoot) {</span>
+<span class="dl-add">+  const dst = path.join(projectRoot, REPORT_GENERATOR_REL);</span>
+<span class="dl-add">+  if (fs.existsSync(dst)) return;</span>
+<span class="dl-add">+  const staged = path.join(projectRoot, GENERATOR_STAGED_REL);</span>
+<span class="dl-add">+  if (!fs.existsSync(staged)) return;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    fs.mkdirSync(path.dirname(dst), { recursive: true });</span>
+<span class="dl-add">+    fs.copyFileSync(staged, dst);</span>
+<span class="dl-add">+  } catch (_) { /* best effort */ }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function fail(message) {</span>
+<span class="dl-add">+  process.stderr.write(`implement-launch: ${message}\n`);</span>
+<span class="dl-add">+  return 1;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function main(argv) {</span>
+<span class="dl-add">+  const slug = (argv[2] || &#39;&#39;).trim();</span>
+<span class="dl-add">+  if (!slug) return fail(&#39;usage: implement-launch.js &lt;slug&gt;&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const projectRoot = findProjectRoot(process.cwd());</span>
+<span class="dl-add">+  if (!projectRoot) return fail(&#39;no .frame/ found from the current directory — run this from inside a Frame project&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const specDir = path.join(projectRoot, FRAME_DIR, &#39;specs&#39;, slug);</span>
+<span class="dl-add">+  if (!fs.existsSync(specDir)) return fail(`spec &quot;${slug}&quot; not found under .frame/specs/`);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Record autonomous first, so either entry path finds the mode.</span>
+<span class="dl-add">+  if (!recordAutonomousMode(projectRoot, slug)) {</span>
+<span class="dl-add">+    return fail(`could not read ${STATUS_REL(slug)} — is this a valid spec?`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const settingsAbsPath = writePermissions(projectRoot);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const templatePath = resolveRawTemplatePath(projectRoot);</span>
+<span class="dl-add">+  if (!templatePath) {</span>
+<span class="dl-add">+    return fail(&#39;no implement template on disk — open this project in Frame once so it stages the templates, then retry&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const raw = fs.readFileSync(templatePath, &#39;utf8&#39;);</span>
+<span class="dl-add">+  const prompt = interpolate(raw, {</span>
+<span class="dl-add">+    project_path: projectRoot,</span>
+<span class="dl-add">+    slug,</span>
+<span class="dl-add">+    report_generator_path: REPORT_GENERATOR_REL</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const promptAbs = path.join(projectRoot, PROMPT_REL(slug));</span>
+<span class="dl-add">+  fs.mkdirSync(path.dirname(promptAbs), { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(promptAbs, prompt, &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  ensureReportGenerator(projectRoot);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const args = buildLaunchArgs(settingsAbsPath, PROMPT_REL(slug));</span>
+<span class="dl-add">+  const result = spawnSync(&#39;claude&#39;, args, { cwd: projectRoot, stdio: &#39;inherit&#39; });</span>
+<span class="dl-add">+  if (result.error) {</span>
+<span class="dl-add">+    if (result.error.code === &#39;ENOENT&#39;) {</span>
+<span class="dl-add">+      return fail(&#39;the `claude` CLI is not on your PATH — install it or open the project in Frame instead&#39;);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    return fail(`could not launch claude — ${result.error.message}`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return typeof result.status === &#39;number&#39; ? result.status : 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+if (require.main === module) {</span>
+<span class="dl-add">+  process.exit(main(process.argv));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  interpolate,</span>
+<span class="dl-add">+  resolveVerificationCommand,</span>
+<span class="dl-add">+  buildPermissions,</span>
+<span class="dl-add">+  buildLaunchArgs,</span>
+<span class="dl-add">+  resolveRawTemplatePath,</span>
+<span class="dl-add">+  findProjectRoot,</span>
+<span class="dl-add">+  IMPLEMENT_ALLOW,</span>
+<span class="dl-add">+  IMPLEMENT_DENY,</span>
+<span class="dl-add">+  REPORT_GENERATOR_REL,</span>
+<span class="dl-add">+  TEMPLATE_OVERRIDE_REL,</span>
+<span class="dl-add">+  TEMPLATE_STAGED_REL</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/test/implementLaunch.test.js b/test/implementLaunch.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..5edb05b</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/implementLaunch.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,117 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * implement-launch helper tests (T08): the pure parts of the bin helper —</span>
+<span class="dl-add">+ * template interpolation, permission-file shape, launch-line composition and</span>
+<span class="dl-add">+ * template resolution order. No filesystem, no exec: everything above main()</span>
+<span class="dl-add">+ * in src/templates/bin/implement-launch.js is pure, and these tests are what</span>
+<span class="dl-add">+ * keep it that way.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const helper = require(&#39;../src/templates/bin/implement-launch.js&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── interpolation ────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;interpolate fills the three implement placeholders&#39;, () =&gt; {</span>
+<span class="dl-add">+  const out = helper.interpolate(</span>
+<span class="dl-add">+    &#39;root={project_path} slug={slug} gen={report_generator_path}&#39;,</span>
+<span class="dl-add">+    { project_path: &#39;/p&#39;, slug: &#39;my-spec&#39;, report_generator_path: &#39;.frame/runtime/assets/build-implement-report.mjs&#39; }</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+  assert.equal(out, &#39;root=/p slug=my-spec gen=.frame/runtime/assets/build-implement-report.mjs&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;interpolate leaves unknown placeholders intact&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(helper.interpolate(&#39;a {unknown} b&#39;, { slug: &#39;x&#39; }), &#39;a {unknown} b&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;interpolate returns empty string for empty template&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(helper.interpolate(&#39;&#39;, { slug: &#39;x&#39; }), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── verification resolution ──────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;resolveVerificationCommand prefers test over lint and build&#39;, () =&gt; {</span>
+<span class="dl-add">+  const cmd = helper.resolveVerificationCommand({</span>
+<span class="dl-add">+    project: { commands: { test: &#39;npm test&#39;, lint: &#39;npm run lint&#39;, build: &#39;npm run build&#39; } }</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.equal(cmd, &#39;npm test&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;resolveVerificationCommand falls through to lint, then build&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(</span>
+<span class="dl-add">+    helper.resolveVerificationCommand({ project: { commands: { lint: &#39;eslint .&#39;, build: &#39;make&#39; } } }),</span>
+<span class="dl-add">+    &#39;eslint .&#39;</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+  assert.equal(</span>
+<span class="dl-add">+    helper.resolveVerificationCommand({ project: { commands: { build: &#39;make&#39; } } }),</span>
+<span class="dl-add">+    &#39;make&#39;</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;resolveVerificationCommand ignores blank commands and returns null when none&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(helper.resolveVerificationCommand({ project: { commands: { test: &#39;   &#39; } } }), null);</span>
+<span class="dl-add">+  assert.equal(helper.resolveVerificationCommand({}), null);</span>
+<span class="dl-add">+  assert.equal(helper.resolveVerificationCommand(null), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── permission-file shape ────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildPermissions without a check carries just the base allow/deny&#39;, () =&gt; {</span>
+<span class="dl-add">+  const perms = helper.buildPermissions(null);</span>
+<span class="dl-add">+  assert.deepEqual(perms.permissions.allow, helper.IMPLEMENT_ALLOW);</span>
+<span class="dl-add">+  assert.deepEqual(perms.permissions.deny, helper.IMPLEMENT_DENY);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildPermissions adds exact + prefixed rules for the verification command&#39;, () =&gt; {</span>
+<span class="dl-add">+  const perms = helper.buildPermissions(&#39;npm test&#39;);</span>
+<span class="dl-add">+  assert.ok(perms.permissions.allow.includes(&#39;Bash(npm test)&#39;));</span>
+<span class="dl-add">+  assert.ok(perms.permissions.allow.includes(&#39;Bash(npm test *)&#39;));</span>
+<span class="dl-add">+  // base rules still present, deny untouched</span>
+<span class="dl-add">+  assert.ok(perms.permissions.allow.includes(&#39;Edit&#39;));</span>
+<span class="dl-add">+  assert.deepEqual(perms.permissions.deny, helper.IMPLEMENT_DENY);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildPermissions does not mutate the shared constant arrays&#39;, () =&gt; {</span>
+<span class="dl-add">+  const before = helper.IMPLEMENT_ALLOW.length;</span>
+<span class="dl-add">+  helper.buildPermissions(&#39;npm test&#39;);</span>
+<span class="dl-add">+  assert.equal(helper.IMPLEMENT_ALLOW.length, before);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;deny list blocks push and hard resets&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.ok(helper.IMPLEMENT_DENY.includes(&#39;Bash(git push)&#39;));</span>
+<span class="dl-add">+  assert.ok(helper.IMPLEMENT_DENY.includes(&#39;Bash(git push *)&#39;));</span>
+<span class="dl-add">+  assert.ok(helper.IMPLEMENT_DENY.includes(&#39;Bash(git reset --hard *)&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── launch-line composition ──────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildLaunchArgs composes flags plus the read-this-file instruction&#39;, () =&gt; {</span>
+<span class="dl-add">+  const args = helper.buildLaunchArgs(&#39;/abs/perms.json&#39;, &#39;.frame/runtime/prompts/my-spec__spec.implement.md&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(args, [</span>
+<span class="dl-add">+    &#39;--settings&#39;, &#39;/abs/perms.json&#39;,</span>
+<span class="dl-add">+    &#39;--permission-mode&#39;, &#39;auto&#39;,</span>
+<span class="dl-add">+    &#39;Read .frame/runtime/prompts/my-spec__spec.implement.md and follow its instructions exactly.&#39;</span>
+<span class="dl-add">+  ]);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── template resolution order ────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;resolveRawTemplatePath prefers the override when it exists&#39;, () =&gt; {</span>
+<span class="dl-add">+  const root = &#39;/proj&#39;;</span>
+<span class="dl-add">+  const override = path.join(root, helper.TEMPLATE_OVERRIDE_REL);</span>
+<span class="dl-add">+  const chosen = helper.resolveRawTemplatePath(root, (p) =&gt; p === override);</span>
+<span class="dl-add">+  assert.equal(chosen, override);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;resolveRawTemplatePath falls back to the staged copy&#39;, () =&gt; {</span>
+<span class="dl-add">+  const root = &#39;/proj&#39;;</span>
+<span class="dl-add">+  const staged = path.join(root, helper.TEMPLATE_STAGED_REL);</span>
+<span class="dl-add">+  const chosen = helper.resolveRawTemplatePath(root, (p) =&gt; p === staged);</span>
+<span class="dl-add">+  assert.equal(chosen, staged);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;resolveRawTemplatePath returns null when neither exists&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(helper.resolveRawTemplatePath(&#39;/proj&#39;, () =&gt; false), null);</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+</div>
+
+<footer>Generated by Frame from <code>report-data.json</code> · diffs read from git, never transcribed</footer>
+</body>
+</html>

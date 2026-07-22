@@ -198,6 +198,127 @@ test('renderReport is a pure function of its input', () => {
   assert.deepEqual(input, data(), 'input must not be mutated');
 });
 
+// ─── renderProgress ───────────────────────────────────────────
+
+test('renderProgress shows count, next task and a reload note while a run is live', () => {
+  const html = mod.renderProgress({ total: 9, completed: 3, current: { id: 'T04', title: 'Wire the bar' } });
+  assert.match(html, /run-status live/);
+  assert.match(html, /In progress/);
+  assert.match(html, /3 of 9 tasks done/);
+  assert.match(html, /T04 — Wire the bar/);
+  assert.match(html, /Regenerated after each task\. Reload for the latest\./);
+  assert.match(html, /<svg class="rs-info"/);   // inline info glyph, no external asset
+});
+
+test('renderProgress drops the reload note once every task is done', () => {
+  const html = mod.renderProgress({ total: 9, completed: 9, current: null });
+  assert.match(html, /run-status done/);
+  assert.match(html, /Complete/);
+  assert.match(html, /9 of 9 tasks done/);
+  assert.doesNotMatch(html, /reload/i);
+});
+
+test('renderProgress omits the "next" clause when there is no current task', () => {
+  const html = mod.renderProgress({ total: 4, completed: 1, current: null });
+  assert.match(html, /1 of 4 tasks done/);
+  assert.doesNotMatch(html, /next:/);
+});
+
+test('renderProgress renders nothing when there is no progress to show', () => {
+  for (const value of [null, undefined, {}, { total: 0 }, { total: -1 }]) {
+    assert.equal(mod.renderProgress(value), '');
+  }
+});
+
+test('renderProgress clamps a long next-task title so the banner stays one line', () => {
+  const long = 'Make the implementation report live-followable for terminal-launched runs by adding a flag and a banner and much more prose';
+  const html = mod.renderProgress({ total: 9, completed: 8, current: { id: 'T09', title: long } });
+  assert.match(html, /T09 — /);
+  assert.match(html, /…<\/span>/);            // truncated, not the full sentence
+  assert.doesNotMatch(html, /much more prose/);
+});
+
+test('truncateTitle leaves short titles intact and cuts long ones on a word boundary', () => {
+  assert.equal(mod.truncateTitle('Wire the bar'), 'Wire the bar');
+  const out = mod.truncateTitle('a'.repeat(40) + ' word ' + 'b'.repeat(60), 50);
+  assert.ok(out.length <= 51, 'stays within the clamp (+ellipsis)');
+  assert.ok(out.endsWith('…'));
+  assert.doesNotMatch(out, /\s…$/);            // no dangling space before the ellipsis
+});
+
+test('renderProgress escapes a hostile task title', () => {
+  const html = mod.renderProgress({ total: 2, completed: 0, current: { id: 'T01', title: '<script>x</script>' } });
+  assert.doesNotMatch(html, /<script>/);
+});
+
+test('renderReport shows the banner when progress is supplied, and nothing when it is not', () => {
+  const withBanner = mod.renderReport(data({ progress: { total: 3, completed: 1, current: { id: 'T02', title: 'Next up' } } }));
+  assert.match(withBanner, /class="run-status live"/);
+  assert.match(withBanner, /1 of 3 tasks done/);
+  // No banner div when progress is absent — the CSS selectors always live in
+  // the <style> block, so match the element, not the class name.
+  assert.doesNotMatch(mod.renderReport(data()), /class="run-status/);
+});
+
+// ─── computeProgress ──────────────────────────────────────────
+
+function tasksFixture() {
+  return [
+    { source: 'spec:demo:T01', status: 'completed', title: 'One' },
+    { source: 'spec:demo:T03', status: 'pending', title: 'Three' },
+    { source: 'spec:demo:T02', status: 'completed', title: 'Two' },
+    { source: 'spec:other:T01', status: 'pending', title: 'Elsewhere' },
+    { source: 'manual-task', status: 'pending', title: 'No spec' }
+  ];
+}
+
+test('computeProgress counts only the named spec and reads its next pending task', () => {
+  const p = mod.computeProgress(tasksFixture(), 'demo');
+  assert.equal(p.total, 3);
+  assert.equal(p.completed, 2);
+  assert.deepEqual(p.current, { id: 'T03', title: 'Three' });   // sorted by T-number, next pending
+});
+
+test('computeProgress prefers an in-progress task over the next pending one', () => {
+  const tasks = [
+    { source: 'spec:demo:T01', status: 'completed', title: 'One' },
+    { source: 'spec:demo:T02', status: 'in_progress', title: 'Two' },
+    { source: 'spec:demo:T03', status: 'pending', title: 'Three' }
+  ];
+  assert.deepEqual(mod.computeProgress(tasks, 'demo').current, { id: 'T02', title: 'Two' });
+});
+
+test('computeProgress reports no current task when the spec is fully done', () => {
+  const tasks = [
+    { source: 'spec:demo:T01', status: 'completed', title: 'One' },
+    { source: 'spec:demo:T02', status: 'completed', title: 'Two' }
+  ];
+  const p = mod.computeProgress(tasks, 'demo');
+  assert.equal(p.completed, p.total);
+  assert.equal(p.current, null);
+});
+
+test('computeProgress returns null when nothing matches, so the banner disappears', () => {
+  assert.equal(mod.computeProgress(tasksFixture(), 'nope'), null);
+  assert.equal(mod.computeProgress([], 'demo'), null);
+  assert.equal(mod.computeProgress(null, 'demo'), null);
+  assert.equal(mod.computeProgress(tasksFixture(), ''), null);
+});
+
+// ─── parseArgs / openCommand ──────────────────────────────────
+
+test('parseArgs pulls out --open from anywhere and keeps the two positionals', () => {
+  assert.deepEqual(mod.parseArgs(['node', 's', 'data.json']), { dataPath: 'data.json', outPath: undefined, open: false });
+  assert.deepEqual(mod.parseArgs(['node', 's', '--open', 'data.json']), { dataPath: 'data.json', outPath: undefined, open: true });
+  assert.deepEqual(mod.parseArgs(['node', 's', 'data.json', 'out.html', '--open']), { dataPath: 'data.json', outPath: 'out.html', open: true });
+});
+
+test('openCommand maps each platform to its file opener', () => {
+  assert.deepEqual(mod.openCommand('darwin'), { cmd: 'open', args: [] });
+  assert.deepEqual(mod.openCommand('win32'), { cmd: 'cmd', args: ['/c', 'start', ''] });
+  assert.deepEqual(mod.openCommand('linux'), { cmd: 'xdg-open', args: [] });
+});
+
 // ─── contract ─────────────────────────────────────────────────
 
 test('EXCLUDED_PATHS keeps Frame bookkeeping out of every diff', () => {

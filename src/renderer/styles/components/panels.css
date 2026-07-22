@@ -5443,6 +5443,112 @@
   gap: var(--space-sm);
 }
 
+/* Implement mode modal — the unified mode + destination picker opened by the
+   implement button. Wider than the default shell to give the four mode
+   entries room to breathe. */
+.spec-implement-modal {
+  width: 500px;
+}
+
+.impl-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.impl-mode-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.impl-mode-option:hover {
+  border-color: var(--border-strong, var(--accent-primary));
+}
+
+.impl-mode-option.selected {
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle, rgba(212, 165, 116, 0.12));
+}
+
+.impl-mode-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.impl-mode-desc {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  line-height: 1.45;
+}
+
+/* Destination section — present only when the spec's lane is alive. */
+.impl-dest-section:empty {
+  display: none;
+}
+
+.impl-dest-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.impl-dest-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.impl-dest-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.impl-dest-option:hover:not(.disabled) {
+  border-color: var(--border-strong, var(--accent-primary));
+}
+
+.impl-dest-option.selected {
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle, rgba(212, 165, 116, 0.12));
+}
+
+.impl-dest-option.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.impl-dest-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.impl-dest-reason {
+  font-size: 11px;
+  color: var(--warning);
+  line-height: 1.45;
+}
+
 /* Suggestion (opt-in) modal — softer presentation than the New Spec modal */
 .spec-modal-suggestion {
   width: 540px;

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implement modes v2 — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Implement modes v2 — the mode is chosen before the session, never inside it</h1>
+  <p class="muted">2026-07-22 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/implement-modes-v2/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">13 decisions taken</span><span class="pill">3 loop iterations</span><span class="pill">2 drifted claims caught</span><span class="pill warn">supersedes autonomous-permission-lifecycle</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>v1's mode picker lives <b>inside</b> the CLI session, but the autonomous mode's permission flags can only travel <b>on</b> the launch line — so choosing autonomous after launch can only end in a "please re-dispatch" loop. The rejected fix (merging Frame's permission rules into the user's <code>.claude/settings.local.json</code>) put ephemeral state in a user-owned, repo-scoped file and still didn't silence prompts. Meanwhile the implement button's copy and turn-scoped lock hardcode step-by-step semantics for every mode, and nothing exists between "approve every task" and "full autonomy".</p>
+  <p>v2 moves the choice <b>before</b> the session: one unified modal (mode + destination) writes <code>implement_mode</code> to <code>status.json</code> first, then stages, then dispatches — flags derive from the recorded choice, never from a guess. A new <b>guided</b> mode fills the ladder gap (continuous loop, the CLI's own permission prompts pace it). Autonomous becomes launch-path only, with a new <code>.frame/bin/implement-launch.js</code> helper as the single source of the flagged launch line for terminal users. Nothing ever touches <code>.claude/settings.local.json</code>.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Four flows: the flipped UI dispatch, the CLI record-and-handoff, the helper launch, and the button state machine.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>system / module</span>
+    <span class="l-data">file / process</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — UI implement dispatch (ordering flips: modal → record → stage → dispatch)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Implement button</div><div class="fd-sub">any spec surface</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Unified modal</div><div class="fd-sub">implementModeModal.js — 4 modes, hint preselected; destination only when lane alive</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Confirm or cancel?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">confirm</span>
+          <div class="fd-node data"><div class="fd-title">status.json ← implement_mode</div><div class="fd-sub">UPDATE_SPEC_STATUS merge</div></div>
+          <div class="fd-arrow"><span class="lbl">then</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Stage prompt + flags</div><div class="fd-sub">BUILD_SPEC_COMMAND_FILE — flags derive from the recorded mode</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">dispatch()</div><div class="fd-sub">chosen destination; autonomous flags ride the first launch</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">cancel</span>
+          <div class="fd-node system"><div class="fd-title">Nothing happens</div><div class="fd-sub">no write, no staging, no dispatch</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Re-dispatch is unreachable from the UI:</b> the mode is recorded before staging, so <code>getImplementLaunchFlags</code> (which already reads <code>status.implement_mode</code> first) needs zero change — the flip alone makes the flags correct on the first launch.</li>
+          <li><b>Mode × destination coupling:</b> autonomous enables "Continue in <i>&lt;Frame&gt;</i>" only when the lane's own launch carried the flags (<code>lane.launchedAutonomous</code> — new tracking, see D8); otherwise disabled with the reason shown and destination forced to a new Frame. The old lane is unassigned, not closed.</li>
+          <li><b>Flags refused mid-dispatch:</b> the existing bare-retry now states a fallback to <b>guided</b> (D3) — notice + prompt note both say so; the recorded mode stays <code>autonomous</code>.</li>
+          <li><b><code>_askContinueOrNew</code> survives</b> for <code>spec.new/plan/tasks</code> — absorption applies only where a mode exists.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — CLI conversational path: record, then hand off</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">"implement the tasks"</div><div class="fd-sub">conversational CLI session</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Template resolves mode</div><div class="fd-sub">status.json first — a recorded mode runs with no picker</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Which mode?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">step-by-step / guided / custom</span>
+          <div class="fd-node outcome"><div class="fd-title">Runs right here</div><div class="fd-sub">no flags needed — CLI prompts pace guided</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">autonomous</span>
+          <div class="fd-node data"><div class="fd-title">status.json ← autonomous</div><div class="fd-sub">one write, first</div></div>
+          <div class="fd-arrow"><span class="lbl">then</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">One handoff message</div><div class="fd-sub">Frame's implement button, or node .frame/bin/implement-launch.js &lt;slug&gt;</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>No mid-session path to autonomous exists at all:</b> the template never offers, attempts, or upgrades to it inside a running session — the re-dispatch request and second picker are deleted, not reworded.</li>
+          <li><b>Described flows gain a skill lifecycle (D2):</b> after a described run completes, the agent offers once to save it as a project skill (<code>.claude/skills/&lt;name&gt;/SKILL.md</code>, written by the CLI agent, never by Frame code); later runs detect and offer it. Supersedes v1's <code>flowFile</code> mechanism.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — implement-launch.js: the single source of the flagged launch line</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">node .frame/bin/implement-launch.js &lt;slug&gt;</div><div class="fd-sub">fresh terminal, Frame app may be closed</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">status.json ← autonomous · implement-permissions.json</div><div class="fd-sub">own copy of allow/deny + verification resolution</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Interpolate + stage prompt</div><div class="fd-sub">raw template from .frame/runtime/commands/claude-code/ (override dir wins)</div></div>
+          <div class="fd-arrow"><span class="lbl">exec</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">claude --settings … --permission-mode auto "Read …"</div><div class="fd-sub">first task reached with zero typed input</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Raw material is staged by v2 itself (D6):</b> parity's <code>.frame/runtime/commands/</code> doesn't exist yet, so specManager stages the implement template + report generator there (and the helper into <code>.frame/bin/</code>) on project open and implement dispatch — content-diff writes, ship-latest like <code>copyParserScripts</code>.</li>
+          <li><b>Self-contained by design:</b> <code>.frame/bin</code> scripts run without the app, so the helper carries its own rule-set copies (cross-linked comment; the sets themselves are unchanged per constraint). Agents print the helper invocation only — never a hand-composed launch line.</li>
+          <li><b>Missing template → clear exit</b> ("open the project in Frame once"); missing <code>claude</code> on PATH → clear error, no partial state beyond the recorded mode.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow D — Button state machine (shared specNextAction.js)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Resolve mode</div><div class="fd-sub">getSpec().implementHint — status.implement_mode → config default → none</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Continuous mode?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">none / step-by-step / custom</span>
+          <div class="fd-node outcome"><div class="fd-title">Turn-scoped lock (today's)</div><div class="fd-sub">"Implement Tasks…" / "Implement Next Task" / "Run Custom Flow"</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">guided / autonomous</span>
+          <div class="fd-node system"><div class="fd-title">Run-liveness lock</div><div class="fd-sub">lane.agentName ∧ pending &gt; 0 → locked across turns</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">"Running — 3/7 tasks"</div><div class="fd-sub">"Waiting for permission" on agent-approval; self-releases when the agent dies or tasks finish</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>All inputs derived per render</b> (lane info, TASKS_DATA pending count, hint) — no stored busy flag, so the anti-stuck contract is inherited, never re-implemented.</li>
+          <li><b>One state machine, three surfaces (D10):</b> specSection / specPanel / specsDashboard already carry drifting near-copies of the bar; the new label × lock × progress logic lives once in <code>specNextAction.js</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The recorded mode, in one look</h3>
+  <pre>status.json:  "implement_mode": "step-by-step" | "guided" (new) | "autonomous" | "custom"   — additive, no schema change
+carriers:     launch line only (--settings .frame/implement-permissions.json --permission-mode auto)
+              produced by Frame's dispatch or implement-launch.js — never .claude/settings.local.json</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+
+  <div class="dcard">
+    <div class="dhead">D1 · What is the middle mode's final name (UI copy + persisted value)?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">guided</div>
+        <div class="opttrade">Matches the spec's own vocabulary ("Start Guided Run"); reads as "the CLI's prompts guide the pace".</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">supervised</div>
+        <div class="opttrade">Emphasizes the user as permission gate, but reads heavier in button copy and diverges from the spec text.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> asked at the gate; the string is both UI copy and the <code>implement_mode</code> value, so it had to settle before any code. User chose <code>guided</code>.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D2 · Where does "Describe your own" (Mode C) surface in v2?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Fourth modal slot + CLI-conversational body + skill save</div>
+        <div class="opttrade">Modal lists it; the description itself stays conversational; a finished described run offers to become a project skill the CLI can detect and re-run.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">CLI-conversation only</div>
+        <div class="opttrade">Cleaner 3-mode modal, but hides the mode from UI users entirely.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> user-directed at the gate: the option belongs in the modal; after the run, offer once to save the flow as a real, project-scoped Claude Code skill (<code>.claude/skills/&lt;name&gt;/SKILL.md</code> — follow-up decision), detected and offered on later runs. Supersedes v1's <code>.frame/implement-flow.md</code> + <code>flowFile</code> for claude-code. The skill is written by the CLI agent at run time — no Frame code path writes under <code>.claude/</code>.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D3 · Explicit autonomous choice, but the CLI refuses the launch flags — then what?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Stated fallback to guided</div>
+        <div class="opttrade">Work keeps flowing in the closest mode that needs no flags; notice + prompt note say so plainly.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Visible failure, no run</div>
+        <div class="opttrade">Cleaner contract, but leaves a dead lane and forces a re-click.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> asked at the gate. The recorded mode stays <code>autonomous</code> — it is the user's actual choice and the next flagged launch should honor it.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D4 · Should implement-launch.js leave an adoption marker for external runs? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No marker</div>
+        <div class="opttrade">File-level progress via the specs watcher is the declared reflection for external runs.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Write a marker for later lane adoption</div>
+        <div class="opttrade">Speculative state with no consumer in this spec — Out of Scope already excludes lane tracking for helper runs.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> a marker no code reads is dead weight; the spec's own Out of Scope section settles the fork.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D5 · Does a remembered mode skip the modal? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Modal always opens; remembered mode preselected</div>
+        <div class="opttrade">Confirming is one click; switching modes and picking a destination stay discoverable.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Remembered mode dispatches immediately</div>
+        <div class="opttrade">Fewer clicks, but removes the only mode-switch affordance — and a destination dialog would pop anyway when a lane is alive.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Goal 2's text is explicit ("The implement button opens a single modal … remembered mode preselected"); "behaves as today" refers to post-confirm dispatch semantics.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+
+  <div class="dcard">
+    <div class="dhead">D6 · Where does the helper get its raw template? cli-spec-command-parity is unimplemented</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">v2 stages a minimal slice itself</div>
+        <div class="opttrade">Template + generator to .frame/runtime/commands/claude-code/, helper to .frame/bin/, on project open + implement dispatch; parity later generalizes the same location.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Depend on parity landing first</div>
+        <div class="opttrade">Keeps v2 free of staging work, but blocks the helper and the whole CLI handoff path indefinitely.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> asked at the gate (explained in detail on request). The spec's cited raw material (<code>.frame/runtime/commands/&lt;tool&gt;/</code>) verifiably does not exist — parity is phase "specified". No conflict: same location, subset of parity's content.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D7 · Should this spec's work ship with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Pure logic only</div>
+        <div class="opttrade">One new test file for the helper's pure parts — interpolation, permission-file shape, launch-line composition, template resolution order.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Everything testable / none this time</div>
+        <div class="opttrade">"Everything" adds fs-heavy stubbing for little confidence; "none" leaves the launch-line logic with no executable check.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> asked at the gate. Matches the recorded convention exactly (Node built-in runner, target the pure module, skip Electron-coupled wrappers); the renderer has no DOM harness — re-verified before asking — so modal/button work is honestly out of test reach today.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D8 · How is "this lane was launched flagged" known? <span class="tag">silent · spec drift</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Build it new: Map&lt;terminalId, boolean&gt; in agentDispatch</div>
+        <div class="opttrade">Set on a flagged start that didn't drop; cleared on TERMINAL_DESTROYED; exposed as lane.launchedAutonomous.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Reuse launchedAutonomousBySlug as the spec says</div>
+        <div class="opttrade">It does not exist — the name appears only in PROJECT_NOTES' design sketch, nowhere in src/.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the spec's "already tracks this" is drift; tracking per terminal (a property of the lane's launch) is more correct than per slug, since the modal's question is about the lane itself.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D9 · New IPC for the mode write and the hint? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Reuse UPDATE_SPEC_STATUS; extend getSpec with implementHint</div>
+        <div class="opttrade">Merge-partial write already validated; hint resolution stays main-side, single source.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Dedicated channels</div>
+        <div class="opttrade">Two new channels for what existing ones already carry.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>updateSpecStatus</code> merges partials and <code>validateSpecStatus</code> doesn't inspect <code>implement_mode</code>; the renderer must not re-implement the status → config-default fallback.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D10 · Three next-action bar copies vs one shared module? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Extract shared specNextAction.js</div>
+        <div class="opttrade">Label × lock × progress logic lives once; surfaces keep their own click wiring.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Edit all three copies in place</div>
+        <div class="opttrade">The copies have already drifted from each other; tripling a state machine is a bug farm.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the renderer-work constraint is explicitly lifted for this spec, and the new logic is exactly the kind that must not fork three ways.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D11 · Helper's relationship to specManager's rule sets? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Self-contained copy, cross-linked comment</div>
+        <div class="opttrade">~30 duplicated lines; the sets change rarely and are frozen by this spec's constraints anyway.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Share code with the app</div>
+        <div class="opttrade">.frame/bin scripts must run with the app closed and packaged (app.asar) — there is nothing to require.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the same pattern the parser scripts already use: staged copies are self-contained build artifacts, shipped-latest on project open.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D12 · Does _askContinueOrNew disappear entirely? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Kept for spec.new / spec.plan / spec.tasks</div>
+        <div class="opttrade">Those commands have no mode; their dialog is unchanged.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Absorb it for every command</div>
+        <div class="opttrade">Would put a mode picker in front of commands that have no modes.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the spec's absorption sentence is about the implement button's two-stacked-dialogs problem; widening it is unrequested scope.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D13 · Modal's home? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">New module implementModeModal.js</div>
+        <div class="opttrade">Follows the existing taskRunModal / taskConfirmModal pattern; reuses the spec-modal-overlay idiom.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Inline in agentDispatch.js like _askContinueOrNew</div>
+        <div class="opttrade">Fine for a two-button ask; too much for mode entries + coupling + disabled reasons.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the project already keeps non-trivial modals as their own renderer modules.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>CLI refuses the flags after an explicit autonomous choice</td><td>Bare-retry fires as today; run continues as <b>guided</b> with a visible notice and a prompt note; recorded mode stays <code>autonomous</code> (D3).</td></tr>
+    <tr><td>Agent dies or Frame closes mid guided/autonomous run</td><td>Lock inputs are derived per render; <code>getSpecLaneInfo</code> returns null / no agentName → lock self-releases. No stored busy flag exists to go stale.</td></tr>
+    <tr><td>Helper run in a project Frame never opened (no staged template)</td><td>Clear exit: "open the project in Frame once". Staging refreshes on every project open and implement dispatch.</td></tr>
+    <tr><td><code>claude</code> not on PATH when the helper execs</td><td>Explicit error message; only the recorded mode was written — re-runnable safely.</td></tr>
+    <tr><td>Idle gap between tasks in a continuous run (the v1 double-dispatch trap)</td><td>Run-liveness lock ignores turn boundaries: locked while mode is continuous ∧ lane alive ∧ pending &gt; 0.</td></tr>
+    <tr><td>Autonomous "Continue" into a lane that was launched bare</td><td>Option disabled with the reason stated; destination forced to a new Frame; old lane unassigned, not closed.</td></tr>
+    <tr><td>Helper's rule-set copy drifts from specManager's</td><td>Cross-linked comments both ways; the sets are frozen by this spec's constraints; helper's copy is covered by the new test file's shape assertions.</td></tr>
+    <tr><td>Modal cancel after a previous mode was recorded</td><td>Cancel writes nothing — the earlier recorded mode simply persists, which is exactly the "last choice" semantics.</td></tr>
+    <tr><td>Guided run's report diverges from autonomous's</td><td>Same <code>report-data.json</code> contract, same staged generator, no new assets — the template's guided section reuses the Mode B loop verbatim minus flags.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: watcher-based CLI→UI modal bridge (design recorded in PROJECT_NOTES); notifications/badges for non-active-project requests; lane adoption for helper-launched runs; worker honoring <code>implement_mode</code> (a later spec).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Step-by-step stays exactly v1 Mode A, commit-on-approval close-out untouched <span class="tag">G1</span></td><td>Architecture (ladder; Mode A untouched) · Sequencing 5–6 leave its lock and loop as-is</td></tr>
+    <tr><td>Guided: Mode B's per-task loop without the flag requirement, no between-task check-in, same report artifacts, new <code>implement_mode: guided</code> <span class="tag">G2</span></td><td>Architecture (data shapes, CLI flow) · Sequencing 6</td></tr>
+    <tr><td>Autonomous becomes launch-path only — never offered, attempted, or upgraded-to inside a session <span class="tag">G3</span></td><td>Architecture Flow B · Sequencing 6</td></tr>
+    <tr><td>"Describe your own" stays available — modal slot + skill lifecycle <span class="tag">G4</span></td><td>Architecture (D2) · Sequencing 3, 6</td></tr>
+    <tr><td>One unified modal: mode + destination, absorbing _askContinueOrNew for implement; never two stacked dialogs <span class="tag">G5</span></td><td>Architecture Flow A · Sequencing 3–4</td></tr>
+    <tr><td>Mode × destination coupling; autonomous-Continue only into a flagged lane, else disabled with reason <span class="tag">G6</span></td><td>Architecture Flow A · Sequencing 1, 3</td></tr>
+    <tr><td>Ordering flips to modal → record → stage → dispatch; the hint's only job is preselection <span class="tag">G7</span></td><td>Architecture Flow A · Sequencing 2, 4</td></tr>
+    <tr><td>Cancel writes nothing and dispatches nothing <span class="tag">G8</span></td><td>Architecture Flow A (cancel branch) · Sequencing 3–4</td></tr>
+    <tr><td>CLI path: step/guided runnable; autonomous = one status write + one handoff naming button and helper <span class="tag">G9</span></td><td>Architecture Flow B · Sequencing 6</td></tr>
+    <tr><td>implement-launch.js: single source of the flagged launch line, works with Frame closed, zero typed input to first task <span class="tag">G10</span></td><td>Architecture Flow C · Sequencing 7–8</td></tr>
+    <tr><td>Button label follows the resolved mode <span class="tag">G11</span></td><td>Architecture Flow D (label table) · Sequencing 5</td></tr>
+    <tr><td>Lock scope follows the mode: turn-scoped for step-by-step, run-liveness with progress for guided/autonomous, self-releasing <span class="tag">G12</span></td><td>Architecture Flow D · Sequencing 5</td></tr>
+    <tr><td>Nothing ever writes .claude/settings.local.json; autonomous-permission-lifecycle superseded wholesale <span class="tag">G13</span></td><td>Architecture (permission carriers) — no plan file touches it; verified zero references exist today</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>status.json stays additive — <code>guided</code> is a new value, no schema change <span class="tag">C1</span></td><td>Architecture (data shapes; validateSpecStatus untouched)</td></tr>
+    <tr><td>v1's no-renderer-work constraint is lifted; _askContinueOrNew absorbed reusing the overlay idiom <span class="tag">C2</span></td><td>Files (renderer entries) · D12, D13</td></tr>
+    <tr><td>Shared core accounting untouched and binding on guided <span class="tag">C3</span></td><td>Sequencing 6 (template keeps the shared-core section verbatim)</td></tr>
+    <tr><td>Report machinery reused as-is: same report-data.json contract, same generator, no new assets <span class="tag">C4</span></td><td>Architecture (Flow C asset ensure) · Sequencing 6</td></tr>
+    <tr><td>Flags only on CLI-starting dispatches; the helper is the only flagged-launch producer outside Frame <span class="tag">C5</span></td><td>Architecture Flows A + C</td></tr>
+    <tr><td>Parity's staged templates are the helper's raw material; its re-dispatch ceiling retired; handoff wording resolved <span class="tag">C6</span></td><td>D6 (v2 stages the slice at parity's own location) · Flow B handoff</td></tr>
+    <tr><td>Template override precedence and orchestration untouched; worker honoring implement_mode stays a later spec <span class="tag">C7</span></td><td>Architecture (staging resolves through the existing override order); no orchestration file in Footprint</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>No remembered mode → modal opens; step-by-step remembered → "Implement Next Task", behaves as today <span class="tag">S1</span></td><td>Sequencing 3, 5 · proven by clicking both states in the app</td></tr>
+    <tr><td>Guided/autonomous lock survives turn boundaries with live progress; unlocks only on agent death or last task <span class="tag">S2</span></td><td>Sequencing 5 · proven by watching a multi-task run's idle gaps</td></tr>
+    <tr><td>Autonomous + live unflagged lane: Continue disabled with reason; flagged lane: allowed <span class="tag">S3</span></td><td>Sequencing 1, 3 · proven by launching one lane bare, one flagged</td></tr>
+    <tr><td>Mode recorded before staging — fresh autonomous dispatch carries flags on first launch; re-dispatch unreachable from UI <span class="tag">S4</span></td><td>Sequencing 4 · proven by inspecting status.json + launch line of a first dispatch</td></tr>
+    <tr><td>CLI autonomous ask → exactly one status write + one handoff; helper in a fresh terminal starts implementing untyped <span class="tag">S5</span></td><td>Sequencing 6, 8 · proven by a conversational session + helper run</td></tr>
+    <tr><td>Guided completes a multi-task spec in one session, one commit per task, report identical in shape to autonomous <span class="tag">S6</span></td><td>Sequencing 6 · proven by diffing the two runs' report-data shapes</td></tr>
+    <tr><td>No code path reads or writes .claude/settings.local.json <span class="tag">S7</span></td><td>Whole plan · proven by grep (zero references today; plan adds none)</td></tr>
+    <tr><td>A step-by-step run after any guided/autonomous run gets normal prompts — nothing parked in settings <span class="tag">S8</span></td><td>Architecture (carriers are launch-line only, per-launch) · proven by a follow-up step-by-step dispatch</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>Flags are read once at CLI start; autonomous permissions travel on the launch line</td><td><span class="pill good">verified</span> src/main/specManager.js:365–371, 488–493</td></tr>
+    <tr><td>Continue-or-new modal injects into the same unflagged session</td><td><span class="pill good">verified</span> src/renderer/agentDispatch.js:393–405, 568–598</td></tr>
+    <tr><td>autonomous-permission-lifecycle merged rules into .claude/settings.local.json and was rejected before merge</td><td><span class="pill good">verified</span> PROJECT_NOTES.md (2026-07-21 entry); spec folder retired; zero settings.local references in src/</td></tr>
+    <tr><td>Button says "Implement Next Task — one per click" for every mode</td><td><span class="pill good">verified</span> src/renderer/specSection.js:393 (copies: specPanel.js:297, specsDashboard.js:421)</td></tr>
+    <tr><td>Busy lock is turn-scoped ("Unlocks when the agent finishes its turn")</td><td><span class="pill good">verified</span> src/renderer/specSection.js:399–418; specPanel.js:313; specsDashboard.js:437; busy = live agent mid-turn, agentDispatch.js:427–438</td></tr>
+    <tr><td>"launchedAutonomousBySlug already tracks this"</td><td><span class="pill warn">drifted</span> no such symbol anywhere in src/ — design name from PROJECT_NOTES only; plan builds the tracking new (D8)</td></tr>
+    <tr><td>cli-spec-command-parity's staged templates are the helper's raw material</td><td><span class="pill warn">drifted</span> parity is phase "specified"; .frame/runtime/commands/ does not exist — v2 stages the slice itself (D6)</td></tr>
+    <tr><td>v1 picker runs inside the session at every dispatch; modes A/B/C with re-dispatch ceiling</td><td><span class="pill good">verified</span> src/templates/commands/claude-code/spec.implement.md:19–99, 160–338</td></tr>
+    <tr><td>Report machinery: report-data.json + staged generator</td><td><span class="pill good">verified</span> src/main/specManager.js:331–336; template:245–265; test/implementReport.test.js exists</td></tr>
+    <tr><td>Today's ordering is stage-then-ask, flags guessed from the hint</td><td><span class="pill good">verified</span> src/renderer/agentDispatch.js:353–405 (stage at 355, ask at 393); hint at specManager.js:472–483</td></tr>
+    <tr><td>flagsDropped silently falls back with a note today</td><td><span class="pill good">verified</span> src/renderer/agentDispatch.js:167–179, 382–387</td></tr>
+    <tr><td>UPDATE_SPEC_STATUS merge-partial write path exists for the renderer</td><td><span class="pill good">verified</span> src/main/specManager.js:1026, 771–789 (implement_mode passes validation untouched)</td></tr>
+    <tr><td>agent-approval is an observable lane state ("Waiting for permission")</td><td><span class="pill good">verified</span> src/renderer/laneStatus.js:8–15, 273</td></tr>
+    <tr><td>.frame/bin staging pattern exists (ship-latest copies)</td><td><span class="pill good">verified</span> src/main/structureBootstrap.js:40–100 (copyParserScripts); .frame/bin/ present</td></tr>
+    <tr><td>Testing record (PROJECT_NOTES ## Testing): Node built-in runner, renderer uncovered</td><td><span class="pill good">verified</span> PROJECT_NOTES.md:62–86; re-verified: no jsdom/playwright/testing-library/puppeteer in package.json</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — coverage sweep caught the modal/button styles missing from Files/Footprint → added <code>src/renderer/styles/components/panels.css</code>.</li>
+    <li><b>Iteration 2</b> — reality check caught the helper's generator dependency (report generator must live in the staged command dir too, or a Frame-closed run can't produce reports) → staging slice copies template <i>and</i> generator; helper ensures the runtime/assets copy before exec.</li>
+    <li><b>Iteration 3</b> — task-derivability pass caught label resolution needing the config-default fallback in the renderer → <code>getSpec</code> gains <code>implementHint</code> used by both the modal preselection and the button label; confirmed <code>getImplementLaunchFlags</code> needs zero change for the ordering flip. All checklist items pass.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-22 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/implement-modes-v2/plan.md</code></footer>
+</div>
+</body>
+</html>

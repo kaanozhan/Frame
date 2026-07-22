@@ -21,6 +21,7 @@ const state = require('./state');
 const sectionRail = require('./sectionRail');
 const { FileText } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
+const specNextAction = require('./specNextAction');
 
 let host = null;
 let seq = 0;
@@ -181,7 +182,7 @@ function createViewport() {
 
     const { status, spec, plan, tasks, outcome } = activeSpec;
     const aiLabel = status.ai_tool || '';
-    const nextAction = nextActionForPhase(status.phase);
+    const nextAction = specNextAction.nextActionForPhase(status.phase);
 
     contentEl.innerHTML = `
       <div class="spec-detail-header">
@@ -193,7 +194,13 @@ function createViewport() {
         </div>
       </div>
       ${renderStepper(status.phase)}
-      ${nextAction ? renderNextActionBar(nextAction, require('./agentDispatch').getSpecLaneInfo(slug)) : ''}
+      ${nextAction ? specNextAction.renderNextActionBar({
+        action: nextAction,
+        lane: require('./agentDispatch').getSpecLaneInfo(slug),
+        hint: activeSpec.implementHint,
+        counts: specNextAction.taskCounts(allTasks, slug),
+        buttonId: 'spec-section-action-btn'
+      }) : ''}
       <div class="spec-detail-tabs">
         ${renderTabButton('spec', 'Spec', !!spec)}
         ${renderTabButton('plan', 'Plan', !!plan)}
@@ -379,56 +386,6 @@ function createViewport() {
 }
 
 // ─── Pure helpers ───────────────────────────────────
-
-function nextActionForPhase(phase) {
-  switch (phase) {
-    case 'draft':
-      return { command: 'spec.new', label: 'Write the Spec', hint: 'Frame turns your description into a structured spec.md.' };
-    case 'specified':
-      return { command: 'spec.plan', label: 'Generate Plan', hint: 'Frame breaks this spec into a technical plan (plan.md).' };
-    case 'planned':
-      return { command: 'spec.tasks', label: 'Break into Tasks', hint: 'Frame splits the plan into discrete, trackable tasks.' };
-    case 'tasks_generated':
-    case 'implementing':
-      return { command: 'spec.implement', label: 'Implement Next Task', hint: 'Frame implements the next pending task — one per click.' };
-    default:
-      return null;
-  }
-}
-
-function renderNextActionBar(action, lane) {
-  // Live agent mid-turn in the assigned Frame → lock the button against
-  // double-dispatch. Derived from getSpecLaneInfo on every render; lane
-  // activity re-renders the section, so a dead agent or closed Frame
-  // unlocks it again on its own.
-  if (lane && lane.busy) {
-    const verb = lane.status === 'agent-approval' ? 'Waiting for approval' : 'Working';
-    return `
-    <div class="spec-next-action spec-next-action-busy">
-      <div class="spec-next-action-text">
-        <strong>${escapeHtml(verb)} in ${escapeHtml(lane.name)}</strong>
-        <span>Unlocks when the agent finishes its turn.</span>
-        <code class="spec-next-action-cmd">/${escapeHtml(action.command)}</code>
-      </div>
-      <button class="btn btn-primary spec-action-btn" disabled>
-        <span class="spec-action-spinner"></span>${escapeHtml(action.label)}
-      </button>
-    </div>
-  `;
-  }
-  return `
-    <div class="spec-next-action">
-      <div class="spec-next-action-text">
-        <strong>Next step: ${escapeHtml(action.label)}</strong>
-        <span>${escapeHtml(action.hint)}</span>
-        <code class="spec-next-action-cmd">/${escapeHtml(action.command)}</code>
-      </div>
-      <button class="btn btn-primary spec-action-btn" id="spec-section-action-btn">
-        ${escapeHtml(action.label)}
-      </button>
-    </div>
-  `;
-}
 
 const STEPPER_STEPS = ['Spec', 'Plan', 'Tasks', 'Implement', 'Done'];
 
