@@ -35,3 +35,17 @@ correctly surfaces as in-flight. Files touched: `scripts/spec-index.js`
 _Captured: 2026-07-22 · 3 file change(s)_
 
 ---
+## T03 — Query CLI (`scripts/spec-context.js`)
+
+Added the reader CLI over `ensureFresh`: topic mode (ascii-folded
+Turkish/English tokenization scored against slug+title+keywords+footprint
+basenames, top-8), `--file` mode (absolute/relative accepted, chronological
+records with human flag text — current/stale/later-specs/IN-FLIGHT/moved —
+plus deduped deep-read pointers), and a `--list` catalog mode reusing
+`catalogLines`. Real-archive smoke: tasksManager.js correctly shows
+reliability history + perf in-flight warning. Files touched:
+`scripts/spec-context.js` (new).
+
+_Captured: 2026-07-22 · 1 file change(s)_
+
+---

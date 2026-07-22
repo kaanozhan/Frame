@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:04:54.382Z",
+  "lastUpdated": "2026-07-22T14:05:52.336Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3321,13 +3321,13 @@
       "title": "Create `scripts/spec-context.js`: `<keyword>` topic mode and `--file <path>` mode over `ensureFresh`, chronological output with the newest record marked current and deep-read pointers into `.frame/specs/<slug>/`.",
       "description": "",
       "source": "spec:spec-knowledge-layer:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:05:52.336Z",
+      "completedAt": "2026-07-22T14:05:52.336Z"
     },
     {
       "id": "task-spec-spec-knowledge-layer-T04",
