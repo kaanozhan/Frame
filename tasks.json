@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:09:36.415Z",
+  "lastUpdated": "2026-07-22T14:15:56.066Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3347,13 +3347,13 @@
       "title": "Add the UserPromptSubmit topic mode to `scripts/spec-hint.js` (ascii-folding, stopwords, match threshold, top-3 cap, synonym conventions from `scripts/intent-map.json`) and cover both modes with `test/spec-hint.test.js` (fake-stdin injection output, dedup, overflow, corrupt-index and no-index silence).",
       "description": "",
       "source": "spec:spec-knowledge-layer:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:15:56.066Z",
+      "completedAt": "2026-07-22T14:15:56.066Z"
     },
     {
       "id": "task-spec-spec-knowledge-layer-T06",

@@ -68,3 +68,19 @@ splitting it made no sense; T05 keeps the test suite. Smoke: 21ms end-to-end
 _Captured: 2026-07-22 · 1 file change(s)_
 
 ---
+## T05 — Hook test suite (`test/spec-hint.test.js`)
+
+Covered both hook modes as child processes with real stdin (the way the
+harness runs them): full-record injection + relay text, 3+-spec overflow
+keeping every spec, signal mode, absolute-path resolution, per-session dedup
+with fresh-session re-injection, and the never-break set (no index, corrupt
+index, corrupt stdin, missing fields, unknown mode, .frame/ and
+out-of-project targets — all exit 0 silent). Prompt mode asserted on a mixed
+Turkish/English prompt with rare-keyword scoring and generic-only silence.
+Also pinned the T06 settings-merge contract (foreign keys preserved,
+idempotent re-install) at the JSON level. 9 tests; full suite green.
+Files touched: `test/spec-hint.test.js` (new).
+
+_Captured: 2026-07-22 · 1 file change(s)_
+
+---
