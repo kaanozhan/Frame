@@ -39,3 +39,11 @@ Deleted `stageImplementCommandFiles`/`copyIfChanged` (and their constants) from 
 _Captured: 2026-07-22 · 2 file change(s)_
 
 ---
+
+## T06 — upgradeSpecDocs driver wired into project open
+
+Added `upgradeSpecDocs` to `frameProject.js` — runs the managed-block engine over `.frame/docs/REFERENCE.md` (full protocol) and `AGENTS.md` (core pointer) with the per-doc legacy matchers; writes only on change, never creates files, skips non-Frame projects — and called it from `specManager.js`'s WATCH_SPECS handler beside staging (specManager now requires frameProject; no cycle, frameProject never requires specManager). Smoke-tested outside the suite: legacy REFERENCE migrates once with user prose intact, customized AGENTS untouched, second run no-op.
+
+_Captured: 2026-07-22 · 2 file change(s)_
+
+---

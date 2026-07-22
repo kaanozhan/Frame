@@ -18,6 +18,7 @@ const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
 const commandStaging = require('./commandStaging');
+const frameProject = require('./frameProject');
 const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
 
@@ -1056,9 +1057,11 @@ function setupIPC(ipcMain) {
     startWatching(projectPath);
     // Project open: stage the command templates, report assets and launch
     // helper so a CLI session (or a helper-driven launch) can self-serve the
-    // current flow even before any in-app dispatch.
+    // current flow even before any in-app dispatch, and upgrade the docs'
+    // managed spec section to the current generation. Never breaks watching.
     try {
       commandStaging.stageCommandFiles(projectPath);
+      frameProject.upgradeSpecDocs(projectPath);
     } catch (err) {
       console.error('specManager: command staging failed', err);
     }

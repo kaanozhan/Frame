@@ -63,6 +63,18 @@
         "status": "pass",
         "detail": "153/153 tests pass"
       }
+    },
+    {
+      "id": "T06",
+      "title": "upgradeSpecDocs driver wired into project open",
+      "commit": "e02e439",
+      "whatChanged": "Added upgradeSpecDocs to frameProject.js: for .frame/docs/REFERENCE.md (full-protocol section) and AGENTS.md (core pointer section) it runs docsManagedBlock.upgradeDoc with the current version and the per-doc legacy matchers, writing back only when the engine returns changed text; missing files are skipped, non-Frame projects untouched. The WATCH_SPECS handler in specManager.js now calls it beside stageCommandFiles inside the existing try/catch.",
+      "whyChanged": "Driver kept deliberately thin — all decision logic lives in the tested pure engine, per the project test convention. Verified end-to-end on a throwaway fixture: legacy REFERENCE migrates once, customized AGENTS is untouched, second run is a no-op.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "153/153 tests pass"
+      }
     }
   ]
 }

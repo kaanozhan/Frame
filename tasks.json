@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T15:54:03.050Z",
+  "lastUpdated": "2026-07-22T15:55:35.366Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3949,13 +3949,13 @@
       "title": "Add `upgradeSpecDocs` to `src/main/frameProject.js` (REFERENCE.md full-protocol block, AGENTS.md pointer block; write only on change, never create missing files) and call it from the WATCH_SPECS handler beside staging",
       "description": "",
       "source": "spec:cli-spec-command-parity:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: cli-spec-command-parity",
       "createdAt": "2026-07-22T15:35:45.884Z",
-      "updatedAt": "2026-07-22T15:35:45.884Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T15:55:35.366Z",
+      "completedAt": "2026-07-22T15:55:35.366Z"
     },
     {
       "id": "task-spec-cli-spec-command-parity-T07",
@@ -3973,7 +3973,7 @@
   ],
   "metadata": {
     "totalCreated": 282,
-    "totalCompleted": 26
+    "totalCompleted": 27
   },
   "categories": {
     "feature": "New features",

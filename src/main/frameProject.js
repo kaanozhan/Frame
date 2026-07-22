@@ -13,6 +13,7 @@ const templates = require('../shared/frameTemplates');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
+const docsManagedBlock = require('../shared/docsManagedBlock');
 const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
 const detector = require('../../scripts/detect-project');
@@ -481,6 +482,53 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
   // else: section already present, leave file alone
 }
 
+// ─── Spec docs upgrade on project open (cli-spec-command-parity) ─────
+//
+// REFERENCE.md and AGENTS.md carry a Frame-managed spec section; the
+// managed-block engine upgrades it in place when Frame's shipped content is
+// newer (version stamp) or migrates a byte-identical legacy section once.
+// Everything outside the block — and any file the user deleted or heavily
+// rewrote — is left alone. Files are never created here, only rewritten on
+// change.
+
+function upgradeSpecDocs(projectPath) {
+  if (!projectPath || !isFrameProject(projectPath)) return;
+
+  const docs = [
+    {
+      file: path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md'),
+      body: templates.SPEC_DRIVEN_SECTION,
+      legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS
+    },
+    {
+      file: path.join(projectPath, FRAME_FILES.AGENTS),
+      body: templates.SPEC_DRIVEN_CORE_SECTION,
+      legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
+    }
+  ];
+
+  for (const doc of docs) {
+    let text;
+    try {
+      text = fs.readFileSync(doc.file, 'utf8');
+    } catch (_) {
+      continue; // missing file — never create it
+    }
+    const upgraded = docsManagedBlock.upgradeDoc(text, {
+      body: doc.body,
+      version: templates.SPEC_SECTION_VERSION,
+      legacyMatchers: doc.legacyMatchers
+    });
+    if (upgraded !== null && upgraded !== text) {
+      try {
+        fs.writeFileSync(doc.file, upgraded, 'utf8');
+      } catch (err) {
+        console.warn(`[frame] spec docs upgrade failed for ${doc.file} (non-fatal):`, err.message);
+      }
+    }
+  }
+}
+
 /**
  * Setup IPC handlers
  */
@@ -549,5 +597,6 @@ module.exports = {
   initializeFrameProject,
   isSpecDrivenEnabled,
   enableSpecDriven,
+  upgradeSpecDocs,
   setupIPC
 };

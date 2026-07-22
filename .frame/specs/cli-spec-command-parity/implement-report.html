@@ -143,8 +143,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">5 tasks</span>
-    <span class="pill good">5 verified</span>
+    <span class="pill">6 tasks</span>
+    <span class="pill good">6 verified</span>
     
     <span class="chip">2026-07-22</span>
   </div>
@@ -153,7 +153,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">5 of 7 tasks done · next: <span class="rs-task">T06 — Add `upgradeSpecDocs` to `src/main/frameProject.js` (REFERENCE.md…</span></span>
+  <span class="rs-count">6 of 7 tasks done · next: <span class="rs-task">T07 — Sweep `src/templates/commands/claude-code/spec.new.md`, `spec.plan.md`…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -1265,6 +1265,119 @@
 <span class="dl-ctx">     }</span>
 <span class="dl-ctx">   });</span>
 <span class="dl-ctx">   ipcMain.on(IPC.UNWATCH_SPECS, () =&gt; {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T06</span>
+    <h2>upgradeSpecDocs driver wired into project open</h2>
+    <span class="card-meta"><span class="chip">e02e439</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">153/153 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added upgradeSpecDocs to frameProject.js: for .frame/docs/REFERENCE.md (full-protocol section) and AGENTS.md (core pointer section) it runs docsManagedBlock.upgradeDoc with the current version and the per-doc legacy matchers, writing back only when the engine returns changed text; missing files are skipped, non-Frame projects untouched. The WATCH_SPECS handler in specManager.js now calls it beside stageCommandFiles inside the existing try/catch.</p></div>
+    <div class="field"><span class="label">Why</span><p>Driver kept deliberately thin — all decision logic lives in the tested pure engine, per the project test convention. Verified end-to-end on a throwaway fixture: legacy REFERENCE migrates once, customized AGENTS is untouched, second run is a no-op.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index dd676f9..448ce57 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -13,6 +13,7 @@ const templates = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-ctx"> const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-ctx"> const structureBootstrap = require(&#39;./structureBootstrap&#39;);</span>
+<span class="dl-ctx"> const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-add">+const docsManagedBlock = require(&#39;../shared/docsManagedBlock&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-ctx"> const detector = require(&#39;../../scripts/detect-project&#39;);</span>
+<span class="dl-hunk">@@ -481,6 +482,53 @@ function ensureSpecDrivenArtifacts(projectPath, config) {</span>
+<span class="dl-ctx">   // else: section already present, leave file alone</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── Spec docs upgrade on project open (cli-spec-command-parity) ─────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// REFERENCE.md and AGENTS.md carry a Frame-managed spec section; the</span>
+<span class="dl-add">+// managed-block engine upgrades it in place when Frame&#39;s shipped content is</span>
+<span class="dl-add">+// newer (version stamp) or migrates a byte-identical legacy section once.</span>
+<span class="dl-add">+// Everything outside the block — and any file the user deleted or heavily</span>
+<span class="dl-add">+// rewrote — is left alone. Files are never created here, only rewritten on</span>
+<span class="dl-add">+// change.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function upgradeSpecDocs(projectPath) {</span>
+<span class="dl-add">+  if (!projectPath || !isFrameProject(projectPath)) return;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const docs = [</span>
+<span class="dl-add">+    {</span>
+<span class="dl-add">+      file: path.join(projectPath, FRAME_DIR, &#39;docs&#39;, &#39;REFERENCE.md&#39;),</span>
+<span class="dl-add">+      body: templates.SPEC_DRIVEN_SECTION,</span>
+<span class="dl-add">+      legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+    },</span>
+<span class="dl-add">+    {</span>
+<span class="dl-add">+      file: path.join(projectPath, FRAME_FILES.AGENTS),</span>
+<span class="dl-add">+      body: templates.SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+      legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  ];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const doc of docs) {</span>
+<span class="dl-add">+    let text;</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      text = fs.readFileSync(doc.file, &#39;utf8&#39;);</span>
+<span class="dl-add">+    } catch (_) {</span>
+<span class="dl-add">+      continue; // missing file — never create it</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    const upgraded = docsManagedBlock.upgradeDoc(text, {</span>
+<span class="dl-add">+      body: doc.body,</span>
+<span class="dl-add">+      version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+      legacyMatchers: doc.legacyMatchers</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    if (upgraded !== null &amp;&amp; upgraded !== text) {</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        fs.writeFileSync(doc.file, upgraded, &#39;utf8&#39;);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        console.warn(`[frame] spec docs upgrade failed for ${doc.file} (non-fatal):`, err.message);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Setup IPC handlers</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -549,5 +597,6 @@ module.exports = {</span>
+<span class="dl-ctx">   initializeFrameProject,</span>
+<span class="dl-ctx">   isSpecDrivenEnabled,</span>
+<span class="dl-ctx">   enableSpecDriven,</span>
+<span class="dl-add">+  upgradeSpecDocs,</span>
+<span class="dl-ctx">   setupIPC</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-meta">diff --git a/src/main/specManager.js b/src/main/specManager.js</span>
+<span class="dl-meta">index 0d7601a..83168dd 100644</span>
+<span class="dl-file">--- a/src/main/specManager.js</span>
+<span class="dl-file">+++ b/src/main/specManager.js</span>
+<span class="dl-hunk">@@ -18,6 +18,7 @@ const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const tasksManager = require(&#39;./tasksManager&#39;);</span>
+<span class="dl-ctx"> const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-add">+const frameProject = require(&#39;./frameProject&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -1056,9 +1057,11 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">     startWatching(projectPath);</span>
+<span class="dl-ctx">     // Project open: stage the command templates, report assets and launch</span>
+<span class="dl-ctx">     // helper so a CLI session (or a helper-driven launch) can self-serve the</span>
+<span class="dl-del">-    // current flow even before any in-app dispatch.</span>
+<span class="dl-add">+    // current flow even before any in-app dispatch, and upgrade the docs&#39;</span>
+<span class="dl-add">+    // managed spec section to the current generation. Never breaks watching.</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-ctx">       commandStaging.stageCommandFiles(projectPath);</span>
+<span class="dl-add">+      frameProject.upgradeSpecDocs(projectPath);</span>
+<span class="dl-ctx">     } catch (err) {</span>
+<span class="dl-ctx">       console.error(&#39;specManager: command staging failed&#39;, err);</span>
+<span class="dl-ctx">     }</span></pre>
     </details>
   </div>
 </section>
