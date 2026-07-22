@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T12:22:33.962Z",
+  "lastUpdated": "2026-07-22T15:45:30.505Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3878,11 +3878,102 @@
       "createdAt": "2026-07-22T00:00:00Z",
       "updatedAt": "2026-07-22T00:00:00Z",
       "completedAt": null
+    },
+    {
+      "id": "task-spec-cli-spec-command-parity-T01",
+      "title": "Create `src/shared/docsManagedBlock.js` (pure engine: `findBlock` marker+version parse, `upgradeDoc` in-place block replacement with byte-identical surroundings, legacy locate gated on heading + shipped-body match, malformed markers treated as no-locate) with `test/docsManagedBlock.test.js` covering version gating, once-only migration, customized-body no-op and marker corruption",
+      "description": "",
+      "source": "spec:cli-spec-command-parity:T01",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: cli-spec-command-parity",
+      "createdAt": "2026-07-22T15:35:45.884Z",
+      "updatedAt": "2026-07-22T15:45:30.505Z",
+      "completedAt": "2026-07-22T15:45:30.505Z"
+    },
+    {
+      "id": "task-spec-cli-spec-command-parity-T02",
+      "title": "Add current-generation docs content to `src/shared/frameTemplates.js`: `SPEC_SECTION_VERSION`, managed-block markers, the full self-serve protocol section (deterministic target-spec rule, override-first template resolution, placeholder table, autonomous ceiling with the dual handoff), the updated short core pointer section, and legacy migration matchers",
+      "description": "",
+      "source": "spec:cli-spec-command-parity:T02",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: cli-spec-command-parity",
+      "createdAt": "2026-07-22T15:35:45.884Z",
+      "updatedAt": "2026-07-22T15:35:45.884Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-cli-spec-command-parity-T03",
+      "title": "Wire marked emission into `getReferenceTemplate`, `getAgentsTemplate` and the `enableSpecDriven` append path in `src/main/frameProject.js`; extend `test/docsManagedBlock.test.js` with round-trip assertions (freshly emitted docs parse at current version, matchers match the previously shipped bodies)",
+      "description": "",
+      "source": "spec:cli-spec-command-parity:T03",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: cli-spec-command-parity",
+      "createdAt": "2026-07-22T15:35:45.884Z",
+      "updatedAt": "2026-07-22T15:35:45.884Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-cli-spec-command-parity-T04",
+      "title": "Create `src/main/commandStaging.js` (pure `resolveStagingPlan`: override-first sources for the four templates plus `plan-report-template.html`, `build-implement-report.mjs` and `implement-launch.js`; write-if-changed executor absorbing `copyIfChanged`) with `test/commandStaging.test.js` for the pure resolution logic",
+      "description": "",
+      "source": "spec:cli-spec-command-parity:T04",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: cli-spec-command-parity",
+      "createdAt": "2026-07-22T15:35:45.884Z",
+      "updatedAt": "2026-07-22T15:35:45.884Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-cli-spec-command-parity-T05",
+      "title": "Rewire `src/main/specManager.js` (WATCH_SPECS handler, implement dispatch) and `src/main/frameProject.js` (`runProjectInit`, `enableSpecDriven`) to `commandStaging.stageCommandFiles`; retire `stageImplementCommandFiles`",
+      "description": "",
+      "source": "spec:cli-spec-command-parity:T05",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: cli-spec-command-parity",
+      "createdAt": "2026-07-22T15:35:45.884Z",
+      "updatedAt": "2026-07-22T15:35:45.884Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-cli-spec-command-parity-T06",
+      "title": "Add `upgradeSpecDocs` to `src/main/frameProject.js` (REFERENCE.md full-protocol block, AGENTS.md pointer block; write only on change, never create missing files) and call it from the WATCH_SPECS handler beside staging",
+      "description": "",
+      "source": "spec:cli-spec-command-parity:T06",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: cli-spec-command-parity",
+      "createdAt": "2026-07-22T15:35:45.884Z",
+      "updatedAt": "2026-07-22T15:35:45.884Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-cli-spec-command-parity-T07",
+      "title": "Sweep `src/templates/commands/claude-code/spec.new.md`, `spec.plan.md`, `spec.tasks.md` and `spec.implement.md` for wording that assumes a Frame-launched session and make it entry-agnostic without changing any stage, mode or output contract",
+      "description": "",
+      "source": "spec:cli-spec-command-parity:T07",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: cli-spec-command-parity",
+      "createdAt": "2026-07-22T15:35:45.884Z",
+      "updatedAt": "2026-07-22T15:35:45.884Z",
+      "completedAt": null
     }
   ],
   "metadata": {
-    "totalCreated": 275,
-    "totalCompleted": 21
+    "totalCreated": 282,
+    "totalCompleted": 22
   },
   "categories": {
     "feature": "New features",

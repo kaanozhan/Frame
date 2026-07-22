@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLI parity for spec commands — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>CLI parity for spec commands — Plan Overview</h1>
+  <p class="muted">2026-07-22 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/cli-spec-command-parity/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">11 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill">2 new modules</span><span class="pill">1 open question resolved by shipped code</span><span class="pill warn">user-owned docs surgery — byte-identity outside the block</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Frame's spec commands only get their real, current-generation flow when the UI button dispatches them: the app interpolates the latest template, stages it plus its assets, and computes launch flags. When a user instead asks an <em>already-running CLI session</em> to "plan this spec", none of that fires — the agent falls back to project docs that describe an obsolete generation of the flow (four plan sections, no <code>## Footprint</code>, no implement modes, no reports), and produces plans that silently break orchestration's collision detection. Most users drive Frame from the CLI, so the degraded path is the common path.</p>
+  <p>The plan makes the CLI path self-served with two mechanisms: <b>(1) staging</b> — on every project open, Frame copies the current four command templates and their two assets into <code>.frame/runtime/commands/&lt;tool&gt;/</code>, write-if-changed (the v2 implement slice already does exactly this for one command; this generalizes it); and <b>(2) managed docs</b> — the spec section of REFERENCE.md and AGENTS.md becomes a version-stamped, marker-delimited block Frame can upgrade in place, whose new text teaches the agent the self-serve protocol: resolve the spec deterministically, read the staged template (override first), interpolate, follow it exactly, never improvise from memory. This shape wins over slash-command shims because the observed failure is conversational entry — which only docs can catch — and because Frame has an explicit stance of never writing into the user's <code>.claude/</code>.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: staging on project open, a CLI session self-serving a spec command, and the docs managed-block upgrade.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>Frame main process</span>
+    <span class="l-data">files on disk</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Project open: stage templates + upgrade docs</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Project opened</div><div class="fd-sub">renderer sends WATCH_SPECS (index.js:179)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">stageCommandFiles</div><div class="fd-sub">commandStaging.js — override-first sources, copy-if-changed</div></div>
+          <div class="fd-arrow"><span class="lbl">4 templates + 2 assets + helper</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.frame/runtime/commands/&lt;tool&gt;/</div><div class="fd-sub">+ implement-launch.js → .frame/bin/</div></div>
+        </div>
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">upgradeSpecDocs</div><div class="fd-sub">frameProject.js driver</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">markers found?</div><div class="fd-sub">docsManagedBlock.findBlock</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">v &lt; current</span>
+          <div class="fd-node system"><div class="fd-title">Replace block body in place</div><div class="fd-sub">everything outside byte-identical</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Docs current</div><div class="fd-sub">REFERENCE.md full protocol · AGENTS.md pointer</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">no markers</span>
+          <div class="fd-node decision"><div class="fd-title">legacy heading + shipped body match?</div><div class="fd-sub">D11 confidence gate</div></div>
+          <div class="fd-arrow"><span class="lbl">yes → migrate once · no → leave file alone</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">One-time migration or honest no-op</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Same trigger the v2 slice already uses:</b> the WATCH_SPECS handler (specManager.js:1109) staged implement files before this spec; the code comment at specManager.js:373 explicitly reserved this generalization at the same path — no new hook, no conflict.</li>
+          <li><b>Write-if-changed everywhere:</b> copyIfChanged semantics (specManager.js:384) prevent watcher churn and satisfy S1's "rewritten only when content differs".</li>
+          <li><b>Staging extracted to commandStaging.js:</b> both specManager (open/dispatch) and frameProject (init/enable) need it; keeping it in either would create a require cycle.</li>
+          <li><b>Docs never created, only upgraded:</b> upgradeSpecDocs skips missing files — a project without REFERENCE.md keeps the staging half working (S5).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — CLI session runs a spec command conversationally</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">"plan this spec"</div><div class="fd-sub">typed into a running CLI session</div></div>
+          <div class="fd-arrow"><span class="lbl">docs protocol</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Resolve target spec</div><div class="fd-sub">D2: one actionable-phase candidate → silent; else ask</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">template on disk?</div><div class="fd-sub">override → staged runtime copy</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">found</span>
+          <div class="fd-node system"><div class="fd-title">Interpolate placeholders</div><div class="fd-sub">{slug} {project_path} {title} + staged asset paths (D9)</div></div>
+          <div class="fd-arrow"><span class="lbl">follow exactly</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">plan.md + plan-report.html</div><div class="fd-sub">or tasks.md / implement loop</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Indistinguishable from a button run</div><div class="fd-sub">five sections incl. ## Footprint</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">missing</span>
+          <div class="fd-node system"><div class="fd-title">Stop and say so</div><div class="fd-sub">"open this project in Frame once" — never improvise from memory</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Watcher parity is free:</b> reconcile and task import (specManager.js:1060-1076) key off files appearing under .frame/specs/ — trigger-agnostic today, untouched by this spec (C3).</li>
+          <li><b>Autonomous ceiling stated, not worked around (C4):</b> a running session can't acquire launch flags; the implement template records the choice and hands off — Frame button or <code>node .frame/bin/implement-launch.js &lt;slug&gt;</code> (already shipped, spec.implement.md:61-72).</li>
+          <li><b>Override precedence live (C2):</b> the protocol teaches reading .frame/templates/commands/&lt;tool&gt;/ first, mirroring loadCommandTemplate and implement-launch.js — a user edit to an override applies immediately, not at next open.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The managed block, in one look</h3>
+  <pre>&lt;!-- frame:managed:spec-section v=1 --&gt;
+## Spec-Driven Development            ← Frame-owned body: self-serve protocol
+...resolve spec → read staged template → interpolate → follow exactly...
+&lt;!-- /frame:managed:spec-section --&gt;   ← every byte outside stays untouched</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · How does a CLI session discover and run the spec commands?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Docs-taught protocol only</div>
+        <div class="opttrade">Depends on the agent reading the CLAUDE.md → REFERENCE.md chain.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Also generate .claude/commands/spec.*.md shims</div>
+        <div class="opttrade">/spec.plan works verbatim, but tool-specific, a second staged surface, and writes into the user's .claude/.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The observed failure is conversational entry, which only docs catch; shims would be a shortcut layered on top. One maintenance surface, tool-agnostic, and honors Frame's explicit "never write the user's .claude/" stance (specManager.js:434).</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D2 · How does the agent pick the target spec from conversation?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Deterministic rule in the docs</div>
+        <div class="opttrade">A few lines of rule text in the managed block.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Agent judgment</div>
+        <div class="opttrade">Flexible, but two sessions can act differently on the same project state.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Exactly one spec in the command's actionable phase → take silently; zero or several → ask with candidates; an explicitly named spec always wins. Parity means the choice itself must be predictable.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D3 · Which files does the legacy migration cover?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">REFERENCE.md + AGENTS.md</div>
+        <div class="opttrade">Touches two user-owned files (each under the same confidence gate).</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">REFERENCE.md only</div>
+        <div class="opttrade">Narrower, but leaves the always-on misleading section in old AGENTS.md files.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Older Frame generations shipped the full obsolete section directly into AGENTS.md (frameTemplates.js:22-26 docstring) — and AGENTS.md loads every session, making it the primary drift source.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D4 · Should this spec's work ship with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Pure logic and data transforms only</div>
+        <div class="opttrade">IPC/watcher wiring stays untested, per convention.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Everything testable / none this time</div>
+        <div class="opttrade">Stubbed integration adds maintenance; zero tests would skip exactly the kind of pure logic this project does test.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The project's recorded convention targets pure modules and skips Electron-coupled wrappers; the block engine and staging-plan resolution are designed pure so the convention reaches them.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D5 · Staging refresh: project open only, or also a manual bin path? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Project open (WATCH_SPECS) + init/enable only</div>
+        <div class="opttrade">A project untouched by a newer Frame stays on its last-staged generation until next open.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Also a manual node .frame/bin/ refresh</div>
+        <div class="opttrade">Cannot work: a bin script can't read Frame's packaged templates (app.asar) with the app closed — nothing newer to copy from.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Technically impossible to do better from outside the app; the protocol keeps implement-launch.js's existing answer — "open this project in Frame once".</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D6 · Autonomous handoff wording <span class="tag">resolved by shipped code</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Keep v2's dual handoff: Frame button + exact launch line</div>
+        <div class="opttrade">None — already shipped and field-correct.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Frame button only</div>
+        <div class="opttrade">Strands terminal-only users.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The spec's open question was answered by the v2 implement template (spec.implement.md:61-72), which already prints both. Recorded as drift-resolved; the managed block repeats the same handoff.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D7 · Version gate: integer stamp vs content compare <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Monotonic integer in the begin marker</div>
+        <div class="opttrade">A forgotten bump delays an upgrade one release.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Content hash / byte compare</div>
+        <div class="opttrade">Self-maintaining, but clobbers any user tweak inside the block on every open.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The spec mandates a version stamp; the integer preserves in-block user tweaks between Frame releases and makes "upgraded exactly once" (S4) trivially provable.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D8–D11 · Placement, paths, tools, confidence <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Pure engine in src/shared/, staging in its own main module; staged-path interpolation; existing tool dirs only; heading + shipped-body byte match</div>
+        <div class="opttrade">One more module than strictly necessary (commandStaging.js).</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Staging inside specManager/frameProject; agent-side asset copying; heading-only legacy match</div>
+        <div class="opttrade">Require cycle at init; extra protocol steps; heading-only matching would clobber customized sections (this repo's own docs are the counterexample).</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> D8 avoids frameProject ↔ specManager cycles; D9 points interpolation at files S1 guarantees; D10 keeps the mechanism tool-agnostic with claude-code as the only populated tool (Out of Scope); D11's body-match gate is what makes S5 ("heavily rewritten → left alone") mechanically true — both legacy section texts shipped as unparameterized constants, so byte comparison is sound.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>User customized the spec section without markers (like this repo's own docs)</td><td>D11 gate: heading must match a shipped heading <em>and</em> body must byte-match a shipped generation — customized bodies are left alone, staging still works (S5).</td></tr>
+    <tr><td>User edited text <em>inside</em> a managed block</td><td>Preserved until the next SPEC_SECTION_VERSION bump (D7); the markers themselves say the block is Frame-managed.</td></tr>
+    <tr><td>Agent skips the CLAUDE.md → REFERENCE.md chain and improvises anyway</td><td>The AGENTS.md pointer block (always-on) carries the "never run spec commands from memory" line; residual risk is inherent to D1 and was accepted at the gate.</td></tr>
+    <tr><td>Templates staged into non-Frame or spec-disabled projects</td><td>Same boundary as the shipped v2 slice (WATCH_SPECS trigger); docs upgrade additionally requires the file to already exist — nothing is ever created.</td></tr>
+    <tr><td>Stale staged templates in a project the app hasn't opened since a Frame update</td><td>Accepted (D5) — a bin refresh is impossible without the app; next open refreshes. The docs say so honestly.</td></tr>
+    <tr><td>Marker corruption (begin without end, malformed stamp)</td><td>Engine treats unparseable markers as "cannot locate confidently" → no rewrite; covered by tests.</td></tr>
+    <tr><td>UI-dispatched runs regressing from template text edits (C5)</td><td>Step 5 is wording-only: no stage, mode, or output contract may change; implement's conversational entry is already correct (D6).</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: codex/gemini template content (Out of Scope; staging mechanism ships tool-agnostic), slash shims (would be a future spec if wanted), in-session privilege escalation (Out of Scope).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>On project open, Frame stages the current command templates and assets into a Frame-owned location, refreshing them as Frame evolves <span class="tag">G1</span></td><td>Architecture — Command staging; Sequencing 3</td></tr>
+    <tr><td>The docs' spec section becomes a version-stamped managed block Frame upgrades in place, teaching the self-serve protocol <span class="tag">G2</span></td><td>Architecture — docs content + engine + driver; Sequencing 1, 2, 4</td></tr>
+    <tr><td>Existing projects get both on next open; new projects at init <span class="tag">G3</span></td><td>Architecture — Wiring (WATCH_SPECS; init/enableSpecDriven); Sequencing 2–4</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Docs are user-owned: only the managed block rewritten, version-gated; legacy migration heading-bounded and once; no confident locate → no rewrite <span class="tag">C1</span></td><td>Architecture — engine (D7, D11); Sequencing 1, 4</td></tr>
+    <tr><td>Project template overrides keep precedence via the existing resolution order <span class="tag">C2</span></td><td>Architecture — D9 (protocol teaches override-first) + staging resolves sources override-first; Sequencing 2, 3</td></tr>
+    <tr><td>UI dispatch keeps its behavior; watcher reconcile and task import stay trigger-agnostic <span class="tag">C3</span></td><td>Architecture — "UI path unchanged"; Sequencing 3 (wiring preserves buildSpecCommandFile contract)</td></tr>
+    <tr><td>Autonomous launch flags can't be injected into a running session; docs state the ceiling <span class="tag">C4</span></td><td>Architecture — protocol content item 5 (D6); Sequencing 2</td></tr>
+    <tr><td>Template text may drop Frame-launched assumptions, but the UI experience must not regress <span class="tag">C5</span></td><td>Sequencing 5 (wording-only audit)</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Project open leaves the four templates + both assets in .frame/runtime/commands/&lt;tool&gt;/, rewritten only on diff <span class="tag">S1</span></td><td>Sequencing 3 · proven by staging-plan tests + copy-if-changed semantics</td></tr>
+    <tr><td>A conversational CLI plan yields the five-section plan.md incl. ## Footprint and a plan-report.html <span class="tag">S2</span></td><td>Sequencing 2 (protocol) — output shape comes from the same current template the button uses</td></tr>
+    <tr><td>Conversational implement shows the mode picker, records the choice, and autonomous ends in the documented handoff <span class="tag">S3</span></td><td>Sequencing 2 (protocol points at the staged implement template, which already implements this — D6)</td></tr>
+    <tr><td>An older project's REFERENCE.md is upgraded to the managed block exactly once, all outside content byte-identical <span class="tag">S4</span></td><td>Sequencing 1, 4 · proven by engine tests (byte-identity, once-only)</td></tr>
+    <tr><td>A deleted or heavily rewritten section is left alone; staging still works there <span class="tag">S5</span></td><td>Sequencing 1 (D11 gate), 4 (upgrade never creates files) · proven by engine tests</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>buildSpecCommandFile interpolates the current template, stages the prompt, stages assets, computes launch flags</td><td><span class="pill good">verified</span> src/main/specManager.js:558-580</td></tr>
+    <tr><td>Prompt files staged to .frame/runtime/prompts/</td><td><span class="pill good">verified</span> specManager.js:319, 561-565</td></tr>
+    <tr><td>loadCommandTemplate resolution order: project override → packaged default</td><td><span class="pill good">verified</span> specManager.js:275-283</td></tr>
+    <tr><td>Command assets per command (plan-report-template.html, build-implement-report.mjs)</td><td><span class="pill good">verified</span> specManager.js:331-334, 338-363</td></tr>
+    <tr><td>.frame/runtime/commands/&lt;tool&gt;/ exists for implement, staged on open + dispatch (v2 slice); generalization anticipated in a code comment</td><td><span class="pill good">verified</span> specManager.js:376-426, 1109-1118; comment :373-375</td></tr>
+    <tr><td>"Project open" = WATCH_SPECS, fired on every project switch</td><td><span class="pill good">verified</span> src/renderer/index.js:179 → specPanel.js:149 → specManager.js:1109</td></tr>
+    <tr><td>Shipped REFERENCE.md payload describes the obsolete flow (write exactly one file, four plan sections, no Footprint, no modes, no reports)</td><td><span class="pill good">verified</span> src/shared/frameTemplates.js:27-91 (SPEC_DRIVEN_SECTION), embedded at :294</td></tr>
+    <tr><td>Older generations shipped the full obsolete section into AGENTS.md directly</td><td><span class="pill good">verified</span> frameTemplates.js:22-26 docstring ("shipped to AGENTS.md")</td></tr>
+    <tr><td>REFERENCE.md written at init and at spec-driven enable</td><td><span class="pill good">verified</span> src/main/frameProject.js:291-294, 424-427</td></tr>
+    <tr><td>Watcher-side reconcile and task import work regardless of trigger</td><td><span class="pill good">verified</span> specManager.js:1060-1076 (pushSpecData → reconcilePhase → syncTasksFromMarkdown)</td></tr>
+    <tr><td>Autonomous flags are launch-time only; conversational ceiling is record-choice-then-hand-off</td><td><span class="pill good">verified</span> specManager.js:428-434, 551-556; spec.implement.md:59-72</td></tr>
+    <tr><td>Open question: handoff wording — button only vs also the launch line</td><td><span class="pill warn">drifted — already resolved</span> spec.implement.md:61-72 ships both; recorded as D6</td></tr>
+    <tr><td>Manual staging refresh via node .frame/bin/ is a viable option</td><td><span class="pill warn">new evidence</span> impossible with the app closed — packaged templates live in app.asar; implement-launch.js:199-202 already documents "open in Frame once"; recorded as D5</td></tr>
+    <tr><td>Testing record (PROJECT_NOTES.md ## Testing)</td><td><span class="pill good">verified</span> npm test → node --test test/*.test.js; pure modules covered, renderer not — this spec's work sits in the covered area</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — caught a frameProject ↔ specManager require cycle (init-time staging vs specManager-owned staging) → extracted staging into new src/main/commandStaging.js used by both.</li>
+    <li><b>Iteration 2</b> — heading-only legacy matching would clobber user-customized sections (this repo's own REFERENCE.md/CLAUDE.md are live counterexamples) → tightened D11 to heading + shipped-body byte match.</li>
+    <li><b>Iteration 3</b> — the spec's "manual refresh" open question turned out technically impossible from a bin script (app.asar unreachable when the app is closed) → recorded as silent decision D5 instead of a plan step, protocol keeps the "open in Frame once" answer.</li>
+    <li><b>Iteration 4</b> — format/coverage sweep: all G/C/S IDs mapped to owning sections, no TBDs, every referenced path exists or is marked New, tasks derivable from Sequencing alone. Pass.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-22 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/cli-spec-command-parity/plan.md</code></footer>
+</div>
+</body>
+</html>

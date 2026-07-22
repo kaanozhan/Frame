@@ -7798,6 +7798,64 @@
         "emits": []
       }
     },
+    "shared/docsManagedBlock": {
+      "file": "src/shared/docsManagedBlock.js",
+      "description": "Managed-block engine for Frame's spec docs sections.",
+      "exports": [
+        "findBlock",
+        "upgradeDoc",
+        "renderBlock",
+        "BLOCK_NAME",
+        "END_MARKER"
+      ],
+      "depends": [],
+      "functions": {
+        "beginMarker": {
+          "line": 27,
+          "params": [
+            "version"
+          ]
+        },
+        "renderBlock": {
+          "line": 36,
+          "params": [
+            "body",
+            "version"
+          ],
+          "purpose": "Wrap a section body in stamped markers — the canonical emitted form."
+        },
+        "findBlock": {
+          "line": 47,
+          "params": [
+            "text"
+          ],
+          "purpose": "Locate the managed block. Returns { start, end, version } — start/end are"
+        },
+        "normalize": {
+          "line": 66,
+          "params": [
+            "text"
+          ],
+          "purpose": "Whitespace-normalized comparison basis. The shipped legacy sections were"
+        },
+        "findLegacySpan": {
+          "line": 77,
+          "params": [
+            "text",
+            "matcher"
+          ],
+          "purpose": "Find the heading-bounded span of a legacy section that passes the"
+        },
+        "upgradeDoc": {
+          "line": 125,
+          "params": [
+            "text",
+            "options"
+          ],
+          "purpose": "Compute the upgraded document text, or null when nothing may change."
+        }
+      }
+    },
     "shared/frameConstants": {
       "file": "src/shared/frameConstants.js",
       "description": "Frame Constants",

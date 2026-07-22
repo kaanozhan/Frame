@@ -1,0 +1,20 @@
+{
+  "spec": {
+    "slug": "cli-spec-command-parity",
+    "title": "CLI parity for spec commands — the full flow without the button"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Managed-block engine (docsManagedBlock.js) with tests",
+      "commit": "4b224db",
+      "whatChanged": "Created src/shared/docsManagedBlock.js — a pure string-surgery engine: findBlock parses the versioned `frame:managed:spec-section` HTML-comment markers, upgradeDoc replaces a stamped-older block in place (every byte outside the span preserved), and a legacy-migration path replaces a heading-bounded section only when its text byte-matches (whitespace-normalized) a shipped Frame generation. test/docsManagedBlock.test.js covers version gating, once-only migration, customized-body no-op, and marker corruption.",
+      "whyChanged": "The engine is the safety core of the docs upgrade: it must never touch user prose. Beyond the plan, any marker fragment without a well-formed block now blocks legacy migration entirely — a dangling marker means corrupted state, and migrating around it could double-wrap a section.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "144/144 tests pass (11 new)"
+      }
+    }
+  ]
+}
