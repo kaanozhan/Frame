@@ -23,3 +23,11 @@ Added `renderSpecSection`/`renderSpecCoreSection` to `frameTemplates.js` and wir
 _Captured: 2026-07-22 · 4 file change(s)_
 
 ---
+
+## T04 — Generalized command staging module (commandStaging.js) with tests
+
+Created `src/main/commandStaging.js`: pure `resolveStagingPlan` (override-first sources for the four templates + two report assets into `.frame/runtime/commands/<tool>/`, helper into `.frame/bin/` with no override path), `stageCommandFiles` executor iterating packaged tool dirs, and `copyIfChanged` moved verbatim from specManager. `test/commandStaging.test.js` adds 5 pure-resolution tests via injected existsFn. The specManager/frameProject rewiring and retirement of `stageImplementCommandFiles` is T05, per the plan's sequencing.
+
+_Captured: 2026-07-22 · 2 file change(s)_
+
+---

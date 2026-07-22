@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T15:50:38.415Z",
+  "lastUpdated": "2026-07-22T15:52:19.609Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3923,13 +3923,13 @@
       "title": "Create `src/main/commandStaging.js` (pure `resolveStagingPlan`: override-first sources for the four templates plus `plan-report-template.html`, `build-implement-report.mjs` and `implement-launch.js`; write-if-changed executor absorbing `copyIfChanged`) with `test/commandStaging.test.js` for the pure resolution logic",
       "description": "",
       "source": "spec:cli-spec-command-parity:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: cli-spec-command-parity",
       "createdAt": "2026-07-22T15:35:45.884Z",
-      "updatedAt": "2026-07-22T15:35:45.884Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T15:52:19.609Z",
+      "completedAt": "2026-07-22T15:52:19.609Z"
     },
     {
       "id": "task-spec-cli-spec-command-parity-T05",
@@ -3973,7 +3973,7 @@
   ],
   "metadata": {
     "totalCreated": 282,
-    "totalCompleted": 24
+    "totalCompleted": 25
   },
   "categories": {
     "feature": "New features",

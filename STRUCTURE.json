@@ -299,6 +299,55 @@
         ]
       }
     },
+    "main/commandStaging": {
+      "file": "src/main/commandStaging.js",
+      "description": "Command staging (cli-spec-command-parity).",
+      "exports": [
+        "resolveStagingPlan",
+        "stageCommandFiles",
+        "copyIfChanged",
+        "availableTools",
+        "COMMAND_TEMPLATE_FILES",
+        "COMMAND_ASSET_FILES",
+        "IMPLEMENT_HELPER_FILE",
+        "FRAME_TEMPLATES_DIR"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "resolveStagingPlan": {
+          "line": 51,
+          "params": [
+            "projectPath",
+            "tool",
+            "existsFn"
+          ],
+          "purpose": "Pure: resolve what to stage for one tool. Returns"
+        },
+        "copyIfChanged": {
+          "line": 80,
+          "params": [
+            "src",
+            "dst"
+          ],
+          "purpose": "Copy only when the destination content differs, so project-open staging"
+        },
+        "availableTools": {
+          "line": 105,
+          "purpose": "List the tool directories that actually ship under the packaged commands"
+        },
+        "stageCommandFiles": {
+          "line": 119,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Stage the command templates, assets and launch helper for every available"
+        }
+      }
+    },
     "main/crashGuard": {
       "file": "src/main/crashGuard.js",
       "description": "Crash Guard — global error handlers for the main process.",

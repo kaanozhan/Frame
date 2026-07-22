@@ -143,8 +143,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">3 tasks</span>
-    <span class="pill good">3 verified</span>
+    <span class="pill">4 tasks</span>
+    <span class="pill good">4 verified</span>
     
     <span class="chip">2026-07-22</span>
   </div>
@@ -153,7 +153,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">3 of 7 tasks done · next: <span class="rs-task">T04 — Create `src/main/commandStaging.js` (pure `resolveStagingPlan`…</span></span>
+  <span class="rs-count">4 of 7 tasks done · next: <span class="rs-task">T05 — Rewire `src/main/specManager.js` (WATCH_SPECS handler, implement…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -860,6 +860,237 @@
 <span class="dl-ctx"> test(&#39;subheadings inside the section do not truncate the match&#39;, () =&gt; {</span>
 <span class="dl-ctx">   // LEGACY_SECTION contains an H3; the span must run to the next H1/H2.</span>
 <span class="dl-ctx">   const migrated = upgradeDoc(docWith(LEGACY_SECTION), {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T04</span>
+    <h2>Generalized command staging module (commandStaging.js) with tests</h2>
+    <span class="card-meta"><span class="chip">38033ba</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">153/153 tests pass (5 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Created src/main/commandStaging.js: pure resolveStagingPlan(projectPath, tool, existsFn) returning {src, dst, executable?} entries for the four spec templates plus plan-report-template.html and build-implement-report.mjs into .frame/runtime/commands/&lt;tool&gt;/ (override-first) and implement-launch.js into .frame/bin/ (packaged only); stageCommandFiles executes the plan for every packaged tool dir via copyIfChanged (moved from specManager) and chmods the helper. test/commandStaging.test.js pins the resolution contract with an injected existsFn.</p></div>
+    <div class="field"><span class="label">Why</span><p>Resolution is pure and filesystem-free so the project convention (test pure logic, skip Electron-coupled wrappers) reaches it; specManager/frameProject rewiring is deliberately left to T05 per sequencing.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/commandStaging.js b/src/main/commandStaging.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..6cf1f4d</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/main/commandStaging.js</span>
+<span class="dl-hunk">@@ -0,0 +1,139 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Command staging (cli-spec-command-parity).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * A CLI session asked conversationally to run a spec command can&#39;t reach</span>
+<span class="dl-add">+ * Frame&#39;s packaged templates inside app.asar, so Frame stages the current</span>
+<span class="dl-add">+ * command templates and their assets into the project itself:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   .frame/runtime/commands/&lt;tool&gt;/  — the four spec.* templates,</span>
+<span class="dl-add">+ *                                      plan-report-template.html,</span>
+<span class="dl-add">+ *                                      build-implement-report.mjs</span>
+<span class="dl-add">+ *   .frame/bin/implement-launch.js   — the flagged-launch helper</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Staging runs on project open (WATCH_SPECS), on init/enable, and on every</span>
+<span class="dl-add">+ * implement dispatch; files are rewritten only when content differs so</span>
+<span class="dl-add">+ * repeated opens don&#39;t re-trigger watchers. Sources resolve override-first</span>
+<span class="dl-add">+ * (.frame/templates/commands/&lt;tool&gt;/) — the same precedence</span>
+<span class="dl-add">+ * specManager.loadCommandTemplate uses. Supersedes specManager&#39;s v2</span>
+<span class="dl-add">+ * stageImplementCommandFiles (same paths, superset of files).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { FRAME_DIR, FRAME_BIN_DIR } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Packaged template roots — inside app.asar in a packaged build, plain</span>
+<span class="dl-add">+// directories in dev. Readable via fs either way.</span>
+<span class="dl-add">+const FRAME_TEMPLATES_DIR = path.join(__dirname, &#39;..&#39;, &#39;templates&#39;);</span>
+<span class="dl-add">+const PACKAGED_COMMANDS_DIR = path.join(FRAME_TEMPLATES_DIR, &#39;commands&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const COMMAND_TEMPLATE_FILES = [</span>
+<span class="dl-add">+  &#39;spec.new.md&#39;,</span>
+<span class="dl-add">+  &#39;spec.plan.md&#39;,</span>
+<span class="dl-add">+  &#39;spec.tasks.md&#39;,</span>
+<span class="dl-add">+  &#39;spec.implement.md&#39;</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+const COMMAND_ASSET_FILES = [</span>
+<span class="dl-add">+  &#39;plan-report-template.html&#39;,</span>
+<span class="dl-add">+  &#39;build-implement-report.mjs&#39;</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+const IMPLEMENT_HELPER_FILE = &#39;implement-launch.js&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Pure: resolve what to stage for one tool. Returns</span>
+<span class="dl-add">+ * [{ src, dst, executable? }] — templates and assets go to</span>
+<span class="dl-add">+ * .frame/runtime/commands/&lt;tool&gt;/ with the project override</span>
+<span class="dl-add">+ * (.frame/templates/commands/&lt;tool&gt;/&lt;file&gt;) winning over the packaged copy;</span>
+<span class="dl-add">+ * the launch helper goes to .frame/bin/ from templates/bin/ only (Frame</span>
+<span class="dl-add">+ * machinery, no user override). existsFn decides override presence, so</span>
+<span class="dl-add">+ * tests can drive resolution without a filesystem.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveStagingPlan(projectPath, tool, existsFn) {</span>
+<span class="dl-add">+  const exists = existsFn || fs.existsSync;</span>
+<span class="dl-add">+  const overrideDir = path.join(projectPath, FRAME_DIR, &#39;templates&#39;, &#39;commands&#39;, tool);</span>
+<span class="dl-add">+  const packagedDir = path.join(PACKAGED_COMMANDS_DIR, tool);</span>
+<span class="dl-add">+  const runtimeDir = path.join(projectPath, FRAME_DIR, &#39;runtime&#39;, &#39;commands&#39;, tool);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const plan = [];</span>
+<span class="dl-add">+  for (const file of [...COMMAND_TEMPLATE_FILES, ...COMMAND_ASSET_FILES]) {</span>
+<span class="dl-add">+    const override = path.join(overrideDir, file);</span>
+<span class="dl-add">+    plan.push({</span>
+<span class="dl-add">+      src: exists(override) ? override : path.join(packagedDir, file),</span>
+<span class="dl-add">+      dst: path.join(runtimeDir, file)</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  plan.push({</span>
+<span class="dl-add">+    src: path.join(FRAME_TEMPLATES_DIR, &#39;bin&#39;, IMPLEMENT_HELPER_FILE),</span>
+<span class="dl-add">+    dst: path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, IMPLEMENT_HELPER_FILE),</span>
+<span class="dl-add">+    executable: true</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  return plan;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Copy only when the destination content differs, so project-open staging</span>
+<span class="dl-add">+ * doesn&#39;t rewrite unchanged files (and re-trigger watchers) every time. A</span>
+<span class="dl-add">+ * missing source is skipped, not fatal — an empty tool dir or unbuilt helper</span>
+<span class="dl-add">+ * stages nothing, and a stale runtime copy is better than a crash on open.</span>
+<span class="dl-add">+ * (Moved here from specManager as part of retiring stageImplementCommandFiles.)</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function copyIfChanged(src, dst) {</span>
+<span class="dl-add">+  let content;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    content = fs.readFileSync(src, &#39;utf8&#39;);</span>
+<span class="dl-add">+  } catch (_) {</span>
+<span class="dl-add">+    return false; // source not present — nothing to stage</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    let existing = null;</span>
+<span class="dl-add">+    try { existing = fs.readFileSync(dst, &#39;utf8&#39;); } catch (_) { /* new file */ }</span>
+<span class="dl-add">+    if (existing === content) return false;</span>
+<span class="dl-add">+    fs.mkdirSync(path.dirname(dst), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(dst, content, &#39;utf8&#39;);</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.error(`commandStaging: staging ${dst} failed`, err);</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * List the tool directories that actually ship under the packaged commands</span>
+<span class="dl-add">+ * root (claude-code is the only populated one today — empty dirs stage</span>
+<span class="dl-add">+ * nothing, so listing them is harmless).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function availableTools() {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return fs.readdirSync(PACKAGED_COMMANDS_DIR, { withFileTypes: true })</span>
+<span class="dl-add">+      .filter((e) =&gt; e.isDirectory())</span>
+<span class="dl-add">+      .map((e) =&gt; e.name);</span>
+<span class="dl-add">+  } catch (_) {</span>
+<span class="dl-add">+    return [];</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Stage the command templates, assets and launch helper for every available</span>
+<span class="dl-add">+ * tool. Never throws — a staging failure must not break project open.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function stageCommandFiles(projectPath) {</span>
+<span class="dl-add">+  if (!projectPath) return;</span>
+<span class="dl-add">+  for (const tool of availableTools()) {</span>
+<span class="dl-add">+    for (const entry of resolveStagingPlan(projectPath, tool)) {</span>
+<span class="dl-add">+      if (copyIfChanged(entry.src, entry.dst) &amp;&amp; entry.executable) {</span>
+<span class="dl-add">+        try { fs.chmodSync(entry.dst, 0o755); } catch (_) { /* best effort */ }</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  resolveStagingPlan,</span>
+<span class="dl-add">+  stageCommandFiles,</span>
+<span class="dl-add">+  copyIfChanged,</span>
+<span class="dl-add">+  availableTools,</span>
+<span class="dl-add">+  COMMAND_TEMPLATE_FILES,</span>
+<span class="dl-add">+  COMMAND_ASSET_FILES,</span>
+<span class="dl-add">+  IMPLEMENT_HELPER_FILE,</span>
+<span class="dl-add">+  FRAME_TEMPLATES_DIR</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/test/commandStaging.test.js b/test/commandStaging.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..649c1b2</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/commandStaging.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,65 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Command staging plan tests (cli-spec-command-parity T04).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * resolveStagingPlan is pure given an existsFn, so these tests pin the</span>
+<span class="dl-add">+ * resolution contract without touching a filesystem: override-first sources,</span>
+<span class="dl-add">+ * the full staged file set per tool, and the bin helper&#39;s special handling.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const staging = require(&#39;../src/main/commandStaging&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const PROJECT = path.join(path.sep, &#39;proj&#39;);</span>
+<span class="dl-add">+const TOOL = &#39;claude-code&#39;;</span>
+<span class="dl-add">+const ALL_FILES = [...staging.COMMAND_TEMPLATE_FILES, ...staging.COMMAND_ASSET_FILES];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;plan covers the four templates, both assets and the launch helper&#39;, () =&gt; {</span>
+<span class="dl-add">+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () =&gt; false);</span>
+<span class="dl-add">+  assert.equal(plan.length, ALL_FILES.length + 1);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const file of ALL_FILES) {</span>
+<span class="dl-add">+    const entry = plan.find((e) =&gt; path.basename(e.dst) === file);</span>
+<span class="dl-add">+    assert.ok(entry, `missing plan entry for ${file}`);</span>
+<span class="dl-add">+    assert.equal(entry.dst, path.join(PROJECT, &#39;.frame&#39;, &#39;runtime&#39;, &#39;commands&#39;, TOOL, file));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const helper = plan.find((e) =&gt; path.basename(e.dst) === staging.IMPLEMENT_HELPER_FILE);</span>
+<span class="dl-add">+  assert.ok(helper);</span>
+<span class="dl-add">+  assert.equal(helper.dst, path.join(PROJECT, &#39;.frame&#39;, &#39;bin&#39;, staging.IMPLEMENT_HELPER_FILE));</span>
+<span class="dl-add">+  assert.equal(helper.executable, true);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;sources fall back to the packaged copies when no override exists&#39;, () =&gt; {</span>
+<span class="dl-add">+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () =&gt; false);</span>
+<span class="dl-add">+  for (const file of ALL_FILES) {</span>
+<span class="dl-add">+    const entry = plan.find((e) =&gt; path.basename(e.dst) === file);</span>
+<span class="dl-add">+    assert.equal(entry.src, path.join(staging.FRAME_TEMPLATES_DIR, &#39;commands&#39;, TOOL, file));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a project override wins over the packaged copy, per file&#39;, () =&gt; {</span>
+<span class="dl-add">+  const overridden = path.join(PROJECT, &#39;.frame&#39;, &#39;templates&#39;, &#39;commands&#39;, TOOL, &#39;spec.plan.md&#39;);</span>
+<span class="dl-add">+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, (p) =&gt; p === overridden);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const planEntry = plan.find((e) =&gt; path.basename(e.dst) === &#39;spec.plan.md&#39;);</span>
+<span class="dl-add">+  assert.equal(planEntry.src, overridden);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // every other file still resolves packaged</span>
+<span class="dl-add">+  for (const file of ALL_FILES.filter((f) =&gt; f !== &#39;spec.plan.md&#39;)) {</span>
+<span class="dl-add">+    const entry = plan.find((e) =&gt; path.basename(e.dst) === file);</span>
+<span class="dl-add">+    assert.equal(entry.src, path.join(staging.FRAME_TEMPLATES_DIR, &#39;commands&#39;, TOOL, file));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the launch helper never resolves through the override dir&#39;, () =&gt; {</span>
+<span class="dl-add">+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () =&gt; true);</span>
+<span class="dl-add">+  const helper = plan.find((e) =&gt; path.basename(e.dst) === staging.IMPLEMENT_HELPER_FILE);</span>
+<span class="dl-add">+  assert.equal(helper.src, path.join(staging.FRAME_TEMPLATES_DIR, &#39;bin&#39;, staging.IMPLEMENT_HELPER_FILE));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;available tools include claude-code&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.ok(staging.availableTools().includes(&#39;claude-code&#39;));</span>
+<span class="dl-add">+});</span></pre>
     </details>
   </div>
 </section>

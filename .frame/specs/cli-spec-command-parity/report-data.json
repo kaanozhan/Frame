@@ -39,6 +39,18 @@
         "status": "pass",
         "detail": "148/148 tests pass (4 new)"
       }
+    },
+    {
+      "id": "T04",
+      "title": "Generalized command staging module (commandStaging.js) with tests",
+      "commit": "38033ba",
+      "whatChanged": "Created src/main/commandStaging.js: pure resolveStagingPlan(projectPath, tool, existsFn) returning {src, dst, executable?} entries for the four spec templates plus plan-report-template.html and build-implement-report.mjs into .frame/runtime/commands/<tool>/ (override-first) and implement-launch.js into .frame/bin/ (packaged only); stageCommandFiles executes the plan for every packaged tool dir via copyIfChanged (moved from specManager) and chmods the helper. test/commandStaging.test.js pins the resolution contract with an injected existsFn.",
+      "whyChanged": "Resolution is pure and filesystem-free so the project convention (test pure logic, skip Electron-coupled wrappers) reaches it; specManager/frameProject rewiring is deliberately left to T05 per sequencing.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "153/153 tests pass (5 new)"
+      }
     }
   ]
 }
