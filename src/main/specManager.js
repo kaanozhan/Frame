@@ -17,6 +17,7 @@ const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
+const commandStaging = require('./commandStaging');
 const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
 
@@ -362,68 +363,13 @@ function stageCommandAssets(projectPath, command, aiTool) {
   }
 }
 
-// ─── Implement helper staging (v2) ────────────────────────────
+// ─── Command file staging ─────────────────────────────────────
 //
-// The bin launch helper (implement-launch.js) runs with the Frame app closed,
-// so it can't reach into app.asar for the raw implement template or the report
-// generator. Frame stages both — plus the helper itself — into the project on
-// project open (WATCH_SPECS) and on every implement dispatch, so either entry
-// path (Frame button or `node .frame/bin/implement-launch.js <slug>`) finds
-// them on disk. cli-spec-command-parity will later generalize the same
-// runtime/commands/<tool>/ location to all four commands; this is the minimal
-// slice v2 needs, at the same path, so there's no conflict.
-
-const RUNTIME_COMMANDS_DIR = path.join(FRAME_DIR, 'runtime', 'commands');
-const IMPLEMENT_TEMPLATE_FILE = 'spec.implement.md';
-const IMPLEMENT_HELPER_FILE = 'implement-launch.js';
-
-// Copy only when the destination content differs, so project-open staging
-// doesn't rewrite unchanged files (and re-trigger watchers) every time. A
-// missing source is skipped, not fatal — the helper isn't shipped in every
-// build stage, and a stale runtime copy is better than a crash on open.
-function copyIfChanged(src, dst) {
-  let content;
-  try {
-    content = fs.readFileSync(src, 'utf8');
-  } catch (_) {
-    return false; // source not present — nothing to stage
-  }
-  try {
-    let existing = null;
-    try { existing = fs.readFileSync(dst, 'utf8'); } catch (_) { /* new file */ }
-    if (existing === content) return false;
-    fs.mkdirSync(path.dirname(dst), { recursive: true });
-    fs.writeFileSync(dst, content, 'utf8');
-    return true;
-  } catch (err) {
-    console.error(`specManager: staging ${dst} failed`, err);
-    return false;
-  }
-}
-
-// Stage the raw implement template + report generator into
-// .frame/runtime/commands/<tool>/ and the launch helper into .frame/bin/.
-// Template and generator resolve through the project's own override
-// (.frame/templates/commands/<tool>/) before the packaged copy — the same
-// precedence loadCommandTemplate/stageCommandAsset use.
-function stageImplementCommandFiles(projectPath, aiTool) {
-  if (!projectPath) return;
-  const tool = aiTool || 'claude-code';
-  const runtimeCmdDir = path.join(projectPath, RUNTIME_COMMANDS_DIR, tool);
-  for (const file of [IMPLEMENT_TEMPLATE_FILE, REPORT_GENERATOR_FILE]) {
-    const override = path.join(projectPath, FRAME_DIR, 'templates', 'commands', tool, file);
-    const packaged = path.join(FRAME_TEMPLATES_DIR, 'commands', tool, file);
-    const src = fs.existsSync(override) ? override : packaged;
-    copyIfChanged(src, path.join(runtimeCmdDir, file));
-  }
-  // The helper ships from templates/bin/ (no per-project override — it's Frame
-  // machinery, not user-authored prose). Missing until it's built; skipped
-  // cleanly by copyIfChanged until then.
-  const helperDst = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, IMPLEMENT_HELPER_FILE);
-  if (copyIfChanged(path.join(FRAME_TEMPLATES_DIR, 'bin', IMPLEMENT_HELPER_FILE), helperDst)) {
-    try { fs.chmodSync(helperDst, 0o755); } catch (_) { /* best effort */ }
-  }
-}
+// The staging of raw command templates, report assets and the launch helper
+// into .frame/runtime/commands/<tool>/ and .frame/bin/ lives in
+// commandStaging.js (cli-spec-command-parity) — it covers all four spec
+// commands so a CLI session can self-serve the current flow. It runs on
+// project open (WATCH_SPECS), init/enable, and every implement dispatch.
 
 // ─── Implement-mode permissions ───────────────────────────────
 //
@@ -564,9 +510,9 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool) {
   const absPath = path.join(promptsDir, filename);
   fs.writeFileSync(absPath, result.prompt, 'utf8');
   stageCommandAssets(projectPath, command, aiTool);
-  // Implement dispatches also refresh the raw template, generator and helper
+  // Implement dispatches also refresh the staged templates, assets and helper
   // so an out-of-app helper launch always finds the latest on disk.
-  if (command === 'spec.implement') stageImplementCommandFiles(projectPath, aiTool);
+  if (command === 'spec.implement') commandStaging.stageCommandFiles(projectPath);
   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
   return {
     success: true,
@@ -1108,12 +1054,13 @@ function setupIPC(ipcMain) {
   );
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
-    // Project open: stage the implement template, generator and helper so a
-    // helper-driven launch works even before any in-app implement dispatch.
+    // Project open: stage the command templates, report assets and launch
+    // helper so a CLI session (or a helper-driven launch) can self-serve the
+    // current flow even before any in-app dispatch.
     try {
-      stageImplementCommandFiles(projectPath, 'claude-code');
+      commandStaging.stageCommandFiles(projectPath);
     } catch (err) {
-      console.error('specManager: implement helper staging failed', err);
+      console.error('specManager: command staging failed', err);
     }
   });
   ipcMain.on(IPC.UNWATCH_SPECS, () => {

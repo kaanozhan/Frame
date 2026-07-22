@@ -12,6 +12,7 @@ const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('..
 const templates = require('../shared/frameTemplates');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
+const commandStaging = require('./commandStaging');
 const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
 const detector = require('../../scripts/detect-project');
@@ -362,6 +363,14 @@ async function runProjectInit(projectPath, projectName) {
     console.warn('[frame] structure bootstrap failed (non-fatal):', err.message);
   }
 
+  // Stage the spec command templates, report assets and launch helper so a
+  // CLI session can self-serve the current flow from day one. Non-fatal.
+  try {
+    commandStaging.stageCommandFiles(projectPath);
+  } catch (err) {
+    console.warn('[frame] command staging failed (non-fatal):', err.message);
+  }
+
   // Update workspace to mark as Frame project
   workspace.updateProjectFrameStatus(projectPath, true);
 
@@ -408,6 +417,14 @@ function enableSpecDriven(projectPath) {
 
 function ensureSpecDrivenArtifacts(projectPath, config) {
   const name = (config && config.name) || path.basename(projectPath);
+
+  // Stage the command templates/assets/helper — enabling spec-driven is the
+  // moment a CLI session may start asking for spec commands. Non-fatal.
+  try {
+    commandStaging.stageCommandFiles(projectPath);
+  } catch (err) {
+    console.warn('[frame] command staging failed (non-fatal):', err.message);
+  }
 
   // Make sure .frame/specs/ exists with a .gitkeep so it's version-tracked
   const specsDir = path.join(projectPath, FRAME_DIR, 'specs');

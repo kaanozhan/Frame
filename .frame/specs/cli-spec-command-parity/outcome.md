@@ -31,3 +31,11 @@ Created `src/main/commandStaging.js`: pure `resolveStagingPlan` (override-first 
 _Captured: 2026-07-22 · 2 file change(s)_
 
 ---
+
+## T05 — Rewire staging call sites; retire stageImplementCommandFiles
+
+Deleted `stageImplementCommandFiles`/`copyIfChanged` (and their constants) from `specManager.js`; WATCH_SPECS and the implement branch of `buildSpecCommandFile` now call `commandStaging.stageCommandFiles`. `frameProject.js` stages at init (`runProjectInit`) and inside `ensureSpecDrivenArtifacts` — placed there rather than in `enableSpecDriven` so the already-enabled short-circuit also restages, covering re-enable on a project whose runtime dir was deleted. Prompt-file writing, `stageCommandAssets` and launch flags in the UI dispatch path are untouched (C3).
+
+_Captured: 2026-07-22 · 2 file change(s)_
+
+---

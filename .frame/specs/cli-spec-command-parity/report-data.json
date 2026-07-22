@@ -51,6 +51,18 @@
         "status": "pass",
         "detail": "153/153 tests pass (5 new)"
       }
+    },
+    {
+      "id": "T05",
+      "title": "Rewire staging call sites; retire stageImplementCommandFiles",
+      "commit": "6a6bd02",
+      "whatChanged": "specManager.js: deleted stageImplementCommandFiles, copyIfChanged and their constants; the WATCH_SPECS handler and the implement-dispatch branch of buildSpecCommandFile now call commandStaging.stageCommandFiles. frameProject.js: runProjectInit and ensureSpecDrivenArtifacts (both enableSpecDriven branches) call commandStaging.stageCommandFiles, wrapped non-fatal.",
+      "whyChanged": "Same paths, superset of files — the v2 implement-only slice is preserved while all four commands become self-servable. Staging was added to ensureSpecDrivenArtifacts rather than enableSpecDriven directly so the already-enabled short-circuit path also restages.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "153/153 tests pass"
+      }
     }
   ]
 }

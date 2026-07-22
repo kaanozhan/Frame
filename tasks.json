@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T15:52:19.609Z",
+  "lastUpdated": "2026-07-22T15:54:03.050Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3936,13 +3936,13 @@
       "title": "Rewire `src/main/specManager.js` (WATCH_SPECS handler, implement dispatch) and `src/main/frameProject.js` (`runProjectInit`, `enableSpecDriven`) to `commandStaging.stageCommandFiles`; retire `stageImplementCommandFiles`",
       "description": "",
       "source": "spec:cli-spec-command-parity:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: cli-spec-command-parity",
       "createdAt": "2026-07-22T15:35:45.884Z",
-      "updatedAt": "2026-07-22T15:35:45.884Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T15:54:03.050Z",
+      "completedAt": "2026-07-22T15:54:03.050Z"
     },
     {
       "id": "task-spec-cli-spec-command-parity-T06",
@@ -3973,7 +3973,7 @@
   ],
   "metadata": {
     "totalCreated": 282,
-    "totalCompleted": 25
+    "totalCompleted": 26
   },
   "categories": {
     "feature": "New features",
