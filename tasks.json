@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:15:56.066Z",
+  "lastUpdated": "2026-07-22T14:19:40.602Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3360,13 +3360,13 @@
       "title": "Register the hooks: create `.claude/settings.json` in Frame's repo (PreToolUse Edit/Write + UserPromptSubmit → `spec-hint.js`), add a merge-safe init-time install for user projects in `src/main/frameProject.js` gated on `ai_tool: claude-code` (preserve existing keys; surface manual instructions on unparseable JSON), and add the three new scripts to `PARSER_FILES` in `src/main/structureBootstrap.js`.",
       "description": "",
       "source": "spec:spec-knowledge-layer:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:19:40.602Z",
+      "completedAt": "2026-07-22T14:19:40.602Z"
     },
     {
       "id": "task-spec-spec-knowledge-layer-T07",

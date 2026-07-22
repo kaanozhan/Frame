@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-19",
+  "lastUpdated": "2026-07-22",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -540,7 +540,8 @@
         "structureBootstrap",
         "telemetry",
         "perfMonitor",
-        "../scripts/detect-project"
+        "../scripts/detect-project",
+        "aiToolManager"
       ],
       "functions": {
         "init": {
@@ -615,27 +616,34 @@
             "projectName"
           ]
         },
+        "installSpecHintHook": {
+          "line": 409,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
+        },
         "isSpecDrivenEnabled": {
-          "line": 379,
+          "line": 462,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 384,
+          "line": 467,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 409,
+          "line": 492,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "setupIPC": {
-          "line": 470,
+          "line": 553,
           "params": [
             "ipcMain"
           ],

@@ -84,3 +84,21 @@ Files touched: `test/spec-hint.test.js` (new).
 _Captured: 2026-07-22 · 1 file change(s)_
 
 ---
+## T06 — Hook registration + shipping channel
+
+Created Frame's own `.claude/settings.json` (PreToolUse Edit|Write +
+UserPromptSubmit → `scripts/spec-hint.js`) — and it went live mid-task: the
+hook fired on this task's own frameProject.js edit, correctly surfacing the
+file's history including the in-flight cross-platform footprint overlap.
+Added `installSpecHintHook` to `src/main/frameProject.js`: gated on active
+tool id `claude` (lazy-required aiToolManager to keep init's module graph
+flat), read-modify-write preserving all existing keys, signature-matched
+append so re-init is idempotent, unparseable JSON → no write + manual-install
+summary. User-project commands point at `.frame/bin/spec-hint.js`; the three
+scripts ship via `PARSER_FILES` in `src/main/structureBootstrap.js`. Files
+touched: `.claude/settings.json` (new), `src/main/frameProject.js`,
+`src/main/structureBootstrap.js`.
+
+_Captured: 2026-07-22 · 3 file change(s)_
+
+---
