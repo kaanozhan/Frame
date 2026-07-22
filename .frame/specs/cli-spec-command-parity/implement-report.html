@@ -143,8 +143,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">1 task</span>
-    <span class="pill good">1 verified</span>
+    <span class="pill">2 tasks</span>
+    <span class="pill good">2 verified</span>
     
     <span class="chip">2026-07-22</span>
   </div>
@@ -153,7 +153,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">1 of 7 tasks done · next: <span class="rs-task">T02 — Add current-generation docs content to `src/shared/frameTemplates.js`…</span></span>
+  <span class="rs-count">2 of 7 tasks done · next: <span class="rs-task">T03 — Wire marked emission into `getReferenceTemplate`, `getAgentsTemplate`…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -484,6 +484,204 @@
 <span class="dl-add">+  assert.ok(!migrated.includes(&#39;### Slash commands&#39;));</span>
 <span class="dl-add">+  assert.ok(migrated.includes(&quot;## User&#39;s Own Section&quot;));</span>
 <span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T02</span>
+    <h2>Current-generation docs content in frameTemplates.js</h2>
+    <span class="card-meta"><span class="chip">f84919b</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">144/144 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added SPEC_SECTION_VERSION (1) to src/shared/frameTemplates.js, preserved the old spec sections byte-for-byte as LEGACY_SPEC_DRIVEN_SECTION / LEGACY_SPEC_DRIVEN_CORE_SECTION and exported them as per-doc migration matchers. Replaced SPEC_DRIVEN_SECTION with the full self-serve protocol (deterministic target-spec rule, override-first template resolution, placeholder table, exact-follow rule, autonomous ceiling with the dual Frame-button/implement-launch.js handoff) and SPEC_DRIVEN_CORE_SECTION with the short pointer plus the never-run-from-memory line.</p></div>
+    <div class="field"><span class="label">Why</span><p>The legacy texts must stay frozen so the D11 byte-match gate recognizes docs older Frames actually wrote; the new sections are the payload the managed-block engine stamps and upgrades.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 13bb97d..2771ba8 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -19,12 +19,26 @@ function getISOTimestamp() {</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-del">- * Spec-Driven Development section — markdown content shipped to AGENTS.md</span>
+<span class="dl-del">- * when the user enables the feature. Held as a constant so both the full</span>
+<span class="dl-del">- * AGENTS.md template and the standalone &quot;append-only&quot; helper share one</span>
+<span class="dl-del">- * source of truth.</span>
+<span class="dl-add">+ * Spec-section versioning (cli-spec-command-parity).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The spec sections in REFERENCE.md and AGENTS.md are managed blocks —</span>
+<span class="dl-add">+ * wrapped in versioned markers (see src/shared/docsManagedBlock.js) so Frame</span>
+<span class="dl-add">+ * can upgrade its own text in place on project open without touching user</span>
+<span class="dl-add">+ * prose. Bump SPEC_SECTION_VERSION whenever SPEC_DRIVEN_SECTION or</span>
+<span class="dl-add">+ * SPEC_DRIVEN_CORE_SECTION changes; docs stamped with an older version are</span>
+<span class="dl-add">+ * rewritten on next open, docs stamped current are left alone (so user tweaks</span>
+<span class="dl-add">+ * inside the block survive between identical Frame versions).</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-del">-const SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-add">+const SPEC_SECTION_VERSION = 1;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Previous shipped generations of the spec sections, preserved byte-for-byte</span>
+<span class="dl-add">+ * as legacy migration matchers: a project doc that still contains one of</span>
+<span class="dl-add">+ * these texts verbatim (whitespace-normalized) was written by Frame and never</span>
+<span class="dl-add">+ * touched by the user, so the one-time migration to a managed block is safe.</span>
+<span class="dl-add">+ * Never edit these — they must match what older Frames actually wrote.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const LEGACY_SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`tasks.json\` in sync.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -90,9 +104,119 @@ it&quot;, proceed directly and **don&#39;t ask again for that same piece of work** in the</span>
+<span class="dl-ctx"> session. Never force it — the spec is an offer, not a gate; the user&#39;s stated</span>
+<span class="dl-ctx"> preference always wins.`;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+const LEGACY_SPEC_DRIVEN_CORE_SECTION = `## Spec-Driven Development</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Significant work flows through a spec (\`spec.md\` → \`plan.md\` → \`tasks.md\`)</span>
+<span class="dl-add">+before code. Rough ladder: *trivial → just do it · small but worth tracking →</span>
+<span class="dl-add">+task · sizable feature or multi-file change → spec.* Offer a spec once for</span>
+<span class="dl-add">+meaningful new work — never force it.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Full workflow (file layout, lifecycle, slash commands): see</span>
+<span class="dl-add">+**&quot;Spec-Driven Development&quot;** in \`.frame/docs/REFERENCE.md\`.`;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Legacy matchers per doc: REFERENCE.md carried the full section, AGENTS.md</span>
+<span class="dl-add">+ * the short core pointer. docsManagedBlock.upgradeDoc migrates a section to</span>
+<span class="dl-add">+ * a managed block only when it matches one of these.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const REFERENCE_SPEC_LEGACY_MATCHERS = [LEGACY_SPEC_DRIVEN_SECTION];</span>
+<span class="dl-add">+const AGENTS_SPEC_LEGACY_MATCHERS = [LEGACY_SPEC_DRIVEN_CORE_SECTION];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Spec-Driven Development section — the full self-serve protocol shipped to</span>
+<span class="dl-add">+ * .frame/docs/REFERENCE.md. Current generation: teaches a CLI session asked</span>
+<span class="dl-add">+ * conversationally to run a spec command to find and follow the staged</span>
+<span class="dl-add">+ * template instead of improvising the flow from memory. Emitted wrapped in</span>
+<span class="dl-add">+ * managed-block markers (SPEC_SECTION_VERSION).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`tasks.json\` in sync.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### File layout</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Each spec lives in its own folder:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+\`\`\`</span>
+<span class="dl-add">+.frame/specs/&lt;slug&gt;/</span>
+<span class="dl-add">+  spec.md       — what we&#39;re building</span>
+<span class="dl-add">+  plan.md       — how (architecture, files, footprint, sequencing)</span>
+<span class="dl-add">+  tasks.md      — flat bullet list, &quot;- T01 · description&quot;</span>
+<span class="dl-add">+  status.json   — phase + metadata</span>
+<span class="dl-add">+\`\`\`</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+\`&lt;slug&gt;\` is kebab-case, derived from the spec title.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### Lifecycle phases</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+\`draft\` → \`specified\` → \`planned\` → \`tasks_generated\` → \`implementing\` → \`done\`</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Frame auto-advances phase from filesystem state (file presence). The command templates below tell you exactly which \`status.json\` updates to make; Frame&#39;s watcher reconciles if anything is missed.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### Running spec commands — the self-serve protocol</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spec.implement\`. Whether the user types them as slash commands or asks conversationally (&quot;plan the auth spec&quot;, &quot;implement the tasks&quot;), the flow is **never improvised from memory** — each command&#39;s current flow lives in a template file that Frame keeps staged in the project. Run one like this:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**1. Resolve the target spec.** An explicitly named spec always wins. Otherwise list the specs (\`.frame/specs/*/status.json\`) whose phase the command acts on — \`spec.plan\` → \`specified\`, \`spec.tasks\` → \`planned\`, \`spec.implement\` → \`tasks_generated\` or \`implementing\`. Exactly one candidate → take it silently; zero or several → present the candidates and ask. \`spec.new\` creates a new spec: derive the kebab-case slug from the title.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**2. Resolve the template.** Take the first that exists:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+1. \`.frame/templates/commands/&lt;tool&gt;/&lt;command&gt;.md\` — project override</span>
+<span class="dl-add">+2. \`.frame/runtime/commands/&lt;tool&gt;/&lt;command&gt;.md\` — staged by Frame on project open</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+\`&lt;tool&gt;\` is the directory matching your CLI (Claude Code → \`claude-code\`). If neither file exists, say so and ask the user to open this project in Frame once so it stages the current templates — then stop. **Do not reconstruct the flow from this file, from memory, or from an older prompt.**</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**3. Interpolate the placeholders.** Replace each \`{placeholder}\` token in the template:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+| Placeholder | Value |</span>
+<span class="dl-add">+| --- | --- |</span>
+<span class="dl-add">+| \`{project_path}\` | absolute path of the project root |</span>
+<span class="dl-add">+| \`{slug}\` | the spec&#39;s slug |</span>
+<span class="dl-add">+| \`{title}\` | the spec&#39;s title (from \`status.json\`; for \`spec.new\`, the new title) |</span>
+<span class="dl-add">+| \`{description}\` | the user&#39;s description (\`spec.new\` only; empty otherwise) |</span>
+<span class="dl-add">+| \`{report_template_path}\` | \`.frame/runtime/commands/&lt;tool&gt;/plan-report-template.html\` |</span>
+<span class="dl-add">+| \`{report_generator_path}\` | \`.frame/runtime/commands/&lt;tool&gt;/build-implement-report.mjs\` |</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**4. Follow the interpolated template exactly**, including every \`status.json\` update it prescribes. The template is the flow; this section only tells you how to find it.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**5. Autonomous implement ceiling.** \`spec.implement\`&#39;s autonomous mode needs permission flags that only a fresh, flagged launch can carry — a running session cannot acquire them. If the user picks autonomous conversationally, do what the template says: record the choice in the spec&#39;s \`status.json\` and hand off — the user clicks Implement on the spec&#39;s page in Frame and picks Autonomous, or runs \`node .frame/bin/implement-launch.js &lt;slug&gt;\` in a fresh terminal. Never run a degraded imitation silently.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### tasks.json linkage</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+After \`spec.tasks\`, **do not** also write entries to \`tasks.json\` — Frame&#39;s watcher imports them automatically with \`source: &quot;spec:&lt;slug&gt;:T&lt;n&gt;&quot;\` markers. Spec-generated tasks carry that \`source\` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### When to suggest a spec (steer the conversation)</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Spec-driven is Frame&#39;s core way of working, so when a user describes meaningful</span>
+<span class="dl-add">+new work **mid-conversation**, gently steer them toward a spec instead of</span>
+<span class="dl-add">+silently diving into code. Suggest a spec only for **significant work** — don&#39;t</span>
+<span class="dl-add">+make this a reflex on every message.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**Suggest a spec for:**</span>
+<span class="dl-add">+- A new **feature** or capability (&quot;users should be able to …&quot;, &quot;add a … system&quot;)</span>
+<span class="dl-add">+- A change that will touch **multiple files / modules** or affect architecture</span>
+<span class="dl-add">+- Anything that clearly benefits from a **plan and ordered tasks** before coding</span>
+<span class="dl-add">+- Work the user describes vaguely/largely that would benefit from being scoped first</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**Do NOT suggest a spec for:**</span>
+<span class="dl-add">+- Typos, one-line fixes, small tweaks, renames → just do it</span>
+<span class="dl-add">+- Small, discrete tracked work → that&#39;s a task (\`tasks.json\`)</span>
+<span class="dl-add">+- Questions, debugging, explanations, experiments</span>
+<span class="dl-add">+- Anything the user explicitly says to &quot;just do&quot; / &quot;do directly&quot;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Rough ladder: *trivial → just do it · small but worth tracking → task · sizable</span>
+<span class="dl-add">+feature or multi-file change → spec.*</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Ask once, in plain language, before coding. If they agree, start the spec flow</span>
+<span class="dl-add">+(\`spec.new\` → \`spec.plan\` → \`spec.tasks\`). If they decline or say &quot;just do</span>
+<span class="dl-add">+it&quot;, proceed directly and **don&#39;t ask again for that same piece of work** in the</span>
+<span class="dl-add">+session. Never force it — the spec is an offer, not a gate; the user&#39;s stated</span>
+<span class="dl-add">+preference always wins.`;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Short Spec-Driven section for the lean AGENTS.md core — the ladder and a</span>
+<span class="dl-del">- * pointer; the full workflow lives in .frame/docs/REFERENCE.md.</span>
+<span class="dl-add">+ * pointer; the full workflow lives in .frame/docs/REFERENCE.md. Emitted</span>
+<span class="dl-add">+ * wrapped in managed-block markers (SPEC_SECTION_VERSION).</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> const SPEC_DRIVEN_CORE_SECTION = `## Spec-Driven Development</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -101,8 +225,11 @@ before code. Rough ladder: *trivial → just do it · small but worth tracking </span>
+<span class="dl-ctx"> task · sizable feature or multi-file change → spec.* Offer a spec once for</span>
+<span class="dl-ctx"> meaningful new work — never force it.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Full workflow (file layout, lifecycle, slash commands): see</span>
+<span class="dl-del">-**&quot;Spec-Driven Development&quot;** in \`.frame/docs/REFERENCE.md\`.`;</span>
+<span class="dl-add">+Spec commands (\`spec.new\` / \`spec.plan\` / \`spec.tasks\` / \`spec.implement\`)</span>
+<span class="dl-add">+are **never run from memory** — each one&#39;s current flow is a staged template.</span>
+<span class="dl-add">+The self-serve protocol (resolve spec → resolve template → interpolate →</span>
+<span class="dl-add">+follow exactly) lives in **&quot;Spec-Driven Development&quot;** in</span>
+<span class="dl-add">+\`.frame/docs/REFERENCE.md\`.`;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * AGENTS.md template - the lean always-on core read by AI coding tools</span>
+<span class="dl-hunk">@@ -815,6 +942,11 @@ module.exports = {</span>
+<span class="dl-ctx">   getFrameConfigTemplate,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_SECTION,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+  SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+  LEGACY_SPEC_DRIVEN_SECTION,</span>
+<span class="dl-add">+  LEGACY_SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+  REFERENCE_SPEC_LEGACY_MATCHERS,</span>
+<span class="dl-add">+  AGENTS_SPEC_LEGACY_MATCHERS,</span>
+<span class="dl-ctx">   getCodexWrapperTemplate,</span>
+<span class="dl-ctx">   getGenericWrapperTemplate,</span>
+<span class="dl-ctx">   getStructureHookSnippet,</span></pre>
     </details>
   </div>
 </section>

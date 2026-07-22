@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T15:45:30.505Z",
+  "lastUpdated": "2026-07-22T15:48:26.859Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3897,13 +3897,13 @@
       "title": "Add current-generation docs content to `src/shared/frameTemplates.js`: `SPEC_SECTION_VERSION`, managed-block markers, the full self-serve protocol section (deterministic target-spec rule, override-first template resolution, placeholder table, autonomous ceiling with the dual handoff), the updated short core pointer section, and legacy migration matchers",
       "description": "",
       "source": "spec:cli-spec-command-parity:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: cli-spec-command-parity",
       "createdAt": "2026-07-22T15:35:45.884Z",
-      "updatedAt": "2026-07-22T15:35:45.884Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T15:48:26.859Z",
+      "completedAt": "2026-07-22T15:48:26.859Z"
     },
     {
       "id": "task-spec-cli-spec-command-parity-T03",
@@ -3973,7 +3973,7 @@
   ],
   "metadata": {
     "totalCreated": 282,
-    "totalCompleted": 22
+    "totalCompleted": 23
   },
   "categories": {
     "feature": "New features",

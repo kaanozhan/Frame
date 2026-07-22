@@ -15,6 +15,18 @@
         "status": "pass",
         "detail": "144/144 tests pass (11 new)"
       }
+    },
+    {
+      "id": "T02",
+      "title": "Current-generation docs content in frameTemplates.js",
+      "commit": "f84919b",
+      "whatChanged": "Added SPEC_SECTION_VERSION (1) to src/shared/frameTemplates.js, preserved the old spec sections byte-for-byte as LEGACY_SPEC_DRIVEN_SECTION / LEGACY_SPEC_DRIVEN_CORE_SECTION and exported them as per-doc migration matchers. Replaced SPEC_DRIVEN_SECTION with the full self-serve protocol (deterministic target-spec rule, override-first template resolution, placeholder table, exact-follow rule, autonomous ceiling with the dual Frame-button/implement-launch.js handoff) and SPEC_DRIVEN_CORE_SECTION with the short pointer plus the never-run-from-memory line.",
+      "whyChanged": "The legacy texts must stay frozen so the D11 byte-match gate recognizes docs older Frames actually wrote; the new sections are the payload the managed-block engine stamps and upgrades.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "144/144 tests pass"
+      }
     }
   ]
 }

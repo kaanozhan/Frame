@@ -7891,6 +7891,11 @@
         "getFrameConfigTemplate",
         "SPEC_DRIVEN_SECTION",
         "SPEC_DRIVEN_CORE_SECTION",
+        "SPEC_SECTION_VERSION",
+        "LEGACY_SPEC_DRIVEN_SECTION",
+        "LEGACY_SPEC_DRIVEN_CORE_SECTION",
+        "REFERENCE_SPEC_LEGACY_MATCHERS",
+        "AGENTS_SPEC_LEGACY_MATCHERS",
         "getCodexWrapperTemplate",
         "getGenericWrapperTemplate",
         "getStructureHookSnippet",
@@ -7913,28 +7918,28 @@
           "purpose": "Get current ISO timestamp"
         },
         "formatProjectFacts": {
-          "line": 124,
+          "line": 251,
           "params": [
             "project"
           ],
           "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
         },
         "getAgentsTemplate": {
-          "line": 153,
+          "line": 280,
           "params": [
             "projectName",
             "options"
           ]
         },
         "getReferenceTemplate": {
-          "line": 236,
+          "line": 363,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 411,
+          "line": 538,
           "params": [
             "projectName",
             "project"
@@ -7942,21 +7947,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 436,
+          "line": 563,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 456,
+          "line": 583,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 502,
+          "line": 629,
           "params": [
             "projectName",
             "project"
@@ -7964,18 +7969,18 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 583,
+          "line": 710,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 622,
+          "line": 749,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 659,
+          "line": 786,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -7983,27 +7988,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 705
+          "line": 832
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 726,
+          "line": 853,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 749,
+          "line": 876,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 761,
+          "line": 888,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 781
+          "line": 908
         },
         "getOrchBinScripts": {
-          "line": 799,
+          "line": 926,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
