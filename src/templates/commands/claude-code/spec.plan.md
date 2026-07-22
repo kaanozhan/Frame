@@ -24,6 +24,21 @@ Stage 2 is complete.
 3. Build a coverage checklist: assign an ID to every item under Goal (G1,
    G2, …), Constraints (C1, …), and Success Criteria (S1, …). Every ID must
    later map to an owning plan section.
+4. **Footprint history.** Once you know the candidate files this plan will
+   touch, pull each one's spec history before deciding anything about it:
+
+   ```bash
+   node scripts/spec-context.js --file <path>   # .frame/bin/spec-context.js in user projects
+   ```
+
+   Treat the output as evidence: prior decisions recorded for a file are
+   either respected by the plan or explicitly overturned in Stage 2 — never
+   silently contradicted. Two flags matter especially:
+   - `IN-FLIGHT` — the file sits in another spec's active footprint; plan
+     around the collision or surface it as a Stage 2 question.
+   - `STALE` — the file changed after that spec closed; verify the recorded
+     claim against today's code before building on it.
+   Skip silently if the script or index is unavailable.
 
 ## Stage 2 — Decision gate (before any plan text)
 

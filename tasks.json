@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:21:18.682Z",
+  "lastUpdated": "2026-07-22T14:22:38.911Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3386,13 +3386,13 @@
       "title": "Update the flow templates: `spec.new.md` (front-matter `keywords:/related:/supersedes:` + catalog-evaluation step shaping Constraints/Out of Scope/Open Questions), `spec.plan.md` (Stage-1 footprint-history evidence step via `spec-context.js --file` + in-flight intersection note), and `spec.implement.md` + `src/templates/orchestration/WORKER.md` (final-task digest step writing `digest.md`).",
       "description": "",
       "source": "spec:spec-knowledge-layer:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:22:38.911Z",
+      "completedAt": "2026-07-22T14:22:38.911Z"
     },
     {
       "id": "task-spec-spec-knowledge-layer-T09",

@@ -118,3 +118,22 @@ embed. Files touched: `src/main/specManager.js`, `scripts/spec-index.js`.
 _Captured: 2026-07-22 · 2 file change(s)_
 
 ---
+## T08 — Flow template updates
+
+`spec.new.md`: embedded `{spec_catalog}` with a relatedness-evaluation step
+(agent = precision, catalog = recall) that routes findings into
+Constraints/Out of Scope/Open Questions, plus the front-matter contract
+(`keywords:/related:/supersedes:`) ahead of the existing five sections —
+deep-spec-plan's conditional Open Questions guidance untouched. `spec.plan.md`:
+Stage 1 gains step 4, footprint history via `spec-context.js --file` with
+explicit IN-FLIGHT/STALE handling rules (prior decisions respected or
+overturned in Stage 2, never silently contradicted; skip silently if no
+index). `spec.implement.md`: last-pending-task turn now writes
+`.frame/specs/{slug}/digest.md` (front-matter + ≤15 lines from outcome
+actuals + chain pointer). `WORKER.md`: same digest rule as done-step 1
+(explicitly scoped as in-worktree, not a meta file) with renumbered
+completion steps. Files touched: all four templates.
+
+_Captured: 2026-07-22 · 4 file change(s)_
+
+---
