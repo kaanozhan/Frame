@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T14:29:16.707Z",
+  "lastUpdated": "2026-07-22T14:32:09.345Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -3438,13 +3438,13 @@
       "title": "Run the acceptance pass: add a hooks-enabled flag to `scripts/eval/run-eval.js`, run the injected-vs-non-injected comparison plus the end-to-end dogfood checks (storied-file edit → history + user relay; scratch `spec.new` → fields filled and catalog-shaped content; no-index project → byte-identical silence; hook overhead ≤50 ms), and record results in the spec folder.",
       "description": "",
       "source": "spec:spec-knowledge-layer:T12",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-knowledge-layer",
       "createdAt": "2026-07-21T13:20:20.528Z",
-      "updatedAt": "2026-07-21T13:20:20.528Z",
-      "completedAt": null
+      "updatedAt": "2026-07-22T14:32:09.345Z",
+      "completedAt": "2026-07-22T14:32:09.345Z"
     }
   ],
   "metadata": {

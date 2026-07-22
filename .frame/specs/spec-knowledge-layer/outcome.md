@@ -187,3 +187,22 @@ touched: `AGENTS.md`, `.frame/docs/REFERENCE.md`,
 _Captured: 2026-07-22 · 4 file change(s)_
 
 ---
+## T12 — Acceptance pass
+
+Added `--hooks` to `scripts/eval/run-eval.js` (frame-arm worktrees get hint
+scripts + in-worktree index build + hook registration, committed pre-run so
+nothing appears as agent diff; `hooksActive` recorded in run meta). Ran the
+measurable acceptance set — hook overhead ~20ms avg AND max (budget 50),
+no-index silence, catalog embed (24 lines interpolated), 100/100 tests —
+and recorded everything in `acceptance.md`, including this session's live
+dogfood evidence: the hooks fired on their own implementation from T06
+onward and caught a real would-be miss (the dead `src/templates/CLAUDE.md`
+vs the live `getAgentsTemplate()`). Deviation: the full injected-vs-not
+eval run is prepared but NOT executed — it spawns headless agent sessions
+per task×arm (budgeted, run via `run-eval.js --hooks` when chosen); the
+directional criterion is recorded. Files touched:
+`scripts/eval/run-eval.js`.
+
+_Captured: 2026-07-22 · 1 file change(s) + acceptance.md_
+
+---
