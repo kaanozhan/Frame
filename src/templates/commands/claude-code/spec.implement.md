@@ -75,6 +75,53 @@ No re-dispatch negotiation, no second picker, no settings-file writes.
 Once the user picks a runnable mode, record it in `status.json`
 (`implement_mode`) so the next dispatch resolves without asking, then run it.
 
+## Pre-flight — the tree and the branch, before anything else
+
+Runs once, in **every mode — autonomous included** — after the mode is
+resolved and before anything the run produces: no report, no task claim, no
+edit until this clears. The autonomous flags remove permission prompts, not
+this question; the unattended part of the run begins after pre-flight passes.
+
+**The working tree.** Check `git status`. Clean → pass without a word. Dirty →
+classify what's there before asking, so the question you ask is the right one:
+
+- **Plan-phase artifacts** — changes confined to `.frame/specs/{slug}/`
+  (spec.md, plan.md, tasks.md, status.json) and this spec's entries in the
+  root `tasks.json`. That is the planning session's output that never got
+  committed. Offer the natural move: *commit these as a plan commit before
+  implementation starts* (a `docs`/`plan`-style commit naming the spec), with
+  "leave them, start anyway" as the alternative.
+- **Foreign changes** — anything else, including another spec's files. Name
+  the files and ask what to do: commit them, stash them, or start on top of
+  them. Do not guess; work you didn't produce is not yours to file away.
+
+A mixed tree gets both classifications in the same question, not two
+interruptions.
+
+**The branch.** No file records a spec↔branch mapping; judge by convention:
+
+- On `main`/`master` → always ask. Offer to create and switch to
+  `feat/{slug}` — the shared core forbids touching main, so a run that starts
+  there has nowhere to commit.
+- On a branch whose name has nothing to do with `{slug}` — it reads like
+  another spec's or another piece of work's branch → ask: *switch (or create
+  `feat/{slug}`) and start there, or continue here on purpose?*
+- On a branch that plausibly belongs to this spec → pass.
+
+**Ask in the normal message flow, not with the structured-question tool.**
+Pre-flight is a judgment call, not a picker: form a recommendation from your
+classification and lead with it — what you found, what you'd do, one
+question. *"Uncommitted changes in spec.md / plan.md / tasks.md look like
+this spec's plan output — I'd commit them as a plan commit and start. OK?"*
+A plain question lets the user answer with nuance a picker would flatten
+("commit those, but stash the other two"). Tree and branch findings travel
+in the same message when both apply: one interruption, not two. Then
+**wait** — an unanswered pre-flight is a hard stop, same as the mode picker.
+
+Whatever the user answers — commit, stash, switch, or "continue as is" —
+carry it out, say in one line what state the run starts from, and start.
+Pre-flight happens once per session and never resurfaces mid-run.
+
 ## The shared core — every mode obeys this
 
 Binding on all modes, **including a flow the user describes**. A described flow
@@ -182,12 +229,22 @@ tasks in order and keep going until none remain — no confirmation between
 tasks, no "shall I continue". A confirmation between tasks turns either mode
 back into step-by-step, which is not what the user picked.
 
-Before the first task, tell the user — once, as a statement, not a question —
-where to watch: the report opens from the **View Implementation Report** button
-on the spec's Tasks tab in Frame (the button appears when the first task
-lands), or directly at `.frame/specs/{slug}/implement-report.html` when no
-Frame window is open, and it is regenerated after every task, so refreshing
-the opened page follows the run live. Then start; do not wait for a reply.
+Pre-flight has already cleared by the time this loop starts — the empty
+report below is the run's first output, never something that lands on a dirty
+tree or the wrong branch.
+
+Before the first task, **create the empty report and open it** (see *Producing
+the report* below): write `.frame/specs/{slug}/report-data.json` with the spec's
+`slug` and `title` and an empty `tasks` array, then run the generator with
+`--open`. This opens the report in its empty state — a page that names what will
+appear as the run turns — so the user sees it waiting before any code lands, and
+makes the **View Implementation Report** button appear in Frame from the start.
+
+Then tell the user — once, as a statement, not a question — where to watch: the
+report opens from the **View Implementation Report** button on the spec's Tasks
+tab in Frame, or directly at `.frame/specs/{slug}/implement-report.html` when no
+Frame window is open, and it is regenerated after every task, so refreshing the
+opened page follows the run live. Then start; do not wait for a reply.
 
 Per task, in this order:
 
@@ -198,8 +255,9 @@ Per task, in this order:
    command, and record the result. That order is also the one Frame allowed in
    this session's permissions. If none of them holds a command, see below.
 4. Append the task's entry to `.frame/specs/{slug}/report-data.json` with
-   `"commit": ""` — the hash does not exist yet. Create the file on the first
-   task, using the shape documented at the top of the generator.
+   `"commit": ""` — the hash does not exist yet. The file already exists (you
+   created it empty before the first task); append to its `tasks` array, using
+   the shape documented at the top of the generator.
 5. Append the outcome entry.
 6. Mark the task `completed`.
 7. **One atomic commit** — code, outcome entry, report data and state files
@@ -244,8 +302,9 @@ not launch, `$FRAME_NODE` is unset — use `node` from `PATH` instead (the
 missing-runtime order below). It writes `implement-report.html` next to the
 data file, openable as each task completes.
 
-**On the first task only, add `--open`** so the report opens in the browser
-once, at the moment there's something to see:
+**Add `--open` only on the very first generation** — the empty-report
+generation you run before the first task (above) — so the report opens in the
+browser once, at the start of the run:
 
 ```
 ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" {report_generator_path} --open \
@@ -254,13 +313,14 @@ ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" {report_generator_path} --open \
 
 This matters most for a terminal-launched autonomous run, where there's no
 Frame window to click the **View Implementation Report** button. Pass `--open`
-**only on the first generation** — every later task regenerates the same file,
-and the reader follows the run by reloading the tab they already have open, so
-re-passing it would spawn a new tab per task. Opening is best-effort: on a box
-with no browser opener it silently does nothing and the run is unaffected. The
-report itself now carries a live status banner (how many tasks are done, which
-is next, and a reload hint), so the reader always knows whether the page in
-front of them is mid-run or final.
+**only on that first, empty generation** — every task afterwards regenerates the
+same file, and the reader follows the run by reloading the tab they already have
+open, so re-passing it would spawn a new tab per task. Opening is best-effort: on
+a box with no browser opener it silently does nothing and the run is unaffected.
+The report itself carries a live status banner (how many tasks are done, which
+is next, and a reload hint) plus, before the first task, an empty state naming
+what will appear — so the reader always knows whether the page in front of them
+is waiting, mid-run, or final.
 
 Never transcribe a diff into the report yourself. The generator reads each
 commit from git by hash; that is the one place an invented line would silently

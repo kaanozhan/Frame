@@ -186,6 +186,22 @@ test('renderReport survives malformed data instead of throwing at the user', () 
   }
 });
 
+test('renderReport shows the empty state, not a task card, when there are no tasks', () => {
+  // The report modes open this page before the first task lands, so an empty
+  // report must read as "waiting", naming what will appear — not a bare line.
+  const html = mod.renderReport(data({ tasks: [] }));
+  assert.match(html, /class="empty-state"/);
+  assert.match(html, /No tasks recorded yet/);
+  assert.match(html, /appears here/);          // names what will fill in
+  assert.doesNotMatch(html, /class="card"/);   // no task card yet
+});
+
+test('renderEmptyState is self-contained and describes what will appear', () => {
+  const html = mod.renderEmptyState();
+  assert.match(html, /waiting for the run to begin/);
+  assert.doesNotMatch(html, /<img|<link|<script|https?:\/\//);
+});
+
 test('renderReport falls back to the slug when the spec has no title', () => {
   assert.match(mod.renderReport({ spec: { slug: 'my-spec' } }), /my-spec/);
 });
