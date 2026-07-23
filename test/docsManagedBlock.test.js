@@ -194,6 +194,21 @@ test('legacy matchers migrate the previously shipped section bodies', () => {
   assert.ok(migratedAgents.includes(templates.renderSpecCoreSection()));
 });
 
+test('pre-split AGENTS.md carrying either full-section generation migrates to the core pointer', () => {
+  for (const legacy of [templates.LEGACY_SPEC_DRIVEN_SECTION, templates.LEGACY_SPEC_DRIVEN_SECTION_V0]) {
+    const doc = `# proj\n\n---\n\n${legacy}\n\n---\n\n## User's Own Section\n\nProse.\n`;
+    const migrated = upgradeDoc(doc, {
+      body: templates.SPEC_DRIVEN_CORE_SECTION,
+      version: templates.SPEC_SECTION_VERSION,
+      legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
+    });
+    assert.ok(migrated);
+    assert.ok(migrated.includes(templates.renderSpecCoreSection()));
+    assert.ok(!migrated.includes('exactly one file'));
+    assert.ok(migrated.includes("## User's Own Section"));
+  }
+});
+
 test('subheadings inside the section do not truncate the match', () => {
   // LEGACY_SECTION contains an H3; the span must run to the next H1/H2.
   const migrated = upgradeDoc(docWith(LEGACY_SECTION), {

@@ -1328,3 +1328,23 @@ Decision: **manual reload, not `<meta http-equiv="refresh">` auto-refresh.**
 Auto-refresh would deliver "always current" without a keypress, but it resets
 scroll and collapses any open `<details>` diff mid-read, and a stray refresh
 tag surviving into the final report is worse than a note. Manual note chosen.
+
+### [2026-07-23] Spec-flow delivery gap: legacy AGENTS.md sections never migrated
+A Frame-managed project's interactive agent, asked in natural language to plan
+a spec, never entered the deep spec.plan flow. Diagnosis from that session plus
+this repo: the self-serve protocol (SPEC_DRIVEN_SECTION v1, cli-spec-command-parity)
+already delegates all four spec commands to the staged
+`.frame/runtime/commands/<tool>/` templates — but the project's AGENTS.md still
+carried a pre-split FULL legacy section, and AGENTS_SPEC_LEGACY_MATCHERS only
+recognized the post-split core pointer, so upgradeSpecDocs never rewrote it and
+the old "write exactly one file" mini-flow kept shadowing the real templates.
+Decisions: bridge via the staged command templates (not
+`.frame/runtime/prompts/` — those only exist after a UI dispatch; not
+`.claude/commands/` — Frame never writes to the user's .claude/). Fix on
+`hotfix/spec-section-bridge` (based on feat/spec-enhancements — main lacks
+commandStaging entirely): added LEGACY_SPEC_DRIVEN_SECTION_V0 (2eeee3b
+generation) and both full-section generations to the AGENTS matcher list,
+refreshed sample-project fixtures to the current managed block, regression
+test added. No SPEC_SECTION_VERSION bump — bodies unchanged. Note:
+`.claude/skills/spec-plan` seen in the affected project is not Frame-generated;
+delete it there by hand.

@@ -117,12 +117,69 @@ Full workflow (file layout, lifecycle, slash commands): see
 **"Spec-Driven Development"** in \`.frame/docs/REFERENCE.md\`.`;
 
 /**
- * Legacy matchers per doc: REFERENCE.md carried the full section, AGENTS.md
- * the short core pointer. docsManagedBlock.upgradeDoc migrates a section to
- * a managed block only when it matches one of these.
+ * Oldest shipped generation of the full section (before the "steer the
+ * conversation" rewrite): AGENTS.md predating the AGENTS/REFERENCE split
+ * carried the full section, so both full-section generations are legal
+ * AGENTS.md matchers. REFERENCE.md was born after the rewrite and only ever
+ * carried the newer text.
+ */
+const LEGACY_SPEC_DRIVEN_SECTION_V0 = `## Spec-Driven Development (.frame/specs/)
+
+Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`tasks.json\` in sync.
+
+### File layout
+
+Each spec lives in its own folder:
+
+\`\`\`
+.frame/specs/<slug>/
+  spec.md       — what we're building (Problem, Goal, Constraints, Success Criteria, Out of Scope)
+  plan.md       — how (Architecture, Files, Dependencies, Sequencing)
+  tasks.md      — flat bullet list, "- T01 · description"
+  status.json   — phase + metadata
+\`\`\`
+
+\`<slug>\` is kebab-case, derived from the spec title.
+
+### Lifecycle phases
+
+\`draft\` → \`specified\` → \`planned\` → \`tasks_generated\` → \`implementing\` → \`done\`
+
+Frame auto-advances phase from filesystem state (file presence). After writing each artifact, update \`status.json\` so \`phase\`, \`updated_at\`, and \`last_phase_at\` reflect reality — Frame's watcher will reconcile if you forget.
+
+### Slash commands
+
+When the user types a Frame slash command, write **exactly one file** and then update \`status.json\`:
+
+- \`/spec.new <description>\` → write \`spec.md\` (sections: Problem, Goal, Constraints, Success Criteria, Out of Scope). Phase → \`specified\`.
+- \`/spec.plan\` → read \`spec.md\`, write \`plan.md\` (sections: Architecture, Files, Dependencies, Sequencing). Phase → \`planned\`.
+- \`/spec.tasks\` → read \`spec.md\` + \`plan.md\`, write \`tasks.md\` as a flat \`- T01 · ...\` bullet list (5–12 tasks, imperative voice). Phase → \`tasks_generated\`.
+
+After \`/spec.tasks\`, **do not** also write entries to \`tasks.json\` — Frame's watcher imports them automatically with \`source: "spec:<slug>:T<n>"\` markers.
+
+### tasks.json linkage
+
+Spec-generated tasks carry a \`source\` field. Treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.
+
+### When to suggest a spec
+
+If the user describes work bigger than a one-shot edit (a new feature, a multi-file refactor, a cross-cutting fix), suggest a spec first: *"This sounds like a spec — want me to draft \`.frame/specs/<slug>/spec.md\`?"*
+
+For one-line typo fixes, build errors, or clarifying questions, skip the spec — go direct.`;
+
+/**
+ * Legacy matchers per doc: REFERENCE.md only ever carried the newest legacy
+ * full section; AGENTS.md carried the short core pointer since the
+ * AGENTS/REFERENCE split, and either full-section generation before it.
+ * docsManagedBlock.upgradeDoc migrates a section to a managed block only
+ * when it matches one of these.
  */
 const REFERENCE_SPEC_LEGACY_MATCHERS = [LEGACY_SPEC_DRIVEN_SECTION];
-const AGENTS_SPEC_LEGACY_MATCHERS = [LEGACY_SPEC_DRIVEN_CORE_SECTION];
+const AGENTS_SPEC_LEGACY_MATCHERS = [
+  LEGACY_SPEC_DRIVEN_CORE_SECTION,
+  LEGACY_SPEC_DRIVEN_SECTION,
+  LEGACY_SPEC_DRIVEN_SECTION_V0
+];
 
 /**
  * Spec-Driven Development section — the full self-serve protocol shipped to
@@ -961,6 +1018,7 @@ module.exports = {
   renderSpecCoreSection,
   SPEC_SECTION_VERSION,
   LEGACY_SPEC_DRIVEN_SECTION,
+  LEGACY_SPEC_DRIVEN_SECTION_V0,
   LEGACY_SPEC_DRIVEN_CORE_SECTION,
   REFERENCE_SPEC_LEGACY_MATCHERS,
   AGENTS_SPEC_LEGACY_MATCHERS,
