@@ -21,6 +21,7 @@ const state = require('./state');
 const sectionRail = require('./sectionRail');
 const { FileText } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
+const specNextAction = require('./specNextAction');
 
 let host = null;
 let seq = 0;
@@ -181,7 +182,7 @@ function createViewport() {
 
     const { status, spec, plan, tasks, outcome } = activeSpec;
     const aiLabel = status.ai_tool || '';
-    const nextAction = nextActionForPhase(status.phase);
+    const nextAction = specNextAction.nextActionForPhase(status.phase);
 
     contentEl.innerHTML = `
       <div class="spec-detail-header">
@@ -193,7 +194,13 @@ function createViewport() {
         </div>
       </div>
       ${renderStepper(status.phase)}
-      ${nextAction ? renderNextActionBar(nextAction, require('./agentDispatch').getSpecLaneInfo(slug)) : ''}
+      ${nextAction ? specNextAction.renderNextActionBar({
+        action: nextAction,
+        lane: require('./agentDispatch').getSpecLaneInfo(slug),
+        hint: activeSpec.implementHint,
+        counts: specNextAction.taskCounts(allTasks, slug),
+        buttonId: 'spec-section-action-btn'
+      }) : ''}
       <div class="spec-detail-tabs">
         ${renderTabButton('spec', 'Spec', !!spec)}
         ${renderTabButton('plan', 'Plan', !!plan)}
@@ -211,7 +218,10 @@ function createViewport() {
     contentEl.querySelector('#spec-section-action-btn')?.addEventListener('click', () => {
       if (nextAction) runSpecCommand(nextAction.command);
     });
-    if (activeTab === 'tasks') attachTaskActionHandlers(contentEl);
+    if (activeTab === 'tasks') {
+      attachTaskActionHandlers(contentEl);
+      attachImplementReportHandler(contentEl);
+    }
     if (activeTab === 'plan') attachPlanReportHandler(contentEl);
   }
 
@@ -225,7 +235,10 @@ function createViewport() {
     });
     const body = contentEl.querySelector('#spec-section-detail-body');
     if (body) body.innerHTML = renderTabBody(tab);
-    if (tab === 'tasks') attachTaskActionHandlers(contentEl);
+    if (tab === 'tasks') {
+      attachTaskActionHandlers(contentEl);
+      attachImplementReportHandler(contentEl);
+    }
     if (tab === 'plan') attachPlanReportHandler(contentEl);
   }
 
@@ -249,7 +262,10 @@ function createViewport() {
   }
 
   function renderTabBody(tab) {
-    if (tab === 'tasks') return renderTasksTabBody();
+    if (tab === 'tasks') {
+      const reportRow = activeSpec?.implementReportPath ? renderImplementReportRow() : '';
+      return reportRow + renderTasksTabBody();
+    }
     const md = activeSpec?.[tab];
     if (md) {
       const reportRow = tab === 'plan' && activeSpec?.planReportPath ? renderPlanReportRow() : '';
@@ -276,6 +292,25 @@ function createViewport() {
   function attachPlanReportHandler(contentEl) {
     contentEl.querySelector('.spec-plan-report-btn')?.addEventListener('click', () => {
       const p = activeSpec?.planReportPath;
+      if (p) require('electron').shell.openPath(p);
+    });
+  }
+
+  // "View Implementation Report" — shown above the task list only when the
+  // spec folder holds an implement-report.html (getSpec exposes it as
+  // implementReportPath). The autonomous implement mode regenerates the file
+  // after each task, so reopening (or refreshing) it follows the run live.
+  function renderImplementReportRow() {
+    return `
+      <div class="spec-plan-report-row">
+        <button class="btn btn-secondary spec-implement-report-btn">View Implementation Report</button>
+      </div>
+    `;
+  }
+
+  function attachImplementReportHandler(contentEl) {
+    contentEl.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
+      const p = activeSpec?.implementReportPath;
       if (p) require('electron').shell.openPath(p);
     });
   }
@@ -351,56 +386,6 @@ function createViewport() {
 }
 
 // ─── Pure helpers ───────────────────────────────────
-
-function nextActionForPhase(phase) {
-  switch (phase) {
-    case 'draft':
-      return { command: 'spec.new', label: 'Write the Spec', hint: 'Frame turns your description into a structured spec.md.' };
-    case 'specified':
-      return { command: 'spec.plan', label: 'Generate Plan', hint: 'Frame breaks this spec into a technical plan (plan.md).' };
-    case 'planned':
-      return { command: 'spec.tasks', label: 'Break into Tasks', hint: 'Frame splits the plan into discrete, trackable tasks.' };
-    case 'tasks_generated':
-    case 'implementing':
-      return { command: 'spec.implement', label: 'Implement Next Task', hint: 'Frame implements the next pending task — one per click.' };
-    default:
-      return null;
-  }
-}
-
-function renderNextActionBar(action, lane) {
-  // Live agent mid-turn in the assigned Frame → lock the button against
-  // double-dispatch. Derived from getSpecLaneInfo on every render; lane
-  // activity re-renders the section, so a dead agent or closed Frame
-  // unlocks it again on its own.
-  if (lane && lane.busy) {
-    const verb = lane.status === 'agent-approval' ? 'Waiting for approval' : 'Working';
-    return `
-    <div class="spec-next-action spec-next-action-busy">
-      <div class="spec-next-action-text">
-        <strong>${escapeHtml(verb)} in ${escapeHtml(lane.name)}</strong>
-        <span>Unlocks when the agent finishes its turn.</span>
-        <code class="spec-next-action-cmd">/${escapeHtml(action.command)}</code>
-      </div>
-      <button class="btn btn-primary spec-action-btn" disabled>
-        <span class="spec-action-spinner"></span>${escapeHtml(action.label)}
-      </button>
-    </div>
-  `;
-  }
-  return `
-    <div class="spec-next-action">
-      <div class="spec-next-action-text">
-        <strong>Next step: ${escapeHtml(action.label)}</strong>
-        <span>${escapeHtml(action.hint)}</span>
-        <code class="spec-next-action-cmd">/${escapeHtml(action.command)}</code>
-      </div>
-      <button class="btn btn-primary spec-action-btn" id="spec-section-action-btn">
-        ${escapeHtml(action.label)}
-      </button>
-    </div>
-  `;
-}
 
 const STEPPER_STEPS = ['Spec', 'Plan', 'Tasks', 'Implement', 'Done'];
 

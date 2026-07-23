@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implement modes — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--code:#222225;--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Implement modes — Plan Overview</h1>
+  <p class="muted">2026-07-20 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/implement-modes/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">10 decisions taken</span><span class="pill">7 loop iterations</span><span class="pill">7 files</span><span class="pill">0 dependencies</span><span class="pill warn">extends the spec</span><span class="pill warn">supersedes S2/S3</span><span class="pill good">first spec shipping runnable code</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p><code>/spec.implement</code> ships exactly one flow: take the next pending task, ship it, write an outcome entry, stop. The user turns the loop by dispatching again. That is a reasonable default and the only option.</p>
+  <p>Two gaps follow. There is no autonomous path — someone who trusts the plan and wants the whole spec built in one run must dispatch N times and review between each. And there is no way to bring your own flow: teams have conventions (test-first, no-commit-until-review, verification steps specific to their stack), and today the only lever is replacing <code>spec.implement.md</code> wholesale via the template override, which also discards everything Frame's default flow does for task and phase accounting.</p>
+  <p>This adds a mode picker with three choices, a rich mode that runs the whole range with tests, atomic commits and an HTML report, and a described-flow mode that layers a user's own procedure on top of a core it cannot drop.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: resolving which mode runs, the rich mode's per-task loop, and how the run gets the authority to act without a prompt on every step.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / dispatch</span>
+    <span>run stage</span>
+    <span class="l-data">file read / written</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — The picker, at every dispatch</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Run /spec.implement</div></div>
+          <div class="fd-arrow"><span class="lbl">reads</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">status.json · config.json</div><div class="fd-sub">last choice · project default</div></div>
+          <div class="fd-arrow"><span class="lbl">launch hint</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Launch with matching flags</div><div class="fd-sub">autonomous hint → --settings + auto</div></div>
+        </div>
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Picker — always shown, before any work</div><div class="fd-sub">A step-by-step · B autonomous+report · C saved flow (when one exists) · last: describe your own — default on top, marked, one keypress</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">picked mode needs more autonomy than the session has</span>
+          <div class="fd-node system"><div class="fd-title">Record choice, request one re-dispatch</div><div class="fd-sub">an autonomous run without flags would prompt on every edit</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">flags suffice</span>
+          <div class="fd-node system"><div class="fd-title">Offer to save as default</div><div class="fd-sub">only while no default exists</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Run the mode</div><div class="fd-sub">first task starts under its rules</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Asked before the work, not after</b> (D1). A task executed before the answer obeys no mode — uncommitted, absent from the report — and a rich run would then need retroactive repair.</li>
+          <li><b>Asked every time, answered in one keypress</b> (D1, revised on the user's direction). A saved default leads the list marked <code>(default)</code> rather than silencing the question — which makes switching modes mid-spec free: run the first tasks step by step, hand the rest to the autonomous mode. <code>status.json</code> now records the <i>last choice</i>, not a never-ask-again resolution.</li>
+          <li><b>The upgrade seam is one re-dispatch</b> (D10). Frame launches on a hint and cannot know the answer; picking <i>more</i> autonomy than the session has means record-and-relaunch, while picking <i>less</i> proceeds — step-by-step's control point is the agent's own per-task question, not the permission layer.</li>
+          <li><b>The picker sells the payoff, not the label.</b> The autonomous option must state that it produces an HTML report openable as each task completes, with that task's real diff, a what-changed / why-changed summary, and its test result.</li>
+          <li><b>Additive state</b> (C4): <code>validateSpecStatus</code> (<code>specManager.js:91</code>) checks required fields only and every <code>writeStatus</code> spreads the existing object, so <code>implement_mode</code> needs no schema change.</li>
+          <li><b>No assumption about how to ask</b> (G7): use the CLI's structured-question tool if it has one, otherwise print numbered options and <b>stop</b> — never self-select and continue.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — The rich mode's per-task loop</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Implement Tnn</div><div class="fd-sub">plan.md Files + Sequencing</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Verify</div><div class="fd-sub">project.commands, not a guess</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">report-data.json</div><div class="fd-sub">entry, hash empty</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">outcome.md</div><div class="fd-sub">what shipped, in prose</div></div>
+        </div>
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">One atomic commit</div><div class="fd-sub">code + outcome + report data + state</div></div>
+          <div class="fd-arrow"><span class="lbl">rev-parse</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Fill in the hash</div></div>
+          <div class="fd-arrow"><span class="lbl">generate</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">implement-report.html</div><div class="fd-sub">real diff pulled from git</div></div>
+          <div class="fd-arrow"><span class="lbl">amend</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Next task</div><div class="fd-sub">without asking</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The amend exists because a hash cannot precede its own commit.</b> The entry is written with an empty hash, the commit is made, the hash is read back, the report is regenerated and folded in with <code>--amend --no-edit</code>. Safe precisely because nothing is pushed.</li>
+          <li><b>Diffs are never transcribed</b> — the generator pulls them from git by hash. That is the one place a hallucination would silently corrupt the artifact, and the whole reason the report is generated rather than written by the agent.</li>
+          <li><b>No confirmation between tasks</b> (D2). "Ask almost nothing" is the mode's reason to exist; a prompt per task turns it back into step-by-step.</li>
+          <li><b>Verification comes from the project</b> (C3): <code>.frame/config.json</code> <code>project.commands</code>, with no runner or stack baked into the shipped template.</li>
+          <li><b>The report excludes its own bookkeeping</b> — per-commit diffs drop <code>.frame/</code> and the report files, so what is shown is implementation.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Authority to act without a prompt per step</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Dispatch, mode = autonomous</div></div>
+          <div class="fd-arrow"><span class="lbl">writes</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.frame/implement-permissions.json</div><div class="fd-sub">allow + deny</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Launch with --settings + --permission-mode auto</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">on the denylist</span>
+          <div class="fd-node system"><div class="fd-title">Refused, always</div><div class="fd-sub">git push · history rewrites — deny resolves first in every mode</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">on the allowlist</span>
+          <div class="fd-node outcome"><div class="fd-title">Runs, no prompt</div><div class="fd-sub">edits, writes, git plumbing, the project's own check</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">unlisted, harmless</span>
+          <div class="fd-node outcome"><div class="fd-title">Classifier approves, runs</div><div class="fd-sub">mkdir, renames, a formatter — the loop never stalls on the unanticipated</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">unlisted, dangerous</span>
+          <div class="fd-node system"><div class="fd-title">Classifier blocks</div><div class="fd-sub">3 consecutive / 20 total blocks → pause and ask the user</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>A rule is not an interactive approval.</b> Verified in the docs: an interactive <code>Edit</code>/<code>Write</code> approval lasts only for the session and is never written to disk; only <code>Bash</code> approvals persist. So "the user grants it once in the CLI" cannot work for a mode whose main activity is editing files — a pre-existing rule is the only mechanism that does.</li>
+          <li><b>The denylist carries the safety load, not the allowlist.</b> <code>dontAsk</code> was considered and reversed (D4): it silently denies everything unlisted with no way to ask, so any unanticipated harmless command stalls the run. In <code>auto</code>, ask-when-it-matters replaces deny-and-stall — repeated classifier blocks pause the run and put a real question to the user.</li>
+          <li><b>C2 survives</b> — the file lives under <code>.frame/</code>, and <code>--settings</code> takes an arbitrary path and loads <i>additional</i> settings, so <code>.claude/</code> is never written and the user's own rules stay in force.</li>
+          <li><b>"Never push" stops being prose</b> (D9, C7). <code>Bash(git push *)</code> in the denylist, and deny is evaluated first at every scope, so the constraint becomes mechanically impossible rather than requested.</li>
+          <li><b>Frame supplies the runtime</b> (D6). <code>ELECTRON_RUN_AS_NODE=1</code> on Frame's own binary runs as Node 18.18.2, injected into the terminal the way <code>envForLane</code> already injects orchestration variables. The generator must therefore target Node 18, though the repo's CI runs Node 20.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The three modes, side by side</h3>
+  <table>
+    <tr><th>Mode</th><th>Loop</th><th>Commits</th><th>Verifies</th><th>Report</th></tr>
+    <tr><td><b>Step by step</b></td><td>user turns it</td><td>on request</td><td>no</td><td>no</td></tr>
+    <tr><td><b>Autonomous + report</b></td><td>agent turns it</td><td>per task, atomic</td><td>yes</td><td>yes</td></tr>
+    <tr><td><b>Describe your own</b></td><td colspan="4">as described — over a core it cannot drop</td></tr>
+  </table>
+  <p class="muted">The shared core every mode obeys: task selection by <code>spec:&lt;slug&gt;:T&lt;n&gt;</code>, <code>plan.md</code> as scope authority, task state and spec phase transitions, one <code>outcome.md</code> entry per task, never push. That core is what separates a described flow from the existing template override, which replaces everything including the accounting.</p>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · When is the mode chosen? <span class="tag">revised on review</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">At every dispatch, before any work — default listed first, marked, one keypress</div>
+        <div class="opttrade">One question per dispatch; in step-by-step that means one per task.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Once per spec, persisted, never re-asked</div>
+        <div class="opttrade">Zero repeat questions — and switching modes mid-spec means digging into state instead of just answering differently.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <i>first decided as ask-once; revised on the user's direction.</i> Always-asking makes mode-switching free — run the first tasks step by step, hand the rest to the autonomous mode — and with the default leading the list the cost is a single Enter. What survives from the original decision is the <i>before any work</i> half: a task executed before the answer obeys no mode, and a rich run would need retroactive repair. <code>status.json</code> keeps recording the choice, but as the next dispatch's launch hint rather than a silencer.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D2 · Does the rich mode confirm between tasks?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No — commit and continue</div>
+        <div class="opttrade">A wrong turn runs further before the user sees it.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">One short confirmation per task</div>
+        <div class="opttrade">Keeps the user in control, and makes the mode indistinguishable from step-by-step.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> "ask almost nothing" is the mode's reason to exist. Nothing is pushed, so an unwanted commit is cheap to undo — and the report plus <code>outcome.md</code> mean the user can review the whole run afterwards rather than gate it step by step.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D3 · Does this spec's work ship with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Pure logic and data transforms only</div>
+        <div class="opttrade">The git-facing and filesystem paths go uncovered.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Everything testable, with a temporary repo fixture</div>
+        <div class="opttrade">Broader assurance; starts a fixture convention the project does not currently have.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the first run of the new posture gate. The testing record's <b>Covered</b> line states the convention — test the pure module, skip the Electron-coupled wrapper — so the option matching it led. This is also the first of the three specs to ship runnable code rather than only prompts, so the earlier "nothing to test" answer no longer applies.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D4 · How does the autonomous mode act without a prompt per step? <span class="tag">revised on review</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname"><code>auto</code> mode plus a denylist Frame owns under <code>.frame/</code></div>
+        <div class="opttrade">Trusts the background classifier for unlisted operations.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname"><code>dontAsk</code> plus an exhaustive allowlist</div>
+        <div class="opttrade">Strictest on paper — and any unanticipated harmless command silently stalls the run, with no way to ask.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <i>first decided as <code>dontAsk</code>, reversed when the user asked the right question: "if it's not on the list, it just denies? shouldn't it ask when asking is what's needed?"</i> Exactly so. An exhaustive allowlist cannot be written in advance — <code>mkdir</code>, a rename, a formatter would each stall a <code>dontAsk</code> run with no recovery. In <code>auto</code> mode, deny rules still resolve first in every mode (the push denial keeps its teeth — needed, since the classifier otherwise permits pushing to the working repo by default), unlisted harmless operations are approved by the classifier, dangerous ones are blocked, and after 3 consecutive or 20 total blocks the session <b>pauses and prompts the user</b> — ask-when-it-matters instead of deny-and-stall. <code>--settings</code> still takes an arbitrary path and loads <i>additional</i> settings, so the file lives under <code>.frame/</code> and C2 holds.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D5 · Where does a described flow live?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Its own file, referenced from config</div>
+        <div class="opttrade">Two files instead of one, and a reference to resolve.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Inline in <code>config.json</code></div>
+        <div class="opttrade">Single source of truth, stored as an escaped multi-paragraph JSON string.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> a description runs to paragraphs and config files are read whole. Embedding prose there makes both the config unreadable and the flow painful to edit — the user would be fighting JSON escaping to change how their own work runs.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D6 · Where does the Node runtime come from? <span class="tag">follows from the report generator</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Frame supplies its own, injected into the terminal</div>
+        <div class="opttrade">The generator must target Node 18, not the repo's CI version.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Require <code>node</code> on the user's <code>PATH</code>, skip the report when absent</div>
+        <div class="opttrade">Nothing to wire up, and the headline feature silently disappears for anyone without a global Node.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> verified — <code>ELECTRON_RUN_AS_NODE=1</code> on Frame's binary runs as Node 18.18.2, so the runtime is already present and depending on the user's <code>PATH</code> is self-inflicted. Frame is the tool; supplying what it needs is its job. <code>envForLane</code> (<code>orchestrationManager.js:87</code>) and <code>ptyManager.js:217</code> are the existing path for handing a terminal an environment.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D7 · Staging a second asset</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Generalise staging to be driven by the command</div>
+        <div class="opttrade">Touches a line the spec did not anticipate.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Add a second hardcoded branch</div>
+        <div class="opttrade">Smaller diff, and the same edit again for the next staged asset.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — <code>buildSpecCommandFile</code> stages the report template only for <code>spec.plan</code> (<code>specManager.js:344</code>), a mechanical consequence of there having been exactly one staged asset until now.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D8 · Runtime fallback order <span class="tag">follows from D6</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Injected runtime → <code>PATH</code> → skip the report, keep the data</div>
+        <div class="opttrade">Three branches where one would do.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Injected runtime only, fail if absent</div>
+        <div class="opttrade">Simplest, and breaks in any terminal Frame did not dispatch.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — with D6 the first branch is the normal path, so the rest is genuine edge handling. <code>report-data.json</code> is written regardless, so a later run with a runtime can produce the report; the work itself never depends on it.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D9 · "Never push" — prose or mechanism?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">A deny rule</div>
+        <div class="opttrade">None — the allowlist exists anyway.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">An instruction in the prompt</div>
+        <div class="opttrade">How it works today, and it depends on the agent obeying.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently once D4 landed. Deny is evaluated first and cannot be overridden at a lower scope, so C7 becomes impossible rather than requested. History rewrites beyond the mode's own <code>--amend</code> are denied on the same grounds.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D10 · Frame launches before the picker answers — how do the flags get set? <span class="tag">follows from D1 + D4</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Launch on a hint; an autonomy upgrade costs one re-dispatch</div>
+        <div class="opttrade">Rarely, the user answers the picker and then presses Run once more.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Always launch with autonomous flags, just in case</div>
+        <div class="opttrade">No seam ever — and every step-by-step and planning session runs with broader permissions than it needs.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the permission mode is a launch flag and cannot be changed from inside a running session, while the picker's answer only exists after launch. The hint — this spec's last choice, else the project default — is right in the common case; when it is wrong in the <i>upgrade</i> direction the agent records the choice and requests one re-dispatch, because an autonomous run without its flags would prompt on every edit, the exact thing the mode exists to avoid. Wrong in the <i>downgrade</i> direction is harmless: step-by-step's control point is the agent's own per-task question, not the permission layer.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>The autonomous mode makes a wrong turn and runs several tasks past it</td><td>Accepted as the cost of D2. Nothing is pushed, every task is its own commit, and <code>outcome.md</code> plus the report make the run reviewable afterwards — so recovery is <code>git reset</code>, not archaeology.</td></tr>
+    <tr><td>The verification command in <code>project.commands</code> is wrong or absent</td><td>Resolved from the project rather than guessed. When absent, the mode proceeds without a check rather than inventing one — a wrong command would fail every task and stall the run.</td></tr>
+    <tr><td>A described flow omits the accounting and leaves <code>tasks.json</code> stale</td><td>The shared core binds every mode. A described flow governs loop, commits, verification and reporting only; task state, phase and <code>outcome.md</code> are not its to drop.</td></tr>
+    <tr><td>An unanticipated but harmless command appears mid-run</td><td>Approved by auto mode's classifier rather than stalling — the failure mode that killed the <code>dontAsk</code> design. The allowlist only pre-clears the hot path; it no longer has to be exhaustive.</td></tr>
+    <tr><td>The classifier blocks something the run legitimately needs</td><td>After 3 consecutive or 20 total blocks the session pauses and prompts — the user answers one real question and the run resumes. Ask-when-it-matters, by design.</td></tr>
+    <tr><td>The classifier is too permissive about something Frame forbids</td><td>The denylist wins at every scope and resolves before the classifier — and it is genuinely needed: auto mode's defaults permit pushing to the working repository.</td></tr>
+    <tr><td>Frame's Node is 18 while the repo's CI is 20</td><td>The generator targets Node 18. Named here because the mismatch is invisible locally — CI would pass on syntax the bundled runtime cannot execute.</td></tr>
+    <tr><td>A packaged macOS app path contains spaces</td><td>The injected runtime path is quoted at the point of use. Unquoted it would split mid-path and fail only in packaged builds.</td></tr>
+    <tr><td>A CLI with no structured-question tool reaches the mode picker</td><td>Options are printed and the run <b>stops</b>. The prompt states it as a hard rule: no self-selection, no "reasonable default", no code before an answer. This is the fragile half — an agent without a blocking tool tends to continue.</td></tr>
+    <tr><td>The launch hint is wrong — the session was launched bare and the user picks autonomous</td><td>The agent records the choice and requests one re-dispatch (D10). Running anyway would prompt on every edit; a single extra Run press is the cheaper failure.</td></tr>
+    <tr><td>Picker fatigue in step-by-step — one question per task</td><td>Accepted knowingly (D1). Default-first makes it a single Enter, and the same mechanism is what makes switching modes mid-spec free.</td></tr>
+    <tr><td>Two specs run autonomously in parallel and both write the permission file</td><td>The file is derived from the mode rather than the spec, so concurrent writes agree. Noted rather than guarded.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: teaching the orchestration worker to honour <code>implement_mode</code> (a follow-up spec — this one only avoids foreclosing it); a "View Implementation Report" button in the spec panel; rendering the report inside Frame; editing or deleting saved flows from the UI; <code>codex</code> / <code>gemini</code> variants.</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>A mode picker offering step-by-step, autonomous-with-report, and describe-your-own, explaining what each gives the user <span class="tag">G1</span></td><td>Architecture · The three modes · Flow A · Sequencing 7</td></tr>
+    <tr><td>Resolution order and persistence — spec, then project default, then ask; with a one-time offer to save the default <span class="tag">G2</span></td><td>Architecture · The picker · Flow A · Sequencing 7 — <b>revised by D1:</b> the picker always shows; the recorded choice and default order it instead of silencing it</td></tr>
+    <tr><td>A shared core every mode obeys, including a user-described one <span class="tag">G3</span></td><td>Architecture · The shared core · Sequencing 8</td></tr>
+    <tr><td>Step by step, enriched with a what-changed / why-changed close-out and one question per task <span class="tag">G4</span></td><td>Sequencing 9</td></tr>
+    <tr><td>Autonomous mode: full range in one run, verified, atomically committed per task <span class="tag">G5</span></td><td>Architecture · Flow B · Sequencing 10</td></tr>
+    <tr><td>An implementation report carrying each task's real diff, summary and test result <span class="tag">G6</span></td><td>Architecture · The implementation report · Flow B · Sequencing 4, 6</td></tr>
+    <tr><td>Asking without assuming a specific question tool, stopping when none exists <span class="tag">G7</span></td><td>Flow A notes · Sequencing 7</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Template-first — machinery in the prompt plus <code>status.json</code> / <code>config.json</code>, no IPC, renderer or modal work <span class="tag">C1</span></td><td><b>Softened:</b> Architecture · Scope note — D4 and D6 touch dispatch; no renderer, modal or IPC work is added</td></tr>
+    <tr><td>Zero-touch — every artifact under <code>.frame/</code>, nothing written to <code>.claude/</code> <span class="tag">C2</span></td><td>Architecture · Permissions — <code>--settings</code> takes an arbitrary path, so the list lives under <code>.frame/</code></td></tr>
+    <tr><td>No stack assumptions in shipped templates <span class="tag">C3</span></td><td>Architecture · Flow B notes — verification resolves through <code>project.commands</code>; no runner or scope vocabulary hardcoded</td></tr>
+    <tr><td><code>status.json</code> stays additive — <code>implement_mode</code> needs no schema change <span class="tag">C4</span></td><td>Architecture · The picker · Flow A notes</td></tr>
+    <tr><td>Existing lifecycle unchanged — <code>derivePhase</code>, watcher, tasks sync, Tasks panel <span class="tag">C5</span></td><td>Files — no change to any of them</td></tr>
+    <tr><td>Template override precedence preserved <span class="tag">C6</span></td><td>Files — loading still runs through <code>loadCommandTemplate</code></td></tr>
+    <tr><td>Never push, in any mode <span class="tag">C7</span></td><td>Architecture · Permissions · D9 · Sequencing 2 — enforced by a deny rule rather than requested</td></tr>
+    <tr><td>Orchestration untouched but not foreclosed <span class="tag">C8</span></td><td>Architecture · The shared core — mode definitions stay readable independently of the dispatch path</td></tr>
+    <tr><td><code>codex</code> / <code>gemini</code> stay empty <span class="tag">C9</span></td><td>Files — only the <code>claude-code</code> directory appears</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>A spec with no resolved mode asks before any file is edited, and the autonomous option names the report, the diff and the test result <span class="tag">S1</span></td><td>Sequencing 7 · proven by dispatching on a fresh spec and reading the picker</td></tr>
+    <tr><td>Choosing a mode writes <code>implement_mode</code>; a second dispatch does not re-ask <span class="tag">S2</span></td><td><b>Superseded by D1</b> (user direction) → S2′: the second dispatch shows the picker with the recorded choice on top, confirmable in one keypress · Sequencing 7 · proven by dispatching twice and reading the picker order</td></tr>
+    <tr><td>The project-wide default is offered once and, once accepted, a different spec runs without asking <span class="tag">S3</span></td><td><b>Superseded by D1</b> → S3′: once a default is saved, every spec's picker leads with it marked <code>(default)</code>, and the save offer never repeats · Sequencing 7 · proven across two specs</td></tr>
+    <tr><td>Step by step ends each task with a report and exactly one question; "continue" proceeds in the same run <span class="tag">S4</span></td><td>Sequencing 9 · proven by running a two-task spec</td></tr>
+    <tr><td>Autonomous completes a multi-task spec in one run, one commit per task, one outcome entry each, report opening standalone <span class="tag">S5</span></td><td>Sequencing 10 · proven by running this spec's own task list</td></tr>
+    <tr><td>Per-commit diffs contain no <code>.frame/</code> paths and no report files <span class="tag">S6</span></td><td>Sequencing 4 · proven by inspecting a generated report</td></tr>
+    <tr><td>A described flow runs as described and still leaves task state, phase and <code>outcome.md</code> correct <span class="tag">S7</span></td><td>Sequencing 8, 11 · proven by describing a flow and checking the accounting</td></tr>
+    <tr><td>On a CLI with no structured-question tool the run presents numbered options and stops <span class="tag">S8</span></td><td>Sequencing 7 · proven by inspection; not reproducible in this repo, which is Claude Code-only</td></tr>
+    <tr><td><code>spec.plan</code>, <code>spec.tasks</code> and the orchestration worker behave exactly as before <span class="tag">S9</span></td><td>Files · Footprint — none of their paths appear; proven by the suite and by a planning run</td></tr>
+  </table>
+  <h4>Plan-added criteria</h4>
+  <p class="muted">S1–S9 predate D4 and D6, so nothing in the spec covers permissions, prompting or the runtime — which left steps 1–3, roughly a quarter of the plan, claimed by no criterion and therefore unverifiable. These three close that gap and are marked <b>P</b> to stay distinguishable from the spec's own.</p>
+  <table>
+    <tr><th>Criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>The autonomous mode implements a multi-task spec end to end with no permission prompt between steps <span class="tag">P1</span></td><td>Sequencing 1, 2, 3 · proven by running it and counting interruptions — the target is zero</td></tr>
+    <tr><td>An attempted push is refused by rule, not by the agent declining <span class="tag">P2</span></td><td>Sequencing 2 · proven by having a run attempt <code>git push</code> and confirming the refusal comes from the permission layer</td></tr>
+    <tr><td>The report is produced on a machine with no <code>node</code> on <code>PATH</code> <span class="tag">P3</span></td><td>Sequencing 1, 4 · proven by running with <code>PATH</code> stripped of Node and confirming the report still generates</td></tr>
+  </table>
+  <p class="muted"><b>P2 is not bookkeeping.</b> It is the difference between C7 being requested and C7 being enforced, and only a run that actually attempts the push can tell those two apart.</p>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td><code>spec.implement</code> ships exactly one flow</td><td><span class="pill good">verified</span> <code>spec.implement.md</code>, 67 lines, 6 sections, no branching</td></tr>
+    <tr><td><code>validateSpecStatus</code> checks required fields only</td><td><span class="pill good">verified</span> <code>specManager.js:91</code></td></tr>
+    <tr><td>Every <code>writeStatus</code> spreads the existing object</td><td><span class="pill good">verified</span> <code>:239</code>, <code>:479</code>, <code>:612</code></td></tr>
+    <tr><td>Asset staging exists and can be reused</td><td><span class="pill warn">partly</span> <code>stageReportTemplateAsset:314</code> exists, but <code>:344</code> stages <b>only</b> for <code>spec.plan</code> — the spec did not anticipate this</td></tr>
+    <tr><td><code>project.commands</code> can supply the verification command</td><td><span class="pill good">verified</span> <code>.frame/config.json</code>, written by <code>detect-project.js</code></td></tr>
+    <tr><td>Config read/write has an established pattern</td><td><span class="pill good">verified</span> <code>getFrameConfig</code> (<code>frameProject.js:39</code>), write at <code>:399</code></td></tr>
+    <tr><td><code>outcome.md</code> format is in use</td><td><span class="pill good">verified</span> present in three specs; <code>## T&lt;n&gt; — title</code> plus a captured footer</td></tr>
+    <tr><td>Frame launches the CLI bare, with no flags</td><td><span class="pill warn">new evidence</span> <code>aiToolManager.js:38</code> — <code>command: 'claude'</code>; adding flags means touching the launch path</td></tr>
+    <tr><td>Permissions can be pre-granted by the user in the CLI</td><td><span class="pill warn">drifted</span> only <code>Bash</code> approvals persist (to <code>.claude/settings.local.json</code>); <code>Edit</code>/<code>Write</code> approvals are session-only, so a rule is the only workable mechanism</td></tr>
+    <tr><td>A settings file must live under <code>.claude/</code></td><td><span class="pill good">verified false</span> <code>--settings &lt;file-or-json&gt;</code> takes an arbitrary path and loads <i>additional</i> settings — so C2 holds</td></tr>
+    <tr><td>The report generator needs Node on the user's <code>PATH</code></td><td><span class="pill good">verified false</span> <code>ELECTRON_RUN_AS_NODE=1</code> on Frame's binary runs as Node 18.18.2</td></tr>
+    <tr><td>Frame can inject environment into a dispatched terminal</td><td><span class="pill good">verified</span> <code>envForLane</code> (<code>orchestrationManager.js:87</code>), spread at <code>ptyManager.js:217</code></td></tr>
+    <tr><td>The testing record can be read rather than re-derived</td><td><span class="pill good">verified</span> <code>PROJECT_NOTES.md</code> <code>## Testing</code> present; this spec's work does not touch its <b>Not covered</b> area, so no re-scan was needed</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — constraint check: D4 and D6 both reach the dispatch path, which C1 rules out. Rather than restate C1 as satisfied, added a scope note separating what actually changed (how the command is launched) from what the constraint was protecting (mode selection staying out of the UI), and marked C1 softened in the coverage table.</li>
+    <li><b>Iteration 2</b> — reality check: the plan assumed asset staging could be reused as-is, but <code>specManager.js:344</code> stages only for <code>spec.plan</code>. Added the generalisation to Files and Sequencing rather than leaving it implied.</li>
+    <li><b>Iteration 3</b> — decisions: C7 ("never push") was still being carried as prose in the prompt while D4 had made a denylist available. Promoted it to a deny rule (D9) so the constraint is enforced rather than requested, and recorded the same treatment for history rewrites.</li>
+    <li><b>Iteration 4</b> — format and coverage audit: five sections in order, every G1–G7 / C1–C9 / S1–S9 ID owned by a named section, zero TBDs, every referenced path and symbol verified in code or marked New, tasks derivable from Sequencing alone. Pass — converged.</li>
+    <li><b>Iteration 5</b> — post-review audit, checking the inverse of the usual direction: not "does every ID have an owner" but "does every step have a claimant". Four of eleven did not. Step 5 is fine — it comes from D3, not from a spec criterion. Steps 1–3 were not: the entire permissions-and-runtime workstream had no criterion demanding it, because S1–S9 were written before D4 and D6 existed. The result was that the thing the mode is <i>for</i> — running without interruption — had no way to be verified, and C7's row pointed at Architecture with no implementation step attached. Added P1–P3, pointed C7 at Sequencing 2. The coverage check as previously run would never have caught this, since it only ever asked the question in one direction.</li>
+    <li><b>Iteration 6</b> — D4 reversed, prompted by the user reading the report and asking: "if it's not on the allowlist it just denies? shouldn't it ask when that step needs asking?" Correct on both counts. <code>dontAsk</code> optimises for strictness at the exact point this mode cannot afford it — an exhaustive allowlist cannot be written in advance, and every miss is a silent stall with no recovery. Verified against current docs: in <code>auto</code> mode deny rules resolve first exactly as in every mode (and are genuinely needed — the classifier permits pushing to the working repo by default), unlisted harmless operations are classifier-approved, dangerous ones blocked, and 3-consecutive/20-total blocks pause the run and prompt. Changed D4, the Permissions section, Sequencing 3, Flow C and the risk table. The lesson mirrors iteration 5's: the earlier framing scored "strict" as "safe" without asking what the mode's own success criterion — P1, zero interruptions — actually demands.</li>
+    <li><b>Iteration 7</b> — D1 revised on the user's direction after walking the flow end to end. The plan had "ask once per spec, persist, never re-ask"; the user's actual intent is "ask at every dispatch, with the default marked and listed first" — persistence orders the picker rather than silencing it, mode-switching mid-spec becomes free, and the answer costs one keypress. This supersedes two of the spec's own success criteria (S2, S3), recorded as S2′/S3′ in the coverage table and in the plan's scope note rather than silently edited in <code>spec.md</code>. The same walk surfaced the launch-flag seam D10 now covers: Frame launches before the picker answers, so it launches on a hint, and an autonomy upgrade costs one recorded re-dispatch. Changed D1, the picker section, Sequencing 3 and 7, Flow A, the risk table, and added D10.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-20 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/implement-modes/plan.md</code></footer>
+</div>
+</body>
+</html>

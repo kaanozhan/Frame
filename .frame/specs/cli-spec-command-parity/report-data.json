@@ -1,0 +1,92 @@
+{
+  "spec": {
+    "slug": "cli-spec-command-parity",
+    "title": "CLI parity for spec commands — the full flow without the button"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Managed-block engine (docsManagedBlock.js) with tests",
+      "commit": "4b224db",
+      "whatChanged": "Created src/shared/docsManagedBlock.js — a pure string-surgery engine: findBlock parses the versioned `frame:managed:spec-section` HTML-comment markers, upgradeDoc replaces a stamped-older block in place (every byte outside the span preserved), and a legacy-migration path replaces a heading-bounded section only when its text byte-matches (whitespace-normalized) a shipped Frame generation. test/docsManagedBlock.test.js covers version gating, once-only migration, customized-body no-op, and marker corruption.",
+      "whyChanged": "The engine is the safety core of the docs upgrade: it must never touch user prose. Beyond the plan, any marker fragment without a well-formed block now blocks legacy migration entirely — a dangling marker means corrupted state, and migrating around it could double-wrap a section.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "144/144 tests pass (11 new)"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Current-generation docs content in frameTemplates.js",
+      "commit": "f84919b",
+      "whatChanged": "Added SPEC_SECTION_VERSION (1) to src/shared/frameTemplates.js, preserved the old spec sections byte-for-byte as LEGACY_SPEC_DRIVEN_SECTION / LEGACY_SPEC_DRIVEN_CORE_SECTION and exported them as per-doc migration matchers. Replaced SPEC_DRIVEN_SECTION with the full self-serve protocol (deterministic target-spec rule, override-first template resolution, placeholder table, exact-follow rule, autonomous ceiling with the dual Frame-button/implement-launch.js handoff) and SPEC_DRIVEN_CORE_SECTION with the short pointer plus the never-run-from-memory line.",
+      "whyChanged": "The legacy texts must stay frozen so the D11 byte-match gate recognizes docs older Frames actually wrote; the new sections are the payload the managed-block engine stamps and upgrades.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "144/144 tests pass"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Marked emission wired into templates + round-trip tests",
+      "commit": "1db2660",
+      "whatChanged": "getReferenceTemplate and getAgentsTemplate now emit the spec sections wrapped in managed-block markers stamped SPEC_SECTION_VERSION (new renderSpecSection/renderSpecCoreSection helpers in frameTemplates.js), and enableSpecDriven's append path in frameProject.js appends the wrapped core section. Extended test/docsManagedBlock.test.js with round-trip assertions: freshly emitted docs parse at the current version and are left alone by upgradeDoc; the frozen legacy constants still pass the migration gate.",
+      "whyChanged": "The round-trip test exposed a boundary gap: a legacy section followed by a --- separator and non-heading content overran its span, so findLegacySpan now also stops at a thematic break — the docs' own section separator.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "148/148 tests pass (4 new)"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Generalized command staging module (commandStaging.js) with tests",
+      "commit": "38033ba",
+      "whatChanged": "Created src/main/commandStaging.js: pure resolveStagingPlan(projectPath, tool, existsFn) returning {src, dst, executable?} entries for the four spec templates plus plan-report-template.html and build-implement-report.mjs into .frame/runtime/commands/<tool>/ (override-first) and implement-launch.js into .frame/bin/ (packaged only); stageCommandFiles executes the plan for every packaged tool dir via copyIfChanged (moved from specManager) and chmods the helper. test/commandStaging.test.js pins the resolution contract with an injected existsFn.",
+      "whyChanged": "Resolution is pure and filesystem-free so the project convention (test pure logic, skip Electron-coupled wrappers) reaches it; specManager/frameProject rewiring is deliberately left to T05 per sequencing.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "153/153 tests pass (5 new)"
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Rewire staging call sites; retire stageImplementCommandFiles",
+      "commit": "6a6bd02",
+      "whatChanged": "specManager.js: deleted stageImplementCommandFiles, copyIfChanged and their constants; the WATCH_SPECS handler and the implement-dispatch branch of buildSpecCommandFile now call commandStaging.stageCommandFiles. frameProject.js: runProjectInit and ensureSpecDrivenArtifacts (both enableSpecDriven branches) call commandStaging.stageCommandFiles, wrapped non-fatal.",
+      "whyChanged": "Same paths, superset of files — the v2 implement-only slice is preserved while all four commands become self-servable. Staging was added to ensureSpecDrivenArtifacts rather than enableSpecDriven directly so the already-enabled short-circuit path also restages.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "153/153 tests pass"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "upgradeSpecDocs driver wired into project open",
+      "commit": "e02e439",
+      "whatChanged": "Added upgradeSpecDocs to frameProject.js: for .frame/docs/REFERENCE.md (full-protocol section) and AGENTS.md (core pointer section) it runs docsManagedBlock.upgradeDoc with the current version and the per-doc legacy matchers, writing back only when the engine returns changed text; missing files are skipped, non-Frame projects untouched. The WATCH_SPECS handler in specManager.js now calls it beside stageCommandFiles inside the existing try/catch.",
+      "whyChanged": "Driver kept deliberately thin — all decision logic lives in the tested pure engine, per the project test convention. Verified end-to-end on a throwaway fixture: legacy REFERENCE migrates once, customized AGENTS is untouched, second run is a no-op.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "153/153 tests pass"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Entry-agnostic wording sweep of the four command templates",
+      "commit": "f6871d6",
+      "whatChanged": "Swept spec.new.md, spec.plan.md, spec.tasks.md and spec.implement.md for wording that assumes Frame launched the session. spec.new/spec.plan/spec.tasks contained no such assumptions and are unchanged. spec.implement.md: FRAME_NODE is now described as injected only when Frame launched the session (with node-from-PATH named for other sessions), and the watch-the-report statement plus the guided picker bullet name the direct implement-report.html path alongside the Frame button.",
+      "whyChanged": "The conversational-entry and handoff sections were already entry-agnostic per v2 (as the plan predicted), so the sweep only had to fix the two spots that presumed a Frame-launched environment: the injected env var and the Frame-window-only report access. No stage, mode or output contract changed.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "153/153 tests pass"
+      }
+    }
+  ]
+}

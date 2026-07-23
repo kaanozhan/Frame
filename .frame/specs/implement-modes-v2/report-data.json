@@ -1,0 +1,104 @@
+{
+  "spec": {
+    "slug": "implement-modes-v2",
+    "title": "Implement modes v2 — the mode is chosen before the session, never inside it"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Flagged-launch tracking on lanes (launchedAutonomous)",
+      "commit": "48a5fb3",
+      "whatChanged": "Added a module-level launchedAutonomousLanes Map to src/renderer/agentDispatch.js, set when a dispatch starts the CLI carrying launch flags the CLI kept (not dropped), cleared on TERMINAL_DESTROYED, and surfaced as launchedAutonomous on getSpecLaneInfo (gated on a live agentName).",
+      "whyChanged": "The unified implement modal (later tasks) needs to know whether a live lane was launched with the autonomous permission flags before it may offer autonomous 'Continue'. Recording this at CLI-start — the only moment launch flags exist — makes it a fixed property of the session for the lane's lifetime, since a reused lane never restarts the CLI.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "105/105 passing; renderer change is not unit-covered per plan's pure-logic-only test posture"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Expose implementHint on getSpec",
+      "commit": "1646ecb",
+      "whatChanged": "getSpec in src/main/specManager.js now returns implementHint, computed by the already-present resolveImplementLaunchHint (status.implement_mode → config implement.defaultMode → null).",
+      "whyChanged": "The modal's mode preselection and the next-action button's label both need the resolved hint; sourcing it from getSpec means the renderer never re-implements the status→config→null precedence. resolveImplementLaunchHint already existed (D10), so this is purely surfacing it on the spec payload.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "105/105 passing; getSpec's payload is not unit-covered per plan's pure-logic-only test posture"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Unified implement mode + destination modal",
+      "commit": "e96269c",
+      "whatChanged": "New src/renderer/implementModeModal.js: a Promise-based spec-modal-overlay with four mode entries (hinted mode preselected), a destination section rendered only when the spec's lane is alive, autonomous 'Continue' disabled with a stated reason and forced to a new Frame unless lane.launchedAutonomous, and Escape/backdrop/Cancel all resolving null. Added matching styles to src/renderer/styles/components/panels.css.",
+      "whyChanged": "Absorbs the old _askContinueOrNew into one modal so two dialogs never stack, per the spec. Built as a dynamic overlay (like agentDispatch's own dialogs) rather than the pre-baked-HTML taskConfirmModal pattern, because the mode and destination sections react to each other and would otherwise need markup kept in sync in index.html.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "105/105 passing; node --check clean. Renderer/CSS not unit-covered per plan's pure-logic-only test posture"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Route spec.implement through the modal (ordering flip)",
+      "commit": "b3e663a",
+      "whatChanged": "dispatchSpecCommand in src/renderer/agentDispatch.js now branches spec.implement into a new _dispatchImplement: open the modal → record implement_mode via UPDATE_SPEC_STATUS → stage (flags derive from the recorded mode) → dispatch to the chosen destination; cancel writes and dispatches nothing. The flags-dropped notice and prompt note were rewritten to the guided-fallback wording. Non-implement commands keep the stage-first + _askContinueOrNew flow untouched.",
+      "whyChanged": "The ordering flip (modal-before-stage) is what makes a fresh autonomous dispatch carry its flags on the first launch, so the re-dispatch flow is unreachable from the UI. Kept _askContinueOrNew only on the non-implement path since those commands never carry launch flags.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "105/105 passing; node --check clean and npm run build bundles the renderer without error. Dispatch flow not unit-covered per plan's pure-logic-only test posture"
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Shared next-action bar with mode-driven label and lock",
+      "commit": "47ef87d",
+      "whatChanged": "New src/renderer/specNextAction.js holds one nextActionForPhase + renderNextActionBar + taskCounts: a mode-driven implement label (step-by-step→Implement Next Task, guided→Start Guided Run, autonomous→Start Autonomous Run, custom→Run Custom Flow, none→Implement Tasks…), turn-scoped lock for step-by-step/custom/no-mode and run-liveness lock for guided/autonomous (live lane ∧ tasks pending → locked with 'Running — X/Y tasks' / 'Waiting for permission'). Wired specSection.js, specPanel.js and specsDashboard.js to it and deleted their three local copies; each surface keeps its own click wiring.",
+      "whyChanged": "Three drifting near-copies plus the new label×lock×progress logic would be a bug farm. Unified the previously-divergent idle labels (specSection's 'Write the Spec' set won over specPanel/dashboard's 'Run /spec.new'); dropped specSection's inline command-code chip for one uniform bar. Task counts are computed by a shared taskCounts() so all surfaces agree.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "105/105 passing; node --check clean on all four files; npm run build bundles without error. Renderer not unit-covered per plan's pure-logic-only test posture"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "Rewrite spec.implement.md: recorded-mode dispatch, guided, autonomous handoff, skill flows",
+      "commit": "dd65c94",
+      "whatChanged": "Rewrote src/templates/commands/claude-code/spec.implement.md so a recorded implement_mode runs its loop with no in-session picker; conversational entry offers step-by-step/guided/describe-your-own as runnable and resolves autonomous to one status.json write plus one handoff (Frame button + node .frame/bin/implement-launch.js <slug>). Added the guided mode (sharing the autonomous loop, no flags, CLI prompts pace, same report-data.json contract), a flags-refused override that runs guided, and the described-flow skill lifecycle (detect/offer/save under .claude/skills/<name>/SKILL.md) superseding the flowFile picker entry. Kept the same {project_path}/{slug}/{report_generator_path} interpolation contract.",
+      "whyChanged": "The whole spec: move mode selection ahead of the session, kill the in-session picker and the re-dispatch dead end, add the middle rung (guided), and make saved flows committable skills instead of an untracked .frame file.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "105/105 passing; template placeholders unchanged from the prior version, so the interpolation contract holds. Template prose is not unit-covered per plan's pure-logic-only test posture"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Stage the implement template, generator and helper into the project",
+      "commit": "7e70003",
+      "whatChanged": "Added stageImplementCommandFiles + a copyIfChanged content-diff helper to src/main/specManager.js: on WATCH_SPECS (project open) and on every spec.implement staging, it copies the raw spec.implement.md and build-implement-report.mjs into .frame/runtime/commands/claude-code/ (override→packaged precedence) and the launch helper into .frame/bin/, imported FRAME_BIN_DIR for the bin path.",
+      "whyChanged": "The bin helper runs with the app closed and can't read app.asar, so Frame stages its raw material to disk. copyIfChanged skips a missing source (the helper isn't built until T08) and skips unchanged destinations so project-open staging doesn't churn watchers.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "105/105 passing; node --check clean. Staged runtime/bin files are gitignored, so only specManager.js is tracked. Not unit-covered per plan's pure-logic-only test posture"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "The launch helper plus its tests",
+      "commit": "d4bb5da",
+      "whatChanged": "New src/templates/bin/implement-launch.js: a self-contained helper that records implement_mode: autonomous, writes .frame/implement-permissions.json (own copies of the allow/deny sets and the test→lint→build verification resolution), resolves the raw implement template (override → staged), interpolates project_path/slug/report_generator_path, stages the prompt, ensures the report generator, and execs `claude --settings <abs> --permission-mode auto \"Read <rel> …\"` — with a clear error when claude isn't on PATH. Everything above main() is pure and require-able. Added test/implementLaunch.test.js (14 tests) covering interpolation, verification resolution, permission-file shape, launch-line composition and template resolution order.",
+      "whyChanged": "The helper is the single producer of the flagged launch line outside Frame's dispatch, and must run with the app closed, so it carries its own copies of specManager's rule sets and resolution (comment cross-links the source of truth). Pure/main split follows the report generator's testable-core pattern.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "119/119 passing (14 new); node --check clean on the helper"
+      }
+    }
+  ]
+}

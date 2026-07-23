@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLI parity for spec commands — the full flow without the button — Implementation Report</title>
+<style>
+  /* Frame's design system, dark theme — variable names and values copied
+     from src/renderer/styles/variables.css so a drift there is a one-line
+     diff here. Layout follows the app's dashboards: a gradient header bar
+     over a bg-deep page, content in bordered cards with a tinted head strip.
+     Diff rows use the system's dedicated diff colours rather than the
+     semantic success/error pair — a changed line is not a status. */
+  :root{
+    --bg-deep:#0f0f10;--bg-primary:#151516;--bg-secondary:#1a1a1c;--bg-tertiary:#222225;
+    --text-primary:#e8e6e3;--text-secondary:#a09b94;--text-tertiary:#6b6660;
+    --accent-primary:#d4a574;--accent-subtle:rgba(212,165,116,0.15);
+    --success:#7cb382;--warning:#e0a458;--error:#d47878;--info:#78a5d4;
+    --diff-ins-bg:rgba(63,185,80,0.15);--diff-del-bg:rgba(248,81,73,0.15);--diff-fg:#c9d1d9;
+    --border-subtle:rgba(255,255,255,0.06);--border-default:rgba(255,255,255,0.08);
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
+    --space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;
+    --radius-sm:6px;--radius-md:8px;--radius-lg:12px;
+    --font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-primary);line-height:1.55;}
+
+  /* Header bar — the app's dashboard header, verbatim in spirit. */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-md);flex-wrap:wrap;
+    padding:var(--space-lg) var(--space-xl);border-bottom:1px solid var(--border-subtle);
+    background:linear-gradient(180deg,var(--bg-secondary) 0%,var(--bg-primary) 100%);}
+  .topbar-title{display:flex;align-items:center;gap:var(--space-md);min-width:0;}
+  .logo{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
+    display:block;flex-shrink:0;}
+  .brand{font-size:16px;font-weight:700;letter-spacing:-0.2px;color:var(--accent-primary);}
+  .brand-sep{width:1px;align-self:stretch;background:var(--border-default);flex-shrink:0;}
+  .doc-block{display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+  .doc-type{font-size:14px;font-weight:600;color:var(--text-primary);
+    text-transform:uppercase;letter-spacing:.08em;}
+  .topbar-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:var(--space-xl) var(--space-lg);
+    display:flex;flex-direction:column;gap:var(--space-lg);}
+
+  /* Report head — the spec's full name lives here, not in the topbar, so the
+     bar stays a stable brand strip while the title gets document scale. */
+  .report-head{padding:var(--space-md) 0 var(--space-xs);}
+  .slug-chip{font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+    color:var(--accent-primary);background:var(--accent-subtle);
+    border:1px solid rgba(212,165,116,0.35);padding:3px 10px;border-radius:999px;}
+  .report-head h1{font-size:27px;font-weight:700;letter-spacing:-0.6px;
+    line-height:1.25;color:var(--text-primary);max-width:900px;}
+
+  .chip{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);
+    background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+    padding:3px 8px;border-radius:var(--radius-sm);}
+  .pill{display:inline-block;font-size:11px;color:var(--text-secondary);
+    background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+    padding:3px 10px;border-radius:999px;}
+  .pill.good{color:var(--success);border-color:var(--success);}
+  .pill.warn{color:var(--warning);border-color:var(--warning);}
+  .pill.bad{color:var(--error);border-color:var(--error);}
+
+  .card{background:var(--bg-secondary);border:1px solid var(--border-default);
+    border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .card-head{display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap;
+    padding:var(--space-md) var(--space-lg);background:var(--bg-tertiary);
+    border-bottom:1px solid var(--border-subtle);}
+  .card-id{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent-primary);
+    background:var(--accent-subtle);padding:2px 8px;border-radius:var(--radius-sm);}
+  .card-head h2{font-size:14px;font-weight:600;letter-spacing:-0.2px;color:var(--text-primary);flex:1;min-width:180px;}
+  .card-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+  .card-body{padding:var(--space-lg);}
+
+  .field{margin-bottom:var(--space-md);}
+  .label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-tertiary);margin-bottom:2px;}
+  .field p{font-size:13.5px;color:var(--text-primary);}
+  .muted{color:var(--text-secondary);font-size:13px;}
+  code{background:var(--bg-tertiary);border-radius:var(--radius-sm);padding:1px 5px;
+    font-size:12px;font-family:var(--font-mono);}
+
+  details{border-top:1px solid var(--border-subtle);padding-top:var(--space-md);}
+  summary{cursor:pointer;display:inline-flex;align-items:center;gap:var(--space-sm);
+    font-size:12px;font-weight:600;color:var(--accent-primary);text-transform:uppercase;
+    letter-spacing:.06em;background:var(--accent-subtle);
+    border:1px solid rgba(212,165,116,0.35);border-radius:var(--radius-sm);
+    padding:6px 14px;list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:'\25B8';font-size:11px;line-height:1;}
+  details[open] summary::before{content:'\25BE';}
+  summary:hover{border-color:var(--accent-primary);background:rgba(212,165,116,0.22);}
+  pre.diff{background:var(--bg-deep);border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+    padding:var(--space-md) 0;font-size:12px;font-family:var(--font-mono);line-height:1.5;
+    overflow-x:auto;margin-top:var(--space-sm);display:flex;flex-direction:column;}
+  pre.diff span{white-space:pre;padding:0 var(--space-lg);min-width:100%;width:max-content;}
+  .dl-add{background:var(--diff-ins-bg);color:var(--diff-fg);}
+  .dl-del{background:var(--diff-del-bg);color:var(--diff-fg);}
+  .dl-ctx{color:var(--text-secondary);}
+  .dl-hunk{color:var(--info);}
+  .dl-file{color:var(--text-primary);}
+  .dl-meta{color:var(--text-tertiary);}
+
+  /* Run-status banner — a live run's progress at the top of the report, the
+     reason a terminal-launched run's report is worth reloading. Live borrows
+     the accent tint; complete switches to success. */
+  .run-status{display:flex;align-items:center;gap:var(--space-sm) var(--space-md);flex-wrap:wrap;
+    padding:var(--space-md) var(--space-lg);border-radius:var(--radius-lg);
+    border:1px solid var(--border-default);background:var(--bg-secondary);font-size:13px;}
+  .run-status.live{border-color:rgba(212,165,116,0.35);background:var(--accent-subtle);}
+  .run-status.done{border-color:var(--success);background:rgba(124,179,130,0.12);}
+  .rs-badge{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+    padding:3px 10px;border-radius:999px;flex-shrink:0;}
+  .run-status.live .rs-badge{color:var(--accent-primary);background:rgba(212,165,116,0.18);
+    border:1px solid rgba(212,165,116,0.4);}
+  .run-status.done .rs-badge{color:var(--success);background:rgba(124,179,130,0.15);
+    border:1px solid var(--success);}
+  .rs-count{color:var(--text-primary);font-weight:500;min-width:0;}
+  .rs-task{font-family:var(--font-mono);font-size:12px;color:var(--accent-primary);}
+  .rs-note{color:var(--text-primary);font-size:12px;margin-left:auto;
+    display:inline-flex;align-items:center;gap:6px;}
+  .rs-info{flex-shrink:0;opacity:0.85;}
+
+  footer{color:var(--text-tertiary);font-size:11.5px;text-align:center;
+    padding:var(--space-lg);border-top:1px solid var(--border-subtle);}
+  @media (max-width:560px){.card-head{gap:var(--space-sm);}.report-head h1{font-size:20px;}
+    .rs-note{margin-left:0;}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-title">
+    <img class="logo" src="data:image/png;base64,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" alt="Frame logo">
+    <span class="brand">Frame</span>
+    <span class="brand-sep"></span>
+    <div class="doc-block">
+      <span class="doc-type">Spec Implementation Report</span>
+      <span class="slug-chip">cli-spec-command-parity</span>
+    </div>
+  </div>
+  <div class="topbar-meta">
+    <span class="pill">7 tasks</span>
+    <span class="pill good">7 verified</span>
+    
+    <span class="chip">2026-07-22</span>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="run-status done">
+  <span class="rs-badge">Complete</span>
+  <span class="rs-count">7 of 7 tasks done</span>
+</div>
+<section class="report-head">
+  <h1>CLI parity for spec commands — the full flow without the button</h1>
+</section>
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T01</span>
+    <h2>Managed-block engine (docsManagedBlock.js) with tests</h2>
+    <span class="card-meta"><span class="chip">4b224db</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">144/144 tests pass (11 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Created src/shared/docsManagedBlock.js — a pure string-surgery engine: findBlock parses the versioned `frame:managed:spec-section` HTML-comment markers, upgradeDoc replaces a stamped-older block in place (every byte outside the span preserved), and a legacy-migration path replaces a heading-bounded section only when its text byte-matches (whitespace-normalized) a shipped Frame generation. test/docsManagedBlock.test.js covers version gating, once-only migration, customized-body no-op, and marker corruption.</p></div>
+    <div class="field"><span class="label">Why</span><p>The engine is the safety core of the docs upgrade: it must never touch user prose. Beyond the plan, any marker fragment without a well-formed block now blocks legacy migration entirely — a dangling marker means corrupted state, and migrating around it could double-wrap a section.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/shared/docsManagedBlock.js b/src/shared/docsManagedBlock.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..a8b5361</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/shared/docsManagedBlock.js</span>
+<span class="dl-hunk">@@ -0,0 +1,155 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Managed-block engine for Frame&#39;s spec docs sections.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * REFERENCE.md and AGENTS.md are user-owned files; Frame may rewrite only the</span>
+<span class="dl-add">+ * spec section inside them, and only when it can prove the section is its own.</span>
+<span class="dl-add">+ * Two proofs exist:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   1. Markers — the section is wrapped in versioned HTML comments</span>
+<span class="dl-add">+ *      (`&lt;!-- frame:managed:spec-section v=N --&gt;` … end marker). Rewrite iff</span>
+<span class="dl-add">+ *      the stamped version is older than the current one, so user tweaks</span>
+<span class="dl-add">+ *      inside the block survive between Frame releases.</span>
+<span class="dl-add">+ *   2. Legacy match — no markers, but a heading-bounded section whose text</span>
+<span class="dl-add">+ *      byte-matches (whitespace-normalized) a section Frame itself shipped in</span>
+<span class="dl-add">+ *      an earlier generation. Those sections were unparameterized constants,</span>
+<span class="dl-add">+ *      so an exact match means Frame wrote it and the user never touched it.</span>
+<span class="dl-add">+ *      A matching heading over a rewritten body means the user customized the</span>
+<span class="dl-add">+ *      section — the whole file is left alone.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Pure string surgery: no fs, no Electron. Every byte outside the replaced</span>
+<span class="dl-add">+ * span is preserved verbatim.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const BLOCK_NAME = &#39;frame:managed:spec-section&#39;;</span>
+<span class="dl-add">+const BEGIN_MARKER_RE = new RegExp(`&lt;!--\\s*${BLOCK_NAME}\\s+v=(\\d+)\\s*--&gt;`);</span>
+<span class="dl-add">+const END_MARKER_RE = new RegExp(`&lt;!--\\s*/${BLOCK_NAME}\\s*--&gt;`);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function beginMarker(version) {</span>
+<span class="dl-add">+  return `&lt;!-- ${BLOCK_NAME} v=${version} --&gt;`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const END_MARKER = `&lt;!-- /${BLOCK_NAME} --&gt;`;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Wrap a section body in stamped markers — the canonical emitted form.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function renderBlock(body, version) {</span>
+<span class="dl-add">+  return `${beginMarker(version)}\n${body}\n${END_MARKER}`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Locate the managed block. Returns { start, end, version } — start/end are</span>
+<span class="dl-add">+ * offsets spanning the markers inclusive — or null when there is no</span>
+<span class="dl-add">+ * well-formed block (absent, begin without end, end before begin). Malformed</span>
+<span class="dl-add">+ * markers are deliberately reported as &quot;no block&quot;: the legacy gate below</span>
+<span class="dl-add">+ * cannot match a marker-polluted section, so a corrupted file is left alone.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function findBlock(text) {</span>
+<span class="dl-add">+  if (typeof text !== &#39;string&#39;) return null;</span>
+<span class="dl-add">+  const begin = BEGIN_MARKER_RE.exec(text);</span>
+<span class="dl-add">+  if (!begin) return null;</span>
+<span class="dl-add">+  const afterBegin = begin.index + begin[0].length;</span>
+<span class="dl-add">+  const end = END_MARKER_RE.exec(text.slice(afterBegin));</span>
+<span class="dl-add">+  if (!end) return null;</span>
+<span class="dl-add">+  return {</span>
+<span class="dl-add">+    start: begin.index,</span>
+<span class="dl-add">+    end: afterBegin + end.index + end[0].length,</span>
+<span class="dl-add">+    version: parseInt(begin[1], 10)</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Whitespace-normalized comparison basis. The shipped legacy sections were</span>
+<span class="dl-add">+ * constants, so text equality modulo whitespace (reflow, trailing spaces,</span>
+<span class="dl-add">+ * line-ending drift) means Frame&#39;s own bytes.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function normalize(text) {</span>
+<span class="dl-add">+  return text.replace(/\s+/g, &#39; &#39;).trim();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Find the heading-bounded span of a legacy section that passes the</span>
+<span class="dl-add">+ * confidence gate: the heading line matches the matcher&#39;s heading exactly,</span>
+<span class="dl-add">+ * and the section text (heading through the next same-or-higher-level</span>
+<span class="dl-add">+ * heading, separators trimmed) normalizes to the matcher&#39;s shipped text.</span>
+<span class="dl-add">+ * Returns { start, end } or null.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function findLegacySpan(text, matcher) {</span>
+<span class="dl-add">+  const shipped = String(matcher);</span>
+<span class="dl-add">+  const heading = shipped.slice(0, shipped.indexOf(&#39;\n&#39;) === -1 ? shipped.length : shipped.indexOf(&#39;\n&#39;)).trim();</span>
+<span class="dl-add">+  if (!/^#{1,6}\s/.test(heading)) return null;</span>
+<span class="dl-add">+  const level = heading.match(/^#+/)[0].length;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  let from = 0;</span>
+<span class="dl-add">+  while (from &lt; text.length) {</span>
+<span class="dl-add">+    const idx = text.indexOf(heading, from);</span>
+<span class="dl-add">+    if (idx === -1) return null;</span>
+<span class="dl-add">+    from = idx + heading.length;</span>
+<span class="dl-add">+    // Heading must sit on its own line, matched exactly.</span>
+<span class="dl-add">+    const lineStart = text.lastIndexOf(&#39;\n&#39;, idx - 1) + 1;</span>
+<span class="dl-add">+    const lineEnd = text.indexOf(&#39;\n&#39;, idx);</span>
+<span class="dl-add">+    const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);</span>
+<span class="dl-add">+    if (line.trim() !== heading || lineStart !== idx) continue;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // Section ends at the next heading of the same or higher level, or EOF.</span>
+<span class="dl-add">+    const boundary = new RegExp(`^#{1,${level}}\\s`, &#39;m&#39;);</span>
+<span class="dl-add">+    const rest = text.slice(from);</span>
+<span class="dl-add">+    const next = boundary.exec(rest);</span>
+<span class="dl-add">+    let end = next ? from + next.index : text.length;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // Keep trailing `---` separators and blank lines outside the span — they</span>
+<span class="dl-add">+    // belong to the document&#39;s layout, not the section.</span>
+<span class="dl-add">+    const span = text.slice(lineStart, end);</span>
+<span class="dl-add">+    const trimmed = span.replace(/(\n+(-{3,})?)*\s*$/, &#39;&#39;);</span>
+<span class="dl-add">+    end = lineStart + trimmed.length;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    if (normalize(text.slice(lineStart, end)) === normalize(shipped)) {</span>
+<span class="dl-add">+      return { start: lineStart, end };</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Compute the upgraded document text, or null when nothing may change.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   - markers present, stamped &gt;= version → null (current or newer)</span>
+<span class="dl-add">+ *   - markers present, stamped &lt; version  → block replaced in place</span>
+<span class="dl-add">+ *   - no markers → one-time legacy migration when a matcher passes the</span>
+<span class="dl-add">+ *     confidence gate; otherwise null</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * options: { body, version, legacyMatchers } — body is the new section text</span>
+<span class="dl-add">+ * (unwrapped), legacyMatchers an array of full shipped section texts</span>
+<span class="dl-add">+ * (heading included).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function upgradeDoc(text, options) {</span>
+<span class="dl-add">+  if (typeof text !== &#39;string&#39; || !options || typeof options.body !== &#39;string&#39;) return null;</span>
+<span class="dl-add">+  const version = options.version;</span>
+<span class="dl-add">+  if (!Number.isInteger(version)) return null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const block = findBlock(text);</span>
+<span class="dl-add">+  if (block) {</span>
+<span class="dl-add">+    if (block.version &gt;= version) return null;</span>
+<span class="dl-add">+    return text.slice(0, block.start) + renderBlock(options.body, version) + text.slice(block.end);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Any marker fragment without a well-formed block means corrupted Frame</span>
+<span class="dl-add">+  // state or user surgery — never migrate around it.</span>
+<span class="dl-add">+  if (BEGIN_MARKER_RE.test(text) || END_MARKER_RE.test(text)) return null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const matcher of options.legacyMatchers || []) {</span>
+<span class="dl-add">+    const span = findLegacySpan(text, matcher);</span>
+<span class="dl-add">+    if (span) {</span>
+<span class="dl-add">+      return text.slice(0, span.start) + renderBlock(options.body, version) + text.slice(span.end);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  findBlock,</span>
+<span class="dl-add">+  upgradeDoc,</span>
+<span class="dl-add">+  renderBlock,</span>
+<span class="dl-add">+  BLOCK_NAME,</span>
+<span class="dl-add">+  END_MARKER</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/test/docsManagedBlock.test.js b/test/docsManagedBlock.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..397a1a9</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/docsManagedBlock.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,147 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Managed-block engine tests (cli-spec-command-parity T01).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The engine may rewrite only what it can prove is Frame&#39;s: a marker-wrapped</span>
+<span class="dl-add">+ * block with an older stamp, or a legacy section that byte-matches (modulo</span>
+<span class="dl-add">+ * whitespace) a text Frame itself shipped. These tests pin the safety</span>
+<span class="dl-add">+ * properties: version gating, byte-identical surroundings, once-only legacy</span>
+<span class="dl-add">+ * migration, customized bodies left alone, malformed markers left alone.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { findBlock, upgradeDoc, renderBlock } = require(&#39;../src/shared/docsManagedBlock&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const LEGACY_SECTION = `## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Frame supports a structured workflow.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### Slash commands</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+- \`/spec.new &lt;description&gt;\` → write \`spec.md\`.</span>
+<span class="dl-add">+- \`/spec.plan\` → write \`plan.md\`.`;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const NEW_BODY = `## Spec-Driven Development (self-serve)</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Resolve the staged template and follow it exactly.`;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const docWith = (middle) =&gt; `# My Project</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Intro paragraph the user wrote.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+---</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+${middle}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+---</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+## User&#39;s Own Section</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Untouched prose.</span>
+<span class="dl-add">+`;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── findBlock ────────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;findBlock parses markers and version&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = docWith(renderBlock(NEW_BODY, 3));</span>
+<span class="dl-add">+  const block = findBlock(doc);</span>
+<span class="dl-add">+  assert.ok(block);</span>
+<span class="dl-add">+  assert.equal(block.version, 3);</span>
+<span class="dl-add">+  assert.equal(doc.slice(block.start, block.end), renderBlock(NEW_BODY, 3));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;findBlock returns null without markers, on malformed markers, and on non-strings&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(findBlock(docWith(LEGACY_SECTION)), null);</span>
+<span class="dl-add">+  // begin without end</span>
+<span class="dl-add">+  assert.equal(findBlock(docWith(&#39;&lt;!-- frame:managed:spec-section v=1 --&gt;\nbody&#39;)), null);</span>
+<span class="dl-add">+  // end before begin</span>
+<span class="dl-add">+  assert.equal(</span>
+<span class="dl-add">+    findBlock(&#39;&lt;!-- /frame:managed:spec-section --&gt;\n&lt;!-- frame:managed:spec-section v=1 --&gt;&#39;),</span>
+<span class="dl-add">+    null</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+  assert.equal(findBlock(null), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── version gating ───────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;stamped current or newer is a no-op&#39;, () =&gt; {</span>
+<span class="dl-add">+  const current = docWith(renderBlock(&#39;tweaked by user&#39;, 2));</span>
+<span class="dl-add">+  assert.equal(upgradeDoc(current, { body: NEW_BODY, version: 2 }), null);</span>
+<span class="dl-add">+  assert.equal(upgradeDoc(current, { body: NEW_BODY, version: 1 }), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;stamped older is upgraded in place with byte-identical surroundings&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = docWith(renderBlock(&#39;old generation text&#39;, 1));</span>
+<span class="dl-add">+  const upgraded = upgradeDoc(doc, { body: NEW_BODY, version: 2 });</span>
+<span class="dl-add">+  assert.ok(upgraded);</span>
+<span class="dl-add">+  assert.equal(upgraded, docWith(renderBlock(NEW_BODY, 2)));</span>
+<span class="dl-add">+  // idempotent: the upgraded doc is now stamped current</span>
+<span class="dl-add">+  assert.equal(upgradeDoc(upgraded, { body: NEW_BODY, version: 2 }), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── legacy migration ─────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;shipped legacy section migrates once&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = docWith(LEGACY_SECTION);</span>
+<span class="dl-add">+  const opts = { body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION] };</span>
+<span class="dl-add">+  const migrated = upgradeDoc(doc, opts);</span>
+<span class="dl-add">+  assert.ok(migrated);</span>
+<span class="dl-add">+  assert.equal(migrated, docWith(renderBlock(NEW_BODY, 2)));</span>
+<span class="dl-add">+  // once-only: markers now gate; a second pass changes nothing</span>
+<span class="dl-add">+  assert.equal(upgradeDoc(migrated, opts), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;legacy match tolerates whitespace drift but not text edits&#39;, () =&gt; {</span>
+<span class="dl-add">+  const reflowed = LEGACY_SECTION.replace(&#39;supports a structured workflow.&#39;, &#39;supports a structured\nworkflow.&#39;) + &#39;  &#39;;</span>
+<span class="dl-add">+  const migrated = upgradeDoc(docWith(reflowed), {</span>
+<span class="dl-add">+    body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION]</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.ok(migrated);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;customized body under a known heading leaves the file alone&#39;, () =&gt; {</span>
+<span class="dl-add">+  const customized = LEGACY_SECTION.replace(&#39;Frame supports&#39;, &#39;We heavily customized how Frame supports&#39;);</span>
+<span class="dl-add">+  const doc = docWith(customized);</span>
+<span class="dl-add">+  assert.equal(</span>
+<span class="dl-add">+    upgradeDoc(doc, { body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION] }),</span>
+<span class="dl-add">+    null</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;unknown heading leaves the file alone&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = docWith(&#39;## Something Else\n\nUnrelated.&#39;);</span>
+<span class="dl-add">+  assert.equal(</span>
+<span class="dl-add">+    upgradeDoc(doc, { body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION] }),</span>
+<span class="dl-add">+    null</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;malformed markers block both paths&#39;, () =&gt; {</span>
+<span class="dl-add">+  // A dangling begin marker means corrupted Frame state — no block is found,</span>
+<span class="dl-add">+  // and legacy migration is refused even for a pristine section nearby.</span>
+<span class="dl-add">+  const polluted = docWith(&#39;&lt;!-- frame:managed:spec-section v=1 --&gt;\n&#39; + LEGACY_SECTION);</span>
+<span class="dl-add">+  assert.equal(findBlock(polluted), null);</span>
+<span class="dl-add">+  assert.equal(</span>
+<span class="dl-add">+    upgradeDoc(polluted, { body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION] }),</span>
+<span class="dl-add">+    null</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;section at end of file migrates and trailing separator stays outside the block&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = `# P\n\nIntro.\n\n---\n\n${LEGACY_SECTION}\n`;</span>
+<span class="dl-add">+  const migrated = upgradeDoc(doc, { body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION] });</span>
+<span class="dl-add">+  assert.ok(migrated);</span>
+<span class="dl-add">+  assert.ok(migrated.startsWith(&#39;# P\n\nIntro.\n\n---\n\n&#39;));</span>
+<span class="dl-add">+  assert.ok(migrated.includes(renderBlock(NEW_BODY, 2)));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;subheadings inside the section do not truncate the match&#39;, () =&gt; {</span>
+<span class="dl-add">+  // LEGACY_SECTION contains an H3; the span must run to the next H1/H2.</span>
+<span class="dl-add">+  const migrated = upgradeDoc(docWith(LEGACY_SECTION), {</span>
+<span class="dl-add">+    body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION]</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.ok(migrated);</span>
+<span class="dl-add">+  assert.ok(!migrated.includes(&#39;### Slash commands&#39;));</span>
+<span class="dl-add">+  assert.ok(migrated.includes(&quot;## User&#39;s Own Section&quot;));</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T02</span>
+    <h2>Current-generation docs content in frameTemplates.js</h2>
+    <span class="card-meta"><span class="chip">f84919b</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">144/144 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added SPEC_SECTION_VERSION (1) to src/shared/frameTemplates.js, preserved the old spec sections byte-for-byte as LEGACY_SPEC_DRIVEN_SECTION / LEGACY_SPEC_DRIVEN_CORE_SECTION and exported them as per-doc migration matchers. Replaced SPEC_DRIVEN_SECTION with the full self-serve protocol (deterministic target-spec rule, override-first template resolution, placeholder table, exact-follow rule, autonomous ceiling with the dual Frame-button/implement-launch.js handoff) and SPEC_DRIVEN_CORE_SECTION with the short pointer plus the never-run-from-memory line.</p></div>
+    <div class="field"><span class="label">Why</span><p>The legacy texts must stay frozen so the D11 byte-match gate recognizes docs older Frames actually wrote; the new sections are the payload the managed-block engine stamps and upgrades.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 13bb97d..2771ba8 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -19,12 +19,26 @@ function getISOTimestamp() {</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-del">- * Spec-Driven Development section — markdown content shipped to AGENTS.md</span>
+<span class="dl-del">- * when the user enables the feature. Held as a constant so both the full</span>
+<span class="dl-del">- * AGENTS.md template and the standalone &quot;append-only&quot; helper share one</span>
+<span class="dl-del">- * source of truth.</span>
+<span class="dl-add">+ * Spec-section versioning (cli-spec-command-parity).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The spec sections in REFERENCE.md and AGENTS.md are managed blocks —</span>
+<span class="dl-add">+ * wrapped in versioned markers (see src/shared/docsManagedBlock.js) so Frame</span>
+<span class="dl-add">+ * can upgrade its own text in place on project open without touching user</span>
+<span class="dl-add">+ * prose. Bump SPEC_SECTION_VERSION whenever SPEC_DRIVEN_SECTION or</span>
+<span class="dl-add">+ * SPEC_DRIVEN_CORE_SECTION changes; docs stamped with an older version are</span>
+<span class="dl-add">+ * rewritten on next open, docs stamped current are left alone (so user tweaks</span>
+<span class="dl-add">+ * inside the block survive between identical Frame versions).</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-del">-const SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-add">+const SPEC_SECTION_VERSION = 1;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Previous shipped generations of the spec sections, preserved byte-for-byte</span>
+<span class="dl-add">+ * as legacy migration matchers: a project doc that still contains one of</span>
+<span class="dl-add">+ * these texts verbatim (whitespace-normalized) was written by Frame and never</span>
+<span class="dl-add">+ * touched by the user, so the one-time migration to a managed block is safe.</span>
+<span class="dl-add">+ * Never edit these — they must match what older Frames actually wrote.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const LEGACY_SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`tasks.json\` in sync.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -90,9 +104,119 @@ it&quot;, proceed directly and **don&#39;t ask again for that same piece of work** in the</span>
+<span class="dl-ctx"> session. Never force it — the spec is an offer, not a gate; the user&#39;s stated</span>
+<span class="dl-ctx"> preference always wins.`;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+const LEGACY_SPEC_DRIVEN_CORE_SECTION = `## Spec-Driven Development</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Significant work flows through a spec (\`spec.md\` → \`plan.md\` → \`tasks.md\`)</span>
+<span class="dl-add">+before code. Rough ladder: *trivial → just do it · small but worth tracking →</span>
+<span class="dl-add">+task · sizable feature or multi-file change → spec.* Offer a spec once for</span>
+<span class="dl-add">+meaningful new work — never force it.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Full workflow (file layout, lifecycle, slash commands): see</span>
+<span class="dl-add">+**&quot;Spec-Driven Development&quot;** in \`.frame/docs/REFERENCE.md\`.`;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Legacy matchers per doc: REFERENCE.md carried the full section, AGENTS.md</span>
+<span class="dl-add">+ * the short core pointer. docsManagedBlock.upgradeDoc migrates a section to</span>
+<span class="dl-add">+ * a managed block only when it matches one of these.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const REFERENCE_SPEC_LEGACY_MATCHERS = [LEGACY_SPEC_DRIVEN_SECTION];</span>
+<span class="dl-add">+const AGENTS_SPEC_LEGACY_MATCHERS = [LEGACY_SPEC_DRIVEN_CORE_SECTION];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Spec-Driven Development section — the full self-serve protocol shipped to</span>
+<span class="dl-add">+ * .frame/docs/REFERENCE.md. Current generation: teaches a CLI session asked</span>
+<span class="dl-add">+ * conversationally to run a spec command to find and follow the staged</span>
+<span class="dl-add">+ * template instead of improvising the flow from memory. Emitted wrapped in</span>
+<span class="dl-add">+ * managed-block markers (SPEC_SECTION_VERSION).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`tasks.json\` in sync.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### File layout</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Each spec lives in its own folder:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+\`\`\`</span>
+<span class="dl-add">+.frame/specs/&lt;slug&gt;/</span>
+<span class="dl-add">+  spec.md       — what we&#39;re building</span>
+<span class="dl-add">+  plan.md       — how (architecture, files, footprint, sequencing)</span>
+<span class="dl-add">+  tasks.md      — flat bullet list, &quot;- T01 · description&quot;</span>
+<span class="dl-add">+  status.json   — phase + metadata</span>
+<span class="dl-add">+\`\`\`</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+\`&lt;slug&gt;\` is kebab-case, derived from the spec title.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### Lifecycle phases</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+\`draft\` → \`specified\` → \`planned\` → \`tasks_generated\` → \`implementing\` → \`done\`</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Frame auto-advances phase from filesystem state (file presence). The command templates below tell you exactly which \`status.json\` updates to make; Frame&#39;s watcher reconciles if anything is missed.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### Running spec commands — the self-serve protocol</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spec.implement\`. Whether the user types them as slash commands or asks conversationally (&quot;plan the auth spec&quot;, &quot;implement the tasks&quot;), the flow is **never improvised from memory** — each command&#39;s current flow lives in a template file that Frame keeps staged in the project. Run one like this:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**1. Resolve the target spec.** An explicitly named spec always wins. Otherwise list the specs (\`.frame/specs/*/status.json\`) whose phase the command acts on — \`spec.plan\` → \`specified\`, \`spec.tasks\` → \`planned\`, \`spec.implement\` → \`tasks_generated\` or \`implementing\`. Exactly one candidate → take it silently; zero or several → present the candidates and ask. \`spec.new\` creates a new spec: derive the kebab-case slug from the title.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**2. Resolve the template.** Take the first that exists:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+1. \`.frame/templates/commands/&lt;tool&gt;/&lt;command&gt;.md\` — project override</span>
+<span class="dl-add">+2. \`.frame/runtime/commands/&lt;tool&gt;/&lt;command&gt;.md\` — staged by Frame on project open</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+\`&lt;tool&gt;\` is the directory matching your CLI (Claude Code → \`claude-code\`). If neither file exists, say so and ask the user to open this project in Frame once so it stages the current templates — then stop. **Do not reconstruct the flow from this file, from memory, or from an older prompt.**</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**3. Interpolate the placeholders.** Replace each \`{placeholder}\` token in the template:</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+| Placeholder | Value |</span>
+<span class="dl-add">+| --- | --- |</span>
+<span class="dl-add">+| \`{project_path}\` | absolute path of the project root |</span>
+<span class="dl-add">+| \`{slug}\` | the spec&#39;s slug |</span>
+<span class="dl-add">+| \`{title}\` | the spec&#39;s title (from \`status.json\`; for \`spec.new\`, the new title) |</span>
+<span class="dl-add">+| \`{description}\` | the user&#39;s description (\`spec.new\` only; empty otherwise) |</span>
+<span class="dl-add">+| \`{report_template_path}\` | \`.frame/runtime/commands/&lt;tool&gt;/plan-report-template.html\` |</span>
+<span class="dl-add">+| \`{report_generator_path}\` | \`.frame/runtime/commands/&lt;tool&gt;/build-implement-report.mjs\` |</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**4. Follow the interpolated template exactly**, including every \`status.json\` update it prescribes. The template is the flow; this section only tells you how to find it.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**5. Autonomous implement ceiling.** \`spec.implement\`&#39;s autonomous mode needs permission flags that only a fresh, flagged launch can carry — a running session cannot acquire them. If the user picks autonomous conversationally, do what the template says: record the choice in the spec&#39;s \`status.json\` and hand off — the user clicks Implement on the spec&#39;s page in Frame and picks Autonomous, or runs \`node .frame/bin/implement-launch.js &lt;slug&gt;\` in a fresh terminal. Never run a degraded imitation silently.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### tasks.json linkage</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+After \`spec.tasks\`, **do not** also write entries to \`tasks.json\` — Frame&#39;s watcher imports them automatically with \`source: &quot;spec:&lt;slug&gt;:T&lt;n&gt;&quot;\` markers. Spec-generated tasks carry that \`source\` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+### When to suggest a spec (steer the conversation)</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Spec-driven is Frame&#39;s core way of working, so when a user describes meaningful</span>
+<span class="dl-add">+new work **mid-conversation**, gently steer them toward a spec instead of</span>
+<span class="dl-add">+silently diving into code. Suggest a spec only for **significant work** — don&#39;t</span>
+<span class="dl-add">+make this a reflex on every message.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**Suggest a spec for:**</span>
+<span class="dl-add">+- A new **feature** or capability (&quot;users should be able to …&quot;, &quot;add a … system&quot;)</span>
+<span class="dl-add">+- A change that will touch **multiple files / modules** or affect architecture</span>
+<span class="dl-add">+- Anything that clearly benefits from a **plan and ordered tasks** before coding</span>
+<span class="dl-add">+- Work the user describes vaguely/largely that would benefit from being scoped first</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**Do NOT suggest a spec for:**</span>
+<span class="dl-add">+- Typos, one-line fixes, small tweaks, renames → just do it</span>
+<span class="dl-add">+- Small, discrete tracked work → that&#39;s a task (\`tasks.json\`)</span>
+<span class="dl-add">+- Questions, debugging, explanations, experiments</span>
+<span class="dl-add">+- Anything the user explicitly says to &quot;just do&quot; / &quot;do directly&quot;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Rough ladder: *trivial → just do it · small but worth tracking → task · sizable</span>
+<span class="dl-add">+feature or multi-file change → spec.*</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Ask once, in plain language, before coding. If they agree, start the spec flow</span>
+<span class="dl-add">+(\`spec.new\` → \`spec.plan\` → \`spec.tasks\`). If they decline or say &quot;just do</span>
+<span class="dl-add">+it&quot;, proceed directly and **don&#39;t ask again for that same piece of work** in the</span>
+<span class="dl-add">+session. Never force it — the spec is an offer, not a gate; the user&#39;s stated</span>
+<span class="dl-add">+preference always wins.`;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Short Spec-Driven section for the lean AGENTS.md core — the ladder and a</span>
+<span class="dl-del">- * pointer; the full workflow lives in .frame/docs/REFERENCE.md.</span>
+<span class="dl-add">+ * pointer; the full workflow lives in .frame/docs/REFERENCE.md. Emitted</span>
+<span class="dl-add">+ * wrapped in managed-block markers (SPEC_SECTION_VERSION).</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> const SPEC_DRIVEN_CORE_SECTION = `## Spec-Driven Development</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -101,8 +225,11 @@ before code. Rough ladder: *trivial → just do it · small but worth tracking </span>
+<span class="dl-ctx"> task · sizable feature or multi-file change → spec.* Offer a spec once for</span>
+<span class="dl-ctx"> meaningful new work — never force it.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Full workflow (file layout, lifecycle, slash commands): see</span>
+<span class="dl-del">-**&quot;Spec-Driven Development&quot;** in \`.frame/docs/REFERENCE.md\`.`;</span>
+<span class="dl-add">+Spec commands (\`spec.new\` / \`spec.plan\` / \`spec.tasks\` / \`spec.implement\`)</span>
+<span class="dl-add">+are **never run from memory** — each one&#39;s current flow is a staged template.</span>
+<span class="dl-add">+The self-serve protocol (resolve spec → resolve template → interpolate →</span>
+<span class="dl-add">+follow exactly) lives in **&quot;Spec-Driven Development&quot;** in</span>
+<span class="dl-add">+\`.frame/docs/REFERENCE.md\`.`;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * AGENTS.md template - the lean always-on core read by AI coding tools</span>
+<span class="dl-hunk">@@ -815,6 +942,11 @@ module.exports = {</span>
+<span class="dl-ctx">   getFrameConfigTemplate,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_SECTION,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+  SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+  LEGACY_SPEC_DRIVEN_SECTION,</span>
+<span class="dl-add">+  LEGACY_SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+  REFERENCE_SPEC_LEGACY_MATCHERS,</span>
+<span class="dl-add">+  AGENTS_SPEC_LEGACY_MATCHERS,</span>
+<span class="dl-ctx">   getCodexWrapperTemplate,</span>
+<span class="dl-ctx">   getGenericWrapperTemplate,</span>
+<span class="dl-ctx">   getStructureHookSnippet,</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T03</span>
+    <h2>Marked emission wired into templates + round-trip tests</h2>
+    <span class="card-meta"><span class="chip">1db2660</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">148/148 tests pass (4 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>getReferenceTemplate and getAgentsTemplate now emit the spec sections wrapped in managed-block markers stamped SPEC_SECTION_VERSION (new renderSpecSection/renderSpecCoreSection helpers in frameTemplates.js), and enableSpecDriven&#39;s append path in frameProject.js appends the wrapped core section. Extended test/docsManagedBlock.test.js with round-trip assertions: freshly emitted docs parse at the current version and are left alone by upgradeDoc; the frozen legacy constants still pass the migration gate.</p></div>
+    <div class="field"><span class="label">Why</span><p>The round-trip test exposed a boundary gap: a legacy section followed by a --- separator and non-heading content overran its span, so findLegacySpan now also stops at a thematic break — the docs&#39; own section separator.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 26d2aaf..4d992c6 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -444,9 +444,9 @@ function ensureSpecDrivenArtifacts(projectPath, config) {</span>
+<span class="dl-ctx">   if (!existing) {</span>
+<span class="dl-ctx">     fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true, project: (config &amp;&amp; config.project) || null }), &#39;utf8&#39;);</span>
+<span class="dl-ctx">   } else if (!existing.includes(&#39;Spec-Driven Development&#39;)) {</span>
+<span class="dl-del">-    // Append the short core section — the full workflow lives in</span>
+<span class="dl-del">-    // .frame/docs/REFERENCE.md, which is guaranteed to exist above</span>
+<span class="dl-del">-    const sectionBlock = `\n\n---\n\n${templates.SPEC_DRIVEN_CORE_SECTION}\n`;</span>
+<span class="dl-add">+    // Append the short core section (marker-wrapped, stamped current) — the</span>
+<span class="dl-add">+    // full workflow lives in .frame/docs/REFERENCE.md, guaranteed above</span>
+<span class="dl-add">+    const sectionBlock = `\n\n---\n\n${templates.renderSpecCoreSection()}\n`;</span>
+<span class="dl-ctx">     const footerMarker = &#39;*This file was automatically created by Frame.&#39;;</span>
+<span class="dl-ctx">     const footerIdx = existing.indexOf(footerMarker);</span>
+<span class="dl-ctx">     let updated;</span>
+<span class="dl-meta">diff --git a/src/shared/docsManagedBlock.js b/src/shared/docsManagedBlock.js</span>
+<span class="dl-meta">index a8b5361..cc0c8eb 100644</span>
+<span class="dl-file">--- a/src/shared/docsManagedBlock.js</span>
+<span class="dl-file">+++ b/src/shared/docsManagedBlock.js</span>
+<span class="dl-hunk">@@ -91,8 +91,10 @@ function findLegacySpan(text, matcher) {</span>
+<span class="dl-ctx">     const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);</span>
+<span class="dl-ctx">     if (line.trim() !== heading || lineStart !== idx) continue;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-    // Section ends at the next heading of the same or higher level, or EOF.</span>
+<span class="dl-del">-    const boundary = new RegExp(`^#{1,${level}}\\s`, &#39;m&#39;);</span>
+<span class="dl-add">+    // Section ends at the next heading of the same or higher level, at the</span>
+<span class="dl-add">+    // next thematic break (`---` on its own line — the docs&#39; section</span>
+<span class="dl-add">+    // separator), or at EOF. The shipped section bodies contain neither.</span>
+<span class="dl-add">+    const boundary = new RegExp(`^(#{1,${level}}\\s|-{3,}\\s*$)`, &#39;m&#39;);</span>
+<span class="dl-ctx">     const rest = text.slice(from);</span>
+<span class="dl-ctx">     const next = boundary.exec(rest);</span>
+<span class="dl-ctx">     let end = next ? from + next.index : text.length;</span>
+<span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 2771ba8..a3d4ff2 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -4,6 +4,8 @@</span>
+<span class="dl-ctx">  * Each template includes instructions header for Claude Code</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+const managedBlock = require(&#39;./docsManagedBlock&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Get current date in YYYY-MM-DD format</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -231,6 +233,19 @@ The self-serve protocol (resolve spec → resolve template → interpolate →</span>
+<span class="dl-ctx"> follow exactly) lives in **&quot;Spec-Driven Development&quot;** in</span>
+<span class="dl-ctx"> \`.frame/docs/REFERENCE.md\`.`;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The spec sections as actually emitted into docs: wrapped in managed-block</span>
+<span class="dl-add">+ * markers stamped with the current version, so new projects are born managed</span>
+<span class="dl-add">+ * and the upgrade driver can version-gate them later.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function renderSpecSection() {</span>
+<span class="dl-add">+  return managedBlock.renderBlock(SPEC_DRIVEN_SECTION, SPEC_SECTION_VERSION);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function renderSpecCoreSection() {</span>
+<span class="dl-add">+  return managedBlock.renderBlock(SPEC_DRIVEN_CORE_SECTION, SPEC_SECTION_VERSION);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * AGENTS.md template - the lean always-on core read by AI coding tools</span>
+<span class="dl-ctx">  * (Claude Code, Codex CLI, etc.) every session: orientation only. The</span>
+<span class="dl-hunk">@@ -323,7 +338,7 @@ tasks). Trust its warnings over stale entries.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ${specDriven ? `---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-${SPEC_DRIVEN_CORE_SECTION}</span>
+<span class="dl-add">+${renderSpecCoreSection()}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ` : &#39;&#39;}---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -418,7 +433,7 @@ orientation lives in \`AGENTS.md\`; this file is loaded on demand.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-${SPEC_DRIVEN_SECTION}</span>
+<span class="dl-add">+${renderSpecSection()}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -942,6 +957,8 @@ module.exports = {</span>
+<span class="dl-ctx">   getFrameConfigTemplate,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_SECTION,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+  renderSpecSection,</span>
+<span class="dl-add">+  renderSpecCoreSection,</span>
+<span class="dl-ctx">   SPEC_SECTION_VERSION,</span>
+<span class="dl-ctx">   LEGACY_SPEC_DRIVEN_SECTION,</span>
+<span class="dl-ctx">   LEGACY_SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-meta">diff --git a/test/docsManagedBlock.test.js b/test/docsManagedBlock.test.js</span>
+<span class="dl-meta">index 397a1a9..1beec25 100644</span>
+<span class="dl-file">--- a/test/docsManagedBlock.test.js</span>
+<span class="dl-file">+++ b/test/docsManagedBlock.test.js</span>
+<span class="dl-hunk">@@ -136,6 +136,64 @@ test(&#39;section at end of file migrates and trailing separator stays outside the b</span>
+<span class="dl-ctx">   assert.ok(migrated.includes(renderBlock(NEW_BODY, 2)));</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── template round-trip (T03) ────────────────────────────────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// The docs Frame emits must parse as managed blocks stamped current, and the</span>
+<span class="dl-add">+// frozen legacy constants must still pass the migration gate — otherwise a</span>
+<span class="dl-add">+// Frame release would either re-migrate its own docs or strand old ones.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const templates = require(&#39;../src/shared/frameTemplates&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;freshly emitted REFERENCE.md parses at the current version&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = templates.getReferenceTemplate(&#39;proj&#39;);</span>
+<span class="dl-add">+  const block = findBlock(doc);</span>
+<span class="dl-add">+  assert.ok(block);</span>
+<span class="dl-add">+  assert.equal(block.version, templates.SPEC_SECTION_VERSION);</span>
+<span class="dl-add">+  // stamped current → the upgrade driver leaves it alone</span>
+<span class="dl-add">+  assert.equal(upgradeDoc(doc, {</span>
+<span class="dl-add">+    body: templates.SPEC_DRIVEN_SECTION,</span>
+<span class="dl-add">+    version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+    legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+  }), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;freshly emitted AGENTS.md (specDriven) parses at the current version&#39;, () =&gt; {</span>
+<span class="dl-add">+  const doc = templates.getAgentsTemplate(&#39;proj&#39;, { specDriven: true });</span>
+<span class="dl-add">+  const block = findBlock(doc);</span>
+<span class="dl-add">+  assert.ok(block);</span>
+<span class="dl-add">+  assert.equal(block.version, templates.SPEC_SECTION_VERSION);</span>
+<span class="dl-add">+  assert.equal(upgradeDoc(doc, {</span>
+<span class="dl-add">+    body: templates.SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+    version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+    legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+  }), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;AGENTS.md without specDriven has no managed block&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(findBlock(templates.getAgentsTemplate(&#39;proj&#39;, { specDriven: false })), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;legacy matchers migrate the previously shipped section bodies&#39;, () =&gt; {</span>
+<span class="dl-add">+  const legacyRef = `# proj — Frame Reference\n\nIntro.\n\n---\n\n${templates.LEGACY_SPEC_DRIVEN_SECTION}\n\n---\n\n## PROJECT_NOTES.md Rules\n\nStuff.\n`;</span>
+<span class="dl-add">+  const migratedRef = upgradeDoc(legacyRef, {</span>
+<span class="dl-add">+    body: templates.SPEC_DRIVEN_SECTION,</span>
+<span class="dl-add">+    version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+    legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.ok(migratedRef);</span>
+<span class="dl-add">+  assert.ok(migratedRef.includes(templates.renderSpecSection()));</span>
+<span class="dl-add">+  assert.ok(migratedRef.includes(&#39;## PROJECT_NOTES.md Rules&#39;));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const legacyAgents = `# proj\n\n---\n\n${templates.LEGACY_SPEC_DRIVEN_CORE_SECTION}\n\n---\n\nFooter.\n`;</span>
+<span class="dl-add">+  const migratedAgents = upgradeDoc(legacyAgents, {</span>
+<span class="dl-add">+    body: templates.SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+    version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+    legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.ok(migratedAgents);</span>
+<span class="dl-add">+  assert.ok(migratedAgents.includes(templates.renderSpecCoreSection()));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> test(&#39;subheadings inside the section do not truncate the match&#39;, () =&gt; {</span>
+<span class="dl-ctx">   // LEGACY_SECTION contains an H3; the span must run to the next H1/H2.</span>
+<span class="dl-ctx">   const migrated = upgradeDoc(docWith(LEGACY_SECTION), {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T04</span>
+    <h2>Generalized command staging module (commandStaging.js) with tests</h2>
+    <span class="card-meta"><span class="chip">38033ba</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">153/153 tests pass (5 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Created src/main/commandStaging.js: pure resolveStagingPlan(projectPath, tool, existsFn) returning {src, dst, executable?} entries for the four spec templates plus plan-report-template.html and build-implement-report.mjs into .frame/runtime/commands/&lt;tool&gt;/ (override-first) and implement-launch.js into .frame/bin/ (packaged only); stageCommandFiles executes the plan for every packaged tool dir via copyIfChanged (moved from specManager) and chmods the helper. test/commandStaging.test.js pins the resolution contract with an injected existsFn.</p></div>
+    <div class="field"><span class="label">Why</span><p>Resolution is pure and filesystem-free so the project convention (test pure logic, skip Electron-coupled wrappers) reaches it; specManager/frameProject rewiring is deliberately left to T05 per sequencing.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/commandStaging.js b/src/main/commandStaging.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..6cf1f4d</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/main/commandStaging.js</span>
+<span class="dl-hunk">@@ -0,0 +1,139 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Command staging (cli-spec-command-parity).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * A CLI session asked conversationally to run a spec command can&#39;t reach</span>
+<span class="dl-add">+ * Frame&#39;s packaged templates inside app.asar, so Frame stages the current</span>
+<span class="dl-add">+ * command templates and their assets into the project itself:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   .frame/runtime/commands/&lt;tool&gt;/  — the four spec.* templates,</span>
+<span class="dl-add">+ *                                      plan-report-template.html,</span>
+<span class="dl-add">+ *                                      build-implement-report.mjs</span>
+<span class="dl-add">+ *   .frame/bin/implement-launch.js   — the flagged-launch helper</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Staging runs on project open (WATCH_SPECS), on init/enable, and on every</span>
+<span class="dl-add">+ * implement dispatch; files are rewritten only when content differs so</span>
+<span class="dl-add">+ * repeated opens don&#39;t re-trigger watchers. Sources resolve override-first</span>
+<span class="dl-add">+ * (.frame/templates/commands/&lt;tool&gt;/) — the same precedence</span>
+<span class="dl-add">+ * specManager.loadCommandTemplate uses. Supersedes specManager&#39;s v2</span>
+<span class="dl-add">+ * stageImplementCommandFiles (same paths, superset of files).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { FRAME_DIR, FRAME_BIN_DIR } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Packaged template roots — inside app.asar in a packaged build, plain</span>
+<span class="dl-add">+// directories in dev. Readable via fs either way.</span>
+<span class="dl-add">+const FRAME_TEMPLATES_DIR = path.join(__dirname, &#39;..&#39;, &#39;templates&#39;);</span>
+<span class="dl-add">+const PACKAGED_COMMANDS_DIR = path.join(FRAME_TEMPLATES_DIR, &#39;commands&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const COMMAND_TEMPLATE_FILES = [</span>
+<span class="dl-add">+  &#39;spec.new.md&#39;,</span>
+<span class="dl-add">+  &#39;spec.plan.md&#39;,</span>
+<span class="dl-add">+  &#39;spec.tasks.md&#39;,</span>
+<span class="dl-add">+  &#39;spec.implement.md&#39;</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+const COMMAND_ASSET_FILES = [</span>
+<span class="dl-add">+  &#39;plan-report-template.html&#39;,</span>
+<span class="dl-add">+  &#39;build-implement-report.mjs&#39;</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+const IMPLEMENT_HELPER_FILE = &#39;implement-launch.js&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Pure: resolve what to stage for one tool. Returns</span>
+<span class="dl-add">+ * [{ src, dst, executable? }] — templates and assets go to</span>
+<span class="dl-add">+ * .frame/runtime/commands/&lt;tool&gt;/ with the project override</span>
+<span class="dl-add">+ * (.frame/templates/commands/&lt;tool&gt;/&lt;file&gt;) winning over the packaged copy;</span>
+<span class="dl-add">+ * the launch helper goes to .frame/bin/ from templates/bin/ only (Frame</span>
+<span class="dl-add">+ * machinery, no user override). existsFn decides override presence, so</span>
+<span class="dl-add">+ * tests can drive resolution without a filesystem.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveStagingPlan(projectPath, tool, existsFn) {</span>
+<span class="dl-add">+  const exists = existsFn || fs.existsSync;</span>
+<span class="dl-add">+  const overrideDir = path.join(projectPath, FRAME_DIR, &#39;templates&#39;, &#39;commands&#39;, tool);</span>
+<span class="dl-add">+  const packagedDir = path.join(PACKAGED_COMMANDS_DIR, tool);</span>
+<span class="dl-add">+  const runtimeDir = path.join(projectPath, FRAME_DIR, &#39;runtime&#39;, &#39;commands&#39;, tool);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const plan = [];</span>
+<span class="dl-add">+  for (const file of [...COMMAND_TEMPLATE_FILES, ...COMMAND_ASSET_FILES]) {</span>
+<span class="dl-add">+    const override = path.join(overrideDir, file);</span>
+<span class="dl-add">+    plan.push({</span>
+<span class="dl-add">+      src: exists(override) ? override : path.join(packagedDir, file),</span>
+<span class="dl-add">+      dst: path.join(runtimeDir, file)</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  plan.push({</span>
+<span class="dl-add">+    src: path.join(FRAME_TEMPLATES_DIR, &#39;bin&#39;, IMPLEMENT_HELPER_FILE),</span>
+<span class="dl-add">+    dst: path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, IMPLEMENT_HELPER_FILE),</span>
+<span class="dl-add">+    executable: true</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  return plan;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Copy only when the destination content differs, so project-open staging</span>
+<span class="dl-add">+ * doesn&#39;t rewrite unchanged files (and re-trigger watchers) every time. A</span>
+<span class="dl-add">+ * missing source is skipped, not fatal — an empty tool dir or unbuilt helper</span>
+<span class="dl-add">+ * stages nothing, and a stale runtime copy is better than a crash on open.</span>
+<span class="dl-add">+ * (Moved here from specManager as part of retiring stageImplementCommandFiles.)</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function copyIfChanged(src, dst) {</span>
+<span class="dl-add">+  let content;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    content = fs.readFileSync(src, &#39;utf8&#39;);</span>
+<span class="dl-add">+  } catch (_) {</span>
+<span class="dl-add">+    return false; // source not present — nothing to stage</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    let existing = null;</span>
+<span class="dl-add">+    try { existing = fs.readFileSync(dst, &#39;utf8&#39;); } catch (_) { /* new file */ }</span>
+<span class="dl-add">+    if (existing === content) return false;</span>
+<span class="dl-add">+    fs.mkdirSync(path.dirname(dst), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(dst, content, &#39;utf8&#39;);</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.error(`commandStaging: staging ${dst} failed`, err);</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * List the tool directories that actually ship under the packaged commands</span>
+<span class="dl-add">+ * root (claude-code is the only populated one today — empty dirs stage</span>
+<span class="dl-add">+ * nothing, so listing them is harmless).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function availableTools() {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return fs.readdirSync(PACKAGED_COMMANDS_DIR, { withFileTypes: true })</span>
+<span class="dl-add">+      .filter((e) =&gt; e.isDirectory())</span>
+<span class="dl-add">+      .map((e) =&gt; e.name);</span>
+<span class="dl-add">+  } catch (_) {</span>
+<span class="dl-add">+    return [];</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Stage the command templates, assets and launch helper for every available</span>
+<span class="dl-add">+ * tool. Never throws — a staging failure must not break project open.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function stageCommandFiles(projectPath) {</span>
+<span class="dl-add">+  if (!projectPath) return;</span>
+<span class="dl-add">+  for (const tool of availableTools()) {</span>
+<span class="dl-add">+    for (const entry of resolveStagingPlan(projectPath, tool)) {</span>
+<span class="dl-add">+      if (copyIfChanged(entry.src, entry.dst) &amp;&amp; entry.executable) {</span>
+<span class="dl-add">+        try { fs.chmodSync(entry.dst, 0o755); } catch (_) { /* best effort */ }</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  resolveStagingPlan,</span>
+<span class="dl-add">+  stageCommandFiles,</span>
+<span class="dl-add">+  copyIfChanged,</span>
+<span class="dl-add">+  availableTools,</span>
+<span class="dl-add">+  COMMAND_TEMPLATE_FILES,</span>
+<span class="dl-add">+  COMMAND_ASSET_FILES,</span>
+<span class="dl-add">+  IMPLEMENT_HELPER_FILE,</span>
+<span class="dl-add">+  FRAME_TEMPLATES_DIR</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/test/commandStaging.test.js b/test/commandStaging.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..649c1b2</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/commandStaging.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,65 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Command staging plan tests (cli-spec-command-parity T04).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * resolveStagingPlan is pure given an existsFn, so these tests pin the</span>
+<span class="dl-add">+ * resolution contract without touching a filesystem: override-first sources,</span>
+<span class="dl-add">+ * the full staged file set per tool, and the bin helper&#39;s special handling.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const staging = require(&#39;../src/main/commandStaging&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const PROJECT = path.join(path.sep, &#39;proj&#39;);</span>
+<span class="dl-add">+const TOOL = &#39;claude-code&#39;;</span>
+<span class="dl-add">+const ALL_FILES = [...staging.COMMAND_TEMPLATE_FILES, ...staging.COMMAND_ASSET_FILES];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;plan covers the four templates, both assets and the launch helper&#39;, () =&gt; {</span>
+<span class="dl-add">+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () =&gt; false);</span>
+<span class="dl-add">+  assert.equal(plan.length, ALL_FILES.length + 1);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const file of ALL_FILES) {</span>
+<span class="dl-add">+    const entry = plan.find((e) =&gt; path.basename(e.dst) === file);</span>
+<span class="dl-add">+    assert.ok(entry, `missing plan entry for ${file}`);</span>
+<span class="dl-add">+    assert.equal(entry.dst, path.join(PROJECT, &#39;.frame&#39;, &#39;runtime&#39;, &#39;commands&#39;, TOOL, file));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const helper = plan.find((e) =&gt; path.basename(e.dst) === staging.IMPLEMENT_HELPER_FILE);</span>
+<span class="dl-add">+  assert.ok(helper);</span>
+<span class="dl-add">+  assert.equal(helper.dst, path.join(PROJECT, &#39;.frame&#39;, &#39;bin&#39;, staging.IMPLEMENT_HELPER_FILE));</span>
+<span class="dl-add">+  assert.equal(helper.executable, true);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;sources fall back to the packaged copies when no override exists&#39;, () =&gt; {</span>
+<span class="dl-add">+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () =&gt; false);</span>
+<span class="dl-add">+  for (const file of ALL_FILES) {</span>
+<span class="dl-add">+    const entry = plan.find((e) =&gt; path.basename(e.dst) === file);</span>
+<span class="dl-add">+    assert.equal(entry.src, path.join(staging.FRAME_TEMPLATES_DIR, &#39;commands&#39;, TOOL, file));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a project override wins over the packaged copy, per file&#39;, () =&gt; {</span>
+<span class="dl-add">+  const overridden = path.join(PROJECT, &#39;.frame&#39;, &#39;templates&#39;, &#39;commands&#39;, TOOL, &#39;spec.plan.md&#39;);</span>
+<span class="dl-add">+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, (p) =&gt; p === overridden);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const planEntry = plan.find((e) =&gt; path.basename(e.dst) === &#39;spec.plan.md&#39;);</span>
+<span class="dl-add">+  assert.equal(planEntry.src, overridden);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // every other file still resolves packaged</span>
+<span class="dl-add">+  for (const file of ALL_FILES.filter((f) =&gt; f !== &#39;spec.plan.md&#39;)) {</span>
+<span class="dl-add">+    const entry = plan.find((e) =&gt; path.basename(e.dst) === file);</span>
+<span class="dl-add">+    assert.equal(entry.src, path.join(staging.FRAME_TEMPLATES_DIR, &#39;commands&#39;, TOOL, file));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the launch helper never resolves through the override dir&#39;, () =&gt; {</span>
+<span class="dl-add">+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () =&gt; true);</span>
+<span class="dl-add">+  const helper = plan.find((e) =&gt; path.basename(e.dst) === staging.IMPLEMENT_HELPER_FILE);</span>
+<span class="dl-add">+  assert.equal(helper.src, path.join(staging.FRAME_TEMPLATES_DIR, &#39;bin&#39;, staging.IMPLEMENT_HELPER_FILE));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;available tools include claude-code&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.ok(staging.availableTools().includes(&#39;claude-code&#39;));</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T05</span>
+    <h2>Rewire staging call sites; retire stageImplementCommandFiles</h2>
+    <span class="card-meta"><span class="chip">6a6bd02</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">153/153 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>specManager.js: deleted stageImplementCommandFiles, copyIfChanged and their constants; the WATCH_SPECS handler and the implement-dispatch branch of buildSpecCommandFile now call commandStaging.stageCommandFiles. frameProject.js: runProjectInit and ensureSpecDrivenArtifacts (both enableSpecDriven branches) call commandStaging.stageCommandFiles, wrapped non-fatal.</p></div>
+    <div class="field"><span class="label">Why</span><p>Same paths, superset of files — the v2 implement-only slice is preserved while all four commands become self-servable. Staging was added to ensureSpecDrivenArtifacts rather than enableSpecDriven directly so the already-enabled short-circuit path also restages.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 4d992c6..dd676f9 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -12,6 +12,7 @@ const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require(&#39;..</span>
+<span class="dl-ctx"> const templates = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-ctx"> const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-ctx"> const structureBootstrap = require(&#39;./structureBootstrap&#39;);</span>
+<span class="dl-add">+const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-ctx"> const detector = require(&#39;../../scripts/detect-project&#39;);</span>
+<span class="dl-hunk">@@ -362,6 +363,14 @@ async function runProjectInit(projectPath, projectName) {</span>
+<span class="dl-ctx">     console.warn(&#39;[frame] structure bootstrap failed (non-fatal):&#39;, err.message);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Stage the spec command templates, report assets and launch helper so a</span>
+<span class="dl-add">+  // CLI session can self-serve the current flow from day one. Non-fatal.</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    commandStaging.stageCommandFiles(projectPath);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.warn(&#39;[frame] command staging failed (non-fatal):&#39;, err.message);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // Update workspace to mark as Frame project</span>
+<span class="dl-ctx">   workspace.updateProjectFrameStatus(projectPath, true);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -409,6 +418,14 @@ function enableSpecDriven(projectPath) {</span>
+<span class="dl-ctx"> function ensureSpecDrivenArtifacts(projectPath, config) {</span>
+<span class="dl-ctx">   const name = (config &amp;&amp; config.name) || path.basename(projectPath);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Stage the command templates/assets/helper — enabling spec-driven is the</span>
+<span class="dl-add">+  // moment a CLI session may start asking for spec commands. Non-fatal.</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    commandStaging.stageCommandFiles(projectPath);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.warn(&#39;[frame] command staging failed (non-fatal):&#39;, err.message);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // Make sure .frame/specs/ exists with a .gitkeep so it&#39;s version-tracked</span>
+<span class="dl-ctx">   const specsDir = path.join(projectPath, FRAME_DIR, &#39;specs&#39;);</span>
+<span class="dl-ctx">   fs.mkdirSync(specsDir, { recursive: true });</span>
+<span class="dl-meta">diff --git a/src/main/specManager.js b/src/main/specManager.js</span>
+<span class="dl-meta">index cdc8f62..0d7601a 100644</span>
+<span class="dl-file">--- a/src/main/specManager.js</span>
+<span class="dl-file">+++ b/src/main/specManager.js</span>
+<span class="dl-hunk">@@ -17,6 +17,7 @@ const fsSafe = require(&#39;./fsSafe&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const tasksManager = require(&#39;./tasksManager&#39;);</span>
+<span class="dl-add">+const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -362,68 +363,13 @@ function stageCommandAssets(projectPath, command, aiTool) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// ─── Implement helper staging (v2) ────────────────────────────</span>
+<span class="dl-add">+// ─── Command file staging ─────────────────────────────────────</span>
+<span class="dl-ctx"> //</span>
+<span class="dl-del">-// The bin launch helper (implement-launch.js) runs with the Frame app closed,</span>
+<span class="dl-del">-// so it can&#39;t reach into app.asar for the raw implement template or the report</span>
+<span class="dl-del">-// generator. Frame stages both — plus the helper itself — into the project on</span>
+<span class="dl-del">-// project open (WATCH_SPECS) and on every implement dispatch, so either entry</span>
+<span class="dl-del">-// path (Frame button or `node .frame/bin/implement-launch.js &lt;slug&gt;`) finds</span>
+<span class="dl-del">-// them on disk. cli-spec-command-parity will later generalize the same</span>
+<span class="dl-del">-// runtime/commands/&lt;tool&gt;/ location to all four commands; this is the minimal</span>
+<span class="dl-del">-// slice v2 needs, at the same path, so there&#39;s no conflict.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-const RUNTIME_COMMANDS_DIR = path.join(FRAME_DIR, &#39;runtime&#39;, &#39;commands&#39;);</span>
+<span class="dl-del">-const IMPLEMENT_TEMPLATE_FILE = &#39;spec.implement.md&#39;;</span>
+<span class="dl-del">-const IMPLEMENT_HELPER_FILE = &#39;implement-launch.js&#39;;</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-// Copy only when the destination content differs, so project-open staging</span>
+<span class="dl-del">-// doesn&#39;t rewrite unchanged files (and re-trigger watchers) every time. A</span>
+<span class="dl-del">-// missing source is skipped, not fatal — the helper isn&#39;t shipped in every</span>
+<span class="dl-del">-// build stage, and a stale runtime copy is better than a crash on open.</span>
+<span class="dl-del">-function copyIfChanged(src, dst) {</span>
+<span class="dl-del">-  let content;</span>
+<span class="dl-del">-  try {</span>
+<span class="dl-del">-    content = fs.readFileSync(src, &#39;utf8&#39;);</span>
+<span class="dl-del">-  } catch (_) {</span>
+<span class="dl-del">-    return false; // source not present — nothing to stage</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-  try {</span>
+<span class="dl-del">-    let existing = null;</span>
+<span class="dl-del">-    try { existing = fs.readFileSync(dst, &#39;utf8&#39;); } catch (_) { /* new file */ }</span>
+<span class="dl-del">-    if (existing === content) return false;</span>
+<span class="dl-del">-    fs.mkdirSync(path.dirname(dst), { recursive: true });</span>
+<span class="dl-del">-    fs.writeFileSync(dst, content, &#39;utf8&#39;);</span>
+<span class="dl-del">-    return true;</span>
+<span class="dl-del">-  } catch (err) {</span>
+<span class="dl-del">-    console.error(`specManager: staging ${dst} failed`, err);</span>
+<span class="dl-del">-    return false;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-// Stage the raw implement template + report generator into</span>
+<span class="dl-del">-// .frame/runtime/commands/&lt;tool&gt;/ and the launch helper into .frame/bin/.</span>
+<span class="dl-del">-// Template and generator resolve through the project&#39;s own override</span>
+<span class="dl-del">-// (.frame/templates/commands/&lt;tool&gt;/) before the packaged copy — the same</span>
+<span class="dl-del">-// precedence loadCommandTemplate/stageCommandAsset use.</span>
+<span class="dl-del">-function stageImplementCommandFiles(projectPath, aiTool) {</span>
+<span class="dl-del">-  if (!projectPath) return;</span>
+<span class="dl-del">-  const tool = aiTool || &#39;claude-code&#39;;</span>
+<span class="dl-del">-  const runtimeCmdDir = path.join(projectPath, RUNTIME_COMMANDS_DIR, tool);</span>
+<span class="dl-del">-  for (const file of [IMPLEMENT_TEMPLATE_FILE, REPORT_GENERATOR_FILE]) {</span>
+<span class="dl-del">-    const override = path.join(projectPath, FRAME_DIR, &#39;templates&#39;, &#39;commands&#39;, tool, file);</span>
+<span class="dl-del">-    const packaged = path.join(FRAME_TEMPLATES_DIR, &#39;commands&#39;, tool, file);</span>
+<span class="dl-del">-    const src = fs.existsSync(override) ? override : packaged;</span>
+<span class="dl-del">-    copyIfChanged(src, path.join(runtimeCmdDir, file));</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-  // The helper ships from templates/bin/ (no per-project override — it&#39;s Frame</span>
+<span class="dl-del">-  // machinery, not user-authored prose). Missing until it&#39;s built; skipped</span>
+<span class="dl-del">-  // cleanly by copyIfChanged until then.</span>
+<span class="dl-del">-  const helperDst = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, IMPLEMENT_HELPER_FILE);</span>
+<span class="dl-del">-  if (copyIfChanged(path.join(FRAME_TEMPLATES_DIR, &#39;bin&#39;, IMPLEMENT_HELPER_FILE), helperDst)) {</span>
+<span class="dl-del">-    try { fs.chmodSync(helperDst, 0o755); } catch (_) { /* best effort */ }</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-}</span>
+<span class="dl-add">+// The staging of raw command templates, report assets and the launch helper</span>
+<span class="dl-add">+// into .frame/runtime/commands/&lt;tool&gt;/ and .frame/bin/ lives in</span>
+<span class="dl-add">+// commandStaging.js (cli-spec-command-parity) — it covers all four spec</span>
+<span class="dl-add">+// commands so a CLI session can self-serve the current flow. It runs on</span>
+<span class="dl-add">+// project open (WATCH_SPECS), init/enable, and every implement dispatch.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // ─── Implement-mode permissions ───────────────────────────────</span>
+<span class="dl-ctx"> //</span>
+<span class="dl-hunk">@@ -564,9 +510,9 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool) {</span>
+<span class="dl-ctx">   const absPath = path.join(promptsDir, filename);</span>
+<span class="dl-ctx">   fs.writeFileSync(absPath, result.prompt, &#39;utf8&#39;);</span>
+<span class="dl-ctx">   stageCommandAssets(projectPath, command, aiTool);</span>
+<span class="dl-del">-  // Implement dispatches also refresh the raw template, generator and helper</span>
+<span class="dl-add">+  // Implement dispatches also refresh the staged templates, assets and helper</span>
+<span class="dl-ctx">   // so an out-of-app helper launch always finds the latest on disk.</span>
+<span class="dl-del">-  if (command === &#39;spec.implement&#39;) stageImplementCommandFiles(projectPath, aiTool);</span>
+<span class="dl-add">+  if (command === &#39;spec.implement&#39;) commandStaging.stageCommandFiles(projectPath);</span>
+<span class="dl-ctx">   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, &#39;/&#39;), filename);</span>
+<span class="dl-ctx">   return {</span>
+<span class="dl-ctx">     success: true,</span>
+<span class="dl-hunk">@@ -1108,12 +1054,13 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx">   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) =&gt; {</span>
+<span class="dl-ctx">     startWatching(projectPath);</span>
+<span class="dl-del">-    // Project open: stage the implement template, generator and helper so a</span>
+<span class="dl-del">-    // helper-driven launch works even before any in-app implement dispatch.</span>
+<span class="dl-add">+    // Project open: stage the command templates, report assets and launch</span>
+<span class="dl-add">+    // helper so a CLI session (or a helper-driven launch) can self-serve the</span>
+<span class="dl-add">+    // current flow even before any in-app dispatch.</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-del">-      stageImplementCommandFiles(projectPath, &#39;claude-code&#39;);</span>
+<span class="dl-add">+      commandStaging.stageCommandFiles(projectPath);</span>
+<span class="dl-ctx">     } catch (err) {</span>
+<span class="dl-del">-      console.error(&#39;specManager: implement helper staging failed&#39;, err);</span>
+<span class="dl-add">+      console.error(&#39;specManager: command staging failed&#39;, err);</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx">   ipcMain.on(IPC.UNWATCH_SPECS, () =&gt; {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T06</span>
+    <h2>upgradeSpecDocs driver wired into project open</h2>
+    <span class="card-meta"><span class="chip">e02e439</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">153/153 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added upgradeSpecDocs to frameProject.js: for .frame/docs/REFERENCE.md (full-protocol section) and AGENTS.md (core pointer section) it runs docsManagedBlock.upgradeDoc with the current version and the per-doc legacy matchers, writing back only when the engine returns changed text; missing files are skipped, non-Frame projects untouched. The WATCH_SPECS handler in specManager.js now calls it beside stageCommandFiles inside the existing try/catch.</p></div>
+    <div class="field"><span class="label">Why</span><p>Driver kept deliberately thin — all decision logic lives in the tested pure engine, per the project test convention. Verified end-to-end on a throwaway fixture: legacy REFERENCE migrates once, customized AGENTS is untouched, second run is a no-op.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index dd676f9..448ce57 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -13,6 +13,7 @@ const templates = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-ctx"> const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-ctx"> const structureBootstrap = require(&#39;./structureBootstrap&#39;);</span>
+<span class="dl-ctx"> const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-add">+const docsManagedBlock = require(&#39;../shared/docsManagedBlock&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-ctx"> const detector = require(&#39;../../scripts/detect-project&#39;);</span>
+<span class="dl-hunk">@@ -481,6 +482,53 @@ function ensureSpecDrivenArtifacts(projectPath, config) {</span>
+<span class="dl-ctx">   // else: section already present, leave file alone</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── Spec docs upgrade on project open (cli-spec-command-parity) ─────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// REFERENCE.md and AGENTS.md carry a Frame-managed spec section; the</span>
+<span class="dl-add">+// managed-block engine upgrades it in place when Frame&#39;s shipped content is</span>
+<span class="dl-add">+// newer (version stamp) or migrates a byte-identical legacy section once.</span>
+<span class="dl-add">+// Everything outside the block — and any file the user deleted or heavily</span>
+<span class="dl-add">+// rewrote — is left alone. Files are never created here, only rewritten on</span>
+<span class="dl-add">+// change.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function upgradeSpecDocs(projectPath) {</span>
+<span class="dl-add">+  if (!projectPath || !isFrameProject(projectPath)) return;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const docs = [</span>
+<span class="dl-add">+    {</span>
+<span class="dl-add">+      file: path.join(projectPath, FRAME_DIR, &#39;docs&#39;, &#39;REFERENCE.md&#39;),</span>
+<span class="dl-add">+      body: templates.SPEC_DRIVEN_SECTION,</span>
+<span class="dl-add">+      legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+    },</span>
+<span class="dl-add">+    {</span>
+<span class="dl-add">+      file: path.join(projectPath, FRAME_FILES.AGENTS),</span>
+<span class="dl-add">+      body: templates.SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-add">+      legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  ];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const doc of docs) {</span>
+<span class="dl-add">+    let text;</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      text = fs.readFileSync(doc.file, &#39;utf8&#39;);</span>
+<span class="dl-add">+    } catch (_) {</span>
+<span class="dl-add">+      continue; // missing file — never create it</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    const upgraded = docsManagedBlock.upgradeDoc(text, {</span>
+<span class="dl-add">+      body: doc.body,</span>
+<span class="dl-add">+      version: templates.SPEC_SECTION_VERSION,</span>
+<span class="dl-add">+      legacyMatchers: doc.legacyMatchers</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    if (upgraded !== null &amp;&amp; upgraded !== text) {</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        fs.writeFileSync(doc.file, upgraded, &#39;utf8&#39;);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        console.warn(`[frame] spec docs upgrade failed for ${doc.file} (non-fatal):`, err.message);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Setup IPC handlers</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -549,5 +597,6 @@ module.exports = {</span>
+<span class="dl-ctx">   initializeFrameProject,</span>
+<span class="dl-ctx">   isSpecDrivenEnabled,</span>
+<span class="dl-ctx">   enableSpecDriven,</span>
+<span class="dl-add">+  upgradeSpecDocs,</span>
+<span class="dl-ctx">   setupIPC</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-meta">diff --git a/src/main/specManager.js b/src/main/specManager.js</span>
+<span class="dl-meta">index 0d7601a..83168dd 100644</span>
+<span class="dl-file">--- a/src/main/specManager.js</span>
+<span class="dl-file">+++ b/src/main/specManager.js</span>
+<span class="dl-hunk">@@ -18,6 +18,7 @@ const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const tasksManager = require(&#39;./tasksManager&#39;);</span>
+<span class="dl-ctx"> const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-add">+const frameProject = require(&#39;./frameProject&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -1056,9 +1057,11 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">     startWatching(projectPath);</span>
+<span class="dl-ctx">     // Project open: stage the command templates, report assets and launch</span>
+<span class="dl-ctx">     // helper so a CLI session (or a helper-driven launch) can self-serve the</span>
+<span class="dl-del">-    // current flow even before any in-app dispatch.</span>
+<span class="dl-add">+    // current flow even before any in-app dispatch, and upgrade the docs&#39;</span>
+<span class="dl-add">+    // managed spec section to the current generation. Never breaks watching.</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-ctx">       commandStaging.stageCommandFiles(projectPath);</span>
+<span class="dl-add">+      frameProject.upgradeSpecDocs(projectPath);</span>
+<span class="dl-ctx">     } catch (err) {</span>
+<span class="dl-ctx">       console.error(&#39;specManager: command staging failed&#39;, err);</span>
+<span class="dl-ctx">     }</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T07</span>
+    <h2>Entry-agnostic wording sweep of the four command templates</h2>
+    <span class="card-meta"><span class="chip">f6871d6</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">153/153 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Swept spec.new.md, spec.plan.md, spec.tasks.md and spec.implement.md for wording that assumes Frame launched the session. spec.new/spec.plan/spec.tasks contained no such assumptions and are unchanged. spec.implement.md: FRAME_NODE is now described as injected only when Frame launched the session (with node-from-PATH named for other sessions), and the watch-the-report statement plus the guided picker bullet name the direct implement-report.html path alongside the Frame button.</p></div>
+    <div class="field"><span class="label">Why</span><p>The conversational-entry and handoff sections were already entry-agnostic per v2 (as the plan predicted), so the sweep only had to fix the two spots that presumed a Frame-launched environment: the injected env var and the Frame-window-only report access. No stage, mode or output contract changed.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/templates/commands/claude-code/spec.implement.md b/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-meta">index aeceda2..e8a4c76 100644</span>
+<span class="dl-file">--- a/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-file">+++ b/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-hunk">@@ -51,7 +51,8 @@ Then offer the modes that this session can actually run to completion:</span>
+<span class="dl-ctx"> - **Guided** — you run every task in order with no check-ins between them (the</span>
+<span class="dl-ctx">   CLI&#39;s own permission prompts pace it), one commit per task, producing the</span>
+<span class="dl-ctx">   HTML report — openable from the **View Implementation Report** button on the</span>
+<span class="dl-del">-  spec&#39;s Tasks tab in Frame, refreshed as each task lands.</span>
+<span class="dl-add">+  spec&#39;s Tasks tab in Frame or directly from the spec folder, refreshed as</span>
+<span class="dl-add">+  each task lands.</span>
+<span class="dl-ctx"> - **Describe your own** — you tell me how to run it and I run it that way.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Ask with your structured-question tool (`AskUserQuestion` in Claude Code); with</span>
+<span class="dl-hunk">@@ -184,8 +185,9 @@ back into step-by-step, which is not what the user picked.</span>
+<span class="dl-ctx"> Before the first task, tell the user — once, as a statement, not a question —</span>
+<span class="dl-ctx"> where to watch: the report opens from the **View Implementation Report** button</span>
+<span class="dl-ctx"> on the spec&#39;s Tasks tab in Frame (the button appears when the first task</span>
+<span class="dl-del">-lands), and it is regenerated after every task, so refreshing the opened page</span>
+<span class="dl-del">-follows the run live. Then start; do not wait for a reply.</span>
+<span class="dl-add">+lands), or directly at `.frame/specs/{slug}/implement-report.html` when no</span>
+<span class="dl-add">+Frame window is open, and it is regenerated after every task, so refreshing</span>
+<span class="dl-add">+the opened page follows the run live. Then start; do not wait for a reply.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Per task, in this order:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -236,9 +238,11 @@ ELECTRON_RUN_AS_NODE=1 &quot;$FRAME_NODE&quot; {report_generator_path} \</span>
+<span class="dl-ctx">   .frame/specs/{slug}/report-data.json</span>
+<span class="dl-ctx"> ```</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Quote `$FRAME_NODE` — Frame injects its own executable there, and the packaged</span>
+<span class="dl-del">-path contains spaces. It writes `implement-report.html` next to the data file,</span>
+<span class="dl-del">-openable as each task completes.</span>
+<span class="dl-add">+Quote `$FRAME_NODE` — when Frame launched this session it injects its own</span>
+<span class="dl-add">+executable there, and the packaged path contains spaces. In a session Frame did</span>
+<span class="dl-add">+not launch, `$FRAME_NODE` is unset — use `node` from `PATH` instead (the</span>
+<span class="dl-add">+missing-runtime order below). It writes `implement-report.html` next to the</span>
+<span class="dl-add">+data file, openable as each task completes.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **On the first task only, add `--open`** so the report opens in the browser</span>
+<span class="dl-ctx"> once, at the moment there&#39;s something to see:</span></pre>
+    </details>
+  </div>
+</section>
+</div>
+
+<footer>Generated by Frame from <code>report-data.json</code> · diffs read from git, never transcribed</footer>
+</body>
+</html>

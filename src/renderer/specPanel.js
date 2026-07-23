@@ -18,6 +18,7 @@ const { marked } = require('marked');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
+const specNextAction = require('./specNextAction');
 
 let isVisible = false;
 let panelEl = null;
@@ -233,7 +234,7 @@ function renderDetail() {
   const { status, spec, plan, tasks, outcome } = activeSpec;
   const phaseLabel = status.phase.replace(/_/g, ' ');
   const aiLabel = status.ai_tool || '';
-  const nextAction = nextActionForPhase(status.phase);
+  const nextAction = specNextAction.nextActionForPhase(status.phase);
 
   contentEl.innerHTML = `
     <div class="spec-detail">
@@ -258,7 +259,12 @@ function renderDetail() {
           ${aiLabel ? `<span class="spec-detail-ai">${escapeHtml(aiLabel)}</span>` : ''}
         </div>
       </div>
-      ${nextAction ? renderNextActionBar(nextAction, require('./agentDispatch').getSpecLaneInfo(status.slug)) : ''}
+      ${nextAction ? specNextAction.renderNextActionBar({
+        action: nextAction,
+        lane: require('./agentDispatch').getSpecLaneInfo(status.slug),
+        hint: activeSpec.implementHint,
+        counts: specNextAction.taskCounts(allTasks, status.slug)
+      }) : ''}
       <div class="spec-detail-tabs">
         ${renderTabButton('spec', 'Spec', !!spec)}
         ${renderTabButton('plan', 'Plan', !!plan)}
@@ -281,63 +287,16 @@ function renderDetail() {
   contentEl.querySelector('#spec-rename-btn')?.addEventListener('click', () => {
     if (activeSpec) showRenameModal(activeSpec.status);
   });
-  if (activeTab === 'tasks') attachTaskActionHandlers();
+  if (activeTab === 'tasks') {
+    attachTaskActionHandlers();
+    attachImplementReportHandler();
+  }
   if (activeTab === 'plan') attachPlanReportHandler();
 }
 
-// ─── Next-action bar ────────────────────────────────
-//
-// One primary "what's next?" button per phase. Clicking it sends the
-// appropriate prompt template to the active terminal so Claude (or whichever
-// AI tool is running) can produce the next artifact.
-
-function nextActionForPhase(phase) {
-  switch (phase) {
-    case 'draft':
-      return { command: 'spec.new',  label: 'Run /spec.new', hint: 'Have Claude write spec.md from your description.' };
-    case 'specified':
-      return { command: 'spec.plan', label: 'Run /spec.plan', hint: 'Generate plan.md from the spec.' };
-    case 'planned':
-      return { command: 'spec.tasks', label: 'Run /spec.tasks', hint: 'Break the plan into discrete tasks.' };
-    case 'tasks_generated':
-    case 'implementing':
-      return { command: 'spec.implement', label: 'Run /spec.implement', hint: 'Implement the next pending task — one per click.' };
-    default:
-      return null; // 'done' or unknown
-  }
-}
-
-function renderNextActionBar(action, lane) {
-  // The spec's assigned Frame has a live agent mid-turn — lock the button
-  // so the same command can't be double-dispatched. Purely derived state:
-  // the bar re-renders from getSpecLaneInfo on lane activity, so a crashed
-  // agent or closed Frame re-enables it within a status cycle.
-  if (lane && lane.busy) {
-    const verb = lane.status === 'agent-approval' ? 'Waiting for approval' : 'Working';
-    return `
-    <div class="spec-next-action spec-next-action-busy">
-      <div class="spec-next-action-text">
-        <strong>${escapeHtml(verb)} in ${escapeHtml(lane.name)}</strong>
-        <span>Unlocks when the agent finishes its turn.</span>
-      </div>
-      <button class="btn btn-primary spec-action-btn" disabled>
-        <span class="spec-action-spinner"></span>${escapeHtml(action.label)}
-      </button>
-    </div>
-  `;
-  }
-  return `
-    <div class="spec-next-action">
-      <div class="spec-next-action-text">
-        <strong>${escapeHtml(action.label)}</strong>
-        <span>${escapeHtml(action.hint)}</span>
-      </div>
-      <button class="btn btn-primary spec-action-btn" id="spec-action-btn">
-        ${escapeHtml(action.label)}
-      </button>
-    </div>
-  `;
-}
+// The next-action bar is shared across the spec surfaces — see
+// specNextAction.js. This surface passes activeSpec.implementHint and the
+// spec's task counts; the click wiring stays here (#spec-action-btn above).
 
 async function runSpecCommand(command) {
   if (!activeSlug) return;
@@ -377,7 +336,10 @@ function renderTabBody(tab) {
   // from tasks.json with the spec source marker filter. Falls back to
   // the raw tasks.md markdown if the import hasn't run yet (e.g., user
   // is mid-/spec.tasks generation).
-  if (tab === 'tasks') return renderTasksTabBody();
+  if (tab === 'tasks') {
+    const reportRow = activeSpec?.implementReportPath ? renderImplementReportRow() : '';
+    return reportRow + renderTasksTabBody();
+  }
 
   const md = activeSpec?.[tab];
   if (md) {
@@ -405,6 +367,25 @@ function renderPlanReportRow() {
 function attachPlanReportHandler() {
   contentEl.querySelector('.spec-plan-report-btn')?.addEventListener('click', () => {
     const p = activeSpec?.planReportPath;
+    if (p) require('electron').shell.openPath(p);
+  });
+}
+
+// "View Implementation Report" — shown above the task list only when the spec
+// folder holds an implement-report.html (getSpec exposes it as
+// implementReportPath). The autonomous implement mode regenerates the file
+// after each task, so reopening (or refreshing) it follows the run live.
+function renderImplementReportRow() {
+  return `
+    <div class="spec-plan-report-row">
+      <button class="btn btn-secondary spec-implement-report-btn">View Implementation Report</button>
+    </div>
+  `;
+}
+
+function attachImplementReportHandler() {
+  contentEl.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
+    const p = activeSpec?.implementReportPath;
     if (p) require('electron').shell.openPath(p);
   });
 }
@@ -537,7 +518,10 @@ function switchTab(tab) {
   });
   const body = contentEl.querySelector('#spec-detail-body');
   if (body) body.innerHTML = renderTabBody(tab);
-  if (tab === 'tasks') attachTaskActionHandlers();
+  if (tab === 'tasks') {
+    attachTaskActionHandlers();
+    attachImplementReportHandler();
+  }
   if (tab === 'plan') attachPlanReportHandler();
 }
 

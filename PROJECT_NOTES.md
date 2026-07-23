@@ -59,6 +59,30 @@ IDE-style desktop application for Claude Code. Features a 3-panel layout with pr
 
 ---
 
+## Testing
+
+- **Runner:** `npm test` → `node --test test/*.test.js` (Node's built-in
+  runner; no test framework dependency)
+- **Location & naming:** `test/*.test.js`, flat, one file per module under
+  test. `test/fixtures/` holds sample repos as data — the glob deliberately
+  excludes it, since Node would otherwise execute those files as tests.
+- **Covered:** `src/main/`, `src/shared/`, `scripts/` — 8 files. The
+  convention is to target the **pure** module and skip its Electron-coupled
+  wrapper (`telemetryEvents.js` is tested, `telemetry.js` is not); where a
+  test must load an Electron-coupled module, it stubs the external requires
+  (`specTasksSync.test.js`).
+- **Not covered:** `src/renderer/` — no DOM/UI harness present (`jsdom`,
+  `playwright`, `@testing-library`, `puppeteer` all absent). Renderer work
+  is not testable here today without first choosing and installing one.
+- **CI:** `.github/workflows/ci.yml` — `npm test` on ubuntu + macos.
+  Deliberately runs **no** `npm ci`: the suite must work from repo-local
+  modules alone, so any test that reaches a package in `node_modules` will
+  pass locally and fail in CI.
+
+- _Recorded 2026-07-20 by /spec.plan (test-aware-planning)_
+
+---
+
 ## Architecture
 
 ### Modular Structure
@@ -1122,6 +1146,189 @@ tracing harness. Key mechanics:
 Verified: 82/82 tests green; grep-verified zero hot-path exec/spawnSync and
 zero ungated setIntervals in src/main.
 
+### [2026-07-21] Implement modes (implement-modes spec, T01–T12)
+
+`/spec.implement` is no longer one fixed loop. It now asks — at **every**
+dispatch, before touching anything — which of three modes to run: step by
+step, autonomous + report, or a flow the user describes (plus their saved flow
+as a fourth entry once one exists). A saved default doesn't silence the
+question, it moves to the top marked `(default)`; that was a deliberate
+reversal during planning, because always-asking is what makes switching modes
+mid-spec free — run the first tasks by hand, hand the rest over once trust is
+earned.
+
+The spec said this would live purely in the prompt template. Two decisions
+crossed that line, both at dispatch rather than in the UI, and both because
+the autonomous mode is a launch-time concern:
+
+- **Permissions.** Frame writes `.frame/implement-permissions.json` and
+  dispatches with `--settings <file> --permission-mode auto`. The denylist
+  carries the safety: deny is evaluated first and can't be overridden at a
+  lower scope, so "never push" stopped being a request in prose and became
+  mechanically impossible. Nothing is ever written to `.claude/`.
+- **Runtime.** `FRAME_NODE` now carries Frame's own executable into every
+  PTY's environment, so a dispatched command runs Node through
+  `ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE"` instead of depending on the user's
+  `PATH`. Verified: Frame's bundled runtime is Node 18.18.2.
+
+Two plan claims turned out wrong when checked against the CLI docs at
+implementation time, and both are recorded in the plan as corrections rather
+than quietly patched: `--settings` sits at the *top* of the precedence chain
+rather than merging into the user's settings (the deny-wins half survives,
+which is what the safety argument rested on), and a `Write()` permission rule
+parses and is then never consulted — file checks only match `Edit()` and
+`Read()`.
+
+`--permission-mode auto` needs an eligible account, org enablement and a
+recent enough model, and the CLI documents no way to probe any of that. So the
+flags are best-effort: a flagged launch that never comes up is relaunched once
+bare, and the run *states* the limit — a toast plus a note telling the agent
+to say so in one line and continue step by step. It doesn't ask.
+
+The implementation report is generated, never written: the agent only appends
+to `report-data.json`, and `build-implement-report.mjs` pulls each commit's
+real diff from git by hash. That split is the point — a transcribed diff is
+the one place a hallucination would silently corrupt the artifact. Its pure
+`report-data.json → HTML` half is the tested part (21 cases, mutation-checked);
+the git and filesystem half isn't, per the plan's test posture. Styling is
+Frame's own design system, variable names included, so drift shows up as a
+one-line diff.
+
+
+### [2026-07-21] Spec phase no longer auto-advances mid-agent-turn
+
+Bug report (with screenshot): after `/spec.plan` writes `plan.md`, the Spec
+page jumped to the Tasks stage and sat in the locked "Break into Tasks —
+Working in Frame 1" bar, even though the plan turn was still running (the
+template's Stage 5 report and status.json update come *after* the plan.md
+write). Root cause: `derivePhase` in `specManager.js` advances the phase
+purely from file existence, and the recursive specs watcher fires the moment
+`plan.md` lands mid-turn — the "defense in depth" fallback for agents that
+forget status.json was firing during the turn it was meant to backstop.
+
+Fix shape (chosen over sniffing agent state in main): the renderer already
+derives per-spec lane busyness (`agentDispatch.getSpecLaneInfo`, anti-stuck,
+never cached), so `_notifySpecLane` now feeds it to main over a new
+`SPEC_AGENT_ACTIVITY` IPC channel. `specManager` keeps a `busySpecSlugs` set;
+while a slug is busy, `derivePhase` holds the recorded phase instead of the
+file-derived one (the task-status-driven implementing/done branch stays live —
+that state is accurate mid-turn). On the busy→idle flip main runs
+`pushSpecData`, so the fallback still catches an agent that wrote artifacts
+but never touched status.json — it's deferred, not removed. The set is
+cleared in `startWatching`/`stopWatching` so a renderer reload can't leave a
+stale busy flag freezing phases; a mid-turn app reload degrades to the old
+behavior, accepted.
+
+### [2026-07-21] Implement report surfaced in the spec UI + announced up front
+
+While testing autonomous implementation (Mode B) against another project's
+spec, the user hit a discoverability gap: the run produced
+`implement-report.html` in the spec folder, but nothing in Frame's UI pointed
+at it — the only report affordance was the plan tab's "View Plan Report"
+button, and the user had no way to even know a live report existed.
+
+Two-part fix, mirroring the existing plan-report pattern:
+
+1. **UI button** — `getSpec` now exposes `implementReportPath` (exists-check
+   on `implement-report.html`, same as `planReportPath`), and all three spec
+   renderers (`specPanel.js`, `specSection.js`, `specsDashboard.js`) show a
+   "View Implementation Report" button above the Tasks tab body when the file
+   exists. It opens in the system browser via `shell.openPath`, reusing the
+   `spec-plan-report-row` styles. No watcher work was needed: the recursive
+   specs watcher already pushes SPEC_DATA when the report lands, so the
+   button appears mid-run on its own, and since Mode B regenerates the HTML
+   after every task, refreshing the opened page follows the run live.
+
+2. **Announcement in the template** — `spec.implement.md` now tells the agent
+   to (a) mention in the mode picker that Mode B's report is reachable from
+   the spec's Tasks tab in Frame, and (b) before the first task, state once —
+   as a statement, not a question — where the button is and that the report
+   updates per task. Phrased to not reopen the "no questions mid-run" rule.
+
+Placement decision: the button lives on the **Tasks** tab (not spec/plan),
+since the implement report is per-task output and that tab is where progress
+is already watched.
+
+### [2026-07-22] Implement modes v2 — mid-session permission grant rejected, mode selection moves before the session
+
+While reviewing `feat/autonomous-permission-lifecycle` (the mid-session
+autonomous grant: Frame rules merged into `.claude/settings.local.json` with
+a manifest, refcounted holders, idle-strip and open-sweep), the user rejected
+the approach outright: it writes Frame's ephemeral state into a user-owned,
+repo-scoped file, and permission prompts still appear anyway (Edit/Read are
+deliberately left to a mode only the user can switch). Verdict: the branch is
+dead and will not be merged; the elaborateness of the cleanup machinery was
+read as evidence the state lives in the wrong place.
+
+The replacement design, converged over the conversation and specced as
+`implement-modes-v2`:
+
+- **Three-mode ladder**: step-by-step (v1 Mode A unchanged — task → what/why
+  report → one question → commit on approval), **guided** (new: Mode B's
+  loop without flags, the CLI's own permission prompts pace the run, no
+  check-in between tasks, same HTML report), and autonomous (launch-path
+  only — never offered or upgraded-to mid-session).
+- **UI**: the implement button opens one unified modal (mode + continue-in-
+  lane/new-Frame destination, absorbing `_askContinueOrNew`). Autonomous
+  allows "Continue" only into a lane that was itself launched flagged
+  (`launchedAutonomousBySlug`). Ordering flips to modal → record
+  `implement_mode` → stage → dispatch, so flags are derived from the actual
+  choice, not the hint's guess — the re-dispatch flow becomes unreachable.
+- **Button state machine**: label follows the mode ("Implement Next Task" is
+  correct only for step-by-step); guided/autonomous lock the button for
+  run-liveness (lane alive ∧ tasks remain), not turn-liveness, with progress
+  shown — the turn-scoped lock would unlock mid-run and invite double
+  dispatch.
+- **CLI**: conversational `spec.implement` offers step/guided as runnable;
+  an autonomous answer is record-then-handoff — write the mode to
+  status.json first, then point at the Frame button or at
+  `node .frame/bin/implement-launch.js <slug>`, a new single-source helper
+  that writes the permission file, stages the prompt from the staged
+  templates (works with Frame closed), and execs the CLI with the flags plus
+  the initial prompt as launch argument. Agents never hand-compose the line.
+- **Deliberately deferred (V2 polish, design kept here):** a watcher-based
+  CLI→UI bridge — agent writes a nonce'd request file under the spec dir
+  (the recursive specs watcher provably fires on agent writes), Frame opens
+  the modal, answers via a response file while the agent polls with a
+  timeout, falling back to the terminal ask. Two queueing insights worth
+  keeping: only queue a *question* while its asker is provably alive
+  (heartbeat-refreshed request file, stale ones swept silently — no ghost
+  modals), but a *decision* queues indefinitely (recorded
+  `implement_mode: autonomous` + ready phase can prompt "start it?" on the
+  next project open — no lost intent).
+
+Also noted: `cli-spec-command-parity`'s "autonomous handoff wording" open
+question resolves to the helper command; its "re-dispatch is the ceiling"
+constraint is retired by this spec.
+
+### [2026-07-22] T09 — implementation report made live-followable from the terminal
+
+Added `implement-modes-v2:T09` as a follow-up. The [2026-07-21] fix surfaced
+the report through a Frame **UI button**, but the v2 launch helper
+(`implement-launch.js`) starts a run from a bare terminal with no Frame app to
+click — so a terminal-launched autonomous run generates the report but the user
+has no obvious way to reach it. T09 closes that gap in the artifact itself,
+three parts:
+
+1. **Auto-open** — `build-implement-report.mjs` gains an `--open` flag that
+   opens the written HTML cross-platform, best-effort in `main()`, never
+   failing the build (same posture as the missing-runtime rule). Open-once is
+   kept in the prompt, not the code: `spec.implement.md` passes `--open` only on
+   the first generation, so no new browser tab per task.
+2. **Progress banner** — `main()` reads `tasks.json` (canonical state, not
+   agent-transcribed — consistent with "diffs read from git, never transcribed")
+   and passes a pure `{ total, completed, current }` into `renderReport`. Banner
+   reads "In progress — N/M done · next: T0x <title>" while tasks remain,
+   "Complete — M/M" when done. `renderReport` stays pure/clock-free; all fs work
+   lives in `main()`.
+3. **Reload note** — folded into the banner (only shown while in progress), not
+   a standalone line: telling a finished report to "reload" is stale advice.
+
+Decision: **manual reload, not `<meta http-equiv="refresh">` auto-refresh.**
+Auto-refresh would deliver "always current" without a keypress, but it resets
+scroll and collapses any open `<details>` diff mid-read, and a stray refresh
+tag surviving into the final report is worse than a note. Manual note chosen.
+
 ### [2026-07-22] Spec Knowledge Layer shipped — specs became delivered memory (spec-knowledge-layer)
 
 Implemented the full spec (T01–T12) in one session on `feat/spec-knowledge-layer`,
@@ -1158,3 +1365,23 @@ core-value-efficacy T08 forced verification → the live AGENTS template is
 Eval: `run-eval.js --hooks` ready; the injected-vs-not comparison is a
 budgeted run, not yet executed. Follow-ups: UI panel spec, dead-template
 cleanup, frameTemplates.js merge-order care vs in-flight cross-platform.
+
+### [2026-07-23] Spec-flow delivery gap: legacy AGENTS.md sections never migrated
+A Frame-managed project's interactive agent, asked in natural language to plan
+a spec, never entered the deep spec.plan flow. Diagnosis from that session plus
+this repo: the self-serve protocol (SPEC_DRIVEN_SECTION v1, cli-spec-command-parity)
+already delegates all four spec commands to the staged
+`.frame/runtime/commands/<tool>/` templates — but the project's AGENTS.md still
+carried a pre-split FULL legacy section, and AGENTS_SPEC_LEGACY_MATCHERS only
+recognized the post-split core pointer, so upgradeSpecDocs never rewrote it and
+the old "write exactly one file" mini-flow kept shadowing the real templates.
+Decisions: bridge via the staged command templates (not
+`.frame/runtime/prompts/` — those only exist after a UI dispatch; not
+`.claude/commands/` — Frame never writes to the user's .claude/). Fix on
+`hotfix/spec-section-bridge` (based on feat/spec-enhancements — main lacks
+commandStaging entirely): added LEGACY_SPEC_DRIVEN_SECTION_V0 (2eeee3b
+generation) and both full-section generations to the AGENTS matcher list,
+refreshed sample-project fixtures to the current managed block, regression
+test added. No SPEC_SECTION_VERSION bump — bodies unchanged. Note:
+`.claude/skills/spec-plan` seen in the affected project is not Frame-generated;
+delete it there by hand.

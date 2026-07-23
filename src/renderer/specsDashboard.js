@@ -19,6 +19,7 @@ const { marked } = require('marked');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
+const specNextAction = require('./specNextAction');
 
 const FILTERS = [
   { id: 'all',                 label: 'All' },
@@ -351,7 +352,7 @@ function renderDetailHeader() {
   const { status, spec, plan, tasks, outcome } = selectedSpec;
   const phaseLabel = status.phase.replace(/_/g, ' ');
   const aiLabel = status.ai_tool || '';
-  const nextAction = nextActionForPhase(status.phase);
+  const nextAction = specNextAction.nextActionForPhase(status.phase);
 
   detailContentEl.innerHTML = `
     <div class="specs-dashboard-detail-head">
@@ -370,7 +371,12 @@ function renderDetailHeader() {
         ${require('./agentDispatch').specStatusDotHtml(status.slug)}
         <span class="spec-phase-badge phase-${status.phase}">${phaseLabel}</span>
       </div>
-      ${nextAction ? renderNextActionBar(nextAction, require('./agentDispatch').getSpecLaneInfo(status.slug)) : ''}
+      ${nextAction ? specNextAction.renderNextActionBar({
+        action: nextAction,
+        lane: require('./agentDispatch').getSpecLaneInfo(status.slug),
+        hint: selectedSpec.implementHint,
+        counts: specNextAction.taskCounts(allTasks, status.slug)
+      }) : ''}
       <div class="specs-dashboard-detail-tabs">
         ${tabBtn('spec',  'Spec',  !!spec)}
         ${tabBtn('plan',  'Plan',  !!plan)}
@@ -418,52 +424,9 @@ function renderDetailHeader() {
   });
 }
 
-function nextActionForPhase(phase) {
-  switch (phase) {
-    case 'draft':
-      return { command: 'spec.new',  label: 'Run /spec.new', hint: 'Have Claude write spec.md from your description.' };
-    case 'specified':
-      return { command: 'spec.plan', label: 'Run /spec.plan', hint: 'Generate plan.md from the spec.' };
-    case 'planned':
-      return { command: 'spec.tasks', label: 'Run /spec.tasks', hint: 'Break the plan into discrete tasks.' };
-    case 'tasks_generated':
-    case 'implementing':
-      return { command: 'spec.implement', label: 'Run /spec.implement', hint: 'Implement the next pending task — one per click.' };
-    default:
-      return null;
-  }
-}
-
-function renderNextActionBar(action, lane) {
-  // Live agent mid-turn in the assigned Frame → lock the button against
-  // double-dispatch. Derived state only; lane activity re-renders the
-  // header, so a dead agent or closed Frame unlocks it on its own.
-  if (lane && lane.busy) {
-    const verb = lane.status === 'agent-approval' ? 'Waiting for approval' : 'Working';
-    return `
-    <div class="spec-next-action spec-next-action-busy">
-      <div class="spec-next-action-text">
-        <strong>${escapeHtml(verb)} in ${escapeHtml(lane.name)}</strong>
-        <span>Unlocks when the agent finishes its turn.</span>
-      </div>
-      <button class="btn btn-primary spec-action-btn" disabled>
-        <span class="spec-action-spinner"></span>${escapeHtml(action.label)}
-      </button>
-    </div>
-  `;
-  }
-  return `
-    <div class="spec-next-action">
-      <div class="spec-next-action-text">
-        <strong>${escapeHtml(action.label)}</strong>
-        <span>${escapeHtml(action.hint)}</span>
-      </div>
-      <button class="btn btn-primary spec-action-btn" id="spec-action-btn">
-        ${escapeHtml(action.label)}
-      </button>
-    </div>
-  `;
-}
+// The next-action bar is shared across the spec surfaces — see
+// specNextAction.js. This surface passes selectedSpec.implementHint and the
+// spec's task counts; the click wiring stays here (#spec-action-btn above).
 
 async function runSpecCommand(command) {
   if (!selectedSlug) return;
@@ -488,7 +451,18 @@ function renderDetailBody() {
   if (!body) return;
 
   if (selectedTab === 'tasks') {
-    body.innerHTML = renderTasksTabBody();
+    // "View Implementation Report" — only when the spec folder holds an
+    // implement-report.html (getSpec exposes it as implementReportPath).
+    // The autonomous implement mode regenerates the file after each task,
+    // so reopening (or refreshing) it follows the run live.
+    const reportRow = selectedSpec.implementReportPath
+      ? `<div class="spec-plan-report-row"><button class="btn btn-secondary spec-implement-report-btn">View Implementation Report</button></div>`
+      : '';
+    body.innerHTML = reportRow + renderTasksTabBody();
+    body.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
+      const p = selectedSpec && selectedSpec.implementReportPath;
+      if (p) require('electron').shell.openPath(p);
+    });
     return;
   }
 

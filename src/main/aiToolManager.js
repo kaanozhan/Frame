@@ -230,6 +230,27 @@ function removeCustomTool(toolId) {
   return false;
 }
 
+/**
+ * Compose the command line a lane actually types: the resolved CLI plus any
+ * flags the dispatch asked for. Flags are opaque here — the caller decides
+ * what a given run needs (spec.implement passes --settings/--permission-mode
+ * for its autonomous mode); this only owns the quoting, because a packaged
+ * macOS path arrives with spaces in it and an unquoted one would be read as
+ * two arguments.
+ */
+function quoteArg(arg) {
+  const str = String(arg);
+  if (!/[\s"']/.test(str)) return str;
+  return process.platform === 'win32'
+    ? `"${str.replace(/"/g, '\\"')}"`
+    : `'${str.replace(/'/g, `'\\''`)}'`;
+}
+
+function composeLaunchCommand(command, launchFlags) {
+  if (!command || !Array.isArray(launchFlags) || launchFlags.length === 0) return command;
+  return [command, ...launchFlags.map(quoteArg)].join(' ');
+}
+
 function isPathLike(command) {
   return !!command && (
     command.startsWith('./') ||
@@ -335,12 +356,24 @@ function setupIPC() {
 
   ipcMain.removeHandler(IPC.CHECK_AI_TOOL_AVAILABLE);
   ipcMain.handle(IPC.CHECK_AI_TOOL_AVAILABLE, async (event, payload = {}) => {
-    const { toolId, projectPath } = payload;
+    const { toolId, projectPath, launchFlags = null } = payload;
     const tools = getAvailableTools();
     const tool = tools[toolId];
     if (!tool) {
       return { available: false, resolvedCommand: null, name: toolId || null };
     }
+
+    // Availability is probed on the bare command; the flags only ever reach
+    // the composed line the lane types.
+    // bareCommand is the same launch without the flags — the caller retries
+    // with it when a flagged launch never comes up, since flag support
+    // cannot be probed from out here.
+    const ok = (command, name) => ({
+      available: true,
+      resolvedCommand: composeLaunchCommand(command, launchFlags),
+      bareCommand: command,
+      name
+    });
 
     const primary = await isCommandAvailable(tool.command, projectPath);
 
@@ -351,20 +384,20 @@ function setupIPC() {
     if (primary.found && tool.fallbackCommand && isPathLike(tool.command)) {
       const fallback = await isCommandAvailable(tool.fallbackCommand, projectPath);
       if (fallback.found) {
-        return { available: true, resolvedCommand: tool.command, name: tool.name };
+        return ok(tool.command, tool.name);
       }
       trackProbeFailure(fallback.reason);
       return { available: false, resolvedCommand: null, name: tool.name, reason: fallback.reason };
     }
 
     if (primary.found) {
-      return { available: true, resolvedCommand: tool.command, name: tool.name };
+      return ok(tool.command, tool.name);
     }
 
     if (tool.fallbackCommand) {
       const fallback = await isCommandAvailable(tool.fallbackCommand, projectPath);
       if (fallback.found) {
-        return { available: true, resolvedCommand: tool.fallbackCommand, name: tool.name };
+        return ok(tool.fallbackCommand, tool.name);
       }
     }
 
@@ -396,6 +429,7 @@ module.exports = {
   getConfig,
   getCommand,
   getStartCommand,
+  composeLaunchCommand,
   addCustomTool,
   removeCustomTool,
   AI_TOOLS

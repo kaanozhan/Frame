@@ -12,6 +12,8 @@ const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('..
 const templates = require('../shared/frameTemplates');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
+const commandStaging = require('./commandStaging');
+const docsManagedBlock = require('../shared/docsManagedBlock');
 const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
 const detector = require('../../scripts/detect-project');
@@ -362,6 +364,14 @@ async function runProjectInit(projectPath, projectName) {
     console.warn('[frame] structure bootstrap failed (non-fatal):', err.message);
   }
 
+  // Stage the spec command templates, report assets and launch helper so a
+  // CLI session can self-serve the current flow from day one. Non-fatal.
+  try {
+    commandStaging.stageCommandFiles(projectPath);
+  } catch (err) {
+    console.warn('[frame] command staging failed (non-fatal):', err.message);
+  }
+
   // Spec-knowledge hook: deterministic spec-history injection for Claude
   // Code sessions. Merge-safe by contract — never clobbers an existing
   // .claude/settings.json, non-fatal like the bootstrap above.
@@ -492,6 +502,14 @@ function enableSpecDriven(projectPath) {
 function ensureSpecDrivenArtifacts(projectPath, config) {
   const name = (config && config.name) || path.basename(projectPath);
 
+  // Stage the command templates/assets/helper — enabling spec-driven is the
+  // moment a CLI session may start asking for spec commands. Non-fatal.
+  try {
+    commandStaging.stageCommandFiles(projectPath);
+  } catch (err) {
+    console.warn('[frame] command staging failed (non-fatal):', err.message);
+  }
+
   // Make sure .frame/specs/ exists with a .gitkeep so it's version-tracked
   const specsDir = path.join(projectPath, FRAME_DIR, 'specs');
   fs.mkdirSync(specsDir, { recursive: true });
@@ -527,9 +545,9 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
   if (!existing) {
     fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true, project: (config && config.project) || null }), 'utf8');
   } else if (!existing.includes('Spec-Driven Development')) {
-    // Append the short core section — the full workflow lives in
-    // .frame/docs/REFERENCE.md, which is guaranteed to exist above
-    const sectionBlock = `\n\n---\n\n${templates.SPEC_DRIVEN_CORE_SECTION}\n`;
+    // Append the short core section (marker-wrapped, stamped current) — the
+    // full workflow lives in .frame/docs/REFERENCE.md, guaranteed above
+    const sectionBlock = `\n\n---\n\n${templates.renderSpecCoreSection()}\n`;
     const footerMarker = '*This file was automatically created by Frame.';
     const footerIdx = existing.indexOf(footerMarker);
     let updated;
@@ -545,6 +563,53 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
     fs.writeFileSync(agentsPath, updated, 'utf8');
   }
   // else: section already present, leave file alone
+}
+
+// ─── Spec docs upgrade on project open (cli-spec-command-parity) ─────
+//
+// REFERENCE.md and AGENTS.md carry a Frame-managed spec section; the
+// managed-block engine upgrades it in place when Frame's shipped content is
+// newer (version stamp) or migrates a byte-identical legacy section once.
+// Everything outside the block — and any file the user deleted or heavily
+// rewrote — is left alone. Files are never created here, only rewritten on
+// change.
+
+function upgradeSpecDocs(projectPath) {
+  if (!projectPath || !isFrameProject(projectPath)) return;
+
+  const docs = [
+    {
+      file: path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md'),
+      body: templates.SPEC_DRIVEN_SECTION,
+      legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS
+    },
+    {
+      file: path.join(projectPath, FRAME_FILES.AGENTS),
+      body: templates.SPEC_DRIVEN_CORE_SECTION,
+      legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
+    }
+  ];
+
+  for (const doc of docs) {
+    let text;
+    try {
+      text = fs.readFileSync(doc.file, 'utf8');
+    } catch (_) {
+      continue; // missing file — never create it
+    }
+    const upgraded = docsManagedBlock.upgradeDoc(text, {
+      body: doc.body,
+      version: templates.SPEC_SECTION_VERSION,
+      legacyMatchers: doc.legacyMatchers
+    });
+    if (upgraded !== null && upgraded !== text) {
+      try {
+        fs.writeFileSync(doc.file, upgraded, 'utf8');
+      } catch (err) {
+        console.warn(`[frame] spec docs upgrade failed for ${doc.file} (non-fatal):`, err.message);
+      }
+    }
+  }
 }
 
 /**
@@ -615,5 +680,6 @@ module.exports = {
   initializeFrameProject,
   isSpecDrivenEnabled,
   enableSpecDriven,
+  upgradeSpecDocs,
   setupIPC
 };

@@ -44,12 +44,22 @@ release/
 # Frame runtime artifacts (staged spec / agent-dispatch prompts — regenerated)
 .frame/runtime/
 
+# Frame implement-mode permissions (written on every autonomous dispatch — regenerated)
+.frame/implement-permissions.json
+
 # Frame spec-knowledge index — derived, rebuilt via ensureFresh (never track)
 .frame/index/
 
 # Frame orchestration artifacts (materialized on every orchestration start — regenerated)
 .frame/bin/*.js
 .frame/orchestration/
+
+# Frame durable-write artifacts (src/main/fsSafe.js) — the .bak of the last good
+# copy, the .tmp mid-write scratch, and any .corrupt-<ts> preserved on recovery.
+# All local crash-safety state, regenerated on the next write; never committed.
+*.bak
+*.tmp
+*.corrupt-*
 
 #Walkthroughs
 WALKTHROUGH/*.p8

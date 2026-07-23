@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep /spec.tasks — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--code:#222225;--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Deep /spec.tasks — Plan Overview</h1>
+  <p class="muted">2026-07-20 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/deep-spec-tasks/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">8 decisions taken</span><span class="pill">5 loop iterations</span><span class="pill">1 prompt template rewritten</span><span class="pill warn">4 drift findings</span><span class="pill">0 dependencies</span><span class="pill good">0 existing flows touched</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p><code>/spec.plan</code> now ships two artifacts: <code>plan.md</code>, the strict five-section contract, and <code>plan-report.html</code>, the reasoning the strict format cannot carry — risk matrix, coverage matrix, decision story, verified claims, convergence log. <code>/spec.tasks</code> predates the report. It reads only <code>spec.md</code> and <code>plan.md</code>, so everything the planning run learned and recorded <i>outside</i> <code>plan.md</code> is invisible at the moment tasks are generated. Risks with no owning task become nobody's work; a success criterion whose owning plan section produced no task is a silent hole. The task list is the last artifact before code and the only one an orchestration worker executes, so a gap here is a gap that ships.</p>
+  <p>The fix is a second pass, not a bigger first pass. The plan pass derives a complete list from <code>plan.md</code> alone; the report pass then audits that list against the report and closes what it finds. Keeping them separate is what preserves <code>plan.md</code> as the spine — a single pass reading both would let the report's narrative prose dilute task granularity, and would blur which document is authoritative when they disagree.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: the staged prompt end to end, the report-presence branch that makes the report optional, and the ID assignment that keeps completion flags honest across regeneration.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">trigger</span>
+    <span>prompt stage</span>
+    <span class="l-data">file read / written</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — The three-stage pass</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Run /spec.tasks</div><div class="fd-sub">spec at phase planned</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Plan pass</div><div class="fd-sub">derive complete draft list</div></div>
+          <div class="fd-arrow"><span class="lbl">reads</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">spec.md · plan.md</div></div>
+        </div>
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Report pass</div><div class="fd-sub">reconcile draft vs report</div></div>
+          <div class="fd-arrow"><span class="lbl">reads</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">plan-report.html</div><div class="fd-sub">whole file, 418–472 lines</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Write stage</div><div class="fd-sub">flat list, no extra sections</div></div>
+          <div class="fd-arrow"><span class="lbl">writes</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">tasks.md + status.json</div><div class="fd-sub">phase → tasks_generated</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The first pass is self-sufficient:</b> it must produce a shippable list on its own. The report may add and correct, never weaken — that is what keeps <code>plan.md</code> the spine.</li>
+          <li><b>Authority is asymmetric:</b> the report denounces gaps; it is not a second source of truth. Every conflict resolves in favour of <code>plan.md</code>.</li>
+          <li><b>The write stage emits nothing new:</b> heading plus <code>- T&lt;n&gt; · …</code> bullets. Reconciliation leaves no trace in the file (silent reconcile), so downstream parsing is unchanged.</li>
+          <li><b>Sections are located semantically</b> (D2) and the report is read whole (D3) — no binding to <code>"4 · Risks &amp; edges"</code> as a literal string.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Report presence, and why absence is not an error</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Plan pass complete</div><div class="fd-sub">draft list in hand</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">plan-report.html exists?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node system"><div class="fd-title">Reconcile</div><div class="fd-sub">risks · coverage · drift · decisions</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">section locatable?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no · or section absent</span>
+          <div class="fd-node system"><div class="fd-title">Draft stands unchanged</div><div class="fd-sub">absence noted once, run exits normally</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Same list as today</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Specs planned before the report existed still work.</b> Three specs already on <code>main</code> carry a report; <code>deep-spec-plan</code> itself does not. Degradation is the common path, not the exceptional one.</li>
+          <li><b>Absent and unlocatable collapse to one behavior</b> (D4). Distinguishing them would buy nothing: both mean "no gaps of that kind to close", and C4 already mandates a clean exit.</li>
+          <li><b>Mentioned once, never repeated.</b> A run that warns per-section about a missing report trains the user to ignore its closing message.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — ID assignment on regeneration</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Reconciled list ready</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">tasks.md already exists?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no — first generation</span>
+          <div class="fd-node outcome"><div class="fd-title">T01, T02, T03 …</div><div class="fd-sub">in implementation order</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes — regeneration</span>
+          <div class="fd-node data"><div class="fd-title">tasks.md</div><div class="fd-sub">ID ↔ work binding, whole mapping</div></div>
+          <div class="fd-arrow"><span class="lbl">keep all</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Every bound ID kept, new work gets next unused number</div><div class="fd-sub">inserted in order — file may read T01, T02, T05, T03</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Nothing is ever renumbered</b> (D8) — for any task, in any status. This is the entire defence: <code>specManager.js:441-443</code> overwrites a matched task's title in place while preserving its status, so a shifted ID would transplant a completion flag onto work never done. That path is reachable only by renumbering, so declining to renumber makes it <i>unreachable</i>, not merely unlikely.</li>
+          <li><b>Ordering and identity are separate concerns.</b> File order carries implementation order; the ID is only an identity. Ascending order is deliberately sacrificed — a non-ascending list is correct output, not a defect.</li>
+          <li><b>Status is not consulted</b> (D6). With reassignment off the table there is no "safe to move" category to detect, so <code>tasks.md</code> alone suffices and <code>tasks.json</code> is never read.</li>
+          <li><b>Numbers outgrow the count.</b> Allocation is one-way, so a 9-task list may end at <code>T14</code>. The 5–12 ceiling counts tasks, not numbers — stated explicitly in the prompt so the agent does not renumber to "fix" a high number.</li>
+          <li><b>No orphans accumulate,</b> because the report pass may never delete and there is no per-task prune path in the sync (only whole-spec <code>deleteSpec</code>). Every ID that ever existed still names live work.</li>
+          <li><b>No code change is needed:</b> <code>TASK_LINE_RE</code> is order-agnostic and scans the whole file, and <code>syncTasksFromMarkdown</code> needs no guard because the dangerous path is never entered.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The reconcile rules, in one look</h3>
+  <pre>report section        → effect on the draft list
+─────────────────────────────────────────────────────────────
+Risks / edges         → new task IF the plan's answer names concrete
+                        behavior no Sequencing step describes      (D1)
+Coverage matrix       → G/C/S ID whose owning section produced no
+                        task is a gap — close or fold in
+Verified claims       → drift note invalidating a premise → correct
+                        that task's description
+Decision story        → CONTEXT ONLY. A rejected option never becomes
+                        a task; a task contradicting a decision is
+                        corrected to match it
+
+authority: add + revise · never delete · ceiling 5–12 · plan.md wins</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · When does a risk row deserve a task of its own?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Only when it names behavior no Sequencing step describes</div>
+        <div class="opttrade">Objective and mechanically applicable; the agent never has to judge importance.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Leave it to the agent's judgement</div>
+        <div class="opttrade">Marginally better at catching genuine gaps, but the same spec yields a different task count on every run.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> tested against the real 9-row risk table in <code>audit-q3-ux-error-feedback/plan-report.html</code>. The rule correctly eliminates rows answered by existing behavior ("the panel is already single-toast", "already a no-op") and rows that cite a step explicitly ("Sequencing step 8 is a grep sweep"), leaving exactly one candidate. The list does not inflate, and the spec's own Open Questions demanded a crisp test the agent could apply.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D2 · How should the tasks pass locate sections inside the report?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Semantically — "find the table listing risks and the plan's answers"</div>
+        <div class="opttrade">Survives template evolution; costs some precision in which table is picked.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Anchor to heading text or card number</div>
+        <div class="opttrade">Exact today, but fails <i>silently</i> the day a heading is renamed — no error, just an empty report pass.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the plan-report template and a future implement-report will evolve independently. A silent no-op is the worst failure mode available here: the run would report success while doing none of the cross-checking the spec exists for.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D3 · Read the report whole, or extract targeted sections? <span class="tag">follows from D2</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Read the whole file</div>
+        <div class="opttrade">Spends context on markup; at 418–472 lines that is affordable.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Grep for anchors and read only those ranges</div>
+        <div class="opttrade">Cheaper, but presupposes the anchors D2 just rejected.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — semantic location requires the full content, so D2 forecloses the alternative. Measured on the three reports currently on <code>main</code>: 418, 428 and 472 lines.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D4 · What happens when a section cannot be located? <span class="tag">follows from D2</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Treat it as absent; finish the run normally</div>
+        <div class="opttrade">Cannot distinguish "template changed" from "nothing to find" — accepted.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Fail or warn per missing section</div>
+        <div class="opttrade">Surfaces template drift, at the cost of noisy runs on every report-less spec.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — C4 already requires a clean exit when the whole report is missing, and the two situations are indistinguishable in effect. Both mean "no gaps of this kind to close".</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D5 · Does rewording a task's description rebind its ID?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No — a clarified description is the same work</div>
+        <div class="opttrade">None material.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Treat a revised description as new work</div>
+        <div class="opttrade">Would renumber on every clarification, defeating the entire ID-stability rule.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — the reconcile rules explicitly permit revision, so revision must not be a renumbering trigger or the two rules contradict each other.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D6 · Where does the ID↔work binding come from on regeneration?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">tasks.md alone</div>
+        <div class="opttrade">One file, always present, carries the whole mapping.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">tasks.md for the binding plus tasks.json for each task's status</div>
+        <div class="opttrade">Lets the flow treat <code>pending</code> IDs as safe to move — useful only if the flow moves IDs at all.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <i>revised after D8.</i> First decided the other way, on the reading that the risk is "not uniform" — renumbering a <code>pending</code> task costs nothing while renumbering a <code>completed</code> one is corruption, so status had to be consulted. That framing quietly assumed renumbering happens at all. Once D8 removed it entirely, status became irrelevant to the binding, and the second file with it. Restores the spec's original recommendation.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D7 · How is S6 verified?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">A new test under <code>test/</code></div>
+        <div class="opttrade">Adds a file to a template-only spec; cheap and locks the property in.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Verify by inspection</div>
+        <div class="opttrade">Zero cost now, no protection against a future change to the parser.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — the project already runs <code>node --test test/</code> with seven test files, and S6 states a precise, cheap property. This verifies existing behavior; it is not the sync hardening the spec places out of scope.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D8 · Is an existing task ever renumbered? <span class="tag">supersedes D6</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Never — an ID keeps its work for the life of the spec</div>
+        <div class="opttrade">Numbers drift above the task count over time; the list is not ascending.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Renumber where it is provably safe</div>
+        <div class="opttrade">Tidier numbering, at the cost of status data, a code-side guard, and a correctness argument per task.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> this is the whole defence. <code>specManager.js:441-443</code> overwrites a matched task's title in place while preserving its status, so a shifted ID transplants a completion flag onto work never done — but that path is reachable <b>only by renumbering</b>. Not renumbering makes the corruption <i>unreachable</i> rather than merely unlikely: no guard is needed in <code>syncTasksFromMarkdown</code>, no existing flow is touched, and the spec stays a template-only change. The cheaper option turned out to be the stronger one.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>A stale report survives a re-plan — <code>plan.md</code> was rewritten but report generation failed, so the report describes the previous plan</td><td>Authority resolves it: <code>plan.md</code> wins every conflict, and the report may only add or revise. A stale report can at worst propose a task the plan pass then contradicts.</td></tr>
+    <tr><td>Semantic location (D2) picks the wrong table — e.g. the coverage matrix read as the risk table</td><td>Accepted cost of D2. Both tables feed the same reconcile step and both produce candidate tasks; a mis-pick changes which rule fires, not whether the ceiling and the plan-wins rule hold.</td></tr>
+    <tr><td><code>tasks.json</code> and <code>tasks.md</code> disagree on regeneration (a task was edited or removed in the Tasks panel)</td><td>Does not arise for the binding: <code>tasks.md</code> is the sole source and the sync flows <code>tasks.md</code> → <code>tasks.json</code>. A marker in <code>tasks.json</code> with no matching line is ignored, never deleted.</td></tr>
+    <tr><td>A non-ascending list reads as a bug to a human opening <code>tasks.md</code></td><td>Sequencing step 5 requires the prompt to state explicitly that non-ascending output is correct, so the agent does not "fix" it on the next regeneration.</td></tr>
+    <tr><td>Numbers climb above the ceiling — a 9-task list ending at <code>T14</code> looks like a 14-task spec</td><td>The prompt states that the 5–12 ceiling counts tasks, not numbers. Without that sentence an agent would renumber to bring <code>T14</code> back into range, reopening the corruption path D8 closes.</td></tr>
+    <tr><td>Someone hand-edits <code>tasks.md</code> and renumbers it outside this flow</td><td><b>Unmitigated, and out of scope.</b> The corruption in <code>syncTasksFromMarkdown</code> is pre-existing and reachable by any writer of the file. This spec guarantees only that <i>its own</i> flow never triggers it; hardening the sync itself is deferred (see below).</td></tr>
+    <tr><td>Closing every report gap would push a legitimately large spec past 12 tasks</td><td>The run stops and recommends splitting the spec rather than shipping 20 tasks. The ceiling's purpose is to surface oversized specs — raising it would hide the symptom.</td></tr>
+    <tr><td>Footprint blind spot: <code>src/templates/sample-project/AGENTS.md</code> and <code>CLAUDE.md</code> are stripped from any Footprint</td><td>Pre-existing Frame limitation — <code>parseFootprintMarkdown</code> filters by <b>basename</b> against <code>ORCH_META_FILES</code>. Recorded in the plan's Architecture; step 8 edits these files knowing a parallel spec touching them would not be flagged.</td></tr>
+    <tr><td>The report's decision story leaks rejected options into the task list</td><td>An explicit guardrail in the reconcile rules: the decision story is read for context only, and a task contradicting a recorded decision is corrected to match it (S3).</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: hardening <code>syncTasksFromMarkdown</code> to match on title instead of marker (its own spec — the ID-stability rule solves this at the prompt level); the dedup rule for a test task arriving from both <code>## Sequencing</code> and the coverage matrix (lands in whichever of <code>deep-spec-tasks</code> / <code>test-aware-planning</code> ships second); pruning orphaned spec-sourced tasks from <code>tasks.json</code>.</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>A two-pass <code>spec.tasks</code> prompt: derive from spec and plan, then reconcile against the plan report, then write <span class="tag">G1</span></td><td>Architecture · The three-stage prompt · Flow A · Sequencing 1, 2, 3</td></tr>
+    <tr><td>Bounded reconcile authority — add and revise, never delete, ceiling holds, <code>plan.md</code> wins conflicts <span class="tag">G2</span></td><td>Architecture · Reconcile rules · Sequencing 4</td></tr>
+    <tr><td>Silent reconcile — <code>tasks.md</code> gains no section, annotation, or cross-check log <span class="tag">G3</span></td><td>Architecture · Output shape · Sequencing 1, 6</td></tr>
+    <tr><td>ID stability across regeneration, with ordering still reflecting implementation order <span class="tag">G4</span></td><td>Architecture · ID assignment · Flow C · Sequencing 5</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Marker stability is non-negotiable — no change may let a completion flag land on different work <span class="tag">C1</span></td><td>Architecture · ID assignment · Sequencing 5, 7</td></tr>
+    <tr><td><code>tasks.md</code> format unchanged so the sync, the Tasks panel and the worker keep parsing it <span class="tag">C2</span></td><td>Architecture · Output shape · Sequencing 7</td></tr>
+    <tr><td>Lifecycle unchanged — <code>derivePhase</code>, the watcher and tasks sync need no changes <span class="tag">C3</span></td><td>Architecture · Preserved by construction</td></tr>
+    <tr><td>The report is optional; a spec without one must produce a valid list and exit cleanly <span class="tag">C4</span></td><td>Architecture · Degradation · Flow B · Sequencing 6</td></tr>
+    <tr><td>Template override precedence preserved <span class="tag">C5</span></td><td>Architecture · Preserved by construction (<code>loadCommandTemplate</code>)</td></tr>
+    <tr><td>No project-specific content in the shipped template <span class="tag">C6</span></td><td>Architecture · Preserved by construction · Files</td></tr>
+    <tr><td><code>codex</code> / <code>gemini</code> directories untouched <span class="tag">C7</span></td><td>Files — only the <code>claude-code</code> directory appears</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>With a report present, the list covers every risk row implying work and every coverage ID, within the ceiling <span class="tag">S1</span></td><td>Sequencing 3 · proven by running <code>/spec.tasks</code> on a spec carrying a report and checking the risk table row by row</td></tr>
+    <tr><td>Without a report, the output matches today's and the absence is mentioned once <span class="tag">S2</span></td><td>Sequencing 1, 6 · proven by running against <code>deep-spec-plan</code>, which has no report</td></tr>
+    <tr><td>No task corresponds to an option the report records as rejected <span class="tag">S3</span></td><td>Sequencing 3 · proven by reading the generated list against the report's rejected panels</td></tr>
+    <tr><td>Re-running keeps every existing ID bound to its original work; a completed task still describes completed work <span class="tag">S4</span></td><td>Sequencing 5 · proven by regenerating a spec whose tasks are already synced and marked</td></tr>
+    <tr><td><code>tasks.md</code> contains only the heading and the flat list <span class="tag">S5</span></td><td>Sequencing 1, 6 · proven by inspection of the emitted file</td></tr>
+    <tr><td><code>parseTasksMarkdown</code> handles non-ascending IDs and the sync reports no spurious adds <span class="tag">S6</span></td><td>Sequencing 7 · proven by <code>test/specTasksSync.test.js</code> under <code>npm test</code></td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td><code>spec.tasks.md</code> reads only <code>spec.md</code> and <code>plan.md</code></td><td><span class="pill good">verified</span> <code>src/templates/commands/claude-code/spec.tasks.md:7-9</code></td></tr>
+    <tr><td><code>TASK_LINE_RE</code> parses <code>- T01 · …</code> and the parser scans the whole file</td><td><span class="pill good">verified</span> <code>specManager.js:363</code>, <code>:365-376</code> — no section restriction, order-agnostic</td></tr>
+    <tr><td>The sync keys tasks by <code>spec:&lt;slug&gt;:T&lt;n&gt;</code> and preserves user-set status</td><td><span class="pill good">verified</span> <code>specManager.js:436-447</code></td></tr>
+    <tr><td>Renumbering an existing task is dangerous</td><td><span class="pill warn">worse than stated</span> <code>specManager.js:441-443</code> — the title is <i>actively overwritten</i> while status is preserved, so unfinished work can read as completed. Rendered <b>unreachable</b> by D8: the flow never renumbers, so the path is never entered</td></tr>
+    <tr><td>The report exposes seven distinct sections</td><td><span class="pill warn">drifted</span> real reports render <b>six</b> cards — coverage matrix and verified claims are merged into <code>5 · Coverage &amp; verification</code></td></tr>
+    <tr><td>Reports run 300–500 lines</td><td><span class="pill good">verified</span> 418 / 428 / 472 lines across the three reports on <code>main</code></td></tr>
+    <tr><td>The report path is exposed by <code>getSpec</code></td><td><span class="pill good">verified</span> <code>specManager.js:531</code> (<code>planReportPath</code>), constant at <code>:29</code></td></tr>
+    <tr><td>Template override precedence applies to <code>spec.tasks.md</code></td><td><span class="pill good">verified</span> <code>specManager.js:266-270</code></td></tr>
+    <tr><td>Only the prompt template needs to change</td><td><span class="pill warn">new evidence</span> the <code>/spec.tasks</code> one-liner is also documented in all three of <code>src/templates/sample-project/{AGENTS,CLAUDE,GEMINI}.md:87</code> — three separate real files, not symlinks</td></tr>
+    <tr><td>Footprint entries are matched literally</td><td><span class="pill warn">new evidence</span> <code>specManager.js:404</code> filters by <b>basename</b> against <code>ORCH_META_FILES</code> (<code>frameConstants.js:51</code>), silently dropping <code>AGENTS.md</code> and <code>CLAUDE.md</code> at any path</td></tr>
+    <tr><td>Spec-sourced tasks can be pruned</td><td><span class="pill warn">absent</span> no per-task prune path exists — only whole-spec <code>deleteSpec</code> at <code>specManager.js:625</code></td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — coverage audit: C5, C6 and C7 had no owning plan section. Added a "Preserved by construction" subsection to Architecture tying each to the mechanism that preserves it, and made the <code>claude-code</code>-only scope explicit in Files.</li>
+    <li><b>Iteration 2</b> — reality check on Footprint: discovered <code>parseFootprintMarkdown</code> filters by basename, so two of the three sample-project doc files would be silently stripped. Recorded as a known limitation in Architecture rather than worked around, since fixing the filter is out of scope.</li>
+    <li><b>Iteration 3</b> — task-derivability: Sequencing had four consecutive steps all editing the same prompt section, which would have produced four near-identical tasks. Consolidated to eight steps, each independently committable.</li>
+    <li><b>Iteration 4</b> — format and coverage audit: five sections in order, every G1–G4 / C1–C7 / S1–S6 ID owned by a named section, zero TBDs, every referenced path and symbol verified in code or marked New, tasks derivable from Sequencing alone. Pass — converged.</li>
+    <li><b>Iteration 5</b> — post-review, prompted by the question "why renumber at all?". The plan had drifted <i>away</i> from its own spec: <code>spec.md</code> Goal 4 already said an ID stays bound to its work without exception, and D6 reintroduced renumbering as a thing the flow does by reasoning about which IDs were "safe to move". That nuance was the source of everything downstream — reading <code>tasks.json</code>, classifying tasks by status, and an emerging argument for a code-side guard in <code>syncTasksFromMarkdown</code>. Added D8 (never renumber), reverted D6 to <code>tasks.md</code> alone, dropped the guard entirely, and added the ceiling-counts-tasks-not-numbers rule that the change makes necessary. Net effect: one fewer file read, no code change, corruption path unreachable rather than guarded.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-20 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/deep-spec-tasks/plan.md</code></footer>
+</div>
+</body>
+</html>

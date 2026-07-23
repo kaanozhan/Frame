@@ -1,0 +1,10 @@
+# Tasks — Deep /spec.tasks — cross-check generated tasks against the plan report
+
+- T01 · Restructure `src/templates/commands/claude-code/spec.tasks.md` into a staged prompt — an explicit plan pass (read `spec.md` + `plan.md`, derive the complete draft list) followed by a write stage — producing the same `tasks.md` as today for a spec that has no plan report
+- T02 · Add the report pass to `spec.tasks.md`: when `.frame/specs/{slug}/plan-report.html` exists, read it in full and locate its risk table and coverage matrix semantically, never by heading text or card number
+- T03 · Add the reconcile rules to `spec.tasks.md`: a risk row becomes a task only when its answer names behavior no `## Sequencing` step describes; a coverage ID whose owning section produced no task is closed; drift notes correct affected task descriptions; the decision story is context-only and rejected options never become tasks
+- T04 · Add the reconcile authority limits to `spec.tasks.md`: the report pass may add and revise but never delete, `plan.md` wins every conflict, and the 5–12 ceiling stops the run with a split recommendation rather than shipping an oversized list
+- T05 · Add the ID assignment rules to `spec.tasks.md`: first-generation numbering, regeneration binding read from the existing `tasks.md` alone, no task renumbered in any status, new work taking the next unused number inserted in implementation order, non-ascending output declared correct, and the ceiling counting tasks rather than numbers
+- T06 · Add degradation and closing-message rules to `spec.tasks.md`: a missing or unlocatable report leaves the plan-pass list standing, the absence is mentioned exactly once, and the write stage emits no cross-check section
+- T07 · Add `test/specTasksSync.test.js` asserting that `parseTasksMarkdown` returns every entry of a non-ascending list in file order and that re-syncing an unchanged list reports zero adds and zero updates
+- T08 · Update the `/spec.tasks` one-line description in `src/templates/sample-project/AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` to mention the plan-report cross-check

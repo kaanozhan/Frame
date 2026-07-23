@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test-aware planning — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--code:#222225;--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Test-aware planning — Plan Overview</h1>
+  <p class="muted">2026-07-20 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/test-aware-planning/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">9 decisions taken</span><span class="pill">5 loop iterations</span><span class="pill">1 template modified</span><span class="pill">0 dependencies</span><span class="pill warn">extends the spec</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Whether a spec's work ships with tests is decided today by whichever agent happens to be planning, at the moment it writes <code>plan.md</code>. Sometimes it does the right thing — <code>audit-q3-generic-any-project</code> lists four test files under <code>## Files</code> marked <b>New</b>, carries all four into <code>## Footprint</code>, and folds the authoring into T01/T05/T12. Other specs with equally testable work plan nothing. The mechanism exists; nothing makes the planning run <i>consider</i> it.</p>
+  <p>Two things follow. Untracked work does not get done: test authoring absent from <code>tasks.md</code> is not counted, not sequenced, not visible to a worker. And unplanned test files break orchestration — <code>## Footprint</code> feeds the conflict guard, so a worker that invents <code>test/foo.test.js</code> writes outside its declared footprint and trips the conductor's drift check. Planning tests is what makes writing them safe.</p>
+  <p>The inverse matters just as much: a project with no test setup must not have tests pushed onto it, and a project with only unit tests must not be asked for UI tests it cannot run. Detection gates the whole thing — and, once made, that detection is <b>recorded rather than repeated</b>.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Two flows: the probe that establishes the testing facts once and caches them, and the path from the gate answer into the plan's own structure.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">planning run</span>
+    <span>stage work</span>
+    <span class="l-data">file read / written</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Establish the testing facts once, reuse them after</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Stage 1 evidence pass</div></div>
+          <div class="fd-arrow"><span class="lbl">reads</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">PROJECT_NOTES.md</div><div class="fd-sub">## Testing</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">record present?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node outcome"><div class="fd-title">Use it — no scan</div><div class="fd-sub">unless the work touches an area it marks uncovered</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no</span>
+          <div class="fd-node data"><div class="fd-title">config.json</div><div class="fd-sub">project.commands.test → invocation</div></div>
+          <div class="fd-arrow"><span class="lbl">plus</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">filesystem</div><div class="fd-sub">location, naming, areas exercised</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">settled?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no</span>
+          <div class="fd-node actor"><div class="fd-title">Ask the user once</div></div>
+          <div class="fd-arrow"><span class="lbl">then</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Look for what the answer implies</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">settled</span>
+          <div class="fd-node outcome"><div class="fd-title">Write the record</div><div class="fd-sub">dated · "None detected" when that is the finding</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Two signals, two questions</b> — <code>project.commands.test</code> gives the <i>invocation</i> (<code>npm test</code> here, an indirection), the filesystem gives the <i>convention</i>. They are not alternatives to weigh; collapsing them loses one of the two answers.</li>
+          <li><b>Declared intent, not a guess</b> — <code>detect-project.js:125-127</code> populates <code>commands.test</code> only for a real, non-placeholder script, so a non-null value means someone declared a way to run tests. It still cannot say whether any test file exists.</li>
+          <li><b>The probe need not be authoritative.</b> With the user as the fallback and the answer cached, a heuristic that is merely good enough to <i>propose</i> suffices — which is why no runner or harness name has to be hardcoded (C3).</li>
+          <li><b>Absence is a finding.</b> <b>None detected</b> is written explicitly, so "never looked" and "looked, found nothing" stay distinguishable.</li>
+          <li><b>Three states, not two.</b> "No tests" and "no way to run tests" are different findings. <code>detect-project.js</code> sets <code>commands.test</code> <i>unconditionally</i> for Rust (<code>:197</code>) and Go (<code>:219</code>) — <code>cargo test</code> and <code>go test ./...</code> work with zero test files — while JS, Python and Ruby require evidence (<code>:125-127</code>, <code>:177-179</code>, <code>:232</code>). So a Go repo with no tests still has runnable infrastructure, and C2 gates on the <i>record</i> rather than the config field: <b>None detected</b> suppresses the question, <i>runner present, nothing written yet</i> does not.</li>
+          <li><b>Re-verified in one direction only</b> (D4) — when the planned work touches an area the record marks uncovered. That is the only case where staleness changes the outcome, by suppressing tests that have become possible.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — From the gate answer into the plan's structure</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Testing record in hand</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">runnable for THIS spec's kind of work?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no</span>
+          <div class="fd-node outcome"><div class="fd-title">No question, no test work</div><div class="fd-sub">plan says nothing about testing</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node actor"><div class="fd-title">One gate question</div><div class="fd-sub">all / pure logic only / none</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Stage 4</div><div class="fd-sub">Files · Footprint · Sequencing</div></div>
+          <div class="fd-arrow"><span class="lbl">derives</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">tasks.md carries the test work</div><div class="fd-sub">folded into the task producing the code</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Scoped to what runs</b> (D2) — this repo has eight unit-test files and no DOM/UI harness, so a <code>src/renderer/</code> change is not asked about. Otherwise the plan would carry a test task nobody can execute.</li>
+          <li><b>Authoring attaches to its code's step</b>, never to a trailing "write the tests" step. A step's work is not done until its tests are.</li>
+          <li><b>This also removes a duplication risk</b> (D8): with no standalone test task, the coverage matrix in <code>deep-spec-tasks</code>' report pass resolves to a task that already carries the test work, so nothing is created twice.</li>
+          <li><b>Authoring is planned; verification is not.</b> Writing new test code is work for <code>tasks.md</code>; running existing checks is an implement-time step. Stated explicitly so neither side invents the other's job.</li>
+          <li><b>"None" is a legitimate answer.</b> A spec with no testable surface — docs, templates, a prompt — plans no tests even where infrastructure exists (S8, and D9 applies it to this very spec).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The record, in one look</h3>
+  <pre>## Testing
+
+- **Runner:** npm test → node --test test/*.test.js
+- **Location &amp; naming:** test/*.test.js, flat, one file per module
+- **Covered:** src/main/, src/shared/, scripts/ — 8 files
+- **Not covered:** src/renderer/ — no DOM/UI harness present
+- **CI:** .github/workflows/ci.yml, ubuntu + macos, no npm ci
+- _Recorded 2026-07-20 by /spec.plan_</pre>
+
+  <h3>The three states C2 gates on</h3>
+  <table>
+    <tr><th>Record says</th><th>Means</th><th>Gate asks?</th></tr>
+    <tr><td><b>None detected</b></td><td>No runner, no tests. Someone must choose and install one first.</td><td>No</td></tr>
+    <tr><td>Runner present, <b>covered: none yet</b></td><td>The toolchain ships the runner (Go, Rust) or a script exists but nothing is written against it. Tests are one file away.</td><td><b>Yes</b></td></tr>
+    <tr><td>Populated</td><td>Runner, convention and covered areas all known.</td><td>Yes, scoped to the kinds the record shows are runnable</td></tr>
+  </table>
+  <p class="muted">Written into this repo's own <code>PROJECT_NOTES.md</code> as the first record — the spec dogfoods its own mechanism.</p>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · What should the posture question offer?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Three options — everything testable / pure logic and data transforms only / none this time</div>
+        <div class="opttrade">One more option to read; expresses the case that is actually common.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Binary — tests or no tests</div>
+        <div class="opttrade">Simplest ask, but cannot express a project that tests its pure modules and not its framework-coupled ones.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the middle option is not invented. <code>test/telemetry.test.js</code> states the convention outright — "targets the pure policy module (<code>telemetryEvents.js</code>); the Electron side of <code>telemetry.js</code> is a thin wrapper over it." A binary question could not describe what this repo already does.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D2 · Should the question be scoped to what the project can actually run?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Yes — the probe distinguishes test kinds</div>
+        <div class="opttrade">More to establish up front; the gate stays silent where tests are impossible.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">One flat "is there test infrastructure?" signal</div>
+        <div class="opttrade">Simpler and assumption-free, but plans renderer tests in a unit-only project — tasks that cannot be run, or are silently skipped at implementation time.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> verified against this repo — eight unit-test files, and none of <code>jsdom</code>, <code>playwright</code>, <code>@testing-library</code>, <code>puppeteer</code> present. Asking about tests for a <code>src/renderer/</code> change here would produce a plan the project cannot execute.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D3 · Where do the testing facts live?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">A standing <code>## Testing</code> section in <code>PROJECT_NOTES.md</code></div>
+        <div class="opttrade">Introduces a run-time write outside <code>.frame/</code>; every later run reads instead of scanning.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Detect afresh on every planning run</div>
+        <div class="opttrade">No new state to keep true, but pays the scan every time and gives the user no place to correct a wrong reading.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> converts a per-run cost into a fact recorded once — which is what durable context is for. It also dissolves the hardest constraint in this spec: with the user as fallback and the answer cached, the probe only has to be good enough to <i>propose</i>, so no harness list needs hardcoding and C3 holds without strain.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D4 · When is the record re-verified? <span class="tag">follows from D3</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Only when the planned work touches an area the record marks uncovered</div>
+        <div class="opttrade">A record that goes stale in the other direction is never noticed — accepted, because nothing depends on it.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Re-verify on every planning run</div>
+        <div class="opttrade">Always correct, and gives back exactly the saving D3 was for.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> staleness only changes the outcome in one direction — a record saying "not covered" for an area that has since gained a harness would suppress tests that are now possible. That is precisely the case this rule re-checks.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D5 · Does the run ask before writing the record?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Write directly; name what was recorded in the closing message</div>
+        <div class="opttrade">A shared meta file changes without an explicit prompt each time.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Confirm before each write</div>
+        <div class="opttrade">Full control over shared state, at the cost of an extra approval step on every planning run.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>REFERENCE.md</code> already grants it — "You can add without asking the user (for important decisions)" — and a confirmation on every run is the kind of noise that trains people to click through.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D6 · Which part of <code>PROJECT_NOTES.md</code>? <span class="tag">follows from D3</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">The standing topical area, beside <code>## Tech Stack</code></div>
+        <div class="opttrade">None — it matches how the file is already organised.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">A dated entry under <code>## Session Notes</code></div>
+        <div class="opttrade">Follows the documented note-taking convention, but a cache that is rewritten does not belong in an append-only log.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — the file already draws this line. Lines 1–396 are standing reference sections updated in place; <code>## Session Notes</code> from line 397 is the dated append-only log. The record is a fact about the project, like Tech Stack, not an event.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D7 · Is the posture also written to <code>status.json</code>?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No — <code>plan.md</code> carries it</div>
+        <div class="opttrade">A future implement flow would have to read the plan rather than a field.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Add an <code>implement_mode</code>-style field now</div>
+        <div class="opttrade">Ready for a consumer that does not exist yet.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — nothing reads such a field today. <code>implement-modes</code> is a separate, unimplemented spec; adding state with no reader is speculative.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D8 · Is a dedup rule needed against <code>deep-spec-tasks</code>?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No — the sequencing rule already prevents it</div>
+        <div class="opttrade">Depends on that rule holding; if a standalone test task ever appears, the risk returns.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Add an explicit dedup rule to the report pass</div>
+        <div class="opttrade">Belt and braces, but a rule guarding a case the design does not produce.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — the spec flagged that a test task could arrive twice, from <code>## Sequencing</code> and from the report's coverage matrix. Because authoring is folded into the step producing the code, no standalone test task exists to duplicate: the coverage ID resolves to a task that already carries the test work.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D9 · Does this spec's own work ship with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No — "none this time"</div>
+        <div class="opttrade">The change ships unverified by machine; it is a prompt, exercised by running it.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Add a test for the template</div>
+        <div class="opttrade">Would assert the presence of prose in a markdown file — a test of the diff, not of behavior.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> decided silently — applying D1 to this spec honestly gives "none this time". Recorded rather than left unsaid, because planning a test for a markdown template is exactly the failure mode D2 exists to prevent, and the spec should be seen obeying its own rule.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>The record goes stale after the project gains a harness, suppressing tests that are now possible</td><td>The one direction D4 re-verifies: when planned work touches an area the record marks uncovered, the probe checks that area once and updates the record.</td></tr>
+    <tr><td>The record goes stale the other way — it claims coverage that has since been removed</td><td>Not detected. Accepted: the failure mode is planning a test in an area that no longer has a runner, which surfaces immediately at implementation rather than silently shipping a gap.</td></tr>
+    <tr><td>Two <code>spec.plan</code> runs execute in parallel and both write the section</td><td>Last write wins on a section both would fill with the same detected facts. Unlike worker branches this is not isolated — <code>PROJECT_NOTES.md</code> is shared state written in the main checkout, and workers are barred from it precisely because of this.</td></tr>
+    <tr><td><code>PROJECT_NOTES.md</code> does not exist in the project</td><td>The probe detects fresh and skips the write. Frame creates the file at init, so this is the uninitialised case; nothing is created on its behalf.</td></tr>
+    <tr><td>A user hand-edits the record incorrectly</td><td>Treated as authoritative — that is the point of a correctable cache. The dated line shows when it was last established.</td></tr>
+    <tr><td><code>project.commands.test</code> is set but no test files exist</td><td>Both signals are recorded, and their disagreement is itself the finding: infrastructure declared, nothing written against it. No arbitration between them is needed because they answer different questions.</td></tr>
+    <tr><td>The gate asks about tests for work with no testable surface</td><td>"None this time" is a first-class answer (S8). D9 applies it to this spec, whose only artifact is a prompt template.</td></tr>
+    <tr><td><code>PROJECT_NOTES.md</code> can never appear in a <code>## Footprint</code></td><td>Structural, not fixable here: <code>parseFootprintMarkdown</code> filters by basename against <code>ORCH_META_FILES</code>. The file is written at run time in the user's project rather than changed by this spec, but the conflict guard is blind to it.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: a machine-readable form of the record (it stays prose a human edits); teaching <code>spec.new</code> / <code>spec.implement</code> to read it; letting the implement flow consume the posture decision (belongs with <code>implement-modes</code>); setting up test infrastructure where none exists — Frame detects, it does not install.</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Detect the project's testing structure during the evidence pass, recording runner, location, naming and CI as verified evidence <span class="tag">G1</span></td><td>Architecture · Probe flow · Flow A · Sequencing 1, 2, 3</td></tr>
+    <tr><td>Ask posture at the decision gate, and only when infrastructure exists <span class="tag">G2</span></td><td>Architecture · Gate question · Flow B · Sequencing 6</td></tr>
+    <tr><td>Carry the decision into the plan's structure — Files, Footprint, Sequencing <span class="tag">G3</span></td><td>Architecture · Carrying the decision · Sequencing 7</td></tr>
+    <tr><td>Test work reaches <code>tasks.md</code> through the ordinary derivation, with no test-only task category <span class="tag">G4</span></td><td>Architecture · Carrying the decision · Flow B · Sequencing 7</td></tr>
+    <tr><td>Draw the line between planned test authoring and implement-time verification <span class="tag">G5</span></td><td>Architecture · Authoring is planned; verification is not · Sequencing 8</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td><code>spec.plan.md</code> is the only file this spec changes <span class="tag">C1</span></td><td>Files · Footprint — one entry. <b>Softened at run time:</b> see Architecture · Scope note</td></tr>
+    <tr><td>Detection gates everything — no infrastructure means no question and no test work <span class="tag">C2</span></td><td>Architecture · Gate question · Flow B first branch</td></tr>
+    <tr><td>No framework assumptions; nothing from this repo's own setup leaks into the template <span class="tag">C3</span></td><td>Architecture · The testing record · D3 (user as fallback removes the need for a hardcoded list) · Sequencing 2</td></tr>
+    <tr><td>Plan format unchanged — no new section, test entries are ordinary entries <span class="tag">C4</span></td><td>Architecture · Carrying the decision · Sequencing 7</td></tr>
+    <tr><td>The gate stays bounded — one question inside the existing 3-round cap, no new stage <span class="tag">C5</span></td><td>Architecture · Gate question · Sequencing 6</td></tr>
+    <tr><td>Existing lifecycle unchanged — <code>spec.tasks</code>, the watcher, tasks sync and orchestration need no changes <span class="tag">C6</span></td><td>Files — one template modified; no code touched</td></tr>
+    <tr><td>Override precedence preserved; <code>codex</code> / <code>gemini</code> untouched <span class="tag">C7</span></td><td>Files — only the <code>claude-code</code> directory appears</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>With infrastructure present, the run surfaces the runner and convention as Stage 1 evidence and asks exactly one gate question <span class="tag">S1</span></td><td>Sequencing 1, 2, 6 · proven by planning a spec in this repo and reading the evidence table and the gate transcript</td></tr>
+    <tr><td>Without infrastructure, nothing is asked and the plan contains no test work <span class="tag">S2</span></td><td>Sequencing 1, 6 · proven against a project whose record reads <b>None detected</b></td></tr>
+    <tr><td>Planned test files appear in both Files and Footprint, and <code>getSpecFootprint</code> returns them <span class="tag">S3</span></td><td>Sequencing 7 · proven by <code>getSpecFootprint</code> on a plan that puts tests in scope</td></tr>
+    <tr><td>The posture decision appears under "Resolved plan-time decisions" with its rationale <span class="tag">S4</span></td><td>Sequencing 6 · proven by inspection of a produced <code>plan.md</code></td></tr>
+    <tr><td><code>spec.tasks</code> produces tasks carrying the test work alongside its code, with no trailing "write the tests" task <span class="tag">S5</span></td><td>Sequencing 7 · proven by running <code>/spec.tasks</code> on such a plan</td></tr>
+    <tr><td>No plan emits running an existing test command as a task <span class="tag">S6</span></td><td>Sequencing 8 · proven by inspection of the produced task list</td></tr>
+    <tr><td>Planned test files match the project's existing location and naming convention <span class="tag">S7</span></td><td>Sequencing 2, 7 · proven by comparing planned paths against the recorded convention</td></tr>
+    <tr><td>A spec with no testable surface plans no tests even where infrastructure exists <span class="tag">S8</span></td><td>Architecture · D9 · proven by this plan itself, which plans none</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td><code>audit-q3-generic-any-project</code> lists test files under Files as <b>New</b> and carries them into Footprint</td><td><span class="pill good">verified</span> <code>plan.md:228-231</code>; all four paths present in <code>## Footprint</code></td></tr>
+    <tr><td><code>audit-q3-product-analytics</code> does the same for <code>test/telemetry.test.js</code></td><td><span class="pill good">verified</span> <code>plan.md:61</code> (Files), <code>:79</code> (Footprint), <code>:88</code> (Sequencing)</td></tr>
+    <tr><td><code>## Footprint</code> feeds the orchestration conflict guard</td><td><span class="pill good">verified</span> <code>parseFootprintMarkdown</code> → <code>getSpecFootprint</code>, <code>specManager.js</code></td></tr>
+    <tr><td>CI runs the suite</td><td><span class="pill good">verified</span> <code>.github/workflows/ci.yml</code> — ubuntu + macos, no <code>npm ci</code></td></tr>
+    <tr><td>The repo's test command is <code>node --test test/</code></td><td><span class="pill warn">drifted</span> <code>project.commands.test</code> is <code>npm test</code>; <code>package.json</code> now runs <code>node --test test/*.test.js</code>. Config gives an <b>invocation</b>, not a runner</td></tr>
+    <tr><td>Seven test files exist</td><td><span class="pill warn">drifted</span> eight — <code>specTasksSync.test.js</code> landed with <code>deep-spec-tasks</code></td></tr>
+    <tr><td><code>project.commands.test</code> may be a detector's guess</td><td><span class="pill warn">new evidence</span> <code>detect-project.js:125-127</code> sets it only for a real, non-placeholder script — declared intent, not a guess</td></tr>
+    <tr><td>The repo has no UI/renderer test harness</td><td><span class="pill good">verified</span> no <code>jsdom</code>, <code>playwright</code>, <code>@testing-library</code> or <code>puppeteer</code> in <code>package.json</code> or <code>test/</code></td></tr>
+    <tr><td><code>PROJECT_NOTES.md</code> can host a standing section</td><td><span class="pill good">verified</span> lines 1–396 are standing topical sections; <code>## Session Notes</code> begins at line 397. No <code>## Testing</code> heading exists yet</td></tr>
+    <tr><td>Writing to <code>PROJECT_NOTES.md</code> without asking is permitted</td><td><span class="pill good">verified</span> <code>.frame/docs/REFERENCE.md</code> — "You can add without asking the user (for important decisions)"</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — coverage audit: D3–D5, the <code>PROJECT_NOTES.md</code> record, sit under no Goal in <code>spec.md</code>. Rather than fold them in silently, added an explicit "this plan extends the spec" subsection to Architecture naming what was added and when it was decided.</li>
+    <li><b>Iteration 2</b> — constraint check: C1 says <code>spec.plan.md</code> is the only file this spec changes, which stays true of the repo diff, but the command now writes to <code>PROJECT_NOTES.md</code> at run time — a side effect no other spec command has. Separated the two readings in the scope note instead of claiming C1 is untouched.</li>
+    <li><b>Iteration 3</b> — task-derivability: the probe was a single step bundling read, detect, ask and record, which would have produced one oversized task. Split into four; the remaining three steps were already independently shippable.</li>
+    <li><b>Iteration 4</b> — format and coverage audit: five sections in order, every G1–G5 / C1–C7 / S1–S8 ID owned by a named section, zero TBDs, every referenced path and symbol verified in code, tasks derivable from Sequencing alone. Pass — converged.</li>
+    <li><b>Iteration 5</b> — post-review, prompted by the question "won't the record detect this regardless of language?". It will — the filesystem side of detection always runs, so the record is language-independent by construction and the Rust/Go asymmetry in <code>commands.test</code> cannot mislead it. The review did surface a real gap in the opposite direction from the one first suspected: a Go repo with zero tests has <i>runnable</i> infrastructure, so treating "no tests" as "no infrastructure" would wrongly suppress the question. Split the record into three states, moved C2's gate onto the record rather than the config field, and added Sequencing step 3. No language-specific rule was needed — the record was already expressive enough.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-20 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/test-aware-planning/plan.md</code></footer>
+</div>
+</body>
+</html>
