@@ -30,6 +30,19 @@ node .frame/bin/find-module.js <keyword>   # concept/synonym → files
 node .frame/bin/find-module.js --list      # all features
 ```
 
+**Spec history** — before working a topic or changing a file, check what
+earlier specs did there and why (Claude Code sessions also get this injected
+automatically via hooks; other CLIs: run it yourself):
+
+```bash
+node .frame/bin/spec-context.js <keyword>       # topic → related specs
+node .frame/bin/spec-context.js --file <path>   # file → who changed it, why
+```
+
+On a hit, read the chain (`spec.md → plan.md → tasks.md → outcome.md`)
+before working — respect recorded decisions or overturn them explicitly,
+never silently.
+
 **Freshness** — `node .frame/bin/check-freshness.js` reports when this
 context is likely to mislead (phantom modules, stale STRUCTURE/notes, stuck
 tasks). Trust its warnings over stale entries.

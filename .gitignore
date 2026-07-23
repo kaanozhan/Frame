@@ -47,6 +47,9 @@ release/
 # Frame implement-mode permissions (written on every autonomous dispatch — regenerated)
 .frame/implement-permissions.json
 
+# Frame spec-knowledge index — derived, rebuilt via ensureFresh (never track)
+.frame/index/
+
 # Frame orchestration artifacts (materialized on every orchestration start — regenerated)
 .frame/bin/*.js
 .frame/orchestration/

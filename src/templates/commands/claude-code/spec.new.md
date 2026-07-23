@@ -12,11 +12,43 @@ You are authoring a new spec for the Frame spec-driven workflow.
 {description}
 ```
 
+## Spec catalog (the project's existing specs)
+
+```
+{spec_catalog}
+```
+
 ## Task
 
-Write **exactly one file**: `.frame/specs/{slug}/spec.md`.
+**First, evaluate relatedness.** Scan the catalog above and decide which
+existing specs genuinely relate to this description — you are the semantic
+matcher; the catalog guarantees recall, you provide precision. For each
+related spec, read its chain as needed (`.frame/specs/<slug>/spec.md` →
+`plan.md` → `digest.md`/`outcome.md`) and let what you find **shape the
+spec you write**:
 
-Use this structure (sections in this order, exactly these headings):
+- A prior decision this spec must respect (or deliberately reverse) →
+  record it under **Constraints**, naming the source spec.
+- Work an existing spec already covers → **Out of Scope**, by name.
+- A genuine unresolved fork with a prior spec → **Open Questions**.
+- A spec this one replaces → declare it in `supersedes:`.
+
+No related specs → skip silently; never force a connection.
+
+Then write **exactly one file**: `.frame/specs/{slug}/spec.md`.
+
+Open the file with a front-matter block (machine-read by the spec index —
+keep the exact key names):
+
+```
+---
+keywords: <3-8 comma-separated concepts a teammate would search for>
+related: <comma-separated related slugs, or omit the line>
+supersedes: <slug this spec replaces, or omit the line>
+---
+```
+
+Then use this structure (sections in this order, exactly these headings):
 
 ```
 # {title}

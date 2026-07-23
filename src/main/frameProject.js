@@ -372,10 +372,93 @@ async function runProjectInit(projectPath, projectName) {
     console.warn('[frame] command staging failed (non-fatal):', err.message);
   }
 
+  // Spec-knowledge hook: deterministic spec-history injection for Claude
+  // Code sessions. Merge-safe by contract — never clobbers an existing
+  // .claude/settings.json, non-fatal like the bootstrap above.
+  let specHintSummary = null;
+  try {
+    specHintSummary = installSpecHintHook(projectPath);
+    if (specHintSummary.manual) {
+      console.warn('[frame] spec-hint hook needs manual install:', specHintSummary.reason);
+    }
+  } catch (err) {
+    console.warn('[frame] spec-hint hook install failed (non-fatal):', err.message);
+  }
+
   // Update workspace to mark as Frame project
   workspace.updateProjectFrameStatus(projectPath, true);
 
-  return { ...config, _structureBootstrap: structureBootstrapSummary };
+  return { ...config, _structureBootstrap: structureBootstrapSummary, _specHintHook: specHintSummary };
+}
+
+// ─── Spec-knowledge hook install ──────────────────────────
+
+// Hook entries for a user project (scripts live in .frame/bin/ there).
+const SPEC_HINT_HOOKS = {
+  PreToolUse: [
+    {
+      matcher: 'Edit|Write',
+      hooks: [{ type: 'command', command: 'node .frame/bin/spec-hint.js pre-edit' }]
+    }
+  ],
+  UserPromptSubmit: [
+    { hooks: [{ type: 'command', command: 'node .frame/bin/spec-hint.js prompt' }] }
+  ]
+};
+
+/**
+ * Register the spec-hint hooks in the project's .claude/settings.json.
+ * Gated on the active AI tool being Claude Code — other CLIs have no hook
+ * system, they keep the AGENTS.md advisory layer.
+ *
+ * Merge-safe write: read-modify-write preserving every existing key; a hook
+ * entry is appended only when an identical one isn't already present, so
+ * re-init is idempotent. Unparseable JSON → no write, manual instructions
+ * surfaced via the returned summary.
+ */
+function installSpecHintHook(projectPath) {
+  // Lazy require — aiToolManager pulls telemetry; keep init's module graph flat.
+  const aiToolManager = require('./aiToolManager');
+  const active = aiToolManager.getActiveTool();
+  if (!active || active.id !== 'claude') {
+    return { installed: false, reason: `active tool is ${active ? active.id : 'none'} — advisory layer only` };
+  }
+
+  const settingsDir = path.join(projectPath, '.claude');
+  const settingsPath = path.join(settingsDir, 'settings.json');
+
+  let settings = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    } catch (err) {
+      return {
+        installed: false,
+        manual: true,
+        reason: `.claude/settings.json is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md "Spec Knowledge Layer"`
+      };
+    }
+  }
+
+  settings.hooks = settings.hooks || {};
+  let added = 0;
+  for (const eventName of Object.keys(SPEC_HINT_HOOKS)) {
+    const list = Array.isArray(settings.hooks[eventName]) ? settings.hooks[eventName] : [];
+    for (const entry of SPEC_HINT_HOOKS[eventName]) {
+      const sig = JSON.stringify(entry);
+      if (!list.some((x) => JSON.stringify(x) === sig)) {
+        list.push(entry);
+        added++;
+      }
+    }
+    settings.hooks[eventName] = list;
+  }
+
+  if (added > 0) {
+    fs.mkdirSync(settingsDir, { recursive: true });
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+  }
+  return { installed: true, added };
 }
 
 // ─── Spec-Driven Development opt-in (Slice 1.5) ──────────────

@@ -1,0 +1,7 @@
+# Extra safety — even though parent marketing/ is gitignored,
+# never let secrets or data leak if folder structure changes.
+.env
+.env.local
+node_modules/
+data/
+*.log

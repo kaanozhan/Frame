@@ -1,0 +1,16 @@
+{
+  "name": "frame-bot",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "description": "Local-only Twitter monitoring bot for Frame growth playbook",
+  "scripts": {
+    "test:v0": "node test-v0.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

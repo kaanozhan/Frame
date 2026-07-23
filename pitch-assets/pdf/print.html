@@ -1,0 +1,125 @@
+<!doctype html><html><head><meta charset="utf8"><style>
+  @page { size: 11in 8.5in; margin: 0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:#fff; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif; color:#1a1a1a; }
+  .page { width:11in; height:8.5in; padding:0.45in 0.55in; page-break-after:always; display:flex; flex-direction:column; }
+  .page:last-child { page-break-after:auto; }
+  .slidewrap { flex:0 0 auto; }
+  .slidewrap img { width:100%; height:auto; display:block; border:1px solid #e2e2e2; border-radius:6px; }
+  .notes { margin-top:0.28in; flex:1 1 auto; }
+  .nlabel { font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#b08050; font-weight:700; margin-bottom:7px; }
+  .ntext { font-size:12.5px; line-height:1.55; color:#333; }
+</style></head><body>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-0.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 1/16</div>
+      <div class="ntext">Frame — the platform for agentic development. Spec-driven development and parallel agents in one terminal-first workspace, built for how software is actually made now.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-1.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 2/16</div>
+      <div class="ntext">I was doing a lot of software development with the Claude Code CLI — a single terminal was enough to get real work done. But as my projects grew, and as I had more of them, I lost the ability to manage them. What started as something simple — arranging terminals in a grid — turned into an entire environment centered on agentic development.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-2.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 3/16</div>
+      <div class="ntext">My initial intent was to merge project management with agentic development. That's how it began — but I kept being pulled toward the harder problem underneath: how you create context, and how you keep it across sessions.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-3.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 4/16</div>
+      <div class="ntext">In the last week of January I shipped a working version in about a week, open-sourced it, and posted it in the Claude Code subreddit. on day one, Frame reached 100 stars on GitHub and hundreds of unique clones.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-4.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 5/16</div>
+      <div class="ntext">The dev tools of the last 10–15 years were built for a pre-AI world; they're all trying to bolt AI on. I've built software professionally for over a decade, so Jira and these tools were mine too. On task management we used to record a task, assign it, and wait days for something an agent now does in ten minutes — with real doubts about whether the process was even followed honestly. And documentation is left to whoever implements it. With AI, context matters more than ever, and the AI itself should produce it. We believe AI belongs at the center and the tools rebuilt around it. The market seems to agree — Atlassian's stock took a hit in the AI era.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-5.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 6/16</div>
+      <div class="ntext">This isn't a niche. A whole category has appeared for running agents in parallel — Conductor, Crystal, Vibe Kanban, Cursor's background agents, Devin — drawing real attention and funding, which validates the need. But most are agent runners: they launch several agents, often in git worktrees. Frame sits a layer above — planning-first, with specs, durable context, orchestration, and a workspace spanning Claude, Codex, and Gemini. The difference in one line: they parallelize prompts; we parallelize plans.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-6.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 7/16</div>
+      <div class="ntext">The core problem with agents is that they're stateless. Every new session starts from zero — no memory of your architecture, your decisions, or the reasoning behind the code. The popular answer, bigger context windows, doesn't fix it: you can't paste a whole project into every prompt, and raw code isn't the reasoning that produced it. What you need is structured context that lives outside the conversation — captured at the right moments and fed back automatically. Everything in Frame is built around that.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-7.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 8/16</div>
+      <div class="ntext">Spec-driven development means significant work goes through a spec before any code: what you're building, how, broken into tasks, and what actually shipped — all plain markdown in your repo. It fits agents naturally: a plan beats a vague prompt because the spec forces the thinking up front, the way good engineering always worked. The agent then follows ordered tasks instead of improvising, and records the outcome while it's fresh.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-8.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 9/16</div>
+      <div class="ntext">This is the part that solves the context problem. The spec workflow doesn't just guide the build — it generates structured context as a side effect. The plan, tasks, and especially the outcome become the project's durable memory, written by the AI at the moments that matter. Because it's plain files, any tool reads it, git versions it, teammates grep it. Frame ships this as a first-class workflow with tasks importing automatically — optional, never forced.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-9.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 10/16</div>
+      <div class="ntext">Agents made each individual unit of work fast, so the bottleneck moved: now it's about doing many units at once. But run agents naively and they collide — editing the same files, undoing each other's work. This is where specs pay off again: a spec is already a self-contained unit that declares its footprint — the files it touches. That's exactly what you need to parallelize safely. You can't safely parallelize vague prompts; you can parallelize specs.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-10.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 11/16</div>
+      <div class="ntext">In Frame you hand a set of ready specs to a conductor agent. It reads each spec's footprint and runs only the non-overlapping ones in parallel — each agent isolated in its own git worktree, on its own branch, so no two touch the same files. That safety is enforced in code, not a prompt. And you stay in control: watch every agent on a live pipeline, drop into any of them, and nothing merges until you approve it. Your main branch is never touched automatically. Guardrailed, human-steered — not fire-and-forget.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-11.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 12/16</div>
+      <div class="ntext">One more benefit that matters for cost: our approach uses fewer tokens. Without structure, agents burn tokens rediscovering the project every session and reworking wrong turns from vague prompts. With Frame, structured context is read once and automatically; the intentIndex sends agents straight to the right files instead of scanning the whole codebase; and a plan up front avoids rework — so the tokens go to the actual work. Each spec also loads only its own footprint, not the entire project. Better plans don't just produce better code; they make each run cheaper.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-12.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 13/16</div>
+      <div class="ntext">The practical payoff: with Frame you're more organized, faster, and leaner. More organized — every project, spec, task, and agent live in one workspace on a standard structure, so nothing is scattered or lost. Faster — you plan once and run agents in parallel, and each agent picks up full context instantly instead of re-learning the project every session. More efficient — tokens and time go to the actual work, not rediscovery or rework. Same agents, but more output with far less overhead.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-13.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 14/16</div>
+      <div class="ntext">Where we are today: Frame is at 315 GitHub stars — 100 of them, plus hundreds of unique clones, on day one — and users across 18 countries via Aptabase, our privacy-first analytics. We've done all of this 100% organically — no ads, no paid promotion at all. The pull is real, even before any serious go-to-market.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-14.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 15/16</div>
+      <div class="ntext">We want to perfect context management and the AI software-development experience as far as it can go. One target: in a large project, give an agent a task six months in, and it acts knowing all the context that task requires — not by scanning code, but like an engineer who's been on the project since day one. Honestly, we're building Frame for agents and for the future more than for humans today. First we move project management to the cloud; then the whole workflow as a cloud service. The architecture was designed for this from day one.</div>
+    </div>
+  </div>
+  <div class="page">
+    <div class="slidewrap"><img src="slide-15.png"/></div>
+    <div class="notes">
+      <div class="nlabel">Speaker notes — 16/16</div>
+      <div class="ntext"></div>
+    </div>
+  </div></body></html>

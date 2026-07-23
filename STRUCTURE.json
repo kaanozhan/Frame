@@ -607,7 +607,8 @@
         "shared/docsManagedBlock",
         "telemetry",
         "perfMonitor",
-        "../scripts/detect-project"
+        "../scripts/detect-project",
+        "aiToolManager"
       ],
       "functions": {
         "init": {
@@ -682,33 +683,40 @@
             "projectName"
           ]
         },
+        "installSpecHintHook": {
+          "line": 419,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
+        },
         "isSpecDrivenEnabled": {
-          "line": 389,
+          "line": 472,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 394,
+          "line": 477,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 419,
+          "line": 502,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 494,
+          "line": 577,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 535,
+          "line": 618,
           "params": [
             "ipcMain"
           ],
@@ -1508,67 +1516,74 @@
           ],
           "purpose": "An in-flight spec whose footprint overlaps `footprint`, or null. done/failed"
         },
-        "buildWorkerPrompt": {
-          "line": 143,
+        "footprintHistorySection": {
+          "line": 147,
           "params": [
             "projectPath",
             "slug"
           ],
           "purpose": "Write the interpolated worker prompt to the MAIN repo (worktrees lack .frame/"
         },
+        "buildWorkerPrompt": {
+          "line": 175,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
         "relayToConductor": {
-          "line": 165,
+          "line": 198,
           "params": [
             "session",
             "text"
           ]
         },
         "drainRelayQueue": {
-          "line": 171,
+          "line": 204,
           "params": [
             "session"
           ]
         },
         "materializeBinScripts": {
-          "line": 189,
+          "line": 222,
           "params": [
             "projectPath"
           ],
           "purpose": "Materialize the .frame/bin command scripts for this project."
         },
         "serializeState": {
-          "line": 201,
+          "line": 234,
           "params": [
             "session"
           ]
         },
         "publishState": {
-          "line": 226,
+          "line": 259,
           "params": [
             "session"
           ]
         },
         "startBusWatcher": {
-          "line": 243,
+          "line": 276,
           "params": [
             "session"
           ]
         },
         "drainBus": {
-          "line": 256,
+          "line": 289,
           "params": [
             "session"
           ]
         },
         "handleRequest": {
-          "line": 280,
+          "line": 313,
           "params": [
             "session",
             "req"
           ]
         },
         "handleDispatch": {
-          "line": 300,
+          "line": 333,
           "params": [
             "session",
             "slug"
@@ -1576,7 +1591,7 @@
           "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
         },
         "registerWorkerLane": {
-          "line": 372,
+          "line": 405,
           "params": [
             "projectPath",
             "slug",
@@ -1585,7 +1600,7 @@
           "purpose": "The renderer reports the terminalId it created for a worker lane, so the"
         },
         "handleReportDone": {
-          "line": 385,
+          "line": 418,
           "params": [
             "session",
             "slug"
@@ -1593,7 +1608,7 @@
           "purpose": "T15 — a worker reported completion: mark done, attach a diff stat, relay to"
         },
         "handleMerge": {
-          "line": 404,
+          "line": 437,
           "params": [
             "session",
             "slug",
@@ -1602,7 +1617,7 @@
           "purpose": "T22 (drift check + fast-forward merge into integration) + T23 (meta reconcile"
         },
         "mergeWorker": {
-          "line": 444,
+          "line": 477,
           "params": [
             "projectPath",
             "slug",
@@ -1611,7 +1626,7 @@
           "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
         },
         "removeWorker": {
-          "line": 452,
+          "line": 485,
           "params": [
             "projectPath",
             "slug"
@@ -1619,33 +1634,33 @@
           "purpose": "Per-worker cleanup from the board UI: stop its lane, remove the worktree, and"
         },
         "pollStatuses": {
-          "line": 477,
+          "line": 510,
           "params": [
             "session"
           ]
         },
         "startOrchestration": {
-          "line": 518,
+          "line": 551,
           "params": [
             "args = {}"
           ]
         },
         "stopOrchestration": {
-          "line": 584,
+          "line": 617,
           "params": [
             "projectPath"
           ],
           "purpose": "T25 — teardown: stop worker lanes, remove their worktrees, prune only MERGED"
         },
         "rehydrate": {
-          "line": 626,
+          "line": 659,
           "params": [
             "session"
           ],
           "purpose": "T26 — best-effort rehydration from frame/<slug>/* branches after a restart."
         },
         "resumeWorker": {
-          "line": 679,
+          "line": 712,
           "params": [
             "projectPath",
             "slug"
@@ -1653,20 +1668,20 @@
           "purpose": "Resume a recovered worker: spawn a fresh agent lane in its EXISTING"
         },
         "assignSpecs": {
-          "line": 704,
+          "line": 737,
           "params": [
             "projectPath",
             "slugs"
           ]
         },
         "getState": {
-          "line": 712,
+          "line": 745,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 718,
+          "line": 751,
           "params": [
             "ipcMain"
           ]
@@ -2451,14 +2466,27 @@
             "status"
           ]
         },
+        "scheduleIndexRefresh": {
+          "line": 168,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "buildSpecCatalog": {
+          "line": 185,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
+        },
         "listSpecs": {
-          "line": 157,
+          "line": 205,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 212,
+          "line": 260,
           "params": [
             "projectPath",
             "slug",
@@ -2466,7 +2494,7 @@
           ]
         },
         "derivePhase": {
-          "line": 216,
+          "line": 264,
           "params": [
             "projectPath",
             "slug",
@@ -2475,14 +2503,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 242,
+          "line": 290,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 248,
+          "line": 296,
           "params": [
             "projectPath",
             "slug",
@@ -2490,14 +2518,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 273,
+          "line": 321,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 277,
+          "line": 325,
           "params": [
             "projectPath",
             "aiTool",
@@ -2505,7 +2533,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 281,
+          "line": 329,
           "params": [
             "projectPath",
             "aiTool",
@@ -2513,14 +2541,14 @@
           ]
         },
         "interpolate": {
-          "line": 287,
+          "line": 335,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 294,
+          "line": 342,
           "params": [
             "projectPath",
             "slug",
@@ -2529,7 +2557,7 @@
           ]
         },
         "stageCommandAsset": {
-          "line": 340,
+          "line": 391,
           "params": [
             "projectPath",
             "aiTool",
@@ -2538,7 +2566,7 @@
           "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
         },
         "stageCommandAssets": {
-          "line": 361,
+          "line": 412,
           "params": [
             "projectPath",
             "command",
@@ -2546,34 +2574,34 @@
           ]
         },
         "resolveVerificationCommand": {
-          "line": 425,
+          "line": 476,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 440,
+          "line": 491,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 458,
+          "line": 509,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 482,
+          "line": 533,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 498,
+          "line": 549,
           "params": [
             "projectPath",
             "slug"
@@ -2581,7 +2609,7 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "buildSpecCommandFile": {
-          "line": 505,
+          "line": 556,
           "params": [
             "projectPath",
             "slug",
@@ -2590,53 +2618,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 541,
+          "line": 592,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 567,
+          "line": 618,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 586,
+          "line": 637,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 591,
+          "line": 642,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 671,
+          "line": 722,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 678,
+          "line": 729,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 695,
+          "line": 746,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 725,
+          "line": 776,
           "params": [
             "projectPath",
             "query"
@@ -2644,14 +2672,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 746,
+          "line": 797,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 789,
+          "line": 840,
           "params": [
             "projectPath",
             "slug",
@@ -2659,14 +2687,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 808,
+          "line": 859,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 825,
+          "line": 876,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2675,28 +2703,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 932,
+          "line": 983,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 986
+          "line": 1037
         },
         "pushSpecData": {
-          "line": 1007,
+          "line": 1058,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1027,
+          "line": 1078,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1031,
+          "line": 1082,
           "params": [
             "ipcMain"
           ]
@@ -7987,14 +8015,14 @@
           ]
         },
         "getReferenceTemplate": {
-          "line": 435,
+          "line": 448,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 610,
+          "line": 623,
           "params": [
             "projectName",
             "project"
@@ -8002,21 +8030,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 635,
+          "line": 648,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 655,
+          "line": 668,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 701,
+          "line": 714,
           "params": [
             "projectName",
             "project"
@@ -8024,18 +8052,18 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 782,
+          "line": 795,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 821,
+          "line": 834,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 858,
+          "line": 871,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -8043,27 +8071,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 904
+          "line": 917
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 925,
+          "line": 938,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 948,
+          "line": 961,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 960,
+          "line": 973,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 980
+          "line": 993
         },
         "getOrchBinScripts": {
-          "line": 998,
+          "line": 1011,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
@@ -8194,8 +8222,14 @@
         "diffLineClass",
         "renderDiff",
         "renderVerification",
+        "truncateTitle",
+        "renderProgress",
+        "renderEmptyState",
         "renderTask",
         "renderReport",
+        "computeProgress",
+        "parseArgs",
+        "openCommand",
         "readCommitDiff"
       ],
       "depends": [
@@ -8231,21 +8265,60 @@
           ],
           "purpose": "A task is only as trustworthy as its check. \"not run\" is stated plainly"
         },
+        "truncateTitle": {
+          "line": 124,
+          "params": [
+            "title",
+            "max = 72"
+          ],
+          "purpose": "Task titles can run long — a spec's tasks.json title is often a full"
+        },
+        "renderProgress": {
+          "line": 132,
+          "params": [
+            "progress"
+          ]
+        },
+        "renderEmptyState": {
+          "line": 172
+        },
         "renderTask": {
-          "line": 102,
+          "line": 183,
           "params": [
             "task"
           ]
         },
         "renderReport": {
-          "line": 131,
+          "line": 212,
           "params": [
             "data"
           ],
           "purpose": "The whole transform: report data (each task carrying its already-fetched"
         },
+        "computeProgress": {
+          "line": 410,
+          "params": [
+            "tasks",
+            "slug"
+          ],
+          "purpose": "Reduce a parsed tasks.json `tasks` array to the report's progress shape for"
+        },
+        "parseArgs": {
+          "line": 433,
+          "params": [
+            "argv"
+          ],
+          "purpose": "Split argv into the two positionals (data path, optional out path) and the"
+        },
+        "openCommand": {
+          "line": 445,
+          "params": [
+            "platform"
+          ],
+          "purpose": "The platform's \"open this file in its default app\" command. Pure so the"
+        },
         "readCommitDiff": {
-          "line": 290,
+          "line": 458,
           "params": [
             "commit",
             "repoRoot"
@@ -8253,13 +8326,28 @@
           "purpose": "The commit's diff with Frame's bookkeeping excluded. A hash that git"
         },
         "repoRootFrom": {
-          "line": 305,
+          "line": 473,
           "params": [
             "dir"
           ]
         },
+        "readTasks": {
+          "line": 483,
+          "params": [
+            "repoRoot"
+          ],
+          "purpose": "The repo's tasks.json `tasks` array, or [] if it can't be read — the banner"
+        },
+        "openInBrowser": {
+          "line": 495,
+          "params": [
+            "filePath",
+            "platform = process.platform"
+          ],
+          "purpose": "Open the finished report in the default browser, detached so it never blocks"
+        },
         "main": {
-          "line": 313,
+          "line": 504,
           "params": [
             "argv"
           ]

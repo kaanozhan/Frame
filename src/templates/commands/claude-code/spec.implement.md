@@ -410,6 +410,29 @@ save the flow so it's a one-click option next time. On yes:
 The offer is once per run and never repeats after a no. A described flow the
 user doesn't want to keep is a perfectly good outcome.
 
+## If this was the spec's LAST pending task — write the digest
+
+When the task you just completed leaves no pending tasks for this spec, the
+spec is effectively done. In this same turn, write
+`.frame/specs/{slug}/digest.md` — the distilled, agent-facing memory of the
+whole spec (the spec index and edit-time hints are built from it). Shape:
+
+```
+---
+keywords: <3-8 comma-separated concepts, reuse spec.md's line if present>
+related: <comma-separated slugs, or omit>
+supersedes: <slug, or omit>
+---
+<≤15 lines: what was done · why this path won (name the rejected
+alternatives) · the result · rules established for future work>
+
+Chain: spec.md → plan.md → tasks.md → outcome.md
+```
+
+Write it from `outcome.md`'s actuals, not `plan.md`'s intent — deviations
+are exactly what the digest must carry. Then suggest marking the spec
+`"done"` in `status.json` as usual.
+
 ## Stop conditions
 
 These bind every mode too — a mode may add its own, none may drop these.

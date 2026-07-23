@@ -1,7 +1,7 @@
 {
   "slug": "agent-dispatch",
   "title": "Agent Dispatch — lane-aware task & spec runs",
-  "phase": "done",
+  "phase": "tasks_generated",
   "ai_tool": "claude-code",
   "generated_task_ids": [
     "task-spec-agent-dispatch-T01",
@@ -27,6 +27,6 @@
     "task-spec-agent-dispatch-T21"
   ],
   "created_at": "2026-06-11T17:30:00.000Z",
-  "updated_at": "2026-06-12T11:04:27.261Z",
-  "last_phase_at": "2026-06-12T11:04:27.261Z"
+  "updated_at": "2026-07-23T14:17:01.418Z",
+  "last_phase_at": "2026-07-23T14:17:01.418Z"
 }

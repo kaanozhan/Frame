@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Knowledge Layer — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Spec Knowledge Layer — Plan Overview</h1>
+  <p class="muted">2026-07-21 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/spec-knowledge-layer/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">11 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill">3 new scripts, 0 new dependencies</span><span class="pill warn">1 drift found (no spec.done command)</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Frame's spec archive already records the project's most expensive knowledge — what was done, why that path won (including rejected alternatives), and what actually happened — but nothing delivers it to an agent at the moment it matters. Agents re-do archaeology every session and can confidently re-propose ideas that were already tried and rejected. Advisory text in AGENTS.md is not a mechanism: whether the agent honors it depends on memory, every session, every time.</p>
+  <p>The layer makes delivery deterministic without polluting context: spec artifacts are distilled into a per-spec <code>digest.md</code> and compiled into a derived, gitignored <code>.frame/index/spec-index.json</code> with two views (topic → specs, file → chronological history). Delivery uses two guaranteed channels — Claude Code hooks for unpredictable moments (an Edit lands on a storied file) and Frame-composed prompts for predictable ones (spec.new gets the full catalog, spec.plan reads footprint history, workers start preloaded). Injection is bound to the moment of <em>intent</em> (Edit/Write), never exploration (Grep/Read) — the shape that survived the memory-bloat discussion. The compact layer is an entry point only: on a hit the agent descends the raw chain (spec → plan → tasks → outcome) and relays the relevant history to the user in 1–2 sentences.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: index build, edit-time injection, and birth-time enrichment across the spec lifecycle.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">agent / trigger</span>
+    <span>system / script</span>
+    <span class="l-data">storage / artifact</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Index build (ensureFresh)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Phase transition / CLI call</div><div class="fd-sub">specManager writeStatus · spec-context.js · catalog embed</div></div>
+          <div class="fd-arrow"><span class="lbl">stale or missing?</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">spec-index.js build</div><div class="fd-sub">declared fields first; Footprint + outcome primary, git enrichment (renames, stale, slug tags)</div></div>
+          <div class="fd-arrow"><span class="lbl">phase filter</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.frame/index/spec-index.json</div><div class="fd-sub">topics + files views · gitignored, always reproducible</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Read-only consumers</div><div class="fd-sub">spec-hint.js · spec-context.js · worker preload</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Primary vs enrichment:</b> plan <code>## Footprint</code> and outcome <code>Files touched:</code> are the primary sources — the index survives squash merges; git only adds renames, moved-to links, and post-close stale flags.</li>
+          <li><b>Phase filter:</b> done + outcome → full records; implementing/planned → warning-only entries; specified → topic catalog only; <code>superseded_by</code>/probe specs → excluded.</li>
+          <li><b>Gitignored by design:</b> avoids the tracked-generated-file conflict trap the engineering findings recorded for STRUCTURE.json; the hook only ever reads (missing index → silence).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Edit-time injection (spec-hint.js, PreToolUse)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Agent calls Edit/Write</div><div class="fd-sub">interactive session or orchestration worker — never Grep/Read</div></div>
+          <div class="fd-arrow"><span class="lbl">stdin JSON</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">spec-hint.js</div><div class="fd-sub">posix-normalize path → files view lookup</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">history exists &amp; unseen this session?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node system"><div class="fd-title">Compose additionalContext</div><div class="fd-sub">1–2 entries full · 3+ one line each + pointer · in-flight warning · relay instruction</div></div>
+          <div class="fd-arrow"><span class="lbl">inject</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Agent works history-aware</div><div class="fd-sub">descends the chain, relays 1–2 sentences to the user</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">seen / no history</span>
+          <div class="fd-node system"><div class="fd-title">Silent</div><div class="fd-sub">dedup state in .frame/runtime/spec-hint/</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">any failure</span>
+          <div class="fd-node outcome"><div class="fd-title">exit 0, empty output</div><div class="fd-sub">never blocks, never surfaces as a tool error</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Moment of intent, not exploration:</b> hooking Grep/Read would inject history for dozens of files that turn out irrelevant; edits are few and are exactly when history matters.</li>
+          <li><b>All specs always present:</b> overflow reduces depth per entry, never drops an entry — the 6-months-later multi-spec file case is first-class.</li>
+          <li><b>UserPromptSubmit sibling:</b> the same script's topic mode scores the user's prompt against the catalog (stopwords, threshold, top-3 cap) once per message.</li>
+          <li><b>Works with Frame closed:</b> the hook reads pre-built JSON only — no Frame IPC, ≤50 ms target including node startup.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Birth-time enrichment across the lifecycle</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">/spec.new dispatch</div><div class="fd-sub">Frame embeds {spec_catalog} — full inventory, one line per spec</div></div>
+          <div class="fd-arrow"><span class="lbl">semantic match by agent</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">spec.md + front-matter</div><div class="fd-sub">keywords / related / supersedes; prior decisions shape Constraints &amp; Out of Scope</div></div>
+          <div class="fd-arrow"><span class="lbl">/spec.plan</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Evidence pass + history</div><div class="fd-sub">spec-context.js --file per candidate footprint path · in-flight intersection</div></div>
+          <div class="fd-arrow"><span class="lbl">implement</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Final-task digest step</div><div class="fd-sub">spec.implement / WORKER.md write digest.md while outcome is freshest</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Index grows itself</div><div class="fd-sub">every new spec born with edges; search need shrinks over time</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Template steps are as deterministic as hooks:</b> Frame composes these prompts in code (<code>buildSpecCommandFile</code>, <code>buildWorkerPrompt</code>) — no reliance on agent memory.</li>
+          <li><b>Declared, not inferred:</b> relationships are machine-readable at birth; lexical extraction remains only for legacy backfill and future scale.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The files-view record, in one look</h3>
+  <pre>"src/main/tasksManager.js": [
+  { "slug": "team-collaboration-platform", "task": "T04",
+    "line": "tried per-task files, reverted — merge semantics",
+    "date": "2026-05-12", "phase": "specified",
+    "flags": { "laterSpecs": true }, "deep": ".frame/specs/team-collaboration-platform/" },
+  { "slug": "audit-q3-performance-resources", "task": "T04",
+    "line": "parse-once mtime cache + self-write guard; push cost 29→1 parses",
+    "date": "2026-07-19", "phase": "done",
+    "flags": { "current": true }, "deep": ".frame/specs/audit-q3-performance-resources/outcome.md" }
+]</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · What is the default edit-time injection mode?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Full content (budgeted)</div>
+        <div class="opttrade">History lands in context unconditionally; cost bounded by dedup + overflow-to-pointer.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Signal-only</div>
+        <div class="opttrade">Cleanest context, but reading becomes the agent's choice — weakens the "cannot miss it" guarantee.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the entire spec exists because advisory/optional mechanisms proved unreliable; signal-only survives behind <code>FRAME_SPEC_HINT_MODE=signal</code> for dogfooding comparison.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D2 · Does the Frame UI file-history panel ship in this spec?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Follow-on spec</div>
+        <div class="opttrade">v1 footprint stays main-process + scripts + templates; UI builds later on the on-disk index contract.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Include renderer work now</div>
+        <div class="opttrade">One-shot delivery, but grows footprint into renderer/CSS and delays the core layer.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the core layer is agent-facing and independently valuable; the index file is a stable contract a UI spec can consume unchanged.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D3 · Are inventory hygiene and legacy backfill part of this spec?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Both in this spec</div>
+        <div class="opttrade">Spec grows, but the layer ships working on a clean, populated archive.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Mechanism only</div>
+        <div class="opttrade">Smaller spec, but the first index derives from probe debris and stale phases — noise on day one.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the index is only as good as the archive it derives from, and this layer is what finally makes spec hygiene load-bearing.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D4 · Where does digest authoring live, given no spec.done command exists? <span class="tag">from evidence drift</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">spec.implement / WORKER.md final-task step</div>
+        <div class="opttrade">No new command or UI; digest written in the same turn the last task completes, outcome freshest.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">New /spec.done command</div>
+        <div class="opttrade">Explicit closing ritual, but adds command infra + phase mechanics for one step.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> evidence pass showed <code>done</code> is auto-derived from task completion (<code>derivePhase</code>, specManager.js:216) — there is no closing command to hook into, and inventing one just for the digest is scope the flow doesn't need.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D5 · Is spec-index.json tracked in git?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Gitignored + lazy rebuild (ensureFresh)</div>
+        <div class="opttrade">Fresh clones need one rebuild before hints appear; everything else regenerates on demand.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Tracked</div>
+        <div class="opttrade">Hook works instantly on fresh clones, but generated JSON enters every closing commit and conflicts on parallel branches.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the engineering findings documented exactly this trap with STRUCTURE.json (most-conflicting file in the repo); a derived artifact must stay derived.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D6 · Where is the hook registered?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Project .claude/settings.json (merge-safe write)</div>
+        <div class="opttrade">Tracked and team-wide — every teammate and worktree gets the hook with zero setup.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">settings.local.json</div>
+        <div class="opttrade">Keeps the user's repo untouched, but every machine/worktree needs separate install — weakens "always works".</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> determinism was the founding requirement; user projects get a read-modify-write that preserves existing keys, gated on <code>ai_tool: claude-code</code>, with manual instructions surfaced on unparseable JSON.</div>
+  </div>
+
+  <h4>Silent decisions (single defensible answer, recorded)</h4>
+  <table>
+    <tr><th>Fork</th><th>Decision</th></tr>
+    <tr><td>Relationship fields placement</td><td>Front-matter block atop spec.md, written by spec.new; digest.md repeats them for done specs; legacy spec.md files are never rewritten — backfill adds fields via digest only.</td></tr>
+    <tr><td>In-flight warning shape</td><td>Both channels: warning-only entries surfaced by the Edit hook and by the spec.plan evidence step — interactive sessions get the collision awareness only the conductor has today.</td></tr>
+    <tr><td>Exclusion mechanics</td><td>Delete test-orch-1..4 probe folders; <code>superseded_by</code> field in status.json (index + catalog skip it); correct stale phases.</td></tr>
+    <tr><td>Dedup state location</td><td><code>.frame/runtime/spec-hint/&lt;session_id&gt;.json</code> (already gitignored); opportunistic 7-day cleanup on hook start.</td></tr>
+    <tr><td>Injection language</td><td>English, consistent with all shipped templates and the docs rule.</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>Memory bloat from injections during exploration</td><td>Hook binds to Edit/Write only; session dedup (one injection per file); budget with overflow-to-pointer; topic scan once per prompt, top-3 capped.</td></tr>
+    <tr><td>Same file touched by many specs over months</td><td>Files view is a list by contract — chronological, newest marked current; overflow drops depth, never entries.</td></tr>
+    <tr><td>Later spec reversed an earlier decision</td><td><code>supersedes</code> declared at birth for new specs; git-derived <code>laterSpecs</code> flags for legacy entries; ordering contract makes the newest record the current truth.</td></tr>
+    <tr><td>Confidently wrong (stale) context</td><td>Stale flag computed from commits after the spec's <code>last_phase_at</code> — present from v1; entries carry dates.</td></tr>
+    <tr><td>File renamed/moved/deleted since its spec closed</td><td>Builder follows git renames; deleted paths keep records with a moved-to link (repo precedent: escapeHtml → htmlUtils.js).</td></tr>
+    <tr><td>Hook failure breaking the agent's tools</td><td>Never-break contract: any failure → exit 0, empty output; covered by dedicated tests; hints are additive, never blocking.</td></tr>
+    <tr><td>Agent running outside Frame / Frame closed</td><td>Hook reads pre-built JSON only, no IPC; Frame's only runtime role is keeping the index fresh; CLI rebuilds lazily.</td></tr>
+    <tr><td>Orchestration workers</td><td>Tracked .claude/settings.json reaches every worktree; buildWorkerPrompt preloads footprint history; WORKER.md gets the digest step; workers never regenerate the index (extends the meta-file rule).</td></tr>
+    <tr><td>Squash merges erasing commit slug tags</td><td>Footprint + outcome are the primary index sources; git is enrichment only.</td></tr>
+    <tr><td>Generic keywords flooding the topic scan</td><td>Stopwords, match threshold, top-3 cap; Turkish/English ascii-folding + synonym map reusing intent-map.json conventions.</td></tr>
+    <tr><td>Non-Claude CLIs (no hook system)</td><td>AGENTS.md advisory lines remain as fallback; team is effectively 100% Claude Code, so the guarantee holds in practice.</td></tr>
+    <tr><td>Injection changes nothing in agent behavior</td><td>Not assumed: eval task runs injected vs non-injected comparison via a hooks flag in run-eval.js; directional evidence recorded in the spec folder.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: Frame UI file-history panel (follow-on spec on the index contract) · embeddings/vector search (revisit at hundreds of specs) · Read-time hints (rejected for bloat; signal mode covers the experiment) · non-Claude hook systems.</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Topic lookup — find and understand the specs behind a subject <span class="tag">G1</span></td><td>Flow A topics view · spec-context.js topic mode · UserPromptSubmit mode · Sequencing 2–4</td></tr>
+    <tr><td>File-history lookup — every spec that touched a file: what/why/how/result <span class="tag">G2</span></td><td>Flow A files view · Flow B · Sequencing 2–4</td></tr>
+    <tr><td>Chain protocol — digest is an entry point, understanding happens on raw artifacts <span class="tag">G3</span></td><td>Deep-read pointers in every record · relay/descend instruction in injection text</td></tr>
+    <tr><td>Birth-time enrichment — catalog evaluation + declared keywords/related/supersedes <span class="tag">G4</span></td><td>Flow C · {spec_catalog} var · spec.new template update (Sequencing 6–7)</td></tr>
+    <tr><td>Plan-time evidence — footprint history + in-flight intersection in /spec.plan <span class="tag">G5</span></td><td>spec.plan template update (Sequencing 7)</td></tr>
+    <tr><td>Worker preloading — footprint histories in the staged worker prompt <span class="tag">G6</span></td><td>buildWorkerPrompt change (Sequencing 8)</td></tr>
+    <tr><td>Digest authoring at spec close <span class="tag">G7</span></td><td>D4 · spec.implement + WORKER.md final-task step (Sequencing 7)</td></tr>
+    <tr><td>User enlightenment — agent relays relevant history in 1–2 sentences <span class="tag">G8</span></td><td>Relay instruction embedded in injection text (Flow B)</td></tr>
+    <tr><td>Hygiene + backfill — clean archive, populated index at ship <span class="tag">G9</span></td><td>D3 · Sequencing 1 and 9</td></tr>
+    <tr><td>Eval — injection hypothesis tested with data <span class="tag">G10</span></td><td>run-eval.js hooks flag (Sequencing 11)</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Standalone layer — zero coupling with graph-hints artifacts <span class="tag">C1</span></td><td>Own scripts/index/hook entries; only the harness feature is shared</td></tr>
+    <tr><td>Never block, never break — failures exit 0 silently <span class="tag">C2</span></td><td>Flow B failure branch · test/spec-hint.test.js</td></tr>
+    <tr><td>Speed budget ≤50 ms, no IPC, works with Frame closed <span class="tag">C3</span></td><td>Read-only pre-built JSON in the hook · ensureFresh lives outside the hook path</td></tr>
+    <tr><td>Dependency-free scripts shipped to user projects <span class="tag">C4</span></td><td>Plain node, PARSER_FILES channel (Sequencing 5) · Dependencies: none</td></tr>
+    <tr><td>Index generated, never hand-edited, workers never regenerate <span class="tag">C5</span></td><td>D5 gitignore + ensureFresh ownership · worker rule extension</td></tr>
+    <tr><td>Context discipline — no read hooks, dedup, budgets <span class="tag">C6</span></td><td>Flow B design · D1 budget mechanics</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Fresh-session edit of a storied file yields chronological history + user relay, zero AGENTS.md reliance <span class="tag">S1</span></td><td>Flow B · proven by Sequencing 12 dogfood pass</td></tr>
+    <tr><td>New spec born with fields filled and content shaped by prior decisions; its plan shows footprint history <span class="tag">S2</span></td><td>Flow C · proven by Sequencing 12 scratch-idea run</td></tr>
+    <tr><td>Renamed file still resolves its history <span class="tag">S3</span></td><td>Rename tracking in builder · proven by test/spec-index.test.js fixture</td></tr>
+    <tr><td>3+ overlapping specs: every one present in the injection <span class="tag">S4</span></td><td>Overflow contract · proven by test/spec-hint.test.js</td></tr>
+    <tr><td>No-index project behaves exactly as today; overhead within budget <span class="tag">S5</span></td><td>Never-break contract + read-only hook · proven by silence test + timing check</td></tr>
+    <tr><td>Eval shows injected sessions consult and apply spec history more <span class="tag">S6</span></td><td>Sequencing 11 · directional evidence recorded in spec folder</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>Command prompts are composed by Frame and staged per dispatch</td><td><span class="pill good">verified</span> getCommandPrompt specManager.js:279 · buildSpecCommandFile :336 (assets to .frame/runtime/assets/)</td></tr>
+    <tr><td>Plan Footprint is parsed and used for conflict scheduling</td><td><span class="pill good">verified</span> getSpecFootprint specManager.js:410 · findFootprintConflict orchestrationManager.js:130</td></tr>
+    <tr><td>Worker prompts are built by Frame and staged to runtime</td><td><span class="pill good">verified</span> buildWorkerPrompt orchestrationManager.js:143 · template src/templates/orchestration/WORKER.md</td></tr>
+    <tr><td>Outcome entries carry a "Files touched" convention</td><td><span class="pill good">verified</span> spec.implement.md outcome shape; e.g. audit-q3-product-analytics/outcome.md per-task entries</td></tr>
+    <tr><td>find-module.js intent-index pattern (synonym map, user-project env root)</td><td><span class="pill good">verified</span> scripts/find-module.js (FRAME_PROJECT_ROOT) + scripts/intent-map.json</td></tr>
+    <tr><td>Script shipping channel to user projects exists</td><td><span class="pill good">verified</span> PARSER_FILES structureBootstrap.js:40; init seam frameProject.js:356</td></tr>
+    <tr><td>Eval harness exists for the comparison run</td><td><span class="pill good">verified</span> scripts/eval/ (run-eval.js, score.js, tasks.json, results/)</td></tr>
+    <tr><td>Digest is authored "as a step of spec.done"</td><td><span class="pill warn">drifted</span> no spec.done command exists — done is auto-derived (derivePhase specManager.js:216); resolved as D4 (spec.implement final-task step)</td></tr>
+    <tr><td>spec.new writes keywords/related/supersedes fields</td><td><span class="pill warn">new surface</span> spec.new.md has a fixed 5-section contract today — front-matter block is an additive template change (Sequencing 7)</td></tr>
+    <tr><td>.frame/index/ can stay out of git noise</td><td><span class="pill good">verified</span> .gitignore already excludes .frame/runtime/, .frame/bin/*.js; index entry added alongside</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — Orchestrated specs would never receive digests (only spec.implement had the step) and .gitignore lacked the index entry → added WORKER.md and .gitignore to Files/Footprint; digest rule now covers both implementation paths.</li>
+    <li><b>Iteration 2</b> — spec.new catalog embed needs a fresh index, but the index is gitignored and lazy → promoted <code>ensureFresh(projectPath)</code> to the builder lib's public API, called by specManager (phase transitions, catalog embed) and spec-context.js; hook stays read-only.</li>
+    <li><b>Iteration 3</b> — test-orch probes sit in <code>tasks_generated</code> phase and would have entered the index as in-flight warnings → exclusion mechanics decided: delete probe folders in hygiene, <code>superseded_by</code> status field skipped by index and catalog, stale phases corrected first.</li>
+    <li><b>Iteration 4</b> — Format/coverage audit: five sections in order, every G/C/S ID owned, all six gate decisions + five silent decisions embedded, zero TBDs, every referenced path verified or marked New — pass.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-21 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/spec-knowledge-layer/plan.md</code></footer>
+</div>
+</body>
+</html>

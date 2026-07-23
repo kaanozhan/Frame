@@ -41,15 +41,23 @@ before doing anything.
 
 ## When you're done
 
-1. Make sure everything is committed on `frame/{slug}/work`.
-2. Report completion to the conductor by running:
+1. **Write the spec digest.** After the last task, write
+   `.frame/specs/{slug}/digest.md` (inside this worktree — it merges with
+   your branch): front-matter (`keywords:` — reuse spec.md's; `related:`;
+   `supersedes:` when applicable) + ≤15 lines distilled from your actual
+   outcomes — what was done, why this path won over the alternatives, the
+   result, rules established. End with the line
+   `Chain: spec.md → plan.md → tasks.md → outcome.md`. This file feeds the
+   spec index; it is part of your spec's folder, not a Frame meta file.
+2. Make sure everything is committed on `frame/{slug}/work`.
+3. Report completion to the conductor by running:
 
    ```bash
    node "$FRAME_ORCH_BIN/report-done.js"
    ```
 
    (It reads `FRAME_ORCH_SLUG` automatically — no arguments needed.)
-3. Then stop and wait. The conductor will review your branch, run a drift
+4. Then stop and wait. The conductor will review your branch, run a drift
    check, and merge. **Leave your terminal open** — the user may step in to
    continue or adjust your work by hand.
 
