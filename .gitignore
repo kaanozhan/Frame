@@ -65,5 +65,11 @@ release/
 WALKTHROUGH/*.p8
 RELEASE.local.md
 
+# Marketing / growth — local-only, not for GitHub
+marketing/
+
+# Pitch deck PDF intermediates (kept locally, not committed)
+pitch-assets/pdf/
+
 # Orientation eval transcripts/diffs — bulky, local-only (summary lives in scripts/eval/README.md)
 scripts/eval/results/

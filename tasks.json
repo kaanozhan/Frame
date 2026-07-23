@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-22T15:57:10.234Z",
+  "lastUpdated": "2026-07-23T14:44:05.441Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4075,6 +4075,36 @@
       "createdAt": "2026-07-23T11:38:19.000Z",
       "updatedAt": "2026-07-23T11:55:46.000Z",
       "completedAt": "2026-07-23T11:55:46.000Z"
+    },
+    {
+      "id": "task-spec-commit-trailers-mrw9dznm",
+      "title": "Formalize spec commit tagging as git trailers",
+      "description": "Replace the loose \"(slug)\" suffix convention in commit messages with a proper machine-parseable trailer line (`Spec: <slug>`, optionally `Task: T<n>`), readable via git interpret-trailers. Consumers to update: scripts/spec-index.js git enrichment (parse the trailer instead of/alongside the (slug) suffix regex, keeping backward compat with historical commits), and the commit-message guidance in templates that instruct agents how to commit spec work (spec.implement.md, WORKER.md, REFERENCE.md examples). Benefit: robust machine-readable commit↔spec linkage that strengthens the index git-side enrichment; trailers survive cherry-picks and are tool-standard.",
+      "userRequest": "Reddit comment: \"You know you can tag commits with metadata should it should be possible to do this in repo\" — user: trailer işini task olarak ekle",
+      "acceptanceCriteria": "New spec-work commits carry a Spec:/Task: trailer; git interpret-trailers parses them; spec-index.js enrichment reads trailers first and falls back to the legacy (slug) suffix for old history; template guidance updated; index output for a trailer-tagged commit verified.",
+      "notes": "Origin: Reddit discussion on the spec-knowledge-layer post (2026-07-22). Trailers are enrichment only — Footprint + outcome stay the primary index sources (squash-survival contract from the spec-knowledge-layer plan). git notes were considered and rejected: not synced by default, not rendered by GitHub, die on history rewrites.",
+      "status": "pending",
+      "priority": "low",
+      "category": "refactor",
+      "context": "Session 2026-07-22 - spec-knowledge-layer Reddit feedback",
+      "createdAt": "2026-07-22T15:50:20.096Z",
+      "updatedAt": "2026-07-22T15:50:20.096Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-watcher-pause-mrxmgngj",
+      "title": "Pause Frame watchers during git merge/rebase states",
+      "description": "During this session a merge with the Frame app open let specManager reconcilePhase read a mid-merge (conflicted) tasks.json and rewrite every done spec status.json down to tasks_generated; git add -A then committed the damage. Detect in-progress git states (.git/MERGE_HEAD, rebase-merge/, rebase-apply/ in the watched project) and suspend specManager/tasksManager watcher-driven writes (reconcilePhase, syncAllSpecTasks, writeStatus side effects) until the state clears, then run one full reconcile. This is the audit findings 1.2 concurrency theme (UI + agent last-writer-wins) in a new costume: UI watcher vs git operation.",
+      "userRequest": "User approved after the PR-112 dirty merge incident: ekleyelim evet (watcher pause task)",
+      "acceptanceCriteria": "With Frame open, a merge producing conflicted tasks.json does not rewrite any spec status.json; once MERGE_HEAD clears, one reconcile restores derived phases; unit test simulates the merge-state guard.",
+      "notes": "Root cause pair from the incident: (1) watcher writes during merge state, (2) git add -A sweeping them in. Fix (1) here; (2) is process discipline (stage explicit paths in merges).",
+      "status": "pending",
+      "priority": "high",
+      "category": "fix",
+      "context": "Session 2026-07-23 - PR 112 merge repair",
+      "createdAt": "2026-07-23T14:44:05.441Z",
+      "updatedAt": "2026-07-23T14:44:05.441Z",
+      "completedAt": null
     }
   ],
   "metadata": {
