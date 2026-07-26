@@ -4215,13 +4215,13 @@
       "title": "Add the activity IPC channels to `src/shared/ipcChannels.js` with the coalesced, back-pressured push in `src/main/activityLog.js`, and build `src/renderer/activityPanel.js` and its `index.html` markup — labelled view by default with muted suppression rows, a detail toggle for the raw stream, a source filter, and a file read on open so events written while the app was closed appear.",
       "description": "",
       "source": "spec:activity-monitor:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:30:09.717Z",
+      "completedAt": "2026-07-26T15:30:09.717Z"
     },
     {
       "id": "task-spec-activity-monitor-T10",

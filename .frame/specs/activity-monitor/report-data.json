@@ -99,6 +99,18 @@
         "status": "pass",
         "detail": "212/212 tests pass"
       }
+    },
+    {
+      "id": "T09",
+      "title": "Serve the record over IPC and render the panel",
+      "commit": "477d59e",
+      "whatChanged": "ipcChannels.js gained GET_ACTIVITY and ACTIVITY_DATA; activityLog.js gained the coalesced push, the self-write-stamped foreign-append watcher and the backlog handler; new activityPanel.js, its markup in index.html, and components/activity.css imported from main.css.",
+      "whyChanged": "The backlog comes off disk rather than the ring because implement-launch.js and the git hook write with the app closed. Foreign records are validated against the registry on read, since out-of-process writers cannot reach src/shared/ to validate on write.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass; renderer bundle builds"
+      }
     }
   ]
 }

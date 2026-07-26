@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">8 tasks</span>
-    <span class="pill good">8 verified</span>
+    <span class="pill">9 tasks</span>
+    <span class="pill good">9 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">8 of 11 tasks done · next: <span class="rs-task">T09 — Add the activity IPC channels to `src/shared/ipcChannels.js` with the…</span></span>
+  <span class="rs-count">9 of 11 tasks done · next: <span class="rs-task">T10 — Add `src/renderer/activityRail.js` and its container as the last flex…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -2489,6 +2489,692 @@
 <span class="dl-ctx"> }</span>
 <span class="dl-ctx"> </span>
 <span class="dl-ctx"> /**</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T09</span>
+    <h2>Serve the record over IPC and render the panel</h2>
+    <span class="card-meta"><span class="chip">477d59e</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">212/212 tests pass; renderer bundle builds</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>ipcChannels.js gained GET_ACTIVITY and ACTIVITY_DATA; activityLog.js gained the coalesced push, the self-write-stamped foreign-append watcher and the backlog handler; new activityPanel.js, its markup in index.html, and components/activity.css imported from main.css.</p></div>
+    <div class="field"><span class="label">Why</span><p>The backlog comes off disk rather than the ring because implement-launch.js and the git hook write with the app closed. Foreign records are validated against the registry on read, since out-of-process writers cannot reach src/shared/ to validate on write.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/index.html b/index.html</span>
+<span class="dl-meta">index 9a09304..1a75452 100644</span>
+<span class="dl-file">--- a/index.html</span>
+<span class="dl-file">+++ b/index.html</span>
+<span class="dl-hunk">@@ -493,6 +493,22 @@</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">     &lt;/div&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+    &lt;!-- Activity: the work Frame does on its own --&gt;</span>
+<span class="dl-add">+    &lt;div id=&quot;activity-panel&quot;&gt;</span>
+<span class="dl-add">+      &lt;div id=&quot;activity-header&quot;&gt;</span>
+<span class="dl-add">+        &lt;h3&gt;Activity&lt;/h3&gt;</span>
+<span class="dl-add">+        &lt;span id=&quot;activity-count&quot; class=&quot;activity-count&quot;&gt;&lt;/span&gt;</span>
+<span class="dl-add">+        &lt;button id=&quot;activity-close&quot; tabindex=&quot;-1&quot;&gt;✕&lt;/button&gt;</span>
+<span class="dl-add">+      &lt;/div&gt;</span>
+<span class="dl-add">+      &lt;div class=&quot;activity-controls&quot;&gt;&lt;/div&gt;</span>
+<span class="dl-add">+      &lt;div id=&quot;activity-list&quot;&gt;</span>
+<span class="dl-add">+        &lt;!-- Rows are rendered by activityPanel.js --&gt;</span>
+<span class="dl-add">+      &lt;/div&gt;</span>
+<span class="dl-add">+      &lt;div id=&quot;activity-empty&quot; class=&quot;activity-empty&quot;&gt;</span>
+<span class="dl-add">+        Nothing recorded yet. Watchers, hooks and recoveries show up here as Frame does them.</span>
+<span class="dl-add">+      &lt;/div&gt;</span>
+<span class="dl-add">+    &lt;/div&gt;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">     &lt;!-- Command Palette --&gt;</span>
+<span class="dl-ctx">     &lt;div id=&quot;command-palette-overlay&quot; class=&quot;command-palette-overlay&quot;&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;command-palette&quot; role=&quot;dialog&quot; aria-label=&quot;Command Palette&quot;&gt;</span>
+<span class="dl-meta">diff --git a/src/main/activityLog.js b/src/main/activityLog.js</span>
+<span class="dl-meta">index da496b1..3b4c9d7 100644</span>
+<span class="dl-file">--- a/src/main/activityLog.js</span>
+<span class="dl-file">+++ b/src/main/activityLog.js</span>
+<span class="dl-hunk">@@ -16,6 +16,9 @@</span>
+<span class="dl-ctx">  * opens the panel the history has to already be there.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+const { ipcMain } = require(&#39;electron&#39;);</span>
+<span class="dl-add">+const fsSafe = require(&#39;./fsSafe&#39;);</span>
+<span class="dl-add">+const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const activityFile = require(&#39;../../scripts/activity-log&#39;);</span>
+<span class="dl-ctx"> const events = require(&#39;../shared/activityEvents&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -41,6 +44,8 @@ const SELF_WRITE_GRACE_MS = 400;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const ring = [];</span>
+<span class="dl-ctx"> let projectBucket = null;</span>
+<span class="dl-add">+// Declared here because setProject (above the renderer wiring) re-points it.</span>
+<span class="dl-add">+let watchRecord = () =&gt; {};</span>
+<span class="dl-ctx"> let selfWriteAt = 0;</span>
+<span class="dl-ctx"> let started = false;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -67,7 +72,12 @@ function init() {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /** Point project-scoped events at this project&#39;s bucket. */</span>
+<span class="dl-ctx"> function setProject(projectPath) {</span>
+<span class="dl-del">-  projectBucket = projectPath ? activityFile.projectKey(projectPath) : null;</span>
+<span class="dl-add">+  const next = projectPath ? activityFile.projectKey(projectPath) : null;</span>
+<span class="dl-add">+  if (next === projectBucket) return;</span>
+<span class="dl-add">+  projectBucket = next;</span>
+<span class="dl-add">+  // Follow the project: the panel shows the active project&#39;s record, so the</span>
+<span class="dl-add">+  // foreign-append watcher has to move with it.</span>
+<span class="dl-add">+  if (mainWindow) watchRecord();</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> function bucketFor(opts) {</span>
+<span class="dl-hunk">@@ -177,19 +187,134 @@ function activeBucket() {</span>
+<span class="dl-ctx">   return bucketFor(null);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── renderer wiring ──────────────────────────────────────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// Two sources feed the panel. Our own records arrive through the ring, and</span>
+<span class="dl-add">+// records written by the other host processes — the git pre-commit hook,</span>
+<span class="dl-add">+// Claude Code&#39;s tool hooks, a run made while the app was closed — arrive by</span>
+<span class="dl-add">+// watching the file. Pushes are coalesced the way PTY output already is: the</span>
+<span class="dl-add">+// monitor must never become the load it exists to observe.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const PUSH_FLUSH_MS = 200;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let mainWindow = null;</span>
+<span class="dl-add">+let outbox = [];</span>
+<span class="dl-add">+let flushTimer = null;</span>
+<span class="dl-add">+let recordWatcher = null;</span>
+<span class="dl-add">+let watchedBucket = null;</span>
+<span class="dl-add">+let foreignOffset = 0;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function flushOutbox() {</span>
+<span class="dl-add">+  flushTimer = null;</span>
+<span class="dl-add">+  if (!outbox.length) return;</span>
+<span class="dl-add">+  const batch = outbox;</span>
+<span class="dl-add">+  outbox = [];</span>
+<span class="dl-add">+  if (!mainWindow || mainWindow.isDestroyed()) return;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    mainWindow.webContents.send(IPC.ACTIVITY_DATA, { entries: batch });</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    /* a closing window is not an error worth surfacing */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function queueForRenderer(entry) {</span>
+<span class="dl-add">+  outbox.push(entry);</span>
+<span class="dl-add">+  if (outbox.length &gt; RING_MAX) outbox.splice(0, outbox.length - RING_MAX);</span>
+<span class="dl-add">+  if (flushTimer) return;</span>
+<span class="dl-add">+  flushTimer = setTimeout(flushOutbox, PUSH_FLUSH_MS);</span>
+<span class="dl-add">+  if (typeof flushTimer.unref === &#39;function&#39;) flushTimer.unref();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Read whatever the file gained since we last looked, dropping anything the</span>
+<span class="dl-add">+ * registry does not recognise — records written from `.frame/bin/` are built</span>
+<span class="dl-add">+ * by hand out there, so validation happens here on the way in.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function drainForeign() {</span>
+<span class="dl-add">+  const all = activityFile.readRecent(watchedBucket, RING_MAX);</span>
+<span class="dl-add">+  if (all.length &lt;= foreignOffset) {</span>
+<span class="dl-add">+    foreignOffset = all.length;</span>
+<span class="dl-add">+    return;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  const fresh = all.slice(foreignOffset);</span>
+<span class="dl-add">+  foreignOffset = all.length;</span>
+<span class="dl-add">+  for (const raw of fresh) {</span>
+<span class="dl-add">+    if (!raw || !events.isRegistered(raw.ev)) continue;</span>
+<span class="dl-add">+    const entry = { ...events.buildRecord(raw.ev, raw), t: raw.t };</span>
+<span class="dl-add">+    const label = events.formatLabel(raw.ev, raw);</span>
+<span class="dl-add">+    if (label) entry.label = label;</span>
+<span class="dl-add">+    pushRing(entry);</span>
+<span class="dl-add">+    queueForRenderer(entry);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+watchRecord = function watchRecord() {</span>
+<span class="dl-add">+  if (recordWatcher) {</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      recordWatcher.close();</span>
+<span class="dl-add">+    } catch {</span>
+<span class="dl-add">+      /* ignore */</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    recordWatcher = null;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  watchedBucket = activeBucket();</span>
+<span class="dl-add">+  foreignOffset = activityFile.readRecent(watchedBucket, RING_MAX).length;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    recordWatcher = fsSafe.safeWatch(</span>
+<span class="dl-add">+      activityFile.bucketDir(watchedBucket),</span>
+<span class="dl-add">+      null,</span>
+<span class="dl-add">+      () =&gt; {</span>
+<span class="dl-add">+        // We append to the file we watch, so without this stamp every one of</span>
+<span class="dl-add">+        // our own records would come straight back as a foreign one — the</span>
+<span class="dl-add">+        // self-write loop this whole layer exists to make visible.</span>
+<span class="dl-add">+        if (isSelfWrite()) return;</span>
+<span class="dl-add">+        drainForeign();</span>
+<span class="dl-add">+      },</span>
+<span class="dl-add">+      () =&gt; {</span>
+<span class="dl-add">+        recordWatcher = null;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    );</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    /* no bucket dir yet — the next setProject will try again */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Attach the window and serve the backlog. The backlog deliberately comes</span>
+<span class="dl-add">+ * off disk rather than the ring: `implement-launch.js` and the git hook</span>
+<span class="dl-add">+ * write with the app closed, and those events have to be there when it opens.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function attachWindow(window) {</span>
+<span class="dl-add">+  mainWindow = window;</span>
+<span class="dl-add">+  onEntry = queueForRenderer;</span>
+<span class="dl-add">+  watchRecord();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  ipcMain.handle(IPC.GET_ACTIVITY, () =&gt; {</span>
+<span class="dl-add">+    const bucket = activeBucket();</span>
+<span class="dl-add">+    const fromDisk = activityFile</span>
+<span class="dl-add">+      .readRecent(bucket, RING_MAX)</span>
+<span class="dl-add">+      .filter((r) =&gt; r &amp;&amp; events.isRegistered(r.ev))</span>
+<span class="dl-add">+      .map((r) =&gt; {</span>
+<span class="dl-add">+        const entry = { ...events.buildRecord(r.ev, r), t: r.t };</span>
+<span class="dl-add">+        const label = events.formatLabel(r.ev, r);</span>
+<span class="dl-add">+        if (label) entry.label = label;</span>
+<span class="dl-add">+        return entry;</span>
+<span class="dl-add">+      });</span>
+<span class="dl-add">+    return { bucket, entries: fromDisk.slice(-RING_MAX) };</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> module.exports = {</span>
+<span class="dl-ctx">   RING_MAX,</span>
+<span class="dl-ctx">   RATE_MAX_PER_EVENT,</span>
+<span class="dl-ctx">   AGGREGATE_MS,</span>
+<span class="dl-ctx">   SELF_WRITE_GRACE_MS,</span>
+<span class="dl-add">+  PUSH_FLUSH_MS,</span>
+<span class="dl-ctx">   init,</span>
+<span class="dl-ctx">   setProject,</span>
+<span class="dl-add">+  attachWindow,</span>
+<span class="dl-ctx">   record,</span>
+<span class="dl-ctx">   recent,</span>
+<span class="dl-ctx">   isSelfWrite,</span>
+<span class="dl-del">-  activeBucket,</span>
+<span class="dl-del">-  // Assigned by the renderer wiring in T09.</span>
+<span class="dl-del">-  _setEntryListener: (fn) =&gt; {</span>
+<span class="dl-del">-    onEntry = fn;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-add">+  activeBucket</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-meta">diff --git a/src/main/index.js b/src/main/index.js</span>
+<span class="dl-meta">index 754c4a8..9c874e5 100644</span>
+<span class="dl-file">--- a/src/main/index.js</span>
+<span class="dl-file">+++ b/src/main/index.js</span>
+<span class="dl-hunk">@@ -307,6 +307,7 @@ function initModulesWithWindow(window) {</span>
+<span class="dl-ctx">   gitStatusManager.init(window);</span>
+<span class="dl-ctx">   specManager.init(window);</span>
+<span class="dl-ctx">   orchestrationManager.init(window);</span>
+<span class="dl-add">+  activityLog.attachWindow(window);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Aptabase MUST be initialized before app.whenReady() because the SDK</span>
+<span class="dl-meta">diff --git a/src/renderer/activityPanel.js b/src/renderer/activityPanel.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..fbad298</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/renderer/activityPanel.js</span>
+<span class="dl-hunk">@@ -0,0 +1,217 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Activity Panel</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Shows the work Frame does on its own — watchers firing, spec phases it</span>
+<span class="dl-add">+ * reconciled, state it quietly recovered, hooks that ran in processes the</span>
+<span class="dl-add">+ * app never sees. Deliberately not a log viewer: the default view is the</span>
+<span class="dl-add">+ * labelled sentences, and the raw records live behind a toggle.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Suppressions (a guard that prevented work) render muted rather than</span>
+<span class="dl-add">+ * hidden. Without them the panel would show silence, and silence means</span>
+<span class="dl-add">+ * either &quot;healthy and nothing needed&quot; or &quot;dead&quot; — the one question this</span>
+<span class="dl-add">+ * panel exists to answer.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * A side panel, never a modal: activity is what you watch *while* an agent</span>
+<span class="dl-add">+ * works, so it must not take the terminal away.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { ipcRenderer } = require(&#39;electron&#39;);</span>
+<span class="dl-add">+const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-add">+const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const MAX_ROWS = 500;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let panelEl = null;</span>
+<span class="dl-add">+let listEl = null;</span>
+<span class="dl-add">+let emptyEl = null;</span>
+<span class="dl-add">+let countEl = null;</span>
+<span class="dl-add">+let entries = [];</span>
+<span class="dl-add">+let showDetail = false;</span>
+<span class="dl-add">+let sourceFilter = &#39;all&#39;;</span>
+<span class="dl-add">+let initialized = false;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Event name → the group the source filter offers. Kept here rather than in</span>
+<span class="dl-add">+// the shared registry: this is a presentation grouping, not policy.</span>
+<span class="dl-add">+const SOURCE_GROUPS = {</span>
+<span class="dl-add">+  &#39;hint.injected&#39;: &#39;hooks&#39;,</span>
+<span class="dl-add">+  &#39;hint.quiet&#39;: &#39;hooks&#39;,</span>
+<span class="dl-add">+  &#39;script.ran&#39;: &#39;hooks&#39;,</span>
+<span class="dl-add">+  &#39;watch.fired&#39;: &#39;watchers&#39;,</span>
+<span class="dl-add">+  &#39;watch.suppressed&#39;: &#39;watchers&#39;,</span>
+<span class="dl-add">+  &#39;poll.skipped&#39;: &#39;watchers&#39;,</span>
+<span class="dl-add">+  &#39;spec.phase_reconciled&#39;: &#39;specs&#39;,</span>
+<span class="dl-add">+  &#39;index.rebuilt&#39;: &#39;specs&#39;,</span>
+<span class="dl-add">+  &#39;index.fresh&#39;: &#39;specs&#39;,</span>
+<span class="dl-add">+  &#39;state.recovered&#39;: &#39;recovery&#39;,</span>
+<span class="dl-add">+  &#39;state.corrupt_preserved&#39;: &#39;recovery&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const FILTERS = [</span>
+<span class="dl-add">+  [&#39;all&#39;, &#39;All&#39;],</span>
+<span class="dl-add">+  [&#39;hooks&#39;, &#39;Hooks&#39;],</span>
+<span class="dl-add">+  [&#39;watchers&#39;, &#39;Watchers&#39;],</span>
+<span class="dl-add">+  [&#39;specs&#39;, &#39;Specs&#39;],</span>
+<span class="dl-add">+  [&#39;recovery&#39;, &#39;Recovery&#39;]</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function groupOf(entry) {</span>
+<span class="dl-add">+  return SOURCE_GROUPS[entry.ev] || &#39;other&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function visible(entry) {</span>
+<span class="dl-add">+  if (sourceFilter !== &#39;all&#39; &amp;&amp; groupOf(entry) !== sourceFilter) return false;</span>
+<span class="dl-add">+  // Default view is the labelled sentences; detail mode shows everything,</span>
+<span class="dl-add">+  // including events the registry deliberately left unlabelled.</span>
+<span class="dl-add">+  return showDetail || Boolean(entry.label);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function formatTime(iso) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return new Date(iso).toLocaleTimeString([], { hour: &#39;2-digit&#39;, minute: &#39;2-digit&#39;, second: &#39;2-digit&#39; });</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    return &#39;&#39;;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** The raw record, minus what the row already shows. */</span>
+<span class="dl-add">+function detailOf(entry) {</span>
+<span class="dl-add">+  const parts = [];</span>
+<span class="dl-add">+  for (const [key, value] of Object.entries(entry)) {</span>
+<span class="dl-add">+    if ([&#39;ev&#39;, &#39;kind&#39;, &#39;label&#39;, &#39;t&#39;, &#39;v&#39;].includes(key)) continue;</span>
+<span class="dl-add">+    parts.push(`${key}=${value}`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return `${entry.ev}${parts.length ? ` · ${parts.join(&#39; &#39;)}` : &#39;&#39;}`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function rowHtml(entry) {</span>
+<span class="dl-add">+  const suppressed = entry.kind === &#39;suppression&#39;;</span>
+<span class="dl-add">+  const cls = `activity-row${suppressed ? &#39; activity-row-suppressed&#39; : &#39;&#39;}`;</span>
+<span class="dl-add">+  const text = entry.label || detailOf(entry);</span>
+<span class="dl-add">+  const detail = showDetail &amp;&amp; entry.label ? `&lt;div class=&quot;activity-row-detail&quot;&gt;${escapeHtml(detailOf(entry))}&lt;/div&gt;` : &#39;&#39;;</span>
+<span class="dl-add">+  return `&lt;div class=&quot;${cls}&quot;&gt;</span>
+<span class="dl-add">+    &lt;span class=&quot;activity-row-time&quot;&gt;${escapeHtml(formatTime(entry.t))}&lt;/span&gt;</span>
+<span class="dl-add">+    &lt;span class=&quot;activity-row-body&quot;&gt;</span>
+<span class="dl-add">+      &lt;span class=&quot;activity-row-text&quot;&gt;${escapeHtml(text)}&lt;/span&gt;</span>
+<span class="dl-add">+      ${detail}</span>
+<span class="dl-add">+    &lt;/span&gt;</span>
+<span class="dl-add">+  &lt;/div&gt;`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function render() {</span>
+<span class="dl-add">+  if (!listEl) return;</span>
+<span class="dl-add">+  const shown = entries.filter(visible).slice(-MAX_ROWS);</span>
+<span class="dl-add">+  listEl.innerHTML = shown.map(rowHtml).join(&#39;&#39;);</span>
+<span class="dl-add">+  listEl.scrollTop = listEl.scrollHeight;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (emptyEl) emptyEl.style.display = shown.length ? &#39;none&#39; : &#39;block&#39;;</span>
+<span class="dl-add">+  if (countEl) {</span>
+<span class="dl-add">+    const suppressions = shown.filter((e) =&gt; e.kind === &#39;suppression&#39;).length;</span>
+<span class="dl-add">+    countEl.textContent = shown.length</span>
+<span class="dl-add">+      ? `${shown.length} event${shown.length === 1 ? &#39;&#39; : &#39;s&#39;}${suppressions ? ` · ${suppressions} suppressed` : &#39;&#39;}`</span>
+<span class="dl-add">+      : &#39;&#39;;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function addEntries(incoming) {</span>
+<span class="dl-add">+  if (!Array.isArray(incoming) || !incoming.length) return;</span>
+<span class="dl-add">+  entries.push(...incoming);</span>
+<span class="dl-add">+  if (entries.length &gt; MAX_ROWS * 4) entries.splice(0, entries.length - MAX_ROWS * 4);</span>
+<span class="dl-add">+  render();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+async function loadBacklog() {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const res = await ipcRenderer.invoke(IPC.GET_ACTIVITY);</span>
+<span class="dl-add">+    entries = Array.isArray(res &amp;&amp; res.entries) ? res.entries : [];</span>
+<span class="dl-add">+    render();</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    // A backlog we cannot read is an empty panel, not an error dialog.</span>
+<span class="dl-add">+    entries = [];</span>
+<span class="dl-add">+    render();</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function buildControls() {</span>
+<span class="dl-add">+  const filters = FILTERS.map(</span>
+<span class="dl-add">+    ([key, text]) =&gt;</span>
+<span class="dl-add">+      `&lt;button type=&quot;button&quot; class=&quot;activity-filter-btn${key === sourceFilter ? &#39; active&#39; : &#39;&#39;}&quot; data-activity-filter=&quot;${key}&quot; tabindex=&quot;-1&quot;&gt;${text}&lt;/button&gt;`</span>
+<span class="dl-add">+  ).join(&#39;&#39;);</span>
+<span class="dl-add">+  return `&lt;div class=&quot;activity-filters&quot;&gt;${filters}&lt;/div&gt;</span>
+<span class="dl-add">+    &lt;label class=&quot;activity-detail-toggle&quot;&gt;</span>
+<span class="dl-add">+      &lt;input type=&quot;checkbox&quot; id=&quot;activity-detail-check&quot; tabindex=&quot;-1&quot;&gt;</span>
+<span class="dl-add">+      &lt;span&gt;Detailed&lt;/span&gt;</span>
+<span class="dl-add">+    &lt;/label&gt;`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function wireControls() {</span>
+<span class="dl-add">+  const controls = panelEl.querySelector(&#39;.activity-controls&#39;);</span>
+<span class="dl-add">+  if (!controls) return;</span>
+<span class="dl-add">+  controls.innerHTML = buildControls();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  controls.addEventListener(&#39;click&#39;, (e) =&gt; {</span>
+<span class="dl-add">+    const btn = e.target.closest(&#39;[data-activity-filter]&#39;);</span>
+<span class="dl-add">+    if (!btn) return;</span>
+<span class="dl-add">+    sourceFilter = btn.dataset.activityFilter;</span>
+<span class="dl-add">+    controls.querySelectorAll(&#39;[data-activity-filter]&#39;).forEach((b) =&gt; {</span>
+<span class="dl-add">+      b.classList.toggle(&#39;active&#39;, b.dataset.activityFilter === sourceFilter);</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    render();</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const check = controls.querySelector(&#39;#activity-detail-check&#39;);</span>
+<span class="dl-add">+  if (check) {</span>
+<span class="dl-add">+    check.addEventListener(&#39;change&#39;, () =&gt; {</span>
+<span class="dl-add">+      showDetail = check.checked;</span>
+<span class="dl-add">+      render();</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function init() {</span>
+<span class="dl-add">+  if (initialized) return;</span>
+<span class="dl-add">+  panelEl = document.getElementById(&#39;activity-panel&#39;);</span>
+<span class="dl-add">+  if (!panelEl) return;</span>
+<span class="dl-add">+  listEl = document.getElementById(&#39;activity-list&#39;);</span>
+<span class="dl-add">+  emptyEl = document.getElementById(&#39;activity-empty&#39;);</span>
+<span class="dl-add">+  countEl = document.getElementById(&#39;activity-count&#39;);</span>
+<span class="dl-add">+  initialized = true;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  wireControls();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const close = document.getElementById(&#39;activity-close&#39;);</span>
+<span class="dl-add">+  if (close) close.addEventListener(&#39;click&#39;, hide);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Batches arrive coalesced from main; appending is the only work the</span>
+<span class="dl-add">+  // renderer does per batch.</span>
+<span class="dl-add">+  ipcRenderer.on(IPC.ACTIVITY_DATA, (_e, payload) =&gt; {</span>
+<span class="dl-add">+    addEntries(payload &amp;&amp; payload.entries);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // The record keeps filling whether or not the panel is open, so the</span>
+<span class="dl-add">+  // backlog is fetched once at startup rather than on first show.</span>
+<span class="dl-add">+  loadBacklog();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function show() {</span>
+<span class="dl-add">+  init();</span>
+<span class="dl-add">+  if (!panelEl) return;</span>
+<span class="dl-add">+  panelEl.classList.add(&#39;visible&#39;);</span>
+<span class="dl-add">+  loadBacklog();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function hide() {</span>
+<span class="dl-add">+  if (panelEl) panelEl.classList.remove(&#39;visible&#39;);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function toggle() {</span>
+<span class="dl-add">+  init();</span>
+<span class="dl-add">+  if (!panelEl) return;</span>
+<span class="dl-add">+  if (panelEl.classList.contains(&#39;visible&#39;)) hide();</span>
+<span class="dl-add">+  else show();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function isVisible() {</span>
+<span class="dl-add">+  return Boolean(panelEl &amp;&amp; panelEl.classList.contains(&#39;visible&#39;));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = { init, show, hide, toggle, isVisible };</span>
+<span class="dl-meta">diff --git a/src/renderer/index.js b/src/renderer/index.js</span>
+<span class="dl-meta">index 8b88e75..5c79689 100644</span>
+<span class="dl-file">--- a/src/renderer/index.js</span>
+<span class="dl-file">+++ b/src/renderer/index.js</span>
+<span class="dl-hunk">@@ -18,6 +18,7 @@ const taskRunModal = require(&#39;./taskRunModal&#39;);</span>
+<span class="dl-ctx"> const pluginsPanel = require(&#39;./pluginsPanel&#39;);</span>
+<span class="dl-ctx"> const githubPanel = require(&#39;./githubPanel&#39;);</span>
+<span class="dl-ctx"> const promptsPanel = require(&#39;./promptsPanel&#39;);</span>
+<span class="dl-add">+const activityPanel = require(&#39;./activityPanel&#39;);</span>
+<span class="dl-ctx"> const specPanel = require(&#39;./specPanel&#39;);</span>
+<span class="dl-ctx"> const specPanelResize = require(&#39;./specPanelResize&#39;);</span>
+<span class="dl-ctx"> const specsDashboard = require(&#39;./specsDashboard&#39;);</span>
+<span class="dl-hunk">@@ -147,6 +148,7 @@ function init() {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Initialize prompts panel</span>
+<span class="dl-ctx">   promptsPanel.init();</span>
+<span class="dl-add">+  activityPanel.init();</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Initialize specs panel (spec-driven development)</span>
+<span class="dl-ctx">   specPanel.init();</span>
+<span class="dl-meta">diff --git a/src/renderer/styles/components/activity.css b/src/renderer/styles/components/activity.css</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..5710ef8</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/renderer/styles/components/activity.css</span>
+<span class="dl-hunk">@@ -0,0 +1,176 @@</span>
+<span class="dl-add">+/* ==================== ACTIVITY PANEL ====================</span>
+<span class="dl-add">+   Mirrors the tasks/specs panel container pattern (panels.css): a flex</span>
+<span class="dl-add">+   sibling of #terminal-container that slides in from the right edge. Never</span>
+<span class="dl-add">+   a modal — activity is what you watch while an agent works, so the</span>
+<span class="dl-add">+   terminal has to stay usable beside it. */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+#activity-panel {</span>
+<span class="dl-add">+  width: 380px;</span>
+<span class="dl-add">+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);</span>
+<span class="dl-add">+  border-left: 1px solid var(--border-subtle);</span>
+<span class="dl-add">+  display: none;</span>
+<span class="dl-add">+  flex-direction: column;</span>
+<span class="dl-add">+  overflow: hidden;</span>
+<span class="dl-add">+  position: relative;</span>
+<span class="dl-add">+  transition: transform var(--transition-normal), opacity var(--transition-normal);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+#activity-panel:not(.visible) {</span>
+<span class="dl-add">+  transform: translateX(100%);</span>
+<span class="dl-add">+  opacity: 0;</span>
+<span class="dl-add">+  pointer-events: none;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+#activity-panel.visible {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  transform: translateX(0);</span>
+<span class="dl-add">+  opacity: 1;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+#activity-header {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  align-items: center;</span>
+<span class="dl-add">+  gap: var(--space-sm);</span>
+<span class="dl-add">+  padding: var(--space-lg);</span>
+<span class="dl-add">+  border-bottom: 1px solid var(--border-subtle);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+#activity-header h3 {</span>
+<span class="dl-add">+  margin: 0;</span>
+<span class="dl-add">+  font-size: 13px;</span>
+<span class="dl-add">+  font-weight: 600;</span>
+<span class="dl-add">+  letter-spacing: 0.02em;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-count {</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  margin-left: auto;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+#activity-close {</span>
+<span class="dl-add">+  background: none;</span>
+<span class="dl-add">+  border: none;</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+  padding: 2px 4px;</span>
+<span class="dl-add">+  font-size: 13px;</span>
+<span class="dl-add">+  line-height: 1;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+#activity-close:hover {</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* ─── controls ─── */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-controls {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  align-items: center;</span>
+<span class="dl-add">+  gap: var(--space-sm);</span>
+<span class="dl-add">+  padding: var(--space-sm) var(--space-lg);</span>
+<span class="dl-add">+  border-bottom: 1px solid var(--border-subtle);</span>
+<span class="dl-add">+  flex-wrap: wrap;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-filters {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  gap: 2px;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-filter-btn {</span>
+<span class="dl-add">+  background: none;</span>
+<span class="dl-add">+  border: 1px solid transparent;</span>
+<span class="dl-add">+  border-radius: var(--radius-sm);</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  padding: 2px 7px;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-filter-btn:hover {</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-filter-btn.active {</span>
+<span class="dl-add">+  border-color: var(--border-subtle);</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+  background: var(--bg-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-detail-toggle {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  align-items: center;</span>
+<span class="dl-add">+  gap: 4px;</span>
+<span class="dl-add">+  margin-left: auto;</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+  user-select: none;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-detail-toggle input {</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+  margin: 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* ─── the stream ─── */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+#activity-list {</span>
+<span class="dl-add">+  flex: 1;</span>
+<span class="dl-add">+  overflow-y: auto;</span>
+<span class="dl-add">+  padding: var(--space-sm) 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-row {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  gap: var(--space-sm);</span>
+<span class="dl-add">+  padding: 4px var(--space-lg);</span>
+<span class="dl-add">+  font-size: 12px;</span>
+<span class="dl-add">+  line-height: 1.45;</span>
+<span class="dl-add">+  border-left: 2px solid transparent;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-row:hover {</span>
+<span class="dl-add">+  background: var(--bg-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-row-time {</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  font-family: var(--font-mono, monospace);</span>
+<span class="dl-add">+  font-size: 10.5px;</span>
+<span class="dl-add">+  flex: 0 0 auto;</span>
+<span class="dl-add">+  padding-top: 1px;</span>
+<span class="dl-add">+  opacity: 0.75;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-row-body {</span>
+<span class="dl-add">+  min-width: 0;</span>
+<span class="dl-add">+  word-break: break-word;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* A guard that prevented work is evidence the guard is alive, so it stays</span>
+<span class="dl-add">+   in the default view — just quieter than work that actually happened. */</span>
+<span class="dl-add">+.activity-row-suppressed {</span>
+<span class="dl-add">+  opacity: 0.62;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-row-suppressed .activity-row-text {</span>
+<span class="dl-add">+  font-style: italic;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-row-detail {</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  font-family: var(--font-mono, monospace);</span>
+<span class="dl-add">+  font-size: 10.5px;</span>
+<span class="dl-add">+  opacity: 0.8;</span>
+<span class="dl-add">+  margin-top: 1px;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.activity-empty {</span>
+<span class="dl-add">+  display: none;</span>
+<span class="dl-add">+  padding: var(--space-lg);</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  font-size: 12px;</span>
+<span class="dl-add">+  line-height: 1.6;</span>
+<span class="dl-add">+}</span>
+<span class="dl-meta">diff --git a/src/renderer/styles/main.css b/src/renderer/styles/main.css</span>
+<span class="dl-meta">index 7da48a5..0cac5b9 100644</span>
+<span class="dl-file">--- a/src/renderer/styles/main.css</span>
+<span class="dl-file">+++ b/src/renderer/styles/main.css</span>
+<span class="dl-hunk">@@ -65,5 +65,8 @@</span>
+<span class="dl-ctx"> /* 18. Projects Section (pinned project switcher + Open Project modal) */</span>
+<span class="dl-ctx"> @import &#39;components/project-section.css&#39;;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/* Activity panel + right rail */</span>
+<span class="dl-add">+@import &#39;components/activity.css&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /* 19. Orchestrator (conductor-led parallel spec execution overlay) */</span>
+<span class="dl-ctx"> @import &#39;components/orchestrator.css&#39;;</span>
+<span class="dl-meta">diff --git a/src/shared/ipcChannels.js b/src/shared/ipcChannels.js</span>
+<span class="dl-meta">index 70d48d1..9a40200 100644</span>
+<span class="dl-file">--- a/src/shared/ipcChannels.js</span>
+<span class="dl-file">+++ b/src/shared/ipcChannels.js</span>
+<span class="dl-hunk">@@ -184,7 +184,11 @@ const IPC = {</span>
+<span class="dl-ctx">   ORCH_WORKER_LANE: &#39;orch-worker-lane&#39;,              // renderer → main: report the terminalId it created for a worker</span>
+<span class="dl-ctx">   ORCH_MERGE_WORKER: &#39;orch-merge-worker&#39;,            // renderer → main: merge a worker&#39;s branch (per-worker board action)</span>
+<span class="dl-ctx">   ORCH_REMOVE_WORKER: &#39;orch-remove-worker&#39;,          // renderer → main: cleanup a worker (worktree + branch)</span>
+<span class="dl-del">-  ORCH_RESUME_WORKER: &#39;orch-resume-worker&#39;           // renderer → main: relaunch a recovered worker&#39;s lane in its existing worktree</span>
+<span class="dl-add">+  ORCH_RESUME_WORKER: &#39;orch-resume-worker&#39;,          // renderer → main: relaunch a recovered worker&#39;s lane in its existing worktree</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Activity record (the work Frame does on its own — local only, never sent)</span>
+<span class="dl-add">+  GET_ACTIVITY: &#39;get-activity&#39;,                      // renderer → main: backlog (ring + what landed while closed)</span>
+<span class="dl-add">+  ACTIVITY_DATA: &#39;activity-data&#39;                     // main → renderer: coalesced batch of new entries</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> module.exports = { IPC };</span></pre>
     </details>
   </div>
 </section>

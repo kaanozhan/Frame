@@ -1,0 +1,176 @@
+/* ==================== ACTIVITY PANEL ====================
+   Mirrors the tasks/specs panel container pattern (panels.css): a flex
+   sibling of #terminal-container that slides in from the right edge. Never
+   a modal — activity is what you watch while an agent works, so the
+   terminal has to stay usable beside it. */
+
+#activity-panel {
+  width: 380px;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-left: 1px solid var(--border-subtle);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
+}
+
+#activity-panel:not(.visible) {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#activity-panel.visible {
+  display: flex;
+  transform: translateX(0);
+  opacity: 1;
+}
+
+#activity-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#activity-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.activity-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+#activity-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+#activity-close:hover {
+  color: var(--text-primary);
+}
+
+/* ─── controls ─── */
+
+.activity-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.activity-filters {
+  display: flex;
+  gap: 2px;
+}
+
+.activity-filter-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 7px;
+}
+
+.activity-filter-btn:hover {
+  color: var(--text-primary);
+}
+
+.activity-filter-btn.active {
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.activity-detail-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.activity-detail-toggle input {
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ─── the stream ─── */
+
+#activity-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm) 0;
+}
+
+.activity-row {
+  display: flex;
+  gap: var(--space-sm);
+  padding: 4px var(--space-lg);
+  font-size: 12px;
+  line-height: 1.45;
+  border-left: 2px solid transparent;
+}
+
+.activity-row:hover {
+  background: var(--bg-primary);
+}
+
+.activity-row-time {
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  flex: 0 0 auto;
+  padding-top: 1px;
+  opacity: 0.75;
+}
+
+.activity-row-body {
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* A guard that prevented work is evidence the guard is alive, so it stays
+   in the default view — just quieter than work that actually happened. */
+.activity-row-suppressed {
+  opacity: 0.62;
+}
+
+.activity-row-suppressed .activity-row-text {
+  font-style: italic;
+}
+
+.activity-row-detail {
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  opacity: 0.8;
+  margin-top: 1px;
+}
+
+.activity-empty {
+  display: none;
+  padding: var(--space-lg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}

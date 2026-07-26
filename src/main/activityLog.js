@@ -16,6 +16,9 @@
  * opens the panel the history has to already be there.
  */
 
+const { ipcMain } = require('electron');
+const fsSafe = require('./fsSafe');
+const { IPC } = require('../shared/ipcChannels');
 const activityFile = require('../../scripts/activity-log');
 const events = require('../shared/activityEvents');
 
@@ -41,6 +44,8 @@ const SELF_WRITE_GRACE_MS = 400;
 
 const ring = [];
 let projectBucket = null;
+// Declared here because setProject (above the renderer wiring) re-points it.
+let watchRecord = () => {};
 let selfWriteAt = 0;
 let started = false;
 
@@ -67,7 +72,12 @@ function init() {
 
 /** Point project-scoped events at this project's bucket. */
 function setProject(projectPath) {
-  projectBucket = projectPath ? activityFile.projectKey(projectPath) : null;
+  const next = projectPath ? activityFile.projectKey(projectPath) : null;
+  if (next === projectBucket) return;
+  projectBucket = next;
+  // Follow the project: the panel shows the active project's record, so the
+  // foreign-append watcher has to move with it.
+  if (mainWindow) watchRecord();
 }
 
 function bucketFor(opts) {
@@ -177,19 +187,134 @@ function activeBucket() {
   return bucketFor(null);
 }
 
+// ─── renderer wiring ──────────────────────────────────────
+//
+// Two sources feed the panel. Our own records arrive through the ring, and
+// records written by the other host processes — the git pre-commit hook,
+// Claude Code's tool hooks, a run made while the app was closed — arrive by
+// watching the file. Pushes are coalesced the way PTY output already is: the
+// monitor must never become the load it exists to observe.
+
+const PUSH_FLUSH_MS = 200;
+
+let mainWindow = null;
+let outbox = [];
+let flushTimer = null;
+let recordWatcher = null;
+let watchedBucket = null;
+let foreignOffset = 0;
+
+function flushOutbox() {
+  flushTimer = null;
+  if (!outbox.length) return;
+  const batch = outbox;
+  outbox = [];
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    mainWindow.webContents.send(IPC.ACTIVITY_DATA, { entries: batch });
+  } catch {
+    /* a closing window is not an error worth surfacing */
+  }
+}
+
+function queueForRenderer(entry) {
+  outbox.push(entry);
+  if (outbox.length > RING_MAX) outbox.splice(0, outbox.length - RING_MAX);
+  if (flushTimer) return;
+  flushTimer = setTimeout(flushOutbox, PUSH_FLUSH_MS);
+  if (typeof flushTimer.unref === 'function') flushTimer.unref();
+}
+
+/**
+ * Read whatever the file gained since we last looked, dropping anything the
+ * registry does not recognise — records written from `.frame/bin/` are built
+ * by hand out there, so validation happens here on the way in.
+ */
+function drainForeign() {
+  const all = activityFile.readRecent(watchedBucket, RING_MAX);
+  if (all.length <= foreignOffset) {
+    foreignOffset = all.length;
+    return;
+  }
+  const fresh = all.slice(foreignOffset);
+  foreignOffset = all.length;
+  for (const raw of fresh) {
+    if (!raw || !events.isRegistered(raw.ev)) continue;
+    const entry = { ...events.buildRecord(raw.ev, raw), t: raw.t };
+    const label = events.formatLabel(raw.ev, raw);
+    if (label) entry.label = label;
+    pushRing(entry);
+    queueForRenderer(entry);
+  }
+}
+
+watchRecord = function watchRecord() {
+  if (recordWatcher) {
+    try {
+      recordWatcher.close();
+    } catch {
+      /* ignore */
+    }
+    recordWatcher = null;
+  }
+  watchedBucket = activeBucket();
+  foreignOffset = activityFile.readRecent(watchedBucket, RING_MAX).length;
+  try {
+    recordWatcher = fsSafe.safeWatch(
+      activityFile.bucketDir(watchedBucket),
+      null,
+      () => {
+        // We append to the file we watch, so without this stamp every one of
+        // our own records would come straight back as a foreign one — the
+        // self-write loop this whole layer exists to make visible.
+        if (isSelfWrite()) return;
+        drainForeign();
+      },
+      () => {
+        recordWatcher = null;
+      }
+    );
+  } catch {
+    /* no bucket dir yet — the next setProject will try again */
+  }
+};
+
+/**
+ * Attach the window and serve the backlog. The backlog deliberately comes
+ * off disk rather than the ring: `implement-launch.js` and the git hook
+ * write with the app closed, and those events have to be there when it opens.
+ */
+function attachWindow(window) {
+  mainWindow = window;
+  onEntry = queueForRenderer;
+  watchRecord();
+
+  ipcMain.handle(IPC.GET_ACTIVITY, () => {
+    const bucket = activeBucket();
+    const fromDisk = activityFile
+      .readRecent(bucket, RING_MAX)
+      .filter((r) => r && events.isRegistered(r.ev))
+      .map((r) => {
+        const entry = { ...events.buildRecord(r.ev, r), t: r.t };
+        const label = events.formatLabel(r.ev, r);
+        if (label) entry.label = label;
+        return entry;
+      });
+    return { bucket, entries: fromDisk.slice(-RING_MAX) };
+  });
+}
+
 module.exports = {
   RING_MAX,
   RATE_MAX_PER_EVENT,
   AGGREGATE_MS,
   SELF_WRITE_GRACE_MS,
+  PUSH_FLUSH_MS,
   init,
   setProject,
+  attachWindow,
   record,
   recent,
   isSelfWrite,
-  activeBucket,
-  // Assigned by the renderer wiring in T09.
-  _setEntryListener: (fn) => {
-    onEntry = fn;
-  }
+  activeBucket
 };

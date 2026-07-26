@@ -18,6 +18,7 @@ const taskRunModal = require('./taskRunModal');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
+const activityPanel = require('./activityPanel');
 const specPanel = require('./specPanel');
 const specPanelResize = require('./specPanelResize');
 const specsDashboard = require('./specsDashboard');
@@ -147,6 +148,7 @@ function init() {
 
   // Initialize prompts panel
   promptsPanel.init();
+  activityPanel.init();
 
   // Initialize specs panel (spec-driven development)
   specPanel.init();

@@ -12,50 +12,55 @@
         "RATE_MAX_PER_EVENT",
         "AGGREGATE_MS",
         "SELF_WRITE_GRACE_MS",
+        "PUSH_FLUSH_MS",
         "init",
         "setProject",
+        "attachWindow",
         "record",
         "recent",
         "isSelfWrite",
         "activeBucket"
       ],
       "depends": [
+        "electron",
+        "fsSafe",
+        "shared/ipcChannels",
         "../scripts/activity-log",
         "shared/activityEvents"
       ],
       "functions": {
         "init": {
-          "line": 56,
+          "line": 61,
           "purpose": "Start the layer. Sweeps buckets nothing has written to in a week; the"
         },
         "setProject": {
-          "line": 69,
+          "line": 74,
           "params": [
             "projectPath"
           ],
           "purpose": "Point project-scoped events at this project's bucket."
         },
         "bucketFor": {
-          "line": 73,
+          "line": 83,
           "params": [
             "opts"
           ]
         },
         "rateLimited": {
-          "line": 78,
+          "line": 88,
           "params": [
             "name",
             "now"
           ]
         },
         "pushRing": {
-          "line": 88,
+          "line": 98,
           "params": [
             "entry"
           ]
         },
         "emit": {
-          "line": 96,
+          "line": 106,
           "params": [
             "name",
             "fields",
@@ -63,7 +68,7 @@
           ]
         },
         "signature": {
-          "line": 117,
+          "line": 127,
           "params": [
             "name",
             "fields"
@@ -71,13 +76,13 @@
           "purpose": "Signature for burst aggregation: the event plus the fields that identify"
         },
         "flushPending": {
-          "line": 124,
+          "line": 134,
           "params": [
             "sig"
           ]
         },
         "record": {
-          "line": 139,
+          "line": 149,
           "params": [
             "name",
             "fields",
@@ -86,23 +91,55 @@
           "purpose": "Record one event. Unregistered events are dropped, over-cap events are"
         },
         "isSelfWrite": {
-          "line": 166,
+          "line": 176,
           "params": [
             "now = Date.now("
           ],
           "purpose": "True when a watcher fire on the record is this process's own append."
         },
         "recent": {
-          "line": 171,
+          "line": 181,
           "params": [
             "limit = RING_MAX"
           ],
           "purpose": "Newest-last window over the in-memory ring."
         },
         "activeBucket": {
-          "line": 176,
+          "line": 186,
           "purpose": "The bucket key project-scoped events currently write to."
+        },
+        "flushOutbox": {
+          "line": 207
+        },
+        "queueForRenderer": {
+          "line": 220,
+          "params": [
+            "entry"
+          ]
+        },
+        "drainForeign": {
+          "line": 233,
+          "purpose": "Read whatever the file gained since we last looked, dropping anything the"
+        },
+        "attachWindow": {
+          "line": 287,
+          "params": [
+            "window"
+          ],
+          "purpose": "Attach the window and serve the backlog. The backlog deliberately comes"
+        },
+        "watchRecord": {
+          "line": 48,
+          "purpose": "Declared here because setProject (above the renderer wiring) re-points it."
         }
+      },
+      "ipc": {
+        "listens": [
+          "GET_ACTIVITY"
+        ],
+        "emits": [
+          "ACTIVITY_DATA"
+        ]
       }
     },
     "main/aiToolManager": {
@@ -3380,6 +3417,94 @@
         ]
       }
     },
+    "renderer/activityPanel": {
+      "file": "src/renderer/activityPanel.js",
+      "description": "Activity Panel",
+      "exports": [
+        "init",
+        "show",
+        "hide",
+        "toggle",
+        "isVisible"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "htmlUtils"
+      ],
+      "functions": {
+        "groupOf": {
+          "line": 57,
+          "params": [
+            "entry"
+          ]
+        },
+        "visible": {
+          "line": 61,
+          "params": [
+            "entry"
+          ]
+        },
+        "formatTime": {
+          "line": 68,
+          "params": [
+            "iso"
+          ]
+        },
+        "detailOf": {
+          "line": 77,
+          "params": [
+            "entry"
+          ],
+          "purpose": "The raw record, minus what the row already shows."
+        },
+        "rowHtml": {
+          "line": 86,
+          "params": [
+            "entry"
+          ]
+        },
+        "render": {
+          "line": 100
+        },
+        "addEntries": {
+          "line": 115,
+          "params": [
+            "incoming"
+          ]
+        },
+        "loadBacklog": {
+          "line": 122
+        },
+        "buildControls": {
+          "line": 134
+        },
+        "wireControls": {
+          "line": 146
+        },
+        "init": {
+          "line": 170
+        },
+        "show": {
+          "line": 195
+        },
+        "hide": {
+          "line": 202
+        },
+        "toggle": {
+          "line": 206
+        },
+        "isVisible": {
+          "line": 213
+        }
+      },
+      "ipc": {
+        "listens": [
+          "ACTIVITY_DATA"
+        ],
+        "emits": []
+      }
+    },
     "renderer/agentDispatch": {
       "file": "src/renderer/agentDispatch.js",
       "description": "Agent Dispatch Module",
@@ -4690,6 +4815,7 @@
         "pluginsPanel",
         "githubPanel",
         "promptsPanel",
+        "activityPanel",
         "specPanel",
         "specPanelResize",
         "specsDashboard",
@@ -4717,34 +4843,34 @@
       ],
       "functions": {
         "init": {
-          "line": 47,
+          "line": 48,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 236,
+          "line": 238,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 294,
+          "line": 296,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 383,
+          "line": 385,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 414,
+          "line": 416,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 440,
+          "line": 442,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 712,
+          "line": 714,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -9403,6 +9529,18 @@
         "direction": "",
         "description": ""
       }
+    },
+    "activity": {
+      "GET_ACTIVITY": {
+        "name": "get-activity",
+        "direction": "",
+        "description": ""
+      },
+      "ACTIVITY_DATA": {
+        "name": "activity-data",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -9414,6 +9552,11 @@
         "module": "main/activityLog",
         "file": "src/main/activityLog.js",
         "description": "Activity log — the main-process side."
+      },
+      {
+        "module": "renderer/activityPanel",
+        "file": "src/renderer/activityPanel.js",
+        "description": "Activity Panel"
       },
       {
         "module": "shared/activityEvents",
@@ -9695,6 +9838,11 @@
       }
     ],
     "panel": [
+      {
+        "module": "renderer/activityPanel",
+        "file": "src/renderer/activityPanel.js",
+        "description": "Activity Panel"
+      },
       {
         "module": "renderer/overviewPanel",
         "file": "src/renderer/overviewPanel.js",

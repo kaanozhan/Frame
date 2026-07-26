@@ -138,3 +138,23 @@ wrapped: a commit must never fail over bookkeeping.
 _Captured: 2026-07-26 · 2 file change(s)_
 
 ---
+
+## T09 — IPC and the panel
+
+Added `GET_ACTIVITY` / `ACTIVITY_DATA`, the coalesced 200ms push and the
+foreign-append watcher in `src/main/activityLog.js`, and
+`src/renderer/activityPanel.js` with its markup. The watcher is guarded by
+the self-write stamp — we append to the file we watch, so without it every
+one of our own records would return as a foreign one. Records written from
+`.frame/bin/` are built by hand out there, so the registry validates them on
+the way in rather than on the way out. The backlog is read from disk, not
+the ring, so events written while the app was closed are there on open.
+`setProject` re-points the watcher so the panel follows the active project.
+
+Deviation from plan.md: `components/activity.css` was created here rather
+than in T10 — the panel is unreadable without it — and T10 extends the same
+file for the rail.
+
+_Captured: 2026-07-26 · 6 file change(s)_
+
+---

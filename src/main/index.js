@@ -307,6 +307,7 @@ function initModulesWithWindow(window) {
   gitStatusManager.init(window);
   specManager.init(window);
   orchestrationManager.init(window);
+  activityLog.attachWindow(window);
 }
 
 // Aptabase MUST be initialized before app.whenReady() because the SDK
