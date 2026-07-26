@@ -4202,13 +4202,13 @@
       "title": "Emit run records from `scripts/update-structure.js` and `scripts/check-freshness.js` so git pre-commit hook runs appear in the record without Frame's process being involved.",
       "description": "",
       "source": "spec:activity-monitor:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:27:20.353Z",
+      "completedAt": "2026-07-26T15:27:20.353Z"
     },
     {
       "id": "task-spec-activity-monitor-T09",

@@ -87,6 +87,18 @@
         "status": "pass",
         "detail": "212/212 tests pass (2 new)"
       }
+    },
+    {
+      "id": "T08",
+      "title": "Record pre-commit script runs from outside Frame's process",
+      "commit": "680e206",
+      "whatChanged": "scripts/update-structure.js records at all three exit paths with the processed-file count; scripts/check-freshness.js records with its finding count; both detect the host from GIT_INDEX_FILE.",
+      "whyChanged": "GIT_INDEX_FILE is set by git for hook processes, which distinguishes a commit-triggered run from a developer invoking the script by hand — without it every run would claim to be a hook run.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass"
+      }
     }
   ]
 }

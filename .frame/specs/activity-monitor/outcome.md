@@ -125,3 +125,16 @@ and Footprint sections omitted, so those lists are one path short.
 _Captured: 2026-07-26 · 4 file change(s)_
 
 ---
+
+## T08 — The pre-commit host appears in the record
+
+`update-structure.js` and `check-freshness.js` now append a `script.ran`
+record at each of their exit paths, so a git commit — a process Frame never
+sees — leaves a trace. The host is read from `GIT_INDEX_FILE`, which git
+sets for hook processes, so a developer running either script by hand is
+recorded as `cli` instead. Both requires are guarded and both writes are
+wrapped: a commit must never fail over bookkeeping.
+
+_Captured: 2026-07-26 · 2 file change(s)_
+
+---

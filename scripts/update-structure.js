@@ -464,11 +464,46 @@ function runCheck() {
 /**
  * Main function
  */
+
+// ─── activity record ──────────────────────────────────────
+//
+// This script runs under the git pre-commit hook, in a process Frame never
+// sees. Recording the run is the only way the panel can show that the hook
+// fired at all. Guarded require: `.frame/bin/` refreshes only on project
+// init, so an older generation degrades to today's behavior.
+
+let activityLog = null;
+try {
+  activityLog = require('./activity-log');
+} catch {
+  /* older .frame/bin generation */
+}
+
+function noteRun(script, startedAt, changes) {
+  if (!activityLog) return;
+  try {
+    activityLog.appendSync(activityLog.projectKey(ROOT_DIR), {
+      ev: 'script.ran',
+      kind: 'action',
+      script,
+      // git sets GIT_INDEX_FILE for hook processes; without it this is a
+      // developer running the script by hand.
+      host: process.env.GIT_INDEX_FILE ? 'git-precommit' : 'cli',
+      ms: Date.now() - startedAt,
+      ...(typeof changes === 'number' ? { changes } : {})
+    });
+  } catch {
+    /* a commit must never fail over a record */
+  }
+}
+
 function main() {
+  const startedAt = Date.now();
   const args = process.argv.slice(2);
 
   if (args.includes('--check')) {
     runCheck();
+    noteRun('update-structure', startedAt);
     return;
   }
 
@@ -488,6 +523,7 @@ function main() {
 
     if (filesToProcess.length === 0 && removedCount === 0) {
       console.log('No JS changes detected.');
+      noteRun('update-structure', startedAt, 0);
       return;
     }
   } else if (args.length > 0 && !args[0].startsWith('--')) {
@@ -514,6 +550,7 @@ function main() {
   generateIntentIndex(structure);
 
   saveStructure(structure);
+  noteRun('update-structure', startedAt, filesToProcess.length);
 }
 
 /**

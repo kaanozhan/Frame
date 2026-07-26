@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">7 tasks</span>
-    <span class="pill good">7 verified</span>
+    <span class="pill">8 tasks</span>
+    <span class="pill good">8 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">7 of 11 tasks done · next: <span class="rs-task">T08 — Emit run records from `scripts/update-structure.js` and…</span></span>
+  <span class="rs-count">8 of 11 tasks done · next: <span class="rs-task">T09 — Add the activity IPC channels to `src/shared/ipcChannels.js` with the…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -2367,6 +2367,128 @@
 <span class="dl-add">+    else process.env.FRAME_ACTIVITY_HOME = prev;</span>
 <span class="dl-add">+  }</span>
 <span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T08</span>
+    <h2>Record pre-commit script runs from outside Frame&#39;s process</h2>
+    <span class="card-meta"><span class="chip">680e206</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">212/212 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>scripts/update-structure.js records at all three exit paths with the processed-file count; scripts/check-freshness.js records with its finding count; both detect the host from GIT_INDEX_FILE.</p></div>
+    <div class="field"><span class="label">Why</span><p>GIT_INDEX_FILE is set by git for hook processes, which distinguishes a commit-triggered run from a developer invoking the script by hand — without it every run would claim to be a hook run.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/scripts/check-freshness.js b/scripts/check-freshness.js</span>
+<span class="dl-meta">index 7e1416d..43e6ab0 100644</span>
+<span class="dl-file">--- a/scripts/check-freshness.js</span>
+<span class="dl-file">+++ b/scripts/check-freshness.js</span>
+<span class="dl-hunk">@@ -16,6 +16,7 @@ const { execSync, spawnSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user</span>
+<span class="dl-ctx"> // project. Frame&#39;s own callers don&#39;t set it — behavior is unchanged.</span>
+<span class="dl-add">+const STARTED_AT = Date.now();</span>
+<span class="dl-ctx"> const ROOT_DIR = process.env.FRAME_PROJECT_ROOT</span>
+<span class="dl-ctx">   ? path.resolve(process.env.FRAME_PROJECT_ROOT)</span>
+<span class="dl-ctx">   : path.join(__dirname, &#39;..&#39;);</span>
+<span class="dl-hunk">@@ -169,6 +170,27 @@ checkNotesStaleness();</span>
+<span class="dl-ctx"> checkStuckTasks();</span>
+<span class="dl-ctx"> checkQuickstartStaleness();</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── activity record ──────────────────────────────────────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// Runs under the git pre-commit hook, in a process Frame never sees.</span>
+<span class="dl-add">+// Guarded require: `.frame/bin/` refreshes only on project init, so an</span>
+<span class="dl-add">+// older generation degrades to today&#39;s behavior and a commit can never</span>
+<span class="dl-add">+// fail over a record.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+try {</span>
+<span class="dl-add">+  const activityLog = require(&#39;./activity-log&#39;);</span>
+<span class="dl-add">+  activityLog.appendSync(activityLog.projectKey(ROOT_DIR), {</span>
+<span class="dl-add">+    ev: &#39;script.ran&#39;,</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    script: &#39;check-freshness&#39;,</span>
+<span class="dl-add">+    // git sets GIT_INDEX_FILE for hook processes; without it a developer ran</span>
+<span class="dl-add">+    // this by hand.</span>
+<span class="dl-add">+    host: process.env.GIT_INDEX_FILE ? &#39;git-precommit&#39; : &#39;cli&#39;,</span>
+<span class="dl-add">+    ms: Date.now() - STARTED_AT,</span>
+<span class="dl-add">+    changes: findings.length</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+} catch { /* never worth a failed commit */ }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // Output</span>
+<span class="dl-ctx"> const args = process.argv.slice(2);</span>
+<span class="dl-ctx"> if (args.includes(&#39;--json&#39;)) {</span>
+<span class="dl-meta">diff --git a/scripts/update-structure.js b/scripts/update-structure.js</span>
+<span class="dl-meta">index 0dfc434..9829303 100644</span>
+<span class="dl-file">--- a/scripts/update-structure.js</span>
+<span class="dl-file">+++ b/scripts/update-structure.js</span>
+<span class="dl-hunk">@@ -464,11 +464,46 @@ function runCheck() {</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Main function</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── activity record ──────────────────────────────────────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// This script runs under the git pre-commit hook, in a process Frame never</span>
+<span class="dl-add">+// sees. Recording the run is the only way the panel can show that the hook</span>
+<span class="dl-add">+// fired at all. Guarded require: `.frame/bin/` refreshes only on project</span>
+<span class="dl-add">+// init, so an older generation degrades to today&#39;s behavior.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let activityLog = null;</span>
+<span class="dl-add">+try {</span>
+<span class="dl-add">+  activityLog = require(&#39;./activity-log&#39;);</span>
+<span class="dl-add">+} catch {</span>
+<span class="dl-add">+  /* older .frame/bin generation */</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function noteRun(script, startedAt, changes) {</span>
+<span class="dl-add">+  if (!activityLog) return;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    activityLog.appendSync(activityLog.projectKey(ROOT_DIR), {</span>
+<span class="dl-add">+      ev: &#39;script.ran&#39;,</span>
+<span class="dl-add">+      kind: &#39;action&#39;,</span>
+<span class="dl-add">+      script,</span>
+<span class="dl-add">+      // git sets GIT_INDEX_FILE for hook processes; without it this is a</span>
+<span class="dl-add">+      // developer running the script by hand.</span>
+<span class="dl-add">+      host: process.env.GIT_INDEX_FILE ? &#39;git-precommit&#39; : &#39;cli&#39;,</span>
+<span class="dl-add">+      ms: Date.now() - startedAt,</span>
+<span class="dl-add">+      ...(typeof changes === &#39;number&#39; ? { changes } : {})</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    /* a commit must never fail over a record */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> function main() {</span>
+<span class="dl-add">+  const startedAt = Date.now();</span>
+<span class="dl-ctx">   const args = process.argv.slice(2);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   if (args.includes(&#39;--check&#39;)) {</span>
+<span class="dl-ctx">     runCheck();</span>
+<span class="dl-add">+    noteRun(&#39;update-structure&#39;, startedAt);</span>
+<span class="dl-ctx">     return;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -488,6 +523,7 @@ function main() {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">     if (filesToProcess.length === 0 &amp;&amp; removedCount === 0) {</span>
+<span class="dl-ctx">       console.log(&#39;No JS changes detected.&#39;);</span>
+<span class="dl-add">+      noteRun(&#39;update-structure&#39;, startedAt, 0);</span>
+<span class="dl-ctx">       return;</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   } else if (args.length &gt; 0 &amp;&amp; !args[0].startsWith(&#39;--&#39;)) {</span>
+<span class="dl-hunk">@@ -514,6 +550,7 @@ function main() {</span>
+<span class="dl-ctx">   generateIntentIndex(structure);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   saveStructure(structure);</span>
+<span class="dl-add">+  noteRun(&#39;update-structure&#39;, startedAt, filesToProcess.length);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span></pre>
     </details>
   </div>
 </section>
