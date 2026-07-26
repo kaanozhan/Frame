@@ -4124,13 +4124,13 @@
       "title": "Write `scripts/activity-log.js` — `projectKey` derived from the absolute path, a best-effort sub-4 KB `append` that never throws, `readRecent`, 2 MB rotation to one generation and a 7-day prune — register it and `redact.js` in `PARSER_FILES` (`src/main/structureBootstrap.js`) and `build.files` (`package.json`), and cover key derivation, basename collision, rotation, prune and the never-throw set in `test/activityLog.test.js`.",
       "description": "",
       "source": "spec:activity-monitor:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T14:58:47.559Z",
+      "completedAt": "2026-07-26T14:58:47.559Z"
     },
     {
       "id": "task-spec-activity-monitor-T03",

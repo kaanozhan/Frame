@@ -91,6 +91,8 @@
       "scripts/spec-index.js",
       "scripts/spec-context.js",
       "scripts/spec-hint.js",
+      "scripts/redact.js",
+      "scripts/activity-log.js",
       "node_modules/**/*",
       "!node_modules/**/*.md",
       "!node_modules/**/test/**",

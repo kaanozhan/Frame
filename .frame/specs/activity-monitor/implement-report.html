@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">1 task</span>
-    <span class="pill good">1 verified</span>
+    <span class="pill">2 tasks</span>
+    <span class="pill good">2 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">1 of 11 tasks done · next: <span class="rs-task">T02 — Write `scripts/activity-log.js` — `projectKey` derived from the…</span></span>
+  <span class="rs-count">2 of 11 tasks done · next: <span class="rs-task">T03 — Write `src/shared/activityEvents.js` as the Tier 1 event registry…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -355,6 +355,502 @@
 <span class="dl-ctx"> // ─── promptLogger: redaction + size cap on the real module ─</span>
 <span class="dl-ctx"> </span>
 <span class="dl-ctx"> let tmp;</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T02</span>
+    <h2>Write the JSONL append contract and register it for shipping</h2>
+    <span class="card-meta"><span class="chip">8b1bdbc</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">190/190 tests pass (15 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>scripts/activity-log.js with projectKey, buildLine, appendSync/append, rotation, prune and readRecent; registered in PARSER_FILES (structureBootstrap.js) and build.files (package.json); 15 cases in test/activityLog.test.js.</p></div>
+    <div class="field"><span class="label">Why</span><p>Sync and async appends both exist because the hosts differ: a git hook process would die before a promise settled, while sync I/O on the main process would break the standing perf budget. Nested values are dropped rather than serialized so a payload can never ride along even if a future call site passes one.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/package.json b/package.json</span>
+<span class="dl-meta">index f6d2d8a..6954094 100644</span>
+<span class="dl-file">--- a/package.json</span>
+<span class="dl-file">+++ b/package.json</span>
+<span class="dl-hunk">@@ -91,6 +91,8 @@</span>
+<span class="dl-ctx">       &quot;scripts/spec-index.js&quot;,</span>
+<span class="dl-ctx">       &quot;scripts/spec-context.js&quot;,</span>
+<span class="dl-ctx">       &quot;scripts/spec-hint.js&quot;,</span>
+<span class="dl-add">+      &quot;scripts/redact.js&quot;,</span>
+<span class="dl-add">+      &quot;scripts/activity-log.js&quot;,</span>
+<span class="dl-ctx">       &quot;node_modules/**/*&quot;,</span>
+<span class="dl-ctx">       &quot;!node_modules/**/*.md&quot;,</span>
+<span class="dl-ctx">       &quot;!node_modules/**/test/**&quot;,</span>
+<span class="dl-meta">diff --git a/scripts/activity-log.js b/scripts/activity-log.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..4613003</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/scripts/activity-log.js</span>
+<span class="dl-hunk">@@ -0,0 +1,263 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Activity log — the append contract.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Frame does a lot of work nobody sees, and roughly half of it does not run</span>
+<span class="dl-add">+ * in Frame&#39;s process at all: the git pre-commit hook, Claude Code&#39;s tool</span>
+<span class="dl-add">+ * hooks, the orchestration bus, and `implement-launch.js`, which runs with</span>
+<span class="dl-add">+ * the app closed. So the sink is a *file contract* rather than a module —</span>
+<span class="dl-add">+ * this file is required both by `src/main/activityLog.js` and, once copied</span>
+<span class="dl-add">+ * into a project&#39;s `.frame/bin/`, by the out-of-process scripts.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Where: `~/.frame/activity/&lt;bucket&gt;/activity.jsonl`, outside the repository.</span>
+<span class="dl-add">+ * Frame never edits a project&#39;s `.gitignore`, so an in-repo record would</span>
+<span class="dl-add">+ * dirty the user&#39;s `git status` on every watcher fire. `promptLogger` already</span>
+<span class="dl-add">+ * keeps churny personal logs under `~/.frame/`.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Bucket is `app` for work that belongs to no project, otherwise a key</span>
+<span class="dl-add">+ * derived from the project&#39;s **absolute** path — `promptLogger` keys by</span>
+<span class="dl-add">+ * basename today, so `~/work/api` and `~/clients/acme/api` share one file.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Contract for every writer:</span>
+<span class="dl-add">+ *   - best effort. `append` never throws and never writes to stdout, because</span>
+<span class="dl-add">+ *     its hosts are a git commit and a tool call that must not fail over</span>
+<span class="dl-add">+ *     telemetry-shaped bookkeeping.</span>
+<span class="dl-add">+ *   - no free-form strings. Callers pass enum reason codes, counts,</span>
+<span class="dl-add">+ *     durations and project-relative paths; `redact()` runs anyway as</span>
+<span class="dl-add">+ *     belt-and-braces, never as the only defence.</span>
+<span class="dl-add">+ *   - one line stays under 4 KB so a single O_APPEND write is atomic on</span>
+<span class="dl-add">+ *     POSIX when the app, a git hook and a Claude hook all append at once.</span>
+<span class="dl-add">+ *     (Windows offers no equivalent guarantee — see audit-q3-cross-platform.)</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Node 18, no dependencies.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+&#39;use strict&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const os = require(&#39;os&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const crypto = require(&#39;crypto&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { redact } = require(&#39;./redact&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const APP_BUCKET = &#39;app&#39;;</span>
+<span class="dl-add">+const FILE_NAME = &#39;activity.jsonl&#39;;</span>
+<span class="dl-add">+const ARCHIVE_NAME = &#39;activity.jsonl.1&#39;;</span>
+<span class="dl-add">+const SCHEMA_VERSION = 1;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Rotate at 2 MB into a single generation, and sweep buckets untouched for</span>
+<span class="dl-add">+// 7 days. Two rules because they fail differently: rotation alone leaves</span>
+<span class="dl-add">+// months of noise in a quiet project, a time window alone leaves disk</span>
+<span class="dl-add">+// unbounded on a busy day. The 7 days is spec-hint.js&#39;s STATE_TTL_MS, not a</span>
+<span class="dl-add">+// second retention constant.</span>
+<span class="dl-add">+const MAX_BYTES = 2 * 1024 * 1024;</span>
+<span class="dl-add">+const PRUNE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Below the 4 KB POSIX atomic-append threshold, with room for the newline.</span>
+<span class="dl-add">+const MAX_LINE_BYTES = 3800;</span>
+<span class="dl-add">+const MAX_VALUE_CHARS = 400;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Root of the record. `FRAME_ACTIVITY_HOME` exists so tests can redirect it. */</span>
+<span class="dl-add">+function activityRoot() {</span>
+<span class="dl-add">+  if (process.env.FRAME_ACTIVITY_HOME) return process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+  return path.join(os.homedir(), &#39;.frame&#39;, &#39;activity&#39;);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Stable bucket key for a project. The readable basename is a convenience</span>
+<span class="dl-add">+ * for anyone browsing the directory; the hash of the absolute path is what</span>
+<span class="dl-add">+ * actually makes it unique.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function projectKey(projectPath) {</span>
+<span class="dl-add">+  if (!projectPath) return APP_BUCKET;</span>
+<span class="dl-add">+  const abs = path.resolve(projectPath);</span>
+<span class="dl-add">+  const hash = crypto.createHash(&#39;sha1&#39;).update(abs).digest(&#39;hex&#39;).slice(0, 10);</span>
+<span class="dl-add">+  const name = path.basename(abs).replace(/[^A-Za-z0-9._-]/g, &#39;_&#39;).slice(0, 40) || &#39;project&#39;;</span>
+<span class="dl-add">+  return `${name}-${hash}`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function bucketDir(bucket) {</span>
+<span class="dl-add">+  return path.join(activityRoot(), bucket || APP_BUCKET);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function filePath(bucket) {</span>
+<span class="dl-add">+  return path.join(bucketDir(bucket), FILE_NAME);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Redact and bound one field value. Objects are rejected outright — the</span>
+<span class="dl-add">+ * registry only ever passes scalars, and allowing nesting is how a payload</span>
+<span class="dl-add">+ * eventually sneaks in.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function sanitizeValue(value) {</span>
+<span class="dl-add">+  if (typeof value === &#39;string&#39;) {</span>
+<span class="dl-add">+    const clean = redact(value);</span>
+<span class="dl-add">+    return clean.length &gt; MAX_VALUE_CHARS ? `${clean.slice(0, MAX_VALUE_CHARS)}…` : clean;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (typeof value === &#39;number&#39;) return Number.isFinite(value) ? value : null;</span>
+<span class="dl-add">+  if (typeof value === &#39;boolean&#39;) return value;</span>
+<span class="dl-add">+  return undefined;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Pure: turn a record into the line that will be appended, or null when</span>
+<span class="dl-add">+ * there is nothing worth writing. Exported so the shape can be tested</span>
+<span class="dl-add">+ * without touching a filesystem.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function buildLine(record, nowIso) {</span>
+<span class="dl-add">+  if (!record || typeof record !== &#39;object&#39; || Array.isArray(record)) return null;</span>
+<span class="dl-add">+  if (typeof record.ev !== &#39;string&#39; || !record.ev) return null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const out = { t: nowIso || new Date().toISOString(), v: SCHEMA_VERSION };</span>
+<span class="dl-add">+  for (const [key, value] of Object.entries(record)) {</span>
+<span class="dl-add">+    if (key === &#39;t&#39; || key === &#39;v&#39;) continue;</span>
+<span class="dl-add">+    const clean = sanitizeValue(value);</span>
+<span class="dl-add">+    if (clean !== undefined) out[key] = clean;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  let line = JSON.stringify(out);</span>
+<span class="dl-add">+  if (Buffer.byteLength(line) &gt; MAX_LINE_BYTES) {</span>
+<span class="dl-add">+    // Something slipped past the per-value cap (many fields, wide unicode).</span>
+<span class="dl-add">+    // Keep the identifying fields and drop the rest rather than write a line</span>
+<span class="dl-add">+    // that could interleave with a concurrent writer&#39;s.</span>
+<span class="dl-add">+    const minimal = { t: out.t, v: out.v, ev: out.ev, truncated: true };</span>
+<span class="dl-add">+    if (out.src) minimal.src = out.src;</span>
+<span class="dl-add">+    if (out.kind) minimal.kind = out.kind;</span>
+<span class="dl-add">+    line = JSON.stringify(minimal);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return line;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Rotate when the live file has outgrown the cap. Best effort. */</span>
+<span class="dl-add">+function rotateIfNeeded(bucket) {</span>
+<span class="dl-add">+  const live = filePath(bucket);</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    if (fs.statSync(live).size &lt; MAX_BYTES) return;</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    return; // no file yet</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    fs.rmSync(path.join(bucketDir(bucket), ARCHIVE_NAME), { force: true });</span>
+<span class="dl-add">+    fs.renameSync(live, path.join(bucketDir(bucket), ARCHIVE_NAME));</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    /* rotation must never cost an event */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Append synchronously. Used by the short-lived out-of-process scripts,</span>
+<span class="dl-add">+ * where a promise would outlive the process. Returns true when a line</span>
+<span class="dl-add">+ * landed — callers ignore it; it exists for the tests.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function appendSync(bucket, record) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const line = buildLine(record);</span>
+<span class="dl-add">+    if (!line) return false;</span>
+<span class="dl-add">+    const dir = bucketDir(bucket);</span>
+<span class="dl-add">+    fs.mkdirSync(dir, { recursive: true });</span>
+<span class="dl-add">+    rotateIfNeeded(bucket);</span>
+<span class="dl-add">+    fs.appendFileSync(path.join(dir, FILE_NAME), `${line}\n`);</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    return false; // never throw: the host is a commit or a tool call</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Append without blocking. Used by the main process, where sync filesystem</span>
+<span class="dl-add">+ * work on a hot path is against the standing performance budget. Never</span>
+<span class="dl-add">+ * rejects.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+async function append(bucket, record) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const line = buildLine(record);</span>
+<span class="dl-add">+    if (!line) return false;</span>
+<span class="dl-add">+    const dir = bucketDir(bucket);</span>
+<span class="dl-add">+    await fs.promises.mkdir(dir, { recursive: true });</span>
+<span class="dl-add">+    rotateIfNeeded(bucket);</span>
+<span class="dl-add">+    await fs.promises.appendFile(path.join(dir, FILE_NAME), `${line}\n`);</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function parseLines(text, into) {</span>
+<span class="dl-add">+  for (const raw of text.split(&#39;\n&#39;)) {</span>
+<span class="dl-add">+    if (!raw) continue;</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      into.push(JSON.parse(raw));</span>
+<span class="dl-add">+    } catch {</span>
+<span class="dl-add">+      /* a torn or malformed line costs that line, not the read */</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return into;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Newest-last window over a bucket, reaching into the rotated generation</span>
+<span class="dl-add">+ * when the live file alone cannot fill it. Malformed lines are skipped.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function readRecent(bucket, limit = 500) {</span>
+<span class="dl-add">+  const records = [];</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const live = fs.readFileSync(filePath(bucket), &#39;utf8&#39;);</span>
+<span class="dl-add">+    parseLines(live, records);</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    /* nothing live yet */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (records.length &lt; limit) {</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      const archived = fs.readFileSync(path.join(bucketDir(bucket), ARCHIVE_NAME), &#39;utf8&#39;);</span>
+<span class="dl-add">+      const older = parseLines(archived, []);</span>
+<span class="dl-add">+      records.unshift(...older);</span>
+<span class="dl-add">+    } catch {</span>
+<span class="dl-add">+      /* no archive */</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return records.slice(-limit);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Drop buckets nothing has written to in PRUNE_AFTER_MS. Best effort. */</span>
+<span class="dl-add">+function prune(now = Date.now()) {</span>
+<span class="dl-add">+  let removed = 0;</span>
+<span class="dl-add">+  let entries = [];</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    entries = fs.readdirSync(activityRoot());</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    return removed;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  for (const entry of entries) {</span>
+<span class="dl-add">+    const dir = path.join(activityRoot(), entry);</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      const stale = fs.readdirSync(dir).every((f) =&gt; {</span>
+<span class="dl-add">+        const st = fs.statSync(path.join(dir, f));</span>
+<span class="dl-add">+        return now - st.mtimeMs &gt; PRUNE_AFTER_MS;</span>
+<span class="dl-add">+      });</span>
+<span class="dl-add">+      if (stale) {</span>
+<span class="dl-add">+        fs.rmSync(dir, { recursive: true, force: true });</span>
+<span class="dl-add">+        removed += 1;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    } catch {</span>
+<span class="dl-add">+      /* skip anything unreadable */</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return removed;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  APP_BUCKET,</span>
+<span class="dl-add">+  SCHEMA_VERSION,</span>
+<span class="dl-add">+  MAX_BYTES,</span>
+<span class="dl-add">+  MAX_LINE_BYTES,</span>
+<span class="dl-add">+  PRUNE_AFTER_MS,</span>
+<span class="dl-add">+  activityRoot,</span>
+<span class="dl-add">+  projectKey,</span>
+<span class="dl-add">+  bucketDir,</span>
+<span class="dl-add">+  filePath,</span>
+<span class="dl-add">+  buildLine,</span>
+<span class="dl-add">+  append,</span>
+<span class="dl-add">+  appendSync,</span>
+<span class="dl-add">+  readRecent,</span>
+<span class="dl-add">+  prune</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/src/main/structureBootstrap.js b/src/main/structureBootstrap.js</span>
+<span class="dl-meta">index 9b65da3..453e5c3 100644</span>
+<span class="dl-file">--- a/src/main/structureBootstrap.js</span>
+<span class="dl-file">+++ b/src/main/structureBootstrap.js</span>
+<span class="dl-hunk">@@ -37,7 +37,7 @@ const {</span>
+<span class="dl-ctx"> // the repo root; under electron-builder&#39;s asar the same relative path holds</span>
+<span class="dl-ctx"> // because the asar mirrors the source tree.</span>
+<span class="dl-ctx"> const SCRIPTS_SOURCE_DIR = path.join(__dirname, &#39;..&#39;, &#39;..&#39;, &#39;scripts&#39;);</span>
+<span class="dl-del">-const PARSER_FILES = [&#39;update-structure.js&#39;, &#39;find-module.js&#39;, &#39;check-freshness.js&#39;, &#39;detect-project.js&#39;, &#39;intent-map.json&#39;, &#39;spec-index.js&#39;, &#39;spec-context.js&#39;, &#39;spec-hint.js&#39;];</span>
+<span class="dl-add">+const PARSER_FILES = [&#39;update-structure.js&#39;, &#39;find-module.js&#39;, &#39;check-freshness.js&#39;, &#39;detect-project.js&#39;, &#39;intent-map.json&#39;, &#39;spec-index.js&#39;, &#39;spec-context.js&#39;, &#39;spec-hint.js&#39;, &#39;redact.js&#39;, &#39;activity-log.js&#39;];</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Copy parser scripts from Frame&#39;s bundled scripts/ into the project&#39;s</span>
+<span class="dl-meta">diff --git a/test/activityLog.test.js b/test/activityLog.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..dab1e2f</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/activityLog.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,180 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Activity log — the append contract.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The record is written by four different host processes, one of which is a</span>
+<span class="dl-add">+ * git commit, so the properties that matter most here are the boring ones:</span>
+<span class="dl-add">+ * a bucket key that cannot collide, a line that stays small enough to append</span>
+<span class="dl-add">+ * atomically, bounded growth, and a writer that never throws whatever it is</span>
+<span class="dl-add">+ * handed.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * FRAME_ACTIVITY_HOME redirects the root so nothing touches the real</span>
+<span class="dl-add">+ * ~/.frame/activity while these run.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test, beforeEach, afterEach } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const os = require(&#39;os&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const activityLog = require(&#39;../scripts/activity-log&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let tmp;</span>
+<span class="dl-add">+let prevHome;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+beforeEach(() =&gt; {</span>
+<span class="dl-add">+  tmp = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-activity-&#39;));</span>
+<span class="dl-add">+  prevHome = process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+  process.env.FRAME_ACTIVITY_HOME = tmp;</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+afterEach(() =&gt; {</span>
+<span class="dl-add">+  if (prevHome === undefined) delete process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+  else process.env.FRAME_ACTIVITY_HOME = prevHome;</span>
+<span class="dl-add">+  fs.rmSync(tmp, { recursive: true, force: true });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function readLive(bucket) {</span>
+<span class="dl-add">+  return fs.readFileSync(activityLog.filePath(bucket), &#39;utf8&#39;);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── bucket keys ──────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;projectKey separates two projects that share a directory basename&#39;, () =&gt; {</span>
+<span class="dl-add">+  const a = activityLog.projectKey(&#39;/Users/x/work/api&#39;);</span>
+<span class="dl-add">+  const b = activityLog.projectKey(&#39;/Users/x/clients/acme/api&#39;);</span>
+<span class="dl-add">+  assert.notEqual(a, b, &#39;basename collision must not share a bucket&#39;);</span>
+<span class="dl-add">+  assert.ok(a.startsWith(&#39;api-&#39;) &amp;&amp; b.startsWith(&#39;api-&#39;), &#39;readable prefix kept&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;projectKey is stable for the same path and normalizes it&#39;, () =&gt; {</span>
+<span class="dl-add">+  const direct = activityLog.projectKey(&#39;/Users/x/work/api&#39;);</span>
+<span class="dl-add">+  assert.equal(activityLog.projectKey(&#39;/Users/x/work/api&#39;), direct);</span>
+<span class="dl-add">+  assert.equal(activityLog.projectKey(&#39;/Users/x/work/other/../api&#39;), direct);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;projectKey falls back to the app bucket with no project&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(activityLog.projectKey(null), activityLog.APP_BUCKET);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── the line ─────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildLine stamps time and schema version and keeps scalar fields&#39;, () =&gt; {</span>
+<span class="dl-add">+  const line = activityLog.buildLine({ ev: &#39;watch.fired&#39;, src: &#39;spec-watcher&#39;, changes: 3, ok: true }, &#39;2026-07-26T10:00:00.000Z&#39;);</span>
+<span class="dl-add">+  const rec = JSON.parse(line);</span>
+<span class="dl-add">+  assert.equal(rec.t, &#39;2026-07-26T10:00:00.000Z&#39;);</span>
+<span class="dl-add">+  assert.equal(rec.v, activityLog.SCHEMA_VERSION);</span>
+<span class="dl-add">+  assert.equal(rec.ev, &#39;watch.fired&#39;);</span>
+<span class="dl-add">+  assert.equal(rec.changes, 3);</span>
+<span class="dl-add">+  assert.equal(rec.ok, true);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildLine rejects records with no event name&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(activityLog.buildLine({ src: &#39;x&#39; }), null);</span>
+<span class="dl-add">+  assert.equal(activityLog.buildLine(null), null);</span>
+<span class="dl-add">+  assert.equal(activityLog.buildLine(&#39;nope&#39;), null);</span>
+<span class="dl-add">+  assert.equal(activityLog.buildLine([1, 2]), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildLine drops nested values so a payload cannot ride along&#39;, () =&gt; {</span>
+<span class="dl-add">+  const rec = JSON.parse(activityLog.buildLine({ ev: &#39;x&#39;, body: { secret: &#39;v&#39; }, list: [1], keep: 2 }));</span>
+<span class="dl-add">+  assert.ok(!(&#39;body&#39; in rec) &amp;&amp; !(&#39;list&#39; in rec), &#39;objects and arrays are not recorded&#39;);</span>
+<span class="dl-add">+  assert.equal(rec.keep, 2);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildLine redacts secret-shaped values&#39;, () =&gt; {</span>
+<span class="dl-add">+  const rec = JSON.parse(activityLog.buildLine({ ev: &#39;x&#39;, note: &#39;token=sk-ant-api03-AbCdEf0123456789&#39; }));</span>
+<span class="dl-add">+  assert.ok(!rec.note.includes(&#39;sk-ant-api03-AbCdEf0123456789&#39;), `secret leaked: ${rec.note}`);</span>
+<span class="dl-add">+  assert.ok(rec.note.includes(&#39;[REDACTED]&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildLine stays under the atomic-append cap even when handed junk&#39;, () =&gt; {</span>
+<span class="dl-add">+  const line = activityLog.buildLine({ ev: &#39;x&#39;, a: &#39;y&#39;.repeat(9000), b: &#39;z&#39;.repeat(9000), c: &#39;w&#39;.repeat(9000) });</span>
+<span class="dl-add">+  assert.ok(Buffer.byteLength(line) &lt;= activityLog.MAX_LINE_BYTES, `line too long: ${Buffer.byteLength(line)}`);</span>
+<span class="dl-add">+  const rec = JSON.parse(line);</span>
+<span class="dl-add">+  assert.equal(rec.ev, &#39;x&#39;, &#39;identity survives truncation&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── appending ────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;appendSync writes one parseable line per call&#39;, () =&gt; {</span>
+<span class="dl-add">+  activityLog.appendSync(&#39;proj&#39;, { ev: &#39;a&#39;, src: &#39;s&#39; });</span>
+<span class="dl-add">+  activityLog.appendSync(&#39;proj&#39;, { ev: &#39;b&#39;, src: &#39;s&#39; });</span>
+<span class="dl-add">+  const lines = readLive(&#39;proj&#39;).trim().split(&#39;\n&#39;);</span>
+<span class="dl-add">+  assert.equal(lines.length, 2);</span>
+<span class="dl-add">+  assert.equal(JSON.parse(lines[0]).ev, &#39;a&#39;);</span>
+<span class="dl-add">+  assert.equal(JSON.parse(lines[1]).ev, &#39;b&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;append (async) writes without throwing and lands the same shape&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const ok = await activityLog.append(&#39;proj&#39;, { ev: &#39;async&#39;, src: &#39;s&#39; });</span>
+<span class="dl-add">+  assert.equal(ok, true);</span>
+<span class="dl-add">+  assert.equal(JSON.parse(readLive(&#39;proj&#39;).trim()).ev, &#39;async&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── never break the host ─────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;append never throws: unwritable root, junk input, missing bucket&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const blocked = path.join(tmp, &#39;blocked&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(blocked, &#39;not a directory&#39;);</span>
+<span class="dl-add">+  process.env.FRAME_ACTIVITY_HOME = blocked; // mkdir under a file fails</span>
+<span class="dl-add">+  assert.equal(activityLog.appendSync(&#39;proj&#39;, { ev: &#39;x&#39; }), false);</span>
+<span class="dl-add">+  assert.equal(await activityLog.append(&#39;proj&#39;, { ev: &#39;x&#39; }), false);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  process.env.FRAME_ACTIVITY_HOME = tmp;</span>
+<span class="dl-add">+  assert.equal(activityLog.appendSync(&#39;proj&#39;, null), false);</span>
+<span class="dl-add">+  assert.equal(activityLog.appendSync(&#39;proj&#39;, undefined), false);</span>
+<span class="dl-add">+  assert.equal(activityLog.appendSync(undefined, { ev: &#39;x&#39; }), true, &#39;no bucket falls back to app&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── bounded growth ───────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the live file rotates at the cap into a single generation&#39;, () =&gt; {</span>
+<span class="dl-add">+  const dir = activityLog.bucketDir(&#39;proj&#39;);</span>
+<span class="dl-add">+  fs.mkdirSync(dir, { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;activity.jsonl&#39;), `${&#39;x&#39;.repeat(activityLog.MAX_BYTES)}\n`);</span>
+<span class="dl-add">+  activityLog.appendSync(&#39;proj&#39;, { ev: &#39;after-rotate&#39; });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const archive = fs.readFileSync(path.join(dir, &#39;activity.jsonl.1&#39;), &#39;utf8&#39;);</span>
+<span class="dl-add">+  assert.ok(archive.length &gt;= activityLog.MAX_BYTES, &#39;oversized file moved to the archive&#39;);</span>
+<span class="dl-add">+  const live = readLive(&#39;proj&#39;).trim();</span>
+<span class="dl-add">+  assert.equal(JSON.parse(live).ev, &#39;after-rotate&#39;, &#39;live file restarts with the new event&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // A second rotation must not accumulate a third generation.</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;activity.jsonl&#39;), `${&#39;y&#39;.repeat(activityLog.MAX_BYTES)}\n`);</span>
+<span class="dl-add">+  activityLog.appendSync(&#39;proj&#39;, { ev: &#39;again&#39; });</span>
+<span class="dl-add">+  const generations = fs.readdirSync(dir).filter((f) =&gt; f.startsWith(&#39;activity.jsonl&#39;));</span>
+<span class="dl-add">+  assert.deepEqual(generations.sort(), [&#39;activity.jsonl&#39;, &#39;activity.jsonl.1&#39;]);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;prune drops buckets untouched past the window and keeps fresh ones&#39;, () =&gt; {</span>
+<span class="dl-add">+  activityLog.appendSync(&#39;stale-bucket&#39;, { ev: &#39;old&#39; });</span>
+<span class="dl-add">+  activityLog.appendSync(&#39;fresh-bucket&#39;, { ev: &#39;new&#39; });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const old = new Date(Date.now() - activityLog.PRUNE_AFTER_MS - 60_000);</span>
+<span class="dl-add">+  fs.utimesSync(activityLog.filePath(&#39;stale-bucket&#39;), old, old);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(activityLog.prune(), 1);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(activityLog.bucketDir(&#39;stale-bucket&#39;)));</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(activityLog.filePath(&#39;fresh-bucket&#39;)));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── reading back ─────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;readRecent returns newest-last, skips malformed lines, reaches the archive&#39;, () =&gt; {</span>
+<span class="dl-add">+  const dir = activityLog.bucketDir(&#39;proj&#39;);</span>
+<span class="dl-add">+  fs.mkdirSync(dir, { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;activity.jsonl.1&#39;), `${JSON.stringify({ ev: &#39;archived&#39;, v: 1 })}\n`);</span>
+<span class="dl-add">+  activityLog.appendSync(&#39;proj&#39;, { ev: &#39;first&#39; });</span>
+<span class="dl-add">+  fs.appendFileSync(path.join(dir, &#39;activity.jsonl&#39;), &#39;{ torn line\n&#39;);</span>
+<span class="dl-add">+  activityLog.appendSync(&#39;proj&#39;, { ev: &#39;second&#39; });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const recent = activityLog.readRecent(&#39;proj&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(recent.map((r) =&gt; r.ev), [&#39;archived&#39;, &#39;first&#39;, &#39;second&#39;]);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;readRecent honors the limit and survives a bucket that does not exist&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (let i = 0; i &lt; 5; i++) activityLog.appendSync(&#39;proj&#39;, { ev: `e${i}` });</span>
+<span class="dl-add">+  assert.deepEqual(activityLog.readRecent(&#39;proj&#39;, 2).map((r) =&gt; r.ev), [&#39;e3&#39;, &#39;e4&#39;]);</span>
+<span class="dl-add">+  assert.deepEqual(activityLog.readRecent(&#39;never-written&#39;), []);</span>
+<span class="dl-add">+});</span></pre>
     </details>
   </div>
 </section>

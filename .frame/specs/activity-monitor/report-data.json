@@ -15,6 +15,18 @@
         "status": "pass",
         "detail": "175/175 tests pass"
       }
+    },
+    {
+      "id": "T02",
+      "title": "Write the JSONL append contract and register it for shipping",
+      "commit": "8b1bdbc",
+      "whatChanged": "scripts/activity-log.js with projectKey, buildLine, appendSync/append, rotation, prune and readRecent; registered in PARSER_FILES (structureBootstrap.js) and build.files (package.json); 15 cases in test/activityLog.test.js.",
+      "whyChanged": "Sync and async appends both exist because the hosts differ: a git hook process would die before a promise settled, while sync I/O on the main process would break the standing perf budget. Nested values are dropped rather than serialized so a payload can never ride along even if a future call site passes one.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "190/190 tests pass (15 new)"
+      }
     }
   ]
 }
