@@ -520,12 +520,17 @@ class TerminalTabBar {
   }
 
   /**
-   * Initialize theme from localStorage
+   * Restore the saved theme at boot.
+   *
+   * The *toggle* now lives in the instrument rail, but the restore stays
+   * here because this runs during tab-bar construction — moving it to the
+   * rail's later init would flash the default theme first. Setting the
+   * attribute is the whole contract: terminalManager observes it and the
+   * rail reads it when it renders.
    */
   _initTheme() {
     const saved = localStorage.getItem('frame-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', saved);
-    this._updateThemeButton(saved);
   }
 
   /**

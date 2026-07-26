@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-26T15:47:47.793Z",
+  "lastUpdated": "2026-07-26T15:59:15.864Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4260,6 +4260,16 @@
       "updatedAt": "2026-07-26T15:47:47.793Z",
       "completedAt": "2026-07-26T15:47:47.793Z",
       "context": "Follow-on to spec: activity-monitor (deferred there as its own work)"
+    },
+    {
+      "id": "task-boot-failsafe-arms-too-late",
+      "title": "Arm the app-loader failsafe before renderer init, not in the middle of it",
+      "description": "appLoader.init() arms the failsafe at src/renderer/index.js:223, but init() starts at line 49 — any throw in the first ~170 lines (terminal, state, panels) leaves \"Loading workspace…\" spinning forever with no error surfaced and no retry. Hit for real when a dangling _updateThemeButton call threw at line 56. Arm the failsafe first thing in init(), and wrap init() so a boot exception reaches showFailureState() instead of the console. Contradicts the no-silent-failure discipline audit-q3-ux-error-feedback established.",
+      "status": "pending",
+      "priority": "high",
+      "category": "fix",
+      "createdAt": "2026-07-26T15:59:15.864Z",
+      "updatedAt": "2026-07-26T15:59:15.864Z"
     }
   ],
   "metadata": {
