@@ -7859,6 +7859,75 @@
         "emits": []
       }
     },
+    "shared/activityEvents": {
+      "file": "src/shared/activityEvents.js",
+      "description": "Activity events — pure policy module.",
+      "exports": [
+        "EVENTS",
+        "WATCHERS",
+        "POLLERS",
+        "HINT_REASONS",
+        "HOSTS",
+        "isRegistered",
+        "kindOf",
+        "isSuppression",
+        "validateEvent",
+        "formatLabel",
+        "buildRecord"
+      ],
+      "depends": [],
+      "functions": {
+        "isRegistered": {
+          "line": 190,
+          "params": [
+            "name"
+          ]
+        },
+        "kindOf": {
+          "line": 194,
+          "params": [
+            "name"
+          ]
+        },
+        "isSuppression": {
+          "line": 198,
+          "params": [
+            "name"
+          ]
+        },
+        "fieldPasses": {
+          "line": 202,
+          "params": [
+            "spec",
+            "value"
+          ]
+        },
+        "validateEvent": {
+          "line": 225,
+          "params": [
+            "name",
+            "fields"
+          ],
+          "purpose": "Validate an (event, fields) pair against the registry."
+        },
+        "formatLabel": {
+          "line": 242,
+          "params": [
+            "name",
+            "fields"
+          ],
+          "purpose": "The one-line sentence the panel's default view shows, or null when the"
+        },
+        "buildRecord": {
+          "line": 258,
+          "params": [
+            "name",
+            "fields"
+          ],
+          "purpose": "Build the record the append contract writes: the validated fields plus the"
+        }
+      }
+    },
     "shared/docsManagedBlock": {
       "file": "src/shared/docsManagedBlock.js",
       "description": "Managed-block engine for Frame's spec docs sections.",
@@ -9276,6 +9345,18 @@
         "module": "renderer/editor",
         "file": "src/renderer/editor.js",
         "description": "File Editor Module"
+      }
+    ],
+    "events": [
+      {
+        "module": "main/telemetryEvents",
+        "file": "src/main/telemetryEvents.js",
+        "description": "Telemetry events — pure policy module"
+      },
+      {
+        "module": "shared/activityEvents",
+        "file": "src/shared/activityEvents.js",
+        "description": "Activity events — pure policy module."
       }
     ],
     "file-tree": [

@@ -27,6 +27,18 @@
         "status": "pass",
         "detail": "190/190 tests pass (15 new)"
       }
+    },
+    {
+      "id": "T03",
+      "title": "Declare the Tier 1 event registry",
+      "commit": "3ff33e5",
+      "whatChanged": "src/shared/activityEvents.js with ten events, their kinds, field enums and label formatters, plus validateEvent/formatLabel/buildRecord; 12 cases in test/activityEvents.test.js.",
+      "whyChanged": "The registry is the recording filter, not a schema afterthought: an event has to be declared to be writable at all, which is what stops the drift perfMonitor accumulated. Labels live here rather than at call sites so the panel cannot end up with two vocabularies for the same event.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "202/202 tests pass (12 new)"
+      }
     }
   ]
 }

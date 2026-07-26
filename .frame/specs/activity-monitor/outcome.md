@@ -30,3 +30,19 @@ the real record.
 _Captured: 2026-07-26 · 4 file change(s)_
 
 ---
+
+## T03 — The event registry
+
+Added `src/shared/activityEvents.js`: ten Tier 1 events declared with their
+kind (`action`/`suppression`), narrow field types (enums, counts, ms, and
+the two bounded string shapes — path and slug) and a label formatter. There
+is deliberately no free-form text field, so no call site can introduce one.
+`validateEvent` drops unregistered events and strips out-of-enum values the
+way `telemetryEvents.js` does for what leaves the machine; presence of a
+label is what makes an event visible in the panel's default view. All eleven
+spec-hint quiet paths have distinct reason codes, asserted to read
+differently from one another.
+
+_Captured: 2026-07-26 · 2 file change(s)_
+
+---

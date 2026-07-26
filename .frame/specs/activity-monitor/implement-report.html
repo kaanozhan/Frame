@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">2 tasks</span>
-    <span class="pill good">2 verified</span>
+    <span class="pill">3 tasks</span>
+    <span class="pill good">3 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">2 of 11 tasks done · next: <span class="rs-task">T03 — Write `src/shared/activityEvents.js` as the Tier 1 event registry…</span></span>
+  <span class="rs-count">3 of 11 tasks done · next: <span class="rs-task">T04 — Write `src/main/activityLog.js` with the ring buffer, redaction pass…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -850,6 +850,422 @@
 <span class="dl-add">+  for (let i = 0; i &lt; 5; i++) activityLog.appendSync(&#39;proj&#39;, { ev: `e${i}` });</span>
 <span class="dl-add">+  assert.deepEqual(activityLog.readRecent(&#39;proj&#39;, 2).map((r) =&gt; r.ev), [&#39;e3&#39;, &#39;e4&#39;]);</span>
 <span class="dl-add">+  assert.deepEqual(activityLog.readRecent(&#39;never-written&#39;), []);</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T03</span>
+    <h2>Declare the Tier 1 event registry</h2>
+    <span class="card-meta"><span class="chip">3ff33e5</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">202/202 tests pass (12 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>src/shared/activityEvents.js with ten events, their kinds, field enums and label formatters, plus validateEvent/formatLabel/buildRecord; 12 cases in test/activityEvents.test.js.</p></div>
+    <div class="field"><span class="label">Why</span><p>The registry is the recording filter, not a schema afterthought: an event has to be declared to be writable at all, which is what stops the drift perfMonitor accumulated. Labels live here rather than at call sites so the panel cannot end up with two vocabularies for the same event.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/shared/activityEvents.js b/src/shared/activityEvents.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..d6935b2</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/shared/activityEvents.js</span>
+<span class="dl-hunk">@@ -0,0 +1,276 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Activity events — pure policy module.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The registry below is the single source of truth for what Frame may record</span>
+<span class="dl-add">+ * about its own background work. It exists for the same reason</span>
+<span class="dl-add">+ * `telemetryEvents.js` does, applied to a different destination: an event</span>
+<span class="dl-add">+ * that is not declared here is dropped, and a field value outside its</span>
+<span class="dl-add">+ * declared enum is stripped. `perfMonitor.js` shows what the alternative</span>
+<span class="dl-add">+ * looks like — eight call sites scattered over five months with no registry</span>
+<span class="dl-add">+ * to hold them together.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * What belongs here is decided by one rule, from the spec:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   Record it when Frame itself is the trigger — a timer, a watcher, a hook,</span>
+<span class="dl-add">+ *   a guard, a recovery. Do not record it when the user&#39;s gesture is the</span>
+<span class="dl-add">+ *   trigger and the result is already on screen.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * So opening a panel is absent, while the watcher cascade a click sets off</span>
+<span class="dl-add">+ * is present.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Two kinds, and the difference matters:</span>
+<span class="dl-add">+ *   - `action`      — work that happened.</span>
+<span class="dl-add">+ *   - `suppression` — work a guard prevented. These are what separate</span>
+<span class="dl-add">+ *     &quot;alive and nothing needed&quot; from &quot;dead&quot;; without them silence is</span>
+<span class="dl-add">+ *     ambiguous and the panel cannot answer the question it exists for.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `label` decides visibility: an event with a label shows in the panel&#39;s</span>
+<span class="dl-add">+ * default view (suppressions muted), one without is detail-only.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Pure — no Electron, no filesystem — so it runs under `node --test`.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+&#39;use strict&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Watcher ids. One per fsSafe.safeWatch call site.</span>
+<span class="dl-add">+const WATCHERS = [&#39;specs&#39;, &#39;spec-tasks&#39;, &#39;tasks-root&#39;, &#39;git-worktree&#39;, &#39;git-dir&#39;, &#39;orch-bus&#39;];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Poller ids. One per pollGate.gatedInterval call site.</span>
+<span class="dl-add">+const POLLERS = [&#39;claude-usage&#39;, &#39;update-check&#39;, &#39;orch-status&#39;, &#39;pty-process&#39;];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Every quiet path in spec-hint.js gets its own code, so &quot;ran and stayed</span>
+<span class="dl-add">+// quiet&quot; is distinguishable from &quot;never fired&quot; and from its siblings.</span>
+<span class="dl-add">+const HINT_REASONS = [</span>
+<span class="dl-add">+  &#39;no-index&#39;, // pre-edit: the index has no files map</span>
+<span class="dl-add">+  &#39;no-path&#39;, // pre-edit: the hook payload carried no file path</span>
+<span class="dl-add">+  &#39;outside-project&#39;, // pre-edit: resolved outside the project root</span>
+<span class="dl-add">+  &#39;meta-path&#39;, // pre-edit: a .frame/ write needs no history lesson</span>
+<span class="dl-add">+  &#39;no-history&#39;, // pre-edit: no spec ever touched this file</span>
+<span class="dl-add">+  &#39;session-dedup&#39;, // pre-edit: already surfaced for this file this session</span>
+<span class="dl-add">+  &#39;no-topics&#39;, // prompt: the index has no topics map</span>
+<span class="dl-add">+  &#39;no-words&#39;, // prompt: nothing searchable in the prompt</span>
+<span class="dl-add">+  &#39;no-match&#39;, // prompt: no spec scored</span>
+<span class="dl-add">+  &#39;no-stale-free-match&#39;, // prompt: matches existed but none survived filtering</span>
+<span class="dl-add">+  &#39;no-context&#39; // emit: nothing composed to send</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const HOSTS = [&#39;app&#39;, &#39;claude-hook&#39;, &#39;git-precommit&#39;, &#39;orch-bus&#39;, &#39;cli&#39;];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Field types. Kept deliberately narrow: enums, numbers, and the two string</span>
+<span class="dl-add">+// shapes that are the point of the record (a project-relative path, a spec</span>
+<span class="dl-add">+// slug). No free-form text field exists, so no call site can introduce one.</span>
+<span class="dl-add">+const COUNT = { type: &#39;count&#39; };</span>
+<span class="dl-add">+const MS = { type: &#39;ms&#39; };</span>
+<span class="dl-add">+const PATH = { type: &#39;path&#39; };</span>
+<span class="dl-add">+const SLUG = { type: &#39;slug&#39; };</span>
+<span class="dl-add">+const enumOf = (values) =&gt; ({ type: &#39;enum&#39;, values });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const EVENTS = {</span>
+<span class="dl-add">+  // ─── spec-knowledge hook ────────────────────────────────</span>
+<span class="dl-add">+  &#39;hint.injected&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { host: enumOf(HOSTS), mode: enumOf([&#39;pre-edit&#39;, &#39;prompt&#39;]), path: PATH, specs: COUNT },</span>
+<span class="dl-add">+    label: (r) =&gt;</span>
+<span class="dl-add">+      r.mode === &#39;prompt&#39;</span>
+<span class="dl-add">+        ? `Surfaced ${r.specs ?? 0} related spec${r.specs === 1 ? &#39;&#39; : &#39;s&#39;} for this request`</span>
+<span class="dl-add">+        : `Spec history injected for ${r.path || &#39;a file&#39;}${r.specs ? ` (${r.specs} prior spec${r.specs === 1 ? &#39;&#39; : &#39;s&#39;})` : &#39;&#39;}`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  &#39;hint.quiet&#39;: {</span>
+<span class="dl-add">+    kind: &#39;suppression&#39;,</span>
+<span class="dl-add">+    fields: { host: enumOf(HOSTS), mode: enumOf([&#39;pre-edit&#39;, &#39;prompt&#39;]), reason: enumOf(HINT_REASONS), path: PATH },</span>
+<span class="dl-add">+    label: (r) =&gt; `Spec history skipped${r.path ? ` for ${r.path}` : &#39;&#39;} — ${HINT_REASON_TEXT[r.reason] || r.reason}`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // ─── watchers ───────────────────────────────────────────</span>
+<span class="dl-add">+  &#39;watch.fired&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { watcher: enumOf(WATCHERS), changes: COUNT, collapsed: COUNT, triggered: enumOf([&#39;reconcile&#39;, &#39;push&#39;, &#39;refresh&#39;, &#39;dispatch&#39;, &#39;none&#39;]) },</span>
+<span class="dl-add">+    label: (r) =&gt; {</span>
+<span class="dl-add">+      const what = r.changes === 1 ? &#39;1 change&#39; : `${r.changes ?? 0} changes`;</span>
+<span class="dl-add">+      const collapsed = r.collapsed &gt; 1 ? `, ${r.collapsed} fires collapsed` : &#39;&#39;;</span>
+<span class="dl-add">+      return `${WATCHER_TEXT[r.watcher] || r.watcher} saw ${what}${collapsed}`;</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  &#39;watch.suppressed&#39;: {</span>
+<span class="dl-add">+    kind: &#39;suppression&#39;,</span>
+<span class="dl-add">+    fields: { watcher: enumOf(WATCHERS), reason: enumOf([&#39;self-write&#39;, &#39;debounce&#39;]), collapsed: COUNT },</span>
+<span class="dl-add">+    label: (r) =&gt;</span>
+<span class="dl-add">+      r.reason === &#39;self-write&#39;</span>
+<span class="dl-add">+        ? `${WATCHER_TEXT[r.watcher] || r.watcher} ignored Frame&#39;s own write`</span>
+<span class="dl-add">+        : `${WATCHER_TEXT[r.watcher] || r.watcher} collapsed ${r.collapsed ?? 0} fires into one`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // ─── spec state Frame changes on its own ────────────────</span>
+<span class="dl-add">+  &#39;spec.phase_reconciled&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { slug: SLUG, from: enumOf([&#39;draft&#39;, &#39;specified&#39;, &#39;planned&#39;, &#39;tasks_generated&#39;, &#39;implementing&#39;, &#39;done&#39;]), to: enumOf([&#39;draft&#39;, &#39;specified&#39;, &#39;planned&#39;, &#39;tasks_generated&#39;, &#39;implementing&#39;, &#39;done&#39;]) },</span>
+<span class="dl-add">+    label: (r) =&gt; `Spec ${r.slug}: ${r.from} → ${r.to}`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // ─── derived spec index ─────────────────────────────────</span>
+<span class="dl-add">+  &#39;index.rebuilt&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { ms: MS, specs: COUNT },</span>
+<span class="dl-add">+    label: (r) =&gt; `Spec index rebuilt${r.ms != null ? ` in ${r.ms}ms` : &#39;&#39;}`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  &#39;index.fresh&#39;: {</span>
+<span class="dl-add">+    kind: &#39;suppression&#39;,</span>
+<span class="dl-add">+    fields: { reason: enumOf([&#39;already-fresh&#39;]) },</span>
+<span class="dl-add">+    label: () =&gt; &#39;Spec index already current — rebuild skipped&#39;</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // ─── self-healing nobody sees ───────────────────────────</span>
+<span class="dl-add">+  &#39;state.recovered&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { path: PATH, source: enumOf([&#39;bak&#39;, &#39;none&#39;]) },</span>
+<span class="dl-add">+    label: (r) =&gt;</span>
+<span class="dl-add">+      r.source === &#39;bak&#39;</span>
+<span class="dl-add">+        ? `Recovered ${r.path || &#39;a state file&#39;} from its backup`</span>
+<span class="dl-add">+        : `${r.path || &#39;A state file&#39;} was corrupt with no usable backup`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  &#39;state.corrupt_preserved&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { path: PATH },</span>
+<span class="dl-add">+    label: (r) =&gt; `Preserved the corrupt copy of ${r.path || &#39;a state file&#39;}`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // ─── polling guards ─────────────────────────────────────</span>
+<span class="dl-add">+  &#39;poll.skipped&#39;: {</span>
+<span class="dl-add">+    kind: &#39;suppression&#39;,</span>
+<span class="dl-add">+    fields: { poller: enumOf(POLLERS), reason: enumOf([&#39;window-hidden&#39;]) },</span>
+<span class="dl-add">+    label: (r) =&gt; `${POLLER_TEXT[r.poller] || r.poller} paused while the window is hidden`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // ─── scripts running outside Frame&#39;s process ────────────</span>
+<span class="dl-add">+  &#39;script.ran&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { script: enumOf([&#39;update-structure&#39;, &#39;check-freshness&#39;, &#39;spec-index&#39;]), host: enumOf(HOSTS), ms: MS, changes: COUNT },</span>
+<span class="dl-add">+    label: (r) =&gt; `${SCRIPT_TEXT[r.script] || r.script} ran${r.host === &#39;git-precommit&#39; ? &#39; on commit&#39; : &#39;&#39;}`</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Human-readable fragments, kept beside the registry so a label never has to</span>
+<span class="dl-add">+// be reconstructed at a call site.</span>
+<span class="dl-add">+const HINT_REASON_TEXT = {</span>
+<span class="dl-add">+  &#39;no-index&#39;: &#39;no spec index yet&#39;,</span>
+<span class="dl-add">+  &#39;no-path&#39;: &#39;no file path in the hook payload&#39;,</span>
+<span class="dl-add">+  &#39;outside-project&#39;: &#39;the file is outside this project&#39;,</span>
+<span class="dl-add">+  &#39;meta-path&#39;: &#39;Frame meta files need no history&#39;,</span>
+<span class="dl-add">+  &#39;no-history&#39;: &#39;no spec has touched it&#39;,</span>
+<span class="dl-add">+  &#39;session-dedup&#39;: &#39;already surfaced this session&#39;,</span>
+<span class="dl-add">+  &#39;no-topics&#39;: &#39;no spec topics indexed&#39;,</span>
+<span class="dl-add">+  &#39;no-words&#39;: &#39;nothing searchable in the request&#39;,</span>
+<span class="dl-add">+  &#39;no-match&#39;: &#39;no spec matched&#39;,</span>
+<span class="dl-add">+  &#39;no-stale-free-match&#39;: &#39;matches were filtered out&#39;,</span>
+<span class="dl-add">+  &#39;no-context&#39;: &#39;nothing to send&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const WATCHER_TEXT = {</span>
+<span class="dl-add">+  specs: &#39;Specs watcher&#39;,</span>
+<span class="dl-add">+  &#39;spec-tasks&#39;: &#39;Spec tasks watcher&#39;,</span>
+<span class="dl-add">+  &#39;tasks-root&#39;: &#39;Tasks watcher&#39;,</span>
+<span class="dl-add">+  &#39;git-worktree&#39;: &#39;Git worktree watcher&#39;,</span>
+<span class="dl-add">+  &#39;git-dir&#39;: &#39;Git directory watcher&#39;,</span>
+<span class="dl-add">+  &#39;orch-bus&#39;: &#39;Orchestration bus watcher&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const POLLER_TEXT = {</span>
+<span class="dl-add">+  &#39;claude-usage&#39;: &#39;Claude usage check&#39;,</span>
+<span class="dl-add">+  &#39;update-check&#39;: &#39;Update check&#39;,</span>
+<span class="dl-add">+  &#39;orch-status&#39;: &#39;Orchestration status poll&#39;,</span>
+<span class="dl-add">+  &#39;pty-process&#39;: &#39;Terminal process poll&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const SCRIPT_TEXT = {</span>
+<span class="dl-add">+  &#39;update-structure&#39;: &#39;Structure map update&#39;,</span>
+<span class="dl-add">+  &#39;check-freshness&#39;: &#39;Freshness check&#39;,</span>
+<span class="dl-add">+  &#39;spec-index&#39;: &#39;Spec index build&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function isRegistered(name) {</span>
+<span class="dl-add">+  return Object.prototype.hasOwnProperty.call(EVENTS, name);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function kindOf(name) {</span>
+<span class="dl-add">+  return isRegistered(name) ? EVENTS[name].kind : null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function isSuppression(name) {</span>
+<span class="dl-add">+  return kindOf(name) === &#39;suppression&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function fieldPasses(spec, value) {</span>
+<span class="dl-add">+  switch (spec.type) {</span>
+<span class="dl-add">+    case &#39;enum&#39;:</span>
+<span class="dl-add">+      return spec.values.includes(value);</span>
+<span class="dl-add">+    case &#39;count&#39;:</span>
+<span class="dl-add">+    case &#39;ms&#39;:</span>
+<span class="dl-add">+      return typeof value === &#39;number&#39; &amp;&amp; Number.isFinite(value) &amp;&amp; value &gt;= 0;</span>
+<span class="dl-add">+    case &#39;path&#39;:</span>
+<span class="dl-add">+    case &#39;slug&#39;:</span>
+<span class="dl-add">+      return typeof value === &#39;string&#39; &amp;&amp; value.length &gt; 0 &amp;&amp; value.length &lt;= 200;</span>
+<span class="dl-add">+    default:</span>
+<span class="dl-add">+      return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Validate an (event, fields) pair against the registry.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Returns null for an unregistered event — the caller must drop it entirely.</span>
+<span class="dl-add">+ * Otherwise the subset of fields that are declared and carry an acceptable</span>
+<span class="dl-add">+ * value; unknown keys and bad values are stripped silently, exactly as</span>
+<span class="dl-add">+ * `telemetryEvents.validateEvent` does.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function validateEvent(name, fields) {</span>
+<span class="dl-add">+  if (!isRegistered(name)) return null;</span>
+<span class="dl-add">+  const schema = EVENTS[name].fields;</span>
+<span class="dl-add">+  const out = {};</span>
+<span class="dl-add">+  for (const key of Object.keys(schema)) {</span>
+<span class="dl-add">+    const value = fields ? fields[key] : undefined;</span>
+<span class="dl-add">+    if (value === undefined) continue;</span>
+<span class="dl-add">+    if (fieldPasses(schema[key], value)) out[key] = value;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return out;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The one-line sentence the panel&#39;s default view shows, or null when the</span>
+<span class="dl-add">+ * event is detail-only. Never throws: a label that fails on an unexpected</span>
+<span class="dl-add">+ * shape must not take a record — or the panel — down with it.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function formatLabel(name, fields) {</span>
+<span class="dl-add">+  if (!isRegistered(name)) return null;</span>
+<span class="dl-add">+  const { label } = EVENTS[name];</span>
+<span class="dl-add">+  if (typeof label !== &#39;function&#39;) return null;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const text = label(fields || {});</span>
+<span class="dl-add">+    return typeof text === &#39;string&#39; &amp;&amp; text.length ? text : null;</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    return null;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Build the record the append contract writes: the validated fields plus the</span>
+<span class="dl-add">+ * event name and kind. Returns null when the event is unregistered.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function buildRecord(name, fields) {</span>
+<span class="dl-add">+  const validated = validateEvent(name, fields);</span>
+<span class="dl-add">+  if (validated === null) return null;</span>
+<span class="dl-add">+  return { ev: name, kind: EVENTS[name].kind, ...validated };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  EVENTS,</span>
+<span class="dl-add">+  WATCHERS,</span>
+<span class="dl-add">+  POLLERS,</span>
+<span class="dl-add">+  HINT_REASONS,</span>
+<span class="dl-add">+  HOSTS,</span>
+<span class="dl-add">+  isRegistered,</span>
+<span class="dl-add">+  kindOf,</span>
+<span class="dl-add">+  isSuppression,</span>
+<span class="dl-add">+  validateEvent,</span>
+<span class="dl-add">+  formatLabel,</span>
+<span class="dl-add">+  buildRecord</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/test/activityEvents.test.js b/test/activityEvents.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..87d97d3</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/activityEvents.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,113 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Activity event registry — the gate between a call site and the record.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The properties under test are the ones that keep the record honest years</span>
+<span class="dl-add">+ * from now: an undeclared event cannot be written, a field value outside its</span>
+<span class="dl-add">+ * enum cannot ride along, suppressions stay distinguishable from actions,</span>
+<span class="dl-add">+ * and no label can throw hard enough to take a record down.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const events = require(&#39;../src/shared/activityEvents&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── the gate ─────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;an unregistered event is dropped entirely&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(events.validateEvent(&#39;panel.opened&#39;, { path: &#39;x&#39; }), null);</span>
+<span class="dl-add">+  assert.equal(events.buildRecord(&#39;totally.made.up&#39;, {}), null);</span>
+<span class="dl-add">+  assert.equal(events.formatLabel(&#39;totally.made.up&#39;, {}), null);</span>
+<span class="dl-add">+  assert.equal(events.kindOf(&#39;totally.made.up&#39;), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;unknown fields and out-of-enum values are stripped, good ones survive&#39;, () =&gt; {</span>
+<span class="dl-add">+  const out = events.validateEvent(&#39;watch.fired&#39;, {</span>
+<span class="dl-add">+    watcher: &#39;specs&#39;,</span>
+<span class="dl-add">+    changes: 3,</span>
+<span class="dl-add">+    triggered: &#39;launch-missiles&#39;, // not in the enum</span>
+<span class="dl-add">+    smuggled: &#39;free text&#39; // not declared</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.deepEqual(out, { watcher: &#39;specs&#39;, changes: 3 });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;field types are enforced, not merely present&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.deepEqual(events.validateEvent(&#39;watch.fired&#39;, { watcher: &#39;nope&#39; }), {});</span>
+<span class="dl-add">+  assert.deepEqual(events.validateEvent(&#39;index.rebuilt&#39;, { ms: -1 }), {});</span>
+<span class="dl-add">+  assert.deepEqual(events.validateEvent(&#39;index.rebuilt&#39;, { ms: &#39;fast&#39; }), {});</span>
+<span class="dl-add">+  assert.deepEqual(events.validateEvent(&#39;spec.phase_reconciled&#39;, { slug: &#39;&#39; }), {});</span>
+<span class="dl-add">+  assert.deepEqual(events.validateEvent(&#39;state.recovered&#39;, { path: &#39;x&#39;.repeat(500) }), {});</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;buildRecord carries the event name and its kind&#39;, () =&gt; {</span>
+<span class="dl-add">+  const rec = events.buildRecord(&#39;hint.quiet&#39;, { mode: &#39;pre-edit&#39;, reason: &#39;session-dedup&#39;, path: &#39;src/main/specManager.js&#39; });</span>
+<span class="dl-add">+  assert.equal(rec.ev, &#39;hint.quiet&#39;);</span>
+<span class="dl-add">+  assert.equal(rec.kind, &#39;suppression&#39;);</span>
+<span class="dl-add">+  assert.equal(rec.reason, &#39;session-dedup&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── suppressions are first-class ─────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;every registered event declares a valid kind&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const [name, spec] of Object.entries(events.EVENTS)) {</span>
+<span class="dl-add">+    assert.ok([&#39;action&#39;, &#39;suppression&#39;].includes(spec.kind), `${name} has kind ${spec.kind}`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the guard events are classified as suppressions, not actions&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const name of [&#39;hint.quiet&#39;, &#39;watch.suppressed&#39;, &#39;index.fresh&#39;, &#39;poll.skipped&#39;]) {</span>
+<span class="dl-add">+    assert.equal(events.isSuppression(name), true, `${name} must be a suppression`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  for (const name of [&#39;hint.injected&#39;, &#39;watch.fired&#39;, &#39;spec.phase_reconciled&#39;, &#39;state.recovered&#39;]) {</span>
+<span class="dl-add">+    assert.equal(events.isSuppression(name), false, `${name} must be an action`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── the hook&#39;s quiet paths ───────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;every spec-hint quiet path has its own reason code&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(events.HINT_REASONS.length, 11, &#39;one code per quiet return in spec-hint.js&#39;);</span>
+<span class="dl-add">+  assert.equal(new Set(events.HINT_REASONS).size, 11, &#39;codes are distinct&#39;);</span>
+<span class="dl-add">+  for (const reason of events.HINT_REASONS) {</span>
+<span class="dl-add">+    const out = events.validateEvent(&#39;hint.quiet&#39;, { reason });</span>
+<span class="dl-add">+    assert.equal(out.reason, reason, `${reason} must pass the enum`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;reason codes are distinguishable in the label, not collapsed into one sentence&#39;, () =&gt; {</span>
+<span class="dl-add">+  const labels = events.HINT_REASONS.map((reason) =&gt; events.formatLabel(&#39;hint.quiet&#39;, { reason }));</span>
+<span class="dl-add">+  assert.equal(new Set(labels).size, events.HINT_REASONS.length, &#39;each reason reads differently&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── watcher and poller coverage ──────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;every watcher and poller id is accepted by its event&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const watcher of events.WATCHERS) {</span>
+<span class="dl-add">+    assert.equal(events.validateEvent(&#39;watch.fired&#39;, { watcher }).watcher, watcher);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  for (const poller of events.POLLERS) {</span>
+<span class="dl-add">+    assert.equal(events.validateEvent(&#39;poll.skipped&#39;, { poller }).poller, poller);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── labels ───────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;labels read as sentences and pluralize their counts&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.match(events.formatLabel(&#39;hint.injected&#39;, { mode: &#39;pre-edit&#39;, path: &#39;src/main/logger.js&#39;, specs: 1 }), /1 prior spec\b/);</span>
+<span class="dl-add">+  assert.match(events.formatLabel(&#39;hint.injected&#39;, { mode: &#39;pre-edit&#39;, path: &#39;src/main/logger.js&#39;, specs: 3 }), /3 prior specs/);</span>
+<span class="dl-add">+  assert.match(events.formatLabel(&#39;watch.fired&#39;, { watcher: &#39;specs&#39;, changes: 1 }), /1 change\b/);</span>
+<span class="dl-add">+  assert.match(events.formatLabel(&#39;spec.phase_reconciled&#39;, { slug: &#39;activity-monitor&#39;, from: &#39;planned&#39;, to: &#39;implementing&#39; }), /planned → implementing/);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a label never throws on a partial or empty record&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const name of Object.keys(events.EVENTS)) {</span>
+<span class="dl-add">+    assert.doesNotThrow(() =&gt; events.formatLabel(name, {}), `${name} threw on an empty record`);</span>
+<span class="dl-add">+    assert.doesNotThrow(() =&gt; events.formatLabel(name, undefined), `${name} threw on undefined`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a collapsed burst is reported with its true count, not as a single fire&#39;, () =&gt; {</span>
+<span class="dl-add">+  const label = events.formatLabel(&#39;watch.fired&#39;, { watcher: &#39;specs&#39;, changes: 2, collapsed: 12 });</span>
+<span class="dl-add">+  assert.match(label, /12 fires collapsed/);</span>
+<span class="dl-add">+  assert.ok(!events.formatLabel(&#39;watch.fired&#39;, { watcher: &#39;specs&#39;, changes: 2, collapsed: 1 }).includes(&#39;collapsed&#39;));</span>
 <span class="dl-add">+});</span></pre>
     </details>
   </div>

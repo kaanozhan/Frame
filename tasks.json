@@ -4137,13 +4137,13 @@
       "title": "Write `src/shared/activityEvents.js` as the Tier 1 event registry — event names, `action`/`suppression` kinds, field enums, label formatters and `validateEvent` — with `test/activityEvents.test.js` covering unregistered-event drops, out-of-enum stripping, kind classification and label output.",
       "description": "",
       "source": "spec:activity-monitor:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:01:57.389Z",
+      "completedAt": "2026-07-26T15:01:57.389Z"
     },
     {
       "id": "task-spec-activity-monitor-T04",
