@@ -105,3 +105,23 @@ that possible.
 _Captured: 2026-07-26 · 4 file change(s)_
 
 ---
+
+## T07 — Recovery and poll suppression
+
+`fsSafe.readJsonWithRecovery` now records both halves of its silent
+self-healing — the corrupt copy being preserved and the `.bak` restore (or
+the failure to find one) — with the path reduced to a basename so no home
+directory lands in the record. `pollGate` records a suppression each time a
+gate pauses on a hidden window, which finally puts evidence behind the
+"hidden window means zero timer wakeups" claim; identical pauses collapse
+into one row carrying the count.
+
+Deviation from plan.md: `pollGate` does not know which caller owns each
+gate, and teaching it would mean editing four modules outside this spec's
+footprint, so `poller` stays optional and the label falls back to a generic
+sentence. Two tests added to `test/fsSafe.test.js` — which the plan's Files
+and Footprint sections omitted, so those lists are one path short.
+
+_Captured: 2026-07-26 · 4 file change(s)_
+
+---

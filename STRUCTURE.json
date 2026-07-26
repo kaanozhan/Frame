@@ -850,26 +850,35 @@
         "safeWatch"
       ],
       "depends": [
-        "fs"
+        "fs",
+        "path",
+        "activityLog"
       ],
       "functions": {
         "writeFileAtomic": {
-          "line": 28,
+          "line": 29,
           "params": [
             "filePath",
             "data"
           ],
           "purpose": "Atomically replace `filePath` with `data`."
         },
+        "noteRecovery": {
+          "line": 69,
+          "params": [
+            "ev",
+            "fields"
+          ],
+          "purpose": "Recovery is silent self-healing: a corrupt state file is moved aside and"
+        },
         "readJsonWithRecovery": {
-          "line": 64,
+          "line": 77,
           "params": [
             "filePath"
-          ],
-          "purpose": "Read and parse a JSON state file with corruption recovery."
+          ]
         },
         "safeWatch": {
-          "line": 114,
+          "line": 130,
           "params": [
             "target",
             "options",
@@ -2100,26 +2109,31 @@
         "anyWindowVisible"
       ],
       "depends": [
-        "electron"
+        "electron",
+        "activityLog"
       ],
       "functions": {
+        "notePause": {
+          "line": 19,
+          "purpose": "Lazily required: pollGate is wired during early boot and must not drag the"
+        },
         "anyWindowVisible": {
-          "line": 20
+          "line": 30
         },
         "reevaluateAll": {
-          "line": 26
+          "line": 36
         },
         "watchWindow": {
-          "line": 33,
+          "line": 43,
           "params": [
             "win"
           ]
         },
         "ensureWiring": {
-          "line": 41
+          "line": 51
         },
         "gatedInterval": {
-          "line": 56,
+          "line": 66,
           "params": [
             "fn",
             "ms",
@@ -2128,7 +2142,7 @@
           "purpose": "Visibility-gated setInterval. Returns a handle with dispose()."
         },
         "ttlCache": {
-          "line": 99,
+          "line": 114,
           "params": [
             "fn",
             "ttlMs"
@@ -7993,32 +8007,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 199,
+          "line": 206,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 203,
+          "line": 210,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 207,
+          "line": 214,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 211,
+          "line": 218,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 234,
+          "line": 241,
           "params": [
             "name",
             "fields"
@@ -8026,7 +8040,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 251,
+          "line": 258,
           "params": [
             "name",
             "fields"
@@ -8034,7 +8048,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 272,
+          "line": 279,
           "params": [
             "name",
             "fields"

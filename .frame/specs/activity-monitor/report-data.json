@@ -75,6 +75,18 @@
         "status": "pass",
         "detail": "210/210 tests pass"
       }
+    },
+    {
+      "id": "T07",
+      "title": "Record corruption recovery and hidden-window poll pauses",
+      "commit": "a004545",
+      "whatChanged": "fsSafe.js records state.corrupt_preserved and state.recovered (basename only); pollGate.js records poll.skipped when a gate pauses; activityEvents.js label falls back when no poller id is known; two tests in test/fsSafe.test.js.",
+      "whyChanged": "Both requires are lazy because fsSafe and pollGate load during early boot and must not pull the activity layer into their require order. pollGate emits per gate rather than one aggregate event so the existing burst aggregation produces the count for free.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass (2 new)"
+      }
     }
   ]
 }

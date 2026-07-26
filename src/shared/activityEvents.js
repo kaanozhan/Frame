@@ -147,7 +147,14 @@ const EVENTS = {
   'poll.skipped': {
     kind: 'suppression',
     fields: { poller: enumOf(POLLERS), reason: enumOf(['window-hidden']), repeats: REPEATS },
-    label: (r) => `${POLLER_TEXT[r.poller] || r.poller} paused while the window is hidden`
+    // `poller` is optional: pollGate pauses gates without knowing which
+    // caller owns each one, and teaching it would mean editing four modules
+    // outside this spec's footprint. The aggregated count carries the
+    // information that matters — how many polls actually stopped.
+    label: (r) =>
+      r.poller
+        ? `${POLLER_TEXT[r.poller] || r.poller} paused while the window is hidden`
+        : 'Background polling paused while the window is hidden'
   },
 
   // ─── scripts running outside Frame's process ────────────

@@ -4189,13 +4189,13 @@
       "title": "Record the `readJsonWithRecovery` outcome in `src/main/fsSafe.js` and the hidden-window poll skip in `src/main/pollGate.js`, extending `test/fsSafe.test.js`'s corruption fixtures to assert the recovery record.",
       "description": "",
       "source": "spec:activity-monitor:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:23:05.004Z",
+      "completedAt": "2026-07-26T15:23:05.004Z"
     },
     {
       "id": "task-spec-activity-monitor-T08",

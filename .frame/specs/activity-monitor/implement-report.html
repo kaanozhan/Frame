@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">6 tasks</span>
-    <span class="pill good">6 verified</span>
+    <span class="pill">7 tasks</span>
+    <span class="pill good">7 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">6 of 11 tasks done · next: <span class="rs-task">T07 — Record the `readJsonWithRecovery` outcome in `src/main/fsSafe.js` and…</span></span>
+  <span class="rs-count">7 of 11 tasks done · next: <span class="rs-task">T08 — Emit run records from `scripts/update-structure.js` and…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -2187,6 +2187,186 @@
 <span class="dl-ctx">         if (!mainWindow || mainWindow.isDestroyed()) return;</span>
 <span class="dl-ctx">         const tasks = loadTasks(projectPath);</span>
 <span class="dl-ctx">         mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks });</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T07</span>
+    <h2>Record corruption recovery and hidden-window poll pauses</h2>
+    <span class="card-meta"><span class="chip">a004545</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">212/212 tests pass (2 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>fsSafe.js records state.corrupt_preserved and state.recovered (basename only); pollGate.js records poll.skipped when a gate pauses; activityEvents.js label falls back when no poller id is known; two tests in test/fsSafe.test.js.</p></div>
+    <div class="field"><span class="label">Why</span><p>Both requires are lazy because fsSafe and pollGate load during early boot and must not pull the activity layer into their require order. pollGate emits per gate rather than one aggregate event so the existing burst aggregation produces the count for free.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/fsSafe.js b/src/main/fsSafe.js</span>
+<span class="dl-meta">index 1a2d240..d1ee949 100644</span>
+<span class="dl-file">--- a/src/main/fsSafe.js</span>
+<span class="dl-file">+++ b/src/main/fsSafe.js</span>
+<span class="dl-hunk">@@ -15,6 +15,7 @@</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Atomically replace `filePath` with `data`.</span>
+<span class="dl-hunk">@@ -61,6 +62,18 @@ function writeFileAtomic(filePath, data) {</span>
+<span class="dl-ctx">  *         original is already safe aside, so a caller that falls back to a</span>
+<span class="dl-ctx">  *         default can save without destroying recoverable data.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-add">+// Recovery is silent self-healing: a corrupt state file is moved aside and</span>
+<span class="dl-add">+// the .bak restored without the user ever knowing it happened. Recorded so</span>
+<span class="dl-add">+// the panel can show it. Lazily required — fsSafe is loaded very early and</span>
+<span class="dl-add">+// must not pull the activity layer into its own require cycle.</span>
+<span class="dl-add">+function noteRecovery(ev, fields) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    require(&#39;./activityLog&#39;).record(ev, fields);</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    /* never let bookkeeping break a state read */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> function readJsonWithRecovery(filePath) {</span>
+<span class="dl-ctx">   let raw;</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-hunk">@@ -80,6 +93,7 @@ function readJsonWithRecovery(filePath) {</span>
+<span class="dl-ctx">   // Corrupt: preserve the broken file aside before anything can overwrite it.</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-ctx">     fs.renameSync(filePath, `${filePath}.corrupt-${Date.now()}`);</span>
+<span class="dl-add">+    noteRecovery(&#39;state.corrupt_preserved&#39;, { path: path.basename(filePath) });</span>
+<span class="dl-ctx">   } catch (err) {</span>
+<span class="dl-ctx">     // Can&#39;t move it — leave it in place; we still must not clobber it, but</span>
+<span class="dl-ctx">     // that&#39;s now the caller&#39;s save path writing over a file we failed to</span>
+<span class="dl-hunk">@@ -92,8 +106,10 @@ function readJsonWithRecovery(filePath) {</span>
+<span class="dl-ctx">     // Restore the good copy as the live file (the corrupt one is gone, so</span>
+<span class="dl-ctx">     // this cannot overwrite the .bak with garbage).</span>
+<span class="dl-ctx">     writeFileAtomic(filePath, bakRaw);</span>
+<span class="dl-add">+    noteRecovery(&#39;state.recovered&#39;, { path: path.basename(filePath), source: &#39;bak&#39; });</span>
+<span class="dl-ctx">     return { data, source: &#39;bak&#39;, error: parseError };</span>
+<span class="dl-ctx">   } catch (err) {</span>
+<span class="dl-add">+    noteRecovery(&#39;state.recovered&#39;, { path: path.basename(filePath), source: &#39;none&#39; });</span>
+<span class="dl-ctx">     return { data: null, source: null, error: parseError };</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-meta">diff --git a/src/main/pollGate.js b/src/main/pollGate.js</span>
+<span class="dl-meta">index 14cf8b2..86d3185 100644</span>
+<span class="dl-file">--- a/src/main/pollGate.js</span>
+<span class="dl-file">+++ b/src/main/pollGate.js</span>
+<span class="dl-hunk">@@ -14,6 +14,16 @@</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const { app, BrowserWindow } = require(&#39;electron&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// Lazily required: pollGate is wired during early boot and must not drag the</span>
+<span class="dl-add">+// activity layer into its require order.</span>
+<span class="dl-add">+function notePause() {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    require(&#39;./activityLog&#39;).record(&#39;poll.skipped&#39;, { reason: &#39;window-hidden&#39; });</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    /* a paused timer is never worth an exception */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> const gates = new Set();</span>
+<span class="dl-ctx"> let wired = false;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -77,6 +87,11 @@ function gatedInterval(fn, ms, { refreshOnShow = true } = {}) {</span>
+<span class="dl-ctx">       } else if (!visible &amp;&amp; timer) {</span>
+<span class="dl-ctx">         clearInterval(timer);</span>
+<span class="dl-ctx">         timer = null;</span>
+<span class="dl-add">+        // &quot;Hidden window means zero timer wakeups&quot; was a claim with nothing</span>
+<span class="dl-add">+        // behind it. Each gate pausing records one suppression; identical</span>
+<span class="dl-add">+        // records inside the aggregation window collapse into a single row</span>
+<span class="dl-add">+        // carrying the count, so a four-poller pause reads as one line ×4.</span>
+<span class="dl-add">+        notePause();</span>
+<span class="dl-ctx">       }</span>
+<span class="dl-ctx">     },</span>
+<span class="dl-ctx">     dispose() {</span>
+<span class="dl-meta">diff --git a/src/shared/activityEvents.js b/src/shared/activityEvents.js</span>
+<span class="dl-meta">index e0f6097..2c5aa48 100644</span>
+<span class="dl-file">--- a/src/shared/activityEvents.js</span>
+<span class="dl-file">+++ b/src/shared/activityEvents.js</span>
+<span class="dl-hunk">@@ -147,7 +147,14 @@ const EVENTS = {</span>
+<span class="dl-ctx">   &#39;poll.skipped&#39;: {</span>
+<span class="dl-ctx">     kind: &#39;suppression&#39;,</span>
+<span class="dl-ctx">     fields: { poller: enumOf(POLLERS), reason: enumOf([&#39;window-hidden&#39;]), repeats: REPEATS },</span>
+<span class="dl-del">-    label: (r) =&gt; `${POLLER_TEXT[r.poller] || r.poller} paused while the window is hidden`</span>
+<span class="dl-add">+    // `poller` is optional: pollGate pauses gates without knowing which</span>
+<span class="dl-add">+    // caller owns each one, and teaching it would mean editing four modules</span>
+<span class="dl-add">+    // outside this spec&#39;s footprint. The aggregated count carries the</span>
+<span class="dl-add">+    // information that matters — how many polls actually stopped.</span>
+<span class="dl-add">+    label: (r) =&gt;</span>
+<span class="dl-add">+      r.poller</span>
+<span class="dl-add">+        ? `${POLLER_TEXT[r.poller] || r.poller} paused while the window is hidden`</span>
+<span class="dl-add">+        : &#39;Background polling paused while the window is hidden&#39;</span>
+<span class="dl-ctx">   },</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // ─── scripts running outside Frame&#39;s process ────────────</span>
+<span class="dl-meta">diff --git a/test/fsSafe.test.js b/test/fsSafe.test.js</span>
+<span class="dl-meta">index fd8c8a3..db0d6c4 100644</span>
+<span class="dl-file">--- a/test/fsSafe.test.js</span>
+<span class="dl-file">+++ b/test/fsSafe.test.js</span>
+<span class="dl-hunk">@@ -127,3 +127,57 @@ test(&#39;safeWatch attaches an error handler: watcher error does not throw, onError</span>
+<span class="dl-ctx"> test(&#39;safeWatch still throws synchronously for a missing target (call-site contract)&#39;, () =&gt; {</span>
+<span class="dl-ctx">   assert.throws(() =&gt; safeWatch(path.join(dir, &#39;does-not-exist&#39;), null, () =&gt; {}));</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── recovery is recorded, not silent ─────────────────────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// A corrupt state file is moved aside and the .bak restored without the user</span>
+<span class="dl-add">+// ever knowing. That self-healing is exactly the kind of invisible work the</span>
+<span class="dl-add">+// activity record exists to surface.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;corruption recovery records both the preserved copy and the restore&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const activityHome = path.join(dir, &#39;activity-home&#39;);</span>
+<span class="dl-add">+  const prev = process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+  process.env.FRAME_ACTIVITY_HOME = activityHome;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const activityLog = require(&#39;../scripts/activity-log&#39;);</span>
+<span class="dl-add">+    const file = path.join(dir, &#39;recorded-state.json&#39;);</span>
+<span class="dl-add">+    writeFileAtomic(file, JSON.stringify({ good: true }));</span>
+<span class="dl-add">+    writeFileAtomic(file, JSON.stringify({ good: &#39;second&#39; })); // now a .bak exists</span>
+<span class="dl-add">+    fs.writeFileSync(file, &#39;{ not json&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const result = readJsonWithRecovery(file);</span>
+<span class="dl-add">+    assert.equal(result.source, &#39;bak&#39;, &#39;the .bak is still what gets restored&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // The record is appended asynchronously on purpose — sync filesystem work</span>
+<span class="dl-add">+    // on a recovery path would sit inside the standing perf budget.</span>
+<span class="dl-add">+    await new Promise((resolve) =&gt; setTimeout(resolve, 30));</span>
+<span class="dl-add">+    const records = activityLog.readRecent(activityLog.projectKey(null), 50);</span>
+<span class="dl-add">+    const preserved = records.find((r) =&gt; r.ev === &#39;state.corrupt_preserved&#39;);</span>
+<span class="dl-add">+    const recovered = records.find((r) =&gt; r.ev === &#39;state.recovered&#39;);</span>
+<span class="dl-add">+    assert.ok(preserved, &#39;preserving the corrupt copy is recorded&#39;);</span>
+<span class="dl-add">+    assert.equal(preserved.path, &#39;recorded-state.json&#39;, &#39;basename only — no home path in the record&#39;);</span>
+<span class="dl-add">+    assert.ok(recovered, &#39;the restore is recorded&#39;);</span>
+<span class="dl-add">+    assert.equal(recovered.source, &#39;bak&#39;);</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    if (prev === undefined) delete process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+    else process.env.FRAME_ACTIVITY_HOME = prev;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;recovery still works when the activity record cannot be written&#39;, () =&gt; {</span>
+<span class="dl-add">+  const blocked = path.join(dir, &#39;blocked-activity&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(blocked, &#39;not a directory&#39;);</span>
+<span class="dl-add">+  const prev = process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+  process.env.FRAME_ACTIVITY_HOME = blocked;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const file = path.join(dir, &#39;unrecorded-state.json&#39;);</span>
+<span class="dl-add">+    writeFileAtomic(file, JSON.stringify({ v: 1 }));</span>
+<span class="dl-add">+    writeFileAtomic(file, JSON.stringify({ v: 2 }));</span>
+<span class="dl-add">+    fs.writeFileSync(file, &#39;broken{&#39;);</span>
+<span class="dl-add">+    const result = readJsonWithRecovery(file);</span>
+<span class="dl-add">+    assert.equal(result.source, &#39;bak&#39;, &#39;an unwritable record never costs a recovery&#39;);</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    if (prev === undefined) delete process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+    else process.env.FRAME_ACTIVITY_HOME = prev;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span></pre>
     </details>
   </div>
 </section>

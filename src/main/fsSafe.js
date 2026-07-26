@@ -15,6 +15,7 @@
  */
 
 const fs = require('fs');
+const path = require('path');
 
 /**
  * Atomically replace `filePath` with `data`.
@@ -61,6 +62,18 @@ function writeFileAtomic(filePath, data) {
  *         original is already safe aside, so a caller that falls back to a
  *         default can save without destroying recoverable data.
  */
+// Recovery is silent self-healing: a corrupt state file is moved aside and
+// the .bak restored without the user ever knowing it happened. Recorded so
+// the panel can show it. Lazily required — fsSafe is loaded very early and
+// must not pull the activity layer into its own require cycle.
+function noteRecovery(ev, fields) {
+  try {
+    require('./activityLog').record(ev, fields);
+  } catch {
+    /* never let bookkeeping break a state read */
+  }
+}
+
 function readJsonWithRecovery(filePath) {
   let raw;
   try {
@@ -80,6 +93,7 @@ function readJsonWithRecovery(filePath) {
   // Corrupt: preserve the broken file aside before anything can overwrite it.
   try {
     fs.renameSync(filePath, `${filePath}.corrupt-${Date.now()}`);
+    noteRecovery('state.corrupt_preserved', { path: path.basename(filePath) });
   } catch (err) {
     // Can't move it — leave it in place; we still must not clobber it, but
     // that's now the caller's save path writing over a file we failed to
@@ -92,8 +106,10 @@ function readJsonWithRecovery(filePath) {
     // Restore the good copy as the live file (the corrupt one is gone, so
     // this cannot overwrite the .bak with garbage).
     writeFileAtomic(filePath, bakRaw);
+    noteRecovery('state.recovered', { path: path.basename(filePath), source: 'bak' });
     return { data, source: 'bak', error: parseError };
   } catch (err) {
+    noteRecovery('state.recovered', { path: path.basename(filePath), source: 'none' });
     return { data: null, source: null, error: parseError };
   }
 }
