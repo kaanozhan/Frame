@@ -3505,33 +3505,6 @@
         "emits": []
       }
     },
-    "renderer/activityRail": {
-      "file": "src/renderer/activityRail.js",
-      "description": "Instrument Rail",
-      "exports": [
-        "init",
-        "render"
-      ],
-      "depends": [
-        "lucide",
-        "activityPanel"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 27,
-          "params": [
-            "data",
-            "size = 15"
-          ]
-        },
-        "render": {
-          "line": 52
-        },
-        "init": {
-          "line": 60
-        }
-      }
-    },
     "renderer/agentDispatch": {
       "file": "src/renderer/agentDispatch.js",
       "description": "Agent Dispatch Module",
@@ -4843,7 +4816,7 @@
         "githubPanel",
         "promptsPanel",
         "activityPanel",
-        "activityRail",
+        "instrumentRail",
         "specPanel",
         "specPanelResize",
         "specsDashboard",
@@ -4875,30 +4848,30 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 240,
+          "line": 245,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 298,
+          "line": 303,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 387,
+          "line": 392,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 418,
+          "line": 423,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 444,
+          "line": 449,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 716,
+          "line": 721,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -4910,6 +4883,72 @@
         "emits": [
           "REFRESH_GIT_STATUS"
         ]
+      }
+    },
+    "renderer/instrumentRail": {
+      "file": "src/renderer/instrumentRail.js",
+      "description": "Instrument Rail",
+      "exports": [
+        "init",
+        "render"
+      ],
+      "depends": [
+        "lucide",
+        "activityPanel",
+        "specsDashboard",
+        "tasksDashboard",
+        "pluginsPanel",
+        "githubPanel",
+        "promptsPanel"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 55,
+          "params": [
+            "data",
+            "size = 15"
+          ]
+        },
+        "readExpanded": {
+          "line": 67
+        },
+        "writeExpanded": {
+          "line": 75,
+          "params": [
+            "value"
+          ]
+        },
+        "safeCall": {
+          "line": 83,
+          "params": [
+            "fn"
+          ]
+        },
+        "itemHtml": {
+          "line": 139,
+          "params": [
+            "item"
+          ]
+        },
+        "currentTheme": {
+          "line": 152
+        },
+        "toggleTheme": {
+          "line": 156
+        },
+        "footerHtml": {
+          "line": 167,
+          "purpose": "The rail's bottom cluster: settings-ish controls, not destinations."
+        },
+        "render": {
+          "line": 180
+        },
+        "init": {
+          "line": 189,
+          "params": [
+            "options"
+          ]
+        }
       }
     },
     "renderer/laneBoard": {
@@ -8050,18 +8089,13 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "tasksDashboard",
-        "pluginsPanel",
-        "githubPanel",
-        "promptsPanel",
-        "specsDashboard",
         "lucide",
         "htmlUtils",
         "notify"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 24,
+          "line": 19,
           "params": [
             "data",
             "size = 18"
@@ -9587,11 +9621,6 @@
         "description": "Activity Panel"
       },
       {
-        "module": "renderer/activityRail",
-        "file": "src/renderer/activityRail.js",
-        "description": "Instrument Rail"
-      },
-      {
         "module": "shared/activityEvents",
         "file": "src/shared/activityEvents.js",
         "description": "Activity events — pure policy module."
@@ -9918,8 +9947,8 @@
     ],
     "rail": [
       {
-        "module": "renderer/activityRail",
-        "file": "src/renderer/activityRail.js",
+        "module": "renderer/instrumentRail",
+        "file": "src/renderer/instrumentRail.js",
         "description": "Instrument Rail"
       },
       {

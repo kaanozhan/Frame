@@ -217,3 +217,54 @@
   background: var(--bg-primary);
   border-color: var(--border-subtle);
 }
+
+/* Expanded: wide enough for the names and nothing more. This is a rail with
+   labels, never a panel — it must not grow content. */
+.instrument-rail.expanded {
+  width: 164px;
+  align-items: stretch;
+}
+
+.instrument-rail.expanded .instrument-rail-btn {
+  width: 100%;
+  justify-content: flex-start;
+  gap: var(--space-sm);
+  padding: 0 8px;
+}
+
+.instrument-rail-label {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.instrument-rail-items {
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  gap: 4px;
+  width: 100%;
+}
+
+/* Activity is an observation tool, not a destination — the separator keeps
+   that distinction visible. */
+.instrument-rail-sep {
+  height: 1px;
+  width: 60%;
+  align-self: center;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+
+/* Controls, not destinations: pinned to the bottom. */
+.instrument-rail-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  gap: 4px;
+  width: 100%;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+}

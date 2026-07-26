@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-26T14:42:30.737Z",
+  "lastUpdated": "2026-07-26T15:47:47.793Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4248,6 +4248,18 @@
       "createdAt": "2026-07-26T14:42:30.736Z",
       "updatedAt": "2026-07-26T15:32:42.640Z",
       "completedAt": "2026-07-26T15:32:42.640Z"
+    },
+    {
+      "id": "task-instrument-rail-migration",
+      "title": "Move the six overflow-menu destinations and the theme toggle into the instrument rail, with an expand-to-labels state",
+      "description": "Retires the ⋯ menu in terminalTabBar entirely: Specs, Tasks, Claude, GitHub, Prompts and Overview become rail items, the theme toggle joins the rail footer, and the rail expands to ~164px to show names (persisted in localStorage).",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "createdAt": "2026-07-26T15:47:47.793Z",
+      "updatedAt": "2026-07-26T15:47:47.793Z",
+      "completedAt": "2026-07-26T15:47:47.793Z",
+      "context": "Follow-on to spec: activity-monitor (deferred there as its own work)"
     }
   ],
   "metadata": {
