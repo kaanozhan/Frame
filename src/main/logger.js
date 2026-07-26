@@ -8,50 +8,16 @@
  * (main.old.1.log … main.old.3.log). Location is documented in PRIVACY.md.
  *
  * Usage: logger.info('scopeName', 'message', err)
- * redact() is exported for writers that persist outside this logger
- * (promptLogger).
+ * redact() is re-exported for writers that persist outside this logger
+ * (promptLogger); it is defined in scripts/redact.js so the .frame/bin/
+ * scripts share the same patterns.
  */
 
-const REDACT_REPLACEMENT = '[REDACTED]';
-
-// Value-shaped secrets: recognizable token formats.
-const TOKEN_PATTERNS = [
-  /\bsk-[A-Za-z0-9_-]{10,}\b/g, // OpenAI / Anthropic style API keys (sk-…, sk-ant-…)
-  /\bgh[pousr]_[A-Za-z0-9]{20,}\b/g, // GitHub tokens (ghp_, gho_, ghu_, ghs_, ghr_)
-  /\bgithub_pat_[A-Za-z0-9_]{20,}\b/g, // GitHub fine-grained PATs
-  /\bAKIA[0-9A-Z]{16}\b/g, // AWS access key ids
-  /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g, // Slack tokens
-  /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}\b/g, // JWTs
-  /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/gi // Authorization: Bearer …
-];
-
-// Key=value / key: value pairs with a secret-ish key. Keeps the key, drops
-// the value.
-const KEYED_PATTERN =
-  /\b(password|passwd|pwd|secret|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key|client[_-]?secret|auth)(\s*[=:]\s*)(["']?)[^\s"'&;]{4,}\3/gi;
-
-function redact(text) {
-  if (typeof text !== 'string' || text.length === 0) return text;
-  let out = text;
-  for (const re of TOKEN_PATTERNS) {
-    out = out.replace(re, REDACT_REPLACEMENT);
-  }
-  out = out.replace(KEYED_PATTERN, (m, key, sep, quote) => `${key}${sep}${quote}${REDACT_REPLACEMENT}${quote}`);
-  return out;
-}
-
-function redactValue(value) {
-  if (typeof value === 'string') return redact(value);
-  if (value instanceof Error) {
-    // Redact in place is unsafe (shared object) — clone the visible fields.
-    const clone = new Error(redact(value.message));
-    clone.name = value.name;
-    clone.stack = redact(value.stack || '');
-    if (value.code) clone.code = value.code;
-    return clone;
-  }
-  return value;
-}
+// The patterns live in scripts/redact.js so the `.frame/bin/` scripts — which
+// run in their own processes and cannot reach src/main/ — share this exact
+// copy instead of carrying a second one that would drift. Re-exported below,
+// so this module's public API is unchanged.
+const { redact, redactValue } = require('../../scripts/redact');
 
 // electron-log is loaded lazily so this module (and redact()) stays usable
 // from plain node — tests, scripts.

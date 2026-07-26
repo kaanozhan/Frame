@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-23",
+  "lastUpdated": "2026-07-26",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -1275,40 +1275,29 @@
         "getLogPath"
       ],
       "depends": [
+        "../scripts/redact",
         "electron-log/main",
         "fs"
       ],
       "functions": {
-        "redact": {
-          "line": 33,
-          "params": [
-            "text"
-          ]
-        },
-        "redactValue": {
-          "line": 43,
-          "params": [
-            "value"
-          ]
-        },
         "init": {
-          "line": 61
+          "line": 27
         },
         "rotateArchives": {
-          "line": 84,
+          "line": 50,
           "params": [
             "oldLogFile"
           ],
           "purpose": "Keep 3 archives: main.log → main.old.1.log → main.old.2.log → main.old.3.log"
         },
         "scoped": {
-          "line": 101,
+          "line": 67,
           "params": [
             "scope"
           ]
         },
         "emit": {
-          "line": 108,
+          "line": 74,
           "params": [
             "level",
             "scope",
@@ -1317,28 +1306,28 @@
           "purpose": "Pre-init calls fall back to console so early failures aren't lost."
         },
         "info": {
-          "line": 118,
+          "line": 84,
           "params": [
             "scope",
             "...args"
           ]
         },
         "warn": {
-          "line": 122,
+          "line": 88,
           "params": [
             "scope",
             "...args"
           ]
         },
         "error": {
-          "line": 126,
+          "line": 92,
           "params": [
             "scope",
             "...args"
           ]
         },
         "getLogPath": {
-          "line": 130
+          "line": 96
         }
       }
     },

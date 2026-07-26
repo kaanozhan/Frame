@@ -1,0 +1,20 @@
+{
+  "spec": {
+    "slug": "activity-monitor",
+    "title": "Activity Monitor — record and surface the work Frame does on its own"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Extract redact() into scripts/redact.js and re-export from logger.js",
+      "commit": "d379b7e",
+      "whatChanged": "New scripts/redact.js holds the token patterns and the keyed-secret pattern; src/main/logger.js requires and re-exports them; test/logger.test.js targets the new home and pins logger's public key set.",
+      "whyChanged": "The .frame/bin/ scripts run out-of-process and cannot require src/main/, so the append helper would otherwise need its own copy of the regexes. One shared file is the only option that leaves exactly one copy of a security-relevant pattern set.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "175/175 tests pass"
+      }
+    }
+  ]
+}

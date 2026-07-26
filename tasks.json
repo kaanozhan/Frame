@@ -4111,13 +4111,13 @@
       "title": "Extract `redact()` from `src/main/logger.js` into `scripts/redact.js`, require and re-export it from `logger.js` so its public API is unchanged, and move the redaction coverage into `test/logger.test.js`.",
       "description": "",
       "source": "spec:activity-monitor:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T14:55:57.350Z",
+      "completedAt": "2026-07-26T14:55:57.350Z"
     },
     {
       "id": "task-spec-activity-monitor-T02",

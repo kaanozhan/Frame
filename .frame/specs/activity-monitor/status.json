@@ -1,7 +1,7 @@
 {
   "slug": "activity-monitor",
   "title": "Activity Monitor — record and surface the work Frame does on its own",
-  "phase": "tasks_generated",
+  "phase": "implementing",
   "ai_tool": "claude-code",
   "generated_task_ids": [
     "task-spec-activity-monitor-T01",
@@ -17,6 +17,7 @@
     "task-spec-activity-monitor-T11"
   ],
   "created_at": "2026-07-26T00:00:00.000Z",
-  "updated_at": "2026-07-26T14:42:35.224Z",
-  "last_phase_at": "2026-07-26T14:42:35.224Z"
+  "updated_at": "2026-07-26T14:55:57.648Z",
+  "last_phase_at": "2026-07-26T14:55:57.648Z",
+  "implement_mode": "guided"
 }
