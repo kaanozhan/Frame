@@ -158,3 +158,18 @@ file for the rail.
 _Captured: 2026-07-26 · 6 file change(s)_
 
 ---
+
+## T10 — The instrument rail
+
+Added `src/renderer/activityRail.js` and `#instrument-rail` as the last flex
+child of `#main-content`, so it sits at the outer edge and panels open
+inboard of it — a rail that slides sideways on every panel toggle cannot
+build muscle memory. Styled in `components/activity.css` against the
+existing `.lane-rail-strip-btn` treatment rather than a new idiom, present in
+every view mode with Activity as its only item. The items array is shaped
+like `terminalTabBar`'s overflow-menu array so the follow-up migration of
+the other six destinations is a move, not a rewrite.
+
+_Captured: 2026-07-26 · 4 file change(s)_
+
+---

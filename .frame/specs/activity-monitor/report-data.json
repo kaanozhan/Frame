@@ -111,6 +111,18 @@
         "status": "pass",
         "detail": "212/212 tests pass; renderer bundle builds"
       }
+    },
+    {
+      "id": "T10",
+      "title": "Add the fixed right-edge instrument rail",
+      "commit": "1733708",
+      "whatChanged": "New src/renderer/activityRail.js, #instrument-rail as the last flex child in index.html, rail styles appended to components/activity.css, wired in src/renderer/index.js.",
+      "whyChanged": "Placed at the outer edge rather than between terminal and panel, which was the original proposal: as a flex sibling the rail would shift horizontally on every panel toggle, and a landmark that moves is not a landmark.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass; renderer bundle builds"
+      }
     }
   ]
 }

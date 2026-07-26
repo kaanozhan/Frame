@@ -4228,13 +4228,13 @@
       "title": "Add `src/renderer/activityRail.js` and its container as the last flex child of `#main-content`, styled in `src/renderer/styles/components/activity.css` (imported from `src/renderer/styles/main.css`) against the existing `.lane-rail-strip-btn` treatment, wired in `src/renderer/index.js`, present in every view mode with Activity as its only item.",
       "description": "",
       "source": "spec:activity-monitor:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:31:33.928Z",
+      "completedAt": "2026-07-26T15:31:33.928Z"
     },
     {
       "id": "task-spec-activity-monitor-T11",

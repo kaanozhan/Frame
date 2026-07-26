@@ -174,3 +174,46 @@
   font-size: 12px;
   line-height: 1.6;
 }
+
+/* ==================== INSTRUMENT RAIL ====================
+   The last flex child of #main-content: fixed at the outer edge, panels
+   open inboard of it. Buttons reuse the .lane-rail-strip-btn treatment
+   (secondary at rest, primary on hover) so the rail is the existing idiom
+   rather than a new one. */
+
+.instrument-rail {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-sm) 6px;
+  background: var(--bg-deep);
+  border-left: 1px solid var(--border-subtle);
+}
+
+.instrument-rail-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.instrument-rail-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.instrument-rail-btn.active {
+  color: var(--accent, var(--text-primary));
+  background: var(--bg-primary);
+  border-color: var(--border-subtle);
+}

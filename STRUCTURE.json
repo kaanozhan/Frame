@@ -3505,6 +3505,33 @@
         "emits": []
       }
     },
+    "renderer/activityRail": {
+      "file": "src/renderer/activityRail.js",
+      "description": "Instrument Rail",
+      "exports": [
+        "init",
+        "render"
+      ],
+      "depends": [
+        "lucide",
+        "activityPanel"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 27,
+          "params": [
+            "data",
+            "size = 15"
+          ]
+        },
+        "render": {
+          "line": 52
+        },
+        "init": {
+          "line": 60
+        }
+      }
+    },
     "renderer/agentDispatch": {
       "file": "src/renderer/agentDispatch.js",
       "description": "Agent Dispatch Module",
@@ -4816,6 +4843,7 @@
         "githubPanel",
         "promptsPanel",
         "activityPanel",
+        "activityRail",
         "specPanel",
         "specPanelResize",
         "specsDashboard",
@@ -4843,34 +4871,34 @@
       ],
       "functions": {
         "init": {
-          "line": 48,
+          "line": 49,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 238,
+          "line": 240,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 296,
+          "line": 298,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 385,
+          "line": 387,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 416,
+          "line": 418,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 442,
+          "line": 444,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 714,
+          "line": 716,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -9559,6 +9587,11 @@
         "description": "Activity Panel"
       },
       {
+        "module": "renderer/activityRail",
+        "file": "src/renderer/activityRail.js",
+        "description": "Instrument Rail"
+      },
+      {
         "module": "shared/activityEvents",
         "file": "src/shared/activityEvents.js",
         "description": "Activity events — pure policy module."
@@ -9881,6 +9914,18 @@
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
+      }
+    ],
+    "rail": [
+      {
+        "module": "renderer/activityRail",
+        "file": "src/renderer/activityRail.js",
+        "description": "Instrument Rail"
+      },
+      {
+        "module": "renderer/sectionRail",
+        "file": "src/renderer/sectionRail.js",
+        "description": "Section Rail Module"
       }
     ],
     "section": [

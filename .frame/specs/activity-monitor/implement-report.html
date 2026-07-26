@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">9 tasks</span>
-    <span class="pill good">9 verified</span>
+    <span class="pill">10 tasks</span>
+    <span class="pill good">10 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">9 of 11 tasks done · next: <span class="rs-task">T10 — Add `src/renderer/activityRail.js` and its container as the last flex…</span></span>
+  <span class="rs-count">10 of 11 tasks done · next: <span class="rs-task">T11 — Document the record in `PRIVACY.md` — location, contents, and that it…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -3175,6 +3175,192 @@
 <span class="dl-ctx"> };</span>
 <span class="dl-ctx"> </span>
 <span class="dl-ctx"> module.exports = { IPC };</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T10</span>
+    <h2>Add the fixed right-edge instrument rail</h2>
+    <span class="card-meta"><span class="chip">1733708</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">212/212 tests pass; renderer bundle builds</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>New src/renderer/activityRail.js, #instrument-rail as the last flex child in index.html, rail styles appended to components/activity.css, wired in src/renderer/index.js.</p></div>
+    <div class="field"><span class="label">Why</span><p>Placed at the outer edge rather than between terminal and panel, which was the original proposal: as a flex sibling the rail would shift horizontally on every panel toggle, and a landmark that moves is not a landmark.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/index.html b/index.html</span>
+<span class="dl-meta">index 1a75452..efd073e 100644</span>
+<span class="dl-file">--- a/index.html</span>
+<span class="dl-file">+++ b/index.html</span>
+<span class="dl-hunk">@@ -509,6 +509,11 @@</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">     &lt;/div&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+    &lt;!-- Instrument rail: last flex child of #main-content, so it sits at the</span>
+<span class="dl-add">+         outer edge and panels open inboard of it. A rail that shifts when a</span>
+<span class="dl-add">+         panel toggles stops being a landmark. --&gt;</span>
+<span class="dl-add">+    &lt;nav id=&quot;instrument-rail&quot; class=&quot;instrument-rail&quot; aria-label=&quot;Frame instruments&quot;&gt;&lt;/nav&gt;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">     &lt;!-- Command Palette --&gt;</span>
+<span class="dl-ctx">     &lt;div id=&quot;command-palette-overlay&quot; class=&quot;command-palette-overlay&quot;&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;command-palette&quot; role=&quot;dialog&quot; aria-label=&quot;Command Palette&quot;&gt;</span>
+<span class="dl-meta">diff --git a/src/renderer/activityRail.js b/src/renderer/activityRail.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..38e176a</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/renderer/activityRail.js</span>
+<span class="dl-hunk">@@ -0,0 +1,78 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Instrument Rail</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * A fixed column of icons at the app&#39;s outer edge — the last flex child of</span>
+<span class="dl-add">+ * `#main-content`, so panels open inboard of it and the rail itself never</span>
+<span class="dl-add">+ * moves. That fixity is the whole point: a landmark that slides sideways</span>
+<span class="dl-add">+ * every time a panel toggles cannot build muscle memory, which is why</span>
+<span class="dl-add">+ * activity bars live on the outermost edge.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The semantic split it establishes: the left sidebar rail is the *project&#39;s</span>
+<span class="dl-add">+ * content* (projects, files, changes, agent); this rail is *Frame&#39;s own</span>
+<span class="dl-add">+ * instruments*. Today Activity is the only item. The six destinations still</span>
+<span class="dl-add">+ * behind the `⋯` overflow menu in terminalTabBar.js belong here too, but</span>
+<span class="dl-add">+ * moving them touches five panel modules at once and is its own spec — the</span>
+<span class="dl-add">+ * rail is built to host them, not to hold them yet.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Visual idiom is the existing `.lane-rail-strip-btn` treatment (laneRail.js,</span>
+<span class="dl-add">+ * laneDetailRail.js, sectionRail.js), not a new one.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { Activity } = require(&#39;lucide&#39;);</span>
+<span class="dl-add">+const activityPanel = require(&#39;./activityPanel&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let railEl = null;</span>
+<span class="dl-add">+let initialized = false;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function lucideIcon(data, size = 15) {</span>
+<span class="dl-add">+  const children = data</span>
+<span class="dl-add">+    .map(([tag, attrs]) =&gt; {</span>
+<span class="dl-add">+      const attrStr = Object.entries(attrs)</span>
+<span class="dl-add">+        .map(([k, v]) =&gt; `${k}=&quot;${v}&quot;`)</span>
+<span class="dl-add">+        .join(&#39; &#39;);</span>
+<span class="dl-add">+      return `&lt;${tag} ${attrStr}/&gt;`;</span>
+<span class="dl-add">+    })</span>
+<span class="dl-add">+    .join(&#39;&#39;);</span>
+<span class="dl-add">+  return `&lt;svg width=&quot;${size}&quot; height=&quot;${size}&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot; style=&quot;display:block;flex-shrink:0&quot;&gt;${children}&lt;/svg&gt;`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// One entry per instrument. Shaped like terminalTabBar&#39;s overflow-menu array</span>
+<span class="dl-add">+// so the migration in the follow-up spec is a move, not a rewrite.</span>
+<span class="dl-add">+const ITEMS = [</span>
+<span class="dl-add">+  {</span>
+<span class="dl-add">+    key: &#39;activity&#39;,</span>
+<span class="dl-add">+    label: &#39;Activity&#39;,</span>
+<span class="dl-add">+    title: &#39;Activity — what Frame is doing on its own&#39;,</span>
+<span class="dl-add">+    icon: () =&gt; lucideIcon(Activity),</span>
+<span class="dl-add">+    action: () =&gt; activityPanel.toggle(),</span>
+<span class="dl-add">+    isActive: () =&gt; activityPanel.isVisible()</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function render() {</span>
+<span class="dl-add">+  if (!railEl) return;</span>
+<span class="dl-add">+  railEl.innerHTML = ITEMS.map(</span>
+<span class="dl-add">+    (item) =&gt;</span>
+<span class="dl-add">+      `&lt;button type=&quot;button&quot; class=&quot;instrument-rail-btn${item.isActive() ? &#39; active&#39; : &#39;&#39;}&quot; data-instrument=&quot;${item.key}&quot; title=&quot;${item.title}&quot; aria-label=&quot;${item.label}&quot; tabindex=&quot;-1&quot;&gt;${item.icon()}&lt;/button&gt;`</span>
+<span class="dl-add">+  ).join(&#39;&#39;);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function init() {</span>
+<span class="dl-add">+  if (initialized) return;</span>
+<span class="dl-add">+  railEl = document.getElementById(&#39;instrument-rail&#39;);</span>
+<span class="dl-add">+  if (!railEl) return;</span>
+<span class="dl-add">+  initialized = true;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  railEl.addEventListener(&#39;click&#39;, (e) =&gt; {</span>
+<span class="dl-add">+    const btn = e.target.closest(&#39;[data-instrument]&#39;);</span>
+<span class="dl-add">+    if (!btn) return;</span>
+<span class="dl-add">+    const item = ITEMS.find((i) =&gt; i.key === btn.dataset.instrument);</span>
+<span class="dl-add">+    if (!item) return;</span>
+<span class="dl-add">+    item.action();</span>
+<span class="dl-add">+    render(); // reflect the new open/closed state on the icon</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  render();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = { init, render };</span>
+<span class="dl-meta">diff --git a/src/renderer/index.js b/src/renderer/index.js</span>
+<span class="dl-meta">index 5c79689..19b8e08 100644</span>
+<span class="dl-file">--- a/src/renderer/index.js</span>
+<span class="dl-file">+++ b/src/renderer/index.js</span>
+<span class="dl-hunk">@@ -19,6 +19,7 @@ const pluginsPanel = require(&#39;./pluginsPanel&#39;);</span>
+<span class="dl-ctx"> const githubPanel = require(&#39;./githubPanel&#39;);</span>
+<span class="dl-ctx"> const promptsPanel = require(&#39;./promptsPanel&#39;);</span>
+<span class="dl-ctx"> const activityPanel = require(&#39;./activityPanel&#39;);</span>
+<span class="dl-add">+const activityRail = require(&#39;./activityRail&#39;);</span>
+<span class="dl-ctx"> const specPanel = require(&#39;./specPanel&#39;);</span>
+<span class="dl-ctx"> const specPanelResize = require(&#39;./specPanelResize&#39;);</span>
+<span class="dl-ctx"> const specsDashboard = require(&#39;./specsDashboard&#39;);</span>
+<span class="dl-hunk">@@ -149,6 +150,7 @@ function init() {</span>
+<span class="dl-ctx">   // Initialize prompts panel</span>
+<span class="dl-ctx">   promptsPanel.init();</span>
+<span class="dl-ctx">   activityPanel.init();</span>
+<span class="dl-add">+  activityRail.init();</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Initialize specs panel (spec-driven development)</span>
+<span class="dl-ctx">   specPanel.init();</span>
+<span class="dl-meta">diff --git a/src/renderer/styles/components/activity.css b/src/renderer/styles/components/activity.css</span>
+<span class="dl-meta">index 5710ef8..80b6234 100644</span>
+<span class="dl-file">--- a/src/renderer/styles/components/activity.css</span>
+<span class="dl-file">+++ b/src/renderer/styles/components/activity.css</span>
+<span class="dl-hunk">@@ -174,3 +174,46 @@</span>
+<span class="dl-ctx">   font-size: 12px;</span>
+<span class="dl-ctx">   line-height: 1.6;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* ==================== INSTRUMENT RAIL ====================</span>
+<span class="dl-add">+   The last flex child of #main-content: fixed at the outer edge, panels</span>
+<span class="dl-add">+   open inboard of it. Buttons reuse the .lane-rail-strip-btn treatment</span>
+<span class="dl-add">+   (secondary at rest, primary on hover) so the rail is the existing idiom</span>
+<span class="dl-add">+   rather than a new one. */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.instrument-rail {</span>
+<span class="dl-add">+  flex: 0 0 auto;</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  flex-direction: column;</span>
+<span class="dl-add">+  align-items: center;</span>
+<span class="dl-add">+  gap: 4px;</span>
+<span class="dl-add">+  padding: var(--space-sm) 6px;</span>
+<span class="dl-add">+  background: var(--bg-deep);</span>
+<span class="dl-add">+  border-left: 1px solid var(--border-subtle);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.instrument-rail-btn {</span>
+<span class="dl-add">+  width: 32px;</span>
+<span class="dl-add">+  height: 32px;</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  align-items: center;</span>
+<span class="dl-add">+  justify-content: center;</span>
+<span class="dl-add">+  padding: 0;</span>
+<span class="dl-add">+  border: 1px solid transparent;</span>
+<span class="dl-add">+  border-radius: var(--radius-md);</span>
+<span class="dl-add">+  background: none;</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+  transition: color var(--transition-fast), background var(--transition-fast);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.instrument-rail-btn:hover {</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+  background: var(--bg-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.instrument-rail-btn.active {</span>
+<span class="dl-add">+  color: var(--accent, var(--text-primary));</span>
+<span class="dl-add">+  background: var(--bg-primary);</span>
+<span class="dl-add">+  border-color: var(--border-subtle);</span>
+<span class="dl-add">+}</span></pre>
     </details>
   </div>
 </section>
