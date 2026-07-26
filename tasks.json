@@ -4163,13 +4163,13 @@
       "title": "Instrument all eleven quiet paths in `scripts/spec-hint.js` with distinct reason codes behind a guarded require that degrades to today's behavior when the helper is absent, preserving the never-block contract, and extend `test/spec-hint.test.js` to cover every reason code plus the never-break set.",
       "description": "",
       "source": "spec:activity-monitor:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:17:15.118Z",
+      "completedAt": "2026-07-26T15:17:15.118Z"
     },
     {
       "id": "task-spec-activity-monitor-T06",

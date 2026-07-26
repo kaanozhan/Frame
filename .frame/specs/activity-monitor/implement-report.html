@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">4 tasks</span>
-    <span class="pill good">4 verified</span>
+    <span class="pill">5 tasks</span>
+    <span class="pill good">5 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">4 of 11 tasks done · next: <span class="rs-task">T05 — Instrument all eleven quiet paths in `scripts/spec-hint.js` with…</span></span>
+  <span class="rs-count">5 of 11 tasks done · next: <span class="rs-task">T06 — Add activity records to the six watchers and their consequences: both…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -1632,6 +1632,286 @@
 <span class="dl-ctx"> test(&#39;a collapsed burst is reported with its true count, not as a single fire&#39;, () =&gt; {</span>
 <span class="dl-ctx">   const label = events.formatLabel(&#39;watch.fired&#39;, { watcher: &#39;specs&#39;, changes: 2, collapsed: 12 });</span>
 <span class="dl-ctx">   assert.match(label, /12 fires collapsed/);</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T05</span>
+    <h2>Record every spec-hint decision, including the quiet ones</h2>
+    <span class="card-meta"><span class="chip">dfdd1bb</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">210/210 tests pass (6 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>scripts/spec-hint.js gained a guarded activity require, a note()/quiet() pair, and a reason code on all eleven silent returns plus both injection points; six tests in test/spec-hint.test.js.</p></div>
+    <div class="field"><span class="label">Why</span><p>The Spec Knowledge Layer claims determinism, and until now nothing distinguished a hook that ran and stayed quiet from one that never fired or was never installed. Out-of-process scripts cannot reach src/shared/, so records are built registry-shaped by hand and validated on read instead.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/scripts/spec-hint.js b/scripts/spec-hint.js</span>
+<span class="dl-meta">index ce1ea27..b80f1d8 100644</span>
+<span class="dl-file">--- a/scripts/spec-hint.js</span>
+<span class="dl-file">+++ b/scripts/spec-hint.js</span>
+<span class="dl-hunk">@@ -113,10 +113,52 @@ function cleanupState(root) {</span>
+<span class="dl-ctx">   } catch { /* no dir yet */ }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── activity record ──────────────────────────────────────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// This hook exits 0 with no output on eleven different paths, so until now</span>
+<span class="dl-add">+// &quot;ran and deliberately stayed quiet&quot; was indistinguishable from &quot;never</span>
+<span class="dl-add">+// fired&quot; and from &quot;never installed&quot; — and determinism is the entire claim of</span>
+<span class="dl-add">+// the Spec Knowledge Layer. Every path now records its reason.</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// The require is guarded because `.frame/bin/` is refreshed only on project</span>
+<span class="dl-add">+// init: a user may be running a generation that predates activity-log.js,</span>
+<span class="dl-add">+// and that must degrade to exactly today&#39;s behavior, not to an exception.</span>
+<span class="dl-add">+// Nothing here may write to stdout (it would corrupt the hook payload) or</span>
+<span class="dl-add">+// throw (the host is a tool call).</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let activity = null;</span>
+<span class="dl-add">+try {</span>
+<span class="dl-add">+  activity = require(&#39;./activity-log&#39;);</span>
+<span class="dl-add">+} catch {</span>
+<span class="dl-add">+  /* older .frame/bin generation — no record, same behavior as before */</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function note(root, ev, fields) {</span>
+<span class="dl-add">+  if (!activity || !root) return;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    activity.appendSync(activity.projectKey(root), {</span>
+<span class="dl-add">+      ev,</span>
+<span class="dl-add">+      kind: ev === &#39;hint.injected&#39; ? &#39;action&#39; : &#39;suppression&#39;,</span>
+<span class="dl-add">+      host: &#39;claude-hook&#39;,</span>
+<span class="dl-add">+      ...fields</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    /* the record is never worth a failed tool call */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Record a quiet path and return, so call sites stay single-expression. */</span>
+<span class="dl-add">+function quiet(root, mode, reason, rel) {</span>
+<span class="dl-add">+  note(root, &#39;hint.quiet&#39;, rel ? { mode, reason, path: rel } : { mode, reason });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // ─── output ───────────────────────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-function emit(eventName, context) {</span>
+<span class="dl-del">-  if (!context) return;</span>
+<span class="dl-add">+function emit(eventName, context, ctx) {</span>
+<span class="dl-add">+  if (!context) {</span>
+<span class="dl-add">+    if (ctx) quiet(ctx.root, ctx.mode, &#39;no-context&#39;);</span>
+<span class="dl-add">+    return;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-ctx">   process.stdout.write(JSON.stringify({</span>
+<span class="dl-ctx">     hookSpecificOutput: { hookEventName: eventName, additionalContext: context }</span>
+<span class="dl-ctx">   }));</span>
+<span class="dl-hunk">@@ -142,22 +184,22 @@ function formatEntry(r, full) {</span>
+<span class="dl-ctx"> function preEdit(input) {</span>
+<span class="dl-ctx">   const root = resolveRoot(input.cwd);</span>
+<span class="dl-ctx">   const index = readJson(path.join(root, &#39;.frame&#39;, &#39;index&#39;, &#39;spec-index.json&#39;));</span>
+<span class="dl-del">-  if (!index || !index.files) return; // no index → exactly today&#39;s behavior</span>
+<span class="dl-add">+  if (!index || !index.files) return quiet(root, &#39;pre-edit&#39;, &#39;no-index&#39;); // no index → exactly today&#39;s behavior</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const rawPath = input.tool_input &amp;&amp; (input.tool_input.file_path || input.tool_input.notebook_path);</span>
+<span class="dl-del">-  if (!rawPath) return;</span>
+<span class="dl-add">+  if (!rawPath) return quiet(root, &#39;pre-edit&#39;, &#39;no-path&#39;);</span>
+<span class="dl-ctx">   let rel = path.isAbsolute(rawPath) ? path.relative(root, rawPath) : rawPath;</span>
+<span class="dl-ctx">   rel = toPosix(rel).replace(/^\.\//, &#39;&#39;);</span>
+<span class="dl-del">-  if (rel.startsWith(&#39;..&#39;)) return;             // outside the project</span>
+<span class="dl-del">-  if (rel.startsWith(&#39;.frame/&#39;)) return;        // meta writes need no history lesson</span>
+<span class="dl-add">+  if (rel.startsWith(&#39;..&#39;)) return quiet(root, &#39;pre-edit&#39;, &#39;outside-project&#39;);</span>
+<span class="dl-add">+  if (rel.startsWith(&#39;.frame/&#39;)) return quiet(root, &#39;pre-edit&#39;, &#39;meta-path&#39;, rel);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const hist = index.files[rel];</span>
+<span class="dl-del">-  if (!hist || !hist.length) return;</span>
+<span class="dl-add">+  if (!hist || !hist.length) return quiet(root, &#39;pre-edit&#39;, &#39;no-history&#39;, rel);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   cleanupState(root);</span>
+<span class="dl-ctx">   const sessionId = input.session_id;</span>
+<span class="dl-ctx">   const state = loadState(root, sessionId);</span>
+<span class="dl-del">-  if (state.files.includes(rel)) return;        // once per file per session</span>
+<span class="dl-add">+  if (state.files.includes(rel)) return quiet(root, &#39;pre-edit&#39;, &#39;session-dedup&#39;, rel); // once per file per session</span>
+<span class="dl-ctx">   state.files.push(rel);</span>
+<span class="dl-ctx">   saveState(root, sessionId, state);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -176,7 +218,8 @@ function preEdit(input) {</span>
+<span class="dl-ctx">       `\nFull history: node ${cli} --file ${rel}`;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  emit(&#39;PreToolUse&#39;, `Spec history for ${rel} (oldest first — the newest entry is the current truth):\n${body}\n${RELAY_INSTRUCTION}`);</span>
+<span class="dl-add">+  note(root, &#39;hint.injected&#39;, { mode: &#39;pre-edit&#39;, path: rel, specs: specCount });</span>
+<span class="dl-add">+  emit(&#39;PreToolUse&#39;, `Spec history for ${rel} (oldest first — the newest entry is the current truth):\n${body}\n${RELAY_INSTRUCTION}`, { root, mode: &#39;pre-edit&#39; });</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // ─── prompt mode ──────────────────────────────────────────</span>
+<span class="dl-hunk">@@ -184,10 +227,10 @@ function preEdit(input) {</span>
+<span class="dl-ctx"> function promptMode(input) {</span>
+<span class="dl-ctx">   const root = resolveRoot(input.cwd);</span>
+<span class="dl-ctx">   const index = readJson(path.join(root, &#39;.frame&#39;, &#39;index&#39;, &#39;spec-index.json&#39;));</span>
+<span class="dl-del">-  if (!index || !index.topics) return;</span>
+<span class="dl-add">+  if (!index || !index.topics) return quiet(root, &#39;prompt&#39;, &#39;no-topics&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const words = tokenize(input.prompt || &#39;&#39;);</span>
+<span class="dl-del">-  if (!words.length) return;</span>
+<span class="dl-add">+  if (!words.length) return quiet(root, &#39;prompt&#39;, &#39;no-words&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Document frequency per token → rare matches count double, so a single</span>
+<span class="dl-ctx">   // specific word (&quot;telemetry&quot;) clears the threshold while a generic one</span>
+<span class="dl-hunk">@@ -213,13 +256,13 @@ function promptMode(input) {</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">     if (score &gt;= 2) scored.push({ slug, score });</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-del">-  if (!scored.length) return;</span>
+<span class="dl-add">+  if (!scored.length) return quiet(root, &#39;prompt&#39;, &#39;no-match&#39;);</span>
+<span class="dl-ctx">   scored.sort((a, b) =&gt; b.score - a.score);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const sessionId = input.session_id;</span>
+<span class="dl-ctx">   const state = loadState(root, sessionId);</span>
+<span class="dl-ctx">   const fresh = scored.filter(s =&gt; !state.topics.includes(s.slug)).slice(0, MAX_TOPIC_HITS);</span>
+<span class="dl-del">-  if (!fresh.length) return;</span>
+<span class="dl-add">+  if (!fresh.length) return quiet(root, &#39;prompt&#39;, &#39;no-stale-free-match&#39;);</span>
+<span class="dl-ctx">   cleanupState(root);</span>
+<span class="dl-ctx">   state.topics.push(...fresh.map(s =&gt; s.slug));</span>
+<span class="dl-ctx">   saveState(root, sessionId, state);</span>
+<span class="dl-hunk">@@ -229,9 +272,11 @@ function promptMode(input) {</span>
+<span class="dl-ctx">     const sup = t.supersedes ? ` (supersedes ${t.supersedes})` : &#39;&#39;;</span>
+<span class="dl-ctx">     return `- ${slug} (${t.phase})${sup} — ${t.digestLine || t.title} → .frame/specs/${slug}/`;</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-add">+  note(root, &#39;hint.injected&#39;, { mode: &#39;prompt&#39;, specs: fresh.length });</span>
+<span class="dl-ctx">   emit(&#39;UserPromptSubmit&#39;,</span>
+<span class="dl-ctx">     `Specs related to this request (from the project&#39;s spec archive):\n${lines.join(&#39;\n&#39;)}\n` +</span>
+<span class="dl-del">-    &#39;If relevant, read the spec chain (spec.md → plan.md → outcome.md) before working, and let the user know which prior decisions apply.&#39;);</span>
+<span class="dl-add">+    &#39;If relevant, read the spec chain (spec.md → plan.md → outcome.md) before working, and let the user know which prior decisions apply.&#39;,</span>
+<span class="dl-add">+    { root, mode: &#39;prompt&#39; });</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // ─── main (never break) ───────────────────────────────────</span>
+<span class="dl-meta">diff --git a/test/spec-hint.test.js b/test/spec-hint.test.js</span>
+<span class="dl-meta">index 30ba9b9..13c7027 100644</span>
+<span class="dl-file">--- a/test/spec-hint.test.js</span>
+<span class="dl-file">+++ b/test/spec-hint.test.js</span>
+<span class="dl-hunk">@@ -169,3 +169,120 @@ test(&#39;hook settings merge preserves unrelated keys and is idempotent&#39;, () =&gt; {</span>
+<span class="dl-ctx">   const twice = merge(once, entry);</span>
+<span class="dl-ctx">   assert.equal(twice.hooks.PreToolUse.length, 2, &#39;re-install is idempotent&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── activity record: every quiet path names itself ───────</span>
+<span class="dl-add">+//</span>
+<span class="dl-add">+// Until this landed, all eleven silent returns looked identical from the</span>
+<span class="dl-add">+// outside — and to &quot;never fired&quot; and &quot;never installed&quot; too. These assert the</span>
+<span class="dl-add">+// hook says which decision it made, without ever breaking its host.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const activityLog = require(&#39;../scripts/activity-log&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function withActivity(root, fn) {</span>
+<span class="dl-add">+  const home = path.join(root, &#39;.activity-home&#39;);</span>
+<span class="dl-add">+  const prev = process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+  process.env.FRAME_ACTIVITY_HOME = home;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return fn({ FRAME_ACTIVITY_HOME: home });</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    if (prev === undefined) delete process.env.FRAME_ACTIVITY_HOME;</span>
+<span class="dl-add">+    else process.env.FRAME_ACTIVITY_HOME = prev;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function recordsFor(root) {</span>
+<span class="dl-add">+  return activityLog.readRecent(activityLog.projectKey(root), 100);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;pre-edit records an injection with the file and the spec count&#39;, () =&gt; {</span>
+<span class="dl-add">+  const root = mkProject(IDX_ONE);</span>
+<span class="dl-add">+  withActivity(root, (env) =&gt; {</span>
+<span class="dl-add">+    runHook(&#39;pre-edit&#39;, { cwd: root, session_id: &#39;a1&#39;, tool_input: { file_path: &#39;src/many.js&#39; } }, { env });</span>
+<span class="dl-add">+    const rec = recordsFor(root).find((r) =&gt; r.ev === &#39;hint.injected&#39;);</span>
+<span class="dl-add">+    assert.ok(rec, &#39;an injection must be recorded&#39;);</span>
+<span class="dl-add">+    assert.equal(rec.kind, &#39;action&#39;);</span>
+<span class="dl-add">+    assert.equal(rec.host, &#39;claude-hook&#39;);</span>
+<span class="dl-add">+    assert.equal(rec.mode, &#39;pre-edit&#39;);</span>
+<span class="dl-add">+    assert.equal(rec.path, &#39;src/many.js&#39;);</span>
+<span class="dl-add">+    assert.equal(rec.specs, 3);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;each quiet path records its own reason, and they are distinguishable&#39;, () =&gt; {</span>
+<span class="dl-add">+  const cases = [</span>
+<span class="dl-add">+    [&#39;no-index&#39;, () =&gt; mkProject(null), { tool_input: { file_path: &#39;src/main/a.js&#39; } }],</span>
+<span class="dl-add">+    [&#39;no-path&#39;, () =&gt; mkProject(IDX_ONE), { tool_input: {} }],</span>
+<span class="dl-add">+    [&#39;outside-project&#39;, () =&gt; mkProject(IDX_ONE), { tool_input: { file_path: &#39;../elsewhere/x.js&#39; } }],</span>
+<span class="dl-add">+    [&#39;meta-path&#39;, () =&gt; mkProject(IDX_ONE), { tool_input: { file_path: &#39;.frame/specs/x/spec.md&#39; } }],</span>
+<span class="dl-add">+    [&#39;no-history&#39;, () =&gt; mkProject(IDX_ONE), { tool_input: { file_path: &#39;src/untouched.js&#39; } }]</span>
+<span class="dl-add">+  ];</span>
+<span class="dl-add">+  const seen = new Set();</span>
+<span class="dl-add">+  for (const [reason, makeRoot, extra] of cases) {</span>
+<span class="dl-add">+    const root = makeRoot();</span>
+<span class="dl-add">+    withActivity(root, (env) =&gt; {</span>
+<span class="dl-add">+      runHook(&#39;pre-edit&#39;, { cwd: root, session_id: &#39;q1&#39;, ...extra }, { env });</span>
+<span class="dl-add">+      const rec = recordsFor(root).find((r) =&gt; r.ev === &#39;hint.quiet&#39;);</span>
+<span class="dl-add">+      assert.ok(rec, `${reason}: a quiet path must still be recorded`);</span>
+<span class="dl-add">+      assert.equal(rec.reason, reason);</span>
+<span class="dl-add">+      assert.equal(rec.kind, &#39;suppression&#39;);</span>
+<span class="dl-add">+      seen.add(rec.reason);</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  assert.equal(seen.size, cases.length, &#39;reasons must not collapse into one code&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the session-dedup path is recorded, not merely silent&#39;, () =&gt; {</span>
+<span class="dl-add">+  const root = mkProject(IDX_ONE);</span>
+<span class="dl-add">+  withActivity(root, (env) =&gt; {</span>
+<span class="dl-add">+    const input = { cwd: root, session_id: &#39;dedup&#39;, tool_input: { file_path: &#39;src/main/a.js&#39; } };</span>
+<span class="dl-add">+    runHook(&#39;pre-edit&#39;, input, { env });</span>
+<span class="dl-add">+    runHook(&#39;pre-edit&#39;, input, { env }); // same file, same session</span>
+<span class="dl-add">+    const recs = recordsFor(root);</span>
+<span class="dl-add">+    assert.ok(recs.some((r) =&gt; r.ev === &#39;hint.injected&#39;), &#39;first call injects&#39;);</span>
+<span class="dl-add">+    const quiet = recs.find((r) =&gt; r.ev === &#39;hint.quiet&#39;);</span>
+<span class="dl-add">+    assert.ok(quiet, &#39;second call records why it stayed quiet&#39;);</span>
+<span class="dl-add">+    assert.equal(quiet.reason, &#39;session-dedup&#39;);</span>
+<span class="dl-add">+    assert.equal(quiet.path, &#39;src/main/a.js&#39;);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;prompt mode records both its match and its no-match paths&#39;, () =&gt; {</span>
+<span class="dl-add">+  const hit = mkProject(IDX_ONE);</span>
+<span class="dl-add">+  withActivity(hit, (env) =&gt; {</span>
+<span class="dl-add">+    runHook(&#39;prompt&#39;, { cwd: hit, session_id: &#39;p1&#39;, prompt: &#39;telemetry polling work&#39; }, { env });</span>
+<span class="dl-add">+    const rec = recordsFor(hit).find((r) =&gt; r.ev === &#39;hint.injected&#39;);</span>
+<span class="dl-add">+    assert.ok(rec &amp;&amp; rec.mode === &#39;prompt&#39;, &#39;a surfaced match is recorded&#39;);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const miss = mkProject(IDX_ONE);</span>
+<span class="dl-add">+  withActivity(miss, (env) =&gt; {</span>
+<span class="dl-add">+    runHook(&#39;prompt&#39;, { cwd: miss, session_id: &#39;p2&#39;, prompt: &#39;zzz qqq wwww&#39; }, { env });</span>
+<span class="dl-add">+    const rec = recordsFor(miss).find((r) =&gt; r.ev === &#39;hint.quiet&#39;);</span>
+<span class="dl-add">+    assert.ok(rec, &#39;a prompt that matched nothing is still recorded&#39;);</span>
+<span class="dl-add">+    assert.equal(rec.reason, &#39;no-match&#39;);</span>
+<span class="dl-add">+    assert.equal(rec.mode, &#39;prompt&#39;);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;recording never breaks the hook: unwritable record, injection unaffected&#39;, () =&gt; {</span>
+<span class="dl-add">+  const root = mkProject(IDX_ONE);</span>
+<span class="dl-add">+  const blocked = path.join(root, &#39;blocked-file&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(blocked, &#39;not a directory&#39;);</span>
+<span class="dl-add">+  // Exit 0 with the normal payload is the whole assertion — execFileSync</span>
+<span class="dl-add">+  // throws on a non-zero exit, and a corrupted stdout would fail the parse.</span>
+<span class="dl-add">+  const out = runHook(</span>
+<span class="dl-add">+    &#39;pre-edit&#39;,</span>
+<span class="dl-add">+    { cwd: root, session_id: &#39;nb&#39;, tool_input: { file_path: &#39;src/main/a.js&#39; } },</span>
+<span class="dl-add">+    { env: { FRAME_ACTIVITY_HOME: blocked } }</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+  assert.ok(out.hookSpecificOutput.additionalContext.includes(&#39;Spec history for src/main/a.js&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;quiet paths write nothing to stdout even while recording&#39;, () =&gt; {</span>
+<span class="dl-add">+  const root = mkProject(IDX_ONE);</span>
+<span class="dl-add">+  withActivity(root, (env) =&gt; {</span>
+<span class="dl-add">+    const out = runHook(&#39;pre-edit&#39;, { cwd: root, session_id: &#39;silent&#39;, tool_input: { file_path: &#39;src/untouched.js&#39; } }, { env });</span>
+<span class="dl-add">+    assert.equal(out, null, &#39;a quiet path must stay silent on stdout&#39;);</span>
+<span class="dl-add">+    assert.ok(recordsFor(root).some((r) =&gt; r.ev === &#39;hint.quiet&#39;), &#39;but it is recorded&#39;);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+});</span></pre>
     </details>
   </div>
 </section>

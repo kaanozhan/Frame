@@ -169,3 +169,120 @@ test('hook settings merge preserves unrelated keys and is idempotent', () => {
   const twice = merge(once, entry);
   assert.equal(twice.hooks.PreToolUse.length, 2, 're-install is idempotent');
 });
+
+// ─── activity record: every quiet path names itself ───────
+//
+// Until this landed, all eleven silent returns looked identical from the
+// outside — and to "never fired" and "never installed" too. These assert the
+// hook says which decision it made, without ever breaking its host.
+
+const activityLog = require('../scripts/activity-log');
+
+function withActivity(root, fn) {
+  const home = path.join(root, '.activity-home');
+  const prev = process.env.FRAME_ACTIVITY_HOME;
+  process.env.FRAME_ACTIVITY_HOME = home;
+  try {
+    return fn({ FRAME_ACTIVITY_HOME: home });
+  } finally {
+    if (prev === undefined) delete process.env.FRAME_ACTIVITY_HOME;
+    else process.env.FRAME_ACTIVITY_HOME = prev;
+  }
+}
+
+function recordsFor(root) {
+  return activityLog.readRecent(activityLog.projectKey(root), 100);
+}
+
+test('pre-edit records an injection with the file and the spec count', () => {
+  const root = mkProject(IDX_ONE);
+  withActivity(root, (env) => {
+    runHook('pre-edit', { cwd: root, session_id: 'a1', tool_input: { file_path: 'src/many.js' } }, { env });
+    const rec = recordsFor(root).find((r) => r.ev === 'hint.injected');
+    assert.ok(rec, 'an injection must be recorded');
+    assert.equal(rec.kind, 'action');
+    assert.equal(rec.host, 'claude-hook');
+    assert.equal(rec.mode, 'pre-edit');
+    assert.equal(rec.path, 'src/many.js');
+    assert.equal(rec.specs, 3);
+  });
+});
+
+test('each quiet path records its own reason, and they are distinguishable', () => {
+  const cases = [
+    ['no-index', () => mkProject(null), { tool_input: { file_path: 'src/main/a.js' } }],
+    ['no-path', () => mkProject(IDX_ONE), { tool_input: {} }],
+    ['outside-project', () => mkProject(IDX_ONE), { tool_input: { file_path: '../elsewhere/x.js' } }],
+    ['meta-path', () => mkProject(IDX_ONE), { tool_input: { file_path: '.frame/specs/x/spec.md' } }],
+    ['no-history', () => mkProject(IDX_ONE), { tool_input: { file_path: 'src/untouched.js' } }]
+  ];
+  const seen = new Set();
+  for (const [reason, makeRoot, extra] of cases) {
+    const root = makeRoot();
+    withActivity(root, (env) => {
+      runHook('pre-edit', { cwd: root, session_id: 'q1', ...extra }, { env });
+      const rec = recordsFor(root).find((r) => r.ev === 'hint.quiet');
+      assert.ok(rec, `${reason}: a quiet path must still be recorded`);
+      assert.equal(rec.reason, reason);
+      assert.equal(rec.kind, 'suppression');
+      seen.add(rec.reason);
+    });
+  }
+  assert.equal(seen.size, cases.length, 'reasons must not collapse into one code');
+});
+
+test('the session-dedup path is recorded, not merely silent', () => {
+  const root = mkProject(IDX_ONE);
+  withActivity(root, (env) => {
+    const input = { cwd: root, session_id: 'dedup', tool_input: { file_path: 'src/main/a.js' } };
+    runHook('pre-edit', input, { env });
+    runHook('pre-edit', input, { env }); // same file, same session
+    const recs = recordsFor(root);
+    assert.ok(recs.some((r) => r.ev === 'hint.injected'), 'first call injects');
+    const quiet = recs.find((r) => r.ev === 'hint.quiet');
+    assert.ok(quiet, 'second call records why it stayed quiet');
+    assert.equal(quiet.reason, 'session-dedup');
+    assert.equal(quiet.path, 'src/main/a.js');
+  });
+});
+
+test('prompt mode records both its match and its no-match paths', () => {
+  const hit = mkProject(IDX_ONE);
+  withActivity(hit, (env) => {
+    runHook('prompt', { cwd: hit, session_id: 'p1', prompt: 'telemetry polling work' }, { env });
+    const rec = recordsFor(hit).find((r) => r.ev === 'hint.injected');
+    assert.ok(rec && rec.mode === 'prompt', 'a surfaced match is recorded');
+  });
+
+  const miss = mkProject(IDX_ONE);
+  withActivity(miss, (env) => {
+    runHook('prompt', { cwd: miss, session_id: 'p2', prompt: 'zzz qqq wwww' }, { env });
+    const rec = recordsFor(miss).find((r) => r.ev === 'hint.quiet');
+    assert.ok(rec, 'a prompt that matched nothing is still recorded');
+    assert.equal(rec.reason, 'no-match');
+    assert.equal(rec.mode, 'prompt');
+  });
+});
+
+test('recording never breaks the hook: unwritable record, injection unaffected', () => {
+  const root = mkProject(IDX_ONE);
+  const blocked = path.join(root, 'blocked-file');
+  fs.writeFileSync(blocked, 'not a directory');
+  // Exit 0 with the normal payload is the whole assertion — execFileSync
+  // throws on a non-zero exit, and a corrupted stdout would fail the parse.
+  const out = runHook(
+    'pre-edit',
+    { cwd: root, session_id: 'nb', tool_input: { file_path: 'src/main/a.js' } },
+    { env: { FRAME_ACTIVITY_HOME: blocked } }
+  );
+  assert.ok(out.hookSpecificOutput.additionalContext.includes('Spec history for src/main/a.js'));
+});
+
+test('quiet paths write nothing to stdout even while recording', () => {
+  const root = mkProject(IDX_ONE);
+  withActivity(root, (env) => {
+    const out = runHook('pre-edit', { cwd: root, session_id: 'silent', tool_input: { file_path: 'src/untouched.js' } }, { env });
+    assert.equal(out, null, 'a quiet path must stay silent on stdout');
+    assert.ok(recordsFor(root).some((r) => r.ev === 'hint.quiet'), 'but it is recorded');
+  });
+});

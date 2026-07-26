@@ -51,6 +51,18 @@
         "status": "pass",
         "detail": "204/204 tests pass (2 new)"
       }
+    },
+    {
+      "id": "T05",
+      "title": "Record every spec-hint decision, including the quiet ones",
+      "commit": "dfdd1bb",
+      "whatChanged": "scripts/spec-hint.js gained a guarded activity require, a note()/quiet() pair, and a reason code on all eleven silent returns plus both injection points; six tests in test/spec-hint.test.js.",
+      "whyChanged": "The Spec Knowledge Layer claims determinism, and until now nothing distinguished a hook that ran and stayed quiet from one that never fired or was never installed. Out-of-process scripts cannot reach src/shared/, so records are built registry-shaped by hand and validated on read instead.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "210/210 tests pass (6 new)"
+      }
     }
   ]
 }

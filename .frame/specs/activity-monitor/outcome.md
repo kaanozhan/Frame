@@ -67,3 +67,22 @@ distinct `repeats` field to every suppression, suffixed centrally in
 _Captured: 2026-07-26 · 5 file change(s)_
 
 ---
+
+## T05 — spec-hint records every decision
+
+Instrumented all eleven quiet returns in `scripts/spec-hint.js` with
+distinct reason codes plus both injection points, behind a guarded
+`require('./activity-log')` so a `.frame/bin/` generation that predates the
+helper degrades to exactly today's behavior. Verified live against this
+repo: four hook invocations that were previously indistinguishable now read
+as inject / session-dedup / meta-path / no-match.
+
+Deviation from plan.md: records written from `.frame/bin/` cannot pass
+through `src/shared/activityEvents.js` (out-of-process scripts cannot reach
+`src/`), so the script builds registry-shaped records by hand and validation
+moves to the read side, which T09 owns. Six tests added, including that a
+blocked record path leaves the injection payload and exit code untouched.
+
+_Captured: 2026-07-26 · 2 file change(s)_
+
+---
