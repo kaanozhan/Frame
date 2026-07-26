@@ -63,6 +63,18 @@
         "status": "pass",
         "detail": "210/210 tests pass (6 new)"
       }
+    },
+    {
+      "id": "T06",
+      "title": "Record the six watchers, phase reconciliation and index refresh",
+      "commit": "6dd9072",
+      "whatChanged": "specManager.js (both watchers, reconcilePhase, index rebuilt vs already-fresh), tasksManager.js, gitStatusManager.js (both watchers plus their shared debounce) and orchestrationManager.js bus watcher all record through activityLog.",
+      "whyChanged": "Records are emitted when the debounce flushes, not per raw fs event, so a checkout or an npm install lands as one row carrying the true burst count. Self-write guards record their suppression rather than returning silently — otherwise a guarded watcher and a dead one look identical.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "210/210 tests pass"
+      }
     }
   ]
 }

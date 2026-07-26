@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">5 tasks</span>
-    <span class="pill good">5 verified</span>
+    <span class="pill">6 tasks</span>
+    <span class="pill good">6 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">5 of 11 tasks done · next: <span class="rs-task">T06 — Add activity records to the six watchers and their consequences: both…</span></span>
+  <span class="rs-count">6 of 11 tasks done · next: <span class="rs-task">T07 — Record the `readJsonWithRecovery` outcome in `src/main/fsSafe.js` and…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -1912,6 +1912,281 @@
 <span class="dl-add">+    assert.ok(recordsFor(root).some((r) =&gt; r.ev === &#39;hint.quiet&#39;), &#39;but it is recorded&#39;);</span>
 <span class="dl-add">+  });</span>
 <span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T06</span>
+    <h2>Record the six watchers, phase reconciliation and index refresh</h2>
+    <span class="card-meta"><span class="chip">6dd9072</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">210/210 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>specManager.js (both watchers, reconcilePhase, index rebuilt vs already-fresh), tasksManager.js, gitStatusManager.js (both watchers plus their shared debounce) and orchestrationManager.js bus watcher all record through activityLog.</p></div>
+    <div class="field"><span class="label">Why</span><p>Records are emitted when the debounce flushes, not per raw fs event, so a checkout or an npm install lands as one row carrying the true burst count. Self-write guards record their suppression rather than returning silently — otherwise a guarded watcher and a dead one look identical.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/gitStatusManager.js b/src/main/gitStatusManager.js</span>
+<span class="dl-meta">index 965e7f2..868d33a 100644</span>
+<span class="dl-file">--- a/src/main/gitStatusManager.js</span>
+<span class="dl-file">+++ b/src/main/gitStatusManager.js</span>
+<span class="dl-hunk">@@ -23,6 +23,7 @@ const { execFile } = require(&#39;child_process&#39;);</span>
+<span class="dl-ctx"> const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const fsSafe = require(&#39;./fsSafe&#39;);</span>
+<span class="dl-add">+const activityLog = require(&#39;./activityLog&#39;);</span>
+<span class="dl-ctx"> const logger = require(&#39;./logger&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -78,7 +79,7 @@ function startWatching(projectPath) {</span>
+<span class="dl-ctx">       { recursive: true, persistent: false },</span>
+<span class="dl-ctx">       (eventType, filename) =&gt; {</span>
+<span class="dl-ctx">         if (filename &amp;&amp; isGitInternalPath(filename)) return;</span>
+<span class="dl-del">-        scheduleRefresh();</span>
+<span class="dl-add">+        scheduleRefresh(&#39;git-worktree&#39;);</span>
+<span class="dl-ctx">       },</span>
+<span class="dl-ctx">       () =&gt; { worktreeWatcher = null; } // root deleted/renamed at runtime — degrade, don&#39;t crash</span>
+<span class="dl-ctx">     );</span>
+<span class="dl-hunk">@@ -97,7 +98,7 @@ function startWatching(projectPath) {</span>
+<span class="dl-ctx">       gitDirWatcher = fsSafe.safeWatch(</span>
+<span class="dl-ctx">         gitDir,</span>
+<span class="dl-ctx">         { recursive: true, persistent: false },</span>
+<span class="dl-del">-        () =&gt; scheduleRefresh(),</span>
+<span class="dl-add">+        () =&gt; scheduleRefresh(&#39;git-dir&#39;),</span>
+<span class="dl-ctx">         () =&gt; { gitDirWatcher = null; }</span>
+<span class="dl-ctx">       );</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-hunk">@@ -132,10 +133,25 @@ function isGitInternalPath(filename) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Coalesce bursts (a checkout or `npm install` touches many files) into a</span>
+<span class="dl-ctx"> // single git-status run.</span>
+<span class="dl-del">-function scheduleRefresh() {</span>
+<span class="dl-add">+// Two watchers feed one debounce, so the burst is attributed to whichever</span>
+<span class="dl-add">+// of them fired most in the window — reporting one row per raw fs event</span>
+<span class="dl-add">+// would drown the panel during a checkout or an npm install.</span>
+<span class="dl-add">+let refreshBurst = { worktree: 0, gitDir: 0 };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function scheduleRefresh(watcher) {</span>
+<span class="dl-add">+  if (watcher === &#39;git-dir&#39;) refreshBurst.gitDir += 1;</span>
+<span class="dl-add">+  else refreshBurst.worktree += 1;</span>
+<span class="dl-ctx">   if (debounceTimer) clearTimeout(debounceTimer);</span>
+<span class="dl-ctx">   debounceTimer = setTimeout(() =&gt; {</span>
+<span class="dl-ctx">     debounceTimer = null;</span>
+<span class="dl-add">+    const total = refreshBurst.worktree + refreshBurst.gitDir;</span>
+<span class="dl-add">+    activityLog.record(&#39;watch.fired&#39;, {</span>
+<span class="dl-add">+      watcher: refreshBurst.gitDir &gt; refreshBurst.worktree ? &#39;git-dir&#39; : &#39;git-worktree&#39;,</span>
+<span class="dl-add">+      changes: total,</span>
+<span class="dl-add">+      collapsed: total,</span>
+<span class="dl-add">+      triggered: &#39;refresh&#39;</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    refreshBurst = { worktree: 0, gitDir: 0 };</span>
+<span class="dl-ctx">     pushStatus();</span>
+<span class="dl-ctx">   }, DEBOUNCE_MS);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-meta">diff --git a/src/main/orchestrationManager.js b/src/main/orchestrationManager.js</span>
+<span class="dl-meta">index 0f25eaf..de2d142 100644</span>
+<span class="dl-file">--- a/src/main/orchestrationManager.js</span>
+<span class="dl-file">+++ b/src/main/orchestrationManager.js</span>
+<span class="dl-hunk">@@ -26,6 +26,7 @@ const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const fsSafe = require(&#39;./fsSafe&#39;);</span>
+<span class="dl-ctx"> const logger = require(&#39;./logger&#39;);</span>
+<span class="dl-add">+const activityLog = require(&#39;./activityLog&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const {</span>
+<span class="dl-ctx">   FRAME_DIR,</span>
+<span class="dl-hunk">@@ -277,9 +278,20 @@ function startBusWatcher(session) {</span>
+<span class="dl-ctx">   fs.mkdirSync(session.busDir, { recursive: true });</span>
+<span class="dl-ctx">   drainBus(session); // pick up anything queued before the watcher attached</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-add">+    session.busFires = 0;</span>
+<span class="dl-ctx">     session.watcher = fsSafe.safeWatch(session.busDir, null, () =&gt; {</span>
+<span class="dl-add">+      session.busFires = (session.busFires || 0) + 1;</span>
+<span class="dl-ctx">       clearTimeout(session.debounce);</span>
+<span class="dl-del">-      session.debounce = setTimeout(() =&gt; drainBus(session), WATCH_DEBOUNCE_MS);</span>
+<span class="dl-add">+      session.debounce = setTimeout(() =&gt; {</span>
+<span class="dl-add">+        activityLog.record(&#39;watch.fired&#39;, {</span>
+<span class="dl-add">+          watcher: &#39;orch-bus&#39;,</span>
+<span class="dl-add">+          changes: 1,</span>
+<span class="dl-add">+          collapsed: session.busFires,</span>
+<span class="dl-add">+          triggered: &#39;dispatch&#39;</span>
+<span class="dl-add">+        });</span>
+<span class="dl-add">+        session.busFires = 0;</span>
+<span class="dl-add">+        drainBus(session);</span>
+<span class="dl-add">+      }, WATCH_DEBOUNCE_MS);</span>
+<span class="dl-ctx">     }, () =&gt; { session.watcher = null; });</span>
+<span class="dl-ctx">   } catch (e) {</span>
+<span class="dl-ctx">     logger.error(&#39;orch&#39;, &#39;failed to watch bus dir:&#39;, e.message);</span>
+<span class="dl-meta">diff --git a/src/main/specManager.js b/src/main/specManager.js</span>
+<span class="dl-meta">index 2710044..a9f4114 100644</span>
+<span class="dl-file">--- a/src/main/specManager.js</span>
+<span class="dl-file">+++ b/src/main/specManager.js</span>
+<span class="dl-hunk">@@ -20,6 +20,7 @@ const tasksManager = require(&#39;./tasksManager&#39;);</span>
+<span class="dl-ctx"> const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-ctx"> const frameProject = require(&#39;./frameProject&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-add">+const activityLog = require(&#39;./activityLog&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const SPECS_DIR_NAME = &#39;specs&#39;;</span>
+<span class="dl-hunk">@@ -164,12 +165,32 @@ function writeStatus(projectPath, slug, status) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const specIndexLib = require(path.join(__dirname, &#39;..&#39;, &#39;..&#39;, &#39;scripts&#39;, &#39;spec-index.js&#39;));</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/** mtime of the derived index, or 0 — used to tell a rebuild from a no-op. */</span>
+<span class="dl-add">+function indexStamp(projectPath) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return fs.statSync(path.join(projectPath, FRAME_DIR, &#39;index&#39;, &#39;spec-index.json&#39;)).mtimeMs;</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    return 0;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> let indexRefreshTimer = null;</span>
+<span class="dl-ctx"> function scheduleIndexRefresh(projectPath) {</span>
+<span class="dl-ctx">   if (indexRefreshTimer) clearTimeout(indexRefreshTimer);</span>
+<span class="dl-ctx">   indexRefreshTimer = setTimeout(() =&gt; {</span>
+<span class="dl-ctx">     indexRefreshTimer = null;</span>
+<span class="dl-del">-    specIndexLib.ensureFresh(projectPath).catch((err) =&gt; {</span>
+<span class="dl-add">+    const startedAt = Date.now();</span>
+<span class="dl-add">+    const before = indexStamp(projectPath);</span>
+<span class="dl-add">+    specIndexLib.ensureFresh(projectPath).then(() =&gt; {</span>
+<span class="dl-add">+      // ensureFresh no-ops when the index is already current, and a no-op is</span>
+<span class="dl-add">+      // worth recording: otherwise the panel cannot tell a healthy skip from</span>
+<span class="dl-add">+      // a refresh that never ran.</span>
+<span class="dl-add">+      if (indexStamp(projectPath) === before) {</span>
+<span class="dl-add">+        activityLog.record(&#39;index.fresh&#39;, { reason: &#39;already-fresh&#39; });</span>
+<span class="dl-add">+      } else {</span>
+<span class="dl-add">+        activityLog.record(&#39;index.rebuilt&#39;, { ms: Date.now() - startedAt });</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }).catch((err) =&gt; {</span>
+<span class="dl-ctx">       console.warn(&#39;specManager: spec-index refresh failed (non-fatal):&#39;, err.message);</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-ctx">   }, 2000);</span>
+<span class="dl-hunk">@@ -306,6 +327,10 @@ function reconcilePhase(projectPath, slug, tasksDataOrNull) {</span>
+<span class="dl-ctx">     last_phase_at: now</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx">   telemetry.track(&#39;spec_phase_advanced&#39;, { phase: newPhase });</span>
+<span class="dl-add">+  // Nobody asked for this: reconcile derives the phase from task statuses and</span>
+<span class="dl-add">+  // rewrites status.json on its own. A conflicted tasks.json once walked 18</span>
+<span class="dl-add">+  // specs backwards from `done` here with no trace at all.</span>
+<span class="dl-add">+  activityLog.record(&#39;spec.phase_reconciled&#39;, { slug, from: status.phase, to: newPhase });</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // ─── Command template loading + interpolation ──────────────</span>
+<span class="dl-hunk">@@ -980,6 +1005,11 @@ function renameSpec(projectPath, oldSlug, opts) {</span>
+<span class="dl-ctx"> // (Node ≥ 20.5). Electron 28 ships with a Node version that supports this</span>
+<span class="dl-ctx"> // across all three platforms — if that ever changes, swap in a poller.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// Burst state for the two watchers: raw fire count and the distinct files</span>
+<span class="dl-add">+// behind it, both reset when the debounce flushes.</span>
+<span class="dl-add">+let specsBurst = { fires: 0, files: new Set() };</span>
+<span class="dl-add">+let specTasksFires = 0;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> function startWatching(projectPath) {</span>
+<span class="dl-ctx">   stopWatching();</span>
+<span class="dl-ctx">   if (!projectPath) return;</span>
+<span class="dl-hunk">@@ -998,11 +1028,27 @@ function startWatching(projectPath) {</span>
+<span class="dl-ctx">     return;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-del">-    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, () =&gt; {</span>
+<span class="dl-add">+    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, (_event, filename) =&gt; {</span>
+<span class="dl-ctx">       // Our own writeStatus calls fire this watcher too — drop them.</span>
+<span class="dl-del">-      if (Date.now() - lastSelfWriteAt &lt; SELF_WRITE_GUARD_MS) return;</span>
+<span class="dl-add">+      if (Date.now() - lastSelfWriteAt &lt; SELF_WRITE_GUARD_MS) {</span>
+<span class="dl-add">+        activityLog.record(&#39;watch.suppressed&#39;, { watcher: &#39;specs&#39;, reason: &#39;self-write&#39; });</span>
+<span class="dl-add">+        return;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+      specsBurst.fires += 1;</span>
+<span class="dl-add">+      if (filename) specsBurst.files.add(String(filename));</span>
+<span class="dl-ctx">       if (watchDebounce) clearTimeout(watchDebounce);</span>
+<span class="dl-del">-      watchDebounce = setTimeout(() =&gt; pushSpecData(projectPath), WATCH_DEBOUNCE_MS);</span>
+<span class="dl-add">+      watchDebounce = setTimeout(() =&gt; {</span>
+<span class="dl-add">+        // Reported when the debounce flushes, so the record carries what the</span>
+<span class="dl-add">+        // burst actually was rather than one row per raw fs event.</span>
+<span class="dl-add">+        activityLog.record(&#39;watch.fired&#39;, {</span>
+<span class="dl-add">+          watcher: &#39;specs&#39;,</span>
+<span class="dl-add">+          changes: specsBurst.files.size || specsBurst.fires,</span>
+<span class="dl-add">+          collapsed: specsBurst.fires,</span>
+<span class="dl-add">+          triggered: &#39;push&#39;</span>
+<span class="dl-add">+        });</span>
+<span class="dl-add">+        specsBurst = { fires: 0, files: new Set() };</span>
+<span class="dl-add">+        pushSpecData(projectPath);</span>
+<span class="dl-add">+      }, WATCH_DEBOUNCE_MS);</span>
+<span class="dl-ctx">     }, () =&gt; { activeWatcher = null; });</span>
+<span class="dl-ctx">     activeWatchedProject = projectPath;</span>
+<span class="dl-ctx">   } catch (err) {</span>
+<span class="dl-hunk">@@ -1021,9 +1067,22 @@ function startWatching(projectPath) {</span>
+<span class="dl-ctx">         // tasks.json writes we caused ourselves (syncTasksFromMarkdown /</span>
+<span class="dl-ctx">         // renameSpec go through tasksManager.saveTasks) must not re-trigger</span>
+<span class="dl-ctx">         // a push — that was the audit&#39;s watcher feedback loop.</span>
+<span class="dl-del">-        if (Date.now() - tasksManager.getLastSelfWriteAt() &lt; SELF_WRITE_GUARD_MS) return;</span>
+<span class="dl-add">+        if (Date.now() - tasksManager.getLastSelfWriteAt() &lt; SELF_WRITE_GUARD_MS) {</span>
+<span class="dl-add">+          activityLog.record(&#39;watch.suppressed&#39;, { watcher: &#39;spec-tasks&#39;, reason: &#39;self-write&#39; });</span>
+<span class="dl-add">+          return;</span>
+<span class="dl-add">+        }</span>
+<span class="dl-add">+        specTasksFires += 1;</span>
+<span class="dl-ctx">         if (tasksWatchDebounce) clearTimeout(tasksWatchDebounce);</span>
+<span class="dl-del">-        tasksWatchDebounce = setTimeout(() =&gt; pushSpecData(projectPath), WATCH_DEBOUNCE_MS);</span>
+<span class="dl-add">+        tasksWatchDebounce = setTimeout(() =&gt; {</span>
+<span class="dl-add">+          activityLog.record(&#39;watch.fired&#39;, {</span>
+<span class="dl-add">+            watcher: &#39;spec-tasks&#39;,</span>
+<span class="dl-add">+            changes: 1,</span>
+<span class="dl-add">+            collapsed: specTasksFires,</span>
+<span class="dl-add">+            triggered: &#39;push&#39;</span>
+<span class="dl-add">+          });</span>
+<span class="dl-add">+          specTasksFires = 0;</span>
+<span class="dl-add">+          pushSpecData(projectPath);</span>
+<span class="dl-add">+        }, WATCH_DEBOUNCE_MS);</span>
+<span class="dl-ctx">       }, () =&gt; { activeTasksWatcher = null; });</span>
+<span class="dl-ctx">     } catch (err) {</span>
+<span class="dl-ctx">       console.error(&#39;specManager: tasks.json watch failed&#39;, err);</span>
+<span class="dl-meta">diff --git a/src/main/tasksManager.js b/src/main/tasksManager.js</span>
+<span class="dl-meta">index fedd9f0..6c9d652 100644</span>
+<span class="dl-file">--- a/src/main/tasksManager.js</span>
+<span class="dl-file">+++ b/src/main/tasksManager.js</span>
+<span class="dl-hunk">@@ -11,6 +11,7 @@</span>
+<span class="dl-ctx"> const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const fsSafe = require(&#39;./fsSafe&#39;);</span>
+<span class="dl-add">+const activityLog = require(&#39;./activityLog&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const { FRAME_FILES } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -310,6 +311,8 @@ function reorderTasks(projectPath, order) {</span>
+<span class="dl-ctx">  * `lastSelfWriteAt` suppresses the watcher event that fires from our own</span>
+<span class="dl-ctx">  * saveTasks() call to avoid a feedback loop.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-add">+let tasksFires = 0;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> function startWatching(projectPath) {</span>
+<span class="dl-ctx">   if (watcher &amp;&amp; watchedPath === projectPath) return;</span>
+<span class="dl-ctx">   stopWatching();</span>
+<span class="dl-hunk">@@ -319,10 +322,21 @@ function startWatching(projectPath) {</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-ctx">     watcher = fsSafe.safeWatch(projectPath, { persistent: false }, (eventType, filename) =&gt; {</span>
+<span class="dl-ctx">       if (!filename || filename !== FRAME_FILES.TASKS) return;</span>
+<span class="dl-del">-      if (Date.now() - lastSelfWriteAt &lt; SELF_WRITE_GUARD_MS) return;</span>
+<span class="dl-add">+      if (Date.now() - lastSelfWriteAt &lt; SELF_WRITE_GUARD_MS) {</span>
+<span class="dl-add">+        activityLog.record(&#39;watch.suppressed&#39;, { watcher: &#39;tasks-root&#39;, reason: &#39;self-write&#39; });</span>
+<span class="dl-add">+        return;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+      tasksFires += 1;</span>
+<span class="dl-ctx">       clearTimeout(watchDebounceTimer);</span>
+<span class="dl-ctx">       watchDebounceTimer = setTimeout(() =&gt; {</span>
+<span class="dl-add">+        activityLog.record(&#39;watch.fired&#39;, {</span>
+<span class="dl-add">+          watcher: &#39;tasks-root&#39;,</span>
+<span class="dl-add">+          changes: 1,</span>
+<span class="dl-add">+          collapsed: tasksFires,</span>
+<span class="dl-add">+          triggered: &#39;push&#39;</span>
+<span class="dl-add">+        });</span>
+<span class="dl-add">+        tasksFires = 0;</span>
+<span class="dl-ctx">         if (!mainWindow || mainWindow.isDestroyed()) return;</span>
+<span class="dl-ctx">         const tasks = loadTasks(projectPath);</span>
+<span class="dl-ctx">         mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks });</span></pre>
     </details>
   </div>
 </section>

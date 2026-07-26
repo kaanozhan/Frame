@@ -26,6 +26,7 @@ const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
 const logger = require('./logger');
+const activityLog = require('./activityLog');
 const { IPC } = require('../shared/ipcChannels');
 const {
   FRAME_DIR,
@@ -277,9 +278,20 @@ function startBusWatcher(session) {
   fs.mkdirSync(session.busDir, { recursive: true });
   drainBus(session); // pick up anything queued before the watcher attached
   try {
+    session.busFires = 0;
     session.watcher = fsSafe.safeWatch(session.busDir, null, () => {
+      session.busFires = (session.busFires || 0) + 1;
       clearTimeout(session.debounce);
-      session.debounce = setTimeout(() => drainBus(session), WATCH_DEBOUNCE_MS);
+      session.debounce = setTimeout(() => {
+        activityLog.record('watch.fired', {
+          watcher: 'orch-bus',
+          changes: 1,
+          collapsed: session.busFires,
+          triggered: 'dispatch'
+        });
+        session.busFires = 0;
+        drainBus(session);
+      }, WATCH_DEBOUNCE_MS);
     }, () => { session.watcher = null; });
   } catch (e) {
     logger.error('orch', 'failed to watch bus dir:', e.message);

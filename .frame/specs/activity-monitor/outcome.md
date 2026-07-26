@@ -86,3 +86,22 @@ blocked record path leaves the injection payload and exit code untouched.
 _Captured: 2026-07-26 · 2 file change(s)_
 
 ---
+
+## T06 — Watchers, phase reconciliation and index refresh
+
+Instrumented all six watchers plus the two consequences nobody sees:
+`reconcilePhase` now records slug + from → to (the path that once walked 18
+specs backwards from `done` off a conflicted tasks.json), and
+`scheduleIndexRefresh` distinguishes a real rebuild from `ensureFresh`'s
+no-op by comparing the index mtime across the call. Every watcher reports at
+debounce-flush time with the raw fire count in `collapsed`, and each
+self-write guard records the suppression instead of returning silently.
+
+Deviation from plan.md: `gitStatusManager`'s two watchers share one debounce,
+so rather than invent per-watcher timers the burst is attributed to whichever
+fired more in the window; `scheduleRefresh` took a watcher argument to make
+that possible.
+
+_Captured: 2026-07-26 · 4 file change(s)_
+
+---

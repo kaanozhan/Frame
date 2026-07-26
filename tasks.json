@@ -4176,13 +4176,13 @@
       "title": "Add activity records to the six watchers and their consequences: both watchers, `reconcilePhase` phase changes, `scheduleIndexRefresh` and the `ensureFresh` no-op suppression in `src/main/specManager.js`; the watcher fire in `src/main/tasksManager.js`; both watchers and the debounce collapse count in `src/main/gitStatusManager.js`; the bus watcher in `src/main/orchestrationManager.js`.",
       "description": "",
       "source": "spec:activity-monitor:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:20:14.729Z",
+      "completedAt": "2026-07-26T15:20:14.729Z"
     },
     {
       "id": "task-spec-activity-monitor-T07",

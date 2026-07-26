@@ -23,6 +23,7 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
+const activityLog = require('./activityLog');
 const logger = require('./logger');
 const { IPC } = require('../shared/ipcChannels');
 
@@ -78,7 +79,7 @@ function startWatching(projectPath) {
       { recursive: true, persistent: false },
       (eventType, filename) => {
         if (filename && isGitInternalPath(filename)) return;
-        scheduleRefresh();
+        scheduleRefresh('git-worktree');
       },
       () => { worktreeWatcher = null; } // root deleted/renamed at runtime — degrade, don't crash
     );
@@ -97,7 +98,7 @@ function startWatching(projectPath) {
       gitDirWatcher = fsSafe.safeWatch(
         gitDir,
         { recursive: true, persistent: false },
-        () => scheduleRefresh(),
+        () => scheduleRefresh('git-dir'),
         () => { gitDirWatcher = null; }
       );
     }
@@ -132,10 +133,25 @@ function isGitInternalPath(filename) {
 
 // Coalesce bursts (a checkout or `npm install` touches many files) into a
 // single git-status run.
-function scheduleRefresh() {
+// Two watchers feed one debounce, so the burst is attributed to whichever
+// of them fired most in the window — reporting one row per raw fs event
+// would drown the panel during a checkout or an npm install.
+let refreshBurst = { worktree: 0, gitDir: 0 };
+
+function scheduleRefresh(watcher) {
+  if (watcher === 'git-dir') refreshBurst.gitDir += 1;
+  else refreshBurst.worktree += 1;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
+    const total = refreshBurst.worktree + refreshBurst.gitDir;
+    activityLog.record('watch.fired', {
+      watcher: refreshBurst.gitDir > refreshBurst.worktree ? 'git-dir' : 'git-worktree',
+      changes: total,
+      collapsed: total,
+      triggered: 'refresh'
+    });
+    refreshBurst = { worktree: 0, gitDir: 0 };
     pushStatus();
   }, DEBOUNCE_MS);
 }

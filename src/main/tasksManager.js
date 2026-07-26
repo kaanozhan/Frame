@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
+const activityLog = require('./activityLog');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_FILES } = require('../shared/frameConstants');
 
@@ -310,6 +311,8 @@ function reorderTasks(projectPath, order) {
  * `lastSelfWriteAt` suppresses the watcher event that fires from our own
  * saveTasks() call to avoid a feedback loop.
  */
+let tasksFires = 0;
+
 function startWatching(projectPath) {
   if (watcher && watchedPath === projectPath) return;
   stopWatching();
@@ -319,10 +322,21 @@ function startWatching(projectPath) {
   try {
     watcher = fsSafe.safeWatch(projectPath, { persistent: false }, (eventType, filename) => {
       if (!filename || filename !== FRAME_FILES.TASKS) return;
-      if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) return;
+      if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
+        activityLog.record('watch.suppressed', { watcher: 'tasks-root', reason: 'self-write' });
+        return;
+      }
 
+      tasksFires += 1;
       clearTimeout(watchDebounceTimer);
       watchDebounceTimer = setTimeout(() => {
+        activityLog.record('watch.fired', {
+          watcher: 'tasks-root',
+          changes: 1,
+          collapsed: tasksFires,
+          triggered: 'push'
+        });
+        tasksFires = 0;
         if (!mainWindow || mainWindow.isDestroyed()) return;
         const tasks = loadTasks(projectPath);
         mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks });
