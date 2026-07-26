@@ -65,6 +65,15 @@ const PATH = { type: 'path' };
 const SLUG = { type: 'slug' };
 const enumOf = (values) => ({ type: 'enum', values });
 
+// Two different counts, deliberately not one field:
+//   `collapsed` — a domain fact the caller knows (a debounce folded N
+//                 filesystem events into one refresh).
+//   `repeats`   — the activity layer's own aggregation of N identical
+//                 records inside its window. Every suppression declares it,
+//                 because a suppression that repeats is the normal case and
+//                 clipping it with the rate cap would report "one".
+const REPEATS = { type: 'count' };
+
 const EVENTS = {
   // ─── spec-knowledge hook ────────────────────────────────
   'hint.injected': {
@@ -77,7 +86,7 @@ const EVENTS = {
   },
   'hint.quiet': {
     kind: 'suppression',
-    fields: { host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt']), reason: enumOf(HINT_REASONS), path: PATH },
+    fields: { host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt']), reason: enumOf(HINT_REASONS), path: PATH, repeats: REPEATS },
     label: (r) => `Spec history skipped${r.path ? ` for ${r.path}` : ''} — ${HINT_REASON_TEXT[r.reason] || r.reason}`
   },
 
@@ -93,7 +102,7 @@ const EVENTS = {
   },
   'watch.suppressed': {
     kind: 'suppression',
-    fields: { watcher: enumOf(WATCHERS), reason: enumOf(['self-write', 'debounce']), collapsed: COUNT },
+    fields: { watcher: enumOf(WATCHERS), reason: enumOf(['self-write', 'debounce']), collapsed: COUNT, repeats: REPEATS },
     label: (r) =>
       r.reason === 'self-write'
         ? `${WATCHER_TEXT[r.watcher] || r.watcher} ignored Frame's own write`
@@ -115,7 +124,7 @@ const EVENTS = {
   },
   'index.fresh': {
     kind: 'suppression',
-    fields: { reason: enumOf(['already-fresh']) },
+    fields: { reason: enumOf(['already-fresh']), repeats: REPEATS },
     label: () => 'Spec index already current — rebuild skipped'
   },
 
@@ -137,7 +146,7 @@ const EVENTS = {
   // ─── polling guards ─────────────────────────────────────
   'poll.skipped': {
     kind: 'suppression',
-    fields: { poller: enumOf(POLLERS), reason: enumOf(['window-hidden']) },
+    fields: { poller: enumOf(POLLERS), reason: enumOf(['window-hidden']), repeats: REPEATS },
     label: (r) => `${POLLER_TEXT[r.poller] || r.poller} paused while the window is hidden`
   },
 
@@ -245,7 +254,12 @@ function formatLabel(name, fields) {
   if (typeof label !== 'function') return null;
   try {
     const text = label(fields || {});
-    return typeof text === 'string' && text.length ? text : null;
+    if (typeof text !== 'string' || !text.length) return null;
+    // Aggregated repeats are suffixed centrally so no individual label has to
+    // remember to report them — a suppression that silently reads as one fire
+    // when it was twelve is the failure this whole layer exists to avoid.
+    const repeats = fields && fields.repeats;
+    return repeats > 1 ? `${text} ×${repeats}` : text;
   } catch {
     return null;
   }

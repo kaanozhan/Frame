@@ -4150,13 +4150,13 @@
       "title": "Write `src/main/activityLog.js` with the ring buffer, redaction pass, per-source rate cap, suppression burst aggregation, self-write stamp and project/app bucket switching, then wire `init()` in `src/main/index.js` and the active-project bucket in `src/main/frameProject.js`.",
       "description": "",
       "source": "spec:activity-monitor:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:05:58.037Z",
+      "completedAt": "2026-07-26T15:05:58.037Z"
     },
     {
       "id": "task-spec-activity-monitor-T05",

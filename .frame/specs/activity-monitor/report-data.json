@@ -39,6 +39,18 @@
         "status": "pass",
         "detail": "202/202 tests pass (12 new)"
       }
+    },
+    {
+      "id": "T04",
+      "title": "Wire the main-process wrapper and its buckets",
+      "commit": "15ed24a",
+      "whatChanged": "src/main/activityLog.js with the ring, rate cap, burst aggregation, self-write stamp and bucket switching; init() and setProject() wired in src/main/index.js and src/main/frameProject.js; a repeats field added to every suppression in src/shared/activityEvents.js with tests.",
+      "whyChanged": "Deviated from the plan by touching T03's registry: a smoke run showed aggregated bursts reading as one fire because suppressions had no counter field. Reusing collapsed would have conflated a debounce folding filesystem events with the layer folding identical records, so the two counts stay separate fields.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "204/204 tests pass (2 new)"
+      }
     }
   ]
 }

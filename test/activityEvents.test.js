@@ -106,6 +106,21 @@ test('a label never throws on a partial or empty record', () => {
   }
 });
 
+test('every suppression can carry an aggregated repeat count', () => {
+  for (const [name, spec] of Object.entries(events.EVENTS)) {
+    if (spec.kind !== 'suppression') continue;
+    assert.ok('repeats' in spec.fields, `${name} must declare repeats or its bursts report as one`);
+    assert.equal(events.validateEvent(name, { repeats: 7 }).repeats, 7);
+  }
+});
+
+test('an aggregated suppression says how many times it repeated', () => {
+  const once = events.formatLabel('poll.skipped', { poller: 'update-check', reason: 'window-hidden' });
+  const many = events.formatLabel('poll.skipped', { poller: 'update-check', reason: 'window-hidden', repeats: 5 });
+  assert.ok(!once.includes('×'), 'a single occurrence carries no multiplier');
+  assert.equal(many, `${once} ×5`);
+});
+
 test('a collapsed burst is reported with its true count, not as a single fire', () => {
   const label = events.formatLabel('watch.fired', { watcher: 'specs', changes: 2, collapsed: 12 });
   assert.match(label, /12 fires collapsed/);

@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">3 tasks</span>
-    <span class="pill good">3 verified</span>
+    <span class="pill">4 tasks</span>
+    <span class="pill good">4 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">3 of 11 tasks done · next: <span class="rs-task">T04 — Write `src/main/activityLog.js` with the ring buffer, redaction pass…</span></span>
+  <span class="rs-count">4 of 11 tasks done · next: <span class="rs-task">T05 — Instrument all eleven quiet paths in `scripts/spec-hint.js` with…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -1267,6 +1267,371 @@
 <span class="dl-add">+  assert.match(label, /12 fires collapsed/);</span>
 <span class="dl-add">+  assert.ok(!events.formatLabel(&#39;watch.fired&#39;, { watcher: &#39;specs&#39;, changes: 2, collapsed: 1 }).includes(&#39;collapsed&#39;));</span>
 <span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T04</span>
+    <h2>Wire the main-process wrapper and its buckets</h2>
+    <span class="card-meta"><span class="chip">15ed24a</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">204/204 tests pass (2 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>src/main/activityLog.js with the ring, rate cap, burst aggregation, self-write stamp and bucket switching; init() and setProject() wired in src/main/index.js and src/main/frameProject.js; a repeats field added to every suppression in src/shared/activityEvents.js with tests.</p></div>
+    <div class="field"><span class="label">Why</span><p>Deviated from the plan by touching T03&#39;s registry: a smoke run showed aggregated bursts reading as one fire because suppressions had no counter field. Reusing collapsed would have conflated a debounce folding filesystem events with the layer folding identical records, so the two counts stay separate fields.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/activityLog.js b/src/main/activityLog.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..da496b1</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/main/activityLog.js</span>
+<span class="dl-hunk">@@ -0,0 +1,195 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Activity log — the main-process side.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The append contract itself lives in `scripts/activity-log.js`, because</span>
+<span class="dl-add">+ * half the work worth recording happens in processes Frame cannot see (the</span>
+<span class="dl-add">+ * git pre-commit hook, Claude Code&#39;s tool hooks, `implement-launch.js` with</span>
+<span class="dl-add">+ * the app closed). This module is the Electron-coupled half: it holds the</span>
+<span class="dl-add">+ * in-memory ring the panel reads first, enforces the rate cap, aggregates</span>
+<span class="dl-add">+ * suppression bursts, and knows which bucket the active project writes to.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Split the way `telemetry.js` / `telemetryEvents.js` already are — policy in</span>
+<span class="dl-add">+ * a pure module that `node --test` can reach, Electron coupling here.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The ring always fills, whatever the panel is doing. A monitor you have to</span>
+<span class="dl-add">+ * switch on before the bug happens is close to useless; by the time the user</span>
+<span class="dl-add">+ * opens the panel the history has to already be there.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const activityFile = require(&#39;../../scripts/activity-log&#39;);</span>
+<span class="dl-add">+const events = require(&#39;../shared/activityEvents&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Enough to cover a long agent run without becoming a memory story of its own.</span>
+<span class="dl-add">+const RING_MAX = 2000;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Per-event-name cap. A watcher stuck in a loop must not be able to flood</span>
+<span class="dl-add">+// either the record or the panel; the aggregation below means a legitimate</span>
+<span class="dl-add">+// burst reports its true count instead of being clipped by this.</span>
+<span class="dl-add">+const RATE_WINDOW_MS = 1000;</span>
+<span class="dl-add">+const RATE_MAX_PER_EVENT = 20;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Suppression bursts collapse inside this window. Short enough that the</span>
+<span class="dl-add">+// panel still feels live, long enough that a debounce storm lands as one row.</span>
+<span class="dl-add">+const AGGREGATE_MS = 250;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// How long after our own append a watcher fire is still assumed to be ours.</span>
+<span class="dl-add">+// The foreign-append watcher (wired with the renderer push) reads this;</span>
+<span class="dl-add">+// without it the watcher would retrigger on this process&#39;s own writes —</span>
+<span class="dl-add">+// the exact loop class audit-q3-performance-resources T04 fixed in</span>
+<span class="dl-add">+// specManager with the same stamp.</span>
+<span class="dl-add">+const SELF_WRITE_GRACE_MS = 400;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const ring = [];</span>
+<span class="dl-add">+let projectBucket = null;</span>
+<span class="dl-add">+let selfWriteAt = 0;</span>
+<span class="dl-add">+let started = false;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// event name -&gt; { count, windowStart }</span>
+<span class="dl-add">+const rateState = new Map();</span>
+<span class="dl-add">+// signature -&gt; { name, fields, repeats, timer }</span>
+<span class="dl-add">+const pending = new Map();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Start the layer. Sweeps buckets nothing has written to in a week; the</span>
+<span class="dl-add">+ * sweep is deliberately fire-and-forget so a slow disk cannot delay boot.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function init() {</span>
+<span class="dl-add">+  if (started) return;</span>
+<span class="dl-add">+  started = true;</span>
+<span class="dl-add">+  setImmediate(() =&gt; {</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      activityFile.prune();</span>
+<span class="dl-add">+    } catch {</span>
+<span class="dl-add">+      /* best effort, always */</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Point project-scoped events at this project&#39;s bucket. */</span>
+<span class="dl-add">+function setProject(projectPath) {</span>
+<span class="dl-add">+  projectBucket = projectPath ? activityFile.projectKey(projectPath) : null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function bucketFor(opts) {</span>
+<span class="dl-add">+  if (opts &amp;&amp; opts.appScoped) return activityFile.APP_BUCKET;</span>
+<span class="dl-add">+  return projectBucket || activityFile.APP_BUCKET;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function rateLimited(name, now) {</span>
+<span class="dl-add">+  const state = rateState.get(name);</span>
+<span class="dl-add">+  if (!state || now - state.windowStart &gt; RATE_WINDOW_MS) {</span>
+<span class="dl-add">+    rateState.set(name, { count: 1, windowStart: now });</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  state.count += 1;</span>
+<span class="dl-add">+  return state.count &gt; RATE_MAX_PER_EVENT;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function pushRing(entry) {</span>
+<span class="dl-add">+  ring.push(entry);</span>
+<span class="dl-add">+  if (ring.length &gt; RING_MAX) ring.splice(0, ring.length - RING_MAX);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Overwritten by wireRenderer() once a window exists (T09). */</span>
+<span class="dl-add">+let onEntry = null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function emit(name, fields, opts) {</span>
+<span class="dl-add">+  const record = events.buildRecord(name, fields);</span>
+<span class="dl-add">+  if (!record) return; // unregistered — the registry is the filter</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const entry = { ...record, t: new Date().toISOString() };</span>
+<span class="dl-add">+  const label = events.formatLabel(name, fields);</span>
+<span class="dl-add">+  if (label) entry.label = label;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  pushRing(entry);</span>
+<span class="dl-add">+  selfWriteAt = Date.now();</span>
+<span class="dl-add">+  // append() never rejects; the void is deliberate — a failed write must not</span>
+<span class="dl-add">+  // surface anywhere, least of all as an unhandled rejection.</span>
+<span class="dl-add">+  activityFile.append(bucketFor(opts), record);</span>
+<span class="dl-add">+  if (onEntry) onEntry(entry);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Signature for burst aggregation: the event plus the fields that identify</span>
+<span class="dl-add">+ * *which* thing is repeating. Counts and durations are excluded — they are</span>
+<span class="dl-add">+ * what differs between fires of the same thing.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function signature(name, fields) {</span>
+<span class="dl-add">+  const keys = Object.keys(fields || {})</span>
+<span class="dl-add">+    .filter((k) =&gt; ![&#39;changes&#39;, &#39;collapsed&#39;, &#39;repeats&#39;, &#39;ms&#39;, &#39;specs&#39;].includes(k))</span>
+<span class="dl-add">+    .sort();</span>
+<span class="dl-add">+  return `${name}|${keys.map((k) =&gt; `${k}=${fields[k]}`).join(&#39;&amp;&#39;)}`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function flushPending(sig) {</span>
+<span class="dl-add">+  const held = pending.get(sig);</span>
+<span class="dl-add">+  if (!held) return;</span>
+<span class="dl-add">+  pending.delete(sig);</span>
+<span class="dl-add">+  const fields = { ...held.fields };</span>
+<span class="dl-add">+  if (held.repeats &gt; 1) fields.repeats = held.repeats;</span>
+<span class="dl-add">+  emit(held.name, fields, held.opts);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Record one event. Unregistered events are dropped, over-cap events are</span>
+<span class="dl-add">+ * dropped, and repeated suppressions collapse into a single record carrying</span>
+<span class="dl-add">+ * the true count — clipping a burst with the rate cap alone would make</span>
+<span class="dl-add">+ * &quot;twelve fires&quot; read as &quot;one&quot;.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function record(name, fields, opts) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    if (!events.isRegistered(name)) return;</span>
+<span class="dl-add">+    const now = Date.now();</span>
+<span class="dl-add">+    if (rateLimited(name, now)) return;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    if (events.isSuppression(name)) {</span>
+<span class="dl-add">+      const sig = signature(name, fields);</span>
+<span class="dl-add">+      const held = pending.get(sig);</span>
+<span class="dl-add">+      if (held) {</span>
+<span class="dl-add">+        held.repeats += 1;</span>
+<span class="dl-add">+        return;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+      const timer = setTimeout(() =&gt; flushPending(sig), AGGREGATE_MS);</span>
+<span class="dl-add">+      // Never keep the app alive to flush a suppression record.</span>
+<span class="dl-add">+      if (typeof timer.unref === &#39;function&#39;) timer.unref();</span>
+<span class="dl-add">+      pending.set(sig, { name, fields, opts, repeats: 1, timer });</span>
+<span class="dl-add">+      return;</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    emit(name, fields, opts);</span>
+<span class="dl-add">+  } catch {</span>
+<span class="dl-add">+    // Recording must never be able to break the thing it observes.</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** True when a watcher fire on the record is this process&#39;s own append. */</span>
+<span class="dl-add">+function isSelfWrite(now = Date.now()) {</span>
+<span class="dl-add">+  return now - selfWriteAt &lt; SELF_WRITE_GRACE_MS;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Newest-last window over the in-memory ring. */</span>
+<span class="dl-add">+function recent(limit = RING_MAX) {</span>
+<span class="dl-add">+  return ring.slice(-limit);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** The bucket key project-scoped events currently write to. */</span>
+<span class="dl-add">+function activeBucket() {</span>
+<span class="dl-add">+  return bucketFor(null);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  RING_MAX,</span>
+<span class="dl-add">+  RATE_MAX_PER_EVENT,</span>
+<span class="dl-add">+  AGGREGATE_MS,</span>
+<span class="dl-add">+  SELF_WRITE_GRACE_MS,</span>
+<span class="dl-add">+  init,</span>
+<span class="dl-add">+  setProject,</span>
+<span class="dl-add">+  record,</span>
+<span class="dl-add">+  recent,</span>
+<span class="dl-add">+  isSelfWrite,</span>
+<span class="dl-add">+  activeBucket,</span>
+<span class="dl-add">+  // Assigned by the renderer wiring in T09.</span>
+<span class="dl-add">+  _setEntryListener: (fn) =&gt; {</span>
+<span class="dl-add">+    onEntry = fn;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index bc1da0e..934cd30 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -16,6 +16,7 @@ const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-ctx"> const docsManagedBlock = require(&#39;../shared/docsManagedBlock&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-add">+const activityLog = require(&#39;./activityLog&#39;);</span>
+<span class="dl-ctx"> const detector = require(&#39;../../scripts/detect-project&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> let mainWindow = null;</span>
+<span class="dl-hunk">@@ -191,6 +192,9 @@ function initializeFrameProject(projectPath, projectName) {</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> async function doInitializeFrameProject(projectPath, projectName) {</span>
+<span class="dl-add">+  // Point the activity record at this project before init starts, so the</span>
+<span class="dl-add">+  // work init itself does lands in the right bucket rather than in `app`.</span>
+<span class="dl-add">+  activityLog.setProject(projectPath);</span>
+<span class="dl-ctx">   perfMonitor.opStart(&#39;project-init&#39;);</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-ctx">     return await runProjectInit(projectPath, projectName);</span>
+<span class="dl-meta">diff --git a/src/main/index.js b/src/main/index.js</span>
+<span class="dl-meta">index 8c2d1db..754c4a8 100644</span>
+<span class="dl-file">--- a/src/main/index.js</span>
+<span class="dl-file">+++ b/src/main/index.js</span>
+<span class="dl-hunk">@@ -10,6 +10,7 @@ const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> // Import modules</span>
+<span class="dl-ctx"> const logger = require(&#39;./logger&#39;);</span>
+<span class="dl-ctx"> const perfMonitor = require(&#39;./perfMonitor&#39;);</span>
+<span class="dl-add">+const activityLog = require(&#39;./activityLog&#39;);</span>
+<span class="dl-ctx"> const crashGuard = require(&#39;./crashGuard&#39;);</span>
+<span class="dl-ctx"> const pty = require(&#39;./pty&#39;);</span>
+<span class="dl-ctx"> const ptyManager = require(&#39;./ptyManager&#39;);</span>
+<span class="dl-hunk">@@ -129,6 +130,7 @@ function createWindow() {</span>
+<span class="dl-ctx">   dialogs.init(mainWindow, (projectPath) =&gt; {</span>
+<span class="dl-ctx">     pty.setProjectPath(projectPath);</span>
+<span class="dl-ctx">     promptLogger.setProject(projectPath);</span>
+<span class="dl-add">+    activityLog.setProject(projectPath);</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx">   updateChecker.init(mainWindow);</span>
+<span class="dl-ctx">   initModulesWithWindow(mainWindow);</span>
+<span class="dl-hunk">@@ -264,6 +266,10 @@ function init() {</span>
+<span class="dl-ctx">   perfMonitor.init();</span>
+<span class="dl-ctx">   perfMonitor.mark(&#39;app-ready&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Activity record — the work Frame does on its own. Always on and always</span>
+<span class="dl-add">+  // filling its ring; the panel reads it, nothing is transmitted.</span>
+<span class="dl-add">+  activityLog.init();</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // Initialize prompt logger with app paths</span>
+<span class="dl-ctx">   promptLogger.init(app);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/shared/activityEvents.js b/src/shared/activityEvents.js</span>
+<span class="dl-meta">index d6935b2..e0f6097 100644</span>
+<span class="dl-file">--- a/src/shared/activityEvents.js</span>
+<span class="dl-file">+++ b/src/shared/activityEvents.js</span>
+<span class="dl-hunk">@@ -65,6 +65,15 @@ const PATH = { type: &#39;path&#39; };</span>
+<span class="dl-ctx"> const SLUG = { type: &#39;slug&#39; };</span>
+<span class="dl-ctx"> const enumOf = (values) =&gt; ({ type: &#39;enum&#39;, values });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// Two different counts, deliberately not one field:</span>
+<span class="dl-add">+//   `collapsed` — a domain fact the caller knows (a debounce folded N</span>
+<span class="dl-add">+//                 filesystem events into one refresh).</span>
+<span class="dl-add">+//   `repeats`   — the activity layer&#39;s own aggregation of N identical</span>
+<span class="dl-add">+//                 records inside its window. Every suppression declares it,</span>
+<span class="dl-add">+//                 because a suppression that repeats is the normal case and</span>
+<span class="dl-add">+//                 clipping it with the rate cap would report &quot;one&quot;.</span>
+<span class="dl-add">+const REPEATS = { type: &#39;count&#39; };</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> const EVENTS = {</span>
+<span class="dl-ctx">   // ─── spec-knowledge hook ────────────────────────────────</span>
+<span class="dl-ctx">   &#39;hint.injected&#39;: {</span>
+<span class="dl-hunk">@@ -77,7 +86,7 @@ const EVENTS = {</span>
+<span class="dl-ctx">   },</span>
+<span class="dl-ctx">   &#39;hint.quiet&#39;: {</span>
+<span class="dl-ctx">     kind: &#39;suppression&#39;,</span>
+<span class="dl-del">-    fields: { host: enumOf(HOSTS), mode: enumOf([&#39;pre-edit&#39;, &#39;prompt&#39;]), reason: enumOf(HINT_REASONS), path: PATH },</span>
+<span class="dl-add">+    fields: { host: enumOf(HOSTS), mode: enumOf([&#39;pre-edit&#39;, &#39;prompt&#39;]), reason: enumOf(HINT_REASONS), path: PATH, repeats: REPEATS },</span>
+<span class="dl-ctx">     label: (r) =&gt; `Spec history skipped${r.path ? ` for ${r.path}` : &#39;&#39;} — ${HINT_REASON_TEXT[r.reason] || r.reason}`</span>
+<span class="dl-ctx">   },</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -93,7 +102,7 @@ const EVENTS = {</span>
+<span class="dl-ctx">   },</span>
+<span class="dl-ctx">   &#39;watch.suppressed&#39;: {</span>
+<span class="dl-ctx">     kind: &#39;suppression&#39;,</span>
+<span class="dl-del">-    fields: { watcher: enumOf(WATCHERS), reason: enumOf([&#39;self-write&#39;, &#39;debounce&#39;]), collapsed: COUNT },</span>
+<span class="dl-add">+    fields: { watcher: enumOf(WATCHERS), reason: enumOf([&#39;self-write&#39;, &#39;debounce&#39;]), collapsed: COUNT, repeats: REPEATS },</span>
+<span class="dl-ctx">     label: (r) =&gt;</span>
+<span class="dl-ctx">       r.reason === &#39;self-write&#39;</span>
+<span class="dl-ctx">         ? `${WATCHER_TEXT[r.watcher] || r.watcher} ignored Frame&#39;s own write`</span>
+<span class="dl-hunk">@@ -115,7 +124,7 @@ const EVENTS = {</span>
+<span class="dl-ctx">   },</span>
+<span class="dl-ctx">   &#39;index.fresh&#39;: {</span>
+<span class="dl-ctx">     kind: &#39;suppression&#39;,</span>
+<span class="dl-del">-    fields: { reason: enumOf([&#39;already-fresh&#39;]) },</span>
+<span class="dl-add">+    fields: { reason: enumOf([&#39;already-fresh&#39;]), repeats: REPEATS },</span>
+<span class="dl-ctx">     label: () =&gt; &#39;Spec index already current — rebuild skipped&#39;</span>
+<span class="dl-ctx">   },</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -137,7 +146,7 @@ const EVENTS = {</span>
+<span class="dl-ctx">   // ─── polling guards ─────────────────────────────────────</span>
+<span class="dl-ctx">   &#39;poll.skipped&#39;: {</span>
+<span class="dl-ctx">     kind: &#39;suppression&#39;,</span>
+<span class="dl-del">-    fields: { poller: enumOf(POLLERS), reason: enumOf([&#39;window-hidden&#39;]) },</span>
+<span class="dl-add">+    fields: { poller: enumOf(POLLERS), reason: enumOf([&#39;window-hidden&#39;]), repeats: REPEATS },</span>
+<span class="dl-ctx">     label: (r) =&gt; `${POLLER_TEXT[r.poller] || r.poller} paused while the window is hidden`</span>
+<span class="dl-ctx">   },</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -245,7 +254,12 @@ function formatLabel(name, fields) {</span>
+<span class="dl-ctx">   if (typeof label !== &#39;function&#39;) return null;</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-ctx">     const text = label(fields || {});</span>
+<span class="dl-del">-    return typeof text === &#39;string&#39; &amp;&amp; text.length ? text : null;</span>
+<span class="dl-add">+    if (typeof text !== &#39;string&#39; || !text.length) return null;</span>
+<span class="dl-add">+    // Aggregated repeats are suffixed centrally so no individual label has to</span>
+<span class="dl-add">+    // remember to report them — a suppression that silently reads as one fire</span>
+<span class="dl-add">+    // when it was twelve is the failure this whole layer exists to avoid.</span>
+<span class="dl-add">+    const repeats = fields &amp;&amp; fields.repeats;</span>
+<span class="dl-add">+    return repeats &gt; 1 ? `${text} ×${repeats}` : text;</span>
+<span class="dl-ctx">   } catch {</span>
+<span class="dl-ctx">     return null;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-meta">diff --git a/test/activityEvents.test.js b/test/activityEvents.test.js</span>
+<span class="dl-meta">index 87d97d3..3844384 100644</span>
+<span class="dl-file">--- a/test/activityEvents.test.js</span>
+<span class="dl-file">+++ b/test/activityEvents.test.js</span>
+<span class="dl-hunk">@@ -106,6 +106,21 @@ test(&#39;a label never throws on a partial or empty record&#39;, () =&gt; {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+test(&#39;every suppression can carry an aggregated repeat count&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const [name, spec] of Object.entries(events.EVENTS)) {</span>
+<span class="dl-add">+    if (spec.kind !== &#39;suppression&#39;) continue;</span>
+<span class="dl-add">+    assert.ok(&#39;repeats&#39; in spec.fields, `${name} must declare repeats or its bursts report as one`);</span>
+<span class="dl-add">+    assert.equal(events.validateEvent(name, { repeats: 7 }).repeats, 7);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;an aggregated suppression says how many times it repeated&#39;, () =&gt; {</span>
+<span class="dl-add">+  const once = events.formatLabel(&#39;poll.skipped&#39;, { poller: &#39;update-check&#39;, reason: &#39;window-hidden&#39; });</span>
+<span class="dl-add">+  const many = events.formatLabel(&#39;poll.skipped&#39;, { poller: &#39;update-check&#39;, reason: &#39;window-hidden&#39;, repeats: 5 });</span>
+<span class="dl-add">+  assert.ok(!once.includes(&#39;×&#39;), &#39;a single occurrence carries no multiplier&#39;);</span>
+<span class="dl-add">+  assert.equal(many, `${once} ×5`);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> test(&#39;a collapsed burst is reported with its true count, not as a single fire&#39;, () =&gt; {</span>
+<span class="dl-ctx">   const label = events.formatLabel(&#39;watch.fired&#39;, { watcher: &#39;specs&#39;, changes: 2, collapsed: 12 });</span>
+<span class="dl-ctx">   assert.match(label, /12 fires collapsed/);</span></pre>
     </details>
   </div>
 </section>

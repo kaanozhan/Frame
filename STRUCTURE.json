@@ -4,6 +4,107 @@
   "lastUpdated": "2026-07-26",
   "architecture": {},
   "modules": {
+    "main/activityLog": {
+      "file": "src/main/activityLog.js",
+      "description": "Activity log — the main-process side.",
+      "exports": [
+        "RING_MAX",
+        "RATE_MAX_PER_EVENT",
+        "AGGREGATE_MS",
+        "SELF_WRITE_GRACE_MS",
+        "init",
+        "setProject",
+        "record",
+        "recent",
+        "isSelfWrite",
+        "activeBucket"
+      ],
+      "depends": [
+        "../scripts/activity-log",
+        "shared/activityEvents"
+      ],
+      "functions": {
+        "init": {
+          "line": 56,
+          "purpose": "Start the layer. Sweeps buckets nothing has written to in a week; the"
+        },
+        "setProject": {
+          "line": 69,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Point project-scoped events at this project's bucket."
+        },
+        "bucketFor": {
+          "line": 73,
+          "params": [
+            "opts"
+          ]
+        },
+        "rateLimited": {
+          "line": 78,
+          "params": [
+            "name",
+            "now"
+          ]
+        },
+        "pushRing": {
+          "line": 88,
+          "params": [
+            "entry"
+          ]
+        },
+        "emit": {
+          "line": 96,
+          "params": [
+            "name",
+            "fields",
+            "opts"
+          ]
+        },
+        "signature": {
+          "line": 117,
+          "params": [
+            "name",
+            "fields"
+          ],
+          "purpose": "Signature for burst aggregation: the event plus the fields that identify"
+        },
+        "flushPending": {
+          "line": 124,
+          "params": [
+            "sig"
+          ]
+        },
+        "record": {
+          "line": 139,
+          "params": [
+            "name",
+            "fields",
+            "opts"
+          ],
+          "purpose": "Record one event. Unregistered events are dropped, over-cap events are"
+        },
+        "isSelfWrite": {
+          "line": 166,
+          "params": [
+            "now = Date.now("
+          ],
+          "purpose": "True when a watcher fire on the record is this process's own append."
+        },
+        "recent": {
+          "line": 171,
+          "params": [
+            "limit = RING_MAX"
+          ],
+          "purpose": "Newest-last window over the in-memory ring."
+        },
+        "activeBucket": {
+          "line": 176,
+          "purpose": "The bucket key project-scoped events currently write to."
+        }
+      }
+    },
     "main/aiToolManager": {
       "file": "src/main/aiToolManager.js",
       "description": "AI Tool Manager",
@@ -607,33 +708,34 @@
         "shared/docsManagedBlock",
         "telemetry",
         "perfMonitor",
+        "activityLog",
         "../scripts/detect-project",
         "aiToolManager"
       ],
       "functions": {
         "init": {
-          "line": 26,
+          "line": 27,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 33,
+          "line": 34,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 41,
+          "line": 42,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 54,
+          "line": 55,
           "params": [
             "filePath",
             "content"
@@ -641,7 +743,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 71,
+          "line": 72,
           "params": [
             "target",
             "linkPath"
@@ -649,74 +751,74 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 112,
+          "line": 113,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 136,
+          "line": 137,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 185,
+          "line": 186,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "doInitializeFrameProject": {
-          "line": 193,
+          "line": 194,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "runProjectInit": {
-          "line": 202,
+          "line": 206,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "installSpecHintHook": {
-          "line": 419,
+          "line": 423,
           "params": [
             "projectPath"
           ],
           "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
         },
         "isSpecDrivenEnabled": {
-          "line": 472,
+          "line": 476,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 477,
+          "line": 481,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 502,
+          "line": 506,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 577,
+          "line": 581,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 618,
+          "line": 622,
           "params": [
             "ipcMain"
           ],
@@ -1193,6 +1295,7 @@
         "shared/ipcChannels",
         "logger",
         "perfMonitor",
+        "activityLog",
         "crashGuard",
         "pty",
         "ptyManager",
@@ -1222,26 +1325,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 47,
+          "line": 48,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 65,
+          "line": 66,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 156
+          "line": 158
         },
         "setupAllIPC": {
-          "line": 182,
+          "line": 184,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 259,
+          "line": 261,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 290,
+          "line": 296,
           "params": [
             "window"
           ],
@@ -7878,32 +7981,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 190,
+          "line": 199,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 194,
+          "line": 203,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 198,
+          "line": 207,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 202,
+          "line": 211,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 225,
+          "line": 234,
           "params": [
             "name",
             "fields"
@@ -7911,7 +8014,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 242,
+          "line": 251,
           "params": [
             "name",
             "fields"
@@ -7919,7 +8022,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 258,
+          "line": 272,
           "params": [
             "name",
             "fields"
@@ -9280,6 +9383,18 @@
   "files": {},
   "conventions": {},
   "intentIndex": {
+    "activity": [
+      {
+        "module": "main/activityLog",
+        "file": "src/main/activityLog.js",
+        "description": "Activity log — the main-process side."
+      },
+      {
+        "module": "shared/activityEvents",
+        "file": "src/shared/activityEvents.js",
+        "description": "Activity events — pure policy module."
+      }
+    ],
     "ai-tool": [
       {
         "module": "main/aiToolManager",

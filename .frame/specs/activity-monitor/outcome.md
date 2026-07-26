@@ -46,3 +46,24 @@ differently from one another.
 _Captured: 2026-07-26 · 2 file change(s)_
 
 ---
+
+## T04 — The main-process wrapper
+
+Added `src/main/activityLog.js` (ring buffer of 2000, per-event rate cap,
+suppression burst aggregation, self-write stamp, project/app bucket
+switching) and wired `init()` into `src/main/index.js` after logger and
+perfMonitor — the ordering `audit-q3-reliability-recovery` T07 established —
+plus `setProject` on the project-switch callback and in `frameProject.js`
+so init's own work lands in the right bucket.
+
+Deviation from plan.md: this task also amended `src/shared/activityEvents.js`
+(T03's file). A smoke run showed aggregated bursts reporting as a single
+fire, because suppressions declared no counter field, and reusing
+`collapsed` would have conflated two different facts — a debounce folding N
+filesystem events versus the layer aggregating N identical records. Added a
+distinct `repeats` field to every suppression, suffixed centrally in
+`formatLabel`, with two tests.
+
+_Captured: 2026-07-26 · 5 file change(s)_
+
+---
