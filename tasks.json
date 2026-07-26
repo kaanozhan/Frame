@@ -4241,13 +4241,13 @@
       "title": "Document the record in `PRIVACY.md` — location, contents, and that it is never transmitted — and add an \"Activity Monitor\" section to `.frame/docs/REFERENCE.md` covering the registry, the reason codes and the retention rules.",
       "description": "",
       "source": "spec:activity-monitor:T11",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: activity-monitor",
       "createdAt": "2026-07-26T14:42:30.736Z",
-      "updatedAt": "2026-07-26T14:42:30.736Z",
-      "completedAt": null
+      "updatedAt": "2026-07-26T15:32:42.640Z",
+      "completedAt": "2026-07-26T15:32:42.640Z"
     }
   ],
   "metadata": {

@@ -155,18 +155,17 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">10 tasks</span>
-    <span class="pill good">10 verified</span>
+    <span class="pill">11 tasks</span>
+    <span class="pill good">11 verified</span>
     
     <span class="chip">2026-07-26</span>
   </div>
 </header>
 
 <div class="wrap">
-<div class="run-status live">
-  <span class="rs-badge">In progress</span>
-  <span class="rs-count">10 of 11 tasks done · next: <span class="rs-task">T11 — Document the record in `PRIVACY.md` — location, contents, and that it…</span></span>
-  <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
+<div class="run-status done">
+  <span class="rs-badge">Complete</span>
+  <span class="rs-count">11 of 11 tasks done</span>
 </div>
 <section class="report-head">
   <h1>Activity Monitor — record and surface the work Frame does on its own</h1>
@@ -3361,6 +3360,41 @@
 <span class="dl-add">+  background: var(--bg-primary);</span>
 <span class="dl-add">+  border-color: var(--border-subtle);</span>
 <span class="dl-add">+}</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T11</span>
+    <h2>Document the record and the rules for extending it</h2>
+    <span class="card-meta"><span class="chip">7890c14</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">212/212 tests pass</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>PRIVACY.md gained an Activity record section (location, retention, field discipline, independence from telemetry); .frame/docs/REFERENCE.md gained an Activity Monitor section with the recording rule, a component table and five rules for adding a source.</p></div>
+    <div class="field"><span class="label">Why</span><p>audit-q3-product-analytics established that any registry addition lands in PRIVACY.md in the same change; the same discipline now covers the activity registry. The REFERENCE rules exist so the next source added goes through the registry rather than becoming another scattered call site.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/PRIVACY.md b/PRIVACY.md</span>
+<span class="dl-meta">index 9d3eebf..edd2f23 100644</span>
+<span class="dl-file">--- a/PRIVACY.md</span>
+<span class="dl-file">+++ b/PRIVACY.md</span>
+<span class="dl-hunk">@@ -57,6 +57,15 @@ Frame keeps a **local** log file to make bugs debuggable — it never leaves you</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> When filing a bug report, attaching the log is the fastest way to help us help you — skim it first if you want to double-check its contents.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+## Activity record (local only)</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Frame does a lot of work on its own — watching files, reconciling spec phases, rebuilding its index, recovering a corrupt state file, running hooks during a commit. The **Activity** panel shows that work, and it reads a record kept **on your machine only**. Nothing in it is transmitted, to us or anyone else; it shares no code path and no storage with telemetry, and turning telemetry off or on changes nothing about it.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+- **Location:** `~/.frame/activity/&lt;project&gt;/activity.jsonl`, outside your repository — Frame never edits your project&#39;s `.gitignore`, so keeping it in the repo would dirty your `git status`. Work that belongs to no project goes to an `app` bucket.</span>
+<span class="dl-add">+- **Retention:** the live file rotates at 2 MB into a single archived generation, and any project&#39;s record untouched for 7 days is deleted.</span>
+<span class="dl-add">+- **What a line contains:** an event name, a timestamp, and low-cardinality fields — counts, durations, enum reason codes, a spec slug, and project-relative file paths. There is **no free-form text field**, so no prompt, no file content, no command output and no error message can be recorded. Values still pass through the same redaction the log file uses.</span>
+<span class="dl-add">+- **Turning it off:** delete the directory at any time. Frame recreates only what happens next, and nothing depends on the old contents.</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> ## Crash dumps (local only)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> On a crash, Frame saves a **minidump on your machine** using Electron&#39;s built-in crash reporter with uploading **disabled** — nothing is ever transmitted, to us or anyone else. This exists purely so a crash can be diagnosed locally.</span></pre>
     </details>
   </div>
 </section>

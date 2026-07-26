@@ -123,6 +123,18 @@
         "status": "pass",
         "detail": "212/212 tests pass; renderer bundle builds"
       }
+    },
+    {
+      "id": "T11",
+      "title": "Document the record and the rules for extending it",
+      "commit": "7890c14",
+      "whatChanged": "PRIVACY.md gained an Activity record section (location, retention, field discipline, independence from telemetry); .frame/docs/REFERENCE.md gained an Activity Monitor section with the recording rule, a component table and five rules for adding a source.",
+      "whyChanged": "audit-q3-product-analytics established that any registry addition lands in PRIVACY.md in the same change; the same discipline now covers the activity registry. The REFERENCE rules exist so the next source added goes through the registry rather than becoming another scattered call site.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass"
+      }
     }
   ]
 }

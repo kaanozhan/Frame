@@ -292,6 +292,65 @@ one; mark dead specs with `"superseded_by"` in their status.json.
 
 ---
 
+## Activity Monitor
+
+**What it is.** A record of the work Frame does *on its own* — and only
+that. The filter is one rule: record it when Frame is the trigger (a timer,
+a watcher, a hook, a guard, a recovery); do not record it when the user's
+gesture is the trigger and the result is already on screen. Opening a panel
+is absent; the watcher cascade a click sets off is present.
+
+**Why it exists.** Roughly half of Frame's background work runs in processes
+the app cannot see — the git pre-commit hook, Claude Code's tool hooks, the
+orchestration bus, `implement-launch.js` with the app closed — and the rest
+is invisible by nature. Before this layer, `spec-hint.js` exited silently on
+eleven different paths, so "ran and stayed quiet" was indistinguishable from
+"never fired" and from "never installed".
+
+**Where the pieces live.**
+
+| Piece | File | Role |
+| --- | --- | --- |
+| Append contract | `scripts/activity-log.js` | JSONL append, bucket keys, rotation, prune. Shipped to `.frame/bin/`, so out-of-process scripts write through the same file. |
+| Redaction | `scripts/redact.js` | Shared with `logger.js`; one copy, both worlds. |
+| Registry | `src/shared/activityEvents.js` | Every recordable event, its kind, its field enums, its label. Pure. |
+| App wrapper | `src/main/activityLog.js` | Ring buffer, rate cap, burst aggregation, self-write stamp, IPC. |
+| UI | `src/renderer/activityPanel.js`, `activityRail.js` | Side panel + fixed outer-edge rail. |
+
+**Two kinds of event, and the second one matters most.** An `action` is work
+that happened. A `suppression` is work a guard prevented — a poll skipped on
+a hidden window, an index rebuild that was already fresh, a hook quiet
+because the file was covered this session. Without suppressions the panel
+shows silence, and silence means either "healthy, nothing needed" or "dead".
+Suppressions render muted, never hidden.
+
+**Storage.** `~/.frame/activity/<key>/activity.jsonl`, outside the
+repository (Frame never edits a project's `.gitignore`). The key derives
+from the **absolute** project path — never `path.basename`, which is the
+collision `promptLogger` still has. 2 MB rotation into one generation, plus
+a 7-day sweep reusing `spec-hint.js`'s `STATE_TTL_MS`.
+
+**Rules for adding a source.**
+
+1. Declare the event in `src/shared/activityEvents.js` first — an
+   undeclared event is dropped, and that is what stops the drift
+   `perfMonitor.js` accumulated.
+2. Fields are enums, counts, durations, paths and slugs. **Never add a
+   free-form text field**; that is how a prompt or an error message
+   eventually lands on disk.
+3. Any registry change updates `PRIVACY.md` in the same commit.
+4. Recording must never break its host: guarded require in `.frame/bin/`
+   scripts, lazy require in early-boot modules, no stdout, no throw.
+5. Suppressions declare `repeats` so an aggregated burst reports its true
+   count. `collapsed` is a different fact — a debounce folding filesystem
+   events — and the two must not be conflated.
+
+**Not in scope (Tier 1).** Repo-mutation records and `.frame/bin/`
+version-drift detection (Tier 2); orchestration bus, PTY and IPC detail
+(Tier 3); agent access to the record.
+
+---
+
 ## General Rules
 
 1. **Language:** Write documentation in English (except code examples)

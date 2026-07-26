@@ -173,3 +173,18 @@ the other six destinations is a move, not a rewrite.
 _Captured: 2026-07-26 · 4 file change(s)_
 
 ---
+
+## T11 — Documentation
+
+`PRIVACY.md` gained an "Activity record (local only)" section naming the
+location, the retention rules, and what a line can and cannot contain —
+including that there is no free-form text field, so no prompt, file content
+or error message is recordable. It states plainly that the record shares no
+code path or storage with telemetry and is unaffected by that toggle.
+`.frame/docs/REFERENCE.md` gained an "Activity Monitor" section: the
+recording rule, why the layer exists, a table of the five pieces, the
+action/suppression distinction, storage, and five rules for adding a source.
+
+_Captured: 2026-07-26 · 2 file change(s)_
+
+---
