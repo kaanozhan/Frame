@@ -16,7 +16,10 @@
  * opens the panel the history has to already be there.
  */
 
-const { ipcMain } = require('electron');
+// `electron` is required lazily inside attachWindow, never at module scope.
+// fsSafe, tasksManager and gitStatusManager all reach this module, and CI
+// runs the suite with no node_modules at all — a top-level electron require
+// here fails three otherwise-pure test files at load time.
 const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
 const activityFile = require('../../scripts/activity-log');
@@ -285,6 +288,7 @@ watchRecord = function watchRecord() {
  * write with the app closed, and those events have to be there when it opens.
  */
 function attachWindow(window) {
+  const { ipcMain } = require('electron');
   mainWindow = window;
   onEntry = queueForRenderer;
   watchRecord();

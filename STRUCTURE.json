@@ -22,45 +22,45 @@
         "activeBucket"
       ],
       "depends": [
-        "electron",
         "fsSafe",
         "shared/ipcChannels",
         "../scripts/activity-log",
-        "shared/activityEvents"
+        "shared/activityEvents",
+        "electron"
       ],
       "functions": {
         "init": {
-          "line": 61,
+          "line": 64,
           "purpose": "Start the layer. Sweeps buckets nothing has written to in a week; the"
         },
         "setProject": {
-          "line": 74,
+          "line": 77,
           "params": [
             "projectPath"
           ],
           "purpose": "Point project-scoped events at this project's bucket."
         },
         "bucketFor": {
-          "line": 83,
+          "line": 86,
           "params": [
             "opts"
           ]
         },
         "rateLimited": {
-          "line": 88,
+          "line": 91,
           "params": [
             "name",
             "now"
           ]
         },
         "pushRing": {
-          "line": 98,
+          "line": 101,
           "params": [
             "entry"
           ]
         },
         "emit": {
-          "line": 106,
+          "line": 109,
           "params": [
             "name",
             "fields",
@@ -68,7 +68,7 @@
           ]
         },
         "signature": {
-          "line": 127,
+          "line": 130,
           "params": [
             "name",
             "fields"
@@ -76,13 +76,13 @@
           "purpose": "Signature for burst aggregation: the event plus the fields that identify"
         },
         "flushPending": {
-          "line": 134,
+          "line": 137,
           "params": [
             "sig"
           ]
         },
         "record": {
-          "line": 149,
+          "line": 152,
           "params": [
             "name",
             "fields",
@@ -91,45 +91,45 @@
           "purpose": "Record one event. Unregistered events are dropped, over-cap events are"
         },
         "isSelfWrite": {
-          "line": 176,
+          "line": 179,
           "params": [
             "now = Date.now("
           ],
           "purpose": "True when a watcher fire on the record is this process's own append."
         },
         "recent": {
-          "line": 181,
+          "line": 184,
           "params": [
             "limit = RING_MAX"
           ],
           "purpose": "Newest-last window over the in-memory ring."
         },
         "activeBucket": {
-          "line": 186,
+          "line": 189,
           "purpose": "The bucket key project-scoped events currently write to."
         },
         "flushOutbox": {
-          "line": 207
+          "line": 210
         },
         "queueForRenderer": {
-          "line": 220,
+          "line": 223,
           "params": [
             "entry"
           ]
         },
         "drainForeign": {
-          "line": 233,
+          "line": 236,
           "purpose": "Read whatever the file gained since we last looked, dropping anything the"
         },
         "attachWindow": {
-          "line": 287,
+          "line": 290,
           "params": [
             "window"
           ],
           "purpose": "Attach the window and serve the backlog. The backlog deliberately comes"
         },
         "watchRecord": {
-          "line": 48,
+          "line": 51,
           "purpose": "Declared here because setProject (above the renderer wiring) re-points it."
         }
       },
