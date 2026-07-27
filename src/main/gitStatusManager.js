@@ -83,7 +83,7 @@ function startWatching(projectPath) {
       projectPath,
       { recursive: true, persistent: false },
       (eventType, filename) => {
-        if (filename && isGitInternalPath(filename)) return;
+        if (isIgnoredWorktreePath(filename)) return;
         scheduleRefresh('git-worktree');
       },
       () => { worktreeWatcher = null; } // root deleted/renamed at runtime — degrade, don't crash
@@ -104,11 +104,12 @@ function startWatching(projectPath) {
         gitDir,
         { recursive: true, persistent: false },
         (_event, filename) => {
-          const ignore = gitDirEventMatters(filename);
-          if (ignore) {
-            activityLog.record('watch.suppressed', { watcher: 'git-dir', reason: ignore });
-            return;
-          }
+          // Dropped silently, exactly like the working-tree watcher drops
+          // `.git`: this is scope, not a guard. Lock files and the churn our
+          // own status read produces are simply not this watcher's business,
+          // and recording each one would move the flood from `git status`
+          // calls into the panel instead of removing it.
+          if (isGitBookkeeping(filename)) return;
           scheduleRefresh('git-dir');
         },
         () => { gitDirWatcher = null; }
@@ -143,6 +144,28 @@ function isGitInternalPath(filename) {
   return filename === '.git' || filename.startsWith('.git' + path.sep) || filename.startsWith('.git/');
 }
 
+/**
+ * Paths the working-tree watcher does not care about.
+ *
+ * `.git` is handled by the dedicated watcher below. `.frame` is Frame's own
+ * artifact directory — the spec index, staged command templates and runtime
+ * state are rewritten by Frame constantly, and refreshing the Changes panel
+ * because Frame just refreshed its own index produces no information at all.
+ * Excluding them turned a `git status` every ~270ms into a quiet watcher.
+ *
+ * Trade-off, accepted deliberately: a project that commits `.frame/` will see
+ * real changes there reach the panel late — on the next focus, or the next
+ * change anywhere else — rather than immediately.
+ *
+ * Pure and exported so it can be tested without standing up Electron.
+ */
+function isIgnoredWorktreePath(filename) {
+  if (!filename) return false;
+  const rel = String(filename).split(path.sep).join('/');
+  if (isGitInternalPath(filename)) return true;
+  return rel === '.frame' || rel.startsWith('.frame/');
+}
+
 // Coalesce bursts (a checkout or `npm install` touches many files) into a
 // single git-status run.
 // Two watchers feed one debounce, so the burst is attributed to whichever
@@ -157,17 +180,16 @@ const GIT_SELF_READ_GRACE_MS = 700;
 let lastGitReadAt = 0;
 
 /**
- * Should this .git event reach the debounce?
+ * Is this .git event just bookkeeping rather than a real repository change?
  *
- * Two things are dropped: the churn our own status read produces, and lock
- * files, which are transient and always paired with the real change that
- * follows them.
+ * Two things qualify: lock files, which are transient and always paired with
+ * the real change that follows them, and anything arriving right after our
+ * own status read, which refreshes .git/index's stat cache.
  */
-function gitDirEventMatters(filename) {
+function isGitBookkeeping(filename) {
   const name = String(filename || '');
-  if (name.endsWith('.lock')) return 'transient';
-  if (Date.now() - lastGitReadAt < GIT_SELF_READ_GRACE_MS) return 'self-write';
-  return null;
+  if (name.endsWith('.lock')) return true;
+  return Date.now() - lastGitReadAt < GIT_SELF_READ_GRACE_MS;
 }
 
 function scheduleRefresh(watcher) {
@@ -355,4 +377,4 @@ function classify(index, worktree) {
   return 'modified';
 }
 
-module.exports = { init, setupIPC };
+module.exports = { init, setupIPC, isIgnoredWorktreePath };

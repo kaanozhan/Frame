@@ -102,13 +102,11 @@ const EVENTS = {
   },
   'watch.suppressed': {
     kind: 'suppression',
-    fields: { watcher: enumOf(WATCHERS), reason: enumOf(['self-write', 'debounce', 'transient']), collapsed: COUNT, repeats: REPEATS },
+    fields: { watcher: enumOf(WATCHERS), reason: enumOf(['self-write', 'debounce']), collapsed: COUNT, repeats: REPEATS },
     label: (r) =>
       r.reason === 'self-write'
         ? `${WATCHER_TEXT[r.watcher] || r.watcher} ignored Frame's own write`
-        : r.reason === 'transient'
-          ? `${WATCHER_TEXT[r.watcher] || r.watcher} ignored a lock file`
-          : `${WATCHER_TEXT[r.watcher] || r.watcher} collapsed ${r.collapsed ?? 0} fires into one`
+        : `${WATCHER_TEXT[r.watcher] || r.watcher} collapsed ${r.collapsed ?? 0} fires into one`
   },
 
   // ─── spec state Frame changes on its own ────────────────

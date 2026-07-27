@@ -1178,7 +1178,8 @@
       "description": "Git Status Manager",
       "exports": [
         "init",
-        "setupIPC"
+        "setupIPC",
+        "isIgnoredWorktreePath"
       ],
       "depends": [
         "child_process",
@@ -1209,46 +1210,53 @@
           ]
         },
         "stopWatching": {
-          "line": 122
+          "line": 123
         },
         "isGitInternalPath": {
-          "line": 142,
+          "line": 143,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
-        "gitDirEventMatters": {
-          "line": 166,
+        "isIgnoredWorktreePath": {
+          "line": 162,
           "params": [
             "filename"
           ],
-          "purpose": "Should this .git event reach the debounce?"
+          "purpose": "Paths the working-tree watcher does not care about."
+        },
+        "isGitBookkeeping": {
+          "line": 189,
+          "params": [
+            "filename"
+          ],
+          "purpose": "Is this .git event just bookkeeping rather than a real repository change?"
         },
         "scheduleRefresh": {
-          "line": 173,
+          "line": 195,
           "params": [
             "watcher"
           ]
         },
         "pushStatus": {
-          "line": 191
+          "line": 213
         },
         "readGitStatus": {
-          "line": 242,
+          "line": 264,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 273,
+          "line": 295,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 330,
+          "line": 352,
           "params": [
             "index",
             "worktree"
@@ -8202,32 +8210,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 208,
+          "line": 206,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 212,
+          "line": 210,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 216,
+          "line": 214,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 220,
+          "line": 218,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 243,
+          "line": 241,
           "params": [
             "name",
             "fields"
@@ -8235,7 +8243,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 260,
+          "line": 258,
           "params": [
             "name",
             "fields"
@@ -8243,7 +8251,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 281,
+          "line": 279,
           "params": [
             "name",
             "fields"
