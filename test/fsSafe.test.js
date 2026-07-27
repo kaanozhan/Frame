@@ -149,11 +149,20 @@ test('corruption recovery records both the preserved copy and the restore', asyn
     assert.equal(result.source, 'bak', 'the .bak is still what gets restored');
 
     // The record is appended asynchronously on purpose — sync filesystem work
-    // on a recovery path would sit inside the standing perf budget.
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    const records = activityLog.readRecent(activityLog.projectKey(null), 50);
-    const preserved = records.find((r) => r.ev === 'state.corrupt_preserved');
-    const recovered = records.find((r) => r.ev === 'state.recovered');
+    // on a recovery path would sit inside the standing perf budget. Poll for
+    // it rather than sleeping a fixed amount: a fixed wait passes on a quiet
+    // machine and fails on a loaded CI runner, which is how this first went
+    // red on ubuntu while macOS stayed green.
+    let records = [];
+    let preserved;
+    let recovered;
+    for (let i = 0; i < 200; i++) {
+      records = activityLog.readRecent(activityLog.projectKey(null), 50);
+      preserved = records.find((r) => r.ev === 'state.corrupt_preserved');
+      recovered = records.find((r) => r.ev === 'state.recovered');
+      if (preserved && recovered) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
     assert.ok(preserved, 'preserving the corrupt copy is recorded');
     assert.equal(preserved.path, 'recorded-state.json', 'basename only — no home path in the record');
     assert.ok(recovered, 'the restore is recorded');
