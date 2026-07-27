@@ -52,7 +52,7 @@ let initialized = false;
 let expanded = false;
 let hooks = {}; // { onOverviewToggle, isOverviewVisible } — owned by multiTerminalUI
 
-function lucideIcon(data, size = 15) {
+function lucideIcon(data, size = 18) {
   const children = data
     .map(([tag, attrs]) => {
       const attrStr = Object.entries(attrs)
@@ -172,7 +172,7 @@ function footerHtml() {
 
   const railTitle = expanded ? 'Collapse the rail' : 'Expand to show names';
   const railLabel = expanded ? '<span class="instrument-rail-label">Collapse</span>' : '';
-  const toggle = `<button type="button" class="instrument-rail-btn instrument-rail-toggle" data-rail-toggle title="${railTitle}" aria-label="${railTitle}" tabindex="-1">${lucideIcon(expanded ? PanelLeftOpen : PanelLeftClose, 14)}${railLabel}</button>`;
+  const toggle = `<button type="button" class="instrument-rail-btn instrument-rail-toggle" data-rail-toggle title="${railTitle}" aria-label="${railTitle}" tabindex="-1">${lucideIcon(expanded ? PanelLeftOpen : PanelLeftClose)}${railLabel}</button>`;
 
   return `<div class="instrument-rail-footer">${theme}${toggle}</div>`;
 }

@@ -177,29 +177,36 @@
 
 /* ==================== INSTRUMENT RAIL ====================
    The last flex child of #main-content: fixed at the outer edge, panels
-   open inboard of it. Buttons reuse the .lane-rail-strip-btn treatment
-   (secondary at rest, primary on hover) so the rail is the existing idiom
-   rather than a new one. */
+   open inboard of it.
+
+   Geometry and theming are deliberately identical to the left sidebar rail
+   (.sidebar-rail / .sidebar-rail-btn in layout.css) — the two rails frame
+   the same workspace, so a different icon size or a different active colour
+   on one of them reads as a bug. Any change to one belongs in both. */
 
 .instrument-rail {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: var(--space-sm) 6px;
-  background: var(--bg-deep);
+  gap: 2px;
+  /* Aligns the first icon with the left rail's first icon: the sidebar's
+     own padding (16) + its header block (30) + that header's margin (16).
+     The same 62px landmark #sidebar-header documents, which is also where
+     the main panel's top bar ends. */
+  padding: 62px var(--space-xs) var(--space-sm);
   border-left: 1px solid var(--border-subtle);
 }
 
 .instrument-rail-btn {
-  width: 32px;
-  height: 32px;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid transparent;
+  border: none;
   border-radius: var(--radius-md);
   background: none;
   color: var(--text-secondary);
@@ -207,15 +214,18 @@
   transition: color var(--transition-fast), background var(--transition-fast);
 }
 
+.instrument-rail-btn svg {
+  display: block;
+}
+
 .instrument-rail-btn:hover {
   color: var(--text-primary);
-  background: var(--bg-primary);
+  background: var(--bg-hover);
 }
 
 .instrument-rail-btn.active {
-  color: var(--accent, var(--text-primary));
-  background: var(--bg-primary);
-  border-color: var(--border-subtle);
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
 }
 
 /* Expanded: wide enough for the names and nothing more. This is a rail with
@@ -227,9 +237,10 @@
 
 .instrument-rail.expanded .instrument-rail-btn {
   width: 100%;
+  height: 34px;
   justify-content: flex-start;
   gap: var(--space-sm);
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
 }
 
 .instrument-rail-label {
@@ -243,7 +254,7 @@
   display: flex;
   flex-direction: column;
   align-items: inherit;
-  gap: 4px;
+  gap: 2px;
   width: 100%;
 }
 
@@ -254,7 +265,7 @@
   width: 60%;
   align-self: center;
   background: var(--border-subtle);
-  margin: 4px 0;
+  margin: var(--space-xs) 0;
 }
 
 /* Controls, not destinations: pinned to the bottom. */
@@ -263,7 +274,7 @@
   display: flex;
   flex-direction: column;
   align-items: inherit;
-  gap: 4px;
+  gap: 2px;
   width: 100%;
   padding-top: var(--space-sm);
   border-top: 1px solid var(--border-subtle);
