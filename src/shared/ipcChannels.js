@@ -184,7 +184,11 @@ const IPC = {
   ORCH_WORKER_LANE: 'orch-worker-lane',              // renderer → main: report the terminalId it created for a worker
   ORCH_MERGE_WORKER: 'orch-merge-worker',            // renderer → main: merge a worker's branch (per-worker board action)
   ORCH_REMOVE_WORKER: 'orch-remove-worker',          // renderer → main: cleanup a worker (worktree + branch)
-  ORCH_RESUME_WORKER: 'orch-resume-worker'           // renderer → main: relaunch a recovered worker's lane in its existing worktree
+  ORCH_RESUME_WORKER: 'orch-resume-worker',          // renderer → main: relaunch a recovered worker's lane in its existing worktree
+
+  // Activity record (the work Frame does on its own — local only, never sent)
+  GET_ACTIVITY: 'get-activity',                      // renderer → main: backlog (ring + what landed while closed)
+  ACTIVITY_DATA: 'activity-data'                     // main → renderer: coalesced batch of new entries
 };
 
 module.exports = { IPC };

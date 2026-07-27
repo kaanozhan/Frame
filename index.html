@@ -493,6 +493,27 @@
       </div>
     </div>
 
+    <!-- Activity: the work Frame does on its own -->
+    <div id="activity-panel">
+      <div id="activity-header">
+        <h3>Activity</h3>
+        <span id="activity-count" class="activity-count"></span>
+        <button id="activity-close" tabindex="-1">✕</button>
+      </div>
+      <div class="activity-controls"></div>
+      <div id="activity-list">
+        <!-- Rows are rendered by activityPanel.js -->
+      </div>
+      <div id="activity-empty" class="activity-empty">
+        Nothing recorded yet. Watchers, hooks and recoveries show up here as Frame does them.
+      </div>
+    </div>
+
+    <!-- Instrument rail: last flex child of #main-content, so it sits at the
+         outer edge and panels open inboard of it. A rail that shifts when a
+         panel toggles stops being a landmark. -->
+    <nav id="instrument-rail" class="instrument-rail" aria-label="Frame instruments"></nav>
+
     <!-- Command Palette -->
     <div id="command-palette-overlay" class="command-palette-overlay">
       <div class="command-palette" role="dialog" aria-label="Command Palette">

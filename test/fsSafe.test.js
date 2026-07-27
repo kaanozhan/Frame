@@ -127,3 +127,66 @@ test('safeWatch attaches an error handler: watcher error does not throw, onError
 test('safeWatch still throws synchronously for a missing target (call-site contract)', () => {
   assert.throws(() => safeWatch(path.join(dir, 'does-not-exist'), null, () => {}));
 });
+
+// ─── recovery is recorded, not silent ─────────────────────
+//
+// A corrupt state file is moved aside and the .bak restored without the user
+// ever knowing. That self-healing is exactly the kind of invisible work the
+// activity record exists to surface.
+
+test('corruption recovery records both the preserved copy and the restore', async () => {
+  const activityHome = path.join(dir, 'activity-home');
+  const prev = process.env.FRAME_ACTIVITY_HOME;
+  process.env.FRAME_ACTIVITY_HOME = activityHome;
+  try {
+    const activityLog = require('../scripts/activity-log');
+    const file = path.join(dir, 'recorded-state.json');
+    writeFileAtomic(file, JSON.stringify({ good: true }));
+    writeFileAtomic(file, JSON.stringify({ good: 'second' })); // now a .bak exists
+    fs.writeFileSync(file, '{ not json');
+
+    const result = readJsonWithRecovery(file);
+    assert.equal(result.source, 'bak', 'the .bak is still what gets restored');
+
+    // The record is appended asynchronously on purpose — sync filesystem work
+    // on a recovery path would sit inside the standing perf budget. Poll for
+    // it rather than sleeping a fixed amount: a fixed wait passes on a quiet
+    // machine and fails on a loaded CI runner, which is how this first went
+    // red on ubuntu while macOS stayed green.
+    let records = [];
+    let preserved;
+    let recovered;
+    for (let i = 0; i < 200; i++) {
+      records = activityLog.readRecent(activityLog.projectKey(null), 50);
+      preserved = records.find((r) => r.ev === 'state.corrupt_preserved');
+      recovered = records.find((r) => r.ev === 'state.recovered');
+      if (preserved && recovered) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.ok(preserved, 'preserving the corrupt copy is recorded');
+    assert.equal(preserved.path, 'recorded-state.json', 'basename only — no home path in the record');
+    assert.ok(recovered, 'the restore is recorded');
+    assert.equal(recovered.source, 'bak');
+  } finally {
+    if (prev === undefined) delete process.env.FRAME_ACTIVITY_HOME;
+    else process.env.FRAME_ACTIVITY_HOME = prev;
+  }
+});
+
+test('recovery still works when the activity record cannot be written', () => {
+  const blocked = path.join(dir, 'blocked-activity');
+  fs.writeFileSync(blocked, 'not a directory');
+  const prev = process.env.FRAME_ACTIVITY_HOME;
+  process.env.FRAME_ACTIVITY_HOME = blocked;
+  try {
+    const file = path.join(dir, 'unrecorded-state.json');
+    writeFileAtomic(file, JSON.stringify({ v: 1 }));
+    writeFileAtomic(file, JSON.stringify({ v: 2 }));
+    fs.writeFileSync(file, 'broken{');
+    const result = readJsonWithRecovery(file);
+    assert.equal(result.source, 'bak', 'an unwritable record never costs a recovery');
+  } finally {
+    if (prev === undefined) delete process.env.FRAME_ACTIVITY_HOME;
+    else process.env.FRAME_ACTIVITY_HOME = prev;
+  }
+});

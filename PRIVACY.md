@@ -57,6 +57,15 @@ Frame keeps a **local** log file to make bugs debuggable — it never leaves you
 
 When filing a bug report, attaching the log is the fastest way to help us help you — skim it first if you want to double-check its contents.
 
+## Activity record (local only)
+
+Frame does a lot of work on its own — watching files, reconciling spec phases, rebuilding its index, recovering a corrupt state file, running hooks during a commit. The **Activity** panel shows that work, and it reads a record kept **on your machine only**. Nothing in it is transmitted, to us or anyone else; it shares no code path and no storage with telemetry, and turning telemetry off or on changes nothing about it.
+
+- **Location:** `~/.frame/activity/<project>/activity.jsonl`, outside your repository — Frame never edits your project's `.gitignore`, so keeping it in the repo would dirty your `git status`. Work that belongs to no project goes to an `app` bucket.
+- **Retention:** the live file rotates at 2 MB into a single archived generation, and any project's record untouched for 7 days is deleted.
+- **What a line contains:** an event name, a timestamp, and low-cardinality fields — counts, durations, enum reason codes, a spec slug, and project-relative file paths. There is **no free-form text field**, so no prompt, no file content, no command output and no error message can be recorded. Values still pass through the same redaction the log file uses.
+- **Turning it off:** delete the directory at any time. Frame recreates only what happens next, and nothing depends on the old contents.
+
 ## Crash dumps (local only)
 
 On a crash, Frame saves a **minidump on your machine** using Electron's built-in crash reporter with uploading **disabled** — nothing is ever transmitted, to us or anyone else. This exists purely so a crash can be diagnosed locally.

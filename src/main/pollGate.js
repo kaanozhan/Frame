@@ -14,6 +14,16 @@
 
 const { app, BrowserWindow } = require('electron');
 
+// Lazily required: pollGate is wired during early boot and must not drag the
+// activity layer into its require order.
+function notePause() {
+  try {
+    require('./activityLog').record('poll.skipped', { reason: 'window-hidden' });
+  } catch {
+    /* a paused timer is never worth an exception */
+  }
+}
+
 const gates = new Set();
 let wired = false;
 
@@ -77,6 +87,11 @@ function gatedInterval(fn, ms, { refreshOnShow = true } = {}) {
       } else if (!visible && timer) {
         clearInterval(timer);
         timer = null;
+        // "Hidden window means zero timer wakeups" was a claim with nothing
+        // behind it. Each gate pausing records one suppression; identical
+        // records inside the aggregation window collapse into a single row
+        // carrying the count, so a four-poller pause reads as one line ×4.
+        notePause();
       }
     },
     dispose() {

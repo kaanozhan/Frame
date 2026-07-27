@@ -113,10 +113,52 @@ function cleanupState(root) {
   } catch { /* no dir yet */ }
 }
 
+// ─── activity record ──────────────────────────────────────
+//
+// This hook exits 0 with no output on eleven different paths, so until now
+// "ran and deliberately stayed quiet" was indistinguishable from "never
+// fired" and from "never installed" — and determinism is the entire claim of
+// the Spec Knowledge Layer. Every path now records its reason.
+//
+// The require is guarded because `.frame/bin/` is refreshed only on project
+// init: a user may be running a generation that predates activity-log.js,
+// and that must degrade to exactly today's behavior, not to an exception.
+// Nothing here may write to stdout (it would corrupt the hook payload) or
+// throw (the host is a tool call).
+
+let activity = null;
+try {
+  activity = require('./activity-log');
+} catch {
+  /* older .frame/bin generation — no record, same behavior as before */
+}
+
+function note(root, ev, fields) {
+  if (!activity || !root) return;
+  try {
+    activity.appendSync(activity.projectKey(root), {
+      ev,
+      kind: ev === 'hint.injected' ? 'action' : 'suppression',
+      host: 'claude-hook',
+      ...fields
+    });
+  } catch {
+    /* the record is never worth a failed tool call */
+  }
+}
+
+/** Record a quiet path and return, so call sites stay single-expression. */
+function quiet(root, mode, reason, rel) {
+  note(root, 'hint.quiet', rel ? { mode, reason, path: rel } : { mode, reason });
+}
+
 // ─── output ───────────────────────────────────────────────
 
-function emit(eventName, context) {
-  if (!context) return;
+function emit(eventName, context, ctx) {
+  if (!context) {
+    if (ctx) quiet(ctx.root, ctx.mode, 'no-context');
+    return;
+  }
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: { hookEventName: eventName, additionalContext: context }
   }));
@@ -142,22 +184,22 @@ function formatEntry(r, full) {
 function preEdit(input) {
   const root = resolveRoot(input.cwd);
   const index = readJson(path.join(root, '.frame', 'index', 'spec-index.json'));
-  if (!index || !index.files) return; // no index → exactly today's behavior
+  if (!index || !index.files) return quiet(root, 'pre-edit', 'no-index'); // no index → exactly today's behavior
 
   const rawPath = input.tool_input && (input.tool_input.file_path || input.tool_input.notebook_path);
-  if (!rawPath) return;
+  if (!rawPath) return quiet(root, 'pre-edit', 'no-path');
   let rel = path.isAbsolute(rawPath) ? path.relative(root, rawPath) : rawPath;
   rel = toPosix(rel).replace(/^\.\//, '');
-  if (rel.startsWith('..')) return;             // outside the project
-  if (rel.startsWith('.frame/')) return;        // meta writes need no history lesson
+  if (rel.startsWith('..')) return quiet(root, 'pre-edit', 'outside-project');
+  if (rel.startsWith('.frame/')) return quiet(root, 'pre-edit', 'meta-path', rel);
 
   const hist = index.files[rel];
-  if (!hist || !hist.length) return;
+  if (!hist || !hist.length) return quiet(root, 'pre-edit', 'no-history', rel);
 
   cleanupState(root);
   const sessionId = input.session_id;
   const state = loadState(root, sessionId);
-  if (state.files.includes(rel)) return;        // once per file per session
+  if (state.files.includes(rel)) return quiet(root, 'pre-edit', 'session-dedup', rel); // once per file per session
   state.files.push(rel);
   saveState(root, sessionId, state);
 
@@ -176,7 +218,8 @@ function preEdit(input) {
       `\nFull history: node ${cli} --file ${rel}`;
   }
 
-  emit('PreToolUse', `Spec history for ${rel} (oldest first — the newest entry is the current truth):\n${body}\n${RELAY_INSTRUCTION}`);
+  note(root, 'hint.injected', { mode: 'pre-edit', path: rel, specs: specCount });
+  emit('PreToolUse', `Spec history for ${rel} (oldest first — the newest entry is the current truth):\n${body}\n${RELAY_INSTRUCTION}`, { root, mode: 'pre-edit' });
 }
 
 // ─── prompt mode ──────────────────────────────────────────
@@ -184,10 +227,10 @@ function preEdit(input) {
 function promptMode(input) {
   const root = resolveRoot(input.cwd);
   const index = readJson(path.join(root, '.frame', 'index', 'spec-index.json'));
-  if (!index || !index.topics) return;
+  if (!index || !index.topics) return quiet(root, 'prompt', 'no-topics');
 
   const words = tokenize(input.prompt || '');
-  if (!words.length) return;
+  if (!words.length) return quiet(root, 'prompt', 'no-words');
 
   // Document frequency per token → rare matches count double, so a single
   // specific word ("telemetry") clears the threshold while a generic one
@@ -213,13 +256,13 @@ function promptMode(input) {
     }
     if (score >= 2) scored.push({ slug, score });
   }
-  if (!scored.length) return;
+  if (!scored.length) return quiet(root, 'prompt', 'no-match');
   scored.sort((a, b) => b.score - a.score);
 
   const sessionId = input.session_id;
   const state = loadState(root, sessionId);
   const fresh = scored.filter(s => !state.topics.includes(s.slug)).slice(0, MAX_TOPIC_HITS);
-  if (!fresh.length) return;
+  if (!fresh.length) return quiet(root, 'prompt', 'no-stale-free-match');
   cleanupState(root);
   state.topics.push(...fresh.map(s => s.slug));
   saveState(root, sessionId, state);
@@ -229,9 +272,11 @@ function promptMode(input) {
     const sup = t.supersedes ? ` (supersedes ${t.supersedes})` : '';
     return `- ${slug} (${t.phase})${sup} — ${t.digestLine || t.title} → .frame/specs/${slug}/`;
   });
+  note(root, 'hint.injected', { mode: 'prompt', specs: fresh.length });
   emit('UserPromptSubmit',
     `Specs related to this request (from the project's spec archive):\n${lines.join('\n')}\n` +
-    'If relevant, read the spec chain (spec.md → plan.md → outcome.md) before working, and let the user know which prior decisions apply.');
+    'If relevant, read the spec chain (spec.md → plan.md → outcome.md) before working, and let the user know which prior decisions apply.',
+    { root, mode: 'prompt' });
 }
 
 // ─── main (never break) ───────────────────────────────────

@@ -12,12 +12,7 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
-const tasksDashboard = require('./tasksDashboard');
-const pluginsPanel = require('./pluginsPanel');
-const githubPanel = require('./githubPanel');
-const promptsPanel = require('./promptsPanel');
-const specsDashboard = require('./specsDashboard');
-const { Plus, MoreHorizontal, Bell, CheckSquare, Home, X, Boxes, FileText, FileDiff, Bot } = require('lucide');
+const { Plus, Bell, CheckSquare, Home, X, Boxes, FileText, FileDiff, Bot } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
 
@@ -35,7 +30,6 @@ class TerminalTabBar {
     this.manager = manager;
     this.element = null;
     this.shellMenu = null;
-    this.moreMenu = null;
     this.availableShells = [];
     this.onOverviewToggle = null; // Callback for overview toggle
     this.onGoHome = null;         // Callback: return to lane board
@@ -48,7 +42,6 @@ class TerminalTabBar {
     this._injectStyles();
     this._render();
     this._createShellMenu();
-    this._createMoreMenu();
     this._loadAvailableShells();
     this._initTheme();
   }
@@ -114,47 +107,6 @@ class TerminalTabBar {
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
-        .more-menu {
-          min-width: 160px;
-        }
-        .more-menu-item {
-          padding: 7px 12px;
-          font-size: 12px;
-          color: var(--text-primary);
-          cursor: pointer;
-          border-radius: var(--radius-sm);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: background var(--transition-fast);
-          font-weight: 500;
-        }
-        .more-menu-item:hover {
-          background: var(--bg-hover);
-        }
-        .more-menu-item svg {
-          opacity: 0.7;
-          flex-shrink: 0;
-        }
-        .more-menu-item.active {
-          color: var(--accent-primary);
-        }
-        .more-menu-item.active svg {
-          opacity: 1;
-        }
-        .more-menu-divider {
-          height: 1px;
-          background: var(--border-subtle);
-          margin: 4px 0;
-        }
-        .btn-more-toggle {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .btn-more-toggle.active {
-          color: var(--accent-primary) !important;
-        }
       `;
       document.head.appendChild(style);
     }
@@ -198,9 +150,6 @@ class TerminalTabBar {
         <button class="btn-update-notify" title="Check for updates" style="display:none;position:relative;">
           ${lucideIcon(Bell)}
           <span class="update-badge"></span>
-        </button>
-        <button class="btn-more-toggle" title="More panels">
-          ${lucideIcon(MoreHorizontal)}
         </button>
       </div>
     `;
@@ -304,24 +253,6 @@ class TerminalTabBar {
     // Usage bars click to refresh
     this.element.querySelector('.claude-usage-bars').addEventListener('click', () => {
       ipcRenderer.send(IPC.REFRESH_CLAUDE_USAGE);
-    });
-
-    // More menu toggle button
-    const moreBtn = this.element.querySelector('.btn-more-toggle');
-    moreBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (this.moreMenu.classList.contains('visible')) {
-        this._hideMoreMenu();
-      } else {
-        moreBtn.classList.add('active');
-        const rect = moreBtn.getBoundingClientRect();
-        this._showMoreMenu(rect.right, rect.bottom + 4);
-        // Reposition to align right edge
-        requestAnimationFrame(() => {
-          const menuRect = this.moreMenu.getBoundingClientRect();
-          this.moreMenu.style.left = `${rect.right - menuRect.width}px`;
-        });
-      }
     });
 
     // Update notification button
@@ -493,116 +424,6 @@ class TerminalTabBar {
     }, true);
   }
 
-  _createMoreMenu() {
-    this.moreMenu = document.createElement('div');
-    this.moreMenu.className = 'terminal-context-menu more-menu';
-    document.body.appendChild(this.moreMenu);
-
-    document.addEventListener('click', (e) => {
-      if (!this.moreMenu.contains(e.target) && !e.target.closest('.btn-more-toggle')) {
-        this._hideMoreMenu();
-      }
-    });
-
-    document.addEventListener('scroll', () => {
-      this._hideMoreMenu();
-    }, true);
-  }
-
-  _showMoreMenu(x, y) {
-    this.moreMenu.innerHTML = '';
-
-    const items = [
-      {
-        label: 'Specs',
-        icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`,
-        action: () => specsDashboard.toggle(),
-        key: 'specs'
-      },
-      {
-        label: 'Tasks',
-        icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
-        action: () => tasksDashboard.toggle(),
-        key: 'tasks'
-      },
-      {
-        label: 'Claude',
-        icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
-        action: () => pluginsPanel.toggle(),
-        key: 'claude'
-      },
-      {
-        label: 'GitHub',
-        icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>`,
-        action: () => githubPanel.toggle(),
-        key: 'github'
-      },
-      {
-        label: 'Prompts',
-        icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
-        action: () => promptsPanel.toggle(),
-        key: 'prompts'
-      },
-      {
-        label: 'Overview',
-        icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
-        action: () => { if (this.onOverviewToggle) this.onOverviewToggle(); },
-        key: 'overview'
-      },
-    ];
-
-    items.forEach(({ label, icon, action }) => {
-      const item = document.createElement('div');
-      item.className = 'more-menu-item';
-      item.innerHTML = `${icon}<span>${label}</span>`;
-      item.addEventListener('click', () => {
-        action();
-        this._hideMoreMenu();
-      });
-      this.moreMenu.appendChild(item);
-    });
-
-    // Divider + Theme toggle
-    const divider = document.createElement('div');
-    divider.className = 'more-menu-divider';
-    this.moreMenu.appendChild(divider);
-
-    const themeItem = document.createElement('div');
-    themeItem.className = 'more-menu-item';
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const themeLabel = currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
-    const themeIcon = currentTheme === 'dark'
-      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
-      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
-    themeItem.innerHTML = `${themeIcon}<span>${themeLabel}</span>`;
-    themeItem.addEventListener('click', () => {
-      this._toggleTheme();
-      this._hideMoreMenu();
-    });
-    this.moreMenu.appendChild(themeItem);
-
-    this.moreMenu.style.left = `${x}px`;
-    this.moreMenu.style.top = `${y}px`;
-    this.moreMenu.classList.add('visible');
-
-    // Adjust if out of bounds
-    const rect = this.moreMenu.getBoundingClientRect();
-    if (rect.right > window.innerWidth) {
-      this.moreMenu.style.left = `${window.innerWidth - rect.width - 5}px`;
-    }
-    if (rect.bottom > window.innerHeight) {
-      this.moreMenu.style.top = `${y - rect.height}px`;
-    }
-  }
-
-  _hideMoreMenu() {
-    if (this.moreMenu) {
-      this.moreMenu.classList.remove('visible');
-    }
-    const btn = this.element && this.element.querySelector('.btn-more-toggle');
-    if (btn) btn.classList.remove('active');
-  }
-
   async _loadAvailableShells() {
     try {
       this.availableShells = await this.manager.getAvailableShells();
@@ -699,30 +520,17 @@ class TerminalTabBar {
   }
 
   /**
-   * Initialize theme from localStorage
+   * Restore the saved theme at boot.
+   *
+   * The *toggle* now lives in the instrument rail, but the restore stays
+   * here because this runs during tab-bar construction — moving it to the
+   * rail's later init would flash the default theme first. Setting the
+   * attribute is the whole contract: terminalManager observes it and the
+   * rail reads it when it renders.
    */
   _initTheme() {
     const saved = localStorage.getItem('frame-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', saved);
-    this._updateThemeButton(saved);
-  }
-
-  /**
-   * Toggle between dark and light theme
-   */
-  _toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('frame-theme', next);
-    this._updateThemeButton(next);
-  }
-
-  /**
-   * Update theme button icon based on current theme (no-op: theme icon is in the more menu)
-   */
-  _updateThemeButton(_theme) {
-    // Theme icon is rendered dynamically in the more menu; nothing to update here
   }
 
   /**

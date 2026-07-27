@@ -16,6 +16,7 @@ const commandStaging = require('./commandStaging');
 const docsManagedBlock = require('../shared/docsManagedBlock');
 const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
+const activityLog = require('./activityLog');
 const detector = require('../../scripts/detect-project');
 
 let mainWindow = null;
@@ -191,6 +192,9 @@ function initializeFrameProject(projectPath, projectName) {
 }
 
 async function doInitializeFrameProject(projectPath, projectName) {
+  // Point the activity record at this project before init starts, so the
+  // work init itself does lands in the right bucket rather than in `app`.
+  activityLog.setProject(projectPath);
   perfMonitor.opStart('project-init');
   try {
     return await runProjectInit(projectPath, projectName);

@@ -16,6 +16,7 @@ const { execSync, spawnSync } = require('child_process');
 
 // FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user
 // project. Frame's own callers don't set it — behavior is unchanged.
+const STARTED_AT = Date.now();
 const ROOT_DIR = process.env.FRAME_PROJECT_ROOT
   ? path.resolve(process.env.FRAME_PROJECT_ROOT)
   : path.join(__dirname, '..');
@@ -168,6 +169,27 @@ if (structure) {
 checkNotesStaleness();
 checkStuckTasks();
 checkQuickstartStaleness();
+
+// ─── activity record ──────────────────────────────────────
+//
+// Runs under the git pre-commit hook, in a process Frame never sees.
+// Guarded require: `.frame/bin/` refreshes only on project init, so an
+// older generation degrades to today's behavior and a commit can never
+// fail over a record.
+
+try {
+  const activityLog = require('./activity-log');
+  activityLog.appendSync(activityLog.projectKey(ROOT_DIR), {
+    ev: 'script.ran',
+    kind: 'action',
+    script: 'check-freshness',
+    // git sets GIT_INDEX_FILE for hook processes; without it a developer ran
+    // this by hand.
+    host: process.env.GIT_INDEX_FILE ? 'git-precommit' : 'cli',
+    ms: Date.now() - STARTED_AT,
+    changes: findings.length
+  });
+} catch { /* never worth a failed commit */ }
 
 // Output
 const args = process.argv.slice(2);

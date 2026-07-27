@@ -1,9 +1,147 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-23",
+  "lastUpdated": "2026-07-27",
   "architecture": {},
   "modules": {
+    "main/activityLog": {
+      "file": "src/main/activityLog.js",
+      "description": "Activity log — the main-process side.",
+      "exports": [
+        "RING_MAX",
+        "RATE_MAX_PER_EVENT",
+        "AGGREGATE_MS",
+        "SELF_WRITE_GRACE_MS",
+        "PUSH_FLUSH_MS",
+        "init",
+        "setProject",
+        "attachWindow",
+        "record",
+        "recent",
+        "isSelfWrite",
+        "activeBucket"
+      ],
+      "depends": [
+        "fsSafe",
+        "shared/ipcChannels",
+        "../scripts/activity-log",
+        "shared/activityEvents",
+        "electron"
+      ],
+      "functions": {
+        "init": {
+          "line": 64,
+          "purpose": "Start the layer. Sweeps buckets nothing has written to in a week; the"
+        },
+        "setProject": {
+          "line": 77,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Point project-scoped events at this project's bucket."
+        },
+        "bucketFor": {
+          "line": 86,
+          "params": [
+            "opts"
+          ]
+        },
+        "rateLimited": {
+          "line": 91,
+          "params": [
+            "name",
+            "now"
+          ]
+        },
+        "pushRing": {
+          "line": 101,
+          "params": [
+            "entry"
+          ]
+        },
+        "emit": {
+          "line": 109,
+          "params": [
+            "name",
+            "fields",
+            "opts"
+          ]
+        },
+        "signature": {
+          "line": 130,
+          "params": [
+            "name",
+            "fields"
+          ],
+          "purpose": "Signature for burst aggregation: the event plus the fields that identify"
+        },
+        "flushPending": {
+          "line": 137,
+          "params": [
+            "sig"
+          ]
+        },
+        "record": {
+          "line": 152,
+          "params": [
+            "name",
+            "fields",
+            "opts"
+          ],
+          "purpose": "Record one event. Unregistered events are dropped, over-cap events are"
+        },
+        "isSelfWrite": {
+          "line": 179,
+          "params": [
+            "now = Date.now("
+          ],
+          "purpose": "True when a watcher fire on the record is this process's own append."
+        },
+        "recent": {
+          "line": 184,
+          "params": [
+            "limit = RING_MAX"
+          ],
+          "purpose": "Newest-last window over the in-memory ring."
+        },
+        "activeBucket": {
+          "line": 189,
+          "purpose": "The bucket key project-scoped events currently write to."
+        },
+        "flushOutbox": {
+          "line": 210
+        },
+        "queueForRenderer": {
+          "line": 223,
+          "params": [
+            "entry"
+          ]
+        },
+        "drainForeign": {
+          "line": 236,
+          "purpose": "Read whatever the file gained since we last looked, dropping anything the"
+        },
+        "attachWindow": {
+          "line": 290,
+          "params": [
+            "window"
+          ],
+          "purpose": "Attach the window and serve the backlog. The backlog deliberately comes"
+        },
+        "watchRecord": {
+          "line": 51,
+          "purpose": "Declared here because setProject (above the renderer wiring) re-points it."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GET_ACTIVITY"
+        ],
+        "emits": [
+          "ACTIVITY_DATA"
+        ]
+      }
+    },
     "main/aiToolManager": {
       "file": "src/main/aiToolManager.js",
       "description": "AI Tool Manager",
@@ -607,33 +745,34 @@
         "shared/docsManagedBlock",
         "telemetry",
         "perfMonitor",
+        "activityLog",
         "../scripts/detect-project",
         "aiToolManager"
       ],
       "functions": {
         "init": {
-          "line": 26,
+          "line": 27,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 33,
+          "line": 34,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 41,
+          "line": 42,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 54,
+          "line": 55,
           "params": [
             "filePath",
             "content"
@@ -641,7 +780,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 71,
+          "line": 72,
           "params": [
             "target",
             "linkPath"
@@ -649,74 +788,74 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 112,
+          "line": 113,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 136,
+          "line": 137,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 185,
+          "line": 186,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "doInitializeFrameProject": {
-          "line": 193,
+          "line": 194,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "runProjectInit": {
-          "line": 202,
+          "line": 206,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "installSpecHintHook": {
-          "line": 419,
+          "line": 423,
           "params": [
             "projectPath"
           ],
           "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
         },
         "isSpecDrivenEnabled": {
-          "line": 472,
+          "line": 476,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 477,
+          "line": 481,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 502,
+          "line": 506,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 577,
+          "line": 581,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 618,
+          "line": 622,
           "params": [
             "ipcMain"
           ],
@@ -748,26 +887,35 @@
         "safeWatch"
       ],
       "depends": [
-        "fs"
+        "fs",
+        "path",
+        "activityLog"
       ],
       "functions": {
         "writeFileAtomic": {
-          "line": 28,
+          "line": 29,
           "params": [
             "filePath",
             "data"
           ],
           "purpose": "Atomically replace `filePath` with `data`."
         },
+        "noteRecovery": {
+          "line": 69,
+          "params": [
+            "ev",
+            "fields"
+          ],
+          "purpose": "Recovery is silent self-healing: a corrupt state file is moved aside and"
+        },
         "readJsonWithRecovery": {
-          "line": 64,
+          "line": 77,
           "params": [
             "filePath"
-          ],
-          "purpose": "Read and parse a JSON state file with corruption recovery."
+          ]
         },
         "safeWatch": {
-          "line": 114,
+          "line": 130,
           "params": [
             "target",
             "options",
@@ -1030,67 +1178,85 @@
       "description": "Git Status Manager",
       "exports": [
         "init",
-        "setupIPC"
+        "setupIPC",
+        "isIgnoredWorktreePath"
       ],
       "depends": [
         "child_process",
         "fs",
         "path",
         "fsSafe",
+        "activityLog",
         "logger",
         "shared/ipcChannels"
       ],
       "functions": {
         "init": {
-          "line": 41,
+          "line": 42,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 49,
+          "line": 50,
           "params": [
             "ipcMain"
           ]
         },
         "startWatching": {
-          "line": 65,
+          "line": 66,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 109
+          "line": 123
         },
         "isGitInternalPath": {
-          "line": 129,
+          "line": 143,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
+        "isIgnoredWorktreePath": {
+          "line": 162,
+          "params": [
+            "filename"
+          ],
+          "purpose": "Paths the working-tree watcher does not care about."
+        },
+        "isGitBookkeeping": {
+          "line": 189,
+          "params": [
+            "filename"
+          ],
+          "purpose": "Is this .git event just bookkeeping rather than a real repository change?"
+        },
         "scheduleRefresh": {
-          "line": 135,
-          "purpose": "Coalesce bursts (a checkout or `npm install` touches many files) into a"
+          "line": 195,
+          "params": [
+            "watcher"
+          ]
         },
         "pushStatus": {
-          "line": 143
+          "line": 213
         },
         "readGitStatus": {
-          "line": 188,
+          "line": 264,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 219,
+          "line": 295,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 276,
+          "line": 352,
           "params": [
             "index",
             "worktree"
@@ -1193,6 +1359,7 @@
         "shared/ipcChannels",
         "logger",
         "perfMonitor",
+        "activityLog",
         "crashGuard",
         "pty",
         "ptyManager",
@@ -1222,26 +1389,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 47,
+          "line": 48,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 65,
+          "line": 66,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 156
+          "line": 158
         },
         "setupAllIPC": {
-          "line": 182,
+          "line": 184,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 259,
+          "line": 261,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 290,
+          "line": 296,
           "params": [
             "window"
           ],
@@ -1275,40 +1442,29 @@
         "getLogPath"
       ],
       "depends": [
+        "../scripts/redact",
         "electron-log/main",
         "fs"
       ],
       "functions": {
-        "redact": {
-          "line": 33,
-          "params": [
-            "text"
-          ]
-        },
-        "redactValue": {
-          "line": 43,
-          "params": [
-            "value"
-          ]
-        },
         "init": {
-          "line": 61
+          "line": 27
         },
         "rotateArchives": {
-          "line": 84,
+          "line": 50,
           "params": [
             "oldLogFile"
           ],
           "purpose": "Keep 3 archives: main.log → main.old.1.log → main.old.2.log → main.old.3.log"
         },
         "scoped": {
-          "line": 101,
+          "line": 67,
           "params": [
             "scope"
           ]
         },
         "emit": {
-          "line": 108,
+          "line": 74,
           "params": [
             "level",
             "scope",
@@ -1317,28 +1473,28 @@
           "purpose": "Pre-init calls fall back to console so early failures aren't lost."
         },
         "info": {
-          "line": 118,
+          "line": 84,
           "params": [
             "scope",
             "...args"
           ]
         },
         "warn": {
-          "line": 122,
+          "line": 88,
           "params": [
             "scope",
             "...args"
           ]
         },
         "error": {
-          "line": 126,
+          "line": 92,
           "params": [
             "scope",
             "...args"
           ]
         },
         "getLogPath": {
-          "line": 130
+          "line": 96
         }
       }
     },
@@ -1438,6 +1594,7 @@
         "path",
         "fsSafe",
         "logger",
+        "activityLog",
         "shared/ipcChannels",
         "shared/frameConstants",
         "shared/frameTemplates",
@@ -1449,38 +1606,38 @@
       ],
       "functions": {
         "init": {
-          "line": 66,
+          "line": 67,
           "params": [
             "window"
           ]
         },
         "sessionFor": {
-          "line": 70,
+          "line": 71,
           "params": [
             "projectPath"
           ]
         },
         "busDirFor": {
-          "line": 76,
+          "line": 77,
           "params": [
             "projectPath"
           ]
         },
         "binDirFor": {
-          "line": 79,
+          "line": 80,
           "params": [
             "projectPath"
           ]
         },
         "worktreeDirFor": {
-          "line": 82,
+          "line": 83,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "envForLane": {
-          "line": 88,
+          "line": 89,
           "params": [
             "session",
             "slug"
@@ -1488,27 +1645,27 @@
           "purpose": "Inject the bus path (+ optional slug) so a lane can reach Frame from any"
         },
         "toPrefix": {
-          "line": 102,
+          "line": 103,
           "params": [
             "entry"
           ]
         },
         "entriesOverlap": {
-          "line": 107,
+          "line": 108,
           "params": [
             "a",
             "b"
           ]
         },
         "footprintsOverlap": {
-          "line": 119,
+          "line": 120,
           "params": [
             "fa",
             "fb"
           ]
         },
         "findFootprintConflict": {
-          "line": 130,
+          "line": 131,
           "params": [
             "session",
             "slug",
@@ -1517,7 +1674,7 @@
           "purpose": "An in-flight spec whose footprint overlaps `footprint`, or null. done/failed"
         },
         "footprintHistorySection": {
-          "line": 147,
+          "line": 148,
           "params": [
             "projectPath",
             "slug"
@@ -1525,65 +1682,65 @@
           "purpose": "Write the interpolated worker prompt to the MAIN repo (worktrees lack .frame/"
         },
         "buildWorkerPrompt": {
-          "line": 175,
+          "line": 176,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "relayToConductor": {
-          "line": 198,
+          "line": 199,
           "params": [
             "session",
             "text"
           ]
         },
         "drainRelayQueue": {
-          "line": 204,
+          "line": 205,
           "params": [
             "session"
           ]
         },
         "materializeBinScripts": {
-          "line": 222,
+          "line": 223,
           "params": [
             "projectPath"
           ],
           "purpose": "Materialize the .frame/bin command scripts for this project."
         },
         "serializeState": {
-          "line": 234,
+          "line": 235,
           "params": [
             "session"
           ]
         },
         "publishState": {
-          "line": 259,
+          "line": 260,
           "params": [
             "session"
           ]
         },
         "startBusWatcher": {
-          "line": 276,
+          "line": 277,
           "params": [
             "session"
           ]
         },
         "drainBus": {
-          "line": 289,
+          "line": 301,
           "params": [
             "session"
           ]
         },
         "handleRequest": {
-          "line": 313,
+          "line": 325,
           "params": [
             "session",
             "req"
           ]
         },
         "handleDispatch": {
-          "line": 333,
+          "line": 345,
           "params": [
             "session",
             "slug"
@@ -1591,7 +1748,7 @@
           "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
         },
         "registerWorkerLane": {
-          "line": 405,
+          "line": 417,
           "params": [
             "projectPath",
             "slug",
@@ -1600,7 +1757,7 @@
           "purpose": "The renderer reports the terminalId it created for a worker lane, so the"
         },
         "handleReportDone": {
-          "line": 418,
+          "line": 430,
           "params": [
             "session",
             "slug"
@@ -1608,7 +1765,7 @@
           "purpose": "T15 — a worker reported completion: mark done, attach a diff stat, relay to"
         },
         "handleMerge": {
-          "line": 437,
+          "line": 449,
           "params": [
             "session",
             "slug",
@@ -1617,7 +1774,7 @@
           "purpose": "T22 (drift check + fast-forward merge into integration) + T23 (meta reconcile"
         },
         "mergeWorker": {
-          "line": 477,
+          "line": 489,
           "params": [
             "projectPath",
             "slug",
@@ -1626,7 +1783,7 @@
           "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
         },
         "removeWorker": {
-          "line": 485,
+          "line": 497,
           "params": [
             "projectPath",
             "slug"
@@ -1634,33 +1791,33 @@
           "purpose": "Per-worker cleanup from the board UI: stop its lane, remove the worktree, and"
         },
         "pollStatuses": {
-          "line": 510,
+          "line": 522,
           "params": [
             "session"
           ]
         },
         "startOrchestration": {
-          "line": 551,
+          "line": 563,
           "params": [
             "args = {}"
           ]
         },
         "stopOrchestration": {
-          "line": 617,
+          "line": 629,
           "params": [
             "projectPath"
           ],
           "purpose": "T25 — teardown: stop worker lanes, remove their worktrees, prune only MERGED"
         },
         "rehydrate": {
-          "line": 659,
+          "line": 671,
           "params": [
             "session"
           ],
           "purpose": "T26 — best-effort rehydration from frame/<slug>/* branches after a restart."
         },
         "resumeWorker": {
-          "line": 712,
+          "line": 724,
           "params": [
             "projectPath",
             "slug"
@@ -1668,20 +1825,20 @@
           "purpose": "Resume a recovered worker: spawn a fresh agent lane in its EXISTING"
         },
         "assignSpecs": {
-          "line": 737,
+          "line": 749,
           "params": [
             "projectPath",
             "slugs"
           ]
         },
         "getState": {
-          "line": 745,
+          "line": 757,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 751,
+          "line": 763,
           "params": [
             "ipcMain"
           ]
@@ -2004,26 +2161,31 @@
         "anyWindowVisible"
       ],
       "depends": [
-        "electron"
+        "electron",
+        "activityLog"
       ],
       "functions": {
+        "notePause": {
+          "line": 19,
+          "purpose": "Lazily required: pollGate is wired during early boot and must not drag the"
+        },
         "anyWindowVisible": {
-          "line": 20
+          "line": 30
         },
         "reevaluateAll": {
-          "line": 26
+          "line": 36
         },
         "watchWindow": {
-          "line": 33,
+          "line": 43,
           "params": [
             "win"
           ]
         },
         "ensureWiring": {
-          "line": 41
+          "line": 51
         },
         "gatedInterval": {
-          "line": 56,
+          "line": 66,
           "params": [
             "fn",
             "ms",
@@ -2032,7 +2194,7 @@
           "purpose": "Visibility-gated setInterval. Returns a handle with dispose()."
         },
         "ttlCache": {
-          "line": 99,
+          "line": 114,
           "params": [
             "fn",
             "ttlMs"
@@ -2410,83 +2572,91 @@
         "commandStaging",
         "frameProject",
         "telemetry",
+        "activityLog",
         "perfMonitor"
       ],
       "functions": {
         "getSpecsRoot": {
-          "line": 60,
+          "line": 61,
           "params": [
             "projectPath"
           ]
         },
         "getSpecDir": {
-          "line": 64,
+          "line": 65,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "generateSlug": {
-          "line": 73,
+          "line": 74,
           "params": [
             "title"
           ]
         },
         "uniqueSlug": {
-          "line": 86,
+          "line": 87,
           "params": [
             "projectPath",
             "baseSlug"
           ]
         },
         "validateSpecStatus": {
-          "line": 99,
+          "line": 100,
           "params": [
             "obj"
           ]
         },
         "readFileSafe": {
-          "line": 118,
+          "line": 119,
           "params": [
             "p"
           ]
         },
         "readStatus": {
-          "line": 127,
+          "line": 128,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 138,
+          "line": 139,
           "params": [
             "projectPath",
             "slug",
             "status"
           ]
         },
+        "indexStamp": {
+          "line": 169,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "mtime of the derived index, or 0 — used to tell a rebuild from a no-op."
+        },
         "scheduleIndexRefresh": {
-          "line": 168,
+          "line": 178,
           "params": [
             "projectPath"
           ]
         },
         "buildSpecCatalog": {
-          "line": 185,
+          "line": 206,
           "params": [
             "projectPath"
           ],
           "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
         },
         "listSpecs": {
-          "line": 205,
+          "line": 226,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 260,
+          "line": 281,
           "params": [
             "projectPath",
             "slug",
@@ -2494,7 +2664,7 @@
           ]
         },
         "derivePhase": {
-          "line": 264,
+          "line": 285,
           "params": [
             "projectPath",
             "slug",
@@ -2503,14 +2673,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 290,
+          "line": 311,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 296,
+          "line": 317,
           "params": [
             "projectPath",
             "slug",
@@ -2518,14 +2688,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 321,
+          "line": 346,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 325,
+          "line": 350,
           "params": [
             "projectPath",
             "aiTool",
@@ -2533,7 +2703,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 329,
+          "line": 354,
           "params": [
             "projectPath",
             "aiTool",
@@ -2541,14 +2711,14 @@
           ]
         },
         "interpolate": {
-          "line": 335,
+          "line": 360,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 342,
+          "line": 367,
           "params": [
             "projectPath",
             "slug",
@@ -2557,7 +2727,7 @@
           ]
         },
         "stageCommandAsset": {
-          "line": 391,
+          "line": 416,
           "params": [
             "projectPath",
             "aiTool",
@@ -2566,7 +2736,7 @@
           "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
         },
         "stageCommandAssets": {
-          "line": 412,
+          "line": 437,
           "params": [
             "projectPath",
             "command",
@@ -2574,34 +2744,34 @@
           ]
         },
         "resolveVerificationCommand": {
-          "line": 476,
+          "line": 501,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 491,
+          "line": 516,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 509,
+          "line": 534,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 533,
+          "line": 558,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 549,
+          "line": 574,
           "params": [
             "projectPath",
             "slug"
@@ -2609,7 +2779,7 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "buildSpecCommandFile": {
-          "line": 556,
+          "line": 581,
           "params": [
             "projectPath",
             "slug",
@@ -2618,53 +2788,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 592,
+          "line": 617,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 618,
+          "line": 643,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 637,
+          "line": 662,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 642,
+          "line": 667,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 722,
+          "line": 747,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 729,
+          "line": 754,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 746,
+          "line": 771,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 776,
+          "line": 801,
           "params": [
             "projectPath",
             "query"
@@ -2672,14 +2842,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 797,
+          "line": 822,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 840,
+          "line": 865,
           "params": [
             "projectPath",
             "slug",
@@ -2687,14 +2857,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 859,
+          "line": 884,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 876,
+          "line": 901,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2703,28 +2873,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 983,
+          "line": 1013,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1037
+          "line": 1096
         },
         "pushSpecData": {
-          "line": 1058,
+          "line": 1117,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1078,
+          "line": 1137,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1082,
+          "line": 1141,
           "params": [
             "ipcMain"
           ]
@@ -2843,63 +3013,64 @@
         "fs",
         "path",
         "fsSafe",
+        "activityLog",
         "shared/ipcChannels",
         "shared/frameConstants"
       ],
       "functions": {
         "cacheKeyFor": {
-          "line": 36,
+          "line": 37,
           "params": [
             "tasksPath"
           ]
         },
         "init": {
-          "line": 45,
+          "line": 46,
           "params": [
             "window"
           ]
         },
         "setProjectPath": {
-          "line": 49,
+          "line": 50,
           "params": [
             "projectPath"
           ]
         },
         "getTasksFilePath": {
-          "line": 53,
+          "line": 54,
           "params": [
             "projectPath"
           ]
         },
         "flattenLegacyTasks": {
-          "line": 64,
+          "line": 65,
           "params": [
             "legacy"
           ],
           "purpose": "Migrate the old nested shape ({ pending, inProgress, completed }) into a"
         },
         "dedupById": {
-          "line": 77,
+          "line": 78,
           "params": [
             "tasks"
           ]
         },
         "loadTasks": {
-          "line": 98,
+          "line": 99,
           "params": [
             "projectPath"
           ],
           "purpose": "Read tasks.json from disk, migrate/normalize, and return the canonical"
         },
         "saveTasks": {
-          "line": 164,
+          "line": 165,
           "params": [
             "projectPath",
             "tasksData"
           ]
         },
         "sendTasksFileError": {
-          "line": 184,
+          "line": 185,
           "params": [
             "projectPath",
             "info"
@@ -2907,17 +3078,17 @@
           "purpose": "Tell the renderer tasks.json is corrupt (or was auto-recovered from .bak)"
         },
         "generateTaskId": {
-          "line": 192
+          "line": 193
         },
         "addTask": {
-          "line": 196,
+          "line": 197,
           "params": [
             "projectPath",
             "task"
           ]
         },
         "updateTask": {
-          "line": 220,
+          "line": 221,
           "params": [
             "projectPath",
             "taskId",
@@ -2925,14 +3096,14 @@
           ]
         },
         "deleteTask": {
-          "line": 242,
+          "line": 243,
           "params": [
             "projectPath",
             "taskId"
           ]
         },
         "reorderTasks": {
-          "line": 261,
+          "line": 262,
           "params": [
             "projectPath",
             "order"
@@ -2940,23 +3111,22 @@
           "purpose": "Reorder tasks (used by the Kanban dashboard for drag-and-drop). The renderer"
         },
         "startWatching": {
-          "line": 313,
+          "line": 316,
           "params": [
             "projectPath"
-          ],
-          "purpose": "Watch the active project's directory for tasks.json changes. External"
+          ]
         },
         "stopWatching": {
-          "line": 339
+          "line": 353
         },
         "setupIPC": {
-          "line": 349,
+          "line": 363,
           "params": [
             "ipcMain"
           ]
         },
         "getLastSelfWriteAt": {
-          "line": 409,
+          "line": 423,
           "purpose": "Timestamp of this module's last tasks.json write — exported so other"
         }
       },
@@ -3260,6 +3430,94 @@
           "WORKSPACE_DATA",
           "WORKSPACE_UPDATED"
         ]
+      }
+    },
+    "renderer/activityPanel": {
+      "file": "src/renderer/activityPanel.js",
+      "description": "Activity Panel",
+      "exports": [
+        "init",
+        "show",
+        "hide",
+        "toggle",
+        "isVisible"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "htmlUtils"
+      ],
+      "functions": {
+        "groupOf": {
+          "line": 57,
+          "params": [
+            "entry"
+          ]
+        },
+        "visible": {
+          "line": 61,
+          "params": [
+            "entry"
+          ]
+        },
+        "formatTime": {
+          "line": 68,
+          "params": [
+            "iso"
+          ]
+        },
+        "detailOf": {
+          "line": 77,
+          "params": [
+            "entry"
+          ],
+          "purpose": "The raw record, minus what the row already shows."
+        },
+        "rowHtml": {
+          "line": 86,
+          "params": [
+            "entry"
+          ]
+        },
+        "render": {
+          "line": 100
+        },
+        "addEntries": {
+          "line": 115,
+          "params": [
+            "incoming"
+          ]
+        },
+        "loadBacklog": {
+          "line": 122
+        },
+        "buildControls": {
+          "line": 134
+        },
+        "wireControls": {
+          "line": 146
+        },
+        "init": {
+          "line": 170
+        },
+        "show": {
+          "line": 195
+        },
+        "hide": {
+          "line": 202
+        },
+        "toggle": {
+          "line": 206
+        },
+        "isVisible": {
+          "line": 213
+        }
+      },
+      "ipc": {
+        "listens": [
+          "ACTIVITY_DATA"
+        ],
+        "emits": []
       }
     },
     "renderer/agentDispatch": {
@@ -4572,6 +4830,8 @@
         "pluginsPanel",
         "githubPanel",
         "promptsPanel",
+        "activityPanel",
+        "instrumentRail",
         "specPanel",
         "specPanelResize",
         "specsDashboard",
@@ -4599,34 +4859,34 @@
       ],
       "functions": {
         "init": {
-          "line": 47,
+          "line": 49,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 236,
+          "line": 245,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 294,
+          "line": 303,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 383,
+          "line": 392,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 414,
+          "line": 423,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 440,
+          "line": 449,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 712,
+          "line": 721,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -4638,6 +4898,72 @@
         "emits": [
           "REFRESH_GIT_STATUS"
         ]
+      }
+    },
+    "renderer/instrumentRail": {
+      "file": "src/renderer/instrumentRail.js",
+      "description": "Instrument Rail",
+      "exports": [
+        "init",
+        "render"
+      ],
+      "depends": [
+        "lucide",
+        "activityPanel",
+        "specsDashboard",
+        "tasksDashboard",
+        "pluginsPanel",
+        "githubPanel",
+        "promptsPanel"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 55,
+          "params": [
+            "data",
+            "size = 18"
+          ]
+        },
+        "readExpanded": {
+          "line": 67
+        },
+        "writeExpanded": {
+          "line": 75,
+          "params": [
+            "value"
+          ]
+        },
+        "safeCall": {
+          "line": 83,
+          "params": [
+            "fn"
+          ]
+        },
+        "itemHtml": {
+          "line": 139,
+          "params": [
+            "item"
+          ]
+        },
+        "currentTheme": {
+          "line": 152
+        },
+        "toggleTheme": {
+          "line": 156
+        },
+        "footerHtml": {
+          "line": 167,
+          "purpose": "The rail's bottom cluster: settings-ish controls, not destinations."
+        },
+        "render": {
+          "line": 180
+        },
+        "init": {
+          "line": 189,
+          "params": [
+            "options"
+          ]
+        }
       }
     },
     "renderer/laneBoard": {
@@ -7778,18 +8104,13 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "tasksDashboard",
-        "pluginsPanel",
-        "githubPanel",
-        "promptsPanel",
-        "specsDashboard",
         "lucide",
         "htmlUtils",
         "notify"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 24,
+          "line": 19,
           "params": [
             "data",
             "size = 18"
@@ -7868,6 +8189,75 @@
           "AI_TOOL_CHANGED"
         ],
         "emits": []
+      }
+    },
+    "shared/activityEvents": {
+      "file": "src/shared/activityEvents.js",
+      "description": "Activity events — pure policy module.",
+      "exports": [
+        "EVENTS",
+        "WATCHERS",
+        "POLLERS",
+        "HINT_REASONS",
+        "HOSTS",
+        "isRegistered",
+        "kindOf",
+        "isSuppression",
+        "validateEvent",
+        "formatLabel",
+        "buildRecord"
+      ],
+      "depends": [],
+      "functions": {
+        "isRegistered": {
+          "line": 206,
+          "params": [
+            "name"
+          ]
+        },
+        "kindOf": {
+          "line": 210,
+          "params": [
+            "name"
+          ]
+        },
+        "isSuppression": {
+          "line": 214,
+          "params": [
+            "name"
+          ]
+        },
+        "fieldPasses": {
+          "line": 218,
+          "params": [
+            "spec",
+            "value"
+          ]
+        },
+        "validateEvent": {
+          "line": 241,
+          "params": [
+            "name",
+            "fields"
+          ],
+          "purpose": "Validate an (event, fields) pair against the registry."
+        },
+        "formatLabel": {
+          "line": 258,
+          "params": [
+            "name",
+            "fields"
+          ],
+          "purpose": "The one-line sentence the panel's default view shows, or null when the"
+        },
+        "buildRecord": {
+          "line": 279,
+          "params": [
+            "name",
+            "fields"
+          ],
+          "purpose": "Build the record the append contract writes: the validated fields plus the"
+        }
       }
     },
     "shared/docsManagedBlock": {
@@ -9216,12 +9606,41 @@
         "direction": "",
         "description": ""
       }
+    },
+    "activity": {
+      "GET_ACTIVITY": {
+        "name": "get-activity",
+        "direction": "",
+        "description": ""
+      },
+      "ACTIVITY_DATA": {
+        "name": "activity-data",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
   "files": {},
   "conventions": {},
   "intentIndex": {
+    "activity": [
+      {
+        "module": "main/activityLog",
+        "file": "src/main/activityLog.js",
+        "description": "Activity log — the main-process side."
+      },
+      {
+        "module": "renderer/activityPanel",
+        "file": "src/renderer/activityPanel.js",
+        "description": "Activity Panel"
+      },
+      {
+        "module": "shared/activityEvents",
+        "file": "src/shared/activityEvents.js",
+        "description": "Activity events — pure policy module."
+      }
+    ],
     "ai-tool": [
       {
         "module": "main/aiToolManager",
@@ -9287,6 +9706,18 @@
         "module": "renderer/editor",
         "file": "src/renderer/editor.js",
         "description": "File Editor Module"
+      }
+    ],
+    "events": [
+      {
+        "module": "main/telemetryEvents",
+        "file": "src/main/telemetryEvents.js",
+        "description": "Telemetry events — pure policy module"
+      },
+      {
+        "module": "shared/activityEvents",
+        "file": "src/shared/activityEvents.js",
+        "description": "Activity events — pure policy module."
       }
     ],
     "file-tree": [
@@ -9485,6 +9916,11 @@
     ],
     "panel": [
       {
+        "module": "renderer/activityPanel",
+        "file": "src/renderer/activityPanel.js",
+        "description": "Activity Panel"
+      },
+      {
         "module": "renderer/overviewPanel",
         "file": "src/renderer/overviewPanel.js",
         "description": "Overview Panel Module"
@@ -9522,6 +9958,18 @@
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
+      }
+    ],
+    "rail": [
+      {
+        "module": "renderer/instrumentRail",
+        "file": "src/renderer/instrumentRail.js",
+        "description": "Instrument Rail"
+      },
+      {
+        "module": "renderer/sectionRail",
+        "file": "src/renderer/sectionRail.js",
+        "description": "Section Rail Module"
       }
     ],
     "section": [

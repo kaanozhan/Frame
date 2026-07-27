@@ -10,6 +10,7 @@ const { IPC } = require('../shared/ipcChannels');
 // Import modules
 const logger = require('./logger');
 const perfMonitor = require('./perfMonitor');
+const activityLog = require('./activityLog');
 const crashGuard = require('./crashGuard');
 const pty = require('./pty');
 const ptyManager = require('./ptyManager');
@@ -129,6 +130,7 @@ function createWindow() {
   dialogs.init(mainWindow, (projectPath) => {
     pty.setProjectPath(projectPath);
     promptLogger.setProject(projectPath);
+    activityLog.setProject(projectPath);
   });
   updateChecker.init(mainWindow);
   initModulesWithWindow(mainWindow);
@@ -264,6 +266,10 @@ function init() {
   perfMonitor.init();
   perfMonitor.mark('app-ready');
 
+  // Activity record — the work Frame does on its own. Always on and always
+  // filling its ring; the panel reads it, nothing is transmitted.
+  activityLog.init();
+
   // Initialize prompt logger with app paths
   promptLogger.init(app);
 
@@ -301,6 +307,7 @@ function initModulesWithWindow(window) {
   gitStatusManager.init(window);
   specManager.init(window);
   orchestrationManager.init(window);
+  activityLog.attachWindow(window);
 }
 
 // Aptabase MUST be initialized before app.whenReady() because the SDK

@@ -20,6 +20,7 @@ const tasksManager = require('./tasksManager');
 const commandStaging = require('./commandStaging');
 const frameProject = require('./frameProject');
 const telemetry = require('./telemetry');
+const activityLog = require('./activityLog');
 const perfMonitor = require('./perfMonitor');
 
 const SPECS_DIR_NAME = 'specs';
@@ -164,12 +165,32 @@ function writeStatus(projectPath, slug, status) {
 
 const specIndexLib = require(path.join(__dirname, '..', '..', 'scripts', 'spec-index.js'));
 
+/** mtime of the derived index, or 0 — used to tell a rebuild from a no-op. */
+function indexStamp(projectPath) {
+  try {
+    return fs.statSync(path.join(projectPath, FRAME_DIR, 'index', 'spec-index.json')).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
 let indexRefreshTimer = null;
 function scheduleIndexRefresh(projectPath) {
   if (indexRefreshTimer) clearTimeout(indexRefreshTimer);
   indexRefreshTimer = setTimeout(() => {
     indexRefreshTimer = null;
-    specIndexLib.ensureFresh(projectPath).catch((err) => {
+    const startedAt = Date.now();
+    const before = indexStamp(projectPath);
+    specIndexLib.ensureFresh(projectPath).then(() => {
+      // ensureFresh no-ops when the index is already current, and a no-op is
+      // worth recording: otherwise the panel cannot tell a healthy skip from
+      // a refresh that never ran.
+      if (indexStamp(projectPath) === before) {
+        activityLog.record('index.fresh', { reason: 'already-fresh' });
+      } else {
+        activityLog.record('index.rebuilt', { ms: Date.now() - startedAt });
+      }
+    }).catch((err) => {
       console.warn('specManager: spec-index refresh failed (non-fatal):', err.message);
     });
   }, 2000);
@@ -306,6 +327,10 @@ function reconcilePhase(projectPath, slug, tasksDataOrNull) {
     last_phase_at: now
   });
   telemetry.track('spec_phase_advanced', { phase: newPhase });
+  // Nobody asked for this: reconcile derives the phase from task statuses and
+  // rewrites status.json on its own. A conflicted tasks.json once walked 18
+  // specs backwards from `done` here with no trace at all.
+  activityLog.record('spec.phase_reconciled', { slug, from: status.phase, to: newPhase });
 }
 
 // ─── Command template loading + interpolation ──────────────
@@ -980,6 +1005,11 @@ function renameSpec(projectPath, oldSlug, opts) {
 // (Node ≥ 20.5). Electron 28 ships with a Node version that supports this
 // across all three platforms — if that ever changes, swap in a poller.
 
+// Burst state for the two watchers: raw fire count and the distinct files
+// behind it, both reset when the debounce flushes.
+let specsBurst = { fires: 0, files: new Set() };
+let specTasksFires = 0;
+
 function startWatching(projectPath) {
   stopWatching();
   if (!projectPath) return;
@@ -998,11 +1028,27 @@ function startWatching(projectPath) {
     return;
   }
   try {
-    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, () => {
+    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, (_event, filename) => {
       // Our own writeStatus calls fire this watcher too — drop them.
-      if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) return;
+      if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
+        activityLog.record('watch.suppressed', { watcher: 'specs', reason: 'self-write' });
+        return;
+      }
+      specsBurst.fires += 1;
+      if (filename) specsBurst.files.add(String(filename));
       if (watchDebounce) clearTimeout(watchDebounce);
-      watchDebounce = setTimeout(() => pushSpecData(projectPath), WATCH_DEBOUNCE_MS);
+      watchDebounce = setTimeout(() => {
+        // Reported when the debounce flushes, so the record carries what the
+        // burst actually was rather than one row per raw fs event.
+        activityLog.record('watch.fired', {
+          watcher: 'specs',
+          changes: specsBurst.files.size || specsBurst.fires,
+          collapsed: specsBurst.fires,
+          triggered: 'push'
+        });
+        specsBurst = { fires: 0, files: new Set() };
+        pushSpecData(projectPath);
+      }, WATCH_DEBOUNCE_MS);
     }, () => { activeWatcher = null; });
     activeWatchedProject = projectPath;
   } catch (err) {
@@ -1021,9 +1067,22 @@ function startWatching(projectPath) {
         // tasks.json writes we caused ourselves (syncTasksFromMarkdown /
         // renameSpec go through tasksManager.saveTasks) must not re-trigger
         // a push — that was the audit's watcher feedback loop.
-        if (Date.now() - tasksManager.getLastSelfWriteAt() < SELF_WRITE_GUARD_MS) return;
+        if (Date.now() - tasksManager.getLastSelfWriteAt() < SELF_WRITE_GUARD_MS) {
+          activityLog.record('watch.suppressed', { watcher: 'spec-tasks', reason: 'self-write' });
+          return;
+        }
+        specTasksFires += 1;
         if (tasksWatchDebounce) clearTimeout(tasksWatchDebounce);
-        tasksWatchDebounce = setTimeout(() => pushSpecData(projectPath), WATCH_DEBOUNCE_MS);
+        tasksWatchDebounce = setTimeout(() => {
+          activityLog.record('watch.fired', {
+            watcher: 'spec-tasks',
+            changes: 1,
+            collapsed: specTasksFires,
+            triggered: 'push'
+          });
+          specTasksFires = 0;
+          pushSpecData(projectPath);
+        }, WATCH_DEBOUNCE_MS);
       }, () => { activeTasksWatcher = null; });
     } catch (err) {
       console.error('specManager: tasks.json watch failed', err);

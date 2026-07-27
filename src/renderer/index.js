@@ -18,6 +18,8 @@ const taskRunModal = require('./taskRunModal');
 const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
+const activityPanel = require('./activityPanel');
+const instrumentRail = require('./instrumentRail');
 const specPanel = require('./specPanel');
 const specPanelResize = require('./specPanelResize');
 const specsDashboard = require('./specsDashboard');
@@ -147,6 +149,13 @@ function init() {
 
   // Initialize prompts panel
   promptsPanel.init();
+  activityPanel.init();
+  instrumentRail.init({
+    // Overview is a view mode rather than a panel, so its open/closed state
+    // has to come from the UI that owns it.
+    onOverviewToggle: () => multiTerminalUI && multiTerminalUI.toggleOverview(),
+    isOverviewVisible: () => Boolean(multiTerminalUI && multiTerminalUI.isOverviewVisible)
+  });
 
   // Initialize specs panel (spec-driven development)
   specPanel.init();

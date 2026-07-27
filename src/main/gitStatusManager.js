@@ -23,6 +23,7 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
+const activityLog = require('./activityLog');
 const logger = require('./logger');
 const { IPC } = require('../shared/ipcChannels');
 
@@ -65,6 +66,11 @@ function setupIPC(ipcMain) {
 function startWatching(projectPath) {
   stopWatching();
   currentProjectPath = projectPath;
+  // Point the activity record at this project. Doing it here rather than
+  // only on the open-project dialog matters: at boot the project is restored
+  // from the workspace, that dialog callback never runs, and every record
+  // for a restored project was landing in the `app` bucket.
+  activityLog.setProject(projectPath);
   if (!projectPath) return;
 
   // Initial snapshot so decorations paint immediately.
@@ -77,8 +83,8 @@ function startWatching(projectPath) {
       projectPath,
       { recursive: true, persistent: false },
       (eventType, filename) => {
-        if (filename && isGitInternalPath(filename)) return;
-        scheduleRefresh();
+        if (isIgnoredWorktreePath(filename)) return;
+        scheduleRefresh('git-worktree');
       },
       () => { worktreeWatcher = null; } // root deleted/renamed at runtime — degrade, don't crash
     );
@@ -97,7 +103,15 @@ function startWatching(projectPath) {
       gitDirWatcher = fsSafe.safeWatch(
         gitDir,
         { recursive: true, persistent: false },
-        () => scheduleRefresh(),
+        (_event, filename) => {
+          // Dropped silently, exactly like the working-tree watcher drops
+          // `.git`: this is scope, not a guard. Lock files and the churn our
+          // own status read produces are simply not this watcher's business,
+          // and recording each one would move the flood from `git status`
+          // calls into the panel instead of removing it.
+          if (isGitBookkeeping(filename)) return;
+          scheduleRefresh('git-dir');
+        },
         () => { gitDirWatcher = null; }
       );
     }
@@ -130,12 +144,68 @@ function isGitInternalPath(filename) {
   return filename === '.git' || filename.startsWith('.git' + path.sep) || filename.startsWith('.git/');
 }
 
+/**
+ * Paths the working-tree watcher does not care about.
+ *
+ * `.git` is handled by the dedicated watcher below. `.frame` is Frame's own
+ * artifact directory — the spec index, staged command templates and runtime
+ * state are rewritten by Frame constantly, and refreshing the Changes panel
+ * because Frame just refreshed its own index produces no information at all.
+ * Excluding them turned a `git status` every ~270ms into a quiet watcher.
+ *
+ * Trade-off, accepted deliberately: a project that commits `.frame/` will see
+ * real changes there reach the panel late — on the next focus, or the next
+ * change anywhere else — rather than immediately.
+ *
+ * Pure and exported so it can be tested without standing up Electron.
+ */
+function isIgnoredWorktreePath(filename) {
+  if (!filename) return false;
+  const rel = String(filename).split(path.sep).join('/');
+  if (isGitInternalPath(filename)) return true;
+  return rel === '.frame' || rel.startsWith('.frame/');
+}
+
 // Coalesce bursts (a checkout or `npm install` touches many files) into a
 // single git-status run.
-function scheduleRefresh() {
+// Two watchers feed one debounce, so the burst is attributed to whichever
+// of them fired most in the window — reporting one row per raw fs event
+// would drown the panel during a checkout or an npm install.
+let refreshBurst = { worktree: 0, gitDir: 0 };
+
+// How long after our own `git status` a .git event is still assumed to be
+// its aftermath. Long enough to cover git's own write-out, short enough that
+// a real stage/unstage from a terminal still lands in the panel.
+const GIT_SELF_READ_GRACE_MS = 700;
+let lastGitReadAt = 0;
+
+/**
+ * Is this .git event just bookkeeping rather than a real repository change?
+ *
+ * Two things qualify: lock files, which are transient and always paired with
+ * the real change that follows them, and anything arriving right after our
+ * own status read, which refreshes .git/index's stat cache.
+ */
+function isGitBookkeeping(filename) {
+  const name = String(filename || '');
+  if (name.endsWith('.lock')) return true;
+  return Date.now() - lastGitReadAt < GIT_SELF_READ_GRACE_MS;
+}
+
+function scheduleRefresh(watcher) {
+  if (watcher === 'git-dir') refreshBurst.gitDir += 1;
+  else refreshBurst.worktree += 1;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
+    const total = refreshBurst.worktree + refreshBurst.gitDir;
+    activityLog.record('watch.fired', {
+      watcher: refreshBurst.gitDir > refreshBurst.worktree ? 'git-dir' : 'git-worktree',
+      changes: total,
+      collapsed: total,
+      triggered: 'refresh'
+    });
+    refreshBurst = { worktree: 0, gitDir: 0 };
     pushStatus();
   }, DEBOUNCE_MS);
 }
@@ -154,6 +224,12 @@ async function pushStatus() {
 
   try {
     const result = await readGitStatus(projectPath);
+    // `git status` is not read-only on disk: it refreshes .git/index's stat
+    // cache and cycles index.lock. Without this stamp the .git watcher sees
+    // our own read, refreshes again, and the pair spin forever — measured at
+    // one fire every ~270ms for two and a half hours before the activity
+    // record made it visible.
+    lastGitReadAt = Date.now();
 
     // Bail if watching stopped or the project changed mid-fetch.
     if (currentProjectPath !== projectPath || !mainWindow || mainWindow.isDestroyed()) {
@@ -301,4 +377,4 @@ function classify(index, worktree) {
   return 'modified';
 }
 
-module.exports = { init, setupIPC };
+module.exports = { init, setupIPC, isIgnoredWorktreePath };

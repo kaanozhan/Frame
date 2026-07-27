@@ -1,6 +1,10 @@
 /**
- * Redaction tests (T03): no secret shape may survive into a persisted log,
- * and normal developer content must pass through untouched.
+ * Redaction tests: no secret shape may survive into a persisted log, and
+ * normal developer content must pass through untouched.
+ *
+ * redact() moved to scripts/redact.js so the .frame/bin/ scripts can share
+ * it, so the cases below exercise it at its own home; the re-export test
+ * guards logger.js's unchanged public API, which promptLogger depends on.
  */
 
 const { test, beforeEach, afterEach } = require('node:test');
@@ -9,7 +13,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { redact } = require('../src/main/logger');
+const { redact } = require('../scripts/redact');
 
 // ─── redact(): secrets are scrubbed ───────────────────────
 
@@ -49,6 +53,18 @@ for (const line of CLEAN) {
     assert.equal(redact(line), line);
   });
 }
+
+// ─── logger.js still re-exports the same function ─────────
+
+test('logger re-exports redact from its new home', () => {
+  const logger = require('../src/main/logger');
+  assert.equal(logger.redact, redact, 'logger.redact must be the shared implementation');
+  assert.deepEqual(
+    Object.keys(logger).sort(),
+    ['error', 'getLogPath', 'info', 'init', 'redact', 'warn'],
+    'logger public API unchanged by the extraction'
+  );
+});
 
 // ─── promptLogger: redaction + size cap on the real module ─
 

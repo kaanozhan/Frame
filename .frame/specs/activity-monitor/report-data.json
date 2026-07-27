@@ -1,0 +1,140 @@
+{
+  "spec": {
+    "slug": "activity-monitor",
+    "title": "Activity Monitor — record and surface the work Frame does on its own"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Extract redact() into scripts/redact.js and re-export from logger.js",
+      "commit": "d379b7e",
+      "whatChanged": "New scripts/redact.js holds the token patterns and the keyed-secret pattern; src/main/logger.js requires and re-exports them; test/logger.test.js targets the new home and pins logger's public key set.",
+      "whyChanged": "The .frame/bin/ scripts run out-of-process and cannot require src/main/, so the append helper would otherwise need its own copy of the regexes. One shared file is the only option that leaves exactly one copy of a security-relevant pattern set.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "175/175 tests pass"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Write the JSONL append contract and register it for shipping",
+      "commit": "8b1bdbc",
+      "whatChanged": "scripts/activity-log.js with projectKey, buildLine, appendSync/append, rotation, prune and readRecent; registered in PARSER_FILES (structureBootstrap.js) and build.files (package.json); 15 cases in test/activityLog.test.js.",
+      "whyChanged": "Sync and async appends both exist because the hosts differ: a git hook process would die before a promise settled, while sync I/O on the main process would break the standing perf budget. Nested values are dropped rather than serialized so a payload can never ride along even if a future call site passes one.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "190/190 tests pass (15 new)"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Declare the Tier 1 event registry",
+      "commit": "3ff33e5",
+      "whatChanged": "src/shared/activityEvents.js with ten events, their kinds, field enums and label formatters, plus validateEvent/formatLabel/buildRecord; 12 cases in test/activityEvents.test.js.",
+      "whyChanged": "The registry is the recording filter, not a schema afterthought: an event has to be declared to be writable at all, which is what stops the drift perfMonitor accumulated. Labels live here rather than at call sites so the panel cannot end up with two vocabularies for the same event.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "202/202 tests pass (12 new)"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Wire the main-process wrapper and its buckets",
+      "commit": "15ed24a",
+      "whatChanged": "src/main/activityLog.js with the ring, rate cap, burst aggregation, self-write stamp and bucket switching; init() and setProject() wired in src/main/index.js and src/main/frameProject.js; a repeats field added to every suppression in src/shared/activityEvents.js with tests.",
+      "whyChanged": "Deviated from the plan by touching T03's registry: a smoke run showed aggregated bursts reading as one fire because suppressions had no counter field. Reusing collapsed would have conflated a debounce folding filesystem events with the layer folding identical records, so the two counts stay separate fields.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "204/204 tests pass (2 new)"
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Record every spec-hint decision, including the quiet ones",
+      "commit": "dfdd1bb",
+      "whatChanged": "scripts/spec-hint.js gained a guarded activity require, a note()/quiet() pair, and a reason code on all eleven silent returns plus both injection points; six tests in test/spec-hint.test.js.",
+      "whyChanged": "The Spec Knowledge Layer claims determinism, and until now nothing distinguished a hook that ran and stayed quiet from one that never fired or was never installed. Out-of-process scripts cannot reach src/shared/, so records are built registry-shaped by hand and validated on read instead.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "210/210 tests pass (6 new)"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "Record the six watchers, phase reconciliation and index refresh",
+      "commit": "6dd9072",
+      "whatChanged": "specManager.js (both watchers, reconcilePhase, index rebuilt vs already-fresh), tasksManager.js, gitStatusManager.js (both watchers plus their shared debounce) and orchestrationManager.js bus watcher all record through activityLog.",
+      "whyChanged": "Records are emitted when the debounce flushes, not per raw fs event, so a checkout or an npm install lands as one row carrying the true burst count. Self-write guards record their suppression rather than returning silently — otherwise a guarded watcher and a dead one look identical.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "210/210 tests pass"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Record corruption recovery and hidden-window poll pauses",
+      "commit": "a004545",
+      "whatChanged": "fsSafe.js records state.corrupt_preserved and state.recovered (basename only); pollGate.js records poll.skipped when a gate pauses; activityEvents.js label falls back when no poller id is known; two tests in test/fsSafe.test.js.",
+      "whyChanged": "Both requires are lazy because fsSafe and pollGate load during early boot and must not pull the activity layer into their require order. pollGate emits per gate rather than one aggregate event so the existing burst aggregation produces the count for free.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass (2 new)"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "Record pre-commit script runs from outside Frame's process",
+      "commit": "680e206",
+      "whatChanged": "scripts/update-structure.js records at all three exit paths with the processed-file count; scripts/check-freshness.js records with its finding count; both detect the host from GIT_INDEX_FILE.",
+      "whyChanged": "GIT_INDEX_FILE is set by git for hook processes, which distinguishes a commit-triggered run from a developer invoking the script by hand — without it every run would claim to be a hook run.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass"
+      }
+    },
+    {
+      "id": "T09",
+      "title": "Serve the record over IPC and render the panel",
+      "commit": "477d59e",
+      "whatChanged": "ipcChannels.js gained GET_ACTIVITY and ACTIVITY_DATA; activityLog.js gained the coalesced push, the self-write-stamped foreign-append watcher and the backlog handler; new activityPanel.js, its markup in index.html, and components/activity.css imported from main.css.",
+      "whyChanged": "The backlog comes off disk rather than the ring because implement-launch.js and the git hook write with the app closed. Foreign records are validated against the registry on read, since out-of-process writers cannot reach src/shared/ to validate on write.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass; renderer bundle builds"
+      }
+    },
+    {
+      "id": "T10",
+      "title": "Add the fixed right-edge instrument rail",
+      "commit": "1733708",
+      "whatChanged": "New src/renderer/activityRail.js, #instrument-rail as the last flex child in index.html, rail styles appended to components/activity.css, wired in src/renderer/index.js.",
+      "whyChanged": "Placed at the outer edge rather than between terminal and panel, which was the original proposal: as a flex sibling the rail would shift horizontally on every panel toggle, and a landmark that moves is not a landmark.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass; renderer bundle builds"
+      }
+    },
+    {
+      "id": "T11",
+      "title": "Document the record and the rules for extending it",
+      "commit": "7890c14",
+      "whatChanged": "PRIVACY.md gained an Activity record section (location, retention, field discipline, independence from telemetry); .frame/docs/REFERENCE.md gained an Activity Monitor section with the recording rule, a component table and five rules for adding a source.",
+      "whyChanged": "audit-q3-product-analytics established that any registry addition lands in PRIVACY.md in the same change; the same discipline now covers the activity registry. The REFERENCE rules exist so the next source added goes through the registry rather than becoming another scattered call site.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "212/212 tests pass"
+      }
+    }
+  ]
+}

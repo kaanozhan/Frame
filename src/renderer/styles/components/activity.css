@@ -1,0 +1,281 @@
+/* ==================== ACTIVITY PANEL ====================
+   Mirrors the tasks/specs panel container pattern (panels.css): a flex
+   sibling of #terminal-container that slides in from the right edge. Never
+   a modal — activity is what you watch while an agent works, so the
+   terminal has to stay usable beside it. */
+
+#activity-panel {
+  width: 380px;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-left: 1px solid var(--border-subtle);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
+}
+
+#activity-panel:not(.visible) {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#activity-panel.visible {
+  display: flex;
+  transform: translateX(0);
+  opacity: 1;
+}
+
+#activity-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#activity-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.activity-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+#activity-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+#activity-close:hover {
+  color: var(--text-primary);
+}
+
+/* ─── controls ─── */
+
+.activity-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.activity-filters {
+  display: flex;
+  gap: 2px;
+}
+
+.activity-filter-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 7px;
+}
+
+.activity-filter-btn:hover {
+  color: var(--text-primary);
+}
+
+.activity-filter-btn.active {
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.activity-detail-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.activity-detail-toggle input {
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ─── the stream ─── */
+
+#activity-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm) 0;
+}
+
+.activity-row {
+  display: flex;
+  gap: var(--space-sm);
+  padding: 4px var(--space-lg);
+  font-size: 12px;
+  line-height: 1.45;
+  border-left: 2px solid transparent;
+}
+
+.activity-row:hover {
+  background: var(--bg-primary);
+}
+
+.activity-row-time {
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  flex: 0 0 auto;
+  padding-top: 1px;
+  opacity: 0.75;
+}
+
+.activity-row-body {
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* A guard that prevented work is evidence the guard is alive, so it stays
+   in the default view — just quieter than work that actually happened. */
+.activity-row-suppressed {
+  opacity: 0.62;
+}
+
+.activity-row-suppressed .activity-row-text {
+  font-style: italic;
+}
+
+.activity-row-detail {
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  opacity: 0.8;
+  margin-top: 1px;
+}
+
+.activity-empty {
+  display: none;
+  padding: var(--space-lg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* ==================== INSTRUMENT RAIL ====================
+   The last flex child of #main-content: fixed at the outer edge, panels
+   open inboard of it.
+
+   Geometry and theming are deliberately identical to the left sidebar rail
+   (.sidebar-rail / .sidebar-rail-btn in layout.css) — the two rails frame
+   the same workspace, so a different icon size or a different active colour
+   on one of them reads as a bug. Any change to one belongs in both. */
+
+.instrument-rail {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  /* Aligns the first icon with the left rail's first icon: the sidebar's
+     own padding (16) + its header block (30) + that header's margin (16).
+     The same 62px landmark #sidebar-header documents, which is also where
+     the main panel's top bar ends. */
+  padding: 62px var(--space-xs) var(--space-sm);
+  border-left: 1px solid var(--border-subtle);
+}
+
+.instrument-rail-btn {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.instrument-rail-btn svg {
+  display: block;
+}
+
+.instrument-rail-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.instrument-rail-btn.active {
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+/* Expanded: wide enough for the names and nothing more. This is a rail with
+   labels, never a panel — it must not grow content. */
+.instrument-rail.expanded {
+  width: 164px;
+  align-items: stretch;
+}
+
+.instrument-rail.expanded .instrument-rail-btn {
+  width: 100%;
+  height: 34px;
+  justify-content: flex-start;
+  gap: var(--space-sm);
+  padding: 0 var(--space-sm);
+}
+
+.instrument-rail-label {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.instrument-rail-items {
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  gap: 2px;
+  width: 100%;
+}
+
+/* Activity is an observation tool, not a destination — the separator keeps
+   that distinction visible. */
+.instrument-rail-sep {
+  height: 1px;
+  width: 60%;
+  align-self: center;
+  background: var(--border-subtle);
+  margin: var(--space-xs) 0;
+}
+
+/* Controls, not destinations: pinned to the bottom. */
+.instrument-rail-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  gap: 2px;
+  width: 100%;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+}
