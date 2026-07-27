@@ -1209,39 +1209,46 @@
           ]
         },
         "stopWatching": {
-          "line": 110
+          "line": 122
         },
         "isGitInternalPath": {
-          "line": 130,
+          "line": 142,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
+        "gitDirEventMatters": {
+          "line": 166,
+          "params": [
+            "filename"
+          ],
+          "purpose": "Should this .git event reach the debounce?"
+        },
         "scheduleRefresh": {
-          "line": 141,
+          "line": 173,
           "params": [
             "watcher"
           ]
         },
         "pushStatus": {
-          "line": 159
+          "line": 191
         },
         "readGitStatus": {
-          "line": 204,
+          "line": 242,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 235,
+          "line": 273,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 292,
+          "line": 330,
           "params": [
             "index",
             "worktree"
@@ -8195,32 +8202,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 206,
+          "line": 208,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 210,
+          "line": 212,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 214,
+          "line": 216,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 218,
+          "line": 220,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 241,
+          "line": 243,
           "params": [
             "name",
             "fields"
@@ -8228,7 +8235,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 258,
+          "line": 260,
           "params": [
             "name",
             "fields"
@@ -8236,7 +8243,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 279,
+          "line": 281,
           "params": [
             "name",
             "fields"

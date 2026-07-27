@@ -66,6 +66,11 @@ function setupIPC(ipcMain) {
 function startWatching(projectPath) {
   stopWatching();
   currentProjectPath = projectPath;
+  // Point the activity record at this project. Doing it here rather than
+  // only on the open-project dialog matters: at boot the project is restored
+  // from the workspace, that dialog callback never runs, and every record
+  // for a restored project was landing in the `app` bucket.
+  activityLog.setProject(projectPath);
   if (!projectPath) return;
 
   // Initial snapshot so decorations paint immediately.
@@ -98,7 +103,14 @@ function startWatching(projectPath) {
       gitDirWatcher = fsSafe.safeWatch(
         gitDir,
         { recursive: true, persistent: false },
-        () => scheduleRefresh('git-dir'),
+        (_event, filename) => {
+          const ignore = gitDirEventMatters(filename);
+          if (ignore) {
+            activityLog.record('watch.suppressed', { watcher: 'git-dir', reason: ignore });
+            return;
+          }
+          scheduleRefresh('git-dir');
+        },
         () => { gitDirWatcher = null; }
       );
     }
@@ -138,6 +150,26 @@ function isGitInternalPath(filename) {
 // would drown the panel during a checkout or an npm install.
 let refreshBurst = { worktree: 0, gitDir: 0 };
 
+// How long after our own `git status` a .git event is still assumed to be
+// its aftermath. Long enough to cover git's own write-out, short enough that
+// a real stage/unstage from a terminal still lands in the panel.
+const GIT_SELF_READ_GRACE_MS = 700;
+let lastGitReadAt = 0;
+
+/**
+ * Should this .git event reach the debounce?
+ *
+ * Two things are dropped: the churn our own status read produces, and lock
+ * files, which are transient and always paired with the real change that
+ * follows them.
+ */
+function gitDirEventMatters(filename) {
+  const name = String(filename || '');
+  if (name.endsWith('.lock')) return 'transient';
+  if (Date.now() - lastGitReadAt < GIT_SELF_READ_GRACE_MS) return 'self-write';
+  return null;
+}
+
 function scheduleRefresh(watcher) {
   if (watcher === 'git-dir') refreshBurst.gitDir += 1;
   else refreshBurst.worktree += 1;
@@ -170,6 +202,12 @@ async function pushStatus() {
 
   try {
     const result = await readGitStatus(projectPath);
+    // `git status` is not read-only on disk: it refreshes .git/index's stat
+    // cache and cycles index.lock. Without this stamp the .git watcher sees
+    // our own read, refreshes again, and the pair spin forever — measured at
+    // one fire every ~270ms for two and a half hours before the activity
+    // record made it visible.
+    lastGitReadAt = Date.now();
 
     // Bail if watching stopped or the project changed mid-fetch.
     if (currentProjectPath !== projectPath || !mainWindow || mainWindow.isDestroyed()) {

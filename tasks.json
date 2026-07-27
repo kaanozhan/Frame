@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-07-26T15:59:15.864Z",
+  "lastUpdated": "2026-07-27T12:46:00.067Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4270,6 +4270,18 @@
       "category": "fix",
       "createdAt": "2026-07-26T15:59:15.864Z",
       "updatedAt": "2026-07-26T15:59:15.864Z"
+    },
+    {
+      "id": "task-gitstatus-feedback-loop",
+      "title": "Guard the .git watcher against Frame's own git status reads",
+      "description": "gitStatusManager ran git status, which refreshes .git/index and cycles index.lock; the .git watcher saw that and scheduled another status. Measured at one fire every ~270ms for 2.5 hours straight in the activity record. Fixed with a 700ms self-read grace stamp plus dropping *.lock events.",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "createdAt": "2026-07-27T12:46:00.067Z",
+      "updatedAt": "2026-07-27T12:46:00.067Z",
+      "completedAt": "2026-07-27T12:46:00.067Z",
+      "context": "Found by the activity-monitor panel on its first real run"
     }
   ],
   "metadata": {
