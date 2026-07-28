@@ -274,10 +274,12 @@ async function runProjectInit(projectPath, projectName) {
   }
 
   // Build AGENTS.md content: Frame template + any existing instructions appended.
-  // Spec-Driven Development section is OFF by default — user opts in via the
-  // suggestion modal, which calls enableSpecDriven() to re-emit AGENTS.md
-  // with the section.
-  let agentsContent = templates.getAgentsTemplate(name, { specDriven: false, project: detectedProject });
+  // Spec-Driven Development is ON for new projects (config template sets
+  // features.specDriven), so the section ships with the file — the spec
+  // commands are staged at init anyway, and hiding the panel only meant the
+  // user couldn't see specs their AI session had already written. Opting out
+  // happens in Settings → Workflow (disableSpecDriven).
+  let agentsContent = templates.getAgentsTemplate(name, { specDriven: true, project: detectedProject });
   if (existingInstructions.length > 0) {
     const merged = existingInstructions
       .map(({ label, content }) => `## Existing Instructions (from ${label})\n\n${content}`)
@@ -298,6 +300,13 @@ async function runProjectInit(projectPath, projectName) {
     path.join(docsDirPath, 'REFERENCE.md'),
     templates.getReferenceTemplate(name)
   );
+
+  // .frame/specs/ — Spec-Driven Development is on for new projects, so the
+  // folder exists from the start (tracked by .gitkeep) instead of appearing
+  // the first time someone opts in.
+  const specsDirPath = path.join(frameDirPath, 'specs');
+  await fsp.mkdir(specsDirPath, { recursive: true });
+  await createFileIfNotExists(path.join(specsDirPath, '.gitkeep'), '');
 
   // CLAUDE.md - Symlink to AGENTS.md for Claude Code compatibility
   await createSymlinkSafe(
@@ -465,13 +474,17 @@ function installSpecHintHook(projectPath) {
   return { installed: true, added };
 }
 
-// ─── Spec-Driven Development opt-in (Slice 1.5) ──────────────
+// ─── Spec-Driven Development toggle ──────────────────────────
 //
-// Reads/writes the `features.specDriven` flag in .frame/config.json.
-// Enabling also re-emits AGENTS.md with the spec section appended (so AI
-// tools learn the workflow) and creates an empty .frame/specs/ folder
-// tracked by .gitkeep. Designed to be reversible by the user via direct
-// edits — slice 1 doesn't ship a "disable" path.
+// Reads/writes the `features.specDriven` flag in .frame/config.json. New
+// projects start enabled (config template); pre-existing projects that were
+// initialized before that keep whatever they have and can flip it in
+// Settings → Workflow.
+//
+// Enabling re-emits AGENTS.md with the spec section appended (so AI tools
+// learn the workflow) and creates an empty .frame/specs/ folder tracked by
+// .gitkeep. Disabling flips the flag back and removes the Frame-managed
+// spec section from AGENTS.md; specs already on disk are never deleted.
 
 function isSpecDrivenEnabled(projectPath) {
   const config = getFrameConfig(projectPath);
@@ -493,14 +506,72 @@ function enableSpecDriven(projectPath) {
   }
 
   config.features.specDriven = true;
+  writeFrameConfig(projectPath, config);
+
+  ensureSpecDrivenArtifacts(projectPath, config);
+  return { success: true };
+}
+
+/**
+ * Turn the workflow off: flip the flag and take the Frame-managed spec
+ * section back out of AGENTS.md so AI sessions stop being told to write
+ * specs. Never touches .frame/specs/ — the user's specs stay on disk (and
+ * come back into view if they re-enable).
+ */
+function disableSpecDriven(projectPath) {
+  if (!isFrameProject(projectPath)) {
+    return { success: false, error: 'not a Frame project' };
+  }
+
+  const config = getFrameConfig(projectPath) || {};
+  config.features = config.features || {};
+  const wasEnabled = config.features.specDriven === true;
+  config.features.specDriven = false;
+  writeFrameConfig(projectPath, config);
+
+  // AGENTS.md is user-owned: only remove the section when it is provably
+  // Frame's (well-formed managed block). A hand-written or customized
+  // section is left alone — same contract as the upgrade path.
+  const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
+  try {
+    const existing = fs.readFileSync(agentsPath, 'utf8');
+    const stripped = stripManagedSpecSection(existing);
+    if (stripped !== null && stripped !== existing) {
+      fs.writeFileSync(agentsPath, stripped, 'utf8');
+    }
+  } catch (err) {
+    // Missing or unreadable AGENTS.md — the flag flip is what matters.
+  }
+
+  return { success: true, alreadyDisabled: !wasEnabled };
+}
+
+function setSpecDrivenEnabled(projectPath, enabled) {
+  return enabled ? enableSpecDriven(projectPath) : disableSpecDriven(projectPath);
+}
+
+function writeFrameConfig(projectPath, config) {
   fs.writeFileSync(
     path.join(projectPath, FRAME_DIR, FRAME_CONFIG_FILE),
     JSON.stringify(config, null, 2),
     'utf8'
   );
+}
 
-  ensureSpecDrivenArtifacts(projectPath, config);
-  return { success: true };
+/**
+ * Remove the marker-wrapped spec section from a doc, together with the `---`
+ * separator that precedes it in every shape Frame emits (so removal doesn't
+ * leave a double rule behind). Returns null when there is no well-formed
+ * managed block — nothing may be removed then.
+ */
+function stripManagedSpecSection(text) {
+  const block = docsManagedBlock.findBlock(text);
+  if (!block) return null;
+  const head = text.slice(0, block.start).replace(/\n*(-{3,}[ \t]*\n)?\s*$/, '');
+  const tail = text.slice(block.end).replace(/^\s*/, '');
+  if (!head) return tail;
+  if (!tail) return head + '\n';
+  return head + '\n\n' + tail;
 }
 
 function ensureSpecDrivenArtifacts(projectPath, config) {
@@ -668,12 +739,15 @@ function setupIPC(ipcMain) {
     event.sender.send(IPC.FRAME_CONFIG_DATA, { projectPath, config });
   });
 
-  // Spec-Driven Development opt-in
+  // Spec-Driven Development feature flag
   ipcMain.handle(IPC.IS_SPEC_DRIVEN_ENABLED, (event, projectPath) =>
     isSpecDrivenEnabled(projectPath)
   );
   ipcMain.handle(IPC.ENABLE_SPEC_DRIVEN, (event, projectPath) =>
     enableSpecDriven(projectPath)
+  );
+  ipcMain.handle(IPC.SET_SPEC_DRIVEN, (event, { projectPath, enabled }) =>
+    setSpecDrivenEnabled(projectPath, enabled === true)
   );
 }
 
@@ -684,6 +758,8 @@ module.exports = {
   initializeFrameProject,
   isSpecDrivenEnabled,
   enableSpecDriven,
+  disableSpecDriven,
+  setSpecDrivenEnabled,
   upgradeSpecDocs,
   setupIPC
 };

@@ -104,7 +104,7 @@ That last file is the move that makes the rest worth doing. Plans tell you inten
 Two principles shaped this:
 
 - **Files over databases.** Markdown is canonical. Any AI tool can read it without Frame, any teammate can grep it, git versions it, PRs review it.
-- **Optional, never forced.** Spec-driven dev isn't every project's shape. Frame asks once when you open the Specs panel; you opt in or skip. Existing `tasks.json` workflows are untouched.
+- **On, but never forced.** New projects start with spec-driven dev enabled, so the specs your AI writes show up in the Specs panel from the first session. It isn't every project's shape — one switch in Settings → Workflow turns it off (your specs stay on disk). Existing `tasks.json` workflows are untouched either way.
 
 ### Agent Orchestration
 

@@ -169,9 +169,10 @@ const IPC = {
   BUILD_SPEC_COMMAND_FILE: 'build-spec-command-file',
   SPEC_AGENT_ACTIVITY: 'spec-agent-activity',        // renderer → main: { slug, busy } — live agent on this spec's lane
 
-  // Spec-Driven Development opt-in (Slice 1.5)
+  // Spec-Driven Development feature flag (per project, .frame/config.json)
   IS_SPEC_DRIVEN_ENABLED: 'is-spec-driven-enabled',
   ENABLE_SPEC_DRIVEN: 'enable-spec-driven',
+  SET_SPEC_DRIVEN: 'set-spec-driven',                // renderer → main: { projectPath, enabled } — Settings toggle
 
   // Orchestration (conductor / parallel spec execution)
   OPEN_ORCHESTRATOR: 'open-orchestrator',            // → renderer: open the orchestrator view

@@ -310,10 +310,10 @@ function renderSpecCoreSection() {
  * (getReferenceTemplate) and is loaded on demand.
  *
  * options:
- *   specDriven: include the short Spec-Driven Development section. Off by
- *               default — the user opts in via the suggestion modal or
- *               Settings, after which we re-emit AGENTS.md (or append the
- *               section to it).
+ *   specDriven: include the short Spec-Driven Development section. Init
+ *               passes true (the feature is on for new projects); the
+ *               parameter stays explicit because pre-existing projects that
+ *               opted out must not get the section back on re-emit.
  */
 /**
  * Render the Project Facts section for AGENTS.md from the detected project
@@ -805,11 +805,12 @@ function getFrameConfigTemplate(projectName) {
       taskRecognition: true
     },
     features: {
-      // Spec-Driven Development is opt-in. The user enables it via the
-      // suggestion modal that appears the first time they click the Specs
-      // panel; toggling this flag also re-emits AGENTS.md with the spec
-      // section so AI tools learn the workflow.
-      specDriven: false
+      // Spec-Driven Development is ON for new projects: the spec commands
+      // ship at init, so an AI session can write specs from day one — the
+      // flag being off only hid them from the Specs panel. The user can turn
+      // it off in Settings → Workflow, which flips this flag and strips the
+      // spec section from AGENTS.md.
+      specDriven: true
     },
     files: {
       agents: "AGENTS.md",

@@ -123,9 +123,10 @@ function hide() {
   isVisible = false;
 }
 
-// Public toggle. The first time the user invokes this on a project where
-// Spec-Driven Development isn't enabled yet, we show a suggestion modal
-// instead of opening the panel — keeping the workflow opt-in.
+// Public toggle. New projects have Spec-Driven Development on, so this just
+// opens the panel. On a project where the feature is off — initialized
+// before the default flipped, or turned off in Settings → Workflow — we show
+// the suggestion modal instead.
 async function toggle() {
   if (isVisible) {
     hide();
@@ -675,11 +676,11 @@ function showSuggestionModal(projectPath) {
         <li>One folder per spec under <code>.frame/specs/&lt;slug&gt;/</code></li>
         <li>Slash commands (<code>/spec.new</code>, <code>/spec.plan</code>, <code>/spec.tasks</code>) drive Claude through the lifecycle</li>
         <li>Generated tasks land in your existing tasks.json with a <code>spec · slug</code> chip</li>
-        <li>Off by default — you stay in control</li>
+        <li>Can be turned off anytime in Settings → Workflow</li>
       </ul>
       <p class="spec-suggest-fineprint">
         Enabling adds a "Spec-Driven Development" section to AGENTS.md and creates an empty
-        <code>.frame/specs/</code> folder. You can disable later by editing those files directly.
+        <code>.frame/specs/</code> folder. Settings → Workflow turns it back off.
       </p>
       <div class="spec-modal-error" role="alert"></div>
       <div class="spec-modal-actions">

@@ -351,8 +351,10 @@ body.sidebar-resizing * {
   border-right: 1px solid var(--border-subtle);
 }
 
-/* Rail buttons reuse .sidebar-tab-btn theming hooks but are square icons in a
-   column — override the horizontal-tab geometry. */
+/* Rail buttons are square icons in a column. Self-contained on purpose: the
+   view tabs also carry .sidebar-tab-btn, but the rail's foot buttons don't
+   (they open modals instead of switching views), so the shared chrome —
+   transparent background, cursor, transition — lives here, not there. */
 .sidebar-rail-btn {
   flex: 0 0 auto;
   width: 34px;
@@ -361,8 +363,11 @@ body.sidebar-resizing * {
   align-items: center;
   justify-content: center;
   padding: 0;
+  background: transparent;
   border: none;
   border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
   /* Same treatment as the right-panel strip icons (.lane-rail-strip-btn):
      secondary at rest, primary on hover — readable in both themes. */
   color: var(--text-secondary);
@@ -381,6 +386,12 @@ body.sidebar-resizing * {
   color: var(--accent-primary);
   background: var(--accent-subtle);
   border-bottom: none;
+}
+
+/* Foot of the rail (Settings): pushed to the bottom and set apart from the
+   view tabs above it — it opens a modal rather than switching views. */
+.sidebar-rail-btn-foot {
+  margin-top: auto;
 }
 
 .sidebar-panel {

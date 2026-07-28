@@ -47,6 +47,9 @@
 /* 12b. Sample-project banner */
 @import 'components/sample-banner.css';
 
+/* 12c. Spec-Driven Development hint (popover on the Settings rail button) */
+@import 'components/spec-driven-hint.css';
+
 /* 13. Tasks Dashboard (Kanban-style overlay) */
 @import 'components/tasks-dashboard.css';
 
