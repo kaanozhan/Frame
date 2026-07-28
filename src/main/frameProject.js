@@ -6,7 +6,6 @@
 const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
-const { dialog } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('../shared/frameConstants');
 const templates = require('../shared/frameTemplates');
@@ -14,7 +13,6 @@ const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
 const docsManagedBlock = require('../shared/docsManagedBlock');
-const telemetry = require('./telemetry');
 const perfMonitor = require('./perfMonitor');
 const activityLog = require('./activityLog');
 const detector = require('../../scripts/detect-project');
@@ -162,6 +160,9 @@ async function showInitializeConfirmation(projectPath) {
 
   message += '\n\nDo you want to continue?';
 
+  // Lazy require: CI runs the test suite with no node_modules, so the pure
+  // helpers in this module must load without Electron present.
+  const { dialog } = require('electron');
   const result = await dialog.showMessageBox(mainWindow, {
     type: existingFiles.length > 0 ? 'warning' : 'question',
     buttons: ['Cancel', 'Initialize'],
@@ -714,7 +715,10 @@ function setupIPC(ipcMain) {
       }
 
       const config = await initializeFrameProject(projectPath, projectName);
-      telemetry.track('project_initialized');
+      // Lazy require, same reason as aiToolManager below: telemetry pulls
+      // @aptabase/electron → electron, and CI runs the suite with no
+      // node_modules. Keep this module's load graph Electron-free.
+      require('./telemetry').track('project_initialized');
       event.sender.send(IPC.FRAME_PROJECT_INITIALIZED, {
         projectPath,
         config,

@@ -737,7 +737,6 @@
       "depends": [
         "fs",
         "path",
-        "electron",
         "shared/ipcChannels",
         "shared/frameConstants",
         "shared/frameTemplates",
@@ -745,36 +744,37 @@
         "structureBootstrap",
         "commandStaging",
         "shared/docsManagedBlock",
-        "telemetry",
         "perfMonitor",
         "activityLog",
         "../scripts/detect-project",
-        "aiToolManager"
+        "electron",
+        "aiToolManager",
+        "telemetry"
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 25,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 34,
+          "line": 32,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 42,
+          "line": 40,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 55,
+          "line": 53,
           "params": [
             "filePath",
             "content"
@@ -782,7 +782,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 72,
+          "line": 70,
           "params": [
             "target",
             "linkPath"
@@ -790,102 +790,102 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 113,
+          "line": 111,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 137,
+          "line": 135,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 186,
+          "line": 187,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "doInitializeFrameProject": {
-          "line": 194,
+          "line": 195,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "runProjectInit": {
-          "line": 206,
+          "line": 207,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "installSpecHintHook": {
-          "line": 432,
+          "line": 433,
           "params": [
             "projectPath"
           ],
           "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
         },
         "isSpecDrivenEnabled": {
-          "line": 489,
+          "line": 490,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 494,
+          "line": 495,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 521,
+          "line": 522,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 549,
+          "line": 550,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 553,
+          "line": 554,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 567,
+          "line": 568,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 577,
+          "line": 578,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 652,
+          "line": 653,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 693,
+          "line": 694,
           "params": [
             "ipcMain"
           ],
