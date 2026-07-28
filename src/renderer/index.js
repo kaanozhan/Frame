@@ -41,6 +41,7 @@ const appLoader = require('./appLoader');
 const settingsModal = require('./settingsModal');
 const telemetryNotice = require('./telemetryNotice');
 const healthNotice = require('./healthNotice');
+const specDrivenHint = require('./specDrivenHint');
 const sampleBanner = require('./sampleBanner');
 
 /**
@@ -229,6 +230,7 @@ function init() {
   telemetryNotice.init(() => settingsModal.open());
   healthNotice.init();
   sampleBanner.init();
+  specDrivenHint.init();
   setupUpdateDot();
   registerCommands();
   commandRegistry.bindKeyboard();
@@ -280,6 +282,13 @@ function setupButtonHandlers() {
   document.querySelectorAll('.sidebar-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => revealSidebarTab(btn.dataset.sidebarTab));
   });
+
+  // Settings at the foot of the rail — same modal as the app menu entry and
+  // the Cmd+, command, so it toggles rather than re-opening on a second click.
+  const sidebarSettingsBtn = document.getElementById('sidebar-settings-btn');
+  if (sidebarSettingsBtn) {
+    sidebarSettingsBtn.addEventListener('click', () => settingsModal.toggle());
+  }
 
   // Current-project switcher (Files / Changes views): reflects the active
   // project and opens a dropdown to switch project without leaving the view.

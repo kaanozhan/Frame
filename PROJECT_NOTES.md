@@ -1385,3 +1385,23 @@ refreshed sample-project fixtures to the current managed block, regression
 test added. No SPEC_SECTION_VERSION bump — bodies unchanged. Note:
 `.claude/skills/spec-plan` seen in the affected project is not Frame-generated;
 delete it there by hand.
+
+### [2026-07-28] Spec-Driven Development is on by default, toggleable in Settings
+Reported symptom: a user initializes a project, gives a sizable task, the agent
+writes a spec — and the user never sees it. Cause: `features.specDriven` was
+`false` in the config template, but the spec command templates are staged at
+init regardless, so a CLI session could run the whole flow while the Specs
+panel kept showing the opt-in suggestion modal. The flag was hiding work that
+had already happened. Decisions: (1) new projects start with
+`features.specDriven: true` and AGENTS.md ships with the managed spec section;
+`.frame/specs/.gitkeep` is created at init. (2) Opting out moved from "edit the
+files by hand" to Settings → Workflow — a per-project toggle (the flag lives in
+`.frame/config.json`, not user-settings.json), wired through `SET_SPEC_DRIVEN`
+to `setSpecDrivenEnabled` → `enableSpecDriven` / new `disableSpecDriven`.
+Disabling flips the flag and strips the *marker-wrapped* spec section from
+AGENTS.md only (`stripManagedSpecSection`, same "prove it's ours" contract as
+docsManagedBlock's upgrade path) — a hand-written section and `.frame/specs/`
+are never touched. Projects initialized before this keep their existing flag;
+nothing force-enables on open, since that would rewrite an AGENTS.md the user
+never asked us to change. Rejected: auto-enabling when specs already exist on
+disk — it would silently undo an explicit "off" on every panel open.

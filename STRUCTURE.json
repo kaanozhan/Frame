@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-27",
+  "lastUpdated": "2026-07-28",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -729,13 +729,14 @@
         "initializeFrameProject",
         "isSpecDrivenEnabled",
         "enableSpecDriven",
+        "disableSpecDriven",
+        "setSpecDrivenEnabled",
         "upgradeSpecDocs",
         "setupIPC"
       ],
       "depends": [
         "fs",
         "path",
-        "electron",
         "shared/ipcChannels",
         "shared/frameConstants",
         "shared/frameTemplates",
@@ -743,36 +744,37 @@
         "structureBootstrap",
         "commandStaging",
         "shared/docsManagedBlock",
-        "telemetry",
         "perfMonitor",
         "activityLog",
         "../scripts/detect-project",
-        "aiToolManager"
+        "electron",
+        "aiToolManager",
+        "telemetry"
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 25,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 34,
+          "line": 32,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 42,
+          "line": 40,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 55,
+          "line": 53,
           "params": [
             "filePath",
             "content"
@@ -780,7 +782,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 72,
+          "line": 70,
           "params": [
             "target",
             "linkPath"
@@ -788,74 +790,102 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 113,
+          "line": 111,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 137,
+          "line": 135,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 186,
+          "line": 187,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "doInitializeFrameProject": {
-          "line": 194,
+          "line": 195,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "runProjectInit": {
-          "line": 206,
+          "line": 207,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "installSpecHintHook": {
-          "line": 423,
+          "line": 433,
           "params": [
             "projectPath"
           ],
           "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
         },
         "isSpecDrivenEnabled": {
-          "line": 476,
+          "line": 490,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 481,
+          "line": 495,
           "params": [
             "projectPath"
           ]
         },
+        "disableSpecDriven": {
+          "line": 522,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
+        },
+        "setSpecDrivenEnabled": {
+          "line": 550,
+          "params": [
+            "projectPath",
+            "enabled"
+          ]
+        },
+        "writeFrameConfig": {
+          "line": 554,
+          "params": [
+            "projectPath",
+            "config"
+          ]
+        },
+        "stripManagedSpecSection": {
+          "line": 568,
+          "params": [
+            "text"
+          ],
+          "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
+        },
         "ensureSpecDrivenArtifacts": {
-          "line": 506,
+          "line": 578,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 581,
+          "line": 653,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 622,
+          "line": 694,
           "params": [
             "ipcMain"
           ],
@@ -868,7 +898,8 @@
           "INITIALIZE_FRAME_PROJECT",
           "GET_FRAME_CONFIG",
           "IS_SPEC_DRIVEN_ENABLED",
-          "ENABLE_SPEC_DRIVEN"
+          "ENABLE_SPEC_DRIVEN",
+          "SET_SPEC_DRIVEN"
         ],
         "emits": [
           "IS_FRAME_PROJECT_RESULT",
@@ -4853,40 +4884,41 @@
         "settingsModal",
         "telemetryNotice",
         "healthNotice",
+        "specDrivenHint",
         "sampleBanner",
         "../package.json",
         "agentDispatch"
       ],
       "functions": {
         "init": {
-          "line": 49,
+          "line": 50,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 245,
+          "line": 247,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 303,
+          "line": 312,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 392,
+          "line": 401,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 423,
+          "line": 432,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 449,
+          "line": 458,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 721,
+          "line": 730,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -6328,23 +6360,25 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
+        "state",
+        "specDrivenHint",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 32
+          "line": 36
         },
         "initAboutSection": {
-          "line": 96
+          "line": 140
         },
         "runCheck": {
-          "line": 181,
+          "line": 225,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 220,
+          "line": 264,
           "params": [
             "{ checked",
             "found",
@@ -6356,34 +6390,44 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 244,
+          "line": 288,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 255
+          "line": 299
         },
         "hideSidebarDot": {
-          "line": 259
+          "line": 303
         },
         "formatRelative": {
-          "line": 266,
+          "line": 310,
           "params": [
             "date"
           ]
         },
         "syncToggleFromSettings": {
-          "line": 277
+          "line": 321
+        },
+        "syncSpecDrivenToggle": {
+          "line": 341,
+          "purpose": "Reflect the current project's features.specDriven flag. With no project"
+        },
+        "setSpecDrivenNote": {
+          "line": 361,
+          "params": [
+            "message"
+          ]
         },
         "open": {
-          "line": 290
+          "line": 367
         },
         "close": {
-          "line": 297
+          "line": 374
         },
         "toggle": {
-          "line": 304
+          "line": 381
         }
       },
       "ipc": {
@@ -6467,6 +6511,87 @@
         "isVisible": {
           "line": 196,
           "purpose": "Check if sidebar is hidden"
+        }
+      }
+    },
+    "renderer/specDrivenHint": {
+      "file": "src/renderer/specDrivenHint.js",
+      "description": "Spec-Driven Development hint",
+      "exports": [
+        "init",
+        "refresh",
+        "markDismissed"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 31
+        },
+        "evaluate": {
+          "line": 53,
+          "purpose": "Show the hint if this project qualifies. Safe to call repeatedly — a"
+        },
+        "schedule": {
+          "line": 74,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "refresh": {
+          "line": 85,
+          "purpose": "Re-check after the Settings toggle changed the flag."
+        },
+        "render": {
+          "line": 90,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "onOutsideClick": {
+          "line": 126,
+          "params": [
+            "e"
+          ]
+        },
+        "position": {
+          "line": 135,
+          "purpose": "Anchor to the Settings button: same baseline, just outboard of the rail."
+        },
+        "enable": {
+          "line": 157,
+          "params": [
+            "projectPath",
+            "btn"
+          ]
+        },
+        "dismissForever": {
+          "line": 179,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "markDismissed": {
+          "line": 189,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Remember that this project should not be hinted at again. Lives in user"
+        },
+        "isDismissed": {
+          "line": 201,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "readDismissed": {
+          "line": 206
+        },
+        "hide": {
+          "line": 211
         }
       }
     },
@@ -6562,47 +6687,47 @@
           "line": 120
         },
         "toggle": {
-          "line": 129,
-          "purpose": "Public toggle. The first time the user invokes this on a project where"
+          "line": 130,
+          "purpose": "Public toggle. New projects have Spec-Driven Development on, so this just"
         },
         "startWatchingForProject": {
-          "line": 147,
+          "line": 148,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 156
+          "line": 157
         },
         "renderList": {
-          "line": 163
+          "line": 164
         },
         "renderSpecRow": {
-          "line": 194,
+          "line": 195,
           "params": [
             "spec"
           ]
         },
         "openDetail": {
-          "line": 214,
+          "line": 215,
           "params": [
             "slug"
           ]
         },
         "reloadDetail": {
-          "line": 220
+          "line": 221
         },
         "renderDetail": {
-          "line": 228
+          "line": 229
         },
         "runSpecCommand": {
-          "line": 301,
+          "line": 302,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 313,
+          "line": 314,
           "params": [
             "tab",
             "label",
@@ -6610,98 +6735,98 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 319
+          "line": 320
         },
         "tasksTabLabel": {
-          "line": 325,
+          "line": 326,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 334,
+          "line": 335,
           "params": [
             "tab"
           ]
         },
         "renderPlanReportRow": {
-          "line": 359,
+          "line": 360,
           "purpose": "\"View Plan Report\" — shown above the rendered plan only when the spec"
         },
         "attachPlanReportHandler": {
-          "line": 367
+          "line": 368
         },
         "renderImplementReportRow": {
-          "line": 378,
+          "line": 379,
           "purpose": "\"View Implementation Report\" — shown above the task list only when the spec"
         },
         "attachImplementReportHandler": {
-          "line": 386
+          "line": 387
         },
         "renderTasksTabBody": {
-          "line": 393
+          "line": 394
         },
         "renderSpecTaskRow": {
-          "line": 433,
+          "line": 434,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 482
+          "line": 483
         },
         "handleSpecTaskAction": {
-          "line": 495,
+          "line": 496,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 514,
+          "line": 515,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 528
+          "line": 529
         },
         "showNewSpecPrompt": {
-          "line": 543
+          "line": 544
         },
         "deriveSlugPreview": {
-          "line": 645,
+          "line": 646,
           "params": [
             "title"
           ],
           "purpose": "Same shape as specManager.generateSlug — duplicated here so the renderer"
         },
         "showSuggestionModal": {
-          "line": 663,
+          "line": 664,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 730,
+          "line": 731,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 823,
+          "line": 824,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 843,
+          "line": 844,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 853,
+          "line": 854,
           "params": [
             "iso"
           ]
@@ -8449,11 +8574,11 @@
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 834,
+          "line": 835,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 871,
+          "line": 872,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -8461,27 +8586,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 917
+          "line": 918
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 938,
+          "line": 939,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 961,
+          "line": 962,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 973,
+          "line": 974,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 993
+          "line": 994
         },
         "getOrchBinScripts": {
-          "line": 1011,
+          "line": 1012,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
@@ -9603,6 +9728,11 @@
     "spec": {
       "SPEC_AGENT_ACTIVITY": {
         "name": "spec-agent-activity",
+        "direction": "",
+        "description": ""
+      },
+      "SET_SPEC_DRIVEN": {
+        "name": "set-spec-driven",
         "direction": "",
         "description": ""
       }
