@@ -69,16 +69,15 @@
         <h4>Initialize as Frame Project</h4>
       </div>
       <p class="spotlight-card-body">
-        Frame standardizes your project for AI-assisted development.
-        This creates configuration files that help AI tools understand
-        your project structure, preserve context between sessions,
-        and track decisions.
+        Frame helps AI tools understand your project structure, preserve
+        context between sessions, and track decisions. Everything it creates
+        lives in a single <code>.frame/</code> directory &mdash; nothing else
+        in your repository is touched.
       </p>
       <div class="spotlight-card-files">
-        <span>AGENTS.md</span>
-        <span>STRUCTURE.json</span>
-        <span>PROJECT_NOTES.md</span>
-        <span>tasks.json</span>
+        <span>.frame/tasks.json</span>
+        <span>.frame/STRUCTURE.json</span>
+        <span>.frame/PROJECT_NOTES.md</span>
         <span>+ more</span>
       </div>
     </div>
@@ -635,16 +634,15 @@
           <h4>Initialize as Frame Project</h4>
         </div>
         <p class="spotlight-card-body">
-          Frame standardizes your project for AI-assisted development.
-          This creates configuration files that help AI tools understand
-          your project structure, preserve context between sessions,
-          and track decisions.
+          Frame helps AI tools understand your project structure, preserve
+          context between sessions, and track decisions. Everything it creates
+          lives in a single <code>.frame/</code> directory &mdash; nothing else
+          in your repository is touched.
         </p>
         <div class="spotlight-card-files">
-          <span>AGENTS.md</span>
-          <span>STRUCTURE.json</span>
-          <span>PROJECT_NOTES.md</span>
-          <span>tasks.json</span>
+          <span>.frame/tasks.json</span>
+          <span>.frame/STRUCTURE.json</span>
+          <span>.frame/PROJECT_NOTES.md</span>
           <span>+ more</span>
         </div>
         <button id="spotlight-dismiss" class="spotlight-card-btn">Got it</button>
@@ -660,18 +658,15 @@
         </div>
         <div class="modal-body">
           <p class="init-modal-lead">This project isn't set up with Frame yet. Initialize it to enable AI context, task tracking, and session notes.</p>
-          <p class="init-modal-description">This will create the following files in your project:</p>
+          <p class="init-modal-description">Frame creates one directory and touches nothing else:</p>
           <ul class="init-modal-file-list">
-            <li><span class="file-icon">&#128193;</span> .frame/ <span class="file-desc">config directory</span></li>
-            <li><span class="file-icon">&#128193;</span> .frame/bin/ <span class="file-desc">AI tool wrappers</span></li>
-            <li><span class="file-icon">&#128196;</span> AGENTS.md <span class="file-desc">AI instructions</span></li>
-            <li><span class="file-icon">&#128279;</span> CLAUDE.md <span class="file-desc">symlink to AGENTS.md</span></li>
-            <li><span class="file-icon">&#128279;</span> GEMINI.md <span class="file-desc">symlink to AGENTS.md</span></li>
-            <li><span class="file-icon">&#128196;</span> STRUCTURE.json <span class="file-desc">module map</span></li>
-            <li><span class="file-icon">&#128196;</span> PROJECT_NOTES.md <span class="file-desc">session notes</span></li>
-            <li><span class="file-icon">&#128196;</span> tasks.json <span class="file-desc">task tracking</span></li>
-            <li><span class="file-icon">&#128196;</span> QUICKSTART.md <span class="file-desc">getting started</span></li>
+            <li><span class="file-icon">&#128193;</span> .frame/ <span class="file-desc">config, bin/, docs/, specs/</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/tasks.json <span class="file-desc">task tracking</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/STRUCTURE.json <span class="file-desc">module map</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/PROJECT_NOTES.md <span class="file-desc">session notes</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/QUICKSTART.md <span class="file-desc">getting started</span></li>
           </ul>
+          <p class="init-modal-note">No file outside <code>.frame/</code> is created, modified or deleted &mdash; your <code>CLAUDE.md</code>, <code>AGENTS.md</code> and any other instruction files are read only, never rewritten. <code>.frame/</code> is kept out of git via <code>.git/info/exclude</code>, so <code>git status</code> stays clean.</p>
           <div id="init-frame-existing-warning" class="init-modal-warning" style="display: none;">
             <p>These files already exist and will NOT be overwritten:</p>
             <ul id="init-frame-existing-list"></ul>
@@ -1284,8 +1279,8 @@
               <p class="settings-row-desc" id="settings-spec-driven-desc">
                 Structure AI work into specs → plans → tasks under
                 <code>.frame/specs/</code>, visible in the Specs panel. Applies to the
-                current project: turning it off removes the spec section from AGENTS.md;
-                existing specs are kept on disk.
+                current project: turning it off stops Frame telling your AI tool
+                about specs from the next launch; existing specs are kept on disk.
               </p>
               <p class="settings-row-desc" id="settings-spec-driven-note" style="display:none;"></p>
             </div>

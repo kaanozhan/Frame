@@ -107,10 +107,41 @@ function getAvailableTools() {
 }
 
 /**
- * Get the start command for current tool
+ * Get the start command for current tool.
+ *
+ * The bare CLI, with no Frame context attached. Kept for the places that only
+ * need to know *what* would run; anything that actually launches a session
+ * uses `getLaunchCommand` below, or the agent starts with no idea Frame exists.
  */
 function getStartCommand() {
   return currentTool ? currentTool.command : 'claude';
+}
+
+/**
+ * The command to actually type into a lane: the CLI plus Frame's launch
+ * context, composed in the main process (it needs the filesystem — discovery,
+ * the project's spec-driven flag, the global layer's path).
+ *
+ * Falls back to the bare command if the main process cannot compose one, so a
+ * failure here costs the context, never the session.
+ *
+ * @param {string} projectPath
+ * @param {string[]} [launchFlags] - extra flags this particular run needs
+ * @returns {Promise<string>}
+ */
+async function getLaunchCommand(projectPath, launchFlags) {
+  const fallback = getStartCommand();
+  try {
+    const result = await ipcRenderer.invoke(IPC.GET_LAUNCH_COMMAND, {
+      projectPath,
+      toolId: currentTool ? currentTool.id : null,
+      launchFlags: launchFlags || null
+    });
+    return (result && result.resolvedCommand) || fallback;
+  } catch (err) {
+    console.error('aiToolSelector: launch command composition failed', err);
+    return fallback;
+  }
 }
 
 /**
@@ -144,6 +175,7 @@ module.exports = {
   getCurrentTool,
   getAvailableTools,
   getStartCommand,
+  getLaunchCommand,
   getCommand,
   supportsFeature
 };

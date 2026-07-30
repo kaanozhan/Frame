@@ -16,6 +16,16 @@ const REPO_ROOT = path.join(__dirname, '..');
 const PARSER = path.join(REPO_ROOT, 'scripts', 'update-structure.js');
 const FIXTURES = path.join(__dirname, 'fixtures');
 
+/**
+ * Read the parser's output from wherever it landed. Since the overlay the map
+ * is written to `.frame/STRUCTURE.json`; the root is still read because the
+ * committed golden fixture (and every pre-overlay project) keeps it there.
+ */
+function readStructureRaw(projectRoot) {
+  const framed = path.join(projectRoot, '.frame', 'STRUCTURE.json');
+  return fs.readFileSync(fs.existsSync(framed) ? framed : path.join(projectRoot, 'STRUCTURE.json'), 'utf8');
+}
+
 function runParser(projectRoot, args = []) {
   return spawnSync('node', [PARSER, ...args], {
     env: { ...process.env, FRAME_PROJECT_ROOT: projectRoot },
@@ -34,7 +44,7 @@ test('golden: full regen on js-src-app copy is byte-identical to the committed g
     fs.cpSync(path.join(FIXTURES, 'js-src-app'), tmp, { recursive: true });
     const res = runParser(tmp);
     assert.equal(res.status, 0, res.stderr);
-    const regenerated = fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8');
+    const regenerated = readStructureRaw(tmp);
     const golden = fs.readFileSync(path.join(FIXTURES, 'js-src-app', 'STRUCTURE.json'), 'utf8');
     assert.equal(regenerated, golden);
   } finally {
@@ -59,7 +69,7 @@ function initAndParse(fixtureName) {
     assert.equal(detect.status, 0, detect.stderr);
     const parse = runParser(tmp);
     assert.equal(parse.status, 0, parse.stderr);
-    const raw = fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8');
+    const raw = readStructureRaw(tmp);
     // Output must never carry Frame's own vocabulary into a user project
     for (const sentinel of ['TERMINAL_', 'CLAUDE_', 'GITHUB_', 'FRAME_PROJECT', 'multiTerminal']) {
       assert.ok(!raw.includes(sentinel), `fixture output contains Frame vocabulary "${sentinel}"`);
@@ -200,7 +210,7 @@ test('ipc channels sync from the config-named file with token-derived categories
     ].join('\n'));
     const res = runParser(tmp);
     assert.equal(res.status, 0, res.stderr);
-    const s = JSON.parse(fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8'));
+    const s = JSON.parse(readStructureRaw(tmp));
     assert.ok(s.ipcChannels.reports.LOAD_REPORTS, 'LOAD_REPORTS → category "reports"');
     assert.ok(s.ipcChannels.export.TOGGLE_EXPORT_PANEL, 'TOGGLE_EXPORT_PANEL → category "export"');
   } finally {
@@ -220,7 +230,7 @@ test('walker safety: symlink cycle + ignored dirs terminate with clean output', 
     fs.symlinkSync(path.join(tmp, 'lib'), path.join(tmp, 'lib', 'loop'));
     const res = runParser(tmp);
     assert.equal(res.status, 0, res.stderr);
-    const s = JSON.parse(fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8'));
+    const s = JSON.parse(readStructureRaw(tmp));
     assert.deepEqual(Object.keys(s.modules), ['lib/a']); // no node_modules, no cycle dupes
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

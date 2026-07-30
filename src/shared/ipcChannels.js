@@ -77,6 +77,10 @@ const IPC = {
   REORDER_TASKS: 'reorder-tasks',
   TASK_UPDATED: 'task-updated',
   TASKS_FILE_ERROR: 'tasks-file-error',
+  // Opened a project laid out by a pre-overlay Frame (root tasks.json /
+  // AGENTS.md / CLAUDE.md symlink). Frame reads only .frame/, so this says
+  // "needs migration" instead of showing an empty project.
+  LEGACY_LAYOUT_DETECTED: 'legacy-layout-detected',
   TOGGLE_TASKS_PANEL: 'toggle-tasks-panel',
   TOGGLE_TASKS_DASHBOARD: 'toggle-tasks-dashboard',
 
@@ -128,7 +132,13 @@ const IPC = {
   AI_TOOL_CONFIG_DATA: 'ai-tool-config-data',
   SET_AI_TOOL: 'set-ai-tool',
   AI_TOOL_CHANGED: 'ai-tool-changed',
+  // Raw structure map for the graph view. Separate from LOAD_OVERVIEW, which
+  // returns the same file already grouped and counted for the dashboard.
+  LOAD_STRUCTURE_MAP: 'load-structure-map',
   CHECK_AI_TOOL_AVAILABLE: 'check-ai-tool-available',
+  // The start command with Frame's launch context attached. Composed
+  // main-side (it needs the filesystem); the renderer gets a finished string.
+  GET_LAUNCH_COMMAND: 'get-launch-command',
 
   // User Settings (renderer-side preferences persisted to userData JSON)
   GET_USER_SETTING: 'get-user-setting',

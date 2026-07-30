@@ -11,9 +11,9 @@
 const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
+const frameStore = require('./frameStore');
 const activityLog = require('./activityLog');
 const { IPC } = require('../shared/ipcChannels');
-const { FRAME_FILES } = require('../shared/frameConstants');
 
 const VALID_STATUSES = ['pending', 'in_progress', 'completed'];
 const SELF_WRITE_GUARD_MS = 250;
@@ -51,8 +51,17 @@ function setProjectPath(projectPath) {
   currentProjectPath = projectPath;
 }
 
+function projectRoot(projectPath) {
+  return projectPath || currentProjectPath;
+}
+
+/**
+ * Where tasks physically live. Only the parse-once cache and the watcher use
+ * this — both are genuinely file-bound (an mtime key, an `fs.watch` target).
+ * Every read and write goes through `frameStore`'s data API instead.
+ */
 function getTasksFilePath(projectPath) {
-  return path.join(projectPath || currentProjectPath, FRAME_FILES.TASKS);
+  return frameStore.tasksPath(projectRoot(projectPath));
 }
 
 /**
@@ -104,7 +113,7 @@ function loadTasks(projectPath) {
     return loadCache.data;
   }
 
-  const { data, source, error } = fsSafe.readJsonWithRecovery(tasksPath);
+  const { data, source, error } = frameStore.readTasks(projectRoot(projectPath));
   if (!data && !error) return null; // no tasks.json — not a Frame project yet
 
   if (source === 'bak') {
@@ -168,7 +177,7 @@ function saveTasks(projectPath, tasksData) {
     tasksData.lastUpdated = new Date().toISOString();
     delete tasksData.corrupt; // in-memory flag only — never persisted
     lastSelfWriteAt = Date.now();
-    fsSafe.writeFileAtomic(tasksPath, JSON.stringify(tasksData, null, 2));
+    frameStore.writeTasks(projectRoot(projectPath), tasksData);
     loadCache = { key: cacheKeyFor(tasksPath), data: tasksData };
     return true;
   } catch (err) {
@@ -299,14 +308,18 @@ function reorderTasks(projectPath, order) {
 }
 
 /**
- * Watch the active project's directory for tasks.json changes. External
- * edits (CLI / manual edit) trigger a re-read and a TASKS_DATA push to the
- * renderer so the UI stays in sync without requiring the panel to be reopened.
+ * Watch the directory holding tasks.json for external changes. Those edits
+ * (CLI / manual edit) trigger a re-read and a TASKS_DATA push to the renderer
+ * so the UI stays in sync without requiring the panel to be reopened.
  *
  * We watch the directory (not the file) because tools that write atomically
  * via rename — Claude Code, vim, prettier — replace the inode that a
  * file-level fs.watch is bound to, silently killing the watcher. A directory
  * watcher survives renames and reports both `change` and `rename` events.
+ *
+ * The directory is derived from the store's path entry rather than assumed to
+ * be the project root: tasks live in `.frame/`, so watching the root would
+ * never see the file change.
  *
  * `lastSelfWriteAt` suppresses the watcher event that fires from our own
  * saveTasks() call to avoid a feedback loop.
@@ -317,11 +330,16 @@ function startWatching(projectPath) {
   if (watcher && watchedPath === projectPath) return;
   stopWatching();
 
-  if (!projectPath || !fs.existsSync(projectPath)) return;
+  if (!projectPath) return;
+
+  const tasksFile = getTasksFilePath(projectPath);
+  const watchDir = path.dirname(tasksFile);
+  const tasksFileName = path.basename(tasksFile);
+  if (!fs.existsSync(watchDir)) return;
 
   try {
-    watcher = fsSafe.safeWatch(projectPath, { persistent: false }, (eventType, filename) => {
-      if (!filename || filename !== FRAME_FILES.TASKS) return;
+    watcher = fsSafe.safeWatch(watchDir, { persistent: false }, (eventType, filename) => {
+      if (!filename || filename !== tasksFileName) return;
       if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
         activityLog.record('watch.suppressed', { watcher: 'tasks-root', reason: 'self-write' });
         return;

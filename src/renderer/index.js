@@ -202,7 +202,7 @@ function init() {
   // Setup Frame initialized listener
   state.onFrameInitialized((projectPath) => {
     terminal.writelnToTerminal(`\x1b[1;32m✓ Frame project initialized!\x1b[0m`);
-    terminal.writelnToTerminal(`  Created: .frame/, AGENTS.md, CLAUDE.md (symlink), STRUCTURE.json, PROJECT_NOTES.md, tasks.json, QUICKSTART.md`);
+    terminal.writelnToTerminal(`  Created: .frame/ (tasks.json, STRUCTURE.json, PROJECT_NOTES.md, QUICKSTART.md, bin/, docs/, specs/) — nothing outside it was touched`);
     // Refresh file tree to show new files
     fileTreeUI.refreshFileTree();
     // Load tasks for the new project
@@ -737,9 +737,10 @@ async function startAiSession() {
   // Ensure the new terminal is focused
   terminal.setActiveTerminal(newTerminalId);
 
-  // Send start command for the selected AI tool. The board's agent
-  // chip is derived live from the foreground process, not tagged here.
-  const startCommand = aiToolSelector.getStartCommand();
+  // Send start command for the selected AI tool, with Frame's launch context
+  // attached. The board's agent chip is derived live from the foreground
+  // process, not tagged here.
+  const startCommand = await aiToolSelector.getLaunchCommand(projectPath);
   setTimeout(() => {
     terminal.sendCommand(startCommand, newTerminalId);
   }, 1000);

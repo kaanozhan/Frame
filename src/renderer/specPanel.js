@@ -679,8 +679,9 @@ function showSuggestionModal(projectPath) {
         <li>Can be turned off anytime in Settings → Workflow</li>
       </ul>
       <p class="spec-suggest-fineprint">
-        Enabling adds a "Spec-Driven Development" section to AGENTS.md and creates an empty
-        <code>.frame/specs/</code> folder. Settings → Workflow turns it back off.
+        Enabling sets a flag in <code>.frame/config.json</code> and creates an empty
+        <code>.frame/specs/</code> folder — no file outside <code>.frame/</code> is
+        touched. Settings → Workflow turns it back off.
       </p>
       <div class="spec-modal-error" role="alert"></div>
       <div class="spec-modal-actions">

@@ -219,8 +219,15 @@ async function installPreCommitHook(projectPath) {
   }
 
   if (setup === 'husky') {
-    const huskyHook = path.join(projectPath, '.husky', 'pre-commit');
-    return appendToHookFile(huskyHook, /* createIfMissing */ true, /* needsShebang */ true);
+    // `.husky/pre-commit` is tracked, and Frame writes nothing in the tracked
+    // tree. Same treatment as lefthook and an existing custom hook: show the
+    // snippet and let the user decide. Vanilla `.git/hooks/` installs stay —
+    // that path is local-only and never leaves the clone.
+    return {
+      status: 'skipped-custom',
+      message: 'Husky detected — .husky/pre-commit is tracked, so Frame will not edit it. Add this snippet yourself:',
+      manualInstructions: getStructureHookSnippet()
+    };
   }
 
   if (setup === 'custom') {

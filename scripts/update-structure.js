@@ -23,7 +23,20 @@ const { execSync } = require('child_process');
 const ROOT_DIR = process.env.FRAME_PROJECT_ROOT
   ? path.resolve(process.env.FRAME_PROJECT_ROOT)
   : path.join(__dirname, '..');
-const STRUCTURE_FILE = path.join(ROOT_DIR, 'STRUCTURE.json');
+// Meta artifacts live in `.frame/`. The root fallback exists because Frame's
+// own repository — and every project initialized before the overlay — is
+// still on the pre-overlay layout until the migration spec runs. Read/write
+// compatibility only: a project with neither gets the `.frame/` path, so new
+// files are never created at the root.
+function resolveMetaPath(name) {
+  const framed = path.join(ROOT_DIR, '.frame', name);
+  if (fs.existsSync(framed)) return framed;
+  const legacy = path.join(ROOT_DIR, name);
+  if (fs.existsSync(legacy)) return legacy;
+  return framed;
+}
+
+const STRUCTURE_FILE = resolveMetaPath('STRUCTURE.json');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 
 // Directories never scanned for source files, regardless of .gitignore.

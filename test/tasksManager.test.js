@@ -1,6 +1,10 @@
 /**
  * tasksManager corruption-recovery tests (T02): corrupt tasks.json must no
  * longer silently disable CRUD or destroy recoverable data.
+ *
+ * Since the overlay, tasks live at `.frame/tasks.json` — the fixtures write
+ * there, and `frameDir` is what the recovery assertions scan for the
+ * `.corrupt-` copies.
  */
 
 const { test, beforeEach, afterEach } = require('node:test');
@@ -10,9 +14,10 @@ const os = require('os');
 const path = require('path');
 
 const tasksManager = require('../src/main/tasksManager');
-const { FRAME_FILES } = require('../src/shared/frameConstants');
+const frameStore = require('../src/main/frameStore');
 
 let projectDir;
+let frameDir;
 let tasksPath;
 
 function writeTasksFile(tasks) {
@@ -21,7 +26,8 @@ function writeTasksFile(tasks) {
 
 beforeEach(() => {
   projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-tasks-'));
-  tasksPath = path.join(projectDir, FRAME_FILES.TASKS);
+  frameDir = frameStore.ensureFrameDir(projectDir);
+  tasksPath = frameStore.tasksPath(projectDir);
   tasksManager.init(null); // no window — IPC pushes no-op
 });
 
@@ -51,7 +57,7 @@ test('corrupt tasks.json with .bak: restores and keeps CRUD alive', () => {
   assert.ok(Array.isArray(data.tasks), 'recovered data is usable');
   assert.ok(data.tasks.some((t) => t.id === 't1'), 'pre-corruption task survives');
   assert.ok(!data.corrupt);
-  const corrupt = fs.readdirSync(projectDir).filter((f) => f.includes('.corrupt-'));
+  const corrupt = fs.readdirSync(frameDir).filter((f) => f.includes('.corrupt-'));
   assert.equal(corrupt.length, 1, 'corrupt copy preserved');
 });
 
@@ -66,11 +72,28 @@ test('corrupt tasks.json without .bak: flagged empty set, mutation cannot clobbe
   const added = tasksManager.addTask(projectDir, { title: 'new task' });
   assert.ok(added);
   // ...and the corrupt original is still recoverable on disk.
-  const corrupt = fs.readdirSync(projectDir).filter((f) => f.includes('.corrupt-'));
+  const corrupt = fs.readdirSync(frameDir).filter((f) => f.includes('.corrupt-'));
   assert.equal(corrupt.length, 1);
 
   // the corrupt flag is never persisted
   const onDisk = JSON.parse(fs.readFileSync(tasksPath, 'utf8'));
   assert.ok(!('corrupt' in onDisk));
   assert.equal(onDisk.tasks.length, 1);
+});
+
+test('tasks land in .frame/, never at the project root', () => {
+  tasksManager.saveTasks(projectDir, { version: '2.0', tasks: [] });
+  tasksManager.addTask(projectDir, { title: 'A' });
+
+  assert.deepEqual(fs.readdirSync(projectDir), ['.frame'], 'a write escaped .frame/');
+  assert.ok(fs.existsSync(tasksPath));
+});
+
+test('a pre-overlay root tasks.json is not read as live data', () => {
+  fs.writeFileSync(
+    path.join(projectDir, 'tasks.json'),
+    JSON.stringify({ version: '2.0', tasks: [{ id: 'legacy', title: 'root', status: 'pending' }] })
+  );
+
+  assert.equal(tasksManager.loadTasks(projectDir), null, 'legacy layout read as a live project');
 });

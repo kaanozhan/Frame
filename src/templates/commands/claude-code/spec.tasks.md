@@ -4,6 +4,7 @@ staged flow: derive the list from the plan, then write it.
 ## Context
 
 - Project root: `{project_path}`
+- Frame's own conventions (shared by every project): `{frame_global_path}`
 - Spec slug: `{slug}`
 - Spec folder: `.frame/specs/{slug}/`
 

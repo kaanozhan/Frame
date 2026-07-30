@@ -134,6 +134,22 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
       return _fail(targetId, 'No AI CLI selected');
     }
 
+    // Attach Frame's launch context to whatever flags this dispatch already
+    // wanted. First, because for a wrapper-based CLI this is also what writes
+    // `.frame/bin/<tool>` — the probe below would otherwise not find it.
+    let composedFlags = launchFlags;
+    try {
+      const launch = await ipcRenderer.invoke(IPC.GET_LAUNCH_COMMAND, {
+        toolId: chosenToolId,
+        projectPath: state.getProjectPath(),
+        launchFlags
+      });
+      if (launch && Array.isArray(launch.launchFlags)) composedFlags = launch.launchFlags;
+    } catch (err) {
+      // Context is a nice-to-have; a dispatch that loses it still runs.
+      console.error('agentDispatch: launch context composition failed', err);
+    }
+
     // Pre-flight: confirm the CLI is installed before sending anything —
     // otherwise the lane shows "command not found" and the prompt is lost.
     let check;
@@ -141,7 +157,7 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
       check = await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, {
         toolId: chosenToolId,
         projectPath: state.getProjectPath(),
-        launchFlags
+        launchFlags: composedFlags
       });
     } catch (err) {
       console.error('agentDispatch: CLI availability check failed', err);
@@ -258,7 +274,7 @@ async function startDefaultAgent() {
   const s = laneStatus.getStatus(focusedId);
   const idle = !s.agentName && s.status === 'idle';
   if (idle) {
-    _startAgentIn(focusedId);
+    await _startAgentIn(focusedId);
     return;
   }
 
@@ -271,14 +287,16 @@ async function startDefaultAgent() {
 
 // Start the active tool's CLI in an existing lane. `fresh` allows a newly
 // spawned shell a beat to accept input before the command is typed.
-function _startAgentIn(terminalId, { fresh = false } = {}) {
+async function _startAgentIn(terminalId, { fresh = false } = {}) {
   multiTerminalUI.enterLane(terminalId);
   const aiToolSelector = require('./aiToolSelector');
-  const startCommand = aiToolSelector.getStartCommand();
-  if (!startCommand) {
+  if (!aiToolSelector.getStartCommand()) {
     notify.error('No AI CLI selected');
     return;
   }
+  // Composed main-side, so the agent starts already pointed at Frame's
+  // context — the root CLAUDE.md symlink that used to do this is gone.
+  const startCommand = await aiToolSelector.getLaunchCommand(state.getProjectPath());
   const currentTool = aiToolSelector.getCurrentTool();
   ipcRenderer.send(IPC.TELEMETRY_TRACK, 'agent_run_started', {
     tool: currentTool ? currentTool.id : null
@@ -298,7 +316,7 @@ async function _startAgentInNewFrame() {
     notify.error(`Could not create a new Frame — maximum (${max}) may be reached for this project`);
     return;
   }
-  _startAgentIn(id, { fresh: true });
+  await _startAgentIn(id, { fresh: true });
 }
 
 // "Open a new Frame / Kill & restart here" — asked when the focused Frame is

@@ -31,6 +31,7 @@ const aiToolManager = require('./aiToolManager');
 const claudeSessionsManager = require('./claudeSessionsManager');
 const updateChecker = require('./updateChecker');
 const userSettings = require('./userSettings');
+const globalLayer = require('./globalLayer');
 const gitStatusManager = require('./gitStatusManager');
 const gitDiffManager = require('./gitDiffManager');
 const telemetry = require('./telemetry');
@@ -275,6 +276,12 @@ function init() {
 
   // Initialize user settings (must run after app is ready so userData path resolves)
   userSettings.init();
+
+  // Frame's own instructions, written once into userData and never into a
+  // project. Same reason as userSettings for the placement: userData resolves
+  // only after the app is ready.
+  globalLayer.init(app.getPath('userData'));
+  globalLayer.ensure();
 
   // Global crash handlers + local-only crash dumps. After userSettings
   // (reads the crashDumpsEnabled toggle), before everything else so no

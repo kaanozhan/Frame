@@ -39,7 +39,8 @@ Module._load = function (request, ...rest) {
 
 const specManager = require('../src/main/specManager');
 const tasksManager = require('../src/main/tasksManager');
-const { FRAME_DIR, FRAME_FILES } = require('../src/shared/frameConstants');
+const frameStore = require('../src/main/frameStore');
+const { FRAME_DIR } = require('../src/shared/frameConstants');
 
 const SLUG = 'sample-spec';
 
@@ -87,11 +88,7 @@ function readSpecTasks() {
 
 beforeEach(() => {
   projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-spec-sync-'));
-  fs.writeFileSync(
-    path.join(projectDir, FRAME_FILES.TASKS),
-    JSON.stringify({ version: '2.0', tasks: [] }, null, 2),
-    'utf8'
-  );
+  frameStore.writeTasks(projectDir, { version: '2.0', tasks: [] });
   specManager.init(null); // no window — IPC pushes no-op
   tasksManager.init(null);
 });

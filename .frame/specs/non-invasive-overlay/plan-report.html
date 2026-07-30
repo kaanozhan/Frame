@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Non-Invasive Frame Overlay — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Non-Invasive Frame Overlay (.frame-only, zero-touch) — Plan Overview</h1>
+  <p class="muted">2026-07-28 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/non-invasive-overlay/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">11 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill">5 new modules</span><span class="pill">6 test files new, 3 extended</span><span class="pill warn">1 in-flight collision accepted</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Frame today mutates every repository it manages: five root files, an existing <code>CLAUDE.md</code> destructively consumed into a symlink, a hook appended to tracked <code>.husky/pre-commit</code> on husky projects, and spec-hint hooks merged into the project's <code>.claude/settings.json</code>. That makes Frame unusable on any codebase the developer doesn't own. This plan turns Frame into a read-only overlay: everything project-specific lives under <code>.frame/</code>, Frame's own generic instructions live <b>once</b> in user-scoped storage (<code>userData/frame-global/</code>), and the AI tool learns about all layers through a short pointer preamble composed at launch time — never by planting files.</p>
+  <p>Why this shape: pointer-based launch composition is the only design that (a) leaves every repo file byte-identical, (b) kills the per-project template-copy drift that <code>docsManagedBlock</code> exists to chase, and (c) leaves a seam — the new <code>frameStore</code> data-not-paths storage module — through which a future Frame-owned store becomes a backend swap with zero caller changes.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: project open (discovery + conditional exclude), AI-tool launch (three-layer injection), and initialization (the no-write flip).</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>system / module</span>
+    <span class="l-data">storage / git</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Project open: discovery, legacy check, conditional exclude</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Open project</div><div class="fd-sub">renderer → main</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">instructionDiscovery</div><div class="fd-sub">read-only scan: native instruction files + Frame legacy artifacts</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">legacy embedded layout?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">yes</span>
+          <div class="fd-node system"><div class="fd-title">healthNotice banner</div><div class="fd-sub">"old layout — migration needed"</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Fails loud, not silent</div><div class="fd-sub">no legacy file read as live data</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">no</span>
+          <div class="fd-node system"><div class="fd-title">gitExclude.ensure</div><div class="fd-sub">git ls-files --cached -- .frame/</div></div>
+          <div class="fd-arrow"><span class="lbl">untracked</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.git/info/exclude</div><div class="fd-sub">signed line added (removed if .frame/ is tracked)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">git status clean</div><div class="fd-sub">or team-shared, per repo state</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Read-only discovery:</b> <code>instructionDiscovery.js</code> holds zero write calls; the test asserts checksums of scanned files before/after. Debounced <code>fs.watch</code> re-reads on change (specManager pattern).</li>
+          <li><b>Exclude is worktree-safe:</b> the exclude file is resolved via <code>git rev-parse --git-path info/exclude</code>, never a hardcoded <code>.git/info/exclude</code> join — orchestration worktrees share the common dir.</li>
+          <li><b>Conditional, self-healing:</b> the signed line is managed on every open. Tracked <code>.frame/</code> → line removed, so post-opt-in files stay visible on every clone; untracked → line present, so zero-touch holds.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — AI-tool launch: three-layer pointer injection</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Launch AI tool</div><div class="fd-sub">index.js / agentDispatch</div></div>
+          <div class="fd-arrow"><span class="lbl">IPC</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">aiToolManager.getLaunchCommand</div><div class="fd-sub">main-side composition</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">contextPreamble</div><div class="fd-sub">pointers: global layer · .frame/AGENTS.md? · native files + precedence rule</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">tool has a system-prompt flag?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">flag (claude)</span>
+          <div class="fd-node data"><div class="fd-title">--append-system-prompt "…"</div><div class="fd-sub">+ spec-hint hooks via settings flag from .frame/runtime/</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Tool aware of all 3 layers</div><div class="fd-sub">repo CLAUDE.md read natively, untouched</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">wrapper (codex, gemini)</span>
+          <div class="fd-node data"><div class="fd-title">.frame/bin/&lt;tool&gt;</div><div class="fd-sub">generalized wrapper injects preamble as first prompt</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Same awareness</div><div class="fd-sub">no repo file planted</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Pointers, never content:</b> the preamble references paths only — nothing goes stale, no duplicate context, and the layers can later move out of the working tree without touching injection logic.</li>
+          <li><b>Composition is main-side:</b> renderer call sites (<code>index.js:724</code>, <code>agentDispatch.js:277</code>) switch from bare <code>getStartCommand()</code> to one awaited IPC call; quoting via existing <code>quoteArg</code>/<code>composeLaunchCommand</code>.</li>
+          <li><b>Flag names verified at implementation:</b> the plan does not hard-commit to flag spellings; if a flag is absent the tool declaratively falls back to the wrapper channel.</li>
+          <li><b>Per-tool config stays declarative:</b> <code>AI_TOOLS.&lt;id&gt;.injection = {type: 'flag'|'wrapper'}</code> — no tool conditionals leak outside <code>aiToolManager</code> (spec constraint).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Initialize Frame: the no-write flip</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Initialize Frame</div><div class="fd-sub">runProjectInit</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">frameStore writes</div><div class="fd-sub">config · tasks.json · PROJECT_NOTES · STRUCTURE · QUICKSTART · bin/ wrappers</div></div>
+          <div class="fd-arrow"><span class="lbl">only inside</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.frame/</div><div class="fd-sub">no root files, no symlinks, no settings merge, no husky append</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Tracked tree byte-identical</div><div class="fd-sub">CLAUDE.md / .gitignore / .claude/settings.json untouched</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Deleted behaviors:</b> CLAUDE/GEMINI consume-and-symlink (<code>frameProject.js:241-314</code>), <code>.claude/settings.json</code> merge (<code>frameProject.js:410-459</code>), husky append (<code>structureBootstrap.js:222</code> → manual-snippet path). Vanilla <code>.git/hooks/</code> install stays (local-only).</li>
+          <li><b>Global layer at app start, not init:</b> <code>globalLayer.ensure()</code> runs once at app-ready — a project init never triggers a write outside its own <code>.frame/</code>.</li>
+          <li><b><code>.frame/AGENTS.md</code> not seeded:</b> the project layer appears only when there is project-specific content; absent is a valid state (spec Goal 3).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The storage seam — and the Frame-owned store it prepares for</h3>
+  <p>The future store (per-user/per-project keyed, where team sharing gets solved properly) is a <b>separate, later spec</b> — nothing of it is built here. What this plan builds is the seam that makes it a backend swap instead of a second refactor: every caller speaks <i>data</i>, only <code>frameStore</code> knows <i>where</i> data lives.</p>
+  <pre>TODAY      tasksManager ─┐
+           overviewManager ├─→ frameStore.readTasks(project) ──→ .frame/tasks.json
+           specs/overview ─┘         (layout is frameStore's private detail)
+
+LATER      same callers, unchanged ─→ frameStore.readTasks(project) ──→ Frame-owned store
+                                                                        (userId · projectId)
+           file-needing minority (watchers, .frame/bin, files handed to AI tools)
+           → named …Path() entries — the visible list of what must be
+             materialized back to disk when the store stops being files</pre>
+  <p class="muted">Where this is anchored: spec constraint "Storage access must be centralized behind data, not paths" + Out of Scope "Moving Frame's artifacts into a Frame-owned store" · decision D6 below · deferred list in section 4.</p>
+
+  <h3>The injected preamble, in one look</h3>
+  <pre>This project is managed by Frame (overlay mode).
+Frame meta-workflow instructions: &lt;userData&gt;/frame-global/AGENTS.md (read first)
+Project-specific Frame context:   .frame/AGENTS.md            (if present)
+Repo's own instruction files:     CLAUDE.md, .cursorrules, …  (read as usual)
+Precedence: the repo owns code conventions; Frame owns the meta-workflow
+(tasks, notes, specs, structure). Do not copy content between these files.</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · An in-flight spec (audit-q3-performance-resources) holds 4 of our files — wait or proceed?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Plan now, accept the rebase</div>
+        <div class="opttrade">Colliding-file implementation (step 6) waits for that spec to land; everything else can start.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Block planning until it closes</div>
+        <div class="opttrade">Safest for merge hygiene, but stalls approved work for an unknown duration.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Kaan's approval is in hand; the plan is cheap to rebase, code is not. Sequencing isolates the collision to the final init-rewrite step.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D2 · Discovered instruction files — how much UI?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No UI — discovery engine only</div>
+        <div class="opttrade">Smallest scope; visibility can be a follow-up if the need appears.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Minimal read-only list in the project section</div>
+        <div class="opttrade">Transparency gesture, but adds untestable renderer work to an already large spec.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The engine is required by injection; the panel is a comfort feature. Spec Goal 4 was amended to drop "surfaced in the UI".</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D3 · How does the legacy-layout warning reach the user? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">healthNotice dismissible banner</div>
+        <div class="opttrade">Reuses the existing degraded-state channel; one message type added.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Blocking modal</div>
+        <div class="opttrade">Stronger signal, but the migration flow it would gate belongs to the embedded-migration spec.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Goal 5 requires detection + communication only; the mover ships separately, so blocking here blocks nothing actionable.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D4 · Injection channel per tool</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Flag where the CLI has one, wrapper otherwise</div>
+        <div class="opttrade">Each tool gets its cleanest channel; two code paths, both declarative in AI_TOOLS.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Universal wrapper for every tool</div>
+        <div class="opttrade">One code path, but hijacks the first prompt even where a system-prompt flag exists.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> User-confirmed. System-prompt injection is stronger and invisible for Claude; the proven <code>.frame/bin/codex</code> pattern generalizes for the rest. Exact flag spellings verified at implementation with wrapper fallback.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D5 · Test posture</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Everything testable</div>
+        <div class="opttrade">All new main/shared modules ship with node --test files; renderer excluded (no harness).</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Pure logic only / none</div>
+        <div class="opttrade">Less work, but the "never write outside .frame/" guarantee is exactly what tests should prove.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> User-confirmed ("test edilebilirse direkt yazalım"). Matches the recorded convention: target the pure module, stub Electron-coupled requires.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D6 · Storage module surface <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Data API (readTasks/writeNotes…) + named …Path entries</div>
+        <div class="opttrade">Callers never touch fs for meta artifacts; file-needing minority stays visible by name.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Path-returning helper</div>
+        <div class="opttrade">Same work now, but the future store migration would reopen every caller a second time.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Spec constraint (added during spec review): the later Frame-owned store must be a backend swap, not a second refactor.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D7 · Where the global layer lives <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">userData/frame-global/ (AGENTS.md + REFERENCE.md)</div>
+        <div class="opttrade">Beside user-settings.json and ai-tool-config.json — existing precedent, no new location.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">A new dot-directory in $HOME</div>
+        <div class="opttrade">Tool-agnostic path, but invents a second user-scoped store Frame would have to own forever.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Spec constraint: "no new location is invented". Managed-block upgrades apply here once instead of per project.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D8 · Spec-hint hooks without touching .claude/settings.json <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Generate .frame/runtime/claude-settings.json, pass via settings flag</div>
+        <div class="opttrade">Per-project, inside Frame's footprint, regenerated freely; flag verified at implementation.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Keep merging into the project's .claude/settings.json</div>
+        <div class="opttrade">Works today but is a tracked-tree write — the exact behavior this spec exists to end.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> No-write rule. If the settings flag proves unsupported, hooks degrade to the preamble's "run spec-context yourself" instruction (already the documented non-Claude path).</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D9 · Exclude entry lifecycle <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Conditional signed line, reconciled on every open</div>
+        <div class="opttrade">Untracked → present, tracked → removed; opt-in is just "commit .frame/".</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Write once at init and never revisit</div>
+        <div class="opttrade">Simpler, but after team opt-in it silently hides every new .frame/ file — silent drift.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Spec Goal 7 (added during review): an exclude that outlives opt-in is the trap, not the feature.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D10 · Seed .frame/AGENTS.md at init? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No — absent until there is project-specific content</div>
+        <div class="opttrade">Absent is a valid state per Goal 3; the global layer stands alone.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Seed a stub at init</div>
+        <div class="opttrade">Gives a place to write, but reintroduces a per-project copy of near-generic content.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The whole point of the global layer is not stamping generic content into projects; a stub would be exactly that.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D11 · scripts/ reading STRUCTURE.json — hard cut or fallback? <span class="tag">silent</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">.frame/ first, root fallback</div>
+        <div class="opttrade">Frame's own repo stays embedded until embedded-migration runs; scripts serve both layouts read-side.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Hard cut to .frame/ only</div>
+        <div class="opttrade">Purer, but breaks Frame's own repo and every unmigrated project the day it ships.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Release-coupling reality. The "single model" constraint governs Frame's writes toward new projects; a read fallback in copied scripts is compatibility, not a toggle.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>Claude's system-prompt / settings flag is absent or renamed in some versions</td><td>Flags verified in step 5 before wiring; declarative fallback flips the tool to the wrapper channel (D4) — launch never breaks on a missing flag.</td></tr>
+    <tr><td><code>git add -A</code> races the first exclude write</td><td><code>gitExclude.ensure()</code> runs in the project-open path before any Frame artifact is created — there is nothing to add before the line exists.</td></tr>
+    <tr><td>Orchestration worktrees: exclude written to the wrong gitdir</td><td>Path resolved per-worktree via <code>git rev-parse --git-path info/exclude</code>; covered by a dedicated worktree case in <code>test/gitExclude.test.js</code>.</td></tr>
+    <tr><td>User's own lines in <code>.git/info/exclude</code></td><td>Only the signed Frame line is ever added/removed; user lines asserted byte-identical in tests.</td></tr>
+    <tr><td>Pre-overlay projects open as "empty" once reads move to <code>.frame/</code></td><td>Legacy detection (Flow A) + banner; no legacy file read as live data, none modified. Release-coupled with embedded-migration (spec Out of Scope).</td></tr>
+    <tr><td>Old spec-hint hook entries already merged into user projects' <code>.claude/settings.json</code></td><td>Overlay stops adding; removal is embedded-migration's job (recorded in that spec's Problem #4).</td></tr>
+    <tr><td>Preamble quoting breaks in the PTY shell line</td><td>Composed main-side through existing <code>quoteArg</code>/<code>composeLaunchCommand</code>; preamble is short, fixed text with paths — no user content interpolated.</td></tr>
+    <tr><td>fs.watch semantics differ per platform for <code>.cursor/rules/*</code></td><td>Watch is an optimization only — every open does a full re-scan; a missed event degrades to slightly stale pointers, never to a wrong write.</td></tr>
+    <tr><td>Rebase risk on the 4 files shared with audit-q3-performance-resources</td><td>D1: colliding files isolated to step 6, which starts only after that spec lands and main is re-synced.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: migration mover (embedded-migration spec) · Frame-owned store backend (later spec, lands behind frameStore) · discovery UI surfacing (possible follow-up) · editing tracked .gitignore (explicitly out of scope).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Everything Frame creates inside the working tree lives under .frame/; nothing outside it is ever touched <span class="tag">G1</span></td><td>Sequencing step 6 (init rewrite, Flow C); no-write assertions in step-6 tests</td></tr>
+    <tr><td>.frame/ is the home for all project-specific artifacts (tasks, notes, structure, quickstart, specs, config, bin) <span class="tag">G2</span></td><td>Step 1 — frameStore layout + rerouted managers</td></tr>
+    <tr><td>Frame's own instructions exist once, in user-scoped storage, never copied into working trees <span class="tag">G3</span></td><td>Step 4 — globalLayer (userData/frame-global), D7/D10</td></tr>
+    <tr><td>Existing root instruction files are discovered read-only, solely to feed injection; never rewritten, deleted, symlinked or appended <span class="tag">G4</span></td><td>Step 3 — instructionDiscovery (read-only guarantee tested)</td></tr>
+    <tr><td>Legacy embedded layouts are detected and reported, never silently misread <span class="tag">G5</span></td><td>Step 3 — legacy branch of Flow A + healthNotice banner</td></tr>
+    <tr><td>Context is injected at launch time by reference across three layers, with domain precedence stated <span class="tag">G6</span></td><td>Step 5 — contextPreamble + aiToolManager injection (Flow B), D4</td></tr>
+    <tr><td>Committing .frame/ is opt-in; the exclude entry is conditional, removed once .frame/ is tracked <span class="tag">G7</span></td><td>Step 2 — gitExclude state machine, D9</td></tr>
+    <tr><td>All other features keep working, now through the storage module <span class="tag">G8</span></td><td>Step 1 — tasksManager/overviewManager rerouting</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Absolute no-write rule outside .frame/ except .git/info/exclude and .git/hooks/*; .claude/settings.json and .husky/* explicitly forbidden, with both current violators changed <span class="tag">C1</span></td><td>Steps 2, 5 (hooks via flag, D8), 6 (merge + husky append removed)</td></tr>
+    <tr><td>Non-destructive discovery: no write/rename/relink of instruction files; unlink/symlink logic removed entirely <span class="tag">C2</span></td><td>Steps 3 and 6</td></tr>
+    <tr><td>Single model, not a toggle — the embedded behavior is replaced <span class="tag">C3</span></td><td>Step 6; D11 limits the scripts' fallback to read-side compatibility</td></tr>
+    <tr><td>Storage centralized behind data, not paths; …Path entries only for the file-needing minority <span class="tag">C4</span></td><td>Step 1 — frameStore, D6</td></tr>
+    <tr><td>Tool-agnostic injection, extensible via aiToolManager without leaking per-tool cases <span class="tag">C5</span></td><td>Step 5 — declarative AI_TOOLS.injection config</td></tr>
+    <tr><td>The global layer uses Frame's existing userData storage; managed-block upgrades preserve user additions, applied once <span class="tag">C6</span></td><td>Step 4 — globalLayer + docsManagedBlock, D7; step 7 links staged templates</td></tr>
+    <tr><td>Freshness without ownership: changed instruction files re-read for subsequent injections <span class="tag">C7</span></td><td>Step 3 — debounced watch + full re-scan per open</td></tr>
+    <tr><td>Cross-platform: exclude/hooks handling and paths behave on macOS, Linux, Windows <span class="tag">C8</span></td><td>Step 2 — git-path resolution (worktree/Windows); symlink code deleted rather than ported</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Clean tree after a full session; .gitignore byte-identical <span class="tag">S1</span></td><td>Steps 2+6 · proven by gitExclude tests + init no-write assertions on a temp repo</td></tr>
+    <tr><td>Existing instruction and config files byte-identical (incl. .claude/settings.json, .husky/pre-commit) <span class="tag">S2</span></td><td>Steps 3+6 · proven by checksum assertions in discovery and init tests</td></tr>
+    <tr><td>Context reaches the AI from every layer without modifying repo files <span class="tag">S3</span></td><td>Step 5 · proven by contextPreamble tests (all layer combinations) + composed-command assertions</td></tr>
+    <tr><td>Frame's meta-layer exists once, in one user-scoped location, for all projects <span class="tag">S4</span></td><td>Step 4 · proven by globalLayer tests (two-project scenario against one temp userData)</td></tr>
+    <tr><td>Zero Frame-created files outside .frame/ after init and use <span class="tag">S5</span></td><td>Step 6 · proven by init test walking the temp tree</td></tr>
+    <tr><td>Opt-in commit works; new .frame/ files visible after opt-in on every machine <span class="tag">S6</span></td><td>Step 2 · proven by tracked→removed transition test</td></tr>
+    <tr><td>Feature parity through the storage module <span class="tag">S7</span></td><td>Step 1 · proven by rerouted tasksManager/overviewManager passing existing + updated tests</td></tr>
+    <tr><td>Legacy projects fail loud, not silent <span class="tag">S8</span></td><td>Step 3 · proven by legacy-fixture detection test; banner wired via ipcChannels</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>isFrameProject keys identity on .frame/config.json</td><td><span class="pill good">verified</span> src/main/frameProject.js:33-36</td></tr>
+    <tr><td>Init destructively consumes CLAUDE.md / GEMINI.md into symlinks</td><td><span class="pill good">verified</span> src/main/frameProject.js:241-247, 305-314; symlink helper 66-104</td></tr>
+    <tr><td>Spec-hint hooks merged into project's .claude/settings.json</td><td><span class="pill good">verified</span> src/main/frameProject.js:410-459 (registerSpecHintHooks)</td></tr>
+    <tr><td>Husky projects: hook appended to tracked .husky/pre-commit</td><td><span class="pill good">verified</span> src/main/structureBootstrap.js:222-224</td></tr>
+    <tr><td>Parser scripts already land in .frame/bin/ (not project root)</td><td><span class="pill good">verified</span> src/main/structureBootstrap.js:48-56</td></tr>
+    <tr><td>tasksManager builds the root tasks.json path itself</td><td><span class="pill good">verified</span> src/main/tasksManager.js:53-55</td></tr>
+    <tr><td>overviewManager re-derives root paths independently</td><td><span class="pill good">verified</span> src/main/overviewManager.js:56, 96, 149</td></tr>
+    <tr><td>Launch flags compose via composeLaunchCommand (implement-modes)</td><td><span class="pill good">verified</span> src/main/aiToolManager.js:249-252; getStartCommand:420</td></tr>
+    <tr><td>Renderer sends the bare start command into the PTY</td><td><span class="pill good">verified</span> src/renderer/index.js:724; src/renderer/agentDispatch.js:277; aiToolSelector.js:112</td></tr>
+    <tr><td>userData is the existing user-scoped storage precedent</td><td><span class="pill good">verified</span> src/main/userSettings.js:23; src/main/aiToolManager.js:93</td></tr>
+    <tr><td>AGENTS core + REFERENCE are stamped per project from templates</td><td><span class="pill good">verified</span> src/shared/frameTemplates.js:352 (getAgentsTemplate), 448 (getReferenceTemplate)</td></tr>
+    <tr><td>Managed-block upgrade mechanism chases per-project copies</td><td><span class="pill good">verified</span> src/shared/docsManagedBlock.js (157 lines); re-applied on open via frameProject</td></tr>
+    <tr><td>Debounced fs.watch pattern exists as the freshness model</td><td><span class="pill good">verified</span> src/main/specManager.js:979-1009</td></tr>
+    <tr><td>Codex wrapper injects instructions as first prompt</td><td><span class="pill good">verified</span> .frame/bin/codex; AI_TOOLS.codex.command src/main/aiToolManager.js:52</td></tr>
+    <tr><td>Root-name constants and orchestration meta list assume root layout</td><td><span class="pill good">verified</span> src/shared/frameConstants.js:19-27 (FRAME_FILES), :51 (ORCH_META_FILES)</td></tr>
+    <tr><td>scripts resolve STRUCTURE.json at the project root</td><td><span class="pill good">verified</span> scripts/update-structure.js:26,337; find-module.js:24; check-freshness reads likewise</td></tr>
+    <tr><td>Testing record current (npm test → node --test; renderer uncovered)</td><td><span class="pill good">verified</span> PROJECT_NOTES.md ## Testing (recorded 2026-07-20); test/ tree matches</td></tr>
+    <tr><td>Footprint overlap with an in-flight spec</td><td><span class="pill warn">in-flight</span> audit-q3-performance-resources (implementing) holds frameProject/tasksManager/specManager/structureBootstrap — D1</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — Tests were parked in a trailing "write tests" step and a "run npm test" step had crept in → authoring attached to each producing step; the run-step deleted (running existing checks is not plannable work).</li>
+    <li><b>Iteration 2</b> — Coverage check caught two orphans: the copied scripts (update-structure/find-module/check-freshness) still writing/reading root STRUCTURE.json, and ORCH_META_FILES listing root paths → both added to Files/Footprint/Sequencing (steps 1, 6; D11).</li>
+    <li><b>Iteration 3</b> — Spec-hint settings file first landed in userData; that leaks one project's hook set to every project → moved to .frame/runtime/claude-settings.json, inside the project's own footprint (D8).</li>
+    <li><b>Iteration 4</b> — Reality check on renderer call sites for the now-async launch command (index.js:724, agentDispatch.js:277 — both already async contexts) and on healthNotice.js as the banner surface (confirmed: dismissible degraded-state banner). Format/coverage/decisions/task-derivability all pass.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-28 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/non-invasive-overlay/plan.md</code></footer>
+</div>
+</body>
+</html>

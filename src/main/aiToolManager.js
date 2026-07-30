@@ -26,9 +26,36 @@ function loginShell() {
   return process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash');
 }
 const { IPC } = require('../shared/ipcChannels');
+const { FRAME_DIR, FRAME_BIN_DIR } = require('../shared/frameConstants');
+const templates = require('../shared/frameTemplates');
+const contextPreamble = require('../shared/contextPreamble');
+const frameStore = require('./frameStore');
+const globalLayer = require('./globalLayer');
+const instructionDiscovery = require('./instructionDiscovery');
 
 let mainWindow = null;
 let configPath = null;
+
+/**
+ * How each tool receives Frame's launch context.
+ *
+ * Since the overlay, Frame plants no root instruction file, so the context is
+ * handed over when the tool starts. Declaratively per tool, because the
+ * alternative is per-tool branching leaking across modules:
+ *
+ *   type 'flag'    — the CLI can take a system-prompt append and a settings
+ *                    file on the command line. `promptFlag`/`settingsFlag`
+ *                    name them.
+ *   type 'wrapper' — no such flag, so `.frame/bin/<id>` execs the CLI with the
+ *                    preamble as its initial prompt.
+ *
+ * Claude Code's flags are `--append-system-prompt <prompt>` and
+ * `--settings <file-or-json>`, verified against the shipping CLI. A build that
+ * does not know them degrades to the wrapper path rather than passing an
+ * unknown flag, which would make the CLI refuse to start at all.
+ */
+const INJECTION_FLAG = 'flag';
+const INJECTION_WRAPPER = 'wrapper';
 
 // Default AI tools configuration
 const AI_TOOLS = {
@@ -37,6 +64,11 @@ const AI_TOOLS = {
     name: 'Claude Code',
     command: 'claude',
     description: 'Anthropic Claude Code CLI',
+    injection: {
+      type: INJECTION_FLAG,
+      promptFlag: '--append-system-prompt',
+      settingsFlag: '--settings'
+    },
     commands: {
       init: '/init',
       commit: '/commit',
@@ -51,7 +83,8 @@ const AI_TOOLS = {
     name: 'Codex CLI',
     command: './.frame/bin/codex',
     fallbackCommand: 'codex',
-    description: 'OpenAI Codex CLI (with AGENTS.md injection)',
+    injection: { type: INJECTION_WRAPPER },
+    description: 'OpenAI Codex CLI (with Frame context injection)',
     commands: {
       review: '/review',
       model: '/model',
@@ -64,7 +97,9 @@ const AI_TOOLS = {
   gemini: {
     id: 'gemini',
     name: 'Gemini CLI',
-    command: 'gemini',
+    command: './.frame/bin/gemini',
+    fallbackCommand: 'gemini',
+    injection: { type: INJECTION_WRAPPER },
     description: 'Google Gemini CLI (reads GEMINI.md natively)',
     commands: {
       init: '/init',
@@ -354,6 +389,12 @@ function setupIPC() {
     return setActiveTool(toolId);
   });
 
+  ipcMain.removeHandler(IPC.GET_LAUNCH_COMMAND);
+  ipcMain.handle(IPC.GET_LAUNCH_COMMAND, (event, payload = {}) => {
+    const { projectPath = null, toolId = null, launchFlags = null } = payload;
+    return getLaunchCommand(projectPath, toolId, launchFlags);
+  });
+
   ipcMain.removeHandler(IPC.CHECK_AI_TOOL_AVAILABLE);
   ipcMain.handle(IPC.CHECK_AI_TOOL_AVAILABLE, async (event, payload = {}) => {
     const { toolId, projectPath, launchFlags = null } = payload;
@@ -421,6 +462,167 @@ function getStartCommand() {
   return getActiveTool().command;
 }
 
+// ─── Launch-time context injection ────────────────────────────
+
+const RUNTIME_DIR = 'runtime';
+const PREAMBLE_FILE = 'preamble.txt';
+const CLAUDE_SETTINGS_FILE = 'claude-settings.json';
+
+function runtimeDir(projectPath) {
+  return path.join(projectPath, FRAME_DIR, RUNTIME_DIR);
+}
+
+function preambleRelPath() {
+  return `${FRAME_DIR}/${RUNTIME_DIR}/${PREAMBLE_FILE}`;
+}
+
+/**
+ * Build the preamble for this project and tool.
+ *
+ * `features.specDriven` is read from `.frame/config.json` at every launch and
+ * never cached: the user can flip the toggle in Settings between two launches,
+ * and a cached value would keep injecting the activation paragraph into a
+ * project that has turned the workflow off.
+ */
+function buildPreamble(projectPath, toolId) {
+  const config = frameStore.readConfig(projectPath).data || {};
+  const specDriven = !!(config.features && config.features.specDriven);
+  const projectLayer = frameStore.agentsPath(projectPath);
+
+  return contextPreamble.compose({
+    globalPath: safeGlobalPath(),
+    projectLayerPath: fs.existsSync(projectLayer) ? projectLayer : '',
+    nativeFiles: instructionDiscovery.get(projectPath).nativeFiles,
+    toolId,
+    specDriven
+  });
+}
+
+function safeGlobalPath() {
+  try {
+    return globalLayer.agentsPath();
+  } catch (_) {
+    return ''; // no global layer yet — compose() returns '' and we inject nothing
+  }
+}
+
+function writeRuntimeFile(projectPath, name, content) {
+  const dir = runtimeDir(projectPath);
+  fs.mkdirSync(dir, { recursive: true });
+  const target = path.join(dir, name);
+  fs.writeFileSync(target, content, 'utf8');
+  return target;
+}
+
+/**
+ * The spec-hint hooks, as a settings file inside Frame's own footprint.
+ *
+ * They used to be merged into the project's tracked `.claude/settings.json`,
+ * which the overlay forbids. Passing them by flag also makes them removable:
+ * stop passing the flag and the hooks are gone, with nothing left behind in
+ * the repo to clean up.
+ */
+function writeClaudeSettings(projectPath) {
+  return writeRuntimeFile(
+    projectPath,
+    CLAUDE_SETTINGS_FILE,
+    JSON.stringify(templates.getSpecHintSettings(), null, 2) + '\n'
+  );
+}
+
+/**
+ * Regenerate `.frame/bin/<id>` for a wrapper tool, alongside the preamble file
+ * it reads. Rewritten per launch so the preamble is never one session stale.
+ */
+function writeWrapper(projectPath, tool, preamble) {
+  const binDir = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR);
+  fs.mkdirSync(binDir, { recursive: true });
+
+  const target = path.join(binDir, tool.id);
+  const realCommand = tool.fallbackCommand || tool.id;
+  fs.writeFileSync(
+    target,
+    templates.getWrapperTemplate(realCommand, {
+      promptFlag: tool.injection.promptFlag || '',
+      preambleFile: preambleRelPath()
+    }),
+    { mode: 0o755 }
+  );
+  writeRuntimeFile(projectPath, PREAMBLE_FILE, preamble);
+  return target;
+}
+
+/**
+ * The command a lane should actually type, with Frame's context attached.
+ *
+ * Replaces the bare `getStartCommand()` at every launch site. Composition
+ * happens here, main-side, because it needs the filesystem (discovery, the
+ * config flag, the global layer path) — the renderer receives a finished
+ * string.
+ *
+ * Returns `{ command, launchFlags, resolvedCommand, injection }`.
+ * `launchFlags` stays separate from `resolvedCommand` so a caller with its own
+ * flags (spec.implement's autonomous mode) can compose on top.
+ */
+function getLaunchCommand(projectPath, toolId, extraFlags) {
+  const tools = getAvailableTools();
+  const tool = (toolId && tools[toolId]) || getActiveTool();
+  const extra = Array.isArray(extraFlags) ? extraFlags : [];
+
+  if (!projectPath) {
+    const command = tool.command;
+    return {
+      command,
+      launchFlags: extra,
+      resolvedCommand: composeLaunchCommand(command, extra),
+      injection: 'none'
+    };
+  }
+
+  let preamble = '';
+  try {
+    preamble = buildPreamble(projectPath, tool.id);
+  } catch (err) {
+    logger.warn('aiToolManager', 'preamble composition failed (launching without it):', err.message);
+  }
+
+  const injection = (tool.injection && tool.injection.type) || INJECTION_WRAPPER;
+  const flags = [];
+  let command = tool.command;
+
+  try {
+    if (!preamble) {
+      // Nothing to inject — launch bare rather than pass an empty prompt.
+      command = tool.fallbackCommand && injection === INJECTION_WRAPPER ? tool.fallbackCommand : tool.command;
+    } else if (injection === INJECTION_FLAG) {
+      flags.push(tool.injection.promptFlag, preamble);
+      if (tool.injection.settingsFlag) {
+        flags.push(tool.injection.settingsFlag, writeClaudeSettings(projectPath));
+      }
+    } else {
+      writeWrapper(projectPath, tool, preamble);
+    }
+  } catch (err) {
+    // A read-only or full disk must not cost the user their agent; drop the
+    // injection and launch the bare CLI.
+    logger.warn('aiToolManager', 'context injection failed (launching without it):', err.message);
+    return {
+      command: tool.fallbackCommand || tool.command,
+      launchFlags: extra,
+      resolvedCommand: composeLaunchCommand(tool.fallbackCommand || tool.command, extra),
+      injection: 'none'
+    };
+  }
+
+  const launchFlags = [...flags, ...extra];
+  return {
+    command,
+    launchFlags,
+    resolvedCommand: composeLaunchCommand(command, launchFlags),
+    injection: preamble ? injection : 'none'
+  };
+}
+
 module.exports = {
   init,
   getAvailableTools,
@@ -429,6 +631,7 @@ module.exports = {
   getConfig,
   getCommand,
   getStartCommand,
+  getLaunchCommand,
   composeLaunchCommand,
   addCustomTool,
   removeCustomTool,

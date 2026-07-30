@@ -2250,6 +2250,21 @@
   color: var(--text-secondary);
 }
 
+/* The no-write promise under the file list — quieter than the list itself,
+   but the sentence that actually answers "what will this do to my repo?" */
+.init-modal-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+.init-modal-note code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 /* "Don't ask again" checkbox sits left of the footer buttons. */
 .init-modal-dontask {
   margin-right: auto;

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-28",
+  "lastUpdated": "2026-07-30",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -153,6 +153,7 @@
         "getConfig",
         "getCommand",
         "getStartCommand",
+        "getLaunchCommand",
         "composeLaunchCommand",
         "addCustomTool",
         "removeCustomTool",
@@ -167,7 +168,13 @@
         "fsSafe",
         "logger",
         "telemetry",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "shared/frameConstants",
+        "shared/frameTemplates",
+        "shared/contextPreamble",
+        "frameStore",
+        "globalLayer",
+        "instructionDiscovery"
       ],
       "functions": {
         "loginShell": {
@@ -175,7 +182,7 @@
           "purpose": "The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL"
         },
         "init": {
-          "line": 91,
+          "line": 126,
           "params": [
             "window",
             "app"
@@ -183,72 +190,72 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "detectDefaultTool": {
-          "line": 105,
+          "line": 140,
           "purpose": "First run only: default the active tool to a CLI that is actually"
         },
         "loadConfig": {
-          "line": 121,
+          "line": 156,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 148,
+          "line": 183,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 159,
+          "line": 194,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 166,
+          "line": 201,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 174,
+          "line": 209,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 194,
+          "line": 229,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 204,
+          "line": 239,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 221,
+          "line": 256,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "quoteArg": {
-          "line": 241,
+          "line": 276,
           "params": [
             "arg"
           ],
           "purpose": "Compose the command line a lane actually types: the resolved CLI plus any"
         },
         "composeLaunchCommand": {
-          "line": 249,
+          "line": 284,
           "params": [
             "command",
             "launchFlags"
           ]
         },
         "isPathLike": {
-          "line": 254,
+          "line": 289,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 272,
+          "line": 307,
           "params": [
             "command",
             "projectPath"
@@ -256,31 +263,85 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "trackProbeFailure": {
-          "line": 338,
+          "line": 373,
           "params": [
             "reason"
           ]
         },
         "setupIPC": {
-          "line": 346,
+          "line": 381,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 412,
+          "line": 453,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 420,
+          "line": 461,
           "purpose": "Get the start command for active tool"
+        },
+        "runtimeDir": {
+          "line": 471,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "preambleRelPath": {
+          "line": 475
+        },
+        "buildPreamble": {
+          "line": 487,
+          "params": [
+            "projectPath",
+            "toolId"
+          ],
+          "purpose": "Build the preamble for this project and tool."
+        },
+        "safeGlobalPath": {
+          "line": 501
+        },
+        "writeRuntimeFile": {
+          "line": 509,
+          "params": [
+            "projectPath",
+            "name",
+            "content"
+          ]
+        },
+        "writeClaudeSettings": {
+          "line": 525,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The spec-hint hooks, as a settings file inside Frame's own footprint."
+        },
+        "writeWrapper": {
+          "line": 537,
+          "params": [
+            "projectPath",
+            "tool",
+            "preamble"
+          ],
+          "purpose": "Regenerate `.frame/bin/<id>` for a wrapper tool, alongside the preamble file"
+        },
+        "getLaunchCommand": {
+          "line": 567,
+          "params": [
+            "projectPath",
+            "toolId",
+            "extraFlags"
+          ],
+          "purpose": "The command a lane should actually type, with Frame's context attached."
         }
       },
       "ipc": {
         "listens": [
           "GET_AI_TOOL_CONFIG",
           "SET_AI_TOOL",
+          "GET_LAUNCH_COMMAND",
           "CHECK_AI_TOOL_AVAILABLE"
         ],
         "emits": [
@@ -444,6 +505,8 @@
         "resolveStagingPlan",
         "stageCommandFiles",
         "copyIfChanged",
+        "substitutePlaceholders",
+        "STAGED_PLACEHOLDER",
         "availableTools",
         "COMMAND_TEMPLATE_FILES",
         "COMMAND_ASSET_FILES",
@@ -453,11 +516,24 @@
       "depends": [
         "fs",
         "path",
-        "shared/frameConstants"
+        "shared/frameConstants",
+        "globalLayer"
       ],
       "functions": {
+        "substitutePlaceholders": {
+          "line": 61,
+          "params": [
+            "content",
+            "values"
+          ],
+          "purpose": "Pure: replace `{name}` for each key in `values`. A placeholder with no"
+        },
+        "globalReferencePath": {
+          "line": 74,
+          "purpose": "Where the global REFERENCE lives, or '' before globalLayer is initialized"
+        },
         "resolveStagingPlan": {
-          "line": 51,
+          "line": 91,
           "params": [
             "projectPath",
             "tool",
@@ -466,19 +542,20 @@
           "purpose": "Pure: resolve what to stage for one tool. Returns"
         },
         "copyIfChanged": {
-          "line": 80,
+          "line": 123,
           "params": [
             "src",
-            "dst"
+            "dst",
+            "transform"
           ],
           "purpose": "Copy only when the destination content differs, so project-open staging"
         },
         "availableTools": {
-          "line": 105,
+          "line": 149,
           "purpose": "List the tool directories that actually ship under the packaged commands"
         },
         "stageCommandFiles": {
-          "line": 119,
+          "line": 163,
           "params": [
             "projectPath"
           ],
@@ -741,6 +818,9 @@
         "shared/frameConstants",
         "shared/frameTemplates",
         "workspace",
+        "frameStore",
+        "gitExclude",
+        "instructionDiscovery",
         "structureBootstrap",
         "commandStaging",
         "shared/docsManagedBlock",
@@ -753,139 +833,124 @@
       ],
       "functions": {
         "init": {
-          "line": 25,
+          "line": 28,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 32,
+          "line": 35,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 40,
+          "line": 43,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 53,
+          "line": 56,
           "params": [
             "filePath",
             "content"
           ],
           "purpose": "Create file if it doesn't exist"
         },
-        "createSymlinkSafe": {
-          "line": 70,
-          "params": [
-            "target",
-            "linkPath"
-          ],
-          "purpose": "Create a symlink safely with Windows fallback"
-        },
         "checkExistingFrameFiles": {
-          "line": 111,
+          "line": 74,
           "params": [
             "projectPath"
           ],
-          "purpose": "Check which Frame files already exist in the project"
+          "purpose": "Which Frame artifacts already exist — all of them inside `.frame/`."
         },
         "showInitializeConfirmation": {
-          "line": 135,
+          "line": 96,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 187,
+          "line": 146,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "doInitializeFrameProject": {
-          "line": 195,
+          "line": 154,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "runProjectInit": {
-          "line": 207,
+          "line": 166,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "installSpecHintHook": {
-          "line": 433,
+          "line": 325,
           "params": [
             "projectPath"
           ],
-          "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
+          "purpose": "Make the spec-hint hooks available to Claude Code."
         },
         "isSpecDrivenEnabled": {
-          "line": 490,
+          "line": 356,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 495,
+          "line": 361,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 522,
+          "line": 388,
           "params": [
             "projectPath"
           ],
-          "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
+          "purpose": "Turn the workflow off: flip the flag. The next launch composes a preamble"
         },
         "setSpecDrivenEnabled": {
-          "line": 550,
+          "line": 402,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 554,
+          "line": 406,
           "params": [
             "projectPath",
             "config"
           ]
         },
-        "stripManagedSpecSection": {
-          "line": 568,
-          "params": [
-            "text"
-          ],
-          "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
-        },
         "ensureSpecDrivenArtifacts": {
-          "line": 578,
+          "line": 414,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 653,
+          "line": 458,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 694,
+          "line": 494,
           "params": [
             "ipcMain"
           ],
@@ -902,11 +967,221 @@
           "SET_SPEC_DRIVEN"
         ],
         "emits": [
+          "LEGACY_LAYOUT_DETECTED",
           "IS_FRAME_PROJECT_RESULT",
           "WORKSPACE_UPDATED",
           "FRAME_PROJECT_INITIALIZED",
           "FRAME_CONFIG_DATA"
         ]
+      }
+    },
+    "main/frameStore": {
+      "file": "src/main/frameStore.js",
+      "description": "frameStore — the single seam between Frame and its stored artifacts.",
+      "exports": [
+        "writeTasks",
+        "readStructure",
+        "writeStructure",
+        "readConfig",
+        "writeConfig",
+        "readNotes",
+        "writeNotes",
+        "readQuickstart",
+        "writeQuickstart",
+        "readAgents",
+        "writeAgents",
+        "hasFrameDir",
+        "ensureFrameDir",
+        ".frame/bin/ scripts",
+        "files handed to an AI tool\n  frameDirPath",
+        "tasksPath",
+        "structurePath",
+        "notesPath",
+        "quickstartPath",
+        "configPath",
+        "agentsPath"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "fsSafe",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "resolve": {
+          "line": 42,
+          "params": [
+            "projectPath",
+            "relative"
+          ],
+          "purpose": "Resolve one of the FRAME_META_FILES identifiers (posix, repo-relative)"
+        },
+        "ensureFrameDir": {
+          "line": 46,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "frameDirPath": {
+          "line": 54,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "tasksPath": {
+          "line": 58,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "structurePath": {
+          "line": 62,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "notesPath": {
+          "line": 66,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "quickstartPath": {
+          "line": 70,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "configPath": {
+          "line": 74,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "agentsPath": {
+          "line": 78,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "readJson": {
+          "line": 92,
+          "params": [
+            "filePath"
+          ],
+          "purpose": "Read a JSON artifact, preserving fsSafe's recovery envelope"
+        },
+        "writeJson": {
+          "line": 97,
+          "params": [
+            "projectPath",
+            "filePath",
+            "value"
+          ],
+          "purpose": "Write a JSON artifact atomically, creating `.frame/` on first write."
+        },
+        "readText": {
+          "line": 103,
+          "params": [
+            "filePath"
+          ],
+          "purpose": "Read a text artifact. Missing file → `null`, never a throw."
+        },
+        "writeText": {
+          "line": 113,
+          "params": [
+            "projectPath",
+            "filePath",
+            "text"
+          ],
+          "purpose": "Write a text artifact atomically, creating `.frame/` on first write."
+        },
+        "readTasks": {
+          "line": 120,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "writeTasks": {
+          "line": 124,
+          "params": [
+            "projectPath",
+            "data"
+          ]
+        },
+        "readStructure": {
+          "line": 128,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "writeStructure": {
+          "line": 132,
+          "params": [
+            "projectPath",
+            "data"
+          ]
+        },
+        "readConfig": {
+          "line": 136,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "writeConfig": {
+          "line": 140,
+          "params": [
+            "projectPath",
+            "data"
+          ]
+        },
+        "readNotes": {
+          "line": 144,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "writeNotes": {
+          "line": 148,
+          "params": [
+            "projectPath",
+            "text"
+          ]
+        },
+        "readQuickstart": {
+          "line": 152,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "writeQuickstart": {
+          "line": 156,
+          "params": [
+            "projectPath",
+            "text"
+          ]
+        },
+        "readAgents": {
+          "line": 166,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The project instruction layer. Legitimately absent in most projects —"
+        },
+        "writeAgents": {
+          "line": 170,
+          "params": [
+            "projectPath",
+            "text"
+          ]
+        },
+        "hasFrameDir": {
+          "line": 175,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Does this project have Frame artifacts at all?"
+        }
       }
     },
     "main/fsSafe": {
@@ -1204,6 +1479,74 @@
         "emits": []
       }
     },
+    "main/gitExclude": {
+      "file": "src/main/gitExclude.js",
+      "description": "gitExclude — keep `.frame/` out of git without touching the tracked tree.",
+      "exports": [
+        "ensure",
+        "excludeFilePath",
+        "isFrameTracked",
+        "EXCLUDE_BLOCK",
+        "MARKER"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "git": {
+          "line": 41,
+          "params": [
+            "projectPath",
+            "args"
+          ]
+        },
+        "excludeFilePath": {
+          "line": 57,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Absolute path of this working tree's exclude file, or null outside a repo."
+        },
+        "isFrameTracked": {
+          "line": 68,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Is any path under `.frame/` tracked in this repo?"
+        },
+        "stripOurs": {
+          "line": 84,
+          "params": [
+            "lines"
+          ],
+          "purpose": "Strip every trace of ours from `lines`: the signed comment plus the pattern"
+        },
+        "readLines": {
+          "line": 110,
+          "params": [
+            "excludePath"
+          ]
+        },
+        "writeLines": {
+          "line": 124,
+          "params": [
+            "excludePath",
+            "lines"
+          ],
+          "purpose": "Write `lines` back, preserving the file's trailing-newline convention and"
+        },
+        "ensure": {
+          "line": 142,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Bring the exclude file to the state the repo currently calls for."
+        }
+      }
+    },
     "main/gitStatusManager": {
       "file": "src/main/gitStatusManager.js",
       "description": "Git Status Manager",
@@ -1378,6 +1721,72 @@
         "emits": []
       }
     },
+    "main/globalLayer": {
+      "file": "src/main/globalLayer.js",
+      "description": "globalLayer — Frame's own instructions, stored once outside every project.",
+      "exports": [
+        "init",
+        "ensure",
+        "dirPath",
+        "agentsPath",
+        "referencePath",
+        "renderAgents",
+        "renderReference",
+        "GLOBAL_DIR_NAME"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/frameTemplates",
+        "shared/docsManagedBlock"
+      ],
+      "functions": {
+        "init": {
+          "line": 42,
+          "params": [
+            "dataPath"
+          ]
+        },
+        "dirPath": {
+          "line": 46
+        },
+        "agentsPath": {
+          "line": 51
+        },
+        "referencePath": {
+          "line": 55
+        },
+        "renderAgents": {
+          "line": 71,
+          "purpose": "Frame's generic core: no Project Facts, no creation stamp, and no spec"
+        },
+        "renderReference": {
+          "line": 79
+        },
+        "writeFile": {
+          "line": 83,
+          "params": [
+            "target",
+            "content"
+          ]
+        },
+        "ensureFile": {
+          "line": 94,
+          "params": [
+            "target",
+            "render",
+            "body",
+            "version",
+            "legacyMatchers"
+          ],
+          "purpose": "Bring one file to the current version."
+        },
+        "ensure": {
+          "line": 117,
+          "purpose": "Create or upgrade the global layer. Called once at app ready; safe to call"
+        }
+      }
+    },
     "main/index": {
       "file": "src/main/index.js",
       "description": "Main Process Entry Point",
@@ -1411,6 +1820,7 @@
         "claudeSessionsManager",
         "updateChecker",
         "userSettings",
+        "globalLayer",
         "gitStatusManager",
         "gitDiffManager",
         "telemetry",
@@ -1420,26 +1830,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 48,
+          "line": 49,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 66,
+          "line": 67,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 158
+          "line": 159
         },
         "setupAllIPC": {
-          "line": 184,
+          "line": 185,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 261,
+          "line": 262,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 296,
+          "line": 303,
           "params": [
             "window"
           ],
@@ -1459,6 +1869,90 @@
         "emits": [
           "MAIN_PROCESS_ERROR"
         ]
+      }
+    },
+    "main/instructionDiscovery": {
+      "file": "src/main/instructionDiscovery.js",
+      "description": "instructionDiscovery — find out what the repo already says, and change none",
+      "exports": [
+        "scan",
+        "refresh",
+        "get",
+        "startWatching",
+        "stopWatching",
+        "stopAll",
+        "NATIVE_SOURCES"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "fsSafe",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "isFile": {
+          "line": 64,
+          "params": [
+            "target"
+          ]
+        },
+        "linkInfo": {
+          "line": 73,
+          "params": [
+            "target"
+          ],
+          "purpose": "`lstat`, so a symlink is reported as a symlink rather than followed."
+        },
+        "listDirFiles": {
+          "line": 81,
+          "params": [
+            "dir"
+          ]
+        },
+        "detectLegacyLayout": {
+          "line": 97,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Is the root layout an older Frame's, rather than a project that merely"
+        },
+        "scan": {
+          "line": 123,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Scan a project root. Returns"
+        },
+        "refresh": {
+          "line": 142,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Scan and cache. Every project open goes through here."
+        },
+        "get": {
+          "line": 152,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The current view, scanning if this project has not been seen. Callers that"
+        },
+        "startWatching": {
+          "line": 163,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Best-effort freshness: re-scan when something at the root changes."
+        },
+        "stopWatching": {
+          "line": 188,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "stopAll": {
+          "line": 196
+        }
       }
     },
     "main/logger": {
@@ -1907,74 +2401,75 @@
         "fs",
         "path",
         "child_process",
+        "frameStore",
         "shared/ipcChannels"
       ],
       "functions": {
         "init": {
-          "line": 16,
+          "line": 17,
           "params": [
             "window"
           ],
           "purpose": "Initialize overview manager"
         },
         "loadOverview": {
-          "line": 23,
+          "line": 24,
           "params": [
             "projectPath"
           ],
           "purpose": "Load overview data for a project"
         },
         "loadStructure": {
-          "line": 55,
+          "line": 56,
           "params": [
             "projectPath"
           ],
-          "purpose": "Load structure from STRUCTURE.json"
+          "purpose": "Load the structure map through the store."
         },
         "loadTasks": {
-          "line": 95,
+          "line": 94,
           "params": [
             "projectPath"
           ],
-          "purpose": "Load tasks from tasks.json"
+          "purpose": "Load tasks through the store."
         },
         "loadDecisions": {
-          "line": 148,
+          "line": 144,
           "params": [
             "projectPath"
           ],
-          "purpose": "Load decisions from PROJECT_NOTES.md"
+          "purpose": "Load decisions from the project notes through the store."
         },
         "loadStats": {
-          "line": 187,
+          "line": 180,
           "params": [
             "projectPath"
           ],
           "purpose": "Load project stats (lines of code, files, git info)"
         },
         "countLinesOfCode": {
-          "line": 209,
+          "line": 202,
           "params": [
             "projectPath"
           ],
           "purpose": "Count lines of code in src directory"
         },
         "countFiles": {
-          "line": 233,
+          "line": 226,
           "params": [
             "projectPath"
           ],
           "purpose": "Count files in src directory"
         },
         "getGitInfo": {
-          "line": 256,
+          "line": 249,
           "params": [
             "projectPath"
           ],
           "purpose": "Get git information"
         },
         "getFileGitHistory": {
-          "line": 286,
+          "line": 279,
           "params": [
             "projectPath",
             "filePath"
@@ -1982,7 +2477,7 @@
           "purpose": "Get file git history (contributors, commits, blame)"
         },
         "getFileCommits": {
-          "line": 323,
+          "line": 316,
           "params": [
             "projectPath",
             "filePath"
@@ -1990,7 +2485,7 @@
           "purpose": "Get recent commits for a file"
         },
         "getFileContributors": {
-          "line": 354,
+          "line": 347,
           "params": [
             "projectPath",
             "filePath"
@@ -1998,7 +2493,7 @@
           "purpose": "Get contributors for a file"
         },
         "getFileBlame": {
-          "line": 387,
+          "line": 380,
           "params": [
             "projectPath",
             "filePath"
@@ -2006,7 +2501,7 @@
           "purpose": "Get blame summary for a file (who wrote how many lines)"
         },
         "setupIPC": {
-          "line": 419,
+          "line": 412,
           "params": [
             "ipcMain"
           ],
@@ -2016,7 +2511,8 @@
       "ipc": {
         "listens": [
           "LOAD_OVERVIEW",
-          "GET_FILE_GIT_HISTORY"
+          "GET_FILE_GIT_HISTORY",
+          "LOAD_STRUCTURE_MAP"
         ],
         "emits": []
       }
@@ -2600,6 +3096,7 @@
         "shared/ipcChannels",
         "shared/frameConstants",
         "tasksManager",
+        "frameStore",
         "commandStaging",
         "frameProject",
         "telemetry",
@@ -2608,52 +3105,52 @@
       ],
       "functions": {
         "getSpecsRoot": {
-          "line": 61,
+          "line": 62,
           "params": [
             "projectPath"
           ]
         },
         "getSpecDir": {
-          "line": 65,
+          "line": 66,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "generateSlug": {
-          "line": 74,
+          "line": 75,
           "params": [
             "title"
           ]
         },
         "uniqueSlug": {
-          "line": 87,
+          "line": 88,
           "params": [
             "projectPath",
             "baseSlug"
           ]
         },
         "validateSpecStatus": {
-          "line": 100,
+          "line": 101,
           "params": [
             "obj"
           ]
         },
         "readFileSafe": {
-          "line": 119,
+          "line": 120,
           "params": [
             "p"
           ]
         },
         "readStatus": {
-          "line": 128,
+          "line": 129,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 139,
+          "line": 140,
           "params": [
             "projectPath",
             "slug",
@@ -2661,33 +3158,33 @@
           ]
         },
         "indexStamp": {
-          "line": 169,
+          "line": 170,
           "params": [
             "projectPath"
           ],
           "purpose": "mtime of the derived index, or 0 — used to tell a rebuild from a no-op."
         },
         "scheduleIndexRefresh": {
-          "line": 178,
+          "line": 179,
           "params": [
             "projectPath"
           ]
         },
         "buildSpecCatalog": {
-          "line": 206,
+          "line": 207,
           "params": [
             "projectPath"
           ],
           "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
         },
         "listSpecs": {
-          "line": 226,
+          "line": 227,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 281,
+          "line": 282,
           "params": [
             "projectPath",
             "slug",
@@ -2695,7 +3192,7 @@
           ]
         },
         "derivePhase": {
-          "line": 285,
+          "line": 286,
           "params": [
             "projectPath",
             "slug",
@@ -2704,14 +3201,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 311,
+          "line": 312,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 317,
+          "line": 318,
           "params": [
             "projectPath",
             "slug",
@@ -2719,14 +3216,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 346,
+          "line": 347,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 350,
+          "line": 351,
           "params": [
             "projectPath",
             "aiTool",
@@ -2734,7 +3231,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 354,
+          "line": 355,
           "params": [
             "projectPath",
             "aiTool",
@@ -2742,14 +3239,14 @@
           ]
         },
         "interpolate": {
-          "line": 360,
+          "line": 361,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 367,
+          "line": 368,
           "params": [
             "projectPath",
             "slug",
@@ -2758,7 +3255,7 @@
           ]
         },
         "stageCommandAsset": {
-          "line": 416,
+          "line": 417,
           "params": [
             "projectPath",
             "aiTool",
@@ -2767,7 +3264,7 @@
           "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
         },
         "stageCommandAssets": {
-          "line": 437,
+          "line": 438,
           "params": [
             "projectPath",
             "command",
@@ -2775,34 +3272,34 @@
           ]
         },
         "resolveVerificationCommand": {
-          "line": 501,
+          "line": 502,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 516,
+          "line": 517,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 534,
+          "line": 535,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 558,
+          "line": 559,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 574,
+          "line": 575,
           "params": [
             "projectPath",
             "slug"
@@ -2810,7 +3307,7 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "buildSpecCommandFile": {
-          "line": 581,
+          "line": 582,
           "params": [
             "projectPath",
             "slug",
@@ -2819,53 +3316,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 617,
+          "line": 618,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 643,
+          "line": 644,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 662,
+          "line": 663,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 667,
+          "line": 668,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 747,
+          "line": 748,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 754,
+          "line": 755,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 771,
+          "line": 772,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 801,
+          "line": 802,
           "params": [
             "projectPath",
             "query"
@@ -2873,14 +3370,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 822,
+          "line": 823,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 865,
+          "line": 866,
           "params": [
             "projectPath",
             "slug",
@@ -2888,14 +3385,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 884,
+          "line": 885,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 901,
+          "line": 902,
           "params": [
             "projectPath",
             "oldSlug",
@@ -2904,28 +3401,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1013,
+          "line": 1014,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1096
+          "line": 1097
         },
         "pushSpecData": {
-          "line": 1117,
+          "line": 1118,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1137,
+          "line": 1138,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1141,
+          "line": 1142,
           "params": [
             "ipcMain"
           ]
@@ -2999,7 +3496,7 @@
           "purpose": "Install (or append) the pre-commit hook based on detected setup."
         },
         "appendToHookFile": {
-          "line": 249,
+          "line": 256,
           "params": [
             "hookPath",
             "createIfMissing",
@@ -3008,14 +3505,14 @@
           "purpose": "Append the Frame snippet to an existing hook file (husky case)."
         },
         "runInitialFullScan": {
-          "line": 287,
+          "line": 294,
           "params": [
             "projectPath"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 325,
+          "line": 332,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -3044,9 +3541,9 @@
         "fs",
         "path",
         "fsSafe",
+        "frameStore",
         "activityLog",
-        "shared/ipcChannels",
-        "shared/frameConstants"
+        "shared/ipcChannels"
       ],
       "functions": {
         "cacheKeyFor": {
@@ -3067,41 +3564,48 @@
             "projectPath"
           ]
         },
-        "getTasksFilePath": {
+        "projectRoot": {
           "line": 54,
           "params": [
             "projectPath"
           ]
         },
+        "getTasksFilePath": {
+          "line": 63,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Where tasks physically live. Only the parse-once cache and the watcher use"
+        },
         "flattenLegacyTasks": {
-          "line": 65,
+          "line": 74,
           "params": [
             "legacy"
           ],
           "purpose": "Migrate the old nested shape ({ pending, inProgress, completed }) into a"
         },
         "dedupById": {
-          "line": 78,
+          "line": 87,
           "params": [
             "tasks"
           ]
         },
         "loadTasks": {
-          "line": 99,
+          "line": 108,
           "params": [
             "projectPath"
           ],
           "purpose": "Read tasks.json from disk, migrate/normalize, and return the canonical"
         },
         "saveTasks": {
-          "line": 165,
+          "line": 174,
           "params": [
             "projectPath",
             "tasksData"
           ]
         },
         "sendTasksFileError": {
-          "line": 185,
+          "line": 194,
           "params": [
             "projectPath",
             "info"
@@ -3109,17 +3613,17 @@
           "purpose": "Tell the renderer tasks.json is corrupt (or was auto-recovered from .bak)"
         },
         "generateTaskId": {
-          "line": 193
+          "line": 202
         },
         "addTask": {
-          "line": 197,
+          "line": 206,
           "params": [
             "projectPath",
             "task"
           ]
         },
         "updateTask": {
-          "line": 221,
+          "line": 230,
           "params": [
             "projectPath",
             "taskId",
@@ -3127,14 +3631,14 @@
           ]
         },
         "deleteTask": {
-          "line": 243,
+          "line": 252,
           "params": [
             "projectPath",
             "taskId"
           ]
         },
         "reorderTasks": {
-          "line": 262,
+          "line": 271,
           "params": [
             "projectPath",
             "order"
@@ -3142,22 +3646,22 @@
           "purpose": "Reorder tasks (used by the Kanban dashboard for drag-and-drop). The renderer"
         },
         "startWatching": {
-          "line": 316,
+          "line": 329,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 353
+          "line": 371
         },
         "setupIPC": {
-          "line": 363,
+          "line": 381,
           "params": [
             "ipcMain"
           ]
         },
         "getLastSelfWriteAt": {
-          "line": 423,
+          "line": 441,
           "purpose": "Timestamp of this module's last tasks.json write — exported so other"
         }
       },
@@ -3599,11 +4103,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 239,
+          "line": 255,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 274,
+          "line": 290,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -3611,10 +4115,10 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_startAgentInNewFrame": {
-          "line": 289
+          "line": 307
         },
         "_askNewOrRestart": {
-          "line": 307,
+          "line": 325,
           "params": [
             "frameName",
             "hasAgent"
@@ -3622,7 +4126,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 364,
+          "line": 382,
           "params": [
             "{ slug",
             "title = null",
@@ -3631,7 +4135,7 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "_dispatchImplement": {
-          "line": 431,
+          "line": 449,
           "params": [
             "{ slug",
             "title",
@@ -3641,79 +4145,79 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "getSpecLaneInfo": {
-          "line": 522,
+          "line": 540,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 546,
+          "line": 564,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 567,
+          "line": 585,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 571,
+          "line": 589,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 575,
+          "line": 593,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 592,
+          "line": 610,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 600,
+          "line": 618,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 623,
+          "line": 641,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 631,
+          "line": 649,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 649,
+          "line": 667,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 659,
+          "line": 677,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 668,
+          "line": 686,
           "params": [
             "frameName",
             "specName"
@@ -3721,14 +4225,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 709,
+          "line": 727,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 738,
+          "line": 756,
           "params": [
             "terminalId",
             "message"
@@ -3820,6 +4324,7 @@
         "getCurrentTool",
         "getAvailableTools",
         "getStartCommand",
+        "getLaunchCommand",
         "getCommand",
         "supportsFeature"
       ],
@@ -3852,18 +4357,26 @@
           "purpose": "Get all available AI tools (keyed by id)."
         },
         "getStartCommand": {
-          "line": 112,
-          "purpose": "Get the start command for current tool"
+          "line": 116,
+          "purpose": "Get the start command for current tool."
+        },
+        "getLaunchCommand": {
+          "line": 132,
+          "params": [
+            "projectPath",
+            "launchFlags"
+          ],
+          "purpose": "The command to actually type into a lane: the CLI plus Frame's launch"
         },
         "getCommand": {
-          "line": 119,
+          "line": 150,
           "params": [
             "action"
           ],
           "purpose": "Get a specific command for current tool"
         },
         "supportsFeature": {
-          "line": 127,
+          "line": 158,
           "params": [
             "feature"
           ],
@@ -4717,20 +5230,21 @@
           "line": 18
         },
         "show": {
-          "line": 38,
+          "line": 45,
           "params": [
             "kind",
             "message"
           ]
         },
         "dismiss": {
-          "line": 70
+          "line": 77
         }
       },
       "ipc": {
         "listens": [
           "MAIN_PROCESS_ERROR",
           "STATE_FILE_RECOVERED",
+          "LEGACY_LAYOUT_DETECTED",
           "TASKS_FILE_ERROR"
         ],
         "emits": []
@@ -6369,16 +6883,16 @@
           "line": 36
         },
         "initAboutSection": {
-          "line": 140
+          "line": 142
         },
         "runCheck": {
-          "line": 225,
+          "line": 227,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 264,
+          "line": 266,
           "params": [
             "{ checked",
             "found",
@@ -6390,44 +6904,44 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 288,
+          "line": 290,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 299
+          "line": 301
         },
         "hideSidebarDot": {
-          "line": 303
+          "line": 305
         },
         "formatRelative": {
-          "line": 310,
+          "line": 312,
           "params": [
             "date"
           ]
         },
         "syncToggleFromSettings": {
-          "line": 321
+          "line": 323
         },
         "syncSpecDrivenToggle": {
-          "line": 341,
+          "line": 343,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "setSpecDrivenNote": {
-          "line": 361,
+          "line": 363,
           "params": [
             "message"
           ]
         },
         "open": {
-          "line": 367
+          "line": 369
         },
         "close": {
-          "line": 374
+          "line": 376
         },
         "toggle": {
-          "line": 381
+          "line": 383
         }
       },
       "ipc": {
@@ -6808,25 +7322,25 @@
           ]
         },
         "showRenameModal": {
-          "line": 731,
+          "line": 732,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 824,
+          "line": 825,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 844,
+          "line": 845,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 854,
+          "line": 855,
           "params": [
             "iso"
           ]
@@ -7311,17 +7825,15 @@
       ],
       "depends": [
         "electron",
-        "fs",
-        "path",
         "shared/ipcChannels",
         "htmlUtils"
       ],
       "functions": {
         "stopSimulationLoop": {
-          "line": 23
+          "line": 21
         },
         "capGraphByDegree": {
-          "line": 32,
+          "line": 30,
           "params": [
             "graph",
             "cap"
@@ -7329,38 +7841,38 @@
           "purpose": "Bound a graph to its `cap` highest-degree nodes (links pruned to the kept"
         },
         "init": {
-          "line": 66,
+          "line": 64,
           "purpose": "Initialize structure map"
         },
         "createOverlay": {
-          "line": 73,
+          "line": 71,
           "purpose": "Create overlay element"
         },
         "setupViewToggle": {
-          "line": 156,
+          "line": 154,
           "purpose": "Setup view toggle buttons"
         },
         "setupInfoPanelResize": {
-          "line": 184,
+          "line": 182,
           "purpose": "Setup info panel resize functionality"
         },
         "show": {
-          "line": 239,
+          "line": 237,
           "params": [
             "projectPath"
           ],
           "purpose": "Show structure map"
         },
         "hide": {
-          "line": 261,
+          "line": 259,
           "purpose": "Hide structure map"
         },
         "loadStructure": {
-          "line": 275,
+          "line": 278,
           "params": [
             "projectPath"
           ],
-          "purpose": "Load structure data"
+          "purpose": "Load structure data."
         },
         "showError": {
           "line": 296,
@@ -8385,6 +8897,46 @@
         }
       }
     },
+    "shared/contextPreamble": {
+      "file": "src/shared/contextPreamble.js",
+      "description": "contextPreamble — the short text Frame injects when it launches an AI tool.",
+      "exports": [
+        "compose",
+        "precedenceSentence",
+        "NATIVE_READERS"
+      ],
+      "depends": [],
+      "functions": {
+        "precedenceSentence": {
+          "line": 49,
+          "params": [
+            "specDriven"
+          ],
+          "purpose": "The domain split, spelled out."
+        },
+        "bullet": {
+          "line": 56,
+          "params": [
+            "label",
+            "target"
+          ]
+        },
+        "compose": {
+          "line": 71,
+          "params": [
+            "input"
+          ],
+          "purpose": "Compose the preamble."
+        },
+        "endsWith": {
+          "line": 128,
+          "params": [
+            "filePath",
+            "name"
+          ]
+        }
+      }
+    },
     "shared/docsManagedBlock": {
       "file": "src/shared/docsManagedBlock.js",
       "description": "Managed-block engine for Frame's spec docs sections.",
@@ -8452,6 +9004,8 @@
         "WORKSPACE_DIR",
         "WORKSPACE_FILE",
         "FRAME_FILES",
+        "LEGACY_ROOT_FILES",
+        "FRAME_META_FILES",
         "FRAME_BIN_DIR",
         "ORCH_WORKTREES_DIR",
         "ORCH_BUS_DIR",
@@ -8486,6 +9040,8 @@
         "LEGACY_SPEC_DRIVEN_CORE_SECTION",
         "REFERENCE_SPEC_LEGACY_MATCHERS",
         "AGENTS_SPEC_LEGACY_MATCHERS",
+        "getWrapperTemplate",
+        "getSpecHintSettings",
         "getCodexWrapperTemplate",
         "getGenericWrapperTemplate",
         "getStructureHookSnippet",
@@ -8523,21 +9079,22 @@
           "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
         },
         "getAgentsTemplate": {
-          "line": 352,
+          "line": 363,
           "params": [
             "projectName",
             "options"
-          ]
+          ],
+          "purpose": "options:"
         },
         "getReferenceTemplate": {
-          "line": 448,
+          "line": 473,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 623,
+          "line": 648,
           "params": [
             "projectName",
             "project"
@@ -8545,21 +9102,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 648,
+          "line": 673,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 668,
+          "line": 693,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 714,
+          "line": 739,
           "params": [
             "projectName",
             "project"
@@ -8567,18 +9124,29 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 795,
+          "line": 820,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
+        "getWrapperTemplate": {
+          "line": 877,
+          "params": [
+            "toolCommand",
+            "options"
+          ],
+          "purpose": "Wrapper script for a tool with no flag to inject a system prompt."
+        },
+        "getSpecHintSettings": {
+          "line": 920,
+          "purpose": "The spec-hint hooks, as a Claude Code settings object."
+        },
         "getCodexWrapperTemplate": {
-          "line": 835,
-          "purpose": "Codex CLI wrapper script"
+          "line": 936
         },
         "getGenericWrapperTemplate": {
-          "line": 872,
+          "line": 973,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -8586,27 +9154,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 918
+          "line": 1019
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 939,
+          "line": 1046,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 962,
+          "line": 1069,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 974,
+          "line": 1081,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 994
+          "line": 1101
         },
         "getOrchBinScripts": {
-          "line": 1012,
+          "line": 1119,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
@@ -9745,6 +10313,27 @@
       },
       "ACTIVITY_DATA": {
         "name": "activity-data",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "legacy": {
+      "LEGACY_LAYOUT_DETECTED": {
+        "name": "legacy-layout-detected",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "launch": {
+      "GET_LAUNCH_COMMAND": {
+        "name": "get-launch-command",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "structure": {
+      "LOAD_STRUCTURE_MAP": {
+        "name": "load-structure-map",
         "direction": "",
         "description": ""
       }

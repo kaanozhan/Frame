@@ -1,0 +1,152 @@
+{
+  "spec": {
+    "slug": "non-invasive-overlay",
+    "title": "Non-Invasive Frame Overlay (.frame-only, zero-touch)"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Meta path map + frameStore storage seam",
+      "commit": "95e3b35",
+      "whatChanged": "Added FRAME_META_FILES (the .frame/-relative meta path map) and LEGACY_ROOT_FILES to src/shared/frameConstants.js, and built src/main/frameStore.js — a data-shaped API (readTasks/writeTasks, structure, notes, quickstart, config, the project AGENTS layer) with separately named …Path(projectPath) entries for the watchers, .frame/bin/ scripts and AI-tool-facing files that need a real path. Covered by 12 cases in test/frameStore.test.js.",
+      "whyChanged": "The API returns data rather than paths so the later move to a Frame-owned store is a backend swap behind these functions instead of a second pass over every caller. JSON reads pass fsSafe's { data, source, error } envelope through untouched — collapsing it to data||null would re-introduce the silent-null failure tasksManager grew out of. Diverged from plan.md on ORCH_META_FILES: left as bare file names, because both consumers match a footprint entry's basename, which is already layout-agnostic; .frame/-relative paths there would have silently killed every match.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "234 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Route tasksManager and overviewManager through frameStore",
+      "commit": "8663d86",
+      "whatChanged": "tasksManager now reads/writes through frameStore (the fsSafe envelope arrives from the store, so the corruption-recovery contract is unchanged) and its watcher derives its directory from the store's path entry instead of assuming the project root. overviewManager's loadStructure/loadTasks/loadDecisions lost their hand-built root paths. test/tasksManager.test.js and test/specTasksSync.test.js moved their fixtures to .frame/tasks.json, plus two new cases: writes never escape .frame/, and a pre-overlay root tasks.json is not read as live data.",
+      "whyChanged": "Beyond plan.md's Files: specManager.js:1063 kept its own fs.watch on the root tasks.json — a watcher my change would have left pointed at a path that no longer exists, so it now takes the same frameStore.tasksPath. Also outside the plan, test/specTasksSync.test.js seeded a root tasks.json fixture and would have failed. The 'tasks-root' activity-watcher label was deliberately left alone: renaming it would touch the WATCHERS enum in activityEvents.js for a cosmetic gain.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "236 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Conditional .git/info/exclude state machine",
+      "commit": "621f3d2",
+      "whatChanged": "New src/main/gitExclude.js: resolves the exclude file via `git rev-parse --git-path info/exclude` (worktree- and submodule-safe), then no repo → no-op, .frame/ tracked → remove our entry, untracked → add it. Wired into frameProject.js at both the project-open IPC and the top of runProjectInit, before the first .frame/ artifact exists. 12 cases in test/gitExclude.test.js run against real temp git repos.",
+      "whyChanged": "plan.md specified a single signed line, `.frame/  # managed by Frame …`. That does not work: gitignore syntax has no trailing comments, so git reads the whole thing as a literal pattern and excludes nothing — the entry looks right in the file and hides nothing. The signature moved to its own comment line above the pattern, added and removed as a block; the broken single-line form is still recognized so an older Frame's entry gets collapsed rather than orphaned. Removal only ever touches a signed entry, so a hand-written `.frame/` rule survives.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "247 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Read-only instruction discovery + legacy-layout notice",
+      "commit": "ac6853a",
+      "whatChanged": "New src/main/instructionDiscovery.js: one root scan answering both questions — native instruction files (CLAUDE.md, .claude/CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, .cursor/rules/*, .github/copilot-instructions.md) and the pre-overlay Frame layout — with a full re-scan on every project open and a debounced fs.watch as an optimization on top. Added IPC.LEGACY_LAYOUT_DETECTED, the banner branch in healthNotice.js, and the emit on project open. 16 cases in test/instructionDiscovery.test.js, including a checksum+mtime snapshot of the whole tree before and after scanning.",
+      "whyChanged": "The banner is deliberately not gated on isFrameProject: a pre-overlay init wrote .frame/config.json *and* the root files, so every project this notice exists for already looks like a Frame project — gating on the absence of .frame/ would have meant the notice never fires at all. The legacy detector also refuses to call a lone root tasks.json Frame's: it needs a Frame-specific companion (STRUCTURE.json / PROJECT_NOTES.md / QUICKSTART.md) or a CLAUDE.md→AGENTS.md symlink, so a repo that merely has an AGENTS.md is read as an instruction file rather than a project needing migration.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "262 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "Global instruction layer in userData",
+      "commit": "794861a",
+      "whatChanged": "New src/main/globalLayer.js owning userData/frame-global/{AGENTS.md,REFERENCE.md}: the core rendered without the spec section, REFERENCE keeping the full protocol as a docsManagedBlock, upgrades applied in place. Wired globalLayer.init(app.getPath('userData')) + ensure() into src/main/index.js right after userSettings.init(). Parameterized getAgentsTemplate with a `global` option (no Project Facts, no creation stamp, no symlink claim) and a `referencePath`. 11 cases in test/globalLayer.test.js plus a single-copy upgrade case in test/docsManagedBlock.test.js.",
+      "whyChanged": "userDataPath is injected through init() rather than required from Electron, so the module and its tests stay Electron-free — the convention the rest of the suite follows. Only a *missing* file is written from the template; a file the user rewrote is left as theirs and only its managed block is ever touched. The global core deliberately carries no spec section: whether a project is spec-driven is per-project state, and the shared core is read by all of them, so the activation signal moves to the launch preamble (T07) and silence is what a project with the flag off gets.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "273 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Pure launch-time preamble composer",
+      "commit": "354945a",
+      "whatChanged": "New src/shared/contextPreamble.js: composes the injected text from {globalPath, projectLayerPath?, nativeFiles, toolId, specDriven} as pointers only, states the domain-precedence rule outright, and appends the spec-driven activation paragraph when the flag is on. Tools that read the repo's file natively (Claude Code → CLAUDE.md, Gemini → GEMINI.md) are acknowledged and left alone; every other discovered file is pointed at explicitly. 17 cases in test/contextPreamble.test.js.",
+      "whyChanged": "The precedence sentence started out naming 'the spec workflow' as part of Frame's domain unconditionally — with spec-driven off that still tells an agent specs are a thing here, so the enumeration is now conditional and the off case mentions specs nowhere at all (a test asserts /spec/i never matches). The path matcher normalizes separators so a Windows CLAUDE.md is recognized as the tool's own file rather than listed back at it. No globalPath means an empty string rather than a preamble that only says 'read your own files'.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "289 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "Declarative injection config and getLaunchCommand",
+      "commit": "98befd4",
+      "whatChanged": "AI_TOOLS gained injection: {type:'flag'|'wrapper'} — Claude Code takes --append-system-prompt and --settings (both verified against the shipping CLI's --help), Codex and Gemini get .frame/bin/<id> wrappers. aiToolManager.getLaunchCommand(projectPath, toolId, extraFlags) composes the preamble main-side, reads features.specDriven from .frame/config.json per launch, writes .frame/runtime/{preamble.txt,claude-settings.json}, regenerates the wrapper, and returns command + launchFlags + resolvedCommand over the new IPC.GET_LAUNCH_COMMAND. frameTemplates gained getWrapperTemplate and getSpecHintSettings; 13 cases in test/frameTemplates.test.js.",
+      "whyChanged": "The wrapper reads the preamble from .frame/runtime/preamble.txt rather than having it baked in: the preamble is multi-line prose full of quotes and backticks, and every one of those is a way to corrupt a generated shell script — as data it cannot. Gemini moved to a wrapper command with 'gemini' as fallbackCommand, so a project whose wrapper does not exist yet still probes and launches. Injection failure (read-only disk, missing global layer) degrades to the bare CLI rather than costing the user their agent, and specDriven is re-read every launch so flipping the Settings toggle takes effect on the next one.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "302 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T10",
+      "title": "Renderer launch sites use the composed command",
+      "commit": "8916906",
+      "whatChanged": "aiToolSelector gained async getLaunchCommand(projectPath, launchFlags) over IPC.GET_LAUNCH_COMMAND, falling back to the bare command on any failure; index.js's startAiSession and agentDispatch's _startAgentIn await it instead of calling getStartCommand directly, and the two _startAgentIn callers await in turn. Also wired dispatch() — the path task and spec runs actually take — to fetch the composed flags and hand them to CHECK_AI_TOOL_AVAILABLE.",
+      "whyChanged": "dispatch() is not in T10's list but is the main way an agent starts in Frame; leaving it alone would have meant every task and spec run launching with no Frame context at all — the exact regression this spec exists to prevent. The composition call is made *before* the availability probe on purpose: for a wrapper-based CLI it is what writes .frame/bin/<tool>, so probing first would not find the wrapper. getStartCommand survives for callers that only need to know which CLI would run.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "302 pass / 0 fail; npm run build succeeds"
+      }
+    },
+    {
+      "id": "T13",
+      "title": "Structure hook and scripts stop writing the project root",
+      "commit": "6949f70",
+      "whatChanged": "installStructureHook no longer appends to the tracked .husky/pre-commit — husky degrades to the same show-the-snippet path as lefthook and custom hooks, while vanilla .git/hooks/ installs (local-only) stay. The hook snippet stages .frame/STRUCTURE.json when present and only when tracked, falling back to the root path for pre-overlay projects. update-structure.js, find-module.js and check-freshness.js resolve meta artifacts via an inline resolveMetaPath (.frame/ first, root fallback, .frame/ for a project with neither) while ROOT_DIR keeps pointing at the project root so activityLog.projectKey stays bucketed per project.",
+      "whyChanged": "Taken before T11 because T11's whole point — an init that writes nothing outside .frame/ — cannot hold while the structure scan still drops STRUCTURE.json at the root; T11's footprint test caught exactly that and would have had to be committed red otherwise. The resolver is duplicated inline in each script rather than shared, because these three are copied standalone into .frame/bin/ and a new shared require would have to be added to PARSER_FILES to survive the copy. The snippet checks `git ls-files` before staging: adding an excluded .frame/ file would drag the whole directory into the user's commit.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "309 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T11",
+      "title": "Init writes only inside .frame/",
+      "commit": "1202ab2",
+      "whatChanged": "runProjectInit lost the consume-and-symlink block entirely — no reading and deleting CLAUDE.md, no GEMINI.md merge, no root AGENTS.md, no symlinks (createSymlinkSafe is gone) — and STRUCTURE/NOTES/tasks/QUICKSTART now go through frameStore's path entries into .frame/. installSpecHintHook stops touching .claude/settings.json and reports that the hooks travel by launch flag. checkExistingFrameFiles and the init dialog were rewritten around the .frame/-only footprint, the dialog now naming the discovered instruction files it will leave alone. New test/frameProjectInit.test.js: 7 cases over a repo seeded with CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, .claude/settings.json and .husky/pre-commit.",
+      "whyChanged": "The test walks the whole tree and diffs snapshots rather than checking a list of known filenames — a list would miss the write nobody thought to name, which is precisely the failure mode this guards. It is also what caught the root STRUCTURE.json escape that T13 had to fix first. No .frame/AGENTS.md is seeded: Frame's conventions live in the global layer, so a project layer should exist only when there is genuinely project-specific context to record.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "309 pass / 0 fail"
+      }
+    },
+    {
+      "id": "T12",
+      "title": "Spec-driven toggle collapses to a config-flag write",
+      "commit": "ae5a6f5",
+      "whatChanged": "Deleted stripManagedSpecSection, disableSpecDriven's AGENTS.md surgery, the AGENTS.md branch of ensureSpecDrivenArtifacts and upgradeSpecDocs' AGENTS.md doc entry — enabling and disabling are now a flag write in .frame/config.json and nothing else. settingsModal's comment no longer promises an AGENTS.md side effect. test/specDrivenToggle.test.js rewritten (13 cases) against the config-flag-plus-preamble contract.",
+      "whyChanged": "The old toggle edited the project's AGENTS.md because that was where a session learned the workflow. Frame's instructions are one shared copy now, so there is no per-project file to edit and no way to express 'on here, off there' in it — the activation signal had to move to the launch preamble, which reads the flag fresh every launch. The new tests assert both halves: snapshots prove the write touches only .frame/config.json (a repo's own AGENTS.md stays byte-identical even when it happens to contain a 'Spec-Driven Development' heading), and the preamble is checked in both directions.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "316 pass / 0 fail; npm run build succeeds"
+      }
+    },
+    {
+      "id": "T15",
+      "title": "Staged spec templates point at the global reference",
+      "commit": "a3f0870",
+      "whatChanged": "commandStaging gained a pure substitutePlaceholders and a staging-time {frame_global_path} substitution resolved once per pass from globalLayer.referencePath(); resolveStagingPlan marks only the markdown templates for it, and copyIfChanged takes an optional transform. All four shipped spec.*.md templates gained a Context bullet carrying the placeholder. test/commandStaging.test.js extended with 6 cases.",
+      "whyChanged": "Substituted at staging rather than per dispatch (where {project_path}/{slug} are filled) because this path is machine-wide and does not vary by spec or run — a staged file then carries something a CLI session opening it directly can follow, not just a Frame dispatch. Assets are excluded because the HTML template and the report generator both use braces for their own purposes. An unresolved placeholder is left visible rather than blanked: an empty value would silently point a reader at /REFERENCE.md, while a surviving {frame_global_path} is a legible bug. Comparison in copyIfChanged happens after the transform, so a second open is still a no-op.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "322 pass / 0 fail"
+      }
+    }
+  ]
+}

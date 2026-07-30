@@ -218,3 +218,23 @@ test('subheadings inside the section do not truncate the match', () => {
   assert.ok(!migrated.includes('### Slash commands'));
   assert.ok(migrated.includes("## User's Own Section"));
 });
+
+test('the single global copy upgrades once and carries every project along', () => {
+  // Since the overlay, this engine no longer chases one copy per project —
+  // it runs against the one file in userData/frame-global/REFERENCE.md. The
+  // property that matters there is that a second pass is a no-op, so opening
+  // ten projects does not rewrite the shared file ten times.
+  const doc = `# Frame — Agent Instructions\n\n---\n\n${renderBlock('## Spec-Driven Development\n\nv1 body\n', 1)}\n\n---\n\n## My team rules\n\nMine.\n`;
+
+  const upgraded = upgradeDoc(doc, { body: NEW_BODY, version: 2 });
+  assert.ok(upgraded, 'a stale global copy must upgrade');
+  assert.ok(upgraded.includes(NEW_BODY));
+  assert.ok(upgraded.includes('## My team rules'), 'user additions survive in the shared copy');
+  assert.ok(!upgraded.includes('v1 body'));
+
+  assert.equal(
+    upgradeDoc(upgraded, { body: NEW_BODY, version: 2 }),
+    null,
+    'a second project opening must not rewrite the shared file'
+  );
+});

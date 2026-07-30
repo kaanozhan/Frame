@@ -26,6 +26,13 @@ function init() {
     show('warn', `${file} was corrupt and has been restored from its backup.`);
   });
 
+  ipcRenderer.on(IPC.LEGACY_LAYOUT_DETECTED, () => {
+    show(
+      'warn',
+      'This project uses the old Frame layout (Frame files at the project root). Frame now reads only .frame/ — migrate the project to see its tasks, specs and notes again.'
+    );
+  });
+
   ipcRenderer.on(IPC.TASKS_FILE_ERROR, (event, payload) => {
     if (payload && payload.recovered) {
       show('warn', 'tasks.json was corrupt and has been restored from its backup.');

@@ -31,14 +31,14 @@ let dismissedForCurrentSession = false;
 /** One-line summary of the detected stack for the post-init banner */
 function detectionSummary(project) {
   if (!project || !project.languages || project.languages.length === 0) {
-    return "Frame is set up, but couldn't detect this project's stack — review <strong>.frame/config.json</strong> and <strong>QUICKSTART.md</strong>. Your AI agent starts from <strong>AGENTS.md</strong>.";
+    return "Frame is set up, but couldn't detect this project's stack — review <strong>.frame/config.json</strong> and <strong>.frame/QUICKSTART.md</strong>. Frame hands your AI tool its context when it launches.";
   }
   const bits = [
     project.languages.join(', '),
     project.packageManager,
     (project.sourceRoots || []).filter(r => r !== '.').map(r => `${r}/`).join(', ')
   ].filter(Boolean);
-  return `Frame set up for <strong>${escapeHtml(bits.join(' · '))}</strong> — review <strong>QUICKSTART.md</strong>, correct anything in <strong>.frame/config.json</strong>. Your AI agent starts from <strong>AGENTS.md</strong>.`;
+  return `Frame set up for <strong>${escapeHtml(bits.join(' · '))}</strong> — review <strong>.frame/QUICKSTART.md</strong>, correct anything in <strong>.frame/config.json</strong>. Frame hands your AI tool its context when it launches.`;
 }
 
 function setDetectionVisible(visible) {

@@ -17,6 +17,7 @@ const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require('../shared/frameConstants');
 const tasksManager = require('./tasksManager');
+const frameStore = require('./frameStore');
 const commandStaging = require('./commandStaging');
 const frameProject = require('./frameProject');
 const telemetry = require('./telemetry');
@@ -1060,7 +1061,7 @@ function startWatching(projectPath) {
   // "done" are driven by spec-derived task statuses, so a status flip in
   // the Tasks panel needs to refresh SPEC_DATA too. Independent watcher
   // so we don't depend on tasksManager's internal pub/sub.
-  const tasksJsonPath = path.join(projectPath, 'tasks.json');
+  const tasksJsonPath = frameStore.tasksPath(projectPath);
   if (fs.existsSync(tasksJsonPath)) {
     try {
       activeTasksWatcher = fsSafe.safeWatch(tasksJsonPath, null, () => {

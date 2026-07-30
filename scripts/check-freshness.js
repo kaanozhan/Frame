@@ -43,9 +43,22 @@ function git(cmd) {
   }
 }
 
+// Meta artifacts live in `.frame/`. The root fallback exists because Frame's
+// own repository — and every project initialized before the overlay — is
+// still on the pre-overlay layout until the migration spec runs. Read/write
+// compatibility only: a project with neither gets the `.frame/` path, so new
+// files are never created at the root.
+function resolveMetaPath(name) {
+  const framed = path.join(ROOT_DIR, '.frame', name);
+  if (fs.existsSync(framed)) return framed;
+  const legacy = path.join(ROOT_DIR, name);
+  if (fs.existsSync(legacy)) return legacy;
+  return framed;
+}
+
 function readJSON(file) {
   try {
-    return JSON.parse(fs.readFileSync(path.join(ROOT_DIR, file), 'utf-8'));
+    return JSON.parse(fs.readFileSync(resolveMetaPath(file), 'utf-8'));
   } catch (e) {
     return null;
   }
@@ -110,7 +123,7 @@ function checkStructureDrift(structure) {
  * 3. Notes staleness — commits landed since the last dated PROJECT_NOTES entry
  */
 function checkNotesStaleness() {
-  const notesPath = path.join(ROOT_DIR, 'PROJECT_NOTES.md');
+  const notesPath = resolveMetaPath('PROJECT_NOTES.md');
   if (!fs.existsSync(notesPath)) return;
 
   const content = fs.readFileSync(notesPath, 'utf-8');
@@ -149,14 +162,16 @@ function checkStuckTasks() {
  * 5. QUICKSTART staleness — commits landed since QUICKSTART.md was last touched
  */
 function checkQuickstartStaleness() {
-  if (!fs.existsSync(path.join(ROOT_DIR, 'QUICKSTART.md'))) return;
+  const quickstartPath = resolveMetaPath('QUICKSTART.md');
+  if (!fs.existsSync(quickstartPath)) return;
 
-  const lastTouched = git('git log -1 --format=%cs -- QUICKSTART.md');
+  const rel = path.relative(ROOT_DIR, quickstartPath);
+  const lastTouched = git(`git log -1 --format=%cs -- ${rel}`);
   if (!lastTouched) return;
 
   const commitsSince = git(`git rev-list --count HEAD --since=${lastTouched}`);
   if (commitsSince && Number(commitsSince) >= QUICKSTART_COMMIT_THRESHOLD) {
-    warn('quickstart-stale', `QUICKSTART.md was last touched ${lastTouched} with ${commitsSince} commits since — setup steps may be outdated`);
+    warn('quickstart-stale', `${rel} was last touched ${lastTouched} with ${commitsSince} commits since — setup steps may be outdated`);
   }
 }
 

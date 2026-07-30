@@ -3,6 +3,7 @@ You are authoring a new spec for the Frame spec-driven workflow.
 ## Context
 
 - Project root: `{project_path}`
+- Frame's own conventions (shared by every project): `{frame_global_path}`
 - Spec slug: `{slug}`
 - Spec folder (already exists): `.frame/specs/{slug}/`
 - Title: {title}

@@ -63,3 +63,79 @@ test('the launch helper never resolves through the override dir', () => {
 test('available tools include claude-code', () => {
   assert.ok(staging.availableTools().includes('claude-code'));
 });
+
+/* ------------------- {frame_global_path} substitution ------------------- */
+
+const fs = require('fs');
+const os = require('os');
+
+test('markdown templates are marked for substitution, assets are not', () => {
+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () => false);
+
+  for (const file of staging.COMMAND_TEMPLATE_FILES) {
+    const entry = plan.find((e) => path.basename(e.dst) === file);
+    assert.equal(entry.substitute, true, `${file} should be substituted`);
+  }
+  for (const file of staging.COMMAND_ASSET_FILES) {
+    const entry = plan.find((e) => path.basename(e.dst) === file);
+    assert.ok(!entry.substitute, `${file} must not be substituted — its braces are not ours`);
+  }
+});
+
+test('substitutePlaceholders replaces every occurrence', () => {
+  const out = staging.substitutePlaceholders(
+    'see {frame_global_path} and also {frame_global_path}',
+    { frame_global_path: '/ud/frame-global/REFERENCE.md' }
+  );
+  assert.equal(out, 'see /ud/frame-global/REFERENCE.md and also /ud/frame-global/REFERENCE.md');
+});
+
+test('an unresolved placeholder is left visible, never blanked', () => {
+  // An empty path would silently point a reader at /REFERENCE.md; the
+  // placeholder surviving is a legible bug instead.
+  assert.equal(
+    staging.substitutePlaceholders('at {frame_global_path}', { frame_global_path: '' }),
+    'at {frame_global_path}'
+  );
+  assert.equal(staging.substitutePlaceholders('at {frame_global_path}', {}), 'at {frame_global_path}');
+  assert.equal(staging.substitutePlaceholders('at {frame_global_path}'), 'at {frame_global_path}');
+});
+
+test('other placeholders are untouched — specManager fills those per dispatch', () => {
+  const out = staging.substitutePlaceholders(
+    'root {project_path}, slug {slug}, global {frame_global_path}',
+    { frame_global_path: '/ud/REFERENCE.md' }
+  );
+  assert.ok(out.includes('{project_path}'));
+  assert.ok(out.includes('{slug}'));
+  assert.ok(out.includes('/ud/REFERENCE.md'));
+});
+
+test('every shipped spec template carries the placeholder', () => {
+  for (const file of staging.COMMAND_TEMPLATE_FILES) {
+    const src = path.join(staging.FRAME_TEMPLATES_DIR, 'commands', TOOL, file);
+    assert.ok(
+      fs.readFileSync(src, 'utf8').includes(`{${staging.STAGED_PLACEHOLDER}}`),
+      `${file} does not reference the global layer`
+    );
+  }
+});
+
+test('copyIfChanged applies the transform and stays content-stable', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-staging-'));
+  try {
+    const src = path.join(dir, 'src.md');
+    const dst = path.join(dir, 'out', 'dst.md');
+    fs.writeFileSync(src, 'read {frame_global_path}\n');
+    const transform = (c) => staging.substitutePlaceholders(c, { frame_global_path: '/ud/REFERENCE.md' });
+
+    assert.equal(staging.copyIfChanged(src, dst, transform), true);
+    assert.equal(fs.readFileSync(dst, 'utf8'), 'read /ud/REFERENCE.md\n');
+
+    // Second pass must be a no-op — comparison happens after the transform,
+    // or every project open would rewrite the file and re-trigger watchers.
+    assert.equal(staging.copyIfChanged(src, dst, transform), false);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

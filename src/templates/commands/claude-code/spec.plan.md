@@ -6,6 +6,7 @@ visual plan report alongside `plan.md`.
 ## Context
 
 - Project root: `{project_path}`
+- Frame's own conventions (shared by every project): `{frame_global_path}`
 - Spec slug: `{slug}`
 - Spec folder: `.frame/specs/{slug}/`
 

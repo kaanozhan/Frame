@@ -9,6 +9,7 @@ back to the user, or the whole spec unattended.
 ## Context
 
 - Project root: `{project_path}`
+- Frame's own conventions (shared by every project): `{frame_global_path}`
 - Spec slug: `{slug}`
 - Inputs (read these first, in order):
   - `.frame/specs/{slug}/spec.md` — what we're building (intent, constraints)

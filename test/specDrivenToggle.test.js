@@ -1,21 +1,29 @@
 /**
  * Spec-Driven Development flag tests.
  *
- * Covers the default-on contract for new projects and the enable/disable
- * round-trip that Settings → Workflow drives: the flag in .frame/config.json
- * and the Frame-managed spec section in AGENTS.md move together, while
- * anything the user wrote around them survives untouched.
+ * The toggle used to move two things together: the flag in
+ * `.frame/config.json` and a managed section in the project's root
+ * `AGENTS.md`. Since the overlay there is no per-project instruction file to
+ * edit — Frame's conventions are one shared copy — so the toggle is a config
+ * write and nothing more, and what an agent is actually told is decided at
+ * launch by `contextPreamble` reading the flag.
+ *
+ * These tests pin both halves of that contract: the write touches only the
+ * config, and the preamble's behaviour follows the flag in both directions.
  */
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
 const frameProject = require('../src/main/frameProject');
 const templates = require('../src/shared/frameTemplates');
-const managedBlock = require('../src/shared/docsManagedBlock');
+const { compose } = require('../src/shared/contextPreamble');
+
+const GLOBAL = '/userData/frame-global/AGENTS.md';
 
 function makeProject({ specDriven, agents }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-specdriven-'));
@@ -27,83 +35,156 @@ function makeProject({ specDriven, agents }) {
     JSON.stringify(config, null, 2),
     'utf8'
   );
-  fs.writeFileSync(path.join(dir, 'AGENTS.md'), agents, 'utf8');
+  if (agents !== undefined) fs.writeFileSync(path.join(dir, 'AGENTS.md'), agents, 'utf8');
   return dir;
 }
 
-function readAgents(dir) {
-  return fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8');
+function snapshot(dir) {
+  const out = new Map();
+  const walk = (current, rel) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(full, relPath);
+      else out.set(relPath, crypto.createHash('sha256').update(fs.readFileSync(full)).digest('hex'));
+    }
+  };
+  walk(dir, '');
+  return out;
 }
 
+function cleanup(dir) {
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
+// ─── the flag ─────────────────────────────────────────────────
+
 test('new projects get Spec-Driven Development on by default', () => {
-  const config = templates.getFrameConfigTemplate('demo');
-  assert.equal(config.features.specDriven, true);
-
-  const agents = templates.getAgentsTemplate('demo', { specDriven: true });
-  assert.ok(agents.includes('## Spec-Driven Development'));
-  assert.ok(managedBlock.findBlock(agents), 'section must be marker-wrapped');
+  assert.equal(templates.getFrameConfigTemplate('demo').features.specDriven, true);
 });
 
-test('disable flips the flag and removes the managed section', () => {
-  const dir = makeProject({
-    specDriven: true,
-    agents: templates.getAgentsTemplate('demo', { specDriven: true })
-  });
-
-  const result = frameProject.setSpecDrivenEnabled(dir, false);
-  assert.equal(result.success, true);
-  assert.equal(frameProject.isSpecDrivenEnabled(dir), false);
-
-  const agents = readAgents(dir);
-  assert.equal(managedBlock.findBlock(agents), null);
-  assert.ok(!agents.includes('## Spec-Driven Development'));
-  // Neighbouring sections and the footer survive, with no orphaned rule left
-  // where the section used to be.
-  assert.ok(agents.includes('## Writing Frame meta files — read the reference first'));
-  assert.ok(agents.includes('*This file was automatically created by Frame.*'));
-  assert.ok(!/-{3,}\s*\n\s*-{3,}/.test(agents), 'no doubled separator');
-
-  fs.rmSync(dir, { recursive: true, force: true });
+test('enable flips the flag and reports success', () => {
+  const dir = makeProject({ specDriven: false });
+  try {
+    const result = frameProject.enableSpecDriven(dir);
+    assert.ok(result.success);
+    assert.equal(frameProject.isSpecDrivenEnabled(dir), true);
+  } finally {
+    cleanup(dir);
+  }
 });
 
-test('enable after disable restores the section without touching user content', () => {
-  const dir = makeProject({
-    specDriven: true,
-    agents: templates.getAgentsTemplate('demo', { specDriven: true }) +
-      '\n\n## House Rules\n\nNever force-push.\n'
-  });
+test('disable flips it back and never deletes specs on disk', () => {
+  const dir = makeProject({ specDriven: true });
+  try {
+    const specDir = path.join(dir, '.frame', 'specs', 'a-spec');
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(specDir, 'spec.md'), '# mine\n');
 
-  frameProject.setSpecDrivenEnabled(dir, false);
-  const enabled = frameProject.setSpecDrivenEnabled(dir, true);
-  assert.equal(enabled.success, true);
-  assert.equal(frameProject.isSpecDrivenEnabled(dir), true);
-
-  const agents = readAgents(dir);
-  assert.ok(agents.includes('## Spec-Driven Development'));
-  assert.ok(agents.includes('Never force-push.'), 'user section preserved');
-  assert.ok(fs.existsSync(path.join(dir, '.frame', 'specs', '.gitkeep')));
-
-  fs.rmSync(dir, { recursive: true, force: true });
+    const result = frameProject.disableSpecDriven(dir);
+    assert.ok(result.success);
+    assert.equal(frameProject.isSpecDrivenEnabled(dir), false);
+    assert.equal(fs.readFileSync(path.join(specDir, 'spec.md'), 'utf8'), '# mine\n');
+  } finally {
+    cleanup(dir);
+  }
 });
 
-test('disable leaves a hand-written spec section alone', () => {
-  const custom = '# demo\n\n## Spec-Driven Development\n\nOur own house flavour.\n';
-  const dir = makeProject({ specDriven: true, agents: custom });
-
-  frameProject.setSpecDrivenEnabled(dir, false);
-  assert.equal(frameProject.isSpecDrivenEnabled(dir), false);
-  assert.equal(readAgents(dir), custom);
-
-  fs.rmSync(dir, { recursive: true, force: true });
+test('the round trip is idempotent and self-reporting', () => {
+  const dir = makeProject({ specDriven: true });
+  try {
+    assert.equal(frameProject.enableSpecDriven(dir).alreadyEnabled, true);
+    frameProject.disableSpecDriven(dir);
+    assert.equal(frameProject.disableSpecDriven(dir).alreadyDisabled, true);
+    assert.equal(frameProject.enableSpecDriven(dir).alreadyEnabled, undefined);
+  } finally {
+    cleanup(dir);
+  }
 });
 
-test('toggling a non-Frame folder fails instead of writing files', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-specdriven-none-'));
-  const off = frameProject.setSpecDrivenEnabled(dir, false);
-  const on = frameProject.setSpecDrivenEnabled(dir, true);
-  assert.equal(off.success, false);
-  assert.equal(on.success, false);
-  assert.equal(fs.existsSync(path.join(dir, '.frame')), false);
+test('neither direction works on a non-Frame project', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-nonproject-'));
+  try {
+    assert.equal(frameProject.enableSpecDriven(dir).success, false);
+    assert.equal(frameProject.disableSpecDriven(dir).success, false);
+  } finally {
+    cleanup(dir);
+  }
+});
 
-  fs.rmSync(dir, { recursive: true, force: true });
+// ─── nothing but the flag ─────────────────────────────────────
+
+test("disabling does not touch the repository's own AGENTS.md", () => {
+  const mine = '# Our conventions\n\n## Spec-Driven Development\n\nWe do it our way.\n';
+  const dir = makeProject({ specDriven: true, agents: mine });
+  try {
+    frameProject.disableSpecDriven(dir);
+    assert.equal(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8'), mine);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("enabling does not write into the repository's own AGENTS.md", () => {
+  const mine = '# Our conventions\n';
+  const dir = makeProject({ specDriven: false, agents: mine });
+  try {
+    frameProject.enableSpecDriven(dir);
+    assert.equal(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8'), mine);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test('enabling writes nothing outside .frame/', () => {
+  const dir = makeProject({ specDriven: false, agents: '# Our conventions\n' });
+  try {
+    const before = snapshot(dir);
+    frameProject.enableSpecDriven(dir);
+    const after = snapshot(dir);
+
+    for (const [rel, hash] of before) {
+      if (rel === '.frame/config.json') continue; // the flag itself
+      assert.equal(after.get(rel), hash, `${rel} changed`);
+    }
+    const created = [...after.keys()].filter((p) => !before.has(p) && !p.startsWith('.frame/'));
+    assert.deepEqual(created, [], `enable wrote outside .frame/: ${created.join(', ')}`);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test('disabling writes only the config', () => {
+  const dir = makeProject({ specDriven: true, agents: '# Our conventions\n' });
+  try {
+    const before = snapshot(dir);
+    frameProject.disableSpecDriven(dir);
+    const after = snapshot(dir);
+
+    const changed = [...after.keys()].filter((p) => after.get(p) !== before.get(p));
+    assert.deepEqual(changed, ['.frame/config.json']);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+// ─── what the agent is actually told ──────────────────────────
+
+test('the flag decides the preamble, in both directions', () => {
+  const on = compose({ globalPath: GLOBAL, toolId: 'claude', specDriven: true });
+  assert.ok(/Spec-driven development is active/.test(on));
+
+  const off = compose({ globalPath: GLOBAL, toolId: 'claude', specDriven: false });
+  assert.ok(!/spec/i.test(off), 'a project with the workflow off must hear nothing about specs');
+});
+
+test('the shared global core carries no spec section for the flag to contradict', () => {
+  const core = templates.getAgentsTemplate('Frame', { global: true, referencePath: 'REFERENCE.md' });
+  assert.ok(!/Spec-Driven Development/.test(core));
+});
+
+test('the reference still documents the protocol unconditionally', () => {
+  // Documentation, not an instruction to act — it is only reached when the
+  // preamble points at it, which happens only when the flag is on.
+  assert.ok(/Spec-Driven Development/.test(templates.getReferenceTemplate('Frame')));
 });

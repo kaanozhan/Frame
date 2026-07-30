@@ -75,8 +75,10 @@ function init() {
   }
 
   // Spec-Driven Development: per-project flag in .frame/config.json, not a
-  // user preference — main writes the config and AGENTS.md section. On
-  // failure we snap the switch back so it never lies about the on-disk state.
+  // user preference. Main writes the flag and nothing else — no instruction
+  // file is edited either way; the launch preamble reads the flag fresh and
+  // decides what the agent is told. On failure we snap the switch back so it
+  // never lies about the on-disk state.
   if (specDrivenToggleEl) {
     specDrivenToggleEl.addEventListener('change', async () => {
       const projectPath = state.getProjectPath();

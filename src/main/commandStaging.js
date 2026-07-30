@@ -40,6 +40,46 @@ const COMMAND_ASSET_FILES = [
 const IMPLEMENT_HELPER_FILE = 'implement-launch.js';
 
 /**
+ * Placeholders filled in at staging time.
+ *
+ * Distinct from `{project_path}` / `{slug}` and friends, which specManager
+ * fills per dispatch: `{frame_global_path}` is a machine-wide location that
+ * does not vary by spec or by run, so a staged template can carry the real
+ * path and any reader — a CLI session that opens the file directly, not only
+ * a Frame dispatch — sees something it can actually follow.
+ *
+ * Only the markdown templates are substituted. The assets are an HTML
+ * template and a Node script whose braces mean something else entirely.
+ */
+const STAGED_PLACEHOLDER = 'frame_global_path';
+
+/**
+ * Pure: replace `{name}` for each key in `values`. A placeholder with no
+ * value is left as written rather than blanked — a visible `{frame_global_path}`
+ * is a legible bug, an empty path silently sends a reader to `/REFERENCE.md`.
+ */
+function substitutePlaceholders(content, values) {
+  let out = content;
+  for (const [key, value] of Object.entries(values || {})) {
+    if (!value) continue;
+    out = out.split(`{${key}}`).join(value);
+  }
+  return out;
+}
+
+/**
+ * Where the global REFERENCE lives, or '' before globalLayer is initialized
+ * (which is the case in a test, and in any headless use of this module).
+ */
+function globalReferencePath() {
+  try {
+    return require('./globalLayer').referencePath();
+  } catch (_) {
+    return '';
+  }
+}
+
+/**
  * Pure: resolve what to stage for one tool. Returns
  * [{ src, dst, executable? }] — templates and assets go to
  * .frame/runtime/commands/<tool>/ with the project override
@@ -59,7 +99,10 @@ function resolveStagingPlan(projectPath, tool, existsFn) {
     const override = path.join(overrideDir, file);
     plan.push({
       src: exists(override) ? override : path.join(packagedDir, file),
-      dst: path.join(runtimeDir, file)
+      dst: path.join(runtimeDir, file),
+      // Markdown only: the assets are an HTML template and a Node script
+      // whose braces are not Frame placeholders.
+      substitute: COMMAND_TEMPLATE_FILES.includes(file)
     });
   }
   plan.push({
@@ -77,13 +120,14 @@ function resolveStagingPlan(projectPath, tool, existsFn) {
  * stages nothing, and a stale runtime copy is better than a crash on open.
  * (Moved here from specManager as part of retiring stageImplementCommandFiles.)
  */
-function copyIfChanged(src, dst) {
+function copyIfChanged(src, dst, transform) {
   let content;
   try {
     content = fs.readFileSync(src, 'utf8');
   } catch (_) {
     return false; // source not present — nothing to stage
   }
+  if (typeof transform === 'function') content = transform(content);
   try {
     let existing = null;
     try { existing = fs.readFileSync(dst, 'utf8'); } catch (_) { /* new file */ }
@@ -118,9 +162,16 @@ function availableTools() {
  */
 function stageCommandFiles(projectPath) {
   if (!projectPath) return;
+
+  // Resolved once per staging pass, not per file — it is the same path for
+  // every tool and every template.
+  const values = { [STAGED_PLACEHOLDER]: globalReferencePath() };
+  const substitute = (content) => substitutePlaceholders(content, values);
+
   for (const tool of availableTools()) {
     for (const entry of resolveStagingPlan(projectPath, tool)) {
-      if (copyIfChanged(entry.src, entry.dst) && entry.executable) {
+      const transform = entry.substitute ? substitute : null;
+      if (copyIfChanged(entry.src, entry.dst, transform) && entry.executable) {
         try { fs.chmodSync(entry.dst, 0o755); } catch (_) { /* best effort */ }
       }
     }
@@ -131,6 +182,8 @@ module.exports = {
   resolveStagingPlan,
   stageCommandFiles,
   copyIfChanged,
+  substitutePlaceholders,
+  STAGED_PLACEHOLDER,
   availableTools,
   COMMAND_TEMPLATE_FILES,
   COMMAND_ASSET_FILES,

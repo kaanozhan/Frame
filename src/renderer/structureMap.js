@@ -4,8 +4,6 @@
  */
 
 const { ipcRenderer } = require('electron');
-const fs = require('fs');
-const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 const { escapeHtml } = require('./htmlUtils');
 
@@ -270,18 +268,20 @@ function hide() {
 }
 
 /**
- * Load structure data
+ * Load structure data.
+ *
+ * Through main rather than reading the file here: `frameStore` owns where the
+ * map lives (`.frame/STRUCTURE.json`), and this was the last place in the
+ * renderer that opened a project file directly — so it was also the last place
+ * that would have to be reopened when Frame's artifacts move out of the tree.
  */
 async function loadStructure(projectPath) {
-  const structurePath = path.join(projectPath, 'STRUCTURE.json');
-
   try {
-    if (!fs.existsSync(structurePath)) {
-      showError('STRUCTURE.json not found');
+    const data = await ipcRenderer.invoke(IPC.LOAD_STRUCTURE_MAP, projectPath);
+    if (!data) {
+      showError('No structure map yet — run the structure scan to build one.');
       return null;
     }
-
-    const data = JSON.parse(fs.readFileSync(structurePath, 'utf8'));
     return data;
   } catch (err) {
     console.error('Error loading structure:', err);

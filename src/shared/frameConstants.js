@@ -15,8 +15,19 @@ const WORKSPACE_DIR = '.frame';
 // Workspace file name
 const WORKSPACE_FILE = 'workspaces.json';
 
-// Frame auto-generated files
-const FRAME_FILES = {
+/**
+ * Root-level file names written by pre-overlay Frame versions.
+ *
+ * These are **detection only**. Frame no longer creates, reads as live data,
+ * or modifies anything at the project root — the overlay owns exactly
+ * `.frame/` (see the non-invasive-overlay spec). The names survive so the
+ * legacy-layout scan can recognize a project initialized by an older Frame
+ * and say "this needs migration" instead of "not a Frame project".
+ *
+ * `FRAME_FILES` is kept as an alias while the remaining pre-overlay call
+ * sites are converted.
+ */
+const LEGACY_ROOT_FILES = {
   AGENTS: 'AGENTS.md',
   CLAUDE_SYMLINK: 'CLAUDE.md',
   GEMINI_SYMLINK: 'GEMINI.md',
@@ -24,6 +35,26 @@ const FRAME_FILES = {
   NOTES: 'PROJECT_NOTES.md',
   TASKS: 'tasks.json',
   QUICKSTART: 'QUICKSTART.md'
+};
+
+const FRAME_FILES = LEGACY_ROOT_FILES;
+
+/**
+ * The live layout: every Frame meta artifact, addressed relative to the
+ * project root and always inside `.frame/`.
+ *
+ * Posix separators — these are repo-relative identifiers (footprints, docs,
+ * comparisons), not filesystem paths. Join through `frameStore`, which owns
+ * the only conversion to an absolute path; callers should not rebuild these
+ * by hand.
+ */
+const FRAME_META_FILES = {
+  AGENTS: `${FRAME_DIR}/AGENTS.md`,
+  STRUCTURE: `${FRAME_DIR}/STRUCTURE.json`,
+  NOTES: `${FRAME_DIR}/PROJECT_NOTES.md`,
+  TASKS: `${FRAME_DIR}/tasks.json`,
+  QUICKSTART: `${FRAME_DIR}/QUICKSTART.md`,
+  CONFIG: `${FRAME_DIR}/${FRAME_CONFIG_FILE}`
 };
 
 // Frame bin directory for AI tool wrappers
@@ -48,6 +79,12 @@ const orchIntegrationBranch = (slug) => `${ORCH_BRANCH_PREFIX}/${slug}/integrati
 
 // Meta files excluded from footprint conflict analysis (reconciled separately,
 // otherwise every spec collides on them).
+//
+// Bare file names on purpose: both consumers (specManager, orchestrationManager)
+// match a footprint entry's *basename* against this list, which makes it
+// layout-agnostic — `.frame/tasks.json` and a pre-overlay root `tasks.json`
+// both reduce to `tasks.json`. Spelling these as `.frame/`-relative paths
+// would silently stop every one of those matches.
 const ORCH_META_FILES = ['tasks.json', 'STRUCTURE.json', 'PROJECT_NOTES.md', 'AGENTS.md', 'CLAUDE.md'];
 
 // Frame version
@@ -59,6 +96,8 @@ module.exports = {
   WORKSPACE_DIR,
   WORKSPACE_FILE,
   FRAME_FILES,
+  LEGACY_ROOT_FILES,
+  FRAME_META_FILES,
   FRAME_BIN_DIR,
   ORCH_WORKTREES_DIR,
   ORCH_BUS_DIR,

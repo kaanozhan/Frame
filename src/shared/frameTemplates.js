@@ -349,23 +349,48 @@ an assumption into code or docs.`;
 ${record}`;
 }
 
+/**
+ * options:
+ *   specDriven:    include the short Spec-Driven Development section.
+ *   global:        render Frame's single user-scoped copy instead of a
+ *                  per-project file — no Project Facts (there is no one
+ *                  project to state facts about), no creation stamp, and no
+ *                  claim that a CLAUDE.md symlink exists, because the overlay
+ *                  never plants one.
+ *   referencePath: where the maintenance reference lives, since the global
+ *                  copy sits beside this file rather than in `.frame/docs/`.
+ */
 function getAgentsTemplate(projectName, options) {
   const opts = options || {};
   const specDriven = opts.specDriven === true;
+  const isGlobal = opts.global === true;
+  const referencePath = opts.referencePath || '.frame/docs/REFERENCE.md';
   const date = getDateString();
-  return `# ${projectName} - Frame Project
+
+  const heading = isGlobal
+    ? `# Frame — Agent Instructions
+
+These are **Frame's own** conventions, and they apply in every project Frame
+opens. They live here, once, outside every repository: updating Frame updates
+every project and writes to none of them. The repository you are working in
+owns its code conventions; this file owns the Frame meta-workflow.
+**Before writing any Frame meta file, read the matching section of
+\`${referencePath}\`** — the maintenance rules live there, not here.`
+    : `# ${projectName} - Frame Project
 
 This project is managed with **Frame**: durable, structured context that keeps
 AI agents oriented across sessions. This file is the always-on core.
 **Before writing any Frame meta file, read the matching section of
-\`.frame/docs/REFERENCE.md\`** — the maintenance rules live there, not here.
+\`${referencePath}\`** — the maintenance rules live there, not here.`;
+
+  return `${heading}
 
 ---
-
+${isGlobal ? '' : `
 ${formatProjectFacts(opts.project)}
 
 ---
-
+`}
 ## Core Working Principle
 
 **Only do what the user asks.** Do not go beyond the scope of the request.
@@ -414,7 +439,7 @@ ${renderSpecCoreSection()}
 
 ## Writing Frame meta files — read the reference first
 
-| Before writing…  | Read in \`.frame/docs/REFERENCE.md\` |
+| Before writing…  | Read in \`${referencePath}\` |
 | ---------------- | ------------------------------------ |
 | tasks.json       | "Task Management" (schema + rules)   |
 | PROJECT_NOTES.md | "PROJECT_NOTES.md Rules"             |
@@ -427,7 +452,7 @@ Quick reminders that always apply:
 - Important decisions: append to PROJECT_NOTES.md as
   \`### [YYYY-MM-DD] Title\` with the conversation's context (not a summary).
 - Documentation in English; dates in ISO 8601.
-
+${isGlobal ? '' : `
 ---
 
 *This file was automatically created by Frame.*
@@ -436,7 +461,7 @@ Quick reminders that always apply:
 ---
 
 **Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.
-`;
+`}`;
 }
 
 /**
@@ -832,6 +857,82 @@ function getFrameConfigTemplate(projectName) {
  * Codex CLI wrapper script
  * Instructs Codex to read AGENTS.md as initial prompt
  */
+/**
+ * Wrapper script for a tool with no flag to inject a system prompt.
+ *
+ * The old wrappers hunted for a root `AGENTS.md` and told the tool to read it.
+ * The overlay plants no such file, so the wrapper now passes Frame's launch
+ * preamble as the initial prompt instead.
+ *
+ * The preamble is read from a file rather than baked into the script: it is
+ * multi-line prose containing quotes and backticks, and every one of those is
+ * a way to break a generated shell script. Frame rewrites that file at each
+ * launch, so the wrapper itself stays static and correct.
+ *
+ * @param {string} toolCommand - the real CLI to exec
+ * @param {object} [options]
+ * @param {string} [options.promptFlag] - flag carrying the prompt, '' for positional
+ * @param {string} [options.preambleFile] - project-relative preamble path
+ */
+function getWrapperTemplate(toolCommand, options) {
+  const opts = options || {};
+  const promptFlag = opts.promptFlag || '';
+  const preambleFile = opts.preambleFile || '.frame/runtime/preamble.txt';
+  const flagPart = promptFlag ? `${promptFlag} ` : '';
+
+  return `#!/usr/bin/env bash
+# Frame AI Tool Wrapper for ${toolCommand}
+# Passes Frame's launch preamble as the initial prompt. Generated file —
+# Frame rewrites it on every launch; edits will be lost.
+
+# Locate the project root by walking up to the directory holding .frame/
+find_project_root() {
+  local dir="$PWD"
+  while [ "$dir" != "/" ]; do
+    if [ -d "$dir/.frame" ]; then
+      echo "$dir"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+  return 1
+}
+
+PROJECT_ROOT=$(find_project_root)
+PREAMBLE_FILE="$PROJECT_ROOT/${preambleFile}"
+
+if [ -n "$PROJECT_ROOT" ] && [ -f "$PREAMBLE_FILE" ]; then
+  exec ${toolCommand} ${flagPart}"$(cat "$PREAMBLE_FILE")" "$@"
+else
+  exec ${toolCommand} "$@"
+fi
+`;
+}
+
+/**
+ * The spec-hint hooks, as a Claude Code settings object.
+ *
+ * These used to be merged into the project's tracked `.claude/settings.json`.
+ * They are now written inside Frame's own footprint and passed at launch with
+ * `--settings`, because the overlay may not write a tracked file — and a hook
+ * list that arrives by flag is also removed by simply not passing it.
+ */
+function getSpecHintSettings() {
+  return {
+    hooks: {
+      PreToolUse: [
+        {
+          matcher: 'Edit|Write',
+          hooks: [{ type: 'command', command: 'node .frame/bin/spec-hint.js pre-edit' }]
+        }
+      ],
+      UserPromptSubmit: [
+        { hooks: [{ type: 'command', command: 'node .frame/bin/spec-hint.js prompt' }] }
+      ]
+    }
+  };
+}
+
 function getCodexWrapperTemplate() {
   return `#!/usr/bin/env bash
 # Frame AI Tool Wrapper for Codex CLI
@@ -923,7 +1024,13 @@ if command -v node >/dev/null 2>&1; then
   FRAME_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
   if [ -n "$FRAME_ROOT" ] && [ -f "$FRAME_ROOT/.frame/bin/update-structure.js" ]; then
     FRAME_PROJECT_ROOT="$FRAME_ROOT" node "$FRAME_ROOT/.frame/bin/update-structure.js" --changed || true
-    if [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then
+    # .frame/ is where the map lives; the root path is only staged for a
+    # project still on the pre-overlay layout. Staged only when tracked —
+    # adding an excluded file would drag .frame/ into the commit.
+    if [ -f "$FRAME_ROOT/.frame/STRUCTURE.json" ]; then
+      git ls-files --error-unmatch "$FRAME_ROOT/.frame/STRUCTURE.json" >/dev/null 2>&1 \\
+        && git add "$FRAME_ROOT/.frame/STRUCTURE.json" || true
+    elif [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then
       git add "$FRAME_ROOT/STRUCTURE.json" || true
     fi
   fi
@@ -1036,6 +1143,8 @@ module.exports = {
   LEGACY_SPEC_DRIVEN_CORE_SECTION,
   REFERENCE_SPEC_LEGACY_MATCHERS,
   AGENTS_SPEC_LEGACY_MATCHERS,
+  getWrapperTemplate,
+  getSpecHintSettings,
   getCodexWrapperTemplate,
   getGenericWrapperTemplate,
   getStructureHookSnippet,
