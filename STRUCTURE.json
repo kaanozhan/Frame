@@ -694,6 +694,214 @@
         ]
       }
     },
+    "main/embeddedMigration": {
+      "file": "src/main/embeddedMigration.js",
+      "description": "embeddedMigration — move a pre-overlay project into the `.frame/` layout.",
+      "exports": [
+        "init",
+        "plan",
+        "migrateProject",
+        "isMigrating",
+        "sweep",
+        "writeBackup",
+        "removeSymlinks",
+        "restoreInstructions",
+        "rewriteConfig",
+        "extractExisting",
+        "BACKUP_DIR",
+        "TARGET_BY_ROOT_NAME",
+        "SYMLINK_NAMES"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "shared/frameConstants",
+        "instructionDiscovery",
+        "gitSharing",
+        "telemetryEvents"
+      ],
+      "functions": {
+        "init": {
+          "line": 103,
+          "params": [
+            "deps = {}"
+          ],
+          "purpose": "record    — `activityLog.record(name, fields)`"
+        },
+        "record": {
+          "line": 108,
+          "params": [
+            "name",
+            "fields"
+          ]
+        },
+        "lstat": {
+          "line": 118,
+          "params": [
+            "target"
+          ]
+        },
+        "exists": {
+          "line": 126,
+          "params": [
+            "target"
+          ]
+        },
+        "isFramePlantedSymlink": {
+          "line": 131,
+          "params": [
+            "projectPath",
+            "rel"
+          ],
+          "purpose": "True only for a symlink Frame planted: one that points at `AGENTS.md`."
+        },
+        "readFile": {
+          "line": 142,
+          "params": [
+            "target"
+          ]
+        },
+        "sameContent": {
+          "line": 151,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Byte comparison, not mtime or size: a stale copy can match on both."
+        },
+        "git": {
+          "line": 161,
+          "params": [
+            "projectPath",
+            "args"
+          ]
+        },
+        "isGitRepo": {
+          "line": 169,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "dirtyArtifacts": {
+          "line": 187,
+          "params": [
+            "projectPath",
+            "rels"
+          ],
+          "purpose": "Legacy artifacts git reports as modified or staged (D4)."
+        },
+        "trackedArtifacts": {
+          "line": 210,
+          "params": [
+            "projectPath",
+            "rels"
+          ],
+          "purpose": "Which artifacts git has committed. This drives the receipt's git sentence,"
+        },
+        "configPath": {
+          "line": 224,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "readConfig": {
+          "line": 228,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "artifactManifest": {
+          "line": 250,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The root files Frame created *for this project*, from the legacy config's"
+        },
+        "extractExisting": {
+          "line": 281,
+          "params": [
+            "content",
+            "label"
+          ],
+          "purpose": "Pull one `## Existing Instructions (from <label>)` block out of a merged"
+        },
+        "plan": {
+          "line": 311,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "What migrating this project would do. Pure inspection — no writes, safe to"
+        },
+        "writeBackup": {
+          "line": 419,
+          "params": [
+            "projectPath",
+            "rels"
+          ],
+          "purpose": "Byte-copy everything the run will remove into `.frame/migration-backup/`,"
+        },
+        "applyArtifact": {
+          "line": 451,
+          "params": [
+            "projectPath",
+            "artifact"
+          ],
+          "purpose": "Carry out one artifact's disposition."
+        },
+        "rewriteConfig": {
+          "line": 473,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Drop the `files` block from `.frame/config.json`."
+        },
+        "removeSymlinks": {
+          "line": 489,
+          "params": [
+            "projectPath",
+            "rels"
+          ],
+          "purpose": "Remove the symlinks old init planted. Runs *before* restoration, not after"
+        },
+        "restoreInstructions": {
+          "line": 516,
+          "params": [
+            "projectPath",
+            "mergedRel"
+          ],
+          "purpose": "Hand back the instruction files old init took."
+        },
+        "migrateProject": {
+          "line": 553,
+          "params": [
+            "projectPath",
+            "opts = {}"
+          ],
+          "purpose": "Migrate one project. Either it completes or it leaves the project untouched"
+        },
+        "isMigrating": {
+          "line": 663,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "True while a migration of this project is running (S15)."
+        },
+        "sweep": {
+          "line": 687,
+          "params": [
+            "projectPaths"
+          ],
+          "purpose": "Migrate every project the workspace registry knows about."
+        },
+        "recordActivity": {
+          "line": 89
+        },
+        "sendTelemetry": {
+          "line": 90
+        }
+      }
+    },
     "main/fileEditor": {
       "file": "src/main/fileEditor.js",
       "description": "File Editor Module",
@@ -822,6 +1030,7 @@
         "gitExclude",
         "gitSharing",
         "instructionDiscovery",
+        "embeddedMigration",
         "structureBootstrap",
         "commandStaging",
         "shared/docsManagedBlock",
@@ -834,28 +1043,28 @@
       ],
       "functions": {
         "init": {
-          "line": 29,
+          "line": 30,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 36,
+          "line": 37,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 44,
+          "line": 45,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 57,
+          "line": 58,
           "params": [
             "filePath",
             "content"
@@ -863,21 +1072,21 @@
           "purpose": "Create file if it doesn't exist"
         },
         "checkExistingFrameFiles": {
-          "line": 75,
+          "line": 76,
           "params": [
             "projectPath"
           ],
           "purpose": "Which Frame artifacts already exist — all of them inside `.frame/`."
         },
         "showInitializeConfirmation": {
-          "line": 97,
+          "line": 98,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 147,
+          "line": 148,
           "params": [
             "projectPath",
             "projectName",
@@ -885,7 +1094,7 @@
           ]
         },
         "doInitializeFrameProject": {
-          "line": 155,
+          "line": 156,
           "params": [
             "projectPath",
             "projectName",
@@ -893,7 +1102,7 @@
           ]
         },
         "runProjectInit": {
-          "line": 167,
+          "line": 168,
           "params": [
             "projectPath",
             "projectName",
@@ -901,60 +1110,68 @@
           ]
         },
         "installSpecHintHook": {
-          "line": 340,
+          "line": 341,
           "params": [
             "projectPath"
           ],
           "purpose": "Make the spec-hint hooks available to Claude Code."
         },
         "isSpecDrivenEnabled": {
-          "line": 371,
+          "line": 372,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 376,
+          "line": 377,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 403,
+          "line": 404,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag. The next launch composes a preamble"
         },
         "setSpecDrivenEnabled": {
-          "line": 417,
+          "line": 418,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 421,
+          "line": 422,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 429,
+          "line": 430,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 473,
+          "line": 474,
           "params": [
             "projectPath"
           ]
         },
+        "runForegroundMigration": {
+          "line": 519,
+          "params": [
+            "sender",
+            "projectPath"
+          ],
+          "purpose": "Migrate a project the user is waiting on, reporting to the modal."
+        },
         "setupIPC": {
-          "line": 509,
+          "line": 559,
           "params": [
             "ipcMain"
           ],
@@ -963,6 +1180,7 @@
       },
       "ipc": {
         "listens": [
+          "RETRY_MIGRATION",
           "CHECK_IS_FRAME_PROJECT",
           "INITIALIZE_FRAME_PROJECT",
           "GET_FRAME_CONFIG",
@@ -973,7 +1191,7 @@
           "SET_GIT_SHARING"
         ],
         "emits": [
-          "LEGACY_LAYOUT_DETECTED",
+          "MIGRATION_PROGRESS",
           "IS_FRAME_PROJECT_RESULT",
           "WORKSPACE_UPDATED",
           "FRAME_PROJECT_INITIALIZED",
@@ -1575,33 +1793,33 @@
       ],
       "functions": {
         "git": {
-          "line": 55,
+          "line": 59,
           "params": [
             "projectPath",
             "args"
           ]
         },
         "isGitRepo": {
-          "line": 63,
-          "params": [
-            "projectPath"
-          ]
-        },
-        "configPath": {
           "line": 67,
           "params": [
             "projectPath"
           ]
         },
+        "configPath": {
+          "line": 71,
+          "params": [
+            "projectPath"
+          ]
+        },
         "readConfig": {
-          "line": 72,
+          "line": 76,
           "params": [
             "projectPath"
           ],
           "purpose": "Parsed `.frame/config.json`, or null when absent/unreadable."
         },
         "writeConfig": {
-          "line": 81,
+          "line": 85,
           "params": [
             "projectPath",
             "config"
@@ -1609,27 +1827,27 @@
           "purpose": "Read-modify-write preserving every unknown key (the detectProject precedent)."
         },
         "declaredMode": {
-          "line": 85,
+          "line": 89,
           "params": [
             "config"
           ]
         },
         "resolveMode": {
-          "line": 98,
+          "line": 102,
           "params": [
             "projectPath"
           ],
           "purpose": "The declared mode, derived once and persisted when absent (D4):"
         },
         "getState": {
-          "line": 121,
+          "line": 125,
           "params": [
             "projectPath"
           ],
           "purpose": "The full sharing state for the UI's behaviour matrix."
         },
         "setMode": {
-          "line": 139,
+          "line": 143,
           "params": [
             "projectPath",
             "mode"
@@ -1637,14 +1855,14 @@
           "purpose": "The single write path for a mode change — the modal toggle and the sharing"
         },
         "ensureOnOpen": {
-          "line": 164,
+          "line": 168,
           "params": [
             "projectPath"
           ],
           "purpose": "The project-open path: resolve (deriving and persisting on first sight of"
         },
         "writeFrameGitignore": {
-          "line": 179,
+          "line": 183,
           "params": [
             "projectPath"
           ],
@@ -1931,34 +2149,42 @@
         "telemetry",
         "specManager",
         "orchestrationManager",
+        "embeddedMigration",
         "child_process"
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 49,
+          "line": 50,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 67,
+          "line": 68,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 159
+          "line": 160
         },
         "setupAllIPC": {
-          "line": 185,
+          "line": 186,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 262,
+          "line": 263,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 303,
+          "line": 304,
           "params": [
             "window"
           ],
           "purpose": "Initialize modules that need window reference"
+        },
+        "sweepLegacyProjects": {
+          "line": 332,
+          "params": [
+            "window"
+          ],
+          "purpose": "Migrate every registered pre-overlay project into the `.frame/` layout, then"
         }
       },
       "ipc": {
@@ -1972,7 +2198,8 @@
           "RECONCILE_TERMINALS"
         ],
         "emits": [
-          "MAIN_PROCESS_ERROR"
+          "MAIN_PROCESS_ERROR",
+          "MIGRATION_COMPLETED"
         ]
       }
     },
@@ -3836,20 +4063,28 @@
       "exports": [
         "EVENTS",
         "normalizeTool",
+        "bucketCount",
         "validateEvent",
         "effectiveEnabled"
       ],
       "depends": [],
       "functions": {
         "normalizeTool": {
-          "line": 58,
+          "line": 67,
           "params": [
             "id"
           ],
           "purpose": "Collapse a tool id to the fixed dashboard enum. User-defined custom tool"
         },
+        "bucketCount": {
+          "line": 78,
+          "params": [
+            "n"
+          ],
+          "purpose": "Collapse a count to the fixed bucket enum above. Lives here rather than at"
+        },
         "validateEvent": {
-          "line": 73,
+          "line": 94,
           "params": [
             "name",
             "props"
@@ -3857,7 +4092,7 @@
           "purpose": "Validate an (event, props) pair against the registry."
         },
         "effectiveEnabled": {
-          "line": 97,
+          "line": 118,
           "params": [
             "{ value",
             "loadFailed }"
@@ -5324,7 +5559,8 @@
       "file": "src/renderer/healthNotice.js",
       "description": "Health Notice Banner",
       "exports": [
-        "init"
+        "init",
+        "buildReceipt"
       ],
       "depends": [
         "electron",
@@ -5332,25 +5568,36 @@
       ],
       "functions": {
         "init": {
-          "line": 18
+          "line": 26,
+          "params": [
+            "deps = {}"
+          ]
+        },
+        "buildReceipt": {
+          "line": 73,
+          "params": [
+            "projects"
+          ],
+          "purpose": "The receipt for one sweep. It reports; it does not advise."
         },
         "show": {
-          "line": 45,
+          "line": 112,
           "params": [
             "kind",
-            "message"
+            "message",
+            "action"
           ]
         },
         "dismiss": {
-          "line": 77
+          "line": 164
         }
       },
       "ipc": {
         "listens": [
           "MAIN_PROCESS_ERROR",
           "STATE_FILE_RECOVERED",
-          "LEGACY_LAYOUT_DETECTED",
-          "TASKS_FILE_ERROR"
+          "TASKS_FILE_ERROR",
+          "MIGRATION_COMPLETED"
         ],
         "emits": []
       }
@@ -5502,6 +5749,7 @@
         "appLoader",
         "settingsModal",
         "projectSettingsModal",
+        "migrationModal",
         "telemetryNotice",
         "healthNotice",
         "specDrivenHint",
@@ -5511,34 +5759,34 @@
       ],
       "functions": {
         "init": {
-          "line": 51,
+          "line": 52,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 249,
+          "line": 253,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 314,
+          "line": 318,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 403,
+          "line": 407,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 434,
+          "line": 438,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 460,
+          "line": 464,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 732,
+          "line": 736,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -5998,6 +6246,65 @@
           "TERMINAL_DESTROYED"
         ],
         "emits": []
+      }
+    },
+    "renderer/migrationModal": {
+      "file": "src/renderer/migrationModal.js",
+      "description": "Layout Migration Modal",
+      "exports": [
+        "init",
+        "close"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 44
+        },
+        "onStart": {
+          "line": 75,
+          "params": [
+            "payload"
+          ]
+        },
+        "onArtifact": {
+          "line": 88,
+          "params": [
+            "payload"
+          ]
+        },
+        "onDone": {
+          "line": 104,
+          "params": [
+            "payload"
+          ]
+        },
+        "setMessage": {
+          "line": 139,
+          "params": [
+            "paragraphs"
+          ],
+          "purpose": "Plain text only — a file name and an error message are both user data."
+        },
+        "listFiles": {
+          "line": 149,
+          "params": [
+            "files"
+          ]
+        },
+        "close": {
+          "line": 155
+        }
+      },
+      "ipc": {
+        "listens": [
+          "MIGRATION_PROGRESS"
+        ],
+        "emits": [
+          "RETRY_MIGRATION"
+        ]
       }
     },
     "renderer/multiTerminalUI": {
@@ -8983,6 +9290,10 @@
         "POLLERS",
         "HINT_REASONS",
         "HOSTS",
+        "MIGRATION_DISPOSITIONS",
+        "MIGRATION_STEPS",
+        "MIGRATION_DEFER_REASONS",
+        "MIGRATION_SKIP_REASONS",
         "isRegistered",
         "kindOf",
         "isSuppression",
@@ -8993,32 +9304,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 206,
+          "line": 299,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 210,
+          "line": 303,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 214,
+          "line": 307,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 218,
+          "line": 311,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 241,
+          "line": 334,
           "params": [
             "name",
             "fields"
@@ -9026,7 +9337,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 258,
+          "line": 351,
           "params": [
             "name",
             "fields"
@@ -9034,7 +9345,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 279,
+          "line": 372,
           "params": [
             "name",
             "fields"
@@ -9278,7 +9589,7 @@
           "purpose": ".frame/config.json template"
         },
         "getWrapperTemplate": {
-          "line": 877,
+          "line": 874,
           "params": [
             "toolCommand",
             "options"
@@ -9286,14 +9597,14 @@
           "purpose": "Wrapper script for a tool with no flag to inject a system prompt."
         },
         "getSpecHintSettings": {
-          "line": 920,
+          "line": 917,
           "purpose": "The spec-hint hooks, as a Claude Code settings object."
         },
         "getCodexWrapperTemplate": {
-          "line": 936
+          "line": 933
         },
         "getGenericWrapperTemplate": {
-          "line": 973,
+          "line": 970,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -9301,27 +9612,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1019
+          "line": 1016
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1046,
+          "line": 1043,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1069,
+          "line": 1066,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1081,
+          "line": 1078,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1101
+          "line": 1098
         },
         "getOrchBinScripts": {
-          "line": 1119,
+          "line": 1116,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
@@ -10496,6 +10807,25 @@
         "direction": "",
         "description": ""
       }
+    },
+    "migration": {
+      "MIGRATION_COMPLETED": {
+        "name": "migration-completed",
+        "direction": "",
+        "description": ""
+      },
+      "MIGRATION_PROGRESS": {
+        "name": "migration-progress",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "retry": {
+      "RETRY_MIGRATION": {
+        "name": "retry-migration",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -10738,11 +11068,28 @@
         "description": "Plugins Manager Module"
       }
     ],
+    "migration": [
+      {
+        "module": "main/embeddedMigration",
+        "file": "src/main/embeddedMigration.js",
+        "description": "embeddedMigration — move a pre-overlay project into the `.frame/` layout."
+      },
+      {
+        "module": "renderer/migrationModal",
+        "file": "src/renderer/migrationModal.js",
+        "description": "Layout Migration Modal"
+      }
+    ],
     "modal": [
       {
         "module": "renderer/implementModeModal",
         "file": "src/renderer/implementModeModal.js",
         "description": "Implement Mode Modal"
+      },
+      {
+        "module": "renderer/migrationModal",
+        "file": "src/renderer/migrationModal.js",
+        "description": "Layout Migration Modal"
       },
       {
         "module": "renderer/openProjectModal",

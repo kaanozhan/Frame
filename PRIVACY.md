@@ -20,6 +20,7 @@ The complete event list:
 | `plugin_toggled` | `action`: `enabled` / `disabled` | the plugin system is being used (never which plugin) |
 | `project_sharing_set` | `mode`: `local` / `repo`; `source`: `init` / `settings` | whether Git Sharing is used, and from where it was chosen (never which project or repository) |
 | `ai_tool_selected` | `tool`: `claude` / `codex` / `gemini` / `custom` | which AI tool is preferred |
+| `migration_failed` | `step`: `plan` / `backup` / `move` / `restore` / `config` / `posture`; `artifacts`: `0` / `1-3` / `4-6` / `7+` | that an automatic layout migration aborted and where (never which project, never a file name — the counts are ranges, and the detail stays on your machine) |
 | `error_occurred` | `category`: a fixed list of failure types (e.g. `agent_cli_not_found`, `orch_merge_failed`) | what breaks in the wild — counts only, never error messages, stack traces, or file paths |
 
 This list is enforced in code: events and property values outside this registry are dropped before anything is sent. Any addition to the list will be reflected here first.

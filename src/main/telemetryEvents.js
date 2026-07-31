@@ -30,6 +30,15 @@ const EVENTS = {
     source: ['init', 'settings'],
   },
   ai_tool_selected: { tool: ['claude', 'codex', 'gemini', 'custom'] },
+  // Failure only. A success event would count a population we already know —
+  // pre-overlay users — and a one-time transition does not earn a permanent
+  // registry entry. The counts are buckets rather than numbers because this
+  // registry is enum-only by construction; the exact figures stay local, in
+  // the activity log.
+  migration_failed: {
+    step: ['plan', 'backup', 'move', 'restore', 'config', 'posture'],
+    artifacts: ['0', '1-3', '4-6', '7+'],
+  },
   error_occurred: {
     category: [
       'agent_cli_not_found',
@@ -59,6 +68,18 @@ function normalizeTool(id) {
   if (typeof id !== 'string') return 'custom';
   const mapped = TOOL_ALIASES[id] || id;
   return BUILTIN_TOOLS.includes(mapped) ? mapped : 'custom';
+}
+
+/**
+ * Collapse a count to the fixed bucket enum above. Lives here rather than at
+ * the call site for the same reason `normalizeTool` does: a raw number that
+ * reached the wire would be the one free-form value in the registry.
+ */
+function bucketCount(n) {
+  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return '0';
+  if (n <= 3) return '1-3';
+  if (n <= 6) return '4-6';
+  return '7+';
 }
 
 /**
@@ -99,4 +120,4 @@ function effectiveEnabled({ value, loadFailed }) {
   return value !== false;
 }
 
-module.exports = { EVENTS, normalizeTool, validateEvent, effectiveEnabled };
+module.exports = { EVENTS, normalizeTool, bucketCount, validateEvent, effectiveEnabled };

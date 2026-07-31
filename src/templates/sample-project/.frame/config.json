@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "name": "TaskFlow",
+  "description": "The sample project that ships with Frame — a fictional codebase used to demonstrate the workflow on realistic content.",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "initializedBy": "Frame",
+  "settings": {
+    "gitSharing": "local"
+  },
+  "features": {
+    "specDriven": true
+  }
+}

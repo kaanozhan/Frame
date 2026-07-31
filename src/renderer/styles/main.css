@@ -52,6 +52,9 @@
 
 @import 'components/project-settings-modal.css';
 
+/* 12d. Layout migration (foreground path of the embedded-layout migration) */
+@import 'components/migration-modal.css';
+
 /* 13. Tasks Dashboard (Kanban-style overlay) */
 @import 'components/tasks-dashboard.css';
 

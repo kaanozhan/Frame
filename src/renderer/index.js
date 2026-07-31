@@ -40,6 +40,7 @@ const welcomeOverlay = require('./welcomeOverlay');
 const appLoader = require('./appLoader');
 const settingsModal = require('./settingsModal');
 const projectSettingsModal = require('./projectSettingsModal');
+const migrationModal = require('./migrationModal');
 const telemetryNotice = require('./telemetryNotice');
 const healthNotice = require('./healthNotice');
 const specDrivenHint = require('./specDrivenHint');
@@ -229,8 +230,11 @@ function init() {
   welcomeOverlay.init();
   settingsModal.init();
   projectSettingsModal.init();
+  migrationModal.init();
   telemetryNotice.init(() => settingsModal.open());
-  healthNotice.init();
+  // The migration receipt's one action opens the diff surface the deletions
+  // are visible in. Showing the change is not advice about committing it.
+  healthNotice.init({ onShowChanges: () => revealSidebarTab('changes') });
   sampleBanner.init();
   specDrivenHint.init();
   setupUpdateDot();

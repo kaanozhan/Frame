@@ -56,6 +56,23 @@ const HINT_REASONS = [
 
 const HOSTS = ['app', 'claude-hook', 'git-precommit', 'orch-bus', 'cli'];
 
+// Embedded-layout migration. It runs unattended and shows no banner, so the
+// record below is the only place a run that went sideways can be read back.
+//
+// The dispositions are the engine's own plan vocabulary, not a second one:
+// `plan()` labels each artifact with these strings and the record passes them
+// straight through, so a planned run and a recorded one cannot drift apart.
+const MIGRATION_DISPOSITIONS = ['move', 'delete-identical', 'backup-conflict'];
+
+// Where a run can abort. One per writing step of the per-project flow;
+// symlink removal is part of `restore`.
+const MIGRATION_STEPS = ['plan', 'backup', 'move', 'restore', 'config', 'posture'];
+
+// Why a run did not start. `uncommitted` is D4's deferral — it resolves the
+// moment the user commits; the other two are the sweep's guards.
+const MIGRATION_DEFER_REASONS = ['uncommitted'];
+const MIGRATION_SKIP_REASONS = ['in-flight', 'missing-path'];
+
 // Field types. Kept deliberately narrow: enums, numbers, and the two string
 // shapes that are the point of the record (a project-relative path, a spec
 // slug). No free-form text field exists, so no call site can introduce one.
@@ -157,6 +174,61 @@ const EVENTS = {
         : 'Background polling paused while the window is hidden'
   },
 
+  // ─── embedded-layout migration ──────────────────────────
+  'migration.detected': {
+    kind: 'action',
+    fields: { artifacts: COUNT, restore: COUNT },
+    label: (r) => {
+      const n = r.artifacts ?? 0;
+      return `Pre-overlay layout found — ${n} root artifact${n === 1 ? '' : 's'} to migrate`;
+    }
+  },
+  'migration.deferred': {
+    kind: 'suppression',
+    fields: { reason: enumOf(MIGRATION_DEFER_REASONS), files: COUNT, repeats: REPEATS },
+    label: (r) => {
+      const n = r.files ?? 0;
+      return `Migration deferred — ${n} legacy file${n === 1 ? '' : 's'} with uncommitted changes`;
+    }
+  },
+  'migration.skipped': {
+    kind: 'suppression',
+    fields: { reason: enumOf(MIGRATION_SKIP_REASONS), repeats: REPEATS },
+    label: (r) =>
+      r.reason === 'in-flight'
+        ? 'Migration already running for this project'
+        : 'Migration skipped — the project path is gone'
+  },
+  'migration.artifact': {
+    kind: 'action',
+    fields: { path: PATH, disposition: enumOf(MIGRATION_DISPOSITIONS) },
+    label: (r) => `${MIGRATION_DISPOSITION_TEXT[r.disposition] || r.disposition} ${r.path || 'an artifact'}`
+  },
+  'migration.restored': {
+    kind: 'action',
+    fields: { path: PATH, source: enumOf(['merge-block', 'symlink-only', 'backup-conflict']) },
+    label: (r) => `${MIGRATION_RESTORE_TEXT[r.source] || r.source} ${r.path || 'an instruction file'}`
+  },
+  'migration.posture': {
+    kind: 'action',
+    fields: { mode: enumOf(['local', 'repo']) },
+    label: (r) => `Sharing posture kept as ${r.mode || 'resolved'}`
+  },
+  'migration.completed': {
+    kind: 'action',
+    fields: { artifacts: COUNT, restored: COUNT, tracked: COUNT, ms: MS },
+    label: (r) => {
+      const n = r.artifacts ?? 0;
+      const restored = r.restored ? `, ${r.restored} restored` : '';
+      return `Migrated to the .frame/ layout — ${n} artifact${n === 1 ? '' : 's'} moved${restored}`;
+    }
+  },
+  'migration.failed': {
+    kind: 'action',
+    fields: { step: enumOf(MIGRATION_STEPS), artifacts: COUNT },
+    label: (r) => `Migration failed at the ${MIGRATION_STEP_TEXT[r.step] || r.step || 'unknown'} step`
+  },
+
   // ─── scripts running outside Frame's process ────────────
   'script.ran': {
     kind: 'action',
@@ -195,6 +267,27 @@ const POLLER_TEXT = {
   'update-check': 'Update check',
   'orch-status': 'Orchestration status poll',
   'pty-process': 'Terminal process poll'
+};
+
+const MIGRATION_DISPOSITION_TEXT = {
+  move: 'Moved',
+  'delete-identical': 'Removed the identical root copy of',
+  'backup-conflict': 'Kept the .frame/ version and backed up the root copy of'
+};
+
+const MIGRATION_RESTORE_TEXT = {
+  'merge-block': 'Restored',
+  'symlink-only': 'Removed the Frame-planted symlink',
+  'backup-conflict': 'Left your own file in place and backed up the extracted'
+};
+
+const MIGRATION_STEP_TEXT = {
+  plan: 'inspection',
+  backup: 'backup',
+  move: 'move',
+  restore: 'instruction-restore',
+  config: 'config-rewrite',
+  posture: 'sharing-posture'
 };
 
 const SCRIPT_TEXT = {
@@ -288,6 +381,10 @@ module.exports = {
   POLLERS,
   HINT_REASONS,
   HOSTS,
+  MIGRATION_DISPOSITIONS,
+  MIGRATION_STEPS,
+  MIGRATION_DEFER_REASONS,
+  MIGRATION_SKIP_REASONS,
   isRegistered,
   kindOf,
   isSuppression,

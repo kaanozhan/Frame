@@ -36,9 +36,13 @@ const MODES = ['local', 'repo'];
 // repo (worktrees/, runtime/). The fsSafe suffixes keep crash-safety
 // artifacts (tasks.json.bak and friends) out of repo-mode projects too.
 // `bin/` is listed whole, not `bin/*.js` — every file in it is generated.
+// `migration-backup/` holds the copy the layout migration takes of every root
+// file it removes: without this line a repo-mode project would commit a
+// duplicate of each file the same commit deletes.
 const MACHINE_LOCAL_PATHS = [
   'runtime/',
   'index/',
+  'migration-backup/',
   'implement-permissions.json',
   'worktrees/',
   'orchestration/',

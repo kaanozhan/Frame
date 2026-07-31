@@ -1405,3 +1405,31 @@ are never touched. Projects initialized before this keep their existing flag;
 nothing force-enables on open, since that would rewrite an AGENTS.md the user
 never asked us to change. Rejected: auto-enabling when specs already exist on
 disk — it would silently undo an explicit "off" on every panel open.
+
+### [2026-07-31] The layout migration needs Frame's own fingerprint, not a name match
+The embedded-migration spec shipped and its automatic sweep exposed a weakness
+inherited from `non-invasive-overlay`: `detectLegacyLayout` decides on names —
+a root `tasks.json` plus one of `STRUCTURE.json` / `PROJECT_NOTES.md` /
+`QUICKSTART.md`. That was tolerable when the consequence was a banner. Once the
+consequence became *moving files*, it meant a repository with its own
+`tasks.json` and `QUICKSTART.md` would have had both relocated into `.frame/`
+at the next startup, silently, whether or not Frame had ever initialized it.
+Reproduced on two fixtures before fixing. Compounding it,
+`getFrameConfigTemplate` still wrote the `files` manifest after the overlay
+removed the root files it names, so a freshly initialized project carried a
+record claiming Frame authored files it had never created — which is exactly
+the evidence D5 leans on. Decisions: (1) that block is gone from the template;
+(2) a name match is now inert unless corroborated by something only Frame's
+init could leave — the `files` record in `.frame/config.json`, or a
+`CLAUDE.md`/`GEMINI.md` symlink pointing at `AGENTS.md`. Either is proof;
+neither is forgeable by an ordinary repository. The `files` record is kept as
+evidence even when its keys are too old to read (`claude` rather than
+`agents`), since an unreadable block is still a block Frame wrote. Rejected: a
+banner with a "migrate" button for projects that fall outside the rule — while
+detection stays name-based it would appear on repositories Frame never touched,
+and it revives the deferred-state surface D1 exists to avoid. If a manual path
+is ever wanted, the right shape is pull, not push: an action in Project
+Settings that opens the existing migration modal with an itemized preview —
+Frame acting alone needs proof, a user asking *is* the proof. Not built; no
+population needs it yet. Timing note: #8/#9 are unreleased (post-v2.6.0), so no
+user config carries the stale record and no cleanup path was needed.

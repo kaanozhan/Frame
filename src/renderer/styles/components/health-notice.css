@@ -26,6 +26,13 @@
   border-bottom-color: var(--error);
 }
 
+/* A completed migration is not a degraded state: neutral surface, an
+   information icon, and room for the receipt to wrap. */
+.health-notice.health-notice-info {
+  background: var(--bg-secondary);
+  border-bottom-color: var(--border);
+}
+
 .health-notice-icon {
   font-size: 14px;
   color: var(--warning);
@@ -36,6 +43,10 @@
   color: var(--error);
 }
 
+.health-notice-info .health-notice-icon {
+  color: var(--accent);
+}
+
 .health-notice-text {
   flex: 1;
   min-width: 0;
@@ -43,6 +54,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.health-notice-info .health-notice-text {
+  white-space: normal;
+  overflow: visible;
+}
+
+.health-notice-action {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+
+.health-notice-action:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
 }
 
 .health-notice-close {

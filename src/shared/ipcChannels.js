@@ -77,10 +77,16 @@ const IPC = {
   REORDER_TASKS: 'reorder-tasks',
   TASK_UPDATED: 'task-updated',
   TASKS_FILE_ERROR: 'tasks-file-error',
-  // Opened a project laid out by a pre-overlay Frame (root tasks.json /
-  // AGENTS.md / CLAUDE.md symlink). Frame reads only .frame/, so this says
-  // "needs migration" instead of showing an empty project.
-  LEGACY_LAYOUT_DETECTED: 'legacy-layout-detected',
+  // Pre-overlay projects (root tasks.json / AGENTS.md / CLAUDE.md symlink)
+  // migrate themselves into .frame/ — a startup sweep over the registry, plus
+  // a foreground path for a project the user selects. The receipt reports the
+  // whole sweep once; there is no "needs migration" warning to replace,
+  // because Frame resolves the condition by itself.
+  MIGRATION_COMPLETED: 'migration-completed',
+  // The foreground path's whole lifecycle on one channel: `start`, one
+  // `artifact` per file, then `done` with the end state the modal renders.
+  MIGRATION_PROGRESS: 'migration-progress',
+  RETRY_MIGRATION: 'retry-migration',
   TOGGLE_TASKS_PANEL: 'toggle-tasks-panel',
   TOGGLE_TASKS_DASHBOARD: 'toggle-tasks-dashboard',
 

@@ -9,7 +9,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { EVENTS, normalizeTool, validateEvent, effectiveEnabled } = require('../src/main/telemetryEvents');
+const { EVENTS, normalizeTool, bucketCount, validateEvent, effectiveEnabled } = require('../src/main/telemetryEvents');
 
 // ─── effectiveEnabled — the re-opt-in regression ──────────
 
@@ -106,4 +106,55 @@ test('project_sharing_set strips out-of-enum values and unknown props', () => {
     validateEvent('project_sharing_set', { mode: 'repo', source: 'hint', projectPath: '/Users/x/secret' }),
     { mode: 'repo' }
   );
+});
+
+// ─── migration_failed ─────────────────────────────────────
+//
+// The one event the layout migration sends, and only when it aborts. It rides
+// closest to user data of anything in the registry — it fires while Frame is
+// moving named files around a named project — so the tests below are about
+// what cannot get out, not only what gets through.
+
+test('migration_failed passes its step and bucketed artifact count', () => {
+  assert.deepEqual(
+    validateEvent('migration_failed', { step: 'backup', artifacts: '4-6' }),
+    { step: 'backup', artifacts: '4-6' }
+  );
+});
+
+test('migration_failed cannot carry a path, an error message or a raw count', () => {
+  assert.deepEqual(
+    validateEvent('migration_failed', {
+      step: 'move',
+      artifacts: 6, // a number, not a bucket
+      path: 'PROJECT_NOTES.md',
+      error: "EACCES: permission denied, unlink '/Users/x/proj/CLAUDE.md'",
+      project: 'secret-client-work',
+    }),
+    { step: 'move' }
+  );
+});
+
+test('bucketCount is the only way a count reaches the wire, and it is coarse', () => {
+  assert.equal(bucketCount(0), '0');
+  assert.equal(bucketCount(1), '1-3');
+  assert.equal(bucketCount(3), '1-3');
+  assert.equal(bucketCount(4), '4-6');
+  assert.equal(bucketCount(6), '4-6');
+  assert.equal(bucketCount(7), '7+');
+  assert.equal(bucketCount(4000), '7+');
+  // Junk buckets to '0' rather than throwing: the event fires on a failure
+  // path, where the count is exactly what may be missing.
+  for (const junk of [undefined, null, NaN, Infinity, -3, '6']) {
+    assert.equal(bucketCount(junk), '0', `${String(junk)} must bucket to 0`);
+  }
+});
+
+test('every bucketCount output is in the registry enum', () => {
+  for (const n of [0, 1, 2, 3, 4, 5, 6, 7, 99]) {
+    assert.ok(
+      EVENTS.migration_failed.artifacts.includes(bucketCount(n)),
+      `bucketCount(${n}) escaped the enum`
+    );
+  }
 });

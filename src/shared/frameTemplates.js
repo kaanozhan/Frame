@@ -836,15 +836,12 @@ function getFrameConfigTemplate(projectName, options = {}) {
       // one — the flag being off only hid them from the Specs panel. The
       // init modal and Project Settings can turn it off.
       specDriven: options.specDriven !== false
-    },
-    files: {
-      agents: "AGENTS.md",
-      claudeSymlink: "CLAUDE.md",
-      structure: "STRUCTURE.json",
-      notes: "PROJECT_NOTES.md",
-      tasks: "tasks.json",
-      quickstart: "QUICKSTART.md"
     }
+    // No `files` block. It was a manifest of the root files init created, and
+    // since the overlay (1202ab2) init creates none — so writing it would
+    // claim authorship of files Frame never touched. `embeddedMigration`
+    // treats that block as proof of a pre-overlay init and moves what it
+    // names, which on a fresh project would be the user's own files.
   };
 }
 

@@ -1,0 +1,128 @@
+{
+  "spec": {
+    "slug": "embedded-migration",
+    "title": "Embedded-Layout Migration — pre-overlay projects migrate themselves on open"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Register the migration event family and the failure-only telemetry event",
+      "commit": "c5779f5",
+      "whatChanged": "Added eight migration events to the activity registry (detected, deferred, skipped, artifact, restored, posture, completed, failed) with their enums exported for the engine to reuse, plus a `migration_failed` telemetry event, a `bucketCount` helper, and the matching PRIVACY.md row. Tests cover both registries.",
+      "whyChanged": "The dispositions are exported as MIGRATION_DISPOSITIONS so plan() can label artifacts with the same strings the log records — one vocabulary, not two that can drift. Telemetry counts are bucketed ranges because that registry is enum-only by construction; the exact numbers stay in the local activity log.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "365 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Add migration-backup/ to the managed .frame/.gitignore block",
+      "commit": "8b5af08",
+      "whatChanged": "Added `migration-backup/` to MACHINE_LOCAL_PATHS in src/main/gitSharing.js, so the block written into .frame/.gitignore covers it. Extended the block-content test and added one that seeds a backup file in a repo-mode project and asserts it stays out of git status.",
+      "whyChanged": "Ordered before anything can write a backup: a repo-mode project that migrated first would have staged a duplicate of every root file the same change deletes, and removing it afterwards is a second commit the user never asked for.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "366 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "embeddedMigration.plan() and the backup writer",
+      "commit": "f68a2cd",
+      "whatChanged": "New src/main/embeddedMigration.js: plan() reads the legacy config.json.files manifest (LEGACY_ROOT_FILES as fallback), computes each artifact disposition against its .frame/ counterpart, lists Frame-planted symlinks, restorable instruction blocks, unrecognized root files, and the git dirty/tracked verdicts — writing nothing. writeBackup() byte-copies into .frame/migration-backup/, skipping paths already there. 22 cases in test/embeddedMigration.test.js against real temp repos.",
+      "whyChanged": "plan() is pure inspection so the hard cases — dual layout, dirty trees, an interrupted run — are testable without performing them. The activity and telemetry sinks are injected via init() rather than required, keeping the engine and its suite Electron-free. Detection reuses instructionDiscovery.scan().legacyLayout instead of exporting detectLegacyLayout, which would have widened the footprint for no gain.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "388 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Execute a plan — move, resolve conflicts, rewrite the config",
+      "commit": "c0dd6c3",
+      "whatChanged": "Added applyArtifact(), rewriteConfig() and migrateProject() to src/main/embeddedMigration.js: backup first, then move / delete-identical / delete-with-the-root-copy-in-the-backup per disposition, then drop the config files block. Returns migrated | deferred | skipped | failed, records the activity trace, and sends the failure telemetry event with a bucketed count. 12 more cases.",
+      "whyChanged": "move is copy-verify-then-delete rather than rename, so an interruption leaves a duplicate the next run reconciles as delete-identical — never a hole (D2). The failure path returns the step and the real error instead of throwing, because the foreground modal has to show both and the sweep has to isolate one project failing from the rest.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "400 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Restore the consumed instruction files, remove the planted symlinks",
+      "commit": "3c85ec9",
+      "whatChanged": "Added removeSymlinks() and restoreInstructions() to the engine and wired both into migrateProject() between the move and the config rewrite. CLAUDE.md / GEMINI.md / AGENTS.md come back from their ## Existing Instructions (from …) blocks; an occupied target is left alone and the extracted content goes to migration-backup/restored/. Eight cases added.",
+      "whyChanged": "Deviation from the spec step order: symlinks are removed before restoration, not after. Writing CLAUDE.md while the dangling link is still there follows it and recreates the root AGENTS.md the migration exists to remove — the restore-order test pins that. .claude/CLAUDE.md stays out of the restore list because old init read it without unlinking it, so it is still on disk.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "408 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "Sharing posture and the registry sweep",
+      "commit": "b17a307",
+      "whatChanged": "Added the posture step (gitSharing.resolveMode + writeFrameGitignore) to migrateProject and sweep(), which walks the registry yielding between projects, skips paths that no longer exist, and confines a failure to its own project. Eleven cases, including a mixed workspace and a re-entrancy test.",
+      "whyChanged": "The in-flight guard lives inside migrateProject rather than sweep because the foreground path reaches the same engine and has to hit the same guard (S15). writeFrameGitignore also runs before the backup, ahead of plan.md order, so a run that dies halfway never leaves a repo-mode project showing every backed-up file as untracked. The harness had been committing .frame/, which made every fixture derive repo and hid the local case.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "419 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Sweep the registry at startup and show the receipt",
+      "commit": "ce41f93",
+      "whatChanged": "index.js sweeps workspace.getProjects() after the window is up, without awaiting, and sends MIGRATION_COMPLETED with the migrated and failed projects. LEGACY_LAYOUT_DETECTED is out of ipcChannels.js, its frameProject.js send and healthNotice.js branch deleted. healthNotice gained a neutral info kind, one optional action opening the Changes tab, and buildReceipt().",
+      "whyChanged": "The banner and its replacement land in one commit so no build has the warning without the migration that resolves it. The receipt reports and does not advise: it names failures (otherwise invisible now that migration is silent), counts tracked deletions off git ls-files rather than the sharing mode, and never mentions a deferral — that state is normal, self-resolving, and belongs to the foreground modal.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "419 tests, 0 failures — src/renderer/ is not covered by the suite"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "The foreground migration modal",
+      "commit": "3e2136a",
+      "whatChanged": "frameProject.js gained runForegroundMigration() — reached from the project-open handler and from a new RETRY_MIGRATION handler — and the renderer gained migrationModal.js, its settings-modal-vocabulary markup in index.html, and migration-modal.css. The modal renders per-artifact progress, the deferral explanation naming the dirty files, and the failure screen carrying the error, the backup path and Try again.",
+      "whyChanged": "The modal lifecycle rides on MIGRATION_PROGRESS as start / artifact / done rather than a fourth channel, keeping the plan channel list intact. embeddedMigration.isMigrating() gates the foreground path so a project the sweep already holds never flashes a modal that closes immediately (S15). The failure screen retries instead of suggesting remove-and-re-add, which only drops a registry entry no plausible cause travels through.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "419 tests, 0 failures — src/renderer/ is not covered by the suite"
+      }
+    },
+    {
+      "id": "T09",
+      "title": "The sample project on the overlay layout",
+      "commit": "88dbd9c",
+      "whatChanged": "Moved tasks.json, STRUCTURE.json and PROJECT_NOTES.md into src/templates/sample-project/.frame/, deleted the three byte-identical root instruction files, and added .frame/config.json plus a short project-specific .frame/AGENTS.md.",
+      "whyChanged": "The bundled sample tripped legacy detection, so the first project a new user opened would have announced that it needed migrating. The config was a real gap rather than a move: the sample had no .frame/config.json at all, so after the overlay it opened as a non-Frame project with invisible tasks. The 11 KB conventions doc was dropped rather than moved — that content lives in the global layer now, and shipping a copy is the contradiction this spec exists to remove.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "419 tests, 0 failures"
+      }
+    },
+    {
+      "id": "Follow-up",
+      "title": "Migration requires Frame's own fingerprint, not a name match",
+      "commit": "ae29870",
+      "whatChanged": "Removed the stale files block from getFrameConfigTemplate and made plan() ignore a name match unless corroborated by a fingerprint only Frame's init leaves — the files record in .frame/config.json, or a CLAUDE.md/GEMINI.md symlink pointing at AGENTS.md. Four cases added in test/embeddedMigration.test.js.",
+      "whyChanged": "detectLegacyLayout decides on names, which was fine when it produced a banner and unsafe once it moved files: a repository with its own tasks.json and QUICKSTART.md had both planned for relocation into .frame/, reproduced on two fixtures. A banner-with-button for projects outside the rule was rejected — while detection is name-based it would fire on repositories Frame never touched; the reasoning is in PROJECT_NOTES.md [2026-07-31].",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "423 tests, 0 failures"
+      }
+    }
+  ]
+}

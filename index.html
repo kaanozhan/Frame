@@ -1353,6 +1353,27 @@
     </div>
   </div>
 
+  <!-- Layout Migration Modal (opens when a selected project still uses the
+       pre-overlay layout; the startup sweep never shows it) -->
+  <div id="migration-overlay" class="settings-overlay">
+    <div class="settings-modal migration-modal" role="dialog" aria-modal="true" aria-label="Updating project layout">
+      <div class="settings-header">
+        <div class="project-settings-heading">
+          <h3 class="settings-title" id="migration-title">Updating project layout</h3>
+          <p class="project-settings-path" id="migration-subtitle"></p>
+        </div>
+        <button type="button" class="settings-close" data-migration-close aria-label="Close" style="display:none;">&#x2715;</button>
+      </div>
+      <div class="settings-body">
+        <ul class="migration-artifacts" id="migration-artifacts" aria-live="polite"></ul>
+        <div class="migration-message" id="migration-message" style="display:none;"></div>
+        <div class="migration-actions" id="migration-actions" style="display:none;">
+          <button type="button" class="migration-retry-btn" id="migration-retry">Try again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="settings-overlay" class="settings-overlay">
     <div class="settings-modal" role="dialog" aria-label="Settings">

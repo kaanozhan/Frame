@@ -250,7 +250,7 @@ test('the gitignore block lists every machine-local path', () => {
   gitSharing.writeFrameGitignore(repo);
 
   const content = fs.readFileSync(gitignorePath(repo), 'utf8');
-  for (const p of ['runtime/', 'index/', 'implement-permissions.json', 'worktrees/', 'orchestration/', 'bin/', '*.bak', '*.tmp', '*.corrupt-*']) {
+  for (const p of ['runtime/', 'index/', 'migration-backup/', 'implement-permissions.json', 'worktrees/', 'orchestration/', 'bin/', '*.bak', '*.tmp', '*.corrupt-*']) {
     assert.ok(content.split('\n').includes(p), `missing machine-local path: ${p}`);
   }
 });
@@ -270,6 +270,21 @@ test('machine-local paths are actually ignored in repo mode', () => {
   assert.ok(status.includes('specs/s1/spec.md'), 'a spec was hidden');
   assert.ok(!status.includes('runtime/'), 'runtime/ leaked into git status');
   assert.ok(!status.includes('tasks.json.bak'), 'a .bak leaked into git status');
+});
+
+test('a migration backup is never staged, even in repo mode', () => {
+  // The backup holds a byte copy of every root file the migration deletes.
+  // Untracked, that is a safety net; tracked, it is the same commit adding
+  // back everything it removes.
+  const repo = makeRepo('gi-migration-backup');
+  seedFrameProject(repo, { settings: { gitSharing: 'repo' } });
+  gitSharing.ensureOnOpen(repo);
+
+  fs.mkdirSync(path.join(repo, FRAME_DIR, 'migration-backup'), { recursive: true });
+  fs.writeFileSync(path.join(repo, FRAME_DIR, 'migration-backup', 'PROJECT_NOTES.md'), '# notes\n');
+
+  const status = git(repo, 'status', '--porcelain', '-uall');
+  assert.ok(!status.includes('migration-backup'), 'the backup leaked into git status');
 });
 
 test('rewrites are idempotent and preserve unsigned user lines', () => {

@@ -121,6 +121,70 @@ test('an aggregated suppression says how many times it repeated', () => {
   assert.equal(many, `${once} ×5`);
 });
 
+// ─── embedded-layout migration ────────────────────────────
+//
+// The migration runs unattended with no banner, so this record is the only
+// account of a run that deferred, hit a conflict, or died halfway.
+
+test('every step of a migration is recordable', () => {
+  for (const name of [
+    'migration.detected',
+    'migration.deferred',
+    'migration.skipped',
+    'migration.artifact',
+    'migration.restored',
+    'migration.posture',
+    'migration.completed',
+    'migration.failed'
+  ]) {
+    assert.ok(events.isRegistered(name), `${name} must be registered`);
+  }
+});
+
+test('a deferral and a guard skip are suppressions; the run itself is action', () => {
+  assert.equal(events.isSuppression('migration.deferred'), true);
+  assert.equal(events.isSuppression('migration.skipped'), true);
+  for (const name of ['migration.detected', 'migration.artifact', 'migration.completed', 'migration.failed']) {
+    assert.equal(events.isSuppression(name), false, `${name} must be an action`);
+  }
+});
+
+test('every disposition, step and reason passes its own enum', () => {
+  for (const disposition of events.MIGRATION_DISPOSITIONS) {
+    assert.equal(events.validateEvent('migration.artifact', { disposition }).disposition, disposition);
+  }
+  for (const step of events.MIGRATION_STEPS) {
+    assert.equal(events.validateEvent('migration.failed', { step }).step, step);
+  }
+  for (const reason of events.MIGRATION_DEFER_REASONS) {
+    assert.equal(events.validateEvent('migration.deferred', { reason }).reason, reason);
+  }
+  for (const reason of events.MIGRATION_SKIP_REASONS) {
+    assert.equal(events.validateEvent('migration.skipped', { reason }).reason, reason);
+  }
+});
+
+test('the dispositions read differently — a conflict is not a plain move', () => {
+  const labels = events.MIGRATION_DISPOSITIONS.map((disposition) =>
+    events.formatLabel('migration.artifact', { path: 'tasks.json', disposition })
+  );
+  assert.equal(new Set(labels).size, events.MIGRATION_DISPOSITIONS.length);
+  assert.match(
+    events.formatLabel('migration.artifact', { path: 'tasks.json', disposition: 'backup-conflict' }),
+    /\.frame\/ version/
+  );
+});
+
+test('a failed run names the step it died at', () => {
+  assert.match(events.formatLabel('migration.failed', { step: 'backup', artifacts: 6 }), /backup step/);
+  assert.match(events.formatLabel('migration.failed', { step: 'restore' }), /instruction-restore step/);
+});
+
+test('a migration record carries no free-form field', () => {
+  const smuggled = events.validateEvent('migration.failed', { step: 'move', error: 'EACCES: permission denied' });
+  assert.deepEqual(smuggled, { step: 'move' });
+});
+
 test('a collapsed burst is reported with its true count, not as a single fire', () => {
   const label = events.formatLabel('watch.fired', { watcher: 'specs', changes: 2, collapsed: 12 });
   assert.match(label, /12 fires collapsed/);

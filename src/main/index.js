@@ -37,6 +37,7 @@ const gitDiffManager = require('./gitDiffManager');
 const telemetry = require('./telemetry');
 const specManager = require('./specManager');
 const orchestrationManager = require('./orchestrationManager');
+const embeddedMigration = require('./embeddedMigration');
 
 let mainWindow = null;
 let quitConfirmed = false;
@@ -315,6 +316,32 @@ function initModulesWithWindow(window) {
   specManager.init(window);
   orchestrationManager.init(window);
   activityLog.attachWindow(window);
+  sweepLegacyProjects(window);
+}
+
+/**
+ * Migrate every registered pre-overlay project into the `.frame/` layout, then
+ * report the pass once.
+ *
+ * Asynchronous and never awaited: the window is already up, and a workspace of
+ * legacy projects must not delay it. A project Frame has never been pointed at
+ * is not migrated — `workspaces.json` is the definition of the set Frame is
+ * responsible for, and an old project migrates the moment the user adds it
+ * back.
+ */
+function sweepLegacyProjects(window) {
+  embeddedMigration.init({ record: activityLog.record, telemetry: telemetry.track });
+  embeddedMigration
+    .sweep(workspace.getProjects().map((project) => project.path))
+    .then((results) => {
+      const projects = results.filter((r) => r.status === 'migrated' || r.status === 'failed');
+      if (!projects.length) return;
+      logger.info('migration', `swept ${results.length} project(s), ${projects.length} reported`);
+      if (window && !window.isDestroyed()) {
+        window.webContents.send(IPC.MIGRATION_COMPLETED, { projects });
+      }
+    })
+    .catch((err) => logger.error('migration', 'sweep failed:', err.message));
 }
 
 // Aptabase MUST be initialized before app.whenReady() because the SDK

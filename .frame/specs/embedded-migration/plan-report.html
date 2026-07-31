@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embedded-Layout Migration — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  /* ── Flow blocks (diagram style) ── */
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  /* ── Decision cards ── */
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Embedded-Layout Migration — Plan Overview</h1>
+  <p class="muted">2026-07-31 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/embedded-migration/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">10 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill">9 sequencing steps</span><span class="pill">20 footprint paths</span><span class="pill warn">1 stale IN-FLIGHT flag cleared</span><span class="pill warn">1 suggestion argued down</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Frame used to write its meta files into the project root — <code>AGENTS.md</code>, <code>tasks.json</code>, <code>STRUCTURE.json</code>, <code>PROJECT_NOTES.md</code>, <code>QUICKSTART.md</code>, plus a <code>CLAUDE.md → AGENTS.md</code> symlink it planted after consuming the user's real file. The overlay release moved everything under <code>.frame/</code> and reads nothing else. Projects initialised by the old version were left behind: their data sits a directory away from where Frame now looks, so Tasks, Structure Map and Overview come up empty.</p>
+  <p>The sharper problem is not the empty panels. <code>contextPreamble.js:104</code> tells every Claude Code session <i>“This repository's <code>CLAUDE.md</code> is yours to read as usual — Frame has not modified it”</i> — while pointing at a symlink Frame itself planted, aimed at a generated <code>AGENTS.md</code> that describes the <b>old</b> layout. So an unmigrated project hands the agent two contradictory instruction sets, one lying about its own provenance, on every launch. That is what rules out the conservative-looking option of leaving the old files in place with a warning: leaving them is the broken state, not the safe one.</p>
+  <p>This plan builds an automatic mover. It runs without a prompt, sweeps every project in the workspace registry at startup rather than waiting for each to be opened, moves what Frame created into <code>.frame/</code>, hands back what Frame consumed, backs up everything it removes, and tells the user once what happened — without advising them how to run their repository.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: the startup sweep that finds the work, the per-project migration that does it, and the receipt that accounts for it.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">trigger</span>
+    <span>engine / module</span>
+    <span class="l-data">disk / git</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — The startup sweep (D1a)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">App start</div><div class="fd-sub">window up, initModulesWithWindow</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">workspaces.json</div><div class="fd-sub">workspace.getProjects()</div></div>
+          <div class="fd-arrow"><span class="lbl">async</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">sweep(paths)</div><div class="fd-sub">embeddedMigration.js</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Legacy layout?</div><div class="fd-sub">detectLegacyLayout</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node system"><div class="fd-title">migrateProject()</div><div class="fd-sub">Flow B, isolated per project</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">One receipt</div><div class="fd-sub">whole pass, not per project</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">no · missing path · in flight</span>
+          <div class="fd-node system"><div class="fd-title">Skip</div><div class="fd-sub">sweep continues</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">later</span>
+          <div class="fd-node actor"><div class="fd-title">User selects the project</div></div>
+          <div class="fd-arrow"><span class="lbl">foreground</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Modal + same engine</div><div class="fd-sub">onProgress per artifact</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Closes into the project</div><div class="fd-sub">no receipt — the user watched it</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Why a sweep and not a per-open hook:</b> Frame registers a list of projects while the renderer holds one <code>currentProjectPath</code>. Hanging migration off the switch alone would migrate five legacy projects across five sessions, each with its own notice, leaving unopened ones broken meanwhile.</li>
+          <li><b>The per-open path is not deleted, it is promoted to the foreground.</b> It stays the route for projects added later — and it needs no stored failure state to know it is the recovery case: if the sweep had succeeded, the project would no longer be legacy. Every lazy firing therefore means the user is waiting on that project, which is what earns the modal. An in-flight guard stops it re-entering a project the sweep is still working on.</li>
+          <li><b>Never blocks startup.</b> The sweep runs after the window is up. A failure in one project is caught and does not stop the rest.</li>
+          <li><b>The registry is the boundary of responsibility.</b> Projects not in <code>workspaces.json</code> are not migrated and the disk is not scanned for them — leaving the registry means the user removed the project.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Per-project migration, artifact by artifact</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">plan(projectPath)</div><div class="fd-sub">pure inspection, no writes</div></div>
+          <div class="fd-arrow"><span class="lbl">manifest</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">config.json.files</div><div class="fd-sub">fallback: LEGACY_ROOT_FILES</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Any artifact dirty in git?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">yes</span>
+          <div class="fd-node outcome"><div class="fd-title">Defer</div><div class="fd-sub">retry next open, silent in the UI</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">no</span>
+          <div class="fd-node data"><div class="fd-title">.frame/migration-backup/</div><div class="fd-sub">byte copy, whole, first</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">.frame/ counterpart?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">absent</span>
+          <div class="fd-node system"><div class="fd-title">Move it</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Root cleared</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">identical</span>
+          <div class="fd-node system"><div class="fd-title">Delete the root copy</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">differs</span>
+          <div class="fd-node system"><div class="fd-title">.frame/ wins</div><div class="fd-sub">root copy → backup</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Dual layout is the normal case.</b> Pre-overlay init already wrote <code>.frame/</code> — <code>config.json</code>, <code>specs/</code>, <code>docs/</code>, <code>bin/</code>. So migration adds files to a directory the repo already tracks or ignores, carrying no new git decision — and it can collide with post-upgrade work, which is why the counterpart check exists.</li>
+          <li><b><code>config.json.files</code> is read before it is rewritten.</b> The legacy config records exactly which root files Frame created <i>for that project</i> — a per-project manifest, stronger than matching well-known names. Anything unrecognised is reported, never moved.</li>
+          <li><b>Backup first, whole.</b> Written before anything moves, so an interrupted run leaves duplicates the next pass reconciles rather than a hole. One directory per project, never overwritten, never pruned.</li>
+          <li><b>Deferral is deliberate, and deliberately silent.</b> It guards a user mid-edit from having their work relocated under them — not from data loss, since the content moves intact either way.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Restoration and the receipt</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Restore consumed files</div><div class="fd-sub">D6</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Merge block present?</div><div class="fd-sub">## Existing Instructions (from …)</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node data"><div class="fd-title">Root CLAUDE.md restored</div><div class="fd-sub">original bytes, only if absent</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">no</span>
+          <div class="fd-node system"><div class="fd-title">Remove the symlink only</div></div>
+        </div>
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">gitSharing.resolveMode</div><div class="fd-sub">posture preserved, not decided</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Was anything removed tracked?</div><div class="fd-sub">git ls-files --cached</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node outcome"><div class="fd-title">Receipt names the counts</div><div class="fd-sub">“Frame staged nothing” + Show changes</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">no</span>
+          <div class="fd-node outcome"><div class="fd-title">Receipt says nothing about git</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The git sentence keys off the deleted files, not the sharing mode.</b> These diverge: a user who gitignored <code>.frame/</code> but committed the root files derives <code>local</code> while the deletions are plainly visible. Conditioning on the mode would have stayed silent in exactly the case that needs explaining.</li>
+          <li><b>Restoration is the overlay rule's one sanctioned exception.</b> It writes outside <code>.frame/</code> — but only to return bytes this tool took, to the path it took them from, and only when nothing is there. An existing user file is never overwritten.</li>
+          <li><b><code>.claude/CLAUDE.md</code> was copied, never unlinked.</b> Verified against <code>main</code>'s init: it is read into the merge and then <code>break</code>s, with no <code>unlink</code>. It is left alone and never recreated.</li>
+          <li><b>The receipt reports; it does not advise.</b> No “you should commit this”, no sharing-mode nudge. Its job is to answer <i>why does my working tree have seven deletions</i> before the user asks — attribution, not instruction.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow D — The foreground modal (D13)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">User selects a project</div><div class="fd-sub">still legacy ⇒ sweep missed it or failed</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Modal opens</div><div class="fd-sub">settings-modal vocabulary</div></div>
+          <div class="fd-arrow"><span class="lbl">onProgress</span><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Outcome?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">migrated</span>
+          <div class="fd-node outcome"><div class="fd-title">Closes into the project</div><div class="fd-sub">no receipt — it was watched</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">deferred</span>
+          <div class="fd-node system"><div class="fd-title">Names the dirty files</div><div class="fd-sub">“commit or stash, then reopen”</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">failed</span>
+          <div class="fd-node system"><div class="fd-title">Error + backup path</div><div class="fd-sub">“nothing was lost”</div></div>
+          <div class="fd-arrow"><span class="lbl">retry</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Try again</div><div class="fd-sub">re-runs against current disk state</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The engine does not know it is in the foreground.</b> <code>migrateProject</code> takes an optional <code>onProgress</code>; the sweep passes nothing and the modal passes one that forwards over <code>MIGRATION_PROGRESS</code>. That is the entire difference between the two callers.</li>
+          <li><b>Deferral is silent in the sweep and explained here.</b> Not an inconsistency: in the sweep nobody is blocked and there is nothing to do, while here the user has just selected the project and there is a concrete action — commit or stash the named files.</li>
+          <li><b>No “remove and re-add”.</b> It would drop the <code>workspaces.json</code> entry and re-run identical code against identical files. What the screen offers instead is the actual error, the backup location, and a retry.</li>
+          <li><b>Untested by design.</b> The testing record lists <code>src/renderer/</code> as not covered — no DOM harness is installed. The engine behaviour behind every state here is covered by steps 3–6.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The engine's surface, in one look</h3>
+  <pre>plan(projectPath) → {
+  legacy, artifacts[{ rel, target, disposition }],   // move | delete-identical | backup-conflict
+  restore[{ rel, from }], symlinks[], dirty[], tracked[]
+}
+migrateProject(projectPath) → { status, artifacts, restored, tracked }
+                              // migrated | deferred | skipped | failed
+sweep(projectPaths)        → [{ path, name, status, tracked, error? }]</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+
+  <h4>Business decisions</h4>
+
+  <div class="dcard">
+    <div class="dhead">D1 · What triggers migration in a multi-project workspace?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Startup sweep over the registry, per-open kept as fallback</div>
+        <div class="opttrade">Every known project is usable from the first launch; costs an in-flight guard and per-project failure isolation.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Per-open trigger only</div>
+        <div class="opttrade">Simplest wiring — one call site — but migrates one project per session and leaves the rest broken.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Frame registers a list of projects while the renderer holds a single <code>currentProjectPath</code>. A per-open trigger would have spread migration of five legacy projects across five sessions with five separate notices, and any project the user did not happen to open would keep feeding its agent contradictory instructions.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D2 · What about projects Frame no longer lists? <span class="tag">follows from D1</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Migrate when the user adds them back</div>
+        <div class="opttrade">No extra machinery; an old project is fixed the moment it re-enters the registry.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Scan the filesystem for stray <code>.frame/</code></div>
+        <div class="opttrade">Catches forgotten projects, but has no defensible starting root, is slow, and writes to repositories Frame was never pointed at.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>workspaces.json</code> <i>is</i> the definition of the set Frame is responsible for, and the only way out of it is the user removing a project — an explicit “stop tracking this”. Treating a de-registered project as still Frame's to modify would invert that.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D3 · What does the receipt report? <span class="tag">follows from D1</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">One message per sweep; failures named, D4 deferrals omitted</div>
+        <div class="opttrade">Quiet and actionable; a deferred project is invisible until it resolves itself.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Report migrated, deferred and failed alike</div>
+        <div class="opttrade">Full transparency, but “X was deferred because you have uncommitted changes” recurs every startup with no action attached.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> With migration silent (D1) and the legacy banner removed (D10), a failed project has no other way to explain itself — so failures are named. A deferral is normal, self-resolving the moment the user commits, and reporting it teaches the user to dismiss the notice unread.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D4 · Does the bundled sample project stay in this spec?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Keep it, as its own sequencing step</div>
+        <div class="opttrade">Owns success criterion S10 inside this spec; adds <code>src/templates/**</code> to the footprint.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Split into a separate task</div>
+        <div class="opttrade">Keeps the footprint pure, but makes S10 unverifiable here and depends on other work landing.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>src/templates/sample-project/</code> ships root <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>tasks.json</code> and companions, so detection matches the very first project a new user opens. It shares no code with the engine, but a separate spec ceremony for a template rewrite costs more than the rewrite.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D5 · What happens when the user selects a project that still needs migrating? <span class="tag">follows from D1</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">A foreground modal with per-artifact progress</div>
+        <div class="opttrade">Gives a failed sweep a recovery path and explains the pause; costs a renderer surface that cannot be tested here.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Stay silent, as the sweep does</div>
+        <div class="opttrade">One code path and no UI work, but a project the sweep could not migrate opens broken with nothing to act on.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The sweep is silent because nobody is waiting on it; the lazy path is the opposite. It also needs no stored failure flag to identify itself — a successful sweep would have left the project non-legacy, so any lazy firing is either a newly added project or one the sweep could not finish. Both mean the user just selected it and is waiting, which is when blocking UI is earned. A deferral is explained here even though it stays silent in the sweep, because here the user is blocked and there is a concrete action.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D6 · What does the modal offer when migration fails again? <span class="tag">follows from D5</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">The real error, the backup path, and Try again</div>
+        <div class="opttrade">Every element is actionable; relies on the user fixing the underlying cause outside Frame.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Also suggest removing and re-adding the project</div>
+        <div class="opttrade">Gives the user one more thing to try, but it re-runs identical code against identical files and “remove” reads as data loss.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Raised as a suggestion and argued down. Removing drops the <code>workspaces.json</code> entry and nothing else; none of the plausible causes — permission denied, a locked file, an unremovable symlink, a full disk — travel through the registry, so the round trip cannot work. What does help is naming the actual error, and the one sentence that stops the panic: nothing was lost, a copy of everything removed is in <code>.frame/migration-backup/</code>.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+
+  <div class="dcard">
+    <div class="dhead">D7 · How much of this ships with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Everything the infrastructure can reach</div>
+        <div class="opttrade">Every disposition, deferral, restoration and interruption verified against real temp repos; the renderer receipt stays untested.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Pure logic only</div>
+        <div class="opttrade">Less test code, but leaves the irreversible part — deletion and moving — unverified.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The testing record shows <code>node --test test/*.test.js</code> covering <code>src/main/</code> and <code>src/shared/</code>, with <code>gitExclude.test.js</code> (12 cases) and <code>gitSharing.test.js</code> (24 cases) already exercising real temp repos — exactly this shape of work. <code>src/renderer/</code> is recorded as <b>Not covered</b>: no DOM harness is installed, so the receipt is not testable here without first choosing one.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D8 · Where does the engine live, and what may it require?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">One Electron-free module; paths injected, IPC done by the caller</div>
+        <div class="opttrade">Fully testable without stubbing Electron; <code>index.js</code> keeps two responsibilities (supply the registry, send the receipt).</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname"><code>init(window)</code> like the other main modules</div>
+        <div class="opttrade">Conventional wiring, but pulls Electron into the one module whose correctness matters most.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The same injection convention <code>globalLayer</code> follows — <code>init(userDataPath)</code> rather than requiring Electron — kept that module and its tests Electron-free. <code>gitSharing.js</code> and <code>gitExclude.js</code> are the same shape. This is the module where the project's own testing convention pays off most.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D9 · Which surface renders the receipt? <span class="tag">follows from D3</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Extend <code>healthNotice.js</code> with a neutral kind and one action</div>
+        <div class="opttrade">~25 lines on a 90-line file that already owns app-level messages pushed from main; needs a non-alarming variant added.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">A dedicated popover module</div>
+        <div class="opttrade">Comfortable with multi-line text and actions, but duplicates a dismissal lifecycle for a single message.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>notify.js</code> auto-dismisses in 2–4 s and takes no action button — too ephemeral for a receipt the user must actually read. A bespoke popover would repeat the pattern whose last instance (<code>sharingHint</code>) was reverted in <code>d47f337</code>, and <code>notify.js</code>'s own header argues against per-surface copies. <code>healthNotice</code> gains an <code>info</code> kind (<code>role="status"</code>, information icon) because a completed migration is not a degraded state.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D10 · <code>frameProject.js</code> is flagged IN-FLIGHT — coordinate or proceed?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Proceed; the flag is stale</div>
+        <div class="opttrade">No waiting; relies on the reading of another spec's outcome being correct.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Sequence after that spec closes</div>
+        <div class="opttrade">Zero collision risk, but blocks on a spec whose remaining work cannot touch these files.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>spec-context.js</code> reports <code>src/main/frameProject.js</code> inside <code>audit-q3-performance-resources</code> (phase <code>implementing</code>). That spec's <code>outcome.md</code> records T01–T10 captured, with only T10 pending as “static done, runtime pending” — a measurement pass touching neither <code>frameProject.js</code> nor <code>index.js</code>. Both edits here are a few lines in distinct regions.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>A project has both a root artifact and a differing <code>.frame/</code> counterpart — post-upgrade work could be overwritten by stale data</td><td><code>.frame/</code> always wins; the root copy goes to the backup and the disposition is recorded. Step 4, with a dual-layout test case.</td></tr>
+    <tr><td>The app is killed mid-migration</td><td>The backup is written whole before anything moves, so the next pass sees duplicates it can reconcile, never a hole. Step 3 writes it; step 4's test kills a run and re-runs it.</td></tr>
+    <tr><td>Sweeping several projects delays launch</td><td>The sweep is async, after the window is up, and never blocks. Success criterion S13 asserts the window appears first.</td></tr>
+    <tr><td>The user opens a project the sweep is still migrating</td><td>A per-project in-flight guard makes the lazy path a no-op for that project. S15.</td></tr>
+    <tr><td>A registered project path no longer exists on disk</td><td>Skipped without failing the sweep. S16.</td></tr>
+    <tr><td>A <code>repo</code>-mode project commits a duplicate of everything just deleted</td><td><code>migration-backup/</code> joins the managed <code>.frame/.gitignore</code> block — sequenced as step 2, before any backup can be written.</td></tr>
+    <tr><td>A user file already sits at a restore target</td><td>Never overwritten; the extracted content goes to the backup and the receipt says so. Step 5.</td></tr>
+    <tr><td>The merge block is absent — the project never had a <code>CLAUDE.md</code></td><td>The symlink is removed and nothing is restored, so the project ends with no root <code>CLAUDE.md</code> at all. S4.</td></tr>
+    <tr><td>A shared repo is silently turned private, or vice versa</td><td>Posture is never decided here: <code>gitSharing.resolveMode</code> derives it from what the project already was, and the derived value is recorded as preservation rather than a new choice. S2, S3.</td></tr>
+    <tr><td>A non-git project has no dirty-check before its files move</td><td>Accepted deliberately: the failure mode D4 guards against needs a git diff to exist. The backup is the recovery path; an mtime guard would strand actively-edited projects permanently.</td></tr>
+    <tr><td>A migration fails and nobody notices</td><td>Named in the receipt, recorded step-by-step in the activity log, and reported by the one telemetry event. Step 1, then step 7.</td></tr>
+    <tr><td>A failed project is opened and there is nothing the user can do about it</td><td>The foreground modal retries it with visible progress and, on a second failure, shows the real error, the backup location and a retry. Step 8, D13.</td></tr>
+    <tr><td>A deferred project looks broken to a user who selected it deliberately</td><td>The modal names the files holding it up and what to do; the sweep stays silent about the same state. Step 8.</td></tr>
+    <tr><td>The modal flashes for a fast migration and reads as jank</td><td>It only opens on the lazy path, which fires exclusively for projects the sweep did not finish or never saw — never in the normal startup flow.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: backup retention — nothing is pruned, ever, by decision rather than omission (D9); a success-path telemetry event, which would measure a population already known (D12); any filesystem scan for unregistered projects (D2 above).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>A pre-overlay project opens, migrates itself, and is fully usable in the same open — no prompt, no command, no procedure to follow <span class="tag">G1</span></td><td>Flow A; sequencing steps 6–7</td></tr>
+    <tr><td>After migration the project satisfies the overlay spec's criteria: every Frame artifact under <code>.frame/</code>, nothing Frame-authored at the root <span class="tag">G2</span></td><td>Flow B; steps 4–5</td></tr>
+    <tr><td>Instruction files the old init consumed are returned to the user at the root with their original content <span class="tag">G3</span></td><td>Flow C; step 5</td></tr>
+    <tr><td>No Frame data is lost, and the pre-migration state is recoverable from disk <span class="tag">G4</span></td><td>Flow B backup node; steps 2–3</td></tr>
+    <tr><td>The project's git sharing posture after migration is the one it already had <span class="tag">G5</span></td><td>Flow C; step 6</td></tr>
+    <tr><td>The user can tell, without asking, what changed in their working tree and why <span class="tag">G6</span></td><td>Flow C receipt; step 7</td></tr>
+  </table>
+
+  <h4>Constraints (spec decisions)</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Migration runs automatically, with no prompt before it <span class="tag">D1</span></td><td>Step 7 wiring</td></tr>
+    <tr><td>A startup sweep over every registered project, with the per-open path demoted to fallback and unregistered projects left alone <span class="tag">D1a</span></td><td>Flow A; step 6</td></tr>
+    <tr><td>Move rather than copy; no persisted half-migrated state <span class="tag">D2</span></td><td>Step 4</td></tr>
+    <tr><td>Where both exist and differ, <code>.frame/</code> wins and the losing root file goes to the backup <span class="tag">D3</span></td><td>Step 4</td></tr>
+    <tr><td>An uncommitted modification to any legacy artifact defers the whole migration; non-git projects get no equivalent guard <span class="tag">D4</span></td><td>Step 3</td></tr>
+    <tr><td><code>config.json.files</code> is the authoritative artifact list, with name matching as fallback <span class="tag">D5</span></td><td>Step 3</td></tr>
+    <tr><td>Consumed instruction files are restored; duplicated ones are left alone <span class="tag">D6</span></td><td>Step 5</td></tr>
+    <tr><td>Git posture is preserved, never decided <span class="tag">D7</span></td><td>Step 6</td></tr>
+    <tr><td>One receipt per sweep that reports without advising, its git sentence keyed to tracked state <span class="tag">D8</span></td><td>Step 7</td></tr>
+    <tr><td>One backup directory per project, never overwritten, never pruned, never tracked <span class="tag">D9</span></td><td>Steps 2–3</td></tr>
+    <tr><td>The legacy-layout banner and its IPC channel are removed <span class="tag">D10</span></td><td>Step 7</td></tr>
+    <tr><td>The sample project is fixed at the template rather than migrated <span class="tag">D11</span></td><td>Step 9</td></tr>
+    <tr><td>Full local trace in the activity log; one telemetry event, on failure only <span class="tag">D12</span></td><td>Step 1, recorded throughout steps 3–7</td></tr>
+    <tr><td>The foreground path shows a modal with per-artifact progress, explains a deferral, and offers a retry rather than a re-add on failure <span class="tag">D13</span></td><td>Flow D; step 8</td></tr>
+  </table>
+
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Frame's own repository migrates in one open, keeps its ~300 KB task set and ~80 KB notes intact, leaves <code>.frame/specs/</code> byte-identical, and shows exactly the expected deletions <span class="tag">S1</span></td><td>Steps 4–6 · proven by a fixture repo reproducing the tracked root + tracked <code>.frame/</code> shape</td></tr>
+    <tr><td>A project whose <code>.frame/specs/</code> was committed derives <code>repo</code> and keeps sharing, with no exclude written <span class="tag">S2</span></td><td>Step 6 · proven by a temp repo with <code>.frame/</code> committed</td></tr>
+    <tr><td>A project whose root files were never committed migrates with <code>git status</code> unchanged and a receipt silent about git <span class="tag">S3</span></td><td>Steps 6–7 · proven by an untracked-fixture case</td></tr>
+    <tr><td>A consumed <code>CLAUDE.md</code> exists again with its original content; a project that never had one ends with none <span class="tag">S4</span></td><td>Step 5 · proven by both restoration cases</td></tr>
+    <tr><td><code>.claude/CLAUDE.md</code> survives unmodified and is not recreated when absent <span class="tag">S5</span></td><td>Step 5 · proven by a present-and-absent pair</td></tr>
+    <tr><td>A project with an uncommitted edit to root <code>PROJECT_NOTES.md</code> is not migrated, keeps the edit, and migrates once clean <span class="tag">S6</span></td><td>Step 3 · proven by a dirty-then-clean case</td></tr>
+    <tr><td>Where both a root file and a differing <code>.frame/</code> counterpart exist, the <code>.frame/</code> version survives and the root version is in the backup <span class="tag">S7</span></td><td>Step 4 · proven by the dual-layout case</td></tr>
+    <tr><td>Killing the app mid-migration leaves nothing unreachable; the next open completes it and reports the aborted run <span class="tag">S8</span></td><td>Steps 3–4 · proven by an interrupted-run case</td></tr>
+    <tr><td><code>.frame/migration-backup/</code> is never tracked in either mode and never deleted by Frame <span class="tag">S9</span></td><td>Step 2 · proven by the gitignore-block case</td></tr>
+    <tr><td>No project — including the bundled sample — shows a legacy-layout warning anywhere <span class="tag">S10</span></td><td>Steps 7 and 9 · proven by the template rewrite plus channel removal</td></tr>
+    <tr><td>A migrated project launches an agent whose instructions describe only the current layout <span class="tag">S11</span></td><td>Steps 4–5 · follows from the root symlink and stale <code>AGENTS.md</code> being gone</td></tr>
+    <tr><td>Deferred, conflicted and failed runs are each fully reconstructable from the activity log <span class="tag">S12</span></td><td>Steps 1, 3–6 · proven by the recorded-event assertions</td></tr>
+    <tr><td>A workspace of several legacy projects migrates in one startup, one receipt, without slowing launch <span class="tag">S13</span></td><td>Step 6 · proven by a multi-project sweep case</td></tr>
+    <tr><td>A failed project is named in the receipt; a deferred one appears nowhere in the UI <span class="tag">S14</span></td><td>Steps 6–7 · proven by status plumbing plus the receipt's composition</td></tr>
+    <tr><td>Opening a project mid-sweep does not start a second migration of it <span class="tag">S15</span></td><td>Step 6 · proven by the in-flight guard case</td></tr>
+    <tr><td>A registered project whose path no longer exists is skipped without failing the sweep <span class="tag">S16</span></td><td>Step 6 · proven by a missing-path case</td></tr>
+    <tr><td>Selecting a project that still needs migrating opens the modal, reports progress per artifact and closes into the project — while the sweep shows no modal at all <span class="tag">S17</span></td><td>Step 8 · engine side proven by steps 3–6; the surface itself is outside the test harness</td></tr>
+    <tr><td>A project the modal cannot migrate shows the underlying error, states that everything removed is in the backup, and offers a retry against current disk state <span class="tag">S18</span></td><td>Step 8 · retry path exercised through <code>migrateProject</code>'s idempotence case</td></tr>
+    <tr><td>A deferred project selected by the user names the files holding it up; the same project during a sweep stays silent <span class="tag">S19</span></td><td>Steps 6 and 8 · deferral reporting proven by the dirty-fixture case</td></tr>
+  </table>
+
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>The preamble tells the agent a Frame-planted <code>CLAUDE.md</code> is the user's own</td><td><span class="pill good">verified</span> <code>src/shared/contextPreamble.js:104</code> — “is yours to read as usual — Frame has not modified it”</td></tr>
+    <tr><td>Legacy detection needs a Frame companion or a planted symlink</td><td><span class="pill good">verified</span> <code>src/main/instructionDiscovery.js:97</code>, <code>LEGACY_STRONG</code> at <code>:59</code></td></tr>
+    <tr><td>The shipped answer is a banner pointing at a mover that does not exist</td><td><span class="pill good">verified</span> <code>src/renderer/healthNotice.js:29</code>, channel at <code>src/shared/ipcChannels.js:83</code></td></tr>
+    <tr><td>Pre-overlay init already created <code>.frame/</code>, so dual layout is the norm</td><td><span class="pill good">verified</span> <code>main:src/main/frameProject.js</code> — <code>.frame/</code>, <code>config.json</code>, <code>docs/REFERENCE.md</code>, <code>specs/</code>, <code>bin/</code></td></tr>
+    <tr><td>Legacy <code>config.json</code> carries a per-project <code>files</code> manifest</td><td><span class="pill good">verified</span> <code>main:.frame/config.json</code> — agents / claudeSymlink / structure / notes / tasks / quickstart</td></tr>
+    <tr><td>The merge heading survives only in git history</td><td><span class="pill good">verified</span> deleted in <code>1202ab2</code>; form <code>## Existing Instructions (from ${label})</code>, blocks joined by <code>\n\n---\n\n</code></td></tr>
+    <tr><td><code>.claude/CLAUDE.md</code> was consumed like the others</td><td><span class="pill warn">corrected</span> read into the merge then <code>break</code>, with no <code>unlink</code> — duplicated, not consumed; restoration scope narrowed</td></tr>
+    <tr><td>Posture derivation would wrongly make migrating projects <code>local</code></td><td><span class="pill warn">corrected</span> <code>gitSharing.js:106</code> derives from <code>isFrameTracked</code>, and <code>.frame/</code> predates the overlay — so committed specs already yield <code>repo</code>. Only a user-gitignored <code>.frame/</code> diverges, which is why the receipt keys off the deleted files instead</td></tr>
+    <tr><td><code>.frame/.gitignore</code>'s managed block does not cover the backup</td><td><span class="pill good">verified</span> block lists <code>runtime/ index/ implement-permissions.json worktrees/ orchestration/ bin/ *.bak *.tmp *.corrupt-*</code></td></tr>
+    <tr><td>The bundled sample project trips legacy detection</td><td><span class="pill good">verified</span> <code>src/templates/sample-project/</code> ships root <code>AGENTS.md CLAUDE.md GEMINI.md PROJECT_NOTES.md STRUCTURE.json tasks.json</code> plus <code>.frame/specs/</code></td></tr>
+    <tr><td>Frame registers a project list while the renderer holds one active path</td><td><span class="pill good">verified</span> <code>workspace.getProjects()</code>; <code>src/renderer/state.js:11</code> and the <code>CHECK_IS_FRAME_PROJECT</code> send at <code>:100</code></td></tr>
+    <tr><td>There is a clean startup insertion point after the registry loads</td><td><span class="pill good">verified</span> <code>src/main/index.js</code> — <code>initModulesWithWindow</code>, <code>workspace.init(app, window)</code> at <code>:304</code></td></tr>
+    <tr><td>The project-open handler is where the lazy path belongs</td><td><span class="pill good">verified</span> <code>src/main/frameProject.js:510</code>, legacy send at <code>:531</code></td></tr>
+    <tr><td>Activity events must be registered before they can be recorded</td><td><span class="pill good">verified</span> <code>activityLog.record</code> returns early unless <code>events.isRegistered(name)</code>; registry in <code>src/shared/activityEvents.js</code></td></tr>
+    <tr><td><code>frameProject.js</code> is in another spec's active footprint</td><td><span class="pill warn">stale flag</span> <code>audit-q3-performance-resources</code> is <code>implementing</code>, but its <code>outcome.md</code> records T01–T10 with only T10's runtime measurement pending</td></tr>
+    <tr><td>The project has test infrastructure this work can use</td><td><span class="pill good">verified</span> <code>PROJECT_NOTES.md § Testing</code> — <code>node --test test/*.test.js</code>, 27 files, <code>src/renderer/</code> recorded as not covered</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — Coverage check: D12's activity events were sequenced after the engine that records into them, so the first migration steps would have recorded into an unregistered family and been silently dropped by <code>activityLog.record</code>. Moved event registration to step 1.</li>
+    <li><b>Iteration 2</b> — Reality check: the receipt's styling had no home in the Files list. Confirmed <code>src/renderer/styles/components/health-notice.css</code> and the <code>healthNotice.init()</code> call site at <code>src/renderer/index.js:233</code>; added the stylesheet to Files and Footprint.</li>
+    <li><b>Iteration 3</b> — Decisions check: the IN-FLIGHT collision on <code>frameProject.js</code> had been noticed in the evidence pass but never resolved into a recorded decision, leaving an unstated “X vs Y”. Read the other spec's outcome, established the flag is stale, and recorded it as D8 with its evidence.</li>
+    <li><b>Iteration 4</b> — Task-derivability: steps 3–6 build the engine with no caller, which reads as unshippable. Confirmed each still ships tested and reviewable, and made step 7 the single wiring step so the banner's removal and the receipt's arrival are atomic — no build has neither.</li>
+    <li><b>Post-review revision</b> — The plan was reviewed after Stage 4 and one gap held: a failed sweep named the project in the receipt and then offered nothing, so the user opened a broken project with no recovery. Added the foreground modal (D13, D5–D6 in the decision story, Flow D, step 8, S17–S19). The suggested fallback of removing and re-adding the project was argued down and replaced with a retry — it re-runs identical code against identical files.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-31 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/embedded-migration/plan.md</code></footer>
+</div>
+</body>
+</html>
