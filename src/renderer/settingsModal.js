@@ -8,8 +8,6 @@
 
 const { ipcRenderer, shell } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
-const state = require('./state');
-const specDrivenHint = require('./specDrivenHint');
 
 const TELEMETRY_KEY = 'telemetryEnabled';
 const CRASH_DUMPS_KEY = 'crashDumpsEnabled';
@@ -18,8 +16,6 @@ const DISMISSED_VERSION_KEY = 'dismissedUpdateVersion';
 let overlayEl = null;
 let toggleEl = null;
 let crashDumpsToggleEl = null;
-let specDrivenToggleEl = null;
-let specDrivenNoteEl = null;
 let isOpen = false;
 
 // About section elements + state
@@ -37,8 +33,6 @@ function init() {
   overlayEl = document.getElementById('settings-overlay');
   toggleEl = document.getElementById('settings-telemetry-toggle');
   crashDumpsToggleEl = document.getElementById('settings-crash-dumps-toggle');
-  specDrivenToggleEl = document.getElementById('settings-spec-driven-toggle');
-  specDrivenNoteEl = document.getElementById('settings-spec-driven-note');
 
   // About section
   aboutVersionEl = document.getElementById('settings-version');
@@ -71,46 +65,6 @@ function init() {
   if (crashDumpsToggleEl) {
     crashDumpsToggleEl.addEventListener('change', async () => {
       await ipcRenderer.invoke(IPC.SET_USER_SETTING, CRASH_DUMPS_KEY, crashDumpsToggleEl.checked);
-    });
-  }
-
-  // Spec-Driven Development: per-project flag in .frame/config.json, not a
-  // user preference. Main writes the flag and nothing else — no instruction
-  // file is edited either way; the launch preamble reads the flag fresh and
-  // decides what the agent is told. On failure we snap the switch back so it
-  // never lies about the on-disk state.
-  if (specDrivenToggleEl) {
-    specDrivenToggleEl.addEventListener('change', async () => {
-      const projectPath = state.getProjectPath();
-      const wanted = specDrivenToggleEl.checked;
-      if (!projectPath) {
-        specDrivenToggleEl.checked = !wanted;
-        return;
-      }
-      specDrivenToggleEl.disabled = true;
-      try {
-        const result = await ipcRenderer.invoke(IPC.SET_SPEC_DRIVEN, {
-          projectPath,
-          enabled: wanted
-        });
-        if (!result || !result.success) {
-          specDrivenToggleEl.checked = !wanted;
-          setSpecDrivenNote(
-            'Could not change this setting: ' + ((result && result.error) || 'unknown error')
-          );
-        } else {
-          setSpecDrivenNote(null);
-          // Turning it off here is a deliberate choice — stop offering to
-          // turn it back on for this project.
-          if (!wanted) await specDrivenHint.markDismissed(projectPath);
-          specDrivenHint.refresh();
-        }
-      } catch (err) {
-        specDrivenToggleEl.checked = !wanted;
-        setSpecDrivenNote('Could not change this setting: ' + err.message);
-      } finally {
-        specDrivenToggleEl.disabled = false;
-      }
     });
   }
 
@@ -331,39 +285,6 @@ async function syncToggleFromSettings() {
     // Default ON when unset (local-only; nothing is uploaded)
     crashDumpsToggleEl.checked = dumps !== false;
   }
-
-  await syncSpecDrivenToggle();
-}
-
-/**
- * Reflect the current project's features.specDriven flag. With no project
- * open (or a folder that isn't a Frame project yet) there is nothing to
- * write, so the switch is disabled and says why.
- */
-async function syncSpecDrivenToggle() {
-  if (!specDrivenToggleEl) return;
-  const projectPath = state.getProjectPath();
-  if (!projectPath) {
-    specDrivenToggleEl.checked = false;
-    specDrivenToggleEl.disabled = true;
-    setSpecDrivenNote('Open a project to change this — the setting lives in its .frame/config.json.');
-    return;
-  }
-  try {
-    const enabled = await ipcRenderer.invoke(IPC.IS_SPEC_DRIVEN_ENABLED, projectPath);
-    specDrivenToggleEl.checked = enabled === true;
-    specDrivenToggleEl.disabled = false;
-    setSpecDrivenNote(null);
-  } catch (err) {
-    specDrivenToggleEl.disabled = true;
-    setSpecDrivenNote('Could not read this project’s Frame config.');
-  }
-}
-
-function setSpecDrivenNote(message) {
-  if (!specDrivenNoteEl) return;
-  specDrivenNoteEl.textContent = message || '';
-  specDrivenNoteEl.style.display = message ? '' : 'none';
 }
 
 function open() {

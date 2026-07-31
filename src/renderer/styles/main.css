@@ -50,6 +50,8 @@
 /* 12c. Spec-Driven Development hint (popover on the Settings rail button) */
 @import 'components/spec-driven-hint.css';
 
+@import 'components/project-settings-modal.css';
+
 /* 13. Tasks Dashboard (Kanban-style overlay) */
 @import 'components/tasks-dashboard.css';
 

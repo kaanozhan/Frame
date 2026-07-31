@@ -184,6 +184,10 @@ const IPC = {
   ENABLE_SPEC_DRIVEN: 'enable-spec-driven',
   SET_SPEC_DRIVEN: 'set-spec-driven',                // renderer → main: { projectPath, enabled } — Settings toggle
 
+  // Git Sharing (per project, .frame/config.json settings.gitSharing)
+  GET_GIT_SHARING_STATE: 'get-git-sharing-state',    // invoke: projectPath → { isRepo, declared, tracked, effective }
+  SET_GIT_SHARING: 'set-git-sharing',                // invoke: { projectPath, mode } — the single mode-change write path
+
   // Orchestration (conductor / parallel spec execution)
   OPEN_ORCHESTRATOR: 'open-orchestrator',            // → renderer: open the orchestrator view
   START_ORCHESTRATION: 'start-orchestration',        // renderer → main: begin a session (conductor lane id in)

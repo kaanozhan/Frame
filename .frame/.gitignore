@@ -1,0 +1,11 @@
+# managed by Frame — machine-local paths, rewritten by Frame; add your own lines outside this block
+runtime/
+index/
+implement-permissions.json
+worktrees/
+orchestration/
+bin/
+*.bak
+*.tmp
+*.corrupt-*
+# end managed by Frame

@@ -172,3 +172,61 @@ test('a second init is still footprint-clean', async () => {
     assert.equal(after.get(rel), before.get(rel), `${rel} changed on re-init`);
   }
 });
+
+// ─── init options: git sharing (project-settings) ─────────────
+
+const { execFileSync } = require('child_process');
+const gitExclude = require('../src/main/gitExclude');
+
+function initGitRepo(dir) {
+  const git = (...args) =>
+    execFileSync('git', args, { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  git('init', '-q');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Frame Test');
+  git('add', '.');
+  git('commit', '-qm', 'initial');
+  return git;
+}
+
+test('repo-mode init: config says repo, no exclude block ever written, gitignore present', async () => {
+  const git = initGitRepo(projectDir);
+
+  await frameProject.initializeFrameProject(projectDir, 'victim', { gitSharing: 'repo' });
+
+  const config = JSON.parse(fs.readFileSync(path.join(projectDir, FRAME_DIR, 'config.json'), 'utf8'));
+  assert.equal(config.settings.gitSharing, 'repo');
+
+  const excludePath = gitExclude.excludeFilePath(projectDir);
+  assert.ok(
+    !fs.existsSync(excludePath) || !fs.readFileSync(excludePath, 'utf8').includes(gitExclude.MARKER),
+    'an exclude block was written during repo-mode init'
+  );
+
+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, '.gitignore')), '.frame/.gitignore missing');
+
+  const status = git('status', '--porcelain', '-uall');
+  assert.ok(status.includes(`${FRAME_DIR}/config.json`), '.frame/ is not visible in repo mode');
+  assert.ok(!status.includes(`${FRAME_DIR}/bin/`), 'generated bin/ leaked into git status');
+});
+
+test('local-mode init (default): config says local, exclude block present, status clean', async () => {
+  const git = initGitRepo(projectDir);
+
+  await frameProject.initializeFrameProject(projectDir, 'victim');
+
+  const config = JSON.parse(fs.readFileSync(path.join(projectDir, FRAME_DIR, 'config.json'), 'utf8'));
+  assert.equal(config.settings.gitSharing, 'local');
+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, '.gitignore')), '.frame/.gitignore missing');
+
+  const exclude = fs.readFileSync(gitExclude.excludeFilePath(projectDir), 'utf8');
+  assert.ok(exclude.includes(gitExclude.EXCLUDE_BLOCK));
+  assert.equal(git('status', '--porcelain').trim(), '', 'git status is not clean after local init');
+});
+
+test('init options: specDriven false lands in the config', async () => {
+  await frameProject.initializeFrameProject(projectDir, 'victim', { specDriven: false });
+  const config = JSON.parse(fs.readFileSync(path.join(projectDir, FRAME_DIR, 'config.json'), 'utf8'));
+  assert.equal(config.features.specDriven, false);
+  assert.equal(config.settings.gitSharing, 'local', 'non-repo default should still be local');
+});

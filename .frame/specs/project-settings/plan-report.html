@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Settings — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Project Settings — git sharing and spec-driven become real, per-project choices — Plan Overview</h1>
+  <p class="muted">2026-07-30 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/project-settings/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">15 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill warn">footprint collision: audit-q3-performance-resources (in-flight)</span><span class="pill">5 new tests / 4 extended</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Whether a project's Frame context is private to one machine or shared with a team is today a git side effect — <code>.frame/</code> untracked means a signed block in <code>.git/info/exclude</code> hides it; committing it is the undocumented opt-in. Nothing names the mode, shows it, or lets you choose it, and flipping it naively would commit machine-local junk (orchestration bus, worktrees, generated <code>bin/</code> scripts). Meanwhile the one genuinely per-project setting Frame has (Spec-Driven Development) sits in the app-wide Settings modal, init silently decides both questions, and three dead flags ship in every new config.</p>
+  <p>The plan makes the mode an explicit setting: <code>settings.gitSharing: "local" | "repo"</code> in <code>.frame/config.json</code> — which in repo mode travels with the repo for free. Sharing becomes safe by construction via a Frame-owned <code>.frame/.gitignore</code> declaring the machine-local paths (no overlay violation: the file lives inside Frame's own directory). A Project Settings modal, opened from a gear on the project row, owns Spec-Driven, Git Sharing and Remove; App Settings goes back to being app-wide; init asks both questions before the first byte; a dismissible hint makes repo mode discoverable on repos that look shared; one telemetry event makes the choice measurable. Frame never stages, commits, or untracks — transitions are config + exclude-block + gitignore writes only.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Four flows: init with choices, project open (derivation + self-heal), the sharing toggle, and the sharing hint.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>system / module</span>
+    <span class="l-data">storage / git</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Init with both questions answered up front</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Init modal confirm</div><div class="fd-sub">options: specDriven, gitSharing (sharing hidden if not a git repo)</div></div>
+          <div class="fd-arrow"><span class="lbl">IPC payload</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">runProjectInit(path, name, options)</div><div class="fd-sub">frameProject.js</div></div>
+          <div class="fd-arrow"><span class="lbl">pre-mkdir</span><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">mode?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">local</span>
+          <div class="fd-node data"><div class="fd-title">gitExclude.ensure(path, 'local')</div><div class="fd-sub">block written before .frame/ exists</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">config template baked</div><div class="fd-sub">gitSharing + specDriven from options — written once</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">git status clean</div><div class="fd-sub">.frame/.gitignore written anyway (harmless)</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">repo</span>
+          <div class="fd-node data"><div class="fd-title">ensure strips / never writes block</div><div class="fd-sub">acceptance 2: not written-then-removed</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">.frame/ visible, junk-proof</div><div class="fd-sub">.frame/.gitignore keeps machine-local paths out</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>D5 ordering preserved:</b> <code>ensure()</code> still runs before <code>mkdir</code> (frameProject.js:173); the mode arrives as an argument because the config it would be read from does not exist yet. <code>gitExclude</code> stays ignorant of the config format.</li>
+          <li><b>Telemetry:</b> the init handler fires <code>project_sharing_set</code> with <code>source: 'init'</code> after success.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Project open: derive once, self-heal always</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">CHECK_IS_FRAME_PROJECT</div><div class="fd-sub">every project open</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">gitSharing.ensureOnOpen(path)</div><div class="fd-sub">replaces bare gitExclude.ensure</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">settings.gitSharing present?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">absent (pre-upgrade)</span>
+          <div class="fd-node data"><div class="fd-title">isFrameTracked()</div><div class="fd-sub">tracked → 'repo', else 'local'</div></div>
+          <div class="fd-arrow"><span class="lbl">persist once</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">write back to config</div><div class="fd-sub">D4 — reproduces current behaviour exactly</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">either way</span>
+          <div class="fd-node data"><div class="fd-title">gitExclude.ensure(path, mode)</div><div class="fd-sub">tracked still overrides 'local' (D3)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">writeFrameGitignore(path)</div><div class="fd-sub">signed block; unsigned lines kept</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">modes agree or S4 surfaces</div><div class="fd-sub">pre-upgrade projects gain .frame/.gitignore</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Dependency direction:</b> <code>frameProject → gitSharing → gitExclude</code>; <code>gitSharing</code> does its own JSON read-modify-write of the config, preserving unknown keys (the <code>detectProject</code> precedent), and is Electron-free so it tests under <code>node --test</code>.</li>
+          <li><b>Non-repo folders:</b> no derivation, key stays absent, state reports <code>isRepo: false</code> — the matrix's disabled-toggle row.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Changing the mode (modal toggle and hint share one path)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Toggle / "Share in the repository"</div><div class="fd-sub">Project Settings modal or sharing hint</div></div>
+          <div class="fd-arrow"><span class="lbl">SET_GIT_SHARING</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">gitSharing.setMode(path, mode)</div><div class="fd-sub">config write → ensure(mode) → gitignore</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">local requested but .frame/ tracked?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">no conflict</span>
+          <div class="fd-node data"><div class="fd-title">exclude block written / removed</div><div class="fd-sub">never git add, rm, or commit</div></div>
+          <div class="fd-arrow"><span class="lbl">telemetry</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">state line updates</div><div class="fd-sub">project_sharing_set, source 'settings'</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">S4 conflict</span>
+          <div class="fd-node system"><div class="fd-title">warning + copyable command</div><div class="fd-sub">git rm -r --cached .frame — user's move, Frame stops</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>One write path:</b> the hint button invokes the same <code>SET_GIT_SHARING</code> handler as the modal toggle — one place for the transition to go wrong (spec's own requirement, S11).</li>
+          <li><b>Declared vs effective:</b> state object <code>{ isRepo, declared, tracked, effective }</code>; <code>effective</code> is 'repo' whenever tracked, and the UI shows both when they disagree.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow D — Sharing discovery hint</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Project change</div><div class="fd-sub">sharingHint.evaluate()</div></div>
+          <div class="fd-arrow"><span class="lbl">two IPC reads</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">state + repo signal</div><div class="fd-sub">git remote · distinct authors in last 200 commits</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">remote ∧ &gt;1 author ∧ local ∧ not dismissed?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node system"><div class="fd-title">popover on the row's gear</div><div class="fd-sub">gear forced visible while shown; 900ms delay</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Share → Flow C · Dismiss → user settings</div><div class="fd-sub">dismissal keyed by project path, survives restart</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no</span>
+          <div class="fd-node system"><div class="fd-title">nothing shown</div><div class="fd-sub">never in non-git, single-author, remote-less, or repo-mode projects</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Repo signal is a separate IPC:</b> the <code>git log</code>-class reads run only when the hint evaluates, not on every state read the modal makes.</li>
+          <li><b>Copied pattern, not shared code:</b> <code>sharingHint.js</code> mirrors <code>specDrivenHint.js</code> (anchor, delay, dismissal semantics) per the gate decision — no popover framework is extracted.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The contracts, in one look</h3>
+  <pre>// .frame/config.json (new projects — dead flags gone)
+"settings": { "gitSharing": "local" | "repo" }
+
+// GET_GIT_SHARING_STATE → { isRepo, declared, tracked, effective }
+// SET_GIT_SHARING ← { projectPath, mode }        // modal + hint, one path
+// GET_SHARING_REPO_SIGNAL → { hasRemote, authorCount }
+// INITIALIZE_FRAME_PROJECT ← { ..., options: { specDriven, gitSharing } }
+
+// .frame/.gitignore (signed header, unsigned lines preserved)
+runtime/  index/  implement-permissions.json  worktrees/  orchestration/  bin/
+*.bak  *.tmp  *.corrupt-*
+
+// telemetry
+project_sharing_set: { mode: ['local','repo'], source: ['init','settings'] }</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">B1 · What does the project row show for a non-Frame project once × becomes a gear?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Gear on every row</div>
+        <div class="opttrade">Non-Frame modal shows only header + Remove; settings sections absent.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Gear only on Frame rows, × stays elsewhere</div>
+        <div class="opttrade">No near-empty modal, but two different row affordances and the "nervous ×" survives.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> one affordance everywhere, and a natural home for future per-project actions (e.g. Initialize). Asked at the gate; user chose the recommended option.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">B2 · What are the mode values called — intent names or mechanism names? <span class="tag">post-plan</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">local / repo (mechanism)</div>
+        <div class="opttrade">Accurate for every user — including the solo dev committing .frame/ for backup or multi-machine sync — and matches git's own scope vocabulary.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">private / team (intent)</div>
+        <div class="opttrade">Benefit-oriented, but "team" mislabels solo sharing and "private" overpromises in an already-private repo.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the setting's mechanism <i>is</i> the product — it controls exactly whether .frame/ lives in the repository. Mechanism labels stay true in the D3 declared-vs-effective display; a follow-up decision then removed team language from the product surface entirely — the hint button reads "Share in the repository" and the module is sharingHint.js. Raised by the user after planning; renamed before implementation, so no migration needed.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">T1 · Should this spec's work ship with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Pure logic only</div>
+        <div class="opttrade">gitSharing, gitExclude mode, template, telemetry event, stubbed init — renderer untested, as all renderer code is today.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Everything testable / none this time</div>
+        <div class="opttrade">Renderer is unreachable without adopting a DOM harness (out of scope); zero tests would leave acceptance 9's idempotence unproven.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> matches the recorded convention (node --test, pure main/shared modules, Electron stubbed where unavoidable — testing record in PROJECT_NOTES.md). Asked at the gate.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">T2 · Sharing hint: copy the spec-driven hint pattern, or extract a shared popover module?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Copy the pattern (standalone sharingHint.js)</div>
+        <div class="opttrade">~200 duplicated lines; zero risk to the working, untested existing hint.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Extract shared hintPopover.js</div>
+        <div class="opttrade">Less duplication, but refactors working renderer code with no tests to catch a regression.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the project's core rule is that refactors don't ride along; D7 asks for the same <i>mechanism</i>, not the same code. Asked at the gate.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">T3 · Where does the sharing logic live?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">New src/main/gitSharing.js composing gitExclude</div>
+        <div class="opttrade">Own JSON read-modify-write of config; Electron-free, so directly testable.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Extend gitExclude.js or frameProject.js</div>
+        <div class="opttrade">Either violates D5 (gitExclude must stay config-ignorant) or buries pure logic in an Electron-coupled module.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> D5 forces the direction <code>frameProject → gitSharing → gitExclude</code>; decided silently — only one defensible shape.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">T4 · How is the sharing state exposed over IPC?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Three channels: GET state, SET mode, GET repo signal</div>
+        <div class="opttrade">GET state works without .frame/ (serves the init modal's isRepo check); signal reads run only when the hint evaluates.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">One fat channel returning everything</div>
+        <div class="opttrade">Simpler surface, but runs git-log author counting on every modal open for data only the hint needs.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> both git reads behind the hint are the expensive-ish ones; keeping them behind their own invoke keeps the modal's state read cheap. Silent decision.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">T5 · What exactly goes into .frame/.gitignore?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Spec's table + fsSafe artifacts (*.bak, *.tmp, *.corrupt-*)</div>
+        <div class="opttrade">Slightly wider than the table's "(+ .bak)", generalized to all crash-safety suffixes.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Table paths only</div>
+        <div class="opttrade">Repo-mode projects would commit tasks.json.bak / .tmp scratch the first time fsSafe runs.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Frame's own repo already ignores these globally; the spec's "(+ .bak)" names the class. Signed header, unsigned user lines preserved (stripOurs semantics). Silent decision.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">T6 · The in-flight footprint collision with audit-q3-performance-resources</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Declare honestly, let the orchestrator serialize</div>
+        <div class="opttrade">This spec may wait on frameProject.js / index.html until that spec merges.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Carve the shared files out of this footprint</div>
+        <div class="opttrade">Would hide a real collision from the conductor — the one thing footprints exist to prevent.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> collision detection is the orchestrator's job and only works on honest footprints; no content conflict expected (their changes are perf-instrumentation-shaped). Silent decision.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">T7 · What happens to the existing spec-driven hint? <span class="tag">follows from B1</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Re-anchor to the active row's gear, update copy, behaviour unchanged</div>
+        <div class="opttrade">Gear is hover-revealed, so it's forced visible while a hint points at it.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Leave it anchored to the app Settings button</div>
+        <div class="opttrade">Would point at a modal that no longer contains the switch and copy that names a deleted section.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the spec itself says the Project Settings modal is "opened by the project row's gear, and by the spec-driven hint popover"; acceptance 7 pins the behaviour (flag write, dismissal, refresh) as identical. Silent decision.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>Declared <code>local</code> but <code>.frame/</code> is tracked (S4)</td><td>D3 wins: block removed, nothing untracked; modal shows the warning and a copyable <code>git rm -r --cached .frame</code>. Next open after the user acts re-derives agreement.</td></tr>
+    <tr><td>Repo-mode init briefly exposing an unprotected <code>.frame/</code></td><td><code>ensure(path, 'repo')</code> never writes the block (not written-then-removed), and <code>.frame/.gitignore</code> is part of the same init write set — machine-local paths never appear in <code>git status</code>.</td></tr>
+    <tr><td>Not a git repository</td><td>State reports <code>isRepo: false</code>; toggle disabled with "Not a git repository"; init hides the choice; no derivation, no hint.</td></tr>
+    <tr><td>User hand-edits <code>.frame/.gitignore</code></td><td>Only the signed block is rewritten; unsigned lines are preserved byte-identical — the <code>gitExclude.stripOurs</code> discipline.</td></tr>
+    <tr><td>Existing configs carrying the three dead flags</td><td>Left untouched (no reader exists); only the template changes, so no diff lands in repo-mode projects.</td></tr>
+    <tr><td>Footprint collision with in-flight <code>audit-q3-performance-resources</code> on <code>frameProject.js</code> / <code>index.html</code></td><td>Declared in the footprint; orchestrator serializes the two specs.</td></tr>
+    <tr><td>Hint pointing at a hover-hidden gear</td><td>While either hint is shown, the anchored gear gets a class forcing visibility.</td></tr>
+    <tr><td>Teammate's dismissal travelling in repo mode</td><td>Dismissals live in user settings keyed by project path, never in <code>.frame/config.json</code> (D7's stated reason, same as <code>specDrivenHint</code>).</td></tr>
+    <tr><td>Author-count heuristic wrong</td><td>Accepted cost: one dismissible popover; entirely local git reads, no network.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: the stale App Settings privacy copy (own change, own review) and per-project AI tool selection (separate spec) — both recorded as spec non-goals.</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Git Sharing is an explicit, stored, visible setting acted on by gitExclude <span class="tag">G1</span></td><td>Architecture (data shapes, gitSharing.js) · Sequencing 1, 3, 5</td></tr>
+    <tr><td>Sharing is safe by construction via .frame/.gitignore <span class="tag">G2</span></td><td>Architecture (gitignore content) · Sequencing 1, 3</td></tr>
+    <tr><td>A Project Settings modal opened from the project row owns everything project-scoped <span class="tag">G3</span></td><td>Sequencing 5 · Files (projectSettingsModal.js)</td></tr>
+    <tr><td>App Settings contains only app-wide settings <span class="tag">G4</span></td><td>Sequencing 6</td></tr>
+    <tr><td>Init asks both questions, applied before the first byte <span class="tag">G5</span></td><td>Sequencing 3, 4 · Flow A</td></tr>
+    <tr><td>The three dead flags leave the template <span class="tag">G6</span></td><td>Sequencing 2</td></tr>
+    <tr><td>Repo mode is discoverable once, never again after dismissal <span class="tag">G7</span></td><td>Sequencing 7 · Flow D</td></tr>
+    <tr><td>The choice is measurable via one telemetry event <span class="tag">G8</span></td><td>Sequencing 2, 3</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Frame never stages and never commits <span class="tag">C1</span></td><td>Architecture (setMode writes config/exclude/gitignore only) · Flow C</td></tr>
+    <tr><td>Frame never untracks; S4 explains and stops <span class="tag">C2</span></td><td>Flow C err-branch · Sequencing 5</td></tr>
+    <tr><td>The project's .gitignore remains off limits <span class="tag">C3</span></td><td>Architecture — all writes are .git/info/exclude or inside .frame/</td></tr>
+    <tr><td>Existing configs are not rewritten to drop the dead flags <span class="tag">C4</span></td><td>Sequencing 2 (template only) · Risks table</td></tr>
+    <tr><td>AI tool selection stays global, untouched <span class="tag">C5</span></td><td>Files — aiToolManager.js absent from the plan entirely</td></tr>
+    <tr><td>Not a general settings framework — two settings, one action <span class="tag">C6</span></td><td>Files / Sequencing 5 — sectioned modal, nothing speculative</td></tr>
+    <tr><td>The stale privacy copy is not rewritten here <span class="tag">C7</span></td><td>Sequencing 6 removes only the Workflow section; PRIVACY.md change is additive event documentation</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Fresh init, defaults: local config, specDriven true, block present, .frame/.gitignore exists, clean status <span class="tag">S1</span></td><td>Sequencing 3, 4 · proven by test/frameProjectInit.test.js extension</td></tr>
+    <tr><td>Fresh repo-mode init: no block ever written; machine-local paths absent from git status <span class="tag">S2</span></td><td>Sequencing 1, 3 · proven by test/gitExclude.test.js + frameProjectInit.test.js extensions</td></tr>
+    <tr><td>Pre-upgrade projects derive and persist their mode, gain .frame/.gitignore, behaviour unchanged <span class="tag">S3</span></td><td>Sequencing 1, 3 (ensureOnOpen) · proven by test/gitSharing.test.js (D4 cases)</td></tr>
+    <tr><td>Local → repo removes the block immediately; nothing staged or committed <span class="tag">S4</span></td><td>Sequencing 1, 5 (setMode) · proven by test/gitSharing.test.js</td></tr>
+    <tr><td>Repo → local on a tracked project: warning, git untouched, no block; heals after user acts <span class="tag">S5</span></td><td>Sequencing 1, 5 · state-matrix rows in test/gitSharing.test.js; warning UI in Sequencing 5</td></tr>
+    <tr><td>Non-git folder: toggle disabled with reason; init hides the choice <span class="tag">S6</span></td><td>Sequencing 4, 5 · isRepo:false path in test/gitSharing.test.js</td></tr>
+    <tr><td>App Settings has no project-scoped controls; Spec-Driven behaviour identical in its new home <span class="tag">S7</span></td><td>Sequencing 6 — toggle logic moved verbatim (snap-back, markDismissed, refresh)</td></tr>
+    <tr><td>One gear per row; Remove lives in the modal, still deletes nothing <span class="tag">S8</span></td><td>Sequencing 5 — reuses exported confirmRemoveProject</td></tr>
+    <tr><td>ensure() and the gitignore writer idempotent and self-healing across the matrix <span class="tag">S9</span></td><td>Sequencing 1 · proven by repeated-call cases in both test files</td></tr>
+    <tr><td>New configs carry none of the dead flags; existing configs keep theirs <span class="tag">S10</span></td><td>Sequencing 2 · proven by test/frameTemplates.test.js extension</td></tr>
+    <tr><td>Hint appears once in qualifying repos, shares via the same path, dismissal survives restart; never in non-qualifying repos <span class="tag">S11</span></td><td>Sequencing 7 · Flow D (renderer — untested per posture; signal parsing covered in test/gitSharing.test.js)</td></tr>
+    <tr><td>project_sharing_set fires with the right source and is enum-validated <span class="tag">S12</span></td><td>Sequencing 2, 3 · proven by test/telemetry.test.js extension</td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>Conditional exclude block, signed, removed when tracked</td><td><span class="pill good">verified</span> src/main/gitExclude.js:142-172 (marker :36-39)</td></tr>
+    <tr><td>ensure() takes no mode today; isFrameTracked exists</td><td><span class="pill good">verified</span> src/main/gitExclude.js:142, :68-74</td></tr>
+    <tr><td>Init hardcodes specDriven:true and calls ensure() pre-mkdir</td><td><span class="pill good">verified</span> src/shared/frameTemplates.js:838 · src/main/frameProject.js:173</td></tr>
+    <tr><td>Dead flags written by template, no reader anywhere</td><td><span class="pill good">verified</span> src/shared/frameTemplates.js:827-831; only other contact is scripts/detect-project.js preserve-keys test (test/detectProject.test.js:191)</td></tr>
+    <tr><td>Spec-driven switch sits in app-wide Settings (index.html:1274-1292)</td><td><span class="pill warn">minor drift</span> section now at index.html:1267-1292 — same content, line shift only</td></tr>
+    <tr><td>Init modal offers only Initialize / Not Now (index.html:653)</td><td><span class="pill good">verified</span> index.html:652-683</td></tr>
+    <tr><td>Project row's only action is a hover × (projectListUI.js:183-191)</td><td><span class="pill good">verified</span> exact match; confirmRemoveProject at :303 (not exported yet)</td></tr>
+    <tr><td>AI tool selection is a single global activeTool (aiToolManager.js:128)</td><td><span class="pill warn">minor drift</span> now aiToolManager.js:119; config path userData/ai-tool-config.json at :127 — fact unchanged</td></tr>
+    <tr><td>bin/ is fully generated (wrappers, orch bus, implement-launch)</td><td><span class="pill good">verified</span> frameProject.js:252-265 · aiToolManager.js:533-545 · orchestrationManager.js:223-231</td></tr>
+    <tr><td>Frame's own repo hand-writes five .frame ignore rules</td><td><span class="pill good">verified</span> .gitignore: runtime/, implement-permissions.json, index/, bin/*.js, orchestration/ (plus global *.bak/*.tmp/*.corrupt-*)</td></tr>
+    <tr><td>specDrivenHint stores dismissal in user settings, keyed by project</td><td><span class="pill good">verified</span> src/renderer/specDrivenHint.js:184-199 (anchor: sidebar-settings-btn, :21)</td></tr>
+    <tr><td>Telemetry registry is enum-only; validateEvent strips/rejects</td><td><span class="pill good">verified</span> src/main/telemetryEvents.js:17-42, :69-80; registry rule requires PRIVACY.md update (:14-15)</td></tr>
+    <tr><td>INITIALIZE_FRAME_PROJECT payload is {projectPath, projectName, confirmed}</td><td><span class="pill good">verified</span> src/renderer/state.js:223 · src/main/frameProject.js:523</td></tr>
+    <tr><td>Open-time self-heal lives in CHECK_IS_FRAME_PROJECT</td><td><span class="pill good">verified</span> src/main/frameProject.js:500</td></tr>
+    <tr><td>New evidence: audit-q3-performance-resources (implementing) holds frameProject.js + index.html in its footprint</td><td><span class="pill warn">in-flight collision</span> .frame/specs/audit-q3-performance-resources/plan.md ## Footprint — declared in this plan's footprint; orchestrator serializes</td></tr>
+    <tr><td>Testing record</td><td><span class="pill good">present &amp; populated</span> PROJECT_NOTES.md ## Testing — node --test over test/*.test.js; renderer not covered (no DOM harness)</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — Remove flow assumed <code>confirmRemoveProject</code> was callable from the new modal, but it isn't exported → added the export to the <code>projectListUI.js</code> entry in Files and Sequencing 5.</li>
+    <li><b>Iteration 2</b> — Hint anchored to a hover-hidden gear would point at nothing; and the init modal needs <code>isRepo</code> before <code>.frame/</code> exists → added the forced-visible gear class, and pinned <code>GET_GIT_SHARING_STATE</code> to work without a <code>.frame/</code> directory.</li>
+    <li><b>Iteration 3</b> — S12's <code>source</code> attribution was unowned: hint and modal both write, init writes separately → routed all post-init writes through <code>SET_GIT_SHARING</code> (source 'settings'), init handler fires with source 'init'; recorded in decisions.</li>
+    <li><b>Iteration 4</b> — Full G/C/S sweep and format check: all 8 goals, 7 constraints, 12 criteria mapped; every referenced path exists or is marked New; tasks derivable from Sequencing alone. No open items — shipped.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-07-30 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/project-settings/plan.md</code></footer>
+</div>
+</body>
+</html>

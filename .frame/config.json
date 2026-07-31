@@ -7,7 +7,8 @@
   "settings": {
     "autoUpdateStructure": true,
     "autoUpdateNotes": false,
-    "taskRecognition": true
+    "taskRecognition": true,
+    "gitSharing": "repo"
   },
   "files": {
     "agents": "AGENTS.md",

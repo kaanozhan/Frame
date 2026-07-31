@@ -817,7 +817,7 @@ ${tree}
 /**
  * .frame/config.json template
  */
-function getFrameConfigTemplate(projectName) {
+function getFrameConfigTemplate(projectName, options = {}) {
   return {
     version: "1.0",
     name: projectName,
@@ -825,17 +825,17 @@ function getFrameConfigTemplate(projectName) {
     createdAt: getISOTimestamp(),
     initializedBy: "Frame",
     settings: {
-      autoUpdateStructure: true,
-      autoUpdateNotes: false,
-      taskRecognition: true
+      // The only per-project setting besides features: whether .frame/ is
+      // machine-local (hidden via .git/info/exclude) or shared in the
+      // repository. Chosen at init, changeable in Project Settings.
+      gitSharing: options.gitSharing === 'repo' ? 'repo' : 'local'
     },
     features: {
-      // Spec-Driven Development is ON for new projects: the spec commands
-      // ship at init, so an AI session can write specs from day one — the
-      // flag being off only hid them from the Specs panel. The user can turn
-      // it off in Settings → Workflow, which flips this flag and strips the
-      // spec section from AGENTS.md.
-      specDriven: true
+      // Spec-Driven Development defaults ON for new projects: the spec
+      // commands ship at init, so an AI session can write specs from day
+      // one — the flag being off only hid them from the Specs panel. The
+      // init modal and Project Settings can turn it off.
+      specDriven: options.specDriven !== false
     },
     files: {
       agents: "AGENTS.md",

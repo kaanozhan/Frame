@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-30",
+  "lastUpdated": "2026-07-31",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -820,6 +820,7 @@
         "workspace",
         "frameStore",
         "gitExclude",
+        "gitSharing",
         "instructionDiscovery",
         "structureBootstrap",
         "commandStaging",
@@ -833,28 +834,28 @@
       ],
       "functions": {
         "init": {
-          "line": 28,
+          "line": 29,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 35,
+          "line": 36,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 43,
+          "line": 44,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 56,
+          "line": 57,
           "params": [
             "filePath",
             "content"
@@ -862,95 +863,98 @@
           "purpose": "Create file if it doesn't exist"
         },
         "checkExistingFrameFiles": {
-          "line": 74,
+          "line": 75,
           "params": [
             "projectPath"
           ],
           "purpose": "Which Frame artifacts already exist — all of them inside `.frame/`."
         },
         "showInitializeConfirmation": {
-          "line": 96,
+          "line": 97,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 146,
+          "line": 147,
           "params": [
             "projectPath",
-            "projectName"
+            "projectName",
+            "options"
           ]
         },
         "doInitializeFrameProject": {
-          "line": 154,
+          "line": 155,
           "params": [
             "projectPath",
-            "projectName"
+            "projectName",
+            "options"
           ]
         },
         "runProjectInit": {
-          "line": 166,
+          "line": 167,
           "params": [
             "projectPath",
-            "projectName"
+            "projectName",
+            "options = {}"
           ]
         },
         "installSpecHintHook": {
-          "line": 325,
+          "line": 340,
           "params": [
             "projectPath"
           ],
           "purpose": "Make the spec-hint hooks available to Claude Code."
         },
         "isSpecDrivenEnabled": {
-          "line": 356,
+          "line": 371,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 361,
+          "line": 376,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 388,
+          "line": 403,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag. The next launch composes a preamble"
         },
         "setSpecDrivenEnabled": {
-          "line": 402,
+          "line": 417,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 406,
+          "line": 421,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 414,
+          "line": 429,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 458,
+          "line": 473,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 494,
+          "line": 509,
           "params": [
             "ipcMain"
           ],
@@ -964,7 +968,9 @@
           "GET_FRAME_CONFIG",
           "IS_SPEC_DRIVEN_ENABLED",
           "ENABLE_SPEC_DRIVEN",
-          "SET_SPEC_DRIVEN"
+          "SET_SPEC_DRIVEN",
+          "GET_GIT_SHARING_STATE",
+          "SET_GIT_SHARING"
         ],
         "emits": [
           "LEGACY_LAYOUT_DETECTED",
@@ -1539,11 +1545,110 @@
           "purpose": "Write `lines` back, preserving the file's trailing-newline convention and"
         },
         "ensure": {
-          "line": 142,
+          "line": 151,
+          "params": [
+            "projectPath",
+            "mode"
+          ],
+          "purpose": "Bring the exclude file to the state the repo currently calls for."
+        }
+      }
+    },
+    "main/gitSharing": {
+      "file": "src/main/gitSharing.js",
+      "description": "gitSharing — the one owner of a project's Git Sharing mode.",
+      "exports": [
+        "getState",
+        "resolveMode",
+        "setMode",
+        "ensureOnOpen",
+        "writeFrameGitignore",
+        "MACHINE_LOCAL_PATHS",
+        "GITIGNORE_BLOCK"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "gitExclude",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "git": {
+          "line": 55,
+          "params": [
+            "projectPath",
+            "args"
+          ]
+        },
+        "isGitRepo": {
+          "line": 63,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "configPath": {
+          "line": 67,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "readConfig": {
+          "line": 72,
           "params": [
             "projectPath"
           ],
-          "purpose": "Bring the exclude file to the state the repo currently calls for."
+          "purpose": "Parsed `.frame/config.json`, or null when absent/unreadable."
+        },
+        "writeConfig": {
+          "line": 81,
+          "params": [
+            "projectPath",
+            "config"
+          ],
+          "purpose": "Read-modify-write preserving every unknown key (the detectProject precedent)."
+        },
+        "declaredMode": {
+          "line": 85,
+          "params": [
+            "config"
+          ]
+        },
+        "resolveMode": {
+          "line": 98,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The declared mode, derived once and persisted when absent (D4):"
+        },
+        "getState": {
+          "line": 121,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The full sharing state for the UI's behaviour matrix."
+        },
+        "setMode": {
+          "line": 139,
+          "params": [
+            "projectPath",
+            "mode"
+          ],
+          "purpose": "The single write path for a mode change — the modal toggle and the sharing"
+        },
+        "ensureOnOpen": {
+          "line": 164,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The project-open path: resolve (deriving and persisting on first sight of"
+        },
+        "writeFrameGitignore": {
+          "line": 179,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Write the signed machine-local block into `.frame/.gitignore`."
         }
       }
     },
@@ -3737,14 +3842,14 @@
       "depends": [],
       "functions": {
         "normalizeTool": {
-          "line": 54,
+          "line": 58,
           "params": [
             "id"
           ],
           "purpose": "Collapse a tool id to the fixed dashboard enum. User-defined custom tool"
         },
         "validateEvent": {
-          "line": 69,
+          "line": 73,
           "params": [
             "name",
             "props"
@@ -3752,7 +3857,7 @@
           "purpose": "Validate an (event, props) pair against the registry."
         },
         "effectiveEnabled": {
-          "line": 93,
+          "line": 97,
           "params": [
             "{ value",
             "loadFailed }"
@@ -5396,6 +5501,7 @@
         "welcomeOverlay",
         "appLoader",
         "settingsModal",
+        "projectSettingsModal",
         "telemetryNotice",
         "healthNotice",
         "specDrivenHint",
@@ -5405,34 +5511,34 @@
       ],
       "functions": {
         "init": {
-          "line": 50,
+          "line": 51,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 247,
+          "line": 249,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 312,
+          "line": 314,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 401,
+          "line": 403,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 432,
+          "line": 434,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 458,
+          "line": 460,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 730,
+          "line": 732,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -6446,6 +6552,7 @@
         "init",
         "loadProjects",
         "renderProjects",
+        "confirmRemoveProject",
         "selectProject",
         "setActiveProject",
         "getActiveProject",
@@ -6462,6 +6569,7 @@
         "electron",
         "shared/ipcChannels",
         "lucide",
+        "projectSettingsModal",
         "terminal"
       ],
       "functions": {
@@ -6515,7 +6623,7 @@
           "purpose": "Create a project item element"
         },
         "renderItemStatus": {
-          "line": 205,
+          "line": 207,
           "params": [
             "container",
             "counts"
@@ -6523,29 +6631,29 @@
           "purpose": "Render the agent status badges for one project into its status container."
         },
         "applyAgentStatuses": {
-          "line": 226,
+          "line": 228,
           "params": [
             "map"
           ],
           "purpose": "Apply per-project agent status counts (from projectStatusBadges) to the"
         },
         "attachDragHandlers": {
-          "line": 240,
+          "line": 242,
           "params": [
             "item"
           ],
           "purpose": "Wire HTML5 drag-and-drop reordering onto a project item. Dragging an item"
         },
         "persistOrder": {
-          "line": 271,
+          "line": 273,
           "purpose": "Read the current DOM order, sync the in-memory list, and persist it."
         },
         "scrollActiveIntoView": {
-          "line": 292,
+          "line": 294,
           "purpose": "Scroll the active project item into view within the (max-3-row) list."
         },
         "confirmRemoveProject": {
-          "line": 303,
+          "line": 305,
           "params": [
             "projectPath",
             "projectName"
@@ -6553,25 +6661,25 @@
           "purpose": "Show confirmation dialog and remove project"
         },
         "selectProject": {
-          "line": 329,
+          "line": 331,
           "params": [
             "projectPath"
           ],
           "purpose": "Select a project"
         },
         "setActiveProject": {
-          "line": 340,
+          "line": 342,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project (visual only)"
         },
         "getActiveProject": {
-          "line": 361,
+          "line": 363,
           "purpose": "Get active project path"
         },
         "addProject": {
-          "line": 368,
+          "line": 370,
           "params": [
             "projectPath",
             "projectName",
@@ -6580,41 +6688,41 @@
           "purpose": "Add project to workspace"
         },
         "removeProject": {
-          "line": 379,
+          "line": 381,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove project from workspace"
         },
         "setupIPC": {
-          "line": 395,
+          "line": 397,
           "purpose": "Setup IPC listeners"
         },
         "selectNextProject": {
-          "line": 408,
+          "line": 410,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 419,
+          "line": 421,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 430,
+          "line": 432,
           "purpose": "Focus project list for keyboard navigation"
         },
         "handleKeydown": {
-          "line": 453,
+          "line": 455,
           "params": [
             "e"
           ],
           "purpose": "Handle keyboard navigation in project list"
         },
         "blur": {
-          "line": 488,
+          "line": 490,
           "purpose": "Blur/unfocus project list"
         },
         "getProjects": {
-          "line": 497,
+          "line": 499,
           "purpose": "Snapshot of the workspace projects (used by the current-project dropdown in"
         }
       },
@@ -6649,6 +6757,60 @@
         },
         "init": {
           "line": 23
+        }
+      }
+    },
+    "renderer/projectSettingsModal": {
+      "file": "src/renderer/projectSettingsModal.js",
+      "description": "Project Settings Modal",
+      "exports": [
+        "init",
+        "open",
+        "close"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "specDrivenHint",
+        "projectListUI"
+      ],
+      "functions": {
+        "init": {
+          "line": 38
+        },
+        "onSharingToggle": {
+          "line": 144,
+          "purpose": "Toggle change → SET_GIT_SHARING, the single write path shared with the"
+        },
+        "renderSharingState": {
+          "line": 170,
+          "params": [
+            "state"
+          ],
+          "purpose": "Render the Sharing section from the behaviour matrix. `effective` carries"
+        },
+        "open": {
+          "line": 199,
+          "params": [
+            "project"
+          ],
+          "purpose": "Open for a project row: { path, name, isFrameProject }. Non-Frame projects"
+        },
+        "syncSpecDrivenToggle": {
+          "line": 236,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Reflect this project's features.specDriven flag. The modal only shows the"
+        },
+        "setSpecDrivenNote": {
+          "line": 251,
+          "params": [
+            "message"
+          ]
+        },
+        "close": {
+          "line": 257
         }
       }
     },
@@ -6874,25 +7036,23 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "state",
-        "specDrivenHint",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 36
+          "line": 32
         },
         "initAboutSection": {
-          "line": 142
+          "line": 96
         },
         "runCheck": {
-          "line": 227,
+          "line": 181,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 266,
+          "line": 220,
           "params": [
             "{ checked",
             "found",
@@ -6904,44 +7064,34 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 290,
+          "line": 244,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 301
+          "line": 255
         },
         "hideSidebarDot": {
-          "line": 305
+          "line": 259
         },
         "formatRelative": {
-          "line": 312,
+          "line": 266,
           "params": [
             "date"
           ]
         },
         "syncToggleFromSettings": {
-          "line": 323
-        },
-        "syncSpecDrivenToggle": {
-          "line": 343,
-          "purpose": "Reflect the current project's features.specDriven flag. With no project"
-        },
-        "setSpecDrivenNote": {
-          "line": 363,
-          "params": [
-            "message"
-          ]
+          "line": 277
         },
         "open": {
-          "line": 369
+          "line": 290
         },
         "close": {
-          "line": 376
+          "line": 297
         },
         "toggle": {
-          "line": 383
+          "line": 304
         }
       },
       "ipc": {
@@ -7043,69 +7193,65 @@
       ],
       "functions": {
         "init": {
-          "line": 31
+          "line": 37
         },
         "evaluate": {
-          "line": 53,
+          "line": 58,
           "purpose": "Show the hint if this project qualifies. Safe to call repeatedly — a"
         },
         "schedule": {
-          "line": 74,
+          "line": 78,
           "params": [
             "projectPath"
           ]
         },
         "refresh": {
-          "line": 85,
+          "line": 89,
           "purpose": "Re-check after the Settings toggle changed the flag."
         },
         "render": {
-          "line": 90,
+          "line": 94,
           "params": [
             "projectPath"
           ]
         },
         "onOutsideClick": {
-          "line": 126,
+          "line": 129,
           "params": [
             "e"
           ]
         },
-        "position": {
-          "line": 135,
-          "purpose": "Anchor to the Settings button: same baseline, just outboard of the rail."
-        },
         "enable": {
-          "line": 157,
+          "line": 136,
           "params": [
             "projectPath",
             "btn"
           ]
         },
         "dismissForever": {
-          "line": 179,
+          "line": 158,
           "params": [
             "projectPath"
           ]
         },
         "markDismissed": {
-          "line": 189,
+          "line": 168,
           "params": [
             "projectPath"
           ],
           "purpose": "Remember that this project should not be hinted at again. Lives in user"
         },
         "isDismissed": {
-          "line": 201,
+          "line": 180,
           "params": [
             "projectPath"
           ]
         },
         "readDismissed": {
-          "line": 206
+          "line": 185
         },
         "hide": {
-          "line": 211
+          "line": 190
         }
       }
     },
@@ -7740,62 +7886,62 @@
           "purpose": "Show custom initialize Frame modal"
         },
         "hideInitializeFrameModal": {
-          "line": 196,
+          "line": 216,
           "purpose": "Hide initialize Frame modal"
         },
         "dismissInitPrompt": {
-          "line": 208,
+          "line": 228,
           "purpose": "Dismiss the prompt without initializing (\"Not Now\" / close / Escape /"
         },
         "handleInitializeFrame": {
-          "line": 219,
+          "line": 239,
           "purpose": "Handle initialize Frame confirmation"
         },
         "setupInitFrameModalListeners": {
-          "line": 234,
+          "line": 268,
           "purpose": "Setup initialize Frame modal listeners"
         },
         "showInitSpotlight": {
-          "line": 260,
+          "line": 294,
           "purpose": "Show spotlight tour for the initialize button (first time only)"
         },
         "dismissSpotlight": {
-          "line": 301,
+          "line": 335,
           "purpose": "Dismiss spotlight and mark as seen"
         },
         "setupSpotlightListeners": {
-          "line": 312,
+          "line": 346,
           "purpose": "Setup spotlight tour listeners"
         },
         "updateProjectUI": {
-          "line": 354,
+          "line": 388,
           "purpose": "Update project UI elements"
         },
         "selectProjectFolder": {
-          "line": 378,
+          "line": 412,
           "purpose": "Request folder selection"
         },
         "createNewProject": {
-          "line": 385,
+          "line": 419,
           "purpose": "Request new project creation"
         },
         "openSampleProject": {
-          "line": 395,
+          "line": 429,
           "purpose": "Open the bundled sample project. Main copies it into the user-data"
         },
         "getIsSampleProject": {
-          "line": 402,
+          "line": 436,
           "purpose": "Check whether the current project is the bundled sample."
         },
         "onSampleChange": {
-          "line": 410,
+          "line": 444,
           "params": [
             "callback"
           ],
           "purpose": "Register a callback fired whenever the current project's"
         },
         "setupIPC": {
-          "line": 417,
+          "line": 451,
           "purpose": "Setup IPC listeners"
         }
       },
@@ -9126,7 +9272,8 @@
         "getFrameConfigTemplate": {
           "line": 820,
           "params": [
-            "projectName"
+            "projectName",
+            "options = {}"
           ],
           "purpose": ".frame/config.json template"
         },
@@ -10337,6 +10484,18 @@
         "direction": "",
         "description": ""
       }
+    },
+    "git": {
+      "GET_GIT_SHARING_STATE": {
+        "name": "get-git-sharing-state",
+        "direction": "",
+        "description": ""
+      },
+      "SET_GIT_SHARING": {
+        "name": "set-git-sharing",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -10468,6 +10627,18 @@
         "description": "Frame Templates"
       }
     ],
+    "git": [
+      {
+        "module": "main/gitExclude",
+        "file": "src/main/gitExclude.js",
+        "description": "gitExclude — keep `.frame/` out of git without touching the tracked tree."
+      },
+      {
+        "module": "main/gitSharing",
+        "file": "src/main/gitSharing.js",
+        "description": "gitSharing — the one owner of a project's Git Sharing mode."
+      }
+    ],
     "git-branches": [
       {
         "module": "main/gitBranchesManager",
@@ -10577,6 +10748,11 @@
         "module": "renderer/openProjectModal",
         "file": "src/renderer/openProjectModal.js",
         "description": "Open Project Modal"
+      },
+      {
+        "module": "renderer/projectSettingsModal",
+        "file": "src/renderer/projectSettingsModal.js",
+        "description": "Project Settings Modal"
       }
     ],
     "orchestration": [
@@ -10672,6 +10848,11 @@
         "module": "renderer/projectSection",
         "file": "src/renderer/projectSection.js",
         "description": "Projects Section"
+      },
+      {
+        "module": "renderer/projectSettingsModal",
+        "file": "src/renderer/projectSettingsModal.js",
+        "description": "Project Settings Modal"
       },
       {
         "module": "renderer/projectStatusBadges",

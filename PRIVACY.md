@@ -18,6 +18,7 @@ The complete event list:
 | `orchestrator_opened` | — | the orchestrator view was opened |
 | `orchestration_run_started` | — | a parallel orchestration run began |
 | `plugin_toggled` | `action`: `enabled` / `disabled` | the plugin system is being used (never which plugin) |
+| `project_sharing_set` | `mode`: `local` / `repo`; `source`: `init` / `settings` | whether Git Sharing is used, and from where it was chosen (never which project or repository) |
 | `ai_tool_selected` | `tool`: `claude` / `codex` / `gemini` / `custom` | which AI tool is preferred |
 | `error_occurred` | `category`: a fixed list of failure types (e.g. `agent_cli_not_found`, `orch_merge_failed`) | what breaks in the wild — counts only, never error messages, stack traces, or file paths |
 

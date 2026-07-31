@@ -86,3 +86,24 @@ test('normalizeTool collapses everything outside the built-ins to custom', () =>
   assert.equal(normalizeTool(undefined), 'custom');
   assert.equal(normalizeTool(null), 'custom');
 });
+
+// ─── project_sharing_set ──────────────────────────────────
+
+test('project_sharing_set passes validation with in-enum values', () => {
+  assert.deepEqual(
+    validateEvent('project_sharing_set', { mode: 'local', source: 'init' }),
+    { mode: 'local', source: 'init' }
+  );
+  assert.deepEqual(
+    validateEvent('project_sharing_set', { mode: 'repo', source: 'settings' }),
+    { mode: 'repo', source: 'settings' }
+  );
+});
+
+test('project_sharing_set strips out-of-enum values and unknown props', () => {
+  assert.deepEqual(validateEvent('project_sharing_set', { mode: 'team', source: 'init' }), { source: 'init' });
+  assert.deepEqual(
+    validateEvent('project_sharing_set', { mode: 'repo', source: 'hint', projectPath: '/Users/x/secret' }),
+    { mode: 'repo' }
+  );
+});

@@ -186,6 +186,26 @@ function showInitializeFrameModal() {
     // Reset the "Don't ask again" checkbox each time the prompt opens.
     const dontAsk = document.getElementById('init-frame-dontask');
     if (dontAsk) dontAsk.checked = false;
+
+    // Reset the init options to their defaults: Spec-Driven on, sharing
+    // local. The Git Sharing choice only exists inside a git repository —
+    // outside one there is no mode to choose, so the block stays hidden.
+    const specDriven = document.getElementById('init-option-spec-driven');
+    if (specDriven) specDriven.checked = true;
+    const localRadio = document.querySelector('input[name="init-option-git-sharing"][value="local"]');
+    if (localRadio) localRadio.checked = true;
+
+    const sharingBlock = document.getElementById('init-option-sharing');
+    if (sharingBlock) {
+      sharingBlock.style.display = 'none';
+      ipcRenderer
+        .invoke(IPC.GET_GIT_SHARING_STATE, currentProjectPath)
+        .then((state) => {
+          if (state && state.isRepo) sharingBlock.style.display = '';
+        })
+        .catch(() => { /* leave hidden */ });
+    }
+
     modal.classList.add('visible');
   }
 }
@@ -217,14 +237,28 @@ function dismissInitPrompt() {
  * Handle initialize Frame confirmation
  */
 function handleInitializeFrame() {
-  hideInitializeFrameModal();
   if (currentProjectPath) {
     const projectName = currentProjectPath.split('/').pop() || currentProjectPath.split('\\').pop();
+
+    // Read both init answers before the modal closes. The sharing radios
+    // only count when the block is visible (i.e. this is a git repository);
+    // hidden radios still hold 'local', which is also the right default.
+    const specDrivenInput = document.getElementById('init-option-spec-driven');
+    const sharingChecked = document.querySelector('input[name="init-option-git-sharing"]:checked');
+    const options = {
+      specDriven: !specDrivenInput || specDrivenInput.checked,
+      gitSharing: sharingChecked && sharingChecked.value === 'repo' ? 'repo' : 'local'
+    };
+
+    hideInitializeFrameModal();
     ipcRenderer.send(IPC.INITIALIZE_FRAME_PROJECT, {
       projectPath: currentProjectPath,
       projectName: projectName,
-      confirmed: true
+      confirmed: true,
+      options
     });
+  } else {
+    hideInitializeFrameModal();
   }
 }
 

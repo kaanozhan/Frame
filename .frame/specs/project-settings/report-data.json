@@ -1,0 +1,116 @@
+{
+  "spec": {
+    "slug": "project-settings",
+    "title": "Project Settings — git sharing and spec-driven become real, per-project choices"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Explicit mode parameter on gitExclude.ensure()",
+      "commit": "4d2cda7",
+      "whatChanged": "ensure(projectPath, mode) in src/main/gitExclude.js: 'repo' joins the tracked check in the removal branch, so the block is never written and an existing one is stripped; 'local'/absent keep the conditional logic with tracked state still overriding. Four new mode cases in test/gitExclude.test.js.",
+      "whyChanged": "D5 requires the init path to pass the sharing mode in explicitly (the config doesn't exist yet at ensure time), and D3 requires that a 'local' declaration never resurrect the block on a tracked repo.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "326 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "src/main/gitSharing.js — the sharing-semantics owner",
+      "commit": "54ddf7c",
+      "whatChanged": "New Electron-free main module: getState (isRepo/declared/tracked/effective, tracked wins per D3), resolveMode (D4 derive-once-persist), setMode (config write → ensure(mode) → .frame/.gitignore, git index never touched), ensureOnOpen, writeFrameGitignore (signed begin/end block listing runtime/, index/, implement-permissions.json, worktrees/, orchestration/, bin/, *.bak, *.tmp, *.corrupt-*), getRepoSignal (remote + distinct authors over 200 commits). 24 new tests in test/gitSharing.test.js.",
+      "whyChanged": "D5 keeps gitExclude ignorant of the config format, so the sharing logic needed its own module (frameProject → gitSharing → gitExclude, one-way). The gitignore block uses explicit begin/end markers instead of gitExclude's comment-plus-one-line form because it is multi-line and unsigned user lines must survive rewrites.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "350 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Config template: dead flags out, gitSharing in, specDriven from options",
+      "commit": "c37514e",
+      "whatChanged": "getFrameConfigTemplate(name, options) in src/shared/frameTemplates.js: autoUpdateStructure/autoUpdateNotes/taskRecognition removed, settings now holds only gitSharing (from options, invalid values fall back to 'local'), features.specDriven from options.specDriven (default true). Three new cases in test/frameTemplates.test.js.",
+      "whyChanged": "The three flags never had a reader (two write-only commits each in all of git history); leaving them in the template would hand every new settings surface three switches that do nothing. Existing configs are deliberately not rewritten — no reader means no behaviour change, and rewriting would diff every shared repo.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "353 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Register the project_sharing_set telemetry event",
+      "commit": "1fe8746",
+      "whatChanged": "project_sharing_set { mode: local|repo, source: init|settings } added to the registry in src/main/telemetryEvents.js and documented in PRIVACY.md's collection table. Validation tests in test/telemetry.test.js: in-enum passes, out-of-enum and unknown props are stripped.",
+      "whyChanged": "D8: repo mode is built on a hypothesis, and the registry rule requires the PRIVACY.md row in the same change. Two enum values carry nothing identifying — consistent with the existing registry.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "355 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Main-process wiring: init options, open path, sharing IPC",
+      "commit": "358dd93",
+      "whatChanged": "initializeFrameProject/runProjectInit accept { specDriven, gitSharing }: the mode drives the pre-mkdir gitExclude.ensure (repo mode never writes the block), both answers bake into the one config write, .frame/.gitignore lands at init. CHECK_IS_FRAME_PROJECT uses gitSharing.ensureOnOpen. New invoke handlers GET_GIT_SHARING_STATE / SET_GIT_SHARING / GET_SHARING_REPO_SIGNAL; project_sharing_set fires with source init/settings. Three new tests in the stubbed init harness.",
+      "whyChanged": "D5's ordering constraint: the exclude decision happens before .frame/ exists, so the mode must ride the call, not be read back from config. SET_GIT_SHARING is the single write path so the modal toggle and the hint cannot diverge.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "358 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "Init modal options block",
+      "commit": "59d1958",
+      "whatChanged": "Options block in index.html's initialize-frame-modal: Spec-Driven checkbox (default on) and the Git Sharing radio pair (default Local to this machine), the sharing group hidden until GET_GIT_SHARING_STATE reports isRepo. state.js resets the options on open and sends both in the init payload. Styles added beside the existing init-modal rules in panels.css.",
+      "whyChanged": "Init asked neither question before — someone setting up a shared team project had to initialize wrong and then discover the fix. Styling landed in panels.css rather than a new file (a small divergence from the plan's Files list) because that file already owns every init-modal-* rule.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "358 tests, 0 failures (renderer is uncovered by design — see plan test posture)"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Project Settings modal + the row gear",
+      "commit": "6181314",
+      "whatChanged": "New projectSettingsModal.js + markup in index.html + project-settings-modal.css (imported from main.css): header, Sharing section rendering the full state matrix (disabled non-repo state, S4 warning with copyable git rm -r --cached .frame), Remove via the newly exported projectListUI.confirmRemoveProject. The row × became a lucide Settings gear on every row; non-Frame projects get header + Remove only. Wired in index.js.",
+      "whyChanged": "Project-scoped affordances had nowhere to live — the row's only action was a nervous one-click ×. The gear and modal require each other lazily to avoid a require cycle; a hidden Workflow placeholder and the .hint-anchored rule land ready for T08's toggle relocation and hint re-anchoring.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "358 tests, 0 failures (renderer is uncovered by design — see plan test posture)"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "App Settings slimdown, spec-driven relocation, hint re-anchor",
+      "commit": "6a307a6",
+      "whatChanged": "Workflow section deleted from App Settings (index.html + settingsModal.js wiring); the spec-driven toggle semantics moved verbatim into Project Settings' Workflow section (snap-back, markDismissed on disable, specDrivenHint.refresh), keyed to the modal's project. specDrivenHint re-anchored from sidebar-settings-btn to the active row's gear, with .hint-anchored forcing the hover-revealed gear visible and copy pointing at Project Settings.",
+      "whyChanged": "The per-project flag sat in the app-wide modal above genuinely global switches — two scopes, one surface. With App Settings losing Workflow, the hint's old anchor and copy both went stale; behaviour is otherwise identical per acceptance 7.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "358 tests, 0 failures (renderer is uncovered by design — see plan test posture)"
+      }
+    },
+    {
+      "id": "T09",
+      "title": "Sharing hint — repo-mode discovery",
+      "commit": "d9e6722",
+      "whatChanged": "New sharingHint.js (specDrivenHint pattern) + sharing-hint.css + main.css import + index.js init. Shows only when the project is a git repo in effective local mode with a remote and >1 distinct author, not dismissed. 'Share in the repository' writes through SET_GIT_SHARING — the same path as the modal toggle; dismissal persists in user settings keyed by project path.",
+      "whyChanged": "The local→repo direction is the only one that doesn't discover itself, and a setting nobody finds is barely a setting. Beyond plan: the hint yields when the spec-driven hint already occupies the same gear — two popovers on one anchor is noise.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "358 tests, 0 failures (renderer is uncovered by design — see plan test posture)"
+      }
+    }
+  ]
+}

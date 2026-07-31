@@ -39,6 +39,7 @@ const cheatSheet = require('./cheatSheet');
 const welcomeOverlay = require('./welcomeOverlay');
 const appLoader = require('./appLoader');
 const settingsModal = require('./settingsModal');
+const projectSettingsModal = require('./projectSettingsModal');
 const telemetryNotice = require('./telemetryNotice');
 const healthNotice = require('./healthNotice');
 const specDrivenHint = require('./specDrivenHint');
@@ -227,6 +228,7 @@ function init() {
   cheatSheet.init();
   welcomeOverlay.init();
   settingsModal.init();
+  projectSettingsModal.init();
   telemetryNotice.init(() => settingsModal.open());
   healthNotice.init();
   sampleBanner.init();

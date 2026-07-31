@@ -12,6 +12,7 @@ const templates = require('../shared/frameTemplates');
 const workspace = require('./workspace');
 const frameStore = require('./frameStore');
 const gitExclude = require('./gitExclude');
+const gitSharing = require('./gitSharing');
 const instructionDiscovery = require('./instructionDiscovery');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
@@ -143,34 +144,37 @@ async function showInitializeConfirmation(projectPath) {
  */
 const inFlightInits = new Map();
 
-function initializeFrameProject(projectPath, projectName) {
+function initializeFrameProject(projectPath, projectName, options) {
   if (inFlightInits.has(projectPath)) return inFlightInits.get(projectPath);
-  const run = doInitializeFrameProject(projectPath, projectName)
+  const run = doInitializeFrameProject(projectPath, projectName, options)
     .finally(() => inFlightInits.delete(projectPath));
   inFlightInits.set(projectPath, run);
   return run;
 }
 
-async function doInitializeFrameProject(projectPath, projectName) {
+async function doInitializeFrameProject(projectPath, projectName, options) {
   // Point the activity record at this project before init starts, so the
   // work init itself does lands in the right bucket rather than in `app`.
   activityLog.setProject(projectPath);
   perfMonitor.opStart('project-init');
   try {
-    return await runProjectInit(projectPath, projectName);
+    return await runProjectInit(projectPath, projectName, options);
   } finally {
     perfMonitor.opEnd('project-init');
   }
 }
 
-async function runProjectInit(projectPath, projectName) {
+async function runProjectInit(projectPath, projectName, options = {}) {
   const name = projectName || path.basename(projectPath);
   const frameDirPath = path.join(projectPath, FRAME_DIR);
+  const gitSharingMode = options.gitSharing === 'repo' ? 'repo' : 'local';
 
   // Before the first artifact exists, not after: the exclude entry is what
   // keeps `git status` clean, and a .frame/ that appears untracked-and-visible
   // even for a moment is the fingerprint this whole model exists to avoid.
-  gitExclude.ensure(projectPath);
+  // The mode is passed in explicitly (D5) — the config it will live in does
+  // not exist yet, so in repo mode the block is simply never written.
+  gitExclude.ensure(projectPath, gitSharingMode);
 
   // Create .frame directory
   await fsp.mkdir(frameDirPath, { recursive: true });
@@ -185,8 +189,13 @@ async function runProjectInit(projectPath, projectName) {
     console.warn('[frame] project detection failed (non-fatal):', err.message);
   }
 
-  // Create .frame/config.json (carrying the detected project block)
-  const config = templates.getFrameConfigTemplate(name);
+  // Create .frame/config.json (carrying the detected project block). Both
+  // init answers are baked into this single write — never written then
+  // rewritten (D5).
+  const config = templates.getFrameConfigTemplate(name, {
+    gitSharing: gitSharingMode,
+    specDriven: options.specDriven !== false
+  });
   if (detectedProject) {
     config.project = detectedProject;
   }
@@ -195,6 +204,12 @@ async function runProjectInit(projectPath, projectName) {
     JSON.stringify(config, null, 2),
     'utf8'
   );
+
+  // .frame/.gitignore — the machine-local manifest. Written unconditionally
+  // (D2): harmless in local mode (the whole directory is excluded anyway),
+  // and in repo mode it is itself committed, so a teammate inherits the
+  // protection before Frame has ever run on their machine.
+  gitSharing.writeFrameGitignore(projectPath);
 
   // ── Every artifact below lands inside .frame/ ────────────────
   //
@@ -496,8 +511,10 @@ function setupIPC(ipcMain) {
     const isFrame = isFrameProject(projectPath);
     // Re-evaluated on every open, which is what makes opting in work: a team
     // that has committed .frame/ gets our exclude line removed here, on every
-    // clone, without anyone running a command.
-    if (isFrame) gitExclude.ensure(projectPath);
+    // clone, without anyone running a command. ensureOnOpen also derives and
+    // persists the mode for pre-upgrade projects (D4) and maintains
+    // .frame/.gitignore, which is how existing projects gain it.
+    if (isFrame) gitSharing.ensureOnOpen(projectPath);
 
     // Full re-scan per open; the watcher underneath is only an optimization.
     const discovery = instructionDiscovery.refresh(projectPath);
@@ -520,7 +537,7 @@ function setupIPC(ipcMain) {
     event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
   });
 
-  ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed }) => {
+  ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed, options }) => {
     try {
       // If not already confirmed by renderer modal, show native dialog as fallback
       if (!confirmed) {
@@ -535,11 +552,15 @@ function setupIPC(ipcMain) {
         }
       }
 
-      const config = await initializeFrameProject(projectPath, projectName);
+      const config = await initializeFrameProject(projectPath, projectName, options);
       // Lazy require, same reason as aiToolManager below: telemetry pulls
       // @aptabase/electron → electron, and CI runs the suite with no
       // node_modules. Keep this module's load graph Electron-free.
       require('./telemetry').track('project_initialized');
+      require('./telemetry').track('project_sharing_set', {
+        mode: options && options.gitSharing === 'repo' ? 'repo' : 'local',
+        source: 'init'
+      });
       event.sender.send(IPC.FRAME_PROJECT_INITIALIZED, {
         projectPath,
         config,
@@ -574,6 +595,21 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.SET_SPEC_DRIVEN, (event, { projectPath, enabled }) =>
     setSpecDrivenEnabled(projectPath, enabled === true)
   );
+
+  // Git Sharing (per project). GET_GIT_SHARING_STATE serves the Project
+  // Settings modal *and* the init modal's "hide the choice outside a git
+  // repo" — it must work before .frame/ exists. SET_GIT_SHARING is the single
+  // write path for every later mode change (modal toggle and sharing hint).
+  ipcMain.handle(IPC.GET_GIT_SHARING_STATE, (event, projectPath) =>
+    gitSharing.getState(projectPath)
+  );
+  ipcMain.handle(IPC.SET_GIT_SHARING, (event, { projectPath, mode }) => {
+    const result = gitSharing.setMode(projectPath, mode);
+    if (result.success) {
+      require('./telemetry').track('project_sharing_set', { mode, source: 'settings' });
+    }
+    return result;
+  });
 }
 
 module.exports = {

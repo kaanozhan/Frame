@@ -5,7 +5,7 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
-const { Bot } = require('lucide');
+const { Bot, Settings } = require('lucide');
 
 let projectsListElement = null;
 let activeProjectPath = null;
@@ -179,16 +179,18 @@ function createProjectItem(project, index) {
   renderItemStatus(status, agentStatusMap.get(project.path));
   item.appendChild(status);
 
-  // Remove button (visible on hover)
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'project-remove-btn';
-  removeBtn.title = 'Remove from list';
-  removeBtn.innerHTML = '&times;';
-  removeBtn.addEventListener('click', (e) => {
+  // Gear button (visible on hover) — opens Project Settings, where Remove
+  // now lives behind its confirmation. One affordance per row, on every row.
+  const gearBtn = document.createElement('button');
+  gearBtn.className = 'project-gear-btn';
+  gearBtn.title = 'Project Settings';
+  gearBtn.innerHTML = lucideIcon(Settings, 13);
+  gearBtn.addEventListener('click', (e) => {
     e.stopPropagation(); // Prevent project selection
-    confirmRemoveProject(project.path, project.name);
+    // Lazy require: the modal requires this module back for confirmRemoveProject.
+    require('./projectSettingsModal').open(project);
   });
-  item.appendChild(removeBtn);
+  item.appendChild(gearBtn);
 
   // Click handler
   item.addEventListener('click', () => {
@@ -502,6 +504,7 @@ module.exports = {
   init,
   loadProjects,
   renderProjects,
+  confirmRemoveProject,
   selectProject,
   setActiveProject,
   getActiveProject,

@@ -168,6 +168,52 @@ test("a hand-written unsigned .frame/ rule is never removed", () => {
   assert.ok(excludeContent(repo).split('\n').includes('.frame/'), "removed someone else's rule");
 });
 
+// ─── explicit mode (git sharing) ──────────────────────────────
+
+test("mode 'repo' never writes the block, and .frame/ stays visible", () => {
+  const repo = makeRepo('repo-mode');
+  seedFrameDir(repo);
+
+  assert.equal(gitExclude.ensure(repo, 'repo'), 'unchanged');
+  const excludePath = gitExclude.excludeFilePath(repo);
+  assert.ok(
+    !fs.existsSync(excludePath) || !fs.readFileSync(excludePath, 'utf8').includes(gitExclude.MARKER),
+    'a block was written in repo mode'
+  );
+  assert.ok(statusPorcelain(repo).includes('.frame/'), '.frame/ was hidden in repo mode');
+});
+
+test("mode 'repo' strips an existing block even while .frame/ is untracked", () => {
+  const repo = makeRepo('repo-mode-strip');
+  seedFrameDir(repo);
+  assert.equal(gitExclude.ensure(repo), 'added');
+
+  assert.equal(gitExclude.ensure(repo, 'repo'), 'removed');
+  assert.ok(!excludeContent(repo).includes(gitExclude.MARKER));
+  assert.ok(statusPorcelain(repo).includes('.frame/'), '.frame/ stayed hidden after the strip');
+});
+
+test("mode 'local' behaves like today's default on an untracked repo", () => {
+  const repo = makeRepo('local-mode');
+  seedFrameDir(repo);
+
+  assert.equal(gitExclude.ensure(repo, 'local'), 'added');
+  assert.ok(excludeContent(repo).includes(gitExclude.EXCLUDE_BLOCK));
+  assert.equal(statusPorcelain(repo), '');
+});
+
+test("mode 'local' does not resurrect the block on a tracked repo (D3)", () => {
+  const repo = makeRepo('local-mode-tracked');
+  seedFrameDir(repo);
+  gitExclude.ensure(repo);
+  git(repo, 'add', '-f', `${FRAME_DIR}/config.json`);
+  git(repo, 'commit', '-qm', 'track frame');
+
+  assert.equal(gitExclude.ensure(repo, 'local'), 'removed');
+  assert.ok(!excludeContent(repo).includes(gitExclude.MARKER), 'tracked repo kept our block');
+  assert.equal(gitExclude.ensure(repo, 'local'), 'unchanged');
+});
+
 // ─── no repo / worktrees ──────────────────────────────────────
 
 test('a directory outside any git repository is a no-op', () => {

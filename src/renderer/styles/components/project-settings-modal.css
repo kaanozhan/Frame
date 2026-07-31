@@ -1,0 +1,99 @@
+/*
+ * Project Settings modal — follows settings-modal.css vocabulary (the modal
+ * reuses .settings-modal/.settings-section/.settings-row wholesale); only the
+ * project-specific pieces live here, plus the row gear that opens it.
+ */
+
+.project-settings-heading {
+  min-width: 0;
+}
+
+.project-settings-path {
+  margin: 2px 0 0;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* S4 — declared local while .frame/ is tracked: the one conflicted state. */
+.project-settings-warning {
+  margin-top: var(--space-sm);
+  background: rgba(200, 160, 60, 0.1);
+  border: 1px solid rgba(200, 160, 60, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+}
+
+.project-settings-warning p {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #c8a03c;
+}
+
+.project-settings-warning code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.project-settings-copy-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color, rgba(128, 128, 128, 0.25));
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.project-settings-copy-btn:hover {
+  color: var(--text-primary);
+}
+
+.project-settings-remove-btn {
+  background: transparent;
+  border: 1px solid var(--error);
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  font-size: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.project-settings-remove-btn:hover {
+  background: var(--error);
+  color: white;
+}
+
+/* The row gear (replaces the old hover ×) — same hover-reveal discipline as
+   the .project-remove-btn it succeeds. */
+.project-item .project-gear-btn {
+  opacity: 0;
+  visibility: hidden;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 3px 5px;
+  margin-left: var(--space-xs);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.project-item:hover .project-gear-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+.project-item .project-gear-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}

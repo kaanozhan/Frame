@@ -1,10 +1,13 @@
-/* Spec-Driven Development hint — popover anchored on the sidebar's Settings
-   button for projects that predate the feature being on by default. Same
+/* Spec-Driven Development hint — a notice in the window's bottom-left corner
+   for projects that predate the feature being on by default. Same
    elevated-surface language as .sidebar-project-menu, sized like a tooltip
-   rather than a dialog. Position is set inline by specDrivenHint.js. */
+   rather than a dialog. Anchored to nothing: it owns its corner, so no
+   element has to exist for it to appear (see specDrivenHint.js). */
 
 .spec-driven-hint {
   position: fixed;
+  left: var(--space-md, 16px);
+  bottom: var(--space-md, 16px);
   z-index: 8500;
   width: 260px;
   padding: 12px;

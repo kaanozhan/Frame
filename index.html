@@ -667,6 +667,32 @@
             <li><span class="file-icon">&#128196;</span> .frame/QUICKSTART.md <span class="file-desc">getting started</span></li>
           </ul>
           <p class="init-modal-note">No file outside <code>.frame/</code> is created, modified or deleted &mdash; your <code>CLAUDE.md</code>, <code>AGENTS.md</code> and any other instruction files are read only, never rewritten. <code>.frame/</code> is kept out of git via <code>.git/info/exclude</code>, so <code>git status</code> stays clean.</p>
+          <div class="init-modal-options">
+            <label class="init-modal-option" title="Specs, plans and task lists drive significant work; toggleable later in Project Settings">
+              <input type="checkbox" id="init-option-spec-driven" checked>
+              <span class="init-modal-option-text">
+                <span class="init-modal-option-title">Spec-Driven Development</span>
+                <span class="init-modal-option-desc">Significant work flows through a spec before code</span>
+              </span>
+            </label>
+            <div class="init-modal-option-group" id="init-option-sharing" style="display: none;">
+              <span class="init-modal-option-title">Git Sharing</span>
+              <label class="init-modal-option">
+                <input type="radio" name="init-option-git-sharing" value="local" checked>
+                <span class="init-modal-option-text">
+                  <span class="init-modal-option-title">Local to this machine</span>
+                  <span class="init-modal-option-desc"><code>.frame/</code> is hidden from git; <code>git status</code> stays clean</span>
+                </span>
+              </label>
+              <label class="init-modal-option">
+                <input type="radio" name="init-option-git-sharing" value="repo">
+                <span class="init-modal-option-text">
+                  <span class="init-modal-option-title">Shared in the repository</span>
+                  <span class="init-modal-option-desc">Specs and notes can be committed; machine-local files stay out</span>
+                </span>
+              </label>
+            </div>
+          </div>
           <div id="init-frame-existing-warning" class="init-modal-warning" style="display: none;">
             <p>These files already exist and will NOT be overwritten:</p>
             <ul id="init-frame-existing-list"></ul>
@@ -1263,6 +1289,70 @@
     <button class="context-menu-item" data-action="copy-path" type="button">Copy Filepath</button>
   </div>
 
+  <!-- Project Settings Modal (opened from the project row's gear) -->
+  <div id="project-settings-overlay" class="settings-overlay">
+    <div class="settings-modal" role="dialog" aria-label="Project Settings">
+      <div class="settings-header">
+        <div class="project-settings-heading">
+          <h3 class="settings-title" id="project-settings-name">Project Settings</h3>
+          <p class="project-settings-path" id="project-settings-path"></p>
+        </div>
+        <button type="button" class="settings-close" data-project-settings-close aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-section" id="project-settings-workflow-section">
+          <h4 class="settings-section-title">Workflow</h4>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="project-settings-spec-driven-toggle">Spec-Driven Development</label>
+              <p class="settings-row-desc" id="project-settings-spec-driven-desc">
+                Structure AI work into specs → plans → tasks under
+                <code>.frame/specs/</code>, visible in the Specs panel. Applies to this
+                project: turning it off stops Frame telling your AI tool
+                about specs from the next launch; existing specs are kept on disk.
+              </p>
+              <p class="settings-row-desc" id="project-settings-spec-driven-note" style="display:none;"></p>
+            </div>
+            <label class="settings-switch">
+              <input type="checkbox" id="project-settings-spec-driven-toggle" />
+              <span class="settings-switch-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section" id="project-settings-sharing-section">
+          <h4 class="settings-section-title">Sharing</h4>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="project-settings-sharing-toggle">Shared in the repository</label>
+              <p class="settings-row-desc" id="project-settings-sharing-desc"></p>
+              <div id="project-settings-sharing-warning" class="project-settings-warning" style="display:none;">
+                <p><code>.frame/</code> is committed to this repository, so it's shared with everyone
+                who clones it &mdash; this setting can't hide it. To make it local again, run
+                <code>git rm -r --cached .frame</code> and commit that.</p>
+                <button type="button" id="project-settings-copy-untrack" class="project-settings-copy-btn">Copy command</button>
+              </div>
+            </div>
+            <label class="settings-switch">
+              <input type="checkbox" id="project-settings-sharing-toggle" />
+              <span class="settings-switch-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h4 class="settings-section-title">Remove from Frame</h4>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <p class="settings-row-desc">Removes this project from Frame's list. Nothing on disk is deleted.</p>
+            </div>
+            <button type="button" id="project-settings-remove-btn" class="project-settings-remove-btn">Remove&hellip;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="settings-overlay" class="settings-overlay">
     <div class="settings-modal" role="dialog" aria-label="Settings">
@@ -1271,26 +1361,6 @@
         <button type="button" class="settings-close" data-settings-close aria-label="Close">&#x2715;</button>
       </div>
       <div class="settings-body">
-        <div class="settings-section">
-          <h4 class="settings-section-title">Workflow</h4>
-          <div class="settings-row">
-            <div class="settings-row-text">
-              <label class="settings-row-label" for="settings-spec-driven-toggle">Spec-Driven Development</label>
-              <p class="settings-row-desc" id="settings-spec-driven-desc">
-                Structure AI work into specs → plans → tasks under
-                <code>.frame/specs/</code>, visible in the Specs panel. Applies to the
-                current project: turning it off stops Frame telling your AI tool
-                about specs from the next launch; existing specs are kept on disk.
-              </p>
-              <p class="settings-row-desc" id="settings-spec-driven-note" style="display:none;"></p>
-            </div>
-            <label class="settings-switch">
-              <input type="checkbox" id="settings-spec-driven-toggle" />
-              <span class="settings-switch-slider"></span>
-            </label>
-          </div>
-        </div>
-
         <div class="settings-section">
           <h4 class="settings-section-title">Privacy &amp; Analytics</h4>
           <div class="settings-row">

@@ -115,3 +115,23 @@ test('the project variant still renders its own facts and stamp', () => {
   assert.ok(/Project Facts/.test(text));
   assert.ok(/Creation date/.test(text));
 });
+
+// ─── config template ──────────────────────────────────────────
+
+test('the config template carries gitSharing and none of the dead flags', () => {
+  const config = templates.getFrameConfigTemplate('MyProject');
+  assert.equal(config.settings.gitSharing, 'local', 'default sharing mode is local');
+  assert.deepEqual(Object.keys(config.settings), ['gitSharing'], 'a dead flag survived in settings');
+  assert.equal(config.features.specDriven, true, 'spec-driven defaults on');
+});
+
+test('the config template takes both init answers from options', () => {
+  const config = templates.getFrameConfigTemplate('MyProject', { gitSharing: 'repo', specDriven: false });
+  assert.equal(config.settings.gitSharing, 'repo');
+  assert.equal(config.features.specDriven, false);
+});
+
+test('an invalid gitSharing option falls back to local', () => {
+  const config = templates.getFrameConfigTemplate('MyProject', { gitSharing: 'team' });
+  assert.equal(config.settings.gitSharing, 'local');
+});

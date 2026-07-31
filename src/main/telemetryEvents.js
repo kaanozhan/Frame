@@ -25,6 +25,10 @@ const EVENTS = {
   orchestrator_opened: {},
   orchestration_run_started: {},
   plugin_toggled: { action: ['enabled', 'disabled'] },
+  project_sharing_set: {
+    mode: ['local', 'repo'],
+    source: ['init', 'settings'],
+  },
   ai_tool_selected: { tool: ['claude', 'codex', 'gemini', 'custom'] },
   error_occurred: {
     category: [

@@ -131,15 +131,24 @@ function writeLines(excludePath, lines) {
 /**
  * Bring the exclude file to the state the repo currently calls for.
  *
+ * `mode` is the project's declared git-sharing mode, resolved by the caller —
+ * this module stays ignorant of where it is stored. `'repo'` means the block
+ * must never exist: nothing is written and a previously written block is
+ * stripped. `'local'` or absent keeps the conditional logic below, where a
+ * tracked `.frame/` still removes the block whatever was declared — an
+ * exclude entry only hides untracked files, so honouring `'local'` on a
+ * tracked repo would silently hide every new file while the old ones stay
+ * visible.
+ *
  * Idempotent and self-healing — safe to call on every project open. Returns
  * one of:
  *   'no-repo'    — not a git repository, nothing done
  *   'added'      — our line was written
- *   'removed'    — `.frame/` is tracked now, our line is gone
+ *   'removed'    — our line is gone (`.frame/` tracked, or repo mode)
  *   'unchanged'  — already in the right state
  *   'error'      — the exclude file could not be read or written
  */
-function ensure(projectPath) {
+function ensure(projectPath, mode) {
   if (!projectPath) return 'no-repo';
 
   const excludePath = excludeFilePath(projectPath);
@@ -150,7 +159,7 @@ function ensure(projectPath) {
     const tracked = isFrameTracked(projectPath);
     const { kept, found } = stripOurs(lines);
 
-    if (tracked) {
+    if (tracked || mode === 'repo') {
       if (!found) return 'unchanged';
       writeLines(excludePath, kept);
       return 'removed';
