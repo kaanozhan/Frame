@@ -32,6 +32,7 @@ const contextPreamble = require('../shared/contextPreamble');
 const frameStore = require('./frameStore');
 const globalLayer = require('./globalLayer');
 const instructionDiscovery = require('./instructionDiscovery');
+const launchEnv = require('./launchEnv');
 
 let mainWindow = null;
 let configPath = null;
@@ -63,6 +64,12 @@ const AI_TOOLS = {
     id: 'claude',
     name: 'Claude Code',
     command: 'claude',
+    // Same value as `command`, and it earns its place: once a launch goes
+    // through `.frame/bin/claude`, the availability probe would find the
+    // wrapper and stop there. `fallbackCommand` is what it probes *behind* a
+    // wrapper, so this is how "is Claude Code actually installed" keeps being
+    // asked. Same reason codex and gemini carry it.
+    fallbackCommand: 'claude',
     description: 'Anthropic Claude Code CLI',
     injection: {
       type: INJECTION_FLAG,
@@ -416,23 +423,28 @@ function setupIPC() {
       name
     });
 
-    const primary = await isCommandAvailable(tool.command, projectPath);
+    // The dispatch types what a launch types: the project's wrapper where one
+    // exists, the tool's own command otherwise. Composed here rather than
+    // taken from `tool.command` so the dispatched line and `getLaunchCommand`
+    // can never disagree about which of the two is running.
+    const primaryCommand = wrapperLaunchCommand(projectPath, tool) || tool.command;
+    const primary = await isCommandAvailable(primaryCommand, projectPath);
 
     // When the primary is a path-based wrapper script and the tool
     // declares a fallback, the wrapper almost always `exec`s the
     // fallback (see .frame/bin/codex). Treat the fallback as a hard
     // dependency in that case — wrapper presence alone isn't enough.
-    if (primary.found && tool.fallbackCommand && isPathLike(tool.command)) {
+    if (primary.found && tool.fallbackCommand && isPathLike(primaryCommand)) {
       const fallback = await isCommandAvailable(tool.fallbackCommand, projectPath);
       if (fallback.found) {
-        return ok(tool.command, tool.name);
+        return ok(primaryCommand, tool.name);
       }
       trackProbeFailure(fallback.reason);
       return { available: false, resolvedCommand: null, name: tool.name, reason: fallback.reason };
     }
 
     if (primary.found) {
-      return ok(tool.command, tool.name);
+      return ok(primaryCommand, tool.name);
     }
 
     if (tool.fallbackCommand) {
@@ -465,15 +477,34 @@ function getStartCommand() {
 // ─── Launch-time context injection ────────────────────────────
 
 const RUNTIME_DIR = 'runtime';
-const PREAMBLE_FILE = 'preamble.txt';
-const CLAUDE_SETTINGS_FILE = 'claude-settings.json';
 
 function runtimeDir(projectPath) {
   return path.join(projectPath, FRAME_DIR, RUNTIME_DIR);
 }
 
-function preambleRelPath() {
-  return `${FRAME_DIR}/${RUNTIME_DIR}/${PREAMBLE_FILE}`;
+/**
+ * Runtime files are named per tool, not shared.
+ *
+ * The preamble differs by tool — a native reader is only pointed at Frame's
+ * layers, a tool without that convention is told to read the repo's file too
+ * — so one `preamble.txt` meant whichever tool launched last decided what the
+ * next one read. Harmless while Frame composed every launch; not harmless now
+ * that any tool can be typed by hand at any moment, with no launch to
+ * rewrite the file first.
+ *
+ * `claude` keeps the settings name it already had (`claude-settings.json`),
+ * so nothing that grew to expect that path notices the generalization.
+ */
+function preambleFileName(toolId) {
+  return `preamble-${toolId}.txt`;
+}
+
+function settingsFileName(toolId) {
+  return `${toolId}-settings.json`;
+}
+
+function runtimeRelPath(name) {
+  return `${FRAME_DIR}/${RUNTIME_DIR}/${name}`;
 }
 
 /**
@@ -506,11 +537,27 @@ function safeGlobalPath() {
   }
 }
 
-function writeRuntimeFile(projectPath, name, content) {
-  const dir = runtimeDir(projectPath);
-  fs.mkdirSync(dir, { recursive: true });
-  const target = path.join(dir, name);
+/**
+ * Write only when the content differs.
+ *
+ * These files are regenerated on every project open as well as every launch,
+ * and an unconditional write would touch mtimes — and wake the watchers that
+ * hang off `.frame/` — on each one. Same reasoning, same shape as
+ * `commandStaging.copyIfChanged`.
+ */
+function writeIfChanged(target, content, mode) {
+  let existing = null;
+  try { existing = fs.readFileSync(target, 'utf8'); } catch (_) { /* new file */ }
+  if (existing === content) return false;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, content, 'utf8');
+  if (mode) fs.chmodSync(target, mode);
+  return true;
+}
+
+function writeRuntimeFile(projectPath, name, content) {
+  const target = path.join(runtimeDir(projectPath), name);
+  writeIfChanged(target, content);
   return target;
 }
 
@@ -522,34 +569,186 @@ function writeRuntimeFile(projectPath, name, content) {
  * stop passing the flag and the hooks are gone, with nothing left behind in
  * the repo to clean up.
  */
-function writeClaudeSettings(projectPath) {
+function writeToolSettings(projectPath, tool, extraSettings) {
+  let payload = templates.getSpecHintSettings();
+  for (const source of extraSettings || []) {
+    payload = mergeSettings(payload, readSettingsSource(source));
+  }
   return writeRuntimeFile(
     projectPath,
-    CLAUDE_SETTINGS_FILE,
-    JSON.stringify(templates.getSpecHintSettings(), null, 2) + '\n'
+    settingsFileName(tool.id),
+    JSON.stringify(payload, null, 2) + '\n'
   );
 }
 
-/**
- * Regenerate `.frame/bin/<id>` for a wrapper tool, alongside the preamble file
- * it reads. Rewritten per launch so the preamble is never one session stale.
- */
-function writeWrapper(projectPath, tool, preamble) {
-  const binDir = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR);
-  fs.mkdirSync(binDir, { recursive: true });
+function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
 
-  const target = path.join(binDir, tool.id);
-  const realCommand = tool.fallbackCommand || tool.id;
-  fs.writeFileSync(
+/**
+ * Deep-merge a settings payload. Objects merge key by key, arrays concatenate
+ * (two hook lists are both wanted, not one instead of the other), scalars take
+ * the incoming value.
+ */
+function mergeSettings(base, incoming) {
+  if (!isPlainObject(incoming)) return base;
+  const out = { ...base };
+  for (const [key, value] of Object.entries(incoming)) {
+    if (Array.isArray(value) && Array.isArray(out[key])) out[key] = [...out[key], ...value];
+    else if (isPlainObject(value) && isPlainObject(out[key])) out[key] = mergeSettings(out[key], value);
+    else out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * A `--settings` value is either a path or inline JSON — the CLI takes both,
+ * so both are read here. An unreadable one merges nothing rather than failing
+ * the launch: losing a payload costs the run its permissions, losing the
+ * launch costs the user the session.
+ */
+function readSettingsSource(source) {
+  if (!source) return null;
+  const text = String(source).trim();
+  if (text.startsWith('{')) {
+    try { return JSON.parse(text); } catch (_) { return null; }
+  }
+  try { return JSON.parse(fs.readFileSync(text, 'utf8')); } catch (err) {
+    logger.warn('aiToolManager', `settings payload at ${text} could not be merged:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Split a dispatch's extra flags into the `--settings` payloads to merge and
+ * everything else.
+ *
+ * The autonomous implement launch passes its permissions this way, and the
+ * wrapper (or the inline composition, off-POSIX) already passes Frame's own
+ * settings file. Two `--settings` on one command line means the last one wins
+ * and the spec-hint hooks vanish for exactly the runs nobody is watching —
+ * so the payload is merged into the file Frame writes and the duplicate pair
+ * is dropped.
+ */
+function takeSettingsFlags(extra, settingsFlag) {
+  const rest = [];
+  const payloads = [];
+  if (!settingsFlag) return { rest: [...extra], payloads };
+  for (let i = 0; i < extra.length; i += 1) {
+    if (extra[i] === settingsFlag && i + 1 < extra.length) {
+      payloads.push(extra[i + 1]);
+      i += 1;
+      continue;
+    }
+    rest.push(extra[i]);
+  }
+  return { rest, payloads };
+}
+
+/**
+ * Regenerate `.frame/bin/<id>` for a tool.
+ *
+ * Written for **every** tool since `terminal-context-boundary`, not only the
+ * ones with no prompt flag. With `.frame/bin` first on the terminal's `PATH`,
+ * a hand-typed `claude` has to find something there or the boundary is only
+ * enforced for the tools Frame happened to wrap; and a dispatch that composed
+ * flags itself would then inject them a second time on top of the wrapper's.
+ * One path, not two guarded ones — which is why `injection` is now data the
+ * wrapper reads rather than a switch between two mechanisms.
+ */
+function writeWrapper(projectPath, tool) {
+  const target = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, tool.id);
+  const realCommand = tool.fallbackCommand || tool.command || tool.id;
+  const injection = tool.injection || {};
+  writeIfChanged(
     target,
     templates.getWrapperTemplate(realCommand, {
-      promptFlag: tool.injection.promptFlag || '',
-      preambleFile: preambleRelPath()
+      promptFlag: injection.promptFlag || '',
+      settingsFlag: injection.settingsFlag || '',
+      preambleFile: runtimeRelPath(preambleFileName(tool.id)),
+      settingsFile: runtimeRelPath(settingsFileName(tool.id))
     }),
-    { mode: 0o755 }
+    0o755
   );
-  writeRuntimeFile(projectPath, PREAMBLE_FILE, preamble);
   return target;
+}
+
+/**
+ * Everything a launch of `tool` reads: its preamble, its settings file when it
+ * declares one, and its wrapper. Returns the composed preamble so a caller
+ * that still injects inline (a platform with no wrappers) can use it.
+ */
+function prepareLaunchAssets(projectPath, tool, extraSettings) {
+  let preamble = '';
+  try {
+    preamble = buildPreamble(projectPath, tool.id);
+  } catch (err) {
+    logger.warn('aiToolManager', 'preamble composition failed (launching without it):', err.message);
+  }
+
+  let settingsPath = '';
+  if (preamble) writeRuntimeFile(projectPath, preambleFileName(tool.id), preamble);
+  if (tool.injection && tool.injection.settingsFlag) {
+    settingsPath = writeToolSettings(projectPath, tool, extraSettings);
+  }
+
+  const wrapperPath = launchEnv.supportsWrappers() ? writeWrapper(projectPath, tool) : '';
+  return { preamble, settingsPath, wrapperPath };
+}
+
+/**
+ * Regenerate every configured tool's launch assets for a project.
+ *
+ * Called on project open, beside `gitSharing.ensureOnOpen`. Generation used to
+ * happen only when Frame launched a given tool, which is exactly why a wrapper
+ * written by a Frame from three months ago could still be sitting in
+ * `.frame/bin/` — unreachable then, shadowing the real CLI the moment
+ * `.frame/bin` joined `PATH`. Refreshing on open makes a stale wrapper
+ * impossible rather than unlikely.
+ *
+ * Non-fatal per tool: a read-only checkout costs the user their context, never
+ * their project.
+ */
+/**
+ * The command a launch types for this tool — the wrapper wherever Frame can
+ * write one, the bare CLI otherwise.
+ *
+ * Relative on purpose (`./.frame/bin/<id>`). A dispatch that typed the bare
+ * name would resolve through `PATH` to the same wrapper, and Frame's own flags
+ * would then land on top of the ones the wrapper emits; a relative path can
+ * only ever mean this project's wrapper, so there is no window in which both
+ * are applied.
+ *
+ * Falls back the moment the file is not there: the availability probe can run
+ * before anything has been written, and a path that does not exist reads as
+ * "CLI not installed" — a wrong and very confusing answer.
+ */
+function wrapperLaunchCommand(projectPath, tool) {
+  if (!projectPath || !launchEnv.supportsWrappers()) return '';
+  const rel = `./${FRAME_DIR}/${FRAME_BIN_DIR}/${tool.id}`;
+  return fs.existsSync(path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, tool.id)) ? rel : '';
+}
+
+function bareCommandFor(tool) {
+  // `command` is the wrapper path for the pre-unification wrapper tools, so
+  // the fallback is the only reliable bare name for them.
+  return tool.fallbackCommand || tool.command;
+}
+
+function refreshLaunchAssets(projectPath) {
+  const written = [];
+  if (!projectPath) return { written };
+  if (!fs.existsSync(path.join(projectPath, FRAME_DIR))) return { written };
+
+  for (const tool of Object.values(getAvailableTools())) {
+    try {
+      prepareLaunchAssets(projectPath, tool);
+      written.push(tool.id);
+    } catch (err) {
+      logger.warn('aiToolManager', `launch asset refresh failed for "${tool.id}":`, err.message);
+    }
+  }
+  return { written };
 }
 
 /**
@@ -579,28 +778,39 @@ function getLaunchCommand(projectPath, toolId, extraFlags) {
     };
   }
 
-  let preamble = '';
-  try {
-    preamble = buildPreamble(projectPath, tool.id);
-  } catch (err) {
-    logger.warn('aiToolManager', 'preamble composition failed (launching without it):', err.message);
-  }
-
-  const injection = (tool.injection && tool.injection.type) || INJECTION_WRAPPER;
+  const declared = (tool.injection && tool.injection.type) || INJECTION_WRAPPER;
   const flags = [];
-  let command = tool.command;
+  let command = bareCommandFor(tool);
+  let injection = 'none';
+  let preamble = '';
+
+  // A caller's own `--settings` is merged into the file Frame writes, not
+  // passed a second time; `remaining` is what is left to append verbatim.
+  const { rest: remaining, payloads } = takeSettingsFlags(
+    extra,
+    (tool.injection && tool.injection.settingsFlag) || ''
+  );
 
   try {
-    if (!preamble) {
-      // Nothing to inject — launch bare rather than pass an empty prompt.
-      command = tool.fallbackCommand && injection === INJECTION_WRAPPER ? tool.fallbackCommand : tool.command;
-    } else if (injection === INJECTION_FLAG) {
+    // Written immediately before the command is composed, so a dispatched
+    // launch is never staler than a hand-typed one.
+    const assets = prepareLaunchAssets(projectPath, tool, payloads);
+    preamble = assets.preamble;
+
+    const viaWrapper = wrapperLaunchCommand(projectPath, tool);
+    if (viaWrapper) {
+      // The wrapper emits this tool's flags from the files just written, so
+      // Frame contributes none of its own here — that is what keeps the two
+      // injection paths from stacking now that both exist for every tool.
+      command = viaWrapper;
+      injection = preamble ? INJECTION_WRAPPER : 'none';
+    } else if (preamble && declared === INJECTION_FLAG) {
+      // No wrapper on this platform: compose inline, exactly as before.
       flags.push(tool.injection.promptFlag, preamble);
-      if (tool.injection.settingsFlag) {
-        flags.push(tool.injection.settingsFlag, writeClaudeSettings(projectPath));
+      if (assets.settingsPath) {
+        flags.push(tool.injection.settingsFlag, assets.settingsPath);
       }
-    } else {
-      writeWrapper(projectPath, tool, preamble);
+      injection = INJECTION_FLAG;
     }
   } catch (err) {
     // A read-only or full disk must not cost the user their agent; drop the
@@ -614,12 +824,12 @@ function getLaunchCommand(projectPath, toolId, extraFlags) {
     };
   }
 
-  const launchFlags = [...flags, ...extra];
+  const launchFlags = [...flags, ...remaining];
   return {
     command,
     launchFlags,
     resolvedCommand: composeLaunchCommand(command, launchFlags),
-    injection: preamble ? injection : 'none'
+    injection
   };
 }
 
@@ -632,6 +842,7 @@ module.exports = {
   getCommand,
   getStartCommand,
   getLaunchCommand,
+  refreshLaunchAssets,
   composeLaunchCommand,
   addCustomTool,
   removeCustomTool,

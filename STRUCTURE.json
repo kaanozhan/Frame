@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-31",
+  "lastUpdated": "2026-08-01",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -154,6 +154,7 @@
         "getCommand",
         "getStartCommand",
         "getLaunchCommand",
+        "refreshLaunchAssets",
         "composeLaunchCommand",
         "addCustomTool",
         "removeCustomTool",
@@ -174,7 +175,8 @@
         "shared/contextPreamble",
         "frameStore",
         "globalLayer",
-        "instructionDiscovery"
+        "instructionDiscovery",
+        "launchEnv"
       ],
       "functions": {
         "loginShell": {
@@ -182,7 +184,7 @@
           "purpose": "The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL"
         },
         "init": {
-          "line": 126,
+          "line": 133,
           "params": [
             "window",
             "app"
@@ -190,72 +192,72 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "detectDefaultTool": {
-          "line": 140,
+          "line": 147,
           "purpose": "First run only: default the active tool to a CLI that is actually"
         },
         "loadConfig": {
-          "line": 156,
+          "line": 163,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 183,
+          "line": 190,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 194,
+          "line": 201,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 201,
+          "line": 208,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 209,
+          "line": 216,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 229,
+          "line": 236,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 239,
+          "line": 246,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 256,
+          "line": 263,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "quoteArg": {
-          "line": 276,
+          "line": 283,
           "params": [
             "arg"
           ],
           "purpose": "Compose the command line a lane actually types: the resolved CLI plus any"
         },
         "composeLaunchCommand": {
-          "line": 284,
+          "line": 291,
           "params": [
             "command",
             "launchFlags"
           ]
         },
         "isPathLike": {
-          "line": 289,
+          "line": 296,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 307,
+          "line": 314,
           "params": [
             "command",
             "projectPath"
@@ -263,37 +265,53 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "trackProbeFailure": {
-          "line": 373,
+          "line": 380,
           "params": [
             "reason"
           ]
         },
         "setupIPC": {
-          "line": 381,
+          "line": 388,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 453,
+          "line": 465,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 461,
+          "line": 473,
           "purpose": "Get the start command for active tool"
         },
         "runtimeDir": {
-          "line": 471,
+          "line": 481,
           "params": [
             "projectPath"
           ]
         },
-        "preambleRelPath": {
-          "line": 475
+        "preambleFileName": {
+          "line": 498,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "Runtime files are named per tool, not shared."
+        },
+        "settingsFileName": {
+          "line": 502,
+          "params": [
+            "toolId"
+          ]
+        },
+        "runtimeRelPath": {
+          "line": 506,
+          "params": [
+            "name"
+          ]
         },
         "buildPreamble": {
-          "line": 487,
+          "line": 518,
           "params": [
             "projectPath",
             "toolId"
@@ -301,34 +319,102 @@
           "purpose": "Build the preamble for this project and tool."
         },
         "safeGlobalPath": {
-          "line": 501
+          "line": 532
+        },
+        "writeIfChanged": {
+          "line": 548,
+          "params": [
+            "target",
+            "content",
+            "mode"
+          ],
+          "purpose": "Write only when the content differs."
         },
         "writeRuntimeFile": {
-          "line": 509,
+          "line": 558,
           "params": [
             "projectPath",
             "name",
             "content"
           ]
         },
-        "writeClaudeSettings": {
-          "line": 525,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "The spec-hint hooks, as a settings file inside Frame's own footprint."
-        },
-        "writeWrapper": {
-          "line": 537,
+        "writeToolSettings": {
+          "line": 572,
           "params": [
             "projectPath",
             "tool",
-            "preamble"
+            "extraSettings"
           ],
-          "purpose": "Regenerate `.frame/bin/<id>` for a wrapper tool, alongside the preamble file"
+          "purpose": "The spec-hint hooks, as a settings file inside Frame's own footprint."
+        },
+        "isPlainObject": {
+          "line": 584,
+          "params": [
+            "value"
+          ]
+        },
+        "mergeSettings": {
+          "line": 593,
+          "params": [
+            "base",
+            "incoming"
+          ],
+          "purpose": "Deep-merge a settings payload. Objects merge key by key, arrays concatenate"
+        },
+        "readSettingsSource": {
+          "line": 610,
+          "params": [
+            "source"
+          ],
+          "purpose": "A `--settings` value is either a path or inline JSON — the CLI takes both,"
+        },
+        "takeSettingsFlags": {
+          "line": 633,
+          "params": [
+            "extra",
+            "settingsFlag"
+          ],
+          "purpose": "Split a dispatch's extra flags into the `--settings` payloads to merge and"
+        },
+        "writeWrapper": {
+          "line": 659,
+          "params": [
+            "projectPath",
+            "tool"
+          ],
+          "purpose": "Regenerate `.frame/bin/<id>` for a tool."
+        },
+        "prepareLaunchAssets": {
+          "line": 681,
+          "params": [
+            "projectPath",
+            "tool",
+            "extraSettings"
+          ],
+          "purpose": "Everything a launch of `tool` reads: its preamble, its settings file when it"
+        },
+        "wrapperLaunchCommand": {
+          "line": 726,
+          "params": [
+            "projectPath",
+            "tool"
+          ],
+          "purpose": "The command a launch types for this tool — the wrapper wherever Frame can"
+        },
+        "bareCommandFor": {
+          "line": 732,
+          "params": [
+            "tool"
+          ]
+        },
+        "refreshLaunchAssets": {
+          "line": 738,
+          "params": [
+            "projectPath"
+          ]
         },
         "getLaunchCommand": {
-          "line": 567,
+          "line": 766,
           "params": [
             "projectPath",
             "toolId",
@@ -1110,60 +1196,60 @@
           ]
         },
         "installSpecHintHook": {
-          "line": 341,
+          "line": 339,
           "params": [
             "projectPath"
           ],
           "purpose": "Make the spec-hint hooks available to Claude Code."
         },
         "isSpecDrivenEnabled": {
-          "line": 372,
+          "line": 370,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 377,
+          "line": 375,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 404,
+          "line": 402,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag. The next launch composes a preamble"
         },
         "setSpecDrivenEnabled": {
-          "line": 418,
+          "line": 416,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 422,
+          "line": 420,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 430,
+          "line": 428,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 474,
+          "line": 472,
           "params": [
             "projectPath"
           ]
         },
         "runForegroundMigration": {
-          "line": 519,
+          "line": 517,
           "params": [
             "sender",
             "projectPath"
@@ -1171,7 +1257,7 @@
           "purpose": "Migrate a project the user is waiting on, reporting to the modal."
         },
         "setupIPC": {
-          "line": 559,
+          "line": 557,
           "params": [
             "ipcMain"
           ],
@@ -2287,6 +2373,44 @@
         }
       }
     },
+    "main/launchEnv": {
+      "file": "src/main/launchEnv.js",
+      "description": "launchEnv — where Frame's own `PATH` entry comes from.",
+      "exports": [
+        "supportsWrappers",
+        "frameBinDir",
+        "prependFrameBin"
+      ],
+      "depends": [
+        "path",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "supportsWrappers": {
+          "line": 36,
+          "params": [
+            "platform = process.platform"
+          ],
+          "purpose": "Whether this platform can run the wrappers Frame writes."
+        },
+        "frameBinDir": {
+          "line": 46,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Absolute path to a project's `.frame/bin`, or '' without a project."
+        },
+        "prependFrameBin": {
+          "line": 62,
+          "params": [
+            "pathValue",
+            "projectPath",
+            "platform = process.platform"
+          ],
+          "purpose": "`pathValue` with the project's `.frame/bin` in front."
+        }
+      }
+    },
     "main/logger": {
       "file": "src/main/logger.js",
       "description": "Logger — rotating, redacted log file for the main process.",
@@ -3156,47 +3280,48 @@
       "depends": [
         "node-pty",
         "shared/ipcChannels",
+        "launchEnv",
         "child_process"
       ],
       "functions": {
         "init": {
-          "line": 19,
+          "line": 20,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY module with window reference"
         },
         "getProjectPath": {
-          "line": 26,
+          "line": 27,
           "purpose": "Get current project path"
         },
         "setProjectPath": {
-          "line": 33,
+          "line": 34,
           "params": [
             "path"
           ],
           "purpose": "Set current project path"
         },
         "getShell": {
-          "line": 40,
+          "line": 41,
           "purpose": "Determine shell based on platform"
         },
         "startPTY": {
-          "line": 62,
+          "line": 63,
           "params": [
             "workingDir = null"
           ],
           "purpose": "Start PTY process"
         },
         "writeToPTY": {
-          "line": 114,
+          "line": 120,
           "params": [
             "data"
           ],
           "purpose": "Write data to PTY"
         },
         "resizePTY": {
-          "line": 123,
+          "line": 129,
           "params": [
             "cols",
             "rows"
@@ -3204,15 +3329,15 @@
           "purpose": "Resize PTY"
         },
         "killPTY": {
-          "line": 132,
+          "line": 138,
           "purpose": "Kill PTY process"
         },
         "getCurrentPTY": {
-          "line": 145,
+          "line": 151,
           "purpose": "Get current PTY process"
         },
         "setupIPC": {
-          "line": 152,
+          "line": 158,
           "params": [
             "ipcMain"
           ],
@@ -3257,26 +3382,27 @@
         "promptLogger",
         "telemetry",
         "pollGate",
+        "launchEnv",
         "child_process",
         "fs"
       ],
       "functions": {
         "flushOutput": {
-          "line": 26,
+          "line": 27,
           "params": [
             "terminalId"
           ],
           "purpose": "Flush a terminal's buffered output as one coalesced send."
         },
         "init": {
-          "line": 46,
+          "line": 47,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 61,
+          "line": 62,
           "params": [
             "shellPid",
             "callback"
@@ -3284,14 +3410,14 @@
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
         "getDefaultShell": {
-          "line": 80
+          "line": 81
         },
         "getAvailableShells": {
-          "line": 97,
+          "line": 98,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 183,
+          "line": 184,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -3301,28 +3427,28 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 321,
+          "line": 328,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 336,
+          "line": 343,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 348,
+          "line": 355,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 356,
+          "line": 363,
           "params": [
             "terminalId",
             "data"
@@ -3330,7 +3456,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 366,
+          "line": 373,
           "params": [
             "terminalId",
             "cols",
@@ -3339,40 +3465,40 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 376,
+          "line": 383,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 394,
+          "line": 401,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 411,
+          "line": 418,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 418,
+          "line": 425,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 428,
+          "line": 435,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 438,
+          "line": 445,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 445,
+          "line": 452,
           "params": [
             "ipcMain"
           ],
@@ -7346,20 +7472,24 @@
         "../package.json"
       ],
       "functions": {
+        "syncTerminalBoundarySection": {
+          "line": 40,
+          "purpose": "The terminal boundary is stated only where it is true."
+        },
         "init": {
-          "line": 32
+          "line": 47
         },
         "initAboutSection": {
-          "line": 96
+          "line": 113
         },
         "runCheck": {
-          "line": 181,
+          "line": 198,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 220,
+          "line": 237,
           "params": [
             "{ checked",
             "found",
@@ -7371,34 +7501,34 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 244,
+          "line": 261,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 255
+          "line": 272
         },
         "hideSidebarDot": {
-          "line": 259
+          "line": 276
         },
         "formatRelative": {
-          "line": 266,
+          "line": 283,
           "params": [
             "date"
           ]
         },
         "syncToggleFromSettings": {
-          "line": 277
+          "line": 294
         },
         "open": {
-          "line": 290
+          "line": 307
         },
         "close": {
-          "line": 297
+          "line": 314
         },
         "toggle": {
-          "line": 304
+          "line": 321
         }
       },
       "ipc": {
@@ -9499,8 +9629,6 @@
         "AGENTS_SPEC_LEGACY_MATCHERS",
         "getWrapperTemplate",
         "getSpecHintSettings",
-        "getCodexWrapperTemplate",
-        "getGenericWrapperTemplate",
         "getStructureHookSnippet",
         "getStructurePreCommitHookTemplate",
         "getOrchBinScripts",
@@ -9536,7 +9664,7 @@
           "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
         },
         "getAgentsTemplate": {
-          "line": 363,
+          "line": 361,
           "params": [
             "projectName",
             "options"
@@ -9544,14 +9672,14 @@
           "purpose": "options:"
         },
         "getReferenceTemplate": {
-          "line": 473,
+          "line": 467,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 648,
+          "line": 658,
           "params": [
             "projectName",
             "project"
@@ -9559,21 +9687,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 673,
+          "line": 683,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 693,
+          "line": 703,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 739,
+          "line": 749,
           "params": [
             "projectName",
             "project"
@@ -9581,7 +9709,7 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 820,
+          "line": 830,
           "params": [
             "projectName",
             "options = {}"
@@ -9589,50 +9717,39 @@
           "purpose": ".frame/config.json template"
         },
         "getWrapperTemplate": {
-          "line": 874,
+          "line": 895,
           "params": [
             "toolCommand",
             "options"
           ],
-          "purpose": "Wrapper script for a tool with no flag to inject a system prompt."
+          "purpose": "Wrapper script that hands a tool Frame's launch context."
         },
         "getSpecHintSettings": {
-          "line": 917,
+          "line": 990,
           "purpose": "The spec-hint hooks, as a Claude Code settings object."
         },
-        "getCodexWrapperTemplate": {
-          "line": 933
-        },
-        "getGenericWrapperTemplate": {
-          "line": 970,
-          "params": [
-            "toolCommand",
-            "promptFlag = ''"
-          ],
-          "purpose": "Generic AI tool wrapper template"
-        },
         "getStructureHookSnippet": {
-          "line": 1016
+          "line": 1020
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1043,
+          "line": 1047,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1066,
+          "line": 1070,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1078,
+          "line": 1082,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1098
+          "line": 1102
         },
         "getOrchBinScripts": {
-          "line": 1116,
+          "line": 1120,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
@@ -11054,6 +11171,18 @@
         "module": "shared/ipcChannels",
         "file": "src/shared/ipcChannels.js",
         "description": "IPC Channel Constants"
+      }
+    ],
+    "launch": [
+      {
+        "module": "main/launchEnv",
+        "file": "src/main/launchEnv.js",
+        "description": "launchEnv — where Frame's own `PATH` entry comes from."
+      },
+      {
+        "module": "templates/bin/implement-launch",
+        "file": "src/templates/bin/implement-launch.js",
+        "description": ""
       }
     ],
     "manager": [

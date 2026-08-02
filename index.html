@@ -1412,6 +1412,25 @@
           </div>
         </div>
 
+        <div class="settings-section" id="settings-terminal-boundary-section">
+          <h4 class="settings-section-title">Terminal</h4>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <span class="settings-row-label">Frame's context follows Frame's terminal</span>
+              <p class="settings-row-desc">
+                Agents started inside Frame — whether Frame launched them or you typed
+                <code>claude</code>, <code>codex</code> or <code>gemini</code> yourself — are pointed at this
+                project's Frame context. A session started in any other terminal gets the tool's own
+                defaults; Frame changes nothing outside itself.
+              </p>
+              <p class="settings-row-desc">
+                To run a CLI unwrapped in a Frame terminal, prefix it:
+                <code>FRAME_NO_WRAP=1 claude</code>.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-section">
           <h4 class="settings-section-title">About</h4>
           <div class="settings-about">

@@ -1,0 +1,152 @@
+{
+  "spec": {
+    "slug": "terminal-context-boundary",
+    "title": "Terminal Context Boundary — Frame's context follows Frame's terminal"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Add pure `src/main/launchEnv.js` with `frameBinDir`, idempotent `prependFrameBin` and `supportsWrappers`",
+      "commit": "007c58a",
+      "whatChanged": "New pure module src/main/launchEnv.js exporting supportsWrappers(platform), frameBinDir(projectPath) and prependFrameBin(pathValue, projectPath, platform). It requires only node:path and frameConstants — no fs, no Electron. Nothing consumes it yet; T09 wires it into the PTY spawn env.",
+      "whyChanged": "PATH composition is the one piece of this spec that is pure logic, so it was extracted rather than inlined into pty.js/ptyManager.js, which the testing record says stay untested. supportsWrappers() is the single POSIX gate so no call site does its own process.platform check. prependFrameBin drops any later copy of the bin dir instead of returning early on a match anywhere: a real `claude` earlier on PATH would win and the session would silently lose Frame's context, so the entry must be first, not merely present.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "423/423 pass"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Add `test/launchEnv.test.js` covering idempotent prepending, the platform separator and an untouched PATH off-POSIX",
+      "commit": "d15005b",
+      "whatChanged": "12 cases in test/launchEnv.test.js: frameBinDir with and without a project, the POSIX gate, prepend puts the bin dir first, prepending twice is a no-op, an entry sitting behind /usr/local/bin is moved rather than duplicated, the win32 PATH comes back byte-identical, an absent PATH becomes just the bin dir, and empty segments are dropped.",
+      "whyChanged": "The purity case does more than grep the source: it reloads the module through a poisoned Module._load that throws on fs/electron and then exercises prependFrameBin, so a require added later fails the test rather than passing a string match. The move-not-duplicate case is the one that would otherwise regress quietly — a present-but-not-first entry still loses to a real CLI earlier on PATH.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "435/435 pass (12 new)"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Rewrite `getWrapperTemplate` to be recursion-safe and emit its tool's flags",
+      "commit": "c687f6b",
+      "whatChanged": "The wrapper now resolves the real CLI at run time with its own directory filtered out of PATH (`PATH=\"$(path_without_self)\" command -v <tool>`) and execs \"$REAL_CLI\", so a wrapper named after its tool cannot re-enter itself. It builds a frame_args array from the injection record — promptFlag in front of the preamble or the preamble positionally, settingsFlag appended only when that file exists — and keeps `exec \"$REAL_CLI\" \"$@\"` when the preamble is missing. A missing CLI exits 127 with a named message instead of looping.",
+      "whyChanged": "Resolution is at run time rather than baked in at write time so a version-manager switch or reinstall is picked up immediately; an absolute path written at project open would go stale silently. The settings flag is conditional on the file existing because the payload is optional while the preamble is not. Deviation from plan.md's sequencing: the three existing wrapper assertions in test/frameTemplates.test.js asserted the old `exec codex ...` shape and were updated here rather than in T04 — a rewrite that leaves the suite red is not a finished task. T04 still adds the four new cases.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "435/435 pass; wrapper also exercised end-to-end in a sandbox — self-exec, arg passthrough, missing preamble, missing settings, absent CLI"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Extend `test/frameTemplates.test.js` with the wrapper cases",
+      "commit": "0471cd3",
+      "whatChanged": "Six cases added: declared flags appear and undeclared ones do not (a codex-style wrapper must not acquire Claude's flags), the script never execs the CLI by name, and four executed cases that stage a wrapper plus a fake real CLI in a temp dir and run it with .frame/bin first on PATH — no self-exec, `--resume/-p` passthrough, a missing preamble degrading to the bare CLI, and the settings flag skipped when the file is absent.",
+      "whyChanged": "Success criterion 3 asks for a test that would hang or loop if the wrapper re-entered itself, which no string match can provide — so these four run bash for real, under a 10s execFileSync timeout so a recursion regression fails the suite instead of wedging it. They are skipped off-POSIX, where Frame writes no wrappers at all.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "441/441 pass (6 new)"
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Write launch assets for every tool and expose `refreshLaunchAssets(projectPath)`",
+      "commit": "e244396",
+      "whatChanged": "aiToolManager now writes a wrapper for every configured tool (Claude included, custom tools included) behind launchEnv.supportsWrappers(), alongside a per-tool preamble file and, for a tool declaring settingsFlag, its settings file. New writeIfChanged skips identical content; new prepareLaunchAssets(projectPath, tool) is the single writer; new refreshLaunchAssets(projectPath) walks every tool and is non-fatal per tool. getLaunchCommand now goes through prepareLaunchAssets and keeps composing flags as before — T07 changes what it returns.",
+      "whyChanged": "Deviation from plan.md: the preamble is now `.frame/runtime/preamble-<tool>.txt`, not the single preamble.txt. The preamble differs by tool (a native reader gets different text), so one shared file meant whichever tool launched last decided what the next one read — tolerable while Frame composed every launch, wrong now that a tool can be hand-typed with no launch to rewrite the file first. Settings files follow the same rule, and `claude-settings.json` is what `${id}-settings.json` produces for Claude, so no existing path moved.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "441/441 pass; refreshLaunchAssets exercised against a temp project — 3 wrappers at 0755, 3 per-tool preambles, no rewrite on a second open"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "Refresh launch assets on project open",
+      "commit": "8c7339d",
+      "whatChanged": "frameProject's CHECK_IS_FRAME_PROJECT handler now calls aiToolManager.refreshLaunchAssets(projectPath) beside gitSharing.ensureOnOpen and instructionDiscovery.refresh, gated on isFrame and wrapped non-fatally. Init's own loop — which wrote codex/gemini wrappers directly from getWrapperTemplate — was replaced by the same call.",
+      "whyChanged": "Beyond the task as written: init had a second wrapper generator that knew nothing about injection records, so a freshly initialized project and a re-opened one would have produced different wrappers until the first open. One generator, or the shapes drift — which is the exact failure this spec exists to close. Both call sites are lazy requires, since aiToolManager pulls telemetry and init's module graph is deliberately flat.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "441/441 pass"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Dispatch through the wrapper on POSIX",
+      "commit": "88c4667",
+      "whatChanged": "getLaunchCommand now returns `./.frame/bin/<id>` with no Frame flags of its own for every tool on POSIX, and falls back to the bare command plus inline flags where no wrapper exists. New wrapperLaunchCommand() and bareCommandFor() are the one place that choice is made, and CHECK_AI_TOOL_AVAILABLE composes its dispatched line from the same helper. Claude gained fallbackCommand: 'claude'.",
+      "whyChanged": "The dispatched command is a relative path, not the bare name: a bare `claude` would resolve through PATH to the same wrapper once T09 lands, and Frame's flags would stack on the wrapper's. Beyond the task as written, the availability handler had to move too — it, not getLaunchCommand, composes the line agentDispatch actually types, so leaving it on tool.command would have made the two disagree. Claude's fallbackCommand exists so the probe still asks whether the real CLI is installed instead of stopping at the wrapper it always finds.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "441/441 pass; all three tools verified to compose ./.frame/bin/<id> with a dispatch's extra flags appended"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "One `--settings`: merge the dispatch's payload instead of passing it twice",
+      "commit": "7818eb2",
+      "whatChanged": "getLaunchCommand splits `--settings <value>` pairs out of extraFlags (takeSettingsFlags) and merges each payload into the settings file it writes for the tool (mergeSettings + readSettingsSource, which accepts a path or inline JSON). The remaining flags — `--permission-mode auto` — are appended as before, so an autonomous implement launch now carries exactly one --settings and the spec-hint hooks survive it.",
+      "whyChanged": "Merging where the file is written keeps hooks Claude-only for free: only a tool declaring settingsFlag ever reaches that code. Arrays concatenate rather than replace, since two hook lists are both wanted. An unreadable payload merges nothing and logs, rather than failing the launch — losing permissions costs the run, losing the launch costs the session. Verified that a launch without extra flags rewrites the file back to hooks-only, so permissions never leak into the next session.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "441/441 pass; merge verified against a real implement-permissions.json, inline JSON, and a settingsFlag-less tool (pair left untouched)"
+      }
+    },
+    {
+      "id": "T09",
+      "title": "Compose the PTY spawn env through `launchEnv.prependFrameBin`",
+      "commit": "059dc93",
+      "whatChanged": "Both PTY spawn sites now set PATH through launchEnv.prependFrameBin: src/main/pty.js uses workingDir || currentProjectPath, src/main/ptyManager.js uses projectPath || workingDir, both scoped to the spawned child. From here a hand-typed claude, codex or gemini inside a Frame terminal resolves to the same wrapper a dispatch runs.",
+      "whyChanged": "Verified against a real `zsh -i -l`, because the shell sources the user's rc files after this env is set: on this machine nvm's rc prepends its own bin and .frame/bin no longer leads, but both `claude` and `codex` still resolve to the wrapper because no rc-prepended directory holds those names. That is the actual limit of an env-scoped PATH entry — an rc that prepends the directory holding the CLI would shadow the wrapper — and it is why the entry cannot be made unconditional without writing to a file Frame was not invited into. Followup: an opt-in shell integration (ZDOTDIR-style, still inside .frame/) is the only way to win that ordering; worth its own spec.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "441/441 pass; PATH ordering checked against a real interactive login zsh"
+      }
+    },
+    {
+      "id": "T10",
+      "title": "State the boundary in Settings, with an escape hatch that works",
+      "commit": "3eb5c4b",
+      "whatChanged": "New \"Terminal\" section in index.html states the rule in one sentence — sessions started inside Frame are pointed at this project's context, sessions started elsewhere get the tool's own defaults — and names the escape hatch beside it. settingsModal.js hides the section off-POSIX, where the statement would be false. The wrapper template gained the escape itself: FRAME_NO_WRAP=1 execs the real CLI bare, covered by a new executed test.",
+      "whyChanged": "Divergence from plan.md, which named `command claude` as the escape. It does not work: `command` bypasses shell functions and aliases, not a PATH lookup, so it finds the wrapper too — verified by running it. Success criterion 6 asks for a documented escape that works, so the wrapper now honours FRAME_NO_WRAP, which is one env var, needs no shell knowledge, and reads the same in every shell.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "442/442 pass (1 new); renderer bundle rebuilt"
+      }
+    },
+    {
+      "id": "T11",
+      "title": "Carry the boundary into `getReferenceTemplate`",
+      "commit": "548a8f1",
+      "whatChanged": "getReferenceTemplate gained a \"Where Frame's context reaches\" section before General Rules: sessions started inside Frame are pointed at the project's Frame layers because .frame/bin leads that terminal's PATH, sessions started elsewhere get the tool's defaults, and FRAME_NO_WRAP=1 crosses back the other way.",
+      "whyChanged": "Written for the reader who arrives without context — it says outright that a session which knew nothing about Frame is on the far side of a boundary, not looking at a bug, which is the failure the spec names. The same template backs the global layer (globalLayer.getReferenceTemplate('Frame')), so this reaches existing installs on the next global-layer write, not only new projects as plan.md assumed.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "442/442 pass; rendered section inspected"
+      }
+    },
+    {
+      "id": "T12",
+      "title": "Delete what the overlay left behind",
+      "commit": "e48a2c0",
+      "whatChanged": "Deleted src/templates/CLAUDE.md, getCodexWrapperTemplate and getGenericWrapperTemplate (and the stale header comments above getWrapperTemplate). Removed the project AGENTS.md template's closing note promising a CLAUDE.md → AGENTS.md symlink, with a new test asserting no AGENTS template claims one. Untracked this repository's own .frame/bin/codex — the 29-April pre-overlay wrapper the spec named — and regenerated all three wrappers from the current generator.",
+      "whyChanged": "The symlink note was the last shipped template describing the pre-overlay layout; the negative assertion covered only the global copy, which is why the project copy survived the overlay. .frame/.gitignore already declares bin/ machine-local, so the tracked codex wrapper was both stale and against the repo's own rule — untracking it is what makes it regenerable rather than committed.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "443/443 pass (1 new); templates swept for root-meta and symlink claims"
+      }
+    }
+  ]
+}

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<!--
+  Frame plan report template — project-agnostic; nothing here assumes a
+  specific stack. Copy to .frame/specs/<slug>/plan-report.html and fill
+  every {{...}}. Produced by /spec.plan. Dark-only: styled to Frame's dark
+  design system (warm neutrals, amber accent).
+  Component palette (use as many instances as the plan needs):
+    .flowblock + .fd     -> flow DIAGRAM: rows of typed nodes joined by
+                            labeled arrows; branch rows for alternate paths.
+                            This diagram style is THE canonical way to draw
+                            flows in these reports — do not fall back to
+                            arrow-chain text, swimlanes, or step timelines.
+                            Node roles (rename freely per project):
+                              .actor    user/trigger side
+                              .system   app / API / service work
+                              .data     storage / external side-effects
+                              .decision a fork the flow branches on
+                              .outcome  end state the reader cares about
+    .fd-branch           -> indented alternate-path row after a .decision
+    .fd-legend           -> role legend chips (once, above the first flow)
+    .flownotes           -> architectural notes under EVERY flow
+    .dcard               -> one decision card per fork (no "recommended" badge),
+                            grouped under two h4 headings mirroring the gate
+                            stages: "Business decisions" then "Technical
+                            decisions". A decision born in the gate's
+                            follow-up loop appends a muted chain tag to its
+                            .dhead: <span class="tag">follows from D2</span>
+    coverage             -> three separately-headed tables (Goals / Constraints /
+                            Success criteria), rows in FULL WORDS, IDs only as .tag
+  Keep it self-contained: inline CSS only, no external assets, no build step.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terminal Context Boundary — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  /* ── Flow blocks (diagram style) ── */
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  /* ── Decision cards ── */
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Terminal Context Boundary — Frame's context follows Frame's terminal — Plan Overview</h1>
+  <p class="muted">2026-08-01 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/terminal-context-boundary/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">11 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill">1 prior decision overturned</span><span class="pill">8 sequencing steps</span><span class="pill">2 new files</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Since <code>non-invasive-overlay</code>, Frame plants nothing in a working tree, so an agent learns about Frame only at launch — a preamble of pointers passed as flags to Claude Code, or read from a file by a <code>.frame/bin/&lt;tool&gt;</code> wrapper for Codex and Gemini. The trade was deliberate and it holds. What does not hold is where the boundary falls: the wrapper runs only because Frame <em>types its path</em>, so a user typing <code>claude</code> in Frame's own terminal — the most natural thing in the product — gets nothing. Two sessions in the same window, in the same project, one Frame-aware and one not, with nothing on screen explaining the difference. The rule is also written nowhere, so a user cannot tell a boundary from a bug.</p>
+  <p>The shape of the fix is to make Frame's own <code>bin</code> directory the first entry on <code>PATH</code> in the terminals Frame spawns, and to give every tool a current wrapper there. The obvious alternatives were rejected for one reason each: a line in the user's shell rc and a pointer block in <code>~/.claude/CLAUDE.md</code> both write outside <code>.frame/</code>, which is the rule this product is built on; and both are static, so neither can carry a fresh preamble or the spec-hint hooks. An environment variable on a process Frame spawns leaves nothing on disk to undo.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: what happens when a project opens, what happens when Frame dispatches a launch, and what happens when the user types the CLI's name themselves.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>Frame main process</span>
+    <span class="l-data">disk under .frame/</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Project open refreshes the launch assets</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Project selected</div><div class="fd-sub">CHECK_IS_FRAME_PROJECT</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">refreshLaunchAssets</div><div class="fd-sub">aiToolManager, per configured tool</div></div>
+          <div class="fd-arrow"><span class="lbl">only if content differs</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.frame/bin/&lt;tool&gt;</div><div class="fd-sub">+ runtime/preamble.txt, settings</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Wrappers current</div><div class="fd-sub">an older Frame's script cannot survive an open</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Why project open, not launch:</b> generation is launch-only today, which is why <code>.frame/bin/codex</code> in this repository still carries the pre-overlay template from 29 April. A wrapper that only refreshes when its tool is launched is a wrapper that can shadow the real CLI with stale behaviour the moment <code>PATH</code> makes it reachable.</li>
+          <li><b>Write-if-different:</b> the pattern <code>cli-spec-command-parity</code> established for staged command templates, reused rather than reinvented — repeated opens must not re-trigger the watchers.</li>
+          <li><b>Placement:</b> beside <code>gitSharing.ensureOnOpen</code> and <code>instructionDiscovery.refresh</code> in the same handler, which is already the project-open choke point.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Frame dispatches a launch</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Start / implement</div><div class="fd-sub">agent-dispatch</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">getLaunchCommand</div><div class="fd-sub">refresh assets, then compose</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Wrappers supported here?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">POSIX</span>
+          <div class="fd-node system"><div class="fd-title">types ./.frame/bin/&lt;tool&gt;</div><div class="fd-sub">extra flags ride through "$@"</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Agent with context</div><div class="fd-sub">one exec path</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">Windows</span>
+          <div class="fd-node system"><div class="fd-title">bare command + flags</div><div class="fd-sub">today's behaviour, unchanged</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Why dispatch moves too:</b> once <code>.frame/bin</code> is first on <code>PATH</code>, a dispatch that types <code>claude --append-system-prompt …</code> resolves to the wrapper and the flag is injected twice. Keeping the split would mean adding a bypass whose only job is to stop Frame colliding with itself.</li>
+          <li><b>Ordering is load-bearing:</b> the dispatch switch ships <em>before</em> the <code>PATH</code> change, and the dispatched command is a relative path — so no build ever exists in which both injections apply.</li>
+          <li><b>Freshness preserved:</b> assets are rewritten immediately before the command is composed, so a dispatched launch is never staler than the inline composition it replaces.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — The user types the CLI's name</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">types <code>claude</code></div><div class="fd-sub">in a terminal</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Whose terminal?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">Frame's</span>
+          <div class="fd-node system"><div class="fd-title">PATH → .frame/bin/claude</div><div class="fd-sub">strips own dir, execs real binary</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Same context as a dispatch</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">iTerm / elsewhere</span>
+          <div class="fd-node outcome"><div class="fd-title">Tool's own defaults</div><div class="fd-sub">deliberate — stated in Settings</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The boundary is the terminal, not the dispatch.</b> That is the whole change: the rule Frame intended and the rule Frame enforced were different, and only the second one was visible to users.</li>
+          <li><b>Recursion guard:</b> the wrapper is named after the tool it wraps and sits first on <code>PATH</code>, so resolving by name would re-enter itself. It removes its own directory from <code>PATH</code> before resolving — at runtime, so a version-manager switch or a reinstall cannot leave a baked path pointing at a binary that moved.</li>
+          <li><b>Escape hatch:</b> <code>command claude</code> runs the unwrapped CLI; documented next to the boundary statement rather than left as folklore.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The wrapper, in one look</h3>
+  <pre>#!/usr/bin/env bash
+# Frame AI Tool Wrapper — generated; rewritten on every project open.
+SELF_DIR="$(cd "$(dirname "$0")" &amp;&amp; pwd)"
+PROJECT_ROOT="$(find_project_root)"          # walks up to the dir holding .frame/
+PREAMBLE="$PROJECT_ROOT/.frame/runtime/preamble.txt"
+SETTINGS="$PROJECT_ROOT/.frame/runtime/claude-settings.json"
+
+# Resolve the real binary with our own directory out of the way.
+CLEAN_PATH="${PATH//$SELF_DIR:/}"
+REAL="$(PATH="$CLEAN_PATH" command -v claude)"
+
+if [ -n "$REAL" ] &amp;&amp; [ -f "$PREAMBLE" ]; then
+  exec "$REAL" --append-system-prompt "$(cat "$PREAMBLE")" --settings "$SETTINGS" "$@"
+else
+  exec "${REAL:-claude}" "$@"                # half-written .frame/ → bare CLI
+fi</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+
+  <h4>Business decisions</h4>
+
+  <div class="dcard">
+    <div class="dhead">D1 · Does Windows belong in this spec?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">POSIX now, Windows as its own task</div>
+        <div class="opttrade">Preserves today's behaviour instead of regressing it; Windows users stay on the wrong side of the boundary until that task lands.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Solve Windows here too</div>
+        <div class="opttrade">Every user covered, but the spec grows a second wrapper format, a platform-dependent separator, and a verification pass that needs a Windows machine.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Frame's wrapper mechanism is already POSIX-only — <code>.frame/bin/codex</code> is a bash script and <code>./.frame/bin/codex</code> was never runnable on Windows. Limiting <code>PATH</code> injection to POSIX therefore creates no new gap; it holds the line where it already is.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D2 · Where does the boundary rule get stated?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">App Settings and the REFERENCE template</div>
+        <div class="opttrade">Reaches both readers; the REFERENCE line only lands in new projects, since only the spec section of that file is managed.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Settings only</div>
+        <div class="opttrade">One surface, no doc bloat — but an agent launched outside Frame never encounters the rule, which is exactly the session that raises the question.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Two audiences read in two places. The user meets the rule in Settings beside the escape hatch; the agent meets it in <code>.frame/docs/REFERENCE.md</code>, which is already where the preamble points it. Settings covers every existing user immediately, which is what makes the REFERENCE limitation acceptable.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D3 · What happens to <code>src/templates/CLAUDE.md</code>? <span class="tag">decided silently</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Delete it</div>
+        <div class="opttrade">Removes a file that still instructs agents to read root meta files and closes with a note about a symlink Frame no longer plants.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Rewrite as a project-layer template</div>
+        <div class="opttrade">Would produce a template nothing consumes.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The evidence pass found no code path that reads it — an orphan the overlay left behind. With no consumer, "rewrite" has no defensible form, so this was recorded rather than asked.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+
+  <div class="dcard">
+    <div class="dhead">D4 · How does the wrapper find the real binary?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Resolve at runtime with its own directory stripped from <code>PATH</code></div>
+        <div class="opttrade">Survives a version-manager switch or a reinstall; costs a few lines of bash.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Bake the absolute path in at write time</div>
+        <div class="opttrade">Simpler and deterministic, but goes stale silently when the CLI moves, and stays stale until the next project open.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The wrapper is named after the tool it wraps and sits first on <code>PATH</code>, so resolving by name would re-enter itself. Stripping its own directory removes the recursion and keeps resolution current, which a baked path cannot.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D5 · Does Frame's own dispatch go through the wrapper too? <span class="tag">follows from D4</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Yes — one exec path for everything</div>
+        <div class="opttrade">Collision becomes structurally impossible and the visible command line shortens; it overturns a shipped decision and widens the blast radius of a broken wrapper.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Keep the flag/wrapper split, add a bypass</div>
+        <div class="opttrade">Honours the prior design and keeps inline preamble composition, but needs a bypass — or a per-tool "already injected" check — that exists only to stop Frame colliding with itself.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>non-invasive-overlay</code> split injection per tool, and that split cannot survive <code>PATH</code> injection: the dispatched command resolves to the wrapper and the flag is applied twice. The rejected option answers a self-inflicted collision with a third mechanism; the chosen one removes the second injection path instead. <code>injection.type</code> survives as data — which flags a wrapper emits — rather than as a behavioural switch. Overturning a prior spec's decision is allowed; doing it silently is not, so it is recorded here and will be repeated in <code>outcome.md</code>.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D6 · How is the duplicate <code>--settings</code> fixed?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Merge the payloads at dispatch</div>
+        <div class="opttrade">Small and contained; <code>aiToolManager</code> has to recognise a <code>--settings</code> pair inside the extra flags.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Each tool's injection owns its settings</div>
+        <div class="opttrade">Closes the collision class for good, but changes the contract between <code>specManager</code> and <code>aiToolManager</code> — <code>implement-modes-v2</code>'s territory.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> An autonomous implement launch passes <code>--settings</code> twice today — once for the spec-hint hooks, once for the permissions — and the last flag most likely wins, so the hooks are lost for exactly the runs that go unattended. Merging is a change in one module; the settings file is regenerated per launch anyway. <code>.frame/bin/implement-launch.js</code> keeps its own single flag, since a launch from outside the app has no preamble or hooks to merge with.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D7 · Does this work ship with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Everything testable — extract the pure part</div>
+        <div class="opttrade"><code>PATH</code> composition moves to a pure module so it can be covered; PTY spawning and IPC stay untested, as the record says they must.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Extend the existing pure surface only</div>
+        <div class="opttrade">Fewer files, but the <code>PATH</code> logic stays inside an Electron-coupled module where no test can reach it.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The testing record's convention is to test the pure module and skip its Electron-coupled wrapper — <code>telemetryEvents</code>/<code>telemetry</code>, <code>activityEvents</code>/<code>activityLog</code>, <code>gitSharing</code>. Extracting <code>launchEnv.js</code> follows the project's own pattern rather than inventing a second one, and wrapper generation is already covered in <code>test/frameTemplates.test.js</code>.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>A wrapper from an older Frame shadows the real CLI</td><td>Rewritten on every project open, content-diff only. This is the failure already on disk: <code>.frame/bin/codex</code>, 29 April, still injecting root <code>AGENTS.md</code>.</td></tr>
+    <tr><td>The wrapper execs itself — infinite loop</td><td>Own directory stripped from <code>PATH</code> before resolution; a test that would hang or loop if the guard regressed.</td></tr>
+    <tr><td>CLI reinstalled elsewhere, or a version manager switches versions</td><td>Runtime resolution rather than a path baked in at write time.</td></tr>
+    <tr><td>Half-written <code>.frame/</code> — preamble missing</td><td>Wrapper falls back to <code>exec &lt;real&gt; "$@"</code>; a broken overlay degrades to the bare CLI instead of a broken terminal.</td></tr>
+    <tr><td>Windows, where the bash wrapper cannot run</td><td>No wrapper written, no <code>PATH</code> entry, dispatch falls back to the bare command plus flags — Frame never shadows a working CLI with a script that cannot execute.</td></tr>
+    <tr><td>Autonomous implement flags arriving after the wrapper's own</td><td>Passed through <code>"$@"</code> untouched; the duplicate <code>--settings</code> is merged away at dispatch.</td></tr>
+    <tr><td>A user needs the unwrapped CLI</td><td><code>command claude</code>, documented beside the boundary statement in Settings.</td></tr>
+    <tr><td>Existing projects' <code>REFERENCE.md</code> never gains the boundary line</td><td>Accepted and stated: only the spec section of that file is managed by <code>docsManagedBlock</code>. Settings covers every existing user immediately.</td></tr>
+    <tr><td><code>pty.js</code> / <code>ptyManager.js</code> flagged <code>IN-FLIGHT</code></td><td>Verified stale: <code>audit-q3-performance-resources</code> T10 is a runtime measurement pass, not a code edit.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: Windows wrappers (own task) · a Frame MCP server, which would make this boundary matter less (own spec) · spec-hint hook parity for Codex and Gemini (<code>spec-knowledge-layer</code>) · tool-aware autonomous permission flags (<code>implement-modes-v2</code>).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Every session started inside Frame receives Frame's context, whether Frame composed the command or the user typed it, on all three supported tools <span class="tag">G1</span></td><td>Sequencing 3, 4 and 6 — wrapper generation, dispatch unification, <code>PATH</code> injection</td></tr>
+    <tr><td>Sessions started outside Frame receive the tool's own defaults, and that boundary is stated once where a user will read it <span class="tag">G2</span></td><td>Sequencing 7 — Settings row and REFERENCE template line</td></tr>
+    <tr><td><code>.frame/bin/</code> joins <code>PATH</code> in Frame's PTYs, every supported tool has a current wrapper there, and the wrapper hands the real CLI the same launch line a dispatch would <span class="tag">G3</span></td><td>Sequencing 1, 3 and 6 — <code>launchEnv</code>, generation on open, env composition</td></tr>
+  </table>
+
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Frame writes only inside <code>.frame/</code>; no shell-rc line, no home-directory block <span class="tag">C1</span></td><td>Architecture — resolved decisions; the whole approach exists because the environment is not disk</td></tr>
+    <tr><td>Environment changes are scoped to Frame's own child processes <span class="tag">C2</span></td><td>Sequencing 1 and 6 — <code>launchEnv</code> composes a value, the PTY spawn consumes it</td></tr>
+    <tr><td>A wrapper must never be able to exec itself <span class="tag">C3</span></td><td>Sequencing 2 — strip-own-directory resolution, with its test</td></tr>
+    <tr><td>A stale wrapper must not be reachable <span class="tag">C4</span></td><td>Sequencing 3 — refresh on project open, write-if-different</td></tr>
+    <tr><td>The user's own arguments survive, and an escape to the unwrapped CLI exists <span class="tag">C5</span></td><td>Sequencing 2 (<code>"$@"</code> passthrough) and 7 (documented escape)</td></tr>
+    <tr><td><code>agent-dispatch</code> owns launch composition; no second place builds a launch line <span class="tag">C6</span></td><td>Sequencing 4 — the change lands inside <code>getLaunchCommand</code></td></tr>
+    <tr><td>spec-hint hooks stay Claude-only <span class="tag">C7</span></td><td>Sequencing 5 — the merge happens where the settings file is written, which only a tool declaring <code>settingsFlag</code> reaches</td></tr>
+    <tr><td>The preamble's content does not change; only who receives it <span class="tag">C8</span></td><td>Sequencing 4 — <code>contextPreamble.compose</code> is called, not edited</td></tr>
+  </table>
+
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Typing <code>claude</code> in a Frame terminal yields the same preamble and settings a dispatch would <span class="tag">S1</span></td><td>Sequencing 3, 4, 6 · proven by launching both ways and diffing the resolved command</td></tr>
+    <tr><td>The same holds for <code>codex</code> and <code>gemini</code> <span class="tag">S2</span></td><td>Sequencing 3, 6 · same check per tool</td></tr>
+    <tr><td>A wrapper execs the real CLI, never itself, with <code>.frame/bin</code> first on <code>PATH</code> <span class="tag">S3</span></td><td>Sequencing 2 · proven by a test that would hang or loop on regression</td></tr>
+    <tr><td>Opening a project rewrites wrappers from current templates; opening twice rewrites nothing <span class="tag">S4</span></td><td>Sequencing 3 · proven by mtime and content comparison across two opens</td></tr>
+    <tr><td>User arguments reach the real CLI unchanged <span class="tag">S5</span></td><td>Sequencing 2 · <code>test/frameTemplates.test.js</code> passthrough case</td></tr>
+    <tr><td>A documented escape to the unwrapped CLI works and is discoverable <span class="tag">S6</span></td><td>Sequencing 7 · Settings copy beside the rule</td></tr>
+    <tr><td>On Windows either the wrapper works or none is placed on <code>PATH</code> <span class="tag">S7</span></td><td>Sequencing 3 and 4 · <code>supportsWrappers()</code> gate, verified by the platform-branch test</td></tr>
+    <tr><td>Sessions started outside Frame are unaffected; no machine-wide writes <span class="tag">S8</span></td><td>Sequencing 1 · <code>launchEnv</code> touches no disk, plus the existing init footprint walk-and-diff</td></tr>
+    <tr><td>The boundary is stated once in a surface a user reads <span class="tag">S9</span></td><td>Sequencing 7 · Settings row</td></tr>
+    <tr><td>An autonomous implement launch carries exactly one <code>--settings</code>, hooks active <span class="tag">S10</span></td><td>Sequencing 5 · proven by inspecting the composed launch line and the merged file</td></tr>
+    <tr><td>No shipped template describes the pre-overlay layout or a <code>CLAUDE.md</code> symlink <span class="tag">S11</span></td><td>Sequencing 8 · repository-wide grep after deletion</td></tr>
+    <tr><td>The dead wrapper templates are gone with no remaining call site <span class="tag">S12</span></td><td>Sequencing 8 · grep plus a green suite</td></tr>
+  </table>
+
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>Claude Code is launched by flag; Codex and Gemini by wrapper</td><td><span class="pill good">verified</span> <code>src/main/aiToolManager.js:67–71, 84, 100</code></td></tr>
+    <tr><td>The preamble carries pointers, never content</td><td><span class="pill good">verified</span> <code>src/shared/contextPreamble.js:71</code> — 1 070 characters for this repository</td></tr>
+    <tr><td><code>PATH</code> is untouched in the PTY environment</td><td><span class="pill good">verified</span> <code>src/main/pty.js:79</code>, <code>src/main/ptyManager.js:217</code> — <code>FRAME_NODE</code> is injected there, so the precedent for adding an entry exists</td></tr>
+    <tr><td>The wrapper only runs because Frame types its path</td><td><span class="pill good">verified</span> <code>src/main/aiToolManager.js:84</code> — <code>command: './.frame/bin/codex'</code>, and <code>PATH</code> carries no such entry</td></tr>
+    <tr><td>Wrappers are generated at launch, not at project open</td><td><span class="pill good">verified</span> <code>src/main/aiToolManager.js:537</code> — and <code>.frame/bin/codex</code> on disk is dated 29 April with the pre-overlay header</td></tr>
+    <tr><td><code>getCodexWrapperTemplate</code> and <code>getGenericWrapperTemplate</code> are dead</td><td><span class="pill good">verified</span> exported at <code>src/shared/frameTemplates.js:1145–1146</code>, no call site outside the module</td></tr>
+    <tr><td><code>src/templates/CLAUDE.md</code> describes the pre-overlay layout</td><td><span class="pill good">verified</span> — instructs reading root <code>STRUCTURE.json</code> / <code>PROJECT_NOTES.md</code> / <code>tasks.json</code> and closes with the symlink note; no code path reads the file</td></tr>
+    <tr><td>An autonomous launch passes <code>--settings</code> twice</td><td><span class="pill good">verified</span> <code>src/main/aiToolManager.js:600</code> and <code>src/main/specManager.js:579</code>, merged at <code>aiToolManager.js:395</code></td></tr>
+    <tr><td>Staging on project open, write-if-different, is an established pattern</td><td><span class="pill good">verified</span> <code>src/main/commandStaging.js</code> head comment</td></tr>
+    <tr><td>Wrapper generation already has a test home</td><td><span class="pill good">verified</span> <code>test/frameTemplates.test.js:19–39</code></td></tr>
+    <tr><td><code>pty.js</code> / <code>ptyManager.js</code> sit in an in-flight spec's footprint</td><td><span class="pill warn">stale flag</span> <code>audit-q3-performance-resources</code> T10 is <code>in_progress</code>, but its <code>outcome.md</code> records the remainder as a runtime measurement pass, not a code edit</td></tr>
+    <tr><td>The testing record's convention</td><td><span class="pill good">verified</span> <code>PROJECT_NOTES.md</code> § Testing — <code>node --test test/*.test.js</code>; pure modules tested, Electron-coupled wrappers skipped; <code>src/renderer/</code> not covered</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — two constraints had no owning section (spec-hint hooks staying Claude-only, and the <code>.frame/</code>-only footprint) → both assigned to the resolved-decisions block, with C7 additionally attached to the settings-merge step.</li>
+    <li><b>Iteration 2</b> — wrapper generation and dispatch unification were bundled into overlapping steps → split into mechanism (generate and refresh) and behaviour (dispatch switches to it), each shippable alone.</li>
+    <li><b>Iteration 3</b> — <b>ordering defect:</b> <code>PATH</code> injection placed before dispatch unification would create a build where Frame types <code>claude …</code>, <code>PATH</code> resolves it to the wrapper, and the flags are injected twice → order reversed, and the dispatched command kept as a relative path so no collision window can exist.</li>
+    <li><b>Iteration 4</b> — S8 had no owner, and S10 reappeared under the unified wrapper because the extra flags still append a second <code>--settings</code> → S8 mapped to the pure module's tests plus the existing footprint walk; the merge step redefined to swallow the extra flag pair rather than sit beside it.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-08-01 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/terminal-context-boundary/plan.md</code></footer>
+</div>
+</body>
+</html>

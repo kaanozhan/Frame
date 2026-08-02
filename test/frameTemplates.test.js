@@ -10,6 +10,10 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execFileSync } = require('child_process');
 
 const templates = require('../src/shared/frameTemplates');
 
@@ -18,21 +22,22 @@ const templates = require('../src/shared/frameTemplates');
 test('the wrapper execs the real CLI with the preamble as initial prompt', () => {
   const script = templates.getWrapperTemplate('codex', {});
   assert.ok(script.startsWith('#!/usr/bin/env bash'));
-  assert.ok(script.includes('exec codex "$(cat "$PREAMBLE_FILE")" "$@"'));
-  assert.ok(script.includes('exec codex "$@"'), 'no fallback when the preamble is missing');
+  assert.ok(script.includes('frame_args=("$(cat "$PREAMBLE_FILE")")'));
+  assert.ok(script.includes('exec "$REAL_CLI" "${frame_args[@]}" "$@"'));
+  assert.ok(script.includes('exec "$REAL_CLI" "$@"'), 'no fallback when the preamble is missing');
 });
 
 test('the wrapper is generalized per tool, not written per CLI', () => {
   for (const tool of ['codex', 'gemini', 'some-future-cli']) {
     const script = templates.getWrapperTemplate(tool, {});
-    assert.ok(script.includes(`exec ${tool} `), `${tool} is not execed`);
+    assert.ok(script.includes(`command -v ${tool} `), `${tool} is not resolved`);
     assert.ok(script.includes(`Frame AI Tool Wrapper for ${tool}`));
   }
 });
 
 test('a tool with a prompt flag gets it in front of the prompt', () => {
   const script = templates.getWrapperTemplate('sometool', { promptFlag: '--prompt' });
-  assert.ok(script.includes('exec sometool --prompt "$(cat "$PREAMBLE_FILE")" "$@"'));
+  assert.ok(script.includes('frame_args=("--prompt" "$(cat "$PREAMBLE_FILE")")'));
 });
 
 test('the wrapper reads the preamble from a file, never inlines it', () => {
@@ -52,6 +57,116 @@ test('the wrapper finds the project root by .frame/, not by a root AGENTS.md', (
 test('a custom preamble location is honoured', () => {
   const script = templates.getWrapperTemplate('codex', { preambleFile: '.frame/runtime/other.txt' });
   assert.ok(script.includes('.frame/runtime/other.txt'));
+});
+
+test('only the flags the tool declares are emitted', () => {
+  const claudeLike = templates.getWrapperTemplate('claude', {
+    promptFlag: '--append-system-prompt',
+    settingsFlag: '--settings'
+  });
+  assert.ok(claudeLike.includes('"--append-system-prompt" "$(cat "$PREAMBLE_FILE")"'));
+  assert.ok(claudeLike.includes('frame_args+=("--settings" "$SETTINGS_FILE")'));
+
+  // A tool that declares neither must not acquire Claude's flags by accident —
+  // an unknown flag makes most CLIs refuse to start at all.
+  const bare = templates.getWrapperTemplate('codex', {});
+  assert.ok(!bare.includes('--append-system-prompt'), 'undeclared prompt flag leaked in');
+  assert.ok(!bare.includes('--settings'), 'undeclared settings flag leaked in');
+  assert.ok(!bare.includes('SETTINGS_FILE"'), 'settings block emitted for a tool without the flag');
+});
+
+test('the wrapper resolves the real CLI with its own directory off PATH', () => {
+  const script = templates.getWrapperTemplate('claude', { promptFlag: '--append-system-prompt' });
+  assert.ok(script.includes('path_without_self'), 'no PATH stripping — this wrapper would exec itself');
+  assert.ok(script.includes('[ "$entry" = "$SELF_DIR" ] && continue'));
+  assert.ok(!/exec claude\b/.test(script), 'execs the CLI by name, which is this script');
+});
+
+// ─── wrapper behaviour, executed ──────────────────────────────
+
+// The assertions above read the script; these run it. A wrapper that re-enters
+// itself would recurse until the process table or the timeout gives out, which
+// no string match can catch — the whole reason for the run-time resolution.
+const POSIX = process.platform !== 'win32';
+
+function stageWrapper(toolId, options, { preamble = 'PREAMBLE "quoted" `ticked`', settings = '{}' } = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-wrapper-'));
+  const binDir = path.join(root, 'project', '.frame', 'bin');
+  const runtimeDir = path.join(root, 'project', '.frame', 'runtime');
+  const realDir = path.join(root, 'real');
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.mkdirSync(runtimeDir, { recursive: true });
+  fs.mkdirSync(realDir, { recursive: true });
+
+  fs.writeFileSync(path.join(binDir, toolId), templates.getWrapperTemplate(toolId, options), { mode: 0o755 });
+  if (preamble !== null) fs.writeFileSync(path.join(runtimeDir, 'preamble.txt'), preamble);
+  if (settings !== null) fs.writeFileSync(path.join(runtimeDir, 'claude-settings.json'), settings);
+
+  // The "real" CLI just prints its arguments, one per line, tagged so the
+  // wrapper's own output could never be mistaken for it.
+  fs.writeFileSync(
+    path.join(realDir, toolId),
+    '#!/usr/bin/env bash\nfor a in "$@"; do echo "ARG:$a"; done\n',
+    { mode: 0o755 }
+  );
+
+  return { root, binDir, realDir, projectDir: path.join(root, 'project') };
+}
+
+function runWrapper(staged, toolId, args) {
+  return execFileSync('bash', ['-c', [toolId, ...args].join(' ')], {
+    cwd: staged.projectDir,
+    env: { ...process.env, PATH: `${staged.binDir}:${staged.realDir}:/usr/bin:/bin` },
+    encoding: 'utf8',
+    timeout: 10000
+  });
+}
+
+test('a wrapper named after its tool does not re-enter itself', { skip: !POSIX }, () => {
+  const staged = stageWrapper('claude', {
+    promptFlag: '--append-system-prompt',
+    settingsFlag: '--settings'
+  });
+  // .frame/bin is first on PATH and the wrapper is called `claude`: without
+  // the strip, this call never returns.
+  const out = runWrapper(staged, 'claude', []);
+  assert.ok(out.includes('ARG:--append-system-prompt'), out);
+  assert.ok(out.includes('ARG:PREAMBLE "quoted" `ticked`'), out);
+  assert.ok(out.includes('ARG:--settings'), out);
+});
+
+test("the user's own arguments reach the real CLI unchanged", { skip: !POSIX }, () => {
+  const staged = stageWrapper('claude', { promptFlag: '--append-system-prompt' });
+  const out = runWrapper(staged, 'claude', ['--resume', 'abc123', '-p', '"two words"']);
+  const args = out.trim().split('\n');
+  assert.deepEqual(args.slice(-4), ['ARG:--resume', 'ARG:abc123', 'ARG:-p', 'ARG:two words']);
+});
+
+test('a missing preamble degrades to the bare CLI', { skip: !POSIX }, () => {
+  const staged = stageWrapper('codex', {}, { preamble: null });
+  const out = runWrapper(staged, 'codex', ['--model', 'o3']);
+  assert.equal(out.trim(), 'ARG:--model\nARG:o3', 'the preamble-less wrapper still injected something');
+});
+
+test('FRAME_NO_WRAP runs the CLI with no Frame context', { skip: !POSIX }, () => {
+  const staged = stageWrapper('claude', { promptFlag: '--append-system-prompt' });
+  const out = execFileSync('bash', ['-c', 'FRAME_NO_WRAP=1 claude --resume x'], {
+    cwd: staged.projectDir,
+    env: { ...process.env, PATH: `${staged.binDir}:${staged.realDir}:/usr/bin:/bin` },
+    encoding: 'utf8',
+    timeout: 10000
+  });
+  assert.equal(out.trim(), 'ARG:--resume\nARG:x', 'the escape hatch still injected context');
+});
+
+test('the settings flag is skipped when the settings file is absent', { skip: !POSIX }, () => {
+  const staged = stageWrapper('claude', {
+    promptFlag: '--append-system-prompt',
+    settingsFlag: '--settings'
+  }, { settings: null });
+  const out = runWrapper(staged, 'claude', []);
+  assert.ok(!out.includes('ARG:--settings'), out);
+  assert.ok(out.includes('ARG:--append-system-prompt'), out);
 });
 
 // ─── spec-hint settings ───────────────────────────────────────
@@ -78,6 +193,13 @@ test('every spec-hint command runs from inside .frame/', () => {
 });
 
 // ─── the global layer's content ───────────────────────────────
+
+test('no AGENTS template claims a planted symlink', () => {
+  // The project-layer copy carried this note until the overlay stopped
+  // planting the symlink it described.
+  const project = templates.getAgentsTemplate('Demo', {});
+  assert.ok(!/symlink/i.test(project), 'the project AGENTS layer still promises a symlink');
+});
 
 test('the global AGENTS core references no root file and no symlink', () => {
   const text = templates.getAgentsTemplate('Frame', {

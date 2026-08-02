@@ -29,6 +29,21 @@ let updateLinkEl = null;
 let updateDismissBtn = null;
 let currentUpdateInfo = null;
 
+/**
+ * The terminal boundary is stated only where it is true.
+ *
+ * Frame's wrappers are bash scripts, so `PATH` injection is POSIX-only and a
+ * Windows terminal genuinely does get the tool's own defaults. Showing the
+ * statement there would be the one thing this section exists to prevent: a
+ * user unable to tell a boundary from a bug.
+ */
+function syncTerminalBoundarySection() {
+  const section = document.getElementById('settings-terminal-boundary-section');
+  if (!section) return;
+  const supported = typeof process !== 'undefined' && process.platform !== 'win32';
+  section.style.display = supported ? '' : 'none';
+}
+
 function init() {
   overlayEl = document.getElementById('settings-overlay');
   toggleEl = document.getElementById('settings-telemetry-toggle');
@@ -48,6 +63,8 @@ function init() {
     console.error('Settings modal: required elements not found');
     return;
   }
+
+  syncTerminalBoundarySection();
 
   // Load current value
   syncToggleFromSettings();

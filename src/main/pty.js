@@ -5,6 +5,7 @@
 
 const pty = require('node-pty');
 const { IPC } = require('../shared/ipcChannels');
+const launchEnv = require('./launchEnv');
 
 let ptyProcess = null;
 let mainWindow = null;
@@ -79,7 +80,12 @@ function startPTY(workingDir = null) {
     env: {
       ...process.env,
       TERM: 'xterm-256color',
-      COLORTERM: 'truecolor'
+      COLORTERM: 'truecolor',
+      // Frame's terminal carries Frame's context: `.frame/bin` goes first on
+      // PATH, so a hand-typed `claude` resolves to the same wrapper a Frame
+      // dispatch runs. Scoped to this child process — nothing machine-wide is
+      // touched, and a shell started outside Frame is unaffected.
+      PATH: launchEnv.prependFrameBin(process.env.PATH, workingDir || currentProjectPath)
     }
   });
 

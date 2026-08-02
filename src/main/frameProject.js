@@ -268,16 +268,14 @@ async function runProjectInit(projectPath, projectName, options = {}) {
   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);
   await fsp.mkdir(binDirPath, { recursive: true });
 
-  // Wrapper scripts for the CLIs that cannot take a system prompt by flag.
-  // Written unconditionally, not only when missing: the shape changed with
-  // the overlay (the old wrappers hunted for a root AGENTS.md that no longer
-  // exists), and aiToolManager rewrites them at every launch anyway.
-  for (const toolId of ['codex', 'gemini']) {
-    await fsp.writeFile(
-      path.join(binDirPath, toolId),
-      templates.getWrapperTemplate(toolId, {}),
-      { mode: 0o755 }
-    );
+  // Wrapper scripts for every configured tool, from the one generator that
+  // knows each tool's injection record. Written through aiToolManager rather
+  // than here so a fresh init and a re-open produce byte-identical wrappers —
+  // a second generator is how the shapes drift apart in the first place.
+  try {
+    require('./aiToolManager').refreshLaunchAssets(projectPath);
+  } catch (err) {
+    console.warn('[frame] launch asset generation failed (non-fatal):', err.message);
   }
 
   // Bootstrap STRUCTURE.json auto-fill: ship parser scripts to .frame/bin/,
@@ -576,6 +574,22 @@ function setupIPC(ipcMain) {
     // Full re-scan per open; the watcher underneath is only an optimization.
     const discovery = instructionDiscovery.refresh(projectPath);
     instructionDiscovery.startWatching(projectPath);
+
+    // Wrappers and preambles are regenerated here, not only when Frame
+    // launches a given tool. That is what keeps a stale one out of reach:
+    // generation used to be launch-only, so a project never opened with a
+    // given CLI kept whatever wrapper an older Frame wrote — harmless while
+    // nothing could resolve it, and a script shadowing the real CLI the
+    // moment `.frame/bin` joined the terminal's PATH. Writes only when the
+    // content differs, so a second open touches nothing. Non-fatal.
+    if (isFrame) {
+      try {
+        // Lazy require — aiToolManager pulls telemetry; keep the graph flat.
+        require('./aiToolManager').refreshLaunchAssets(projectPath);
+      } catch (err) {
+        console.warn('[frame] launch asset refresh failed (non-fatal):', err.message);
+      }
+    }
 
     // A pre-overlay project still has its Frame files at the root, where
     // nothing reads them any more. Frame migrates it rather than warning about

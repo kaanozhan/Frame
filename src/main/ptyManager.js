@@ -9,6 +9,7 @@ const logger = require('./logger');
 const promptLogger = require('./promptLogger');
 const telemetry = require('./telemetry');
 const pollGate = require('./pollGate');
+const launchEnv = require('./launchEnv');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
@@ -223,6 +224,12 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
       // `ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" script.mjs` — quote it, the
       // packaged macOS path contains spaces.
       FRAME_NODE: process.execPath,
+      // Frame's terminal carries Frame's context: `.frame/bin` goes first on
+      // PATH, so a hand-typed `claude`, `codex` or `gemini` resolves to the
+      // same wrapper a dispatch runs. Scoped to this child process — nothing
+      // machine-wide is touched, and `command claude` still runs the real CLI
+      // for anyone who wants it unwrapped.
+      PATH: launchEnv.prependFrameBin(process.env.PATH, projectPath || workingDir),
       // Orchestration: FRAME_ORCH_BUS / FRAME_ORCH_SLUG let conductor + worker
       // terminals reach Frame's command bus from any worktree (see
       // orchestrationManager). Null for normal terminals.
