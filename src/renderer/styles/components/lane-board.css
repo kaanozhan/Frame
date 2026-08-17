@@ -252,6 +252,58 @@
   flex-shrink: 0;
 }
 
+/* Shell setup failed for this lane: the statement, a one-click start that goes
+   through the normal launcher, and the command the user could run themselves.
+   Only ever rendered on a failed lane — a lane that was set up says nothing. */
+.lane-card-context {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color, rgba(128, 128, 128, 0.2));
+}
+
+.lane-card-context-note {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--warning, #e5a50a);
+}
+
+.lane-card-context-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lane-card-context-start {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-tertiary, rgba(128, 128, 128, 0.12));
+  border: 1px solid var(--border-color, rgba(128, 128, 128, 0.25));
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.lane-card-context-start:hover {
+  background: var(--bg-hover, rgba(128, 128, 128, 0.2));
+}
+
+.lane-card-context-cmd {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  user-select: text;
+}
+
 .lane-card-status-label.agent-working  { color: var(--accent-primary); }
 .lane-card-status-label.agent-approval { color: var(--error, #d45555); font-weight: 600; }
 .lane-card-status-label.agent-input    { color: var(--warning, #e5a50a); }

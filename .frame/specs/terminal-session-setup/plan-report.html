@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terminal Session Setup — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  /* ── Flow blocks (diagram style) ── */
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
+  .fd-legend .l-actor{color:var(--primary);border-color:var(--primary);}
+  .fd-legend .l-data{font-family:var(--font-mono);}
+  .fd-legend .l-decision{color:var(--accent);border-color:var(--accent);}
+  .fd-legend .l-outcome{color:var(--good);border-color:var(--good);}
+  .flownotes{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  .flownotes ul{font-size:12.5px;color:var(--muted);}
+  .flownotes b{color:var(--ink);}
+
+  /* ── Decision cards ── */
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Terminal Session Setup — the lane Frame opens is a lane Frame set up — Plan Overview</h1>
+  <p class="muted">2026-08-02 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/terminal-session-setup/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">8 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill">8 sequenced steps</span><span class="pill">13 footprint files</span><span class="pill warn">1 success criterion dropped at the gate</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Frame puts <code>.frame/bin</code> first on the <code>PATH</code> of every terminal it spawns, so that typing <code>claude</code> in a Frame lane runs Frame's wrapper — the thing that hands the CLI this project's context. That works right up until the user's own shell disagrees: rc files run <em>after</em> Frame sets the environment, and nvm, Homebrew and pyenv all prepend their own directory. On a normal developer machine <code>.frame/bin</code> lands sixth, behind the very directory <code>npm i -g</code> installs Codex and Gemini into. The guarantee is therefore conditional on where the user happened to install their CLI, and when it loses, it loses <em>silently</em>: the agent starts and simply doesn't know the project.</p>
+  <p>The fix is to stop competing on ordering. When a lane's shell is ready, Frame loads one generated file from <code>.frame/runtime/shell/</code> that defines a shell function per tool — and a function is resolved before any <code>PATH</code> search, so the ordering question disappears rather than being won. The function is a router, not a second injection point: it delegates straight to <code>.frame/bin/&lt;tool&gt;</code>, which remains the only thing that composes the preamble and the only thing that honours <code>FRAME_NO_WRAP=1</code>. <code>PATH</code> stays as the base layer underneath, because functions do not reach subshells and <code>PATH</code> does.</p>
+  <p>The obvious alternative — pointing <code>ZDOTDIR</code> at a directory inside <code>.frame/</code> and wrapping the user's startup files, which is roughly what VS Code's shell integration does — is ruled out by the overlay principle. It writes nothing, but it reroutes a mechanism that belongs to the user, and it buys terminal features (command decorations, cwd detection) this spec does not want. What Frame does instead is configure the session it creates, verify that the configuration landed, and — when verification fails — say so on the lane and offer a start button that is guaranteed to carry context.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Three flows: a lane opening on the happy path, the same lane when verification never confirms, and the readiness signal replacing the fixed delays that every agent launch waits on today.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>system / service</span>
+    <span class="l-data">storage / external</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — A lane opens in a Frame project (zsh / bash)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">New Frame</div><div class="fd-sub">board card, dispatch, or startAiSession</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">ptyManager.createTerminal</div><div class="fd-sub">PATH already carries .frame/bin (base layer)</div></div>
+          <div class="fd-arrow"><span class="lbl">mode: type</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">. init.sh &amp;&amp; print marker</div><div class="fd-sub">written to the PTY; tty queues it until the shell reads</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Output buffered, input queued</div><div class="fd-sub">nothing reaches the renderer while pending</div></div>
+        </div>
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">Marker seen in output</div><div class="fd-sub">everything through that line is dropped</div></div>
+          <div class="fd-arrow"><span class="lbl">state</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">TERMINAL_CONTEXT_STATE</div><div class="fd-sub">installed · ready: true</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">A clean first prompt</div><div class="fd-sub">claude / codex / gemini are functions; typing one hits the wrapper</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The function beats ordering, it does not fight it:</b> shell function lookup precedes <code>PATH</code> search entirely, so nvm prepending its own bin directory is no longer relevant to which <code>claude</code> runs.</li>
+          <li><b>The wrapper stays the injection point:</b> each function is <code>&lt;id&gt;() { "$FRAME_BIN/&lt;id&gt;" "$@"; }</code> with a <code>command &lt;id&gt;</code> fallback. Preamble composition and <code>FRAME_NO_WRAP=1</code> both keep living in exactly one place.</li>
+          <li><b>The marker is absent from the line that carries it:</b> the tty echoes a typed command before running it, so the token is printed from two adjacent quoted fragments and only exists literally in real output. Without this, the scan matches its own echo and reports success before the shell has done anything.</li>
+          <li><b>Suppression sits in front of the existing pipeline:</b> buffered chunks never enter <code>ptyManager</code>'s coalescing/backpressure path, so the invisibility costs nothing in the steady state.</li>
+          <li><b>Not a Frame project → nothing at all:</b> the delivery shape resolves to <code>none</code>, no line is sent and no function or variable is defined.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Setup does not confirm</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Lane spawned</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">Setup pending</div><div class="fd-sub">output buffered, input queued, timer armed</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Marker before the timeout?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node outcome"><div class="fd-title">installed</div><div class="fd-sub">card unchanged; readiness satisfied</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no — 1st</span>
+          <div class="fd-node system"><div class="fd-title">Flush buffer, retype once</div><div class="fd-sub">terminal never left blank; fresh marker token</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Marker now?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no — 2nd</span>
+          <div class="fd-node system"><div class="fd-title">state: failed</div><div class="fd-sub">buffers flushed, working terminal, no context</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">Lane card failure row</div><div class="fd-sub">statement + Start agent + manual one-liner</div></div>
+          <div class="fd-arrow"><span class="lbl">click</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">_startAgentIn</div><div class="fd-sub">the launch path that always carries context</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Fail open, always:</b> every exit path flushes the output buffer and the input queue. Losing context is acceptable; losing the terminal is not.</li>
+          <li><b>The flush is itself the in-lane statement:</b> a user sitting inside a failed lane sees the real <code>source</code> line and whatever error it produced — the failure is legible where it happened, and the card carries the action.</li>
+          <li><b>One launch path:</b> the button calls the existing <code>_startAgentIn</code> through a thin export. This spec adds no second way to start an agent.</li>
+          <li><b>Unsupported ≠ failed:</b> nushell, pwsh and cmd resolve to <code>none</code> and report <code>unsupported</code> — no failure row, because nothing was attempted. Windows has no <code>.cmd</code> shims to point at, and that is blocked rather than deferred by choice.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Starting an agent, without a fixed delay</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Start agent</div><div class="fd-sub">dispatch · lane Start · new Frame · startAiSession</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">laneContext.whenReady(id, fallbackMs)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Lane confirmed installed?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node outcome"><div class="fd-title">Type the command now</div><div class="fd-sub">the shell has provably read input</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">no / unsupported</span>
+          <div class="fd-node system"><div class="fd-title">Wait the old delay</div><div class="fd-sub">800 / 50 / 1000 / 300 ms, unchanged</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Each call site keeps its own number as the fallback:</b> a lane that cannot confirm behaves exactly as it does today, so this change can only make launches better, never later.</li>
+          <li><b>Four delays, not three:</b> the spec names 50/800/1000 ms; the evidence pass found a fourth — <code>multiTerminalUI.sendCommand</code>'s 300 ms create-then-send wait. It is in scope for the same reason as the others.</li>
+          <li><b>One renderer consumer:</b> <code>laneContext.js</code> owns the state cache and the promise, in the shape <code>laneStatus</code> already established, so no call site grows its own IPC listener.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The generated init file, in one look</h3>
+  <pre>.frame/runtime/shell/init.sh      # zsh · bash · sh
+.frame/runtime/shell/init.fish    # fish
+
+  1. move .frame/bin to the FRONT of PATH   (after the user's rc files ran)
+  2. one function per configured tool:
+       claude() { [ -x "$FRAME_BIN/claude" ] && "$FRAME_BIN/claude" "$@" || command claude "$@"; }
+       codex()  { … }   gemini() { … }   &lt;custom tool&gt;() { … }
+
+delivery, per shell family
+  posix  →  { mode: 'type', line: ` . '…/init.sh' &amp;&amp; printf '%s\n' '__frame_ready_''&lt;token&gt;'` }
+  fish   →  { mode: 'flag', args: ['-C', "source '…/init.fish'; echo …"] }
+  other  →  { mode: 'none' }
+
+state pushed to the renderer
+  IPC.TERMINAL_CONTEXT_STATE → { terminalId, state: installed|failed|unsupported, ready }</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · Does the readiness primitive land in this spec, or a separate one?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Land it here</div>
+        <div class="opttrade">Satisfies criterion 12, at the cost of touching <code>agentDispatch.js</code>, <code>index.js</code> and <code>multiTerminalUI.js</code>.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Separate spec</div>
+        <div class="opttrade">Keeps the footprint at the PTY layer, but ships a marker nothing consumes.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Criterion 12 is a success criterion of this spec, and the marker is the only signal that makes it satisfiable. Splitting would leave the spec unable to pass its own checklist by construction, and would leave four fixed delays in place with the thing that replaces them already built.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D2 · Is the lane's context indicator always visible, or only on failure?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Only on failure</div>
+        <div class="opttrade">Cards stay quiet; the one state the user must act on is the only one that appears.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Always visible</div>
+        <div class="opttrade">States the boundary continuously, at the price of a permanent chip that almost always reads the same.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> An indicator that reads "installed" on every card, every time, trains the eye to skip it — and then it is missing precisely when it changes. The boundary is already stated once, permanently, in the Terminal section of Settings that <code>terminal-context-boundary</code> added; the lane card is for the exception.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D3 · Is the off switch global or per project?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Neither — no off switch</div>
+        <div class="opttrade">One behaviour to reason about and test; success criterion 10 is dropped, explicitly and on the record.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">A setting, global or per project</div>
+        <div class="opttrade">Gives an escape from the feature as a whole, and a second reason a lane might behave differently from its neighbour.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The user's call at the gate: this is product behaviour, not a preference. What remains is still an out: <code>FRAME_NO_WRAP=1</code> escapes any single run (unchanged), and a shell where setup cannot be delivered degrades to exactly the <code>PATH</code>-only behaviour the previous spec shipped — the difference is that it is a fact about the shell, not a switch.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D4 · What happens to keystrokes typed during the invisible setup window?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Hold in main, flush in order</div>
+        <div class="opttrade">One queue and a flush ordering to get right; keystrokes survive the window intact.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Pass straight through</div>
+        <div class="opttrade">No queue at all, but the echo lands in a buffer that is discarded — fast typing reads as dropped characters.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> The window is well under a second on a warm shell, so holding costs almost nothing; passing through would make the user watch their own typing disappear, which is a worse bug than the one this spec fixes.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D5 · Should this spec's work ship with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Pure logic only</div>
+        <div class="opttrade"><code>shellSetup.js</code> and the init template are covered; the PTY wiring and lane UI are not.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Everything testable — add executed shell cases</div>
+        <div class="opttrade">Would prove function-over-PATH end to end, at the cost of spawning real shells in the suite.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Matches the convention the testing record describes — target the pure module, skip its Electron-coupled wrapper — and <code>src/renderer/</code> has no DOM harness to reach the lane card with in the first place.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D6 · How is setup delivered per shell family? <span class="tag">decided silently</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Type for zsh/bash/sh, <code>-C</code> flag for fish, nothing for the rest</div>
+        <div class="opttrade">Two generated files and one inert branch; nushell/pwsh/cmd lanes get the <code>PATH</code> base layer only.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Wrap the user's startup files (<code>ZDOTDIR</code>, <code>--rcfile</code>)</div>
+        <div class="opttrade">Would win the ordering for every POSIX shell without typing anything — by rerouting a mechanism that belongs to the user.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Constraint 1 rules out startup-file wrapping explicitly, and not because it writes anything. Typing is therefore the only delivery left for zsh and bash, and the invisibility requirement is what pays for it. Windows shells are blocked upstream anyway: there are no <code>.cmd</code> shims for them to point at.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D7 · Where does verification live? <span class="tag">decided silently</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Main process, in front of ptyManager's output pipeline</div>
+        <div class="opttrade">Buffering logic sits in an already-busy module; suppression is genuinely total.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Renderer, scanning the xterm buffer</div>
+        <div class="opttrade">Keeps <code>ptyManager</code> untouched, but the output has already been rendered by the time it can be recognised.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> "None of it is rendered" cannot be satisfied downstream of rendering. <code>ptyManager</code> already owns coalescing and backpressure, so the buffer belongs in front of the same pipeline rather than in a second one.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D8 · Does <code>src/main/pty.js</code> get setup too? <span class="tag">decided silently</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No — leave the legacy single-PTY path alone</div>
+        <div class="opttrade">One implementation to maintain; a path nothing spawns keeps <code>PATH</code>-only behaviour.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Mirror the work into <code>pty.js</code></div>
+        <div class="opttrade">Symmetric, but duplicates the buffering machinery into code no renderer flow reaches.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>terminal.startTerminal()</code> is a no-op and every lane — board, dispatch, <code>startAiSession</code> — is created through <code>ptyManager</code>. Mirroring would add untested code by construction, and it would widen the footprint into a file another spec is still finishing in.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>The typed setup line is echoed by the tty before it runs, so a marker scan could match its own echo and confirm a setup that never happened.</td><td>The delivered line prints the token from two adjacent quoted fragments, so the literal marker exists only in real output. Asserted as an invariant in <code>test/shellSetup.test.js</code>.</td></tr>
+    <tr><td>A login shell that prints a lot (motd, fastfetch, a slow prompt framework) could grow the suppression buffer without bound.</td><td>The buffer is capped; exceeding the cap is treated as a timeout — flush, retry once, then <code>failed</code>. A noisy shell costs context, never memory.</td></tr>
+    <tr><td>The user types during the setup window.</td><td>Input is queued in <code>writeToTerminal</code> and written through in order the moment setup resolves (D4).</td></tr>
+    <tr><td>Setup fails while the user is inside the lane, where the board card is not visible.</td><td>The timeout flush puts the real <code>source</code> line and its error on screen, so the failure is legible in place; the card carries the one-click recovery for when they return to the board.</td></tr>
+    <tr><td>The <code>source</code> line lands in the user's shell history.</td><td>Accepted, and reduced: the line is sent with a leading space, which suppresses history under the common <code>ignorespace</code>/<code>HIST_IGNORE_SPACE</code> settings. The line is inert and points only at the project's own file.</td></tr>
+    <tr><td>A function shadows a tool whose wrapper is missing — <code>.frame/bin/codex</code> is genuinely absent in this checkout, for instance.</td><td>Each function tests <code>-x "$FRAME_BIN/&lt;id&gt;"</code> and falls back to <code>command &lt;id&gt;</code>, which bypasses the function and cannot recurse. Wrappers are also regenerated on every project open.</td></tr>
+    <tr><td>Custom tools added after the lane opened have no function in it.</td><td>The init file is regenerated with the launch assets, so the next lane has it. Within a live lane, the <code>PATH</code> base layer still resolves the wrapper.</td></tr>
+    <tr><td>A subshell started inside a lane does not inherit shell functions.</td><td>Unchanged and deliberate: <code>.frame/bin</code> stays first on the exported <code>PATH</code>, which is what subshells inherit.</td></tr>
+    <tr><td><code>src/main/ptyManager.js</code>, <code>laneBoard.js</code> and <code>index.js</code> sit in the footprint of <code>audit-q3-performance-resources</code>, still marked <em>implementing</em>.</td><td>Nine of its ten tasks are complete and the tenth is a measurement pass, not a code change — its coalescing and backpressure work is already in the tree and this plan builds on top of it rather than beside it. <code>pty.js</code> was dropped from the footprint (D8), which removes one overlap outright.</td></tr>
+    <tr><td>With no off switch, a user who dislikes the behaviour has no global escape.</td><td><code>FRAME_NO_WRAP=1</code> escapes any single run and is untouched; an unsupported shell is a full escape by choice of shell. Recorded as the accepted consequence of D3.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: Windows <code>.cmd</code> shims (their own spec — without them Windows lanes have nothing to point at, from any path); nushell setup (no generated file matches its function/<code>PATH</code> model); tmux, ssh and any session Frame did not spawn (the manual one-liner and the lane's Start button cover them); terminal UX features such as command decorations and cwd detection (what startup-file wrapping would buy, and what this spec declines to pay for).</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>A session Frame opens is a session Frame has set up: when the shell is ready, Frame loads a generated init file from <code>.frame/runtime/shell/</code> <span class="tag">G1</span></td><td>Architecture → "How setup reaches the shell"; Files (<code>shellSetup.js</code>, <code>frameTemplates.js</code>, <code>aiToolManager.js</code>, <code>ptyManager.js</code>); Sequencing 1–4; Flow A</td></tr>
+    <tr><td>That file defines a shell function per tool and prepends <code>.frame/bin</code> to <code>PATH</code>, so a function is resolved before any <code>PATH</code> search and the ordering question disappears <span class="tag">G2</span></td><td>Architecture → "How setup reaches the shell"; Sequencing 2; Flow A notes</td></tr>
+    <tr><td>Setup is invisible <span class="tag">G3</span></td><td>Architecture → "Delivery, verification, failure"; Sequencing 5; Flow A</td></tr>
+    <tr><td>Setup is verified <span class="tag">G4</span></td><td>Architecture → "Delivery, verification, failure" (marker); Sequencing 1 and 5; Flow B</td></tr>
+    <tr><td>When verification fails, it is replaced by a one-click guaranteed path, so the session's context state is never unknown <span class="tag">G5</span></td><td>Architecture → "What the renderer does with the state"; Sequencing 6–7; Flow B</td></tr>
+  </table>
+
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>Frame configures the session it creates and never the user's persistent configuration — no <code>~/.zshrc</code> line, no registry write, no <code>ZDOTDIR</code>-style wrapping of the user's startup files <span class="tag">C1</span></td><td>Architecture (writes confined to <code>.frame/runtime/shell/</code>); decision D6; Files — no path outside <code>.frame/</code> or the repo's own source</td></tr>
+    <tr><td>The wrapper stays the injection point; this spec fixes which binary runs, and the preamble's content does not change <span class="tag">C2</span></td><td>Architecture → functions delegate to <code>.frame/bin/&lt;id&gt;</code>; Sequencing 2; <code>frameTemplates.getWrapperTemplate</code> untouched</td></tr>
+    <tr><td><code>.frame/bin</code> on <code>PATH</code> stays as the base layer — it is what reaches subshells, where functions do not <span class="tag">C3</span></td><td>Architecture (base layer retained); <code>launchEnv.js</code> deliberately absent from Files and Footprint</td></tr>
+    <tr><td><code>FRAME_NO_WRAP=1</code> remains the single escape hatch; <code>command &lt;tool&gt;</code> is not one <span class="tag">C4</span></td><td>Architecture → the function is a router, so the wrapper's existing handling covers both paths; Sequencing 2</td></tr>
+    <tr><td><code>agent-dispatch</code> owns launch composition: the failure-path button calls the existing <code>_startAgentIn</code> and no second way to start an agent is added <span class="tag">C5</span></td><td>Architecture → "What the renderer does with the state"; Sequencing 7 (<code>startAgentInLane</code> is a thin export)</td></tr>
+    <tr><td>Fail open — a setup that errors, times out or is refused must leave a working terminal <span class="tag">C6</span></td><td>Architecture → "Delivery, verification, failure"; Sequencing 4 and 5; Flow B notes; Risks rows 2 and 4</td></tr>
+    <tr><td>Windows is blocked, not deferred by choice: there are no <code>.frame/bin/&lt;tool&gt;.cmd</code> shims to point at <span class="tag">C7</span></td><td>Architecture (gated on <code>launchEnv.supportsWrappers()</code>, <code>unsupported</code> state); decision D6; Sequencing 1 and 3</td></tr>
+  </table>
+
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Typing <code>claude</code>, <code>codex</code> or <code>gemini</code> in a zsh or bash lane resolves through Frame's wrapper however the user's rc files reorder <code>PATH</code> <span class="tag">S1</span></td><td>Sequencing 2 and 4 · proven by the init-template cases (a function per tool, delegating to the wrapper path) plus a manual check in a lane whose rc prepends nvm</td></tr>
+    <tr><td>Where the shell offers a post-startup flag, setup arrives through that flag and nothing is typed into the terminal <span class="tag">S2</span></td><td>Sequencing 1 and 4 · proven by <code>deliveryFor</code> returning <code>mode: 'flag'</code> with <code>-C</code> args for fish (the only such shell reachable today — pwsh and cmd are blocked by C7)</td></tr>
+    <tr><td>Where setup is delivered by typing, none of it is rendered: the user sees a clean first prompt <span class="tag">S3</span></td><td>Sequencing 5 · proven by the marker split (everything through the marker line is dropped) and a lane opened by hand</td></tr>
+    <tr><td>When setup does not confirm within the timeout, the buffered output is flushed so the terminal is never blank, and one retry is attempted <span class="tag">S4</span></td><td>Sequencing 5 · proven by the timeout path in <code>ptyManager</code> and a lane pointed at a deliberately broken init file</td></tr>
+    <tr><td>When the retry also fails, the lane states that context could not be installed and offers a one-click start through <code>_startAgentIn</code>, plus the one-line manual command <span class="tag">S5</span></td><td>Sequencing 7 · proven by the failure row on the lane card wired to <code>startAgentInLane</code></td></tr>
+    <tr><td>When a lane's context state changes, its lane card reflects it <span class="tag">S6</span></td><td>Sequencing 6–7 · <code>TERMINAL_CONTEXT_STATE</code> → <code>laneContext</code> → the card's existing live-update path. Per decision D2 the card changes on failure only</td></tr>
+    <tr><td>A subshell started inside a lane still reaches the wrapper through the inherited <code>PATH</code> <span class="tag">S7</span></td><td>Architecture → the <code>PATH</code> base layer is retained unchanged (C3); no code change, and <code>launchEnv.js</code> stays out of the footprint</td></tr>
+    <tr><td>With <code>FRAME_NO_WRAP=1</code> the real CLI runs with no Frame context, by both the function path and the <code>PATH</code> path <span class="tag">S8</span></td><td>Sequencing 2 · the function delegates to the wrapper, which already handles the variable — the existing executed case in <code>test/frameTemplates.test.js</code> covers the wrapper end</td></tr>
+    <tr><td>When the folder is not a Frame project, nothing is sent and no function or variable is defined <span class="tag">S9</span></td><td>Sequencing 3 and 4 · proven by the <code>.frame/</code> gate in <code>refreshLaunchAssets</code> and in <code>deliveryFor</code>, with a case in <code>test/shellSetup.test.js</code></td></tr>
+    <tr><td>When the feature is switched off in settings, behaviour is exactly what <code>terminal-context-boundary</code> shipped <span class="tag">S10</span></td><td><span class="pill warn">dropped at the gate</span> There is no off switch (D3). The nearest surviving behaviour: an unsupported shell or a failed setup leaves precisely the <code>PATH</code>-only lane the previous spec shipped</td></tr>
+    <tr><td>The user's home directory, walked and diffed before and after Frame has run, is byte-identical <span class="tag">S11</span></td><td>Architecture and Files · every write goes through <code>aiToolManager</code>'s <code>writeIfChanged</code> into <code>.frame/runtime/shell/</code>; no path in the Footprint sits outside the project</td></tr>
+    <tr><td>Every existing start flow (dispatch, lane Start, new Frame, <code>startAiSession</code>) still works and no longer depends on a fixed delay <span class="tag">S12</span></td><td>Sequencing 8 · <code>laneContext.whenReady</code> at all four sites, each keeping its current delay as the fallback; Flow C</td></tr>
+  </table>
+
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td><code>terminal-context-boundary</code> put <code>.frame/bin</code> first on the <code>PATH</code> of every PTY Frame spawns</td><td><span class="pill good">verified</span> <code>src/main/ptyManager.js:232</code>, <code>src/main/pty.js:88</code>, both through <code>src/main/launchEnv.js:62</code></td></tr>
+    <tr><td>rc files run after Frame sets that environment, so the entry can be pushed down the list</td><td><span class="pill good">verified</span> shells spawn with <code>['-i','-l']</code> at <code>src/main/ptyManager.js:209</code>, after the env is composed; recorded as the honest limit in <code>terminal-context-boundary</code>'s outcome T09</td></tr>
+    <tr><td>The measurement — <code>.frame/bin</code> sixth, behind <code>~/.nvm/versions/node/v20.5.1/bin</code></td><td><span class="pill warn">environment claim</span> machine-specific; not verifiable from the repo, and nothing in the plan depends on the exact position</td></tr>
+    <tr><td>Frame's own buttons type <code>./.frame/bin/&lt;tool&gt;</code>, a relative path with no <code>PATH</code> lookup</td><td><span class="pill good">verified</span> <code>src/main/aiToolManager.js:726-730</code> (<code>wrapperLaunchCommand</code>)</td></tr>
+    <tr><td>The wrapper is what hands the CLI the preamble</td><td><span class="pill good">verified</span> <code>src/shared/frameTemplates.js:895</code>–<code>978</code>; written per tool by <code>src/main/aiToolManager.js:659</code></td></tr>
+    <tr><td><code>FRAME_NO_WRAP=1</code> is the escape hatch and <code>command &lt;tool&gt;</code> is not</td><td><span class="pill good">verified</span> <code>src/shared/frameTemplates.js:948-955</code>; executed case at <code>test/frameTemplates.test.js:151</code></td></tr>
+    <tr><td>Four start flows exist: dispatch, lane Start, new Frame, <code>startAiSession</code></td><td><span class="pill good">verified</span> <code>src/renderer/agentDispatch.js:91</code>, <code>:255</code>, <code>:307</code>, <code>src/renderer/index.js:736</code></td></tr>
+    <tr><td>They depend on fixed delays of 50/800/1000 ms</td><td><span class="pill good">verified</span> <code>src/renderer/agentDispatch.js:304</code> (800/50), <code>src/renderer/index.js:749-751</code> (1000)</td></tr>
+    <tr><td>— and a fourth the spec does not mention</td><td><span class="pill warn">new evidence</span> <code>src/renderer/multiTerminalUI.js:529</code> waits 300 ms on the create-then-send path; pulled into scope with the others</td></tr>
+    <tr><td><code>_startAgentIn</code> is the existing launch composition the failure button should reuse</td><td><span class="pill good">verified</span> <code>src/renderer/agentDispatch.js:290</code>; module-private today, so the plan adds one export</td></tr>
+    <tr><td>An agent-readiness gate already exists and is the pattern to follow</td><td><span class="pill good">verified</span> <code>_waitForAgentReady</code> at <code>src/renderer/agentDispatch.js:727</code>, 15 s cap at <code>:720</code></td></tr>
+    <tr><td>Launch assets are regenerated on project open, so a generated file can ride along</td><td><span class="pill good">verified</span> <code>refreshLaunchAssets</code> at <code>src/main/aiToolManager.js:738</code>, called from <code>src/main/frameProject.js:276</code> and <code>:588</code></td></tr>
+    <tr><td>Windows has no wrappers to point at</td><td><span class="pill good">verified</span> <code>supportsWrappers</code> at <code>src/main/launchEnv.js:36</code> gates wrapper writing at <code>src/main/aiToolManager.js:695</code>; no <code>.cmd</code> file exists in <code>.frame/bin/</code></td></tr>
+    <tr><td>A lane card renders live from <code>laneStatus</code> and can carry another row</td><td><span class="pill good">verified</span> <code>_renderCard</code> at <code>src/renderer/laneBoard.js:174-203</code>; live refresh subscription at <code>:112</code>; styles in <code>src/renderer/styles/components/lane-board.css</code></td></tr>
+    <tr><td>Shells Frame can spawn include fish and nushell, not only zsh/bash</td><td><span class="pill good">verified</span> <code>getAvailableShells</code> at <code>src/main/ptyManager.js:138-156</code>; fish already spawns with <code>-i</code> at <code>:205</code></td></tr>
+    <tr><td><code>.frame/runtime/</code> is untracked, so a generated shell directory pollutes no repo</td><td><span class="pill good">verified</span> <code>.gitignore:45</code> and <code>.frame/.gitignore:2</code></td></tr>
+    <tr><td>The Settings "Terminal" section states the boundary and is POSIX-gated</td><td><span class="pill good">verified</span> <code>src/renderer/settingsModal.js:40-45</code>, markup at <code>index.html:1415</code>; unchanged by this plan</td></tr>
+    <tr><td>Testing record: <code>npm test</code> → <code>node --test test/*.test.js</code>, main/shared covered, renderer not</td><td><span class="pill good">verified</span> <code>PROJECT_NOTES.md:62-82</code>, recorded 2026-07-20; read and used as written, no rescan</td></tr>
+    <tr><td>Footprint history: <code>ptyManager.js</code>, <code>pty.js</code>, <code>laneBoard.js</code>, <code>laneStatus.js</code> sit in an <code>IN-FLIGHT</code> spec's footprint</td><td><span class="pill warn">in-flight</span> <code>audit-q3-performance-resources</code> is <code>implementing</code>; 9/10 tasks complete, T10 is a measurement pass (<code>tasks.json</code>). Its coalescing/backpressure code is in the tree and this plan builds on it; <code>pty.js</code> dropped from the footprint</td></tr>
+    <tr><td><code>.frame/bin/</code> holds a wrapper for every configured tool</td><td><span class="pill warn">drifted</span> this checkout has <code>claude</code> and <code>gemini</code> but no <code>codex</code>. Regenerated on next project open — and the reason each generated function keeps a <code>command &lt;id&gt;</code> fallback</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — Coverage check: after the gate removed the off switch, S10 had no owning section and would have vanished silently → recorded as explicitly dropped under "Resolved plan-time decisions" and carried into the coverage table as a dropped row; S7 and S11 (passive properties with no code change) were given named owners rather than being left implied.</li>
+    <li><b>Iteration 2</b> — Reality check on the marker: in typed delivery the tty echoes the command before running it, so a scan for the token would match its own echo and confirm a setup that never ran → the delivered line now prints the token from two adjacent quoted fragments, and "the line never contains the literal marker" became a stated invariant with a test case behind it.</li>
+    <li><b>Iteration 3</b> — Task-derivability: one step bundled delivery, output suppression, input queueing and state emission, which is not a shippable unit → split into "deliver setup at spawn" (visible, functions working) and "make it invisible and verified"; writing the init files was pulled out ahead of both so each step stands alone.</li>
+    <li><b>Iteration 4</b> — Footprint discipline: <code>src/main/pty.js</code> had been carried over from the evidence pass although no renderer flow spawns it → removed from Files and Footprint and recorded as decision D8, which also removes one overlap with the in-flight <code>audit-q3-performance-resources</code> footprint. Final format pass: five sections, in order, no "TBD" left.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-08-02 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/terminal-session-setup/plan.md</code></footer>
+</div>
+</body>
+</html>

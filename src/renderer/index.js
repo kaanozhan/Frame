@@ -33,6 +33,7 @@ const orchestrator = require('./orchestrator');
 const editor = require('./editor');
 const sidebarResize = require('./sidebarResize');
 const aiToolSelector = require('./aiToolSelector');
+const laneContext = require('./laneContext');
 const commandRegistry = require('./commandRegistry');
 const commandPalette = require('./commandPalette');
 const cheatSheet = require('./cheatSheet');
@@ -747,9 +748,11 @@ async function startAiSession() {
   // attached. The board's agent chip is derived live from the foreground
   // process, not tagged here.
   const startCommand = await aiToolSelector.getLaunchCommand(projectPath);
-  setTimeout(() => {
-    terminal.sendCommand(startCommand, newTerminalId);
-  }, 1000);
+  // The shell's own setup marker says when it is processing input, which is
+  // what the 1000 ms here used to guess. That number stays as the fallback,
+  // so a lane that cannot confirm behaves exactly as it did before.
+  await laneContext.whenReady(newTerminalId, 1000);
+  terminal.sendCommand(startCommand, newTerminalId);
 }
 
 /**

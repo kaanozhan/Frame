@@ -64,6 +64,9 @@ const IPC = {
   TERMINAL_RESIZE_ID: 'terminal-resize-id',
   TERMINAL_PROCESS_DATA: 'terminal-process-data',
   TERMINAL_FOCUS: 'terminal-focus',
+  // Whether this lane's shell was set up with Frame's context:
+  // { terminalId, state: 'installed' | 'failed' | 'unsupported', ready }
+  TERMINAL_CONTEXT_STATE: 'terminal-context-state',
   GET_AVAILABLE_SHELLS: 'get-available-shells',
   AVAILABLE_SHELLS_DATA: 'available-shells-data',
   RECONCILE_TERMINALS: 'reconcile-terminals',

@@ -33,6 +33,7 @@ const frameStore = require('./frameStore');
 const globalLayer = require('./globalLayer');
 const instructionDiscovery = require('./instructionDiscovery');
 const launchEnv = require('./launchEnv');
+const shellSetup = require('./shellSetup');
 
 let mainWindow = null;
 let configPath = null;
@@ -674,6 +675,40 @@ function writeWrapper(projectPath, tool) {
 }
 
 /**
+ * Regenerate the shell init files every lane in this project sources.
+ *
+ * A launch asset like any other, written beside the wrappers and preambles and
+ * through the same `writeIfChanged`, so a project open does not touch mtimes
+ * and wake the `.frame/` watchers. Both families are written regardless of the
+ * user's own shell: which one a lane reads is decided per terminal at spawn,
+ * and a user who switches from zsh to fish should not have to reopen the
+ * project to get their functions.
+ *
+ * Every tool in the registry gets a function, so a newly configured custom tool
+ * is routed through its wrapper the next time this runs rather than after a
+ * restart.
+ *
+ * Returns the paths written. Silent no-op where Frame writes no wrappers —
+ * there would be nothing for a function to delegate to.
+ */
+function writeShellInit(projectPath) {
+  if (!projectPath || !launchEnv.supportsWrappers()) return [];
+
+  const binDir = launchEnv.frameBinDir(projectPath);
+  const toolIds = Object.values(getAvailableTools()).map((tool) => tool.id);
+  const written = [];
+
+  for (const family of Object.keys(shellSetup.INIT_FILES)) {
+    const content = templates.getShellInitTemplate({ family, binDir, toolIds });
+    if (!content) continue;
+    const target = shellSetup.shellInitPath(projectPath, family);
+    writeIfChanged(target, content);
+    written.push(target);
+  }
+  return written;
+}
+
+/**
  * Everything a launch of `tool` reads: its preamble, its settings file when it
  * declares one, and its wrapper. Returns the composed preamble so a caller
  * that still injects inline (a platform with no wrappers) can use it.
@@ -740,6 +775,15 @@ function refreshLaunchAssets(projectPath) {
   if (!projectPath) return { written };
   if (!fs.existsSync(path.join(projectPath, FRAME_DIR))) return { written };
 
+  try {
+    writeShellInit(projectPath);
+  } catch (err) {
+    // Same bargain as the per-tool failure below: a read-only checkout costs
+    // the user their shell functions, never their project. `.frame/bin` on
+    // PATH is still there underneath.
+    logger.warn('aiToolManager', 'shell init refresh failed:', err.message);
+  }
+
   for (const tool of Object.values(getAvailableTools())) {
     try {
       prepareLaunchAssets(projectPath, tool);
@@ -790,6 +834,16 @@ function getLaunchCommand(projectPath, toolId, extraFlags) {
     extra,
     (tool.injection && tool.injection.settingsFlag) || ''
   );
+
+  // The lane's shell functions are refreshed on the same schedule as the
+  // wrappers they delegate to, so a tool configured mid-session is routed
+  // through its wrapper without waiting for a project reopen. Its own failure
+  // is not the launch's — `.frame/bin` is still on PATH underneath.
+  try {
+    writeShellInit(projectPath);
+  } catch (err) {
+    logger.warn('aiToolManager', 'shell init refresh failed:', err.message);
+  }
 
   try {
     // Written immediately before the command is composed, so a dispatched
@@ -843,6 +897,7 @@ module.exports = {
   getStartCommand,
   getLaunchCommand,
   refreshLaunchAssets,
+  writeShellInit,
   composeLaunchCommand,
   addCustomTool,
   removeCustomTool,

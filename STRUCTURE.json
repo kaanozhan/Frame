@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-01",
+  "lastUpdated": "2026-08-02",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -155,6 +155,7 @@
         "getStartCommand",
         "getLaunchCommand",
         "refreshLaunchAssets",
+        "writeShellInit",
         "composeLaunchCommand",
         "addCustomTool",
         "removeCustomTool",
@@ -176,7 +177,8 @@
         "frameStore",
         "globalLayer",
         "instructionDiscovery",
-        "launchEnv"
+        "launchEnv",
+        "shellSetup"
       ],
       "functions": {
         "loginShell": {
@@ -184,7 +186,7 @@
           "purpose": "The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL"
         },
         "init": {
-          "line": 133,
+          "line": 134,
           "params": [
             "window",
             "app"
@@ -192,72 +194,72 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "detectDefaultTool": {
-          "line": 147,
+          "line": 148,
           "purpose": "First run only: default the active tool to a CLI that is actually"
         },
         "loadConfig": {
-          "line": 163,
+          "line": 164,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 190,
+          "line": 191,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 201,
+          "line": 202,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 208,
+          "line": 209,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 216,
+          "line": 217,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 236,
+          "line": 237,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 246,
+          "line": 247,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 263,
+          "line": 264,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "quoteArg": {
-          "line": 283,
+          "line": 284,
           "params": [
             "arg"
           ],
           "purpose": "Compose the command line a lane actually types: the resolved CLI plus any"
         },
         "composeLaunchCommand": {
-          "line": 291,
+          "line": 292,
           "params": [
             "command",
             "launchFlags"
           ]
         },
         "isPathLike": {
-          "line": 296,
+          "line": 297,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 314,
+          "line": 315,
           "params": [
             "command",
             "projectPath"
@@ -265,53 +267,53 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "trackProbeFailure": {
-          "line": 380,
+          "line": 381,
           "params": [
             "reason"
           ]
         },
         "setupIPC": {
-          "line": 388,
+          "line": 389,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 465,
+          "line": 466,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 473,
+          "line": 474,
           "purpose": "Get the start command for active tool"
         },
         "runtimeDir": {
-          "line": 481,
+          "line": 482,
           "params": [
             "projectPath"
           ]
         },
         "preambleFileName": {
-          "line": 498,
+          "line": 499,
           "params": [
             "toolId"
           ],
           "purpose": "Runtime files are named per tool, not shared."
         },
         "settingsFileName": {
-          "line": 502,
+          "line": 503,
           "params": [
             "toolId"
           ]
         },
         "runtimeRelPath": {
-          "line": 506,
+          "line": 507,
           "params": [
             "name"
           ]
         },
         "buildPreamble": {
-          "line": 518,
+          "line": 519,
           "params": [
             "projectPath",
             "toolId"
@@ -319,10 +321,10 @@
           "purpose": "Build the preamble for this project and tool."
         },
         "safeGlobalPath": {
-          "line": 532
+          "line": 533
         },
         "writeIfChanged": {
-          "line": 548,
+          "line": 549,
           "params": [
             "target",
             "content",
@@ -331,7 +333,7 @@
           "purpose": "Write only when the content differs."
         },
         "writeRuntimeFile": {
-          "line": 558,
+          "line": 559,
           "params": [
             "projectPath",
             "name",
@@ -339,7 +341,7 @@
           ]
         },
         "writeToolSettings": {
-          "line": 572,
+          "line": 573,
           "params": [
             "projectPath",
             "tool",
@@ -348,13 +350,13 @@
           "purpose": "The spec-hint hooks, as a settings file inside Frame's own footprint."
         },
         "isPlainObject": {
-          "line": 584,
+          "line": 585,
           "params": [
             "value"
           ]
         },
         "mergeSettings": {
-          "line": 593,
+          "line": 594,
           "params": [
             "base",
             "incoming"
@@ -362,14 +364,14 @@
           "purpose": "Deep-merge a settings payload. Objects merge key by key, arrays concatenate"
         },
         "readSettingsSource": {
-          "line": 610,
+          "line": 611,
           "params": [
             "source"
           ],
           "purpose": "A `--settings` value is either a path or inline JSON — the CLI takes both,"
         },
         "takeSettingsFlags": {
-          "line": 633,
+          "line": 634,
           "params": [
             "extra",
             "settingsFlag"
@@ -377,15 +379,22 @@
           "purpose": "Split a dispatch's extra flags into the `--settings` payloads to merge and"
         },
         "writeWrapper": {
-          "line": 659,
+          "line": 660,
           "params": [
             "projectPath",
             "tool"
           ],
           "purpose": "Regenerate `.frame/bin/<id>` for a tool."
         },
+        "writeShellInit": {
+          "line": 694,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Regenerate the shell init files every lane in this project sources."
+        },
         "prepareLaunchAssets": {
-          "line": 681,
+          "line": 716,
           "params": [
             "projectPath",
             "tool",
@@ -394,7 +403,7 @@
           "purpose": "Everything a launch of `tool` reads: its preamble, its settings file when it"
         },
         "wrapperLaunchCommand": {
-          "line": 726,
+          "line": 761,
           "params": [
             "projectPath",
             "tool"
@@ -402,19 +411,19 @@
           "purpose": "The command a launch types for this tool — the wrapper wherever Frame can"
         },
         "bareCommandFor": {
-          "line": 732,
+          "line": 767,
           "params": [
             "tool"
           ]
         },
         "refreshLaunchAssets": {
-          "line": 738,
+          "line": 773,
           "params": [
             "projectPath"
           ]
         },
         "getLaunchCommand": {
-          "line": 766,
+          "line": 810,
           "params": [
             "projectPath",
             "toolId",
@@ -3372,37 +3381,87 @@
         "getTerminalsByProject",
         "getTerminalInfo",
         "getLastOutputAt",
+        "getSetupState",
         "getAvailableShells",
         "setupIPC"
       ],
       "depends": [
+        "fs",
+        "path",
         "node-pty",
         "shared/ipcChannels",
+        "shared/frameConstants",
         "logger",
         "promptLogger",
         "telemetry",
         "pollGate",
         "launchEnv",
-        "child_process",
-        "fs"
+        "shellSetup",
+        "child_process"
       ],
       "functions": {
         "flushOutput": {
-          "line": 27,
+          "line": 41,
           "params": [
             "terminalId"
           ],
           "purpose": "Flush a terminal's buffered output as one coalesced send."
         },
+        "pushOutput": {
+          "line": 64,
+          "params": [
+            "terminalId",
+            "data"
+          ],
+          "purpose": "Hand data to the coalescing pipeline."
+        },
+        "emitContextState": {
+          "line": 88,
+          "params": [
+            "terminalId",
+            "state"
+          ],
+          "purpose": "Tell the renderer what this lane's context state is."
+        },
+        "finishSetup": {
+          "line": 108,
+          "params": [
+            "terminalId",
+            "state",
+            "forward = ''"
+          ],
+          "purpose": "End a lane's setup, whatever the outcome."
+        },
+        "onSetupTimeout": {
+          "line": 146,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "An attempt did not confirm in time — or flooded the buffer, which amounts to"
+        },
+        "armSetupTimer": {
+          "line": 182,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "consumeSetupOutput": {
+          "line": 200,
+          "params": [
+            "terminalId",
+            "chunk"
+          ],
+          "purpose": "Filter one chunk of output through a pending setup. Returns what the"
+        },
         "init": {
-          "line": 47,
+          "line": 229,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 62,
+          "line": 244,
           "params": [
             "shellPid",
             "callback"
@@ -3410,14 +3469,31 @@
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
         "getDefaultShell": {
-          "line": 81
+          "line": 263
         },
         "getAvailableShells": {
-          "line": 98,
+          "line": 280,
           "purpose": "Get available shells on the system"
         },
+        "isFrameProject": {
+          "line": 366,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Whether this lane's folder is a Frame project."
+        },
+        "resolveSetup": {
+          "line": 382,
+          "params": [
+            "terminalId",
+            "shell",
+            "projectPath",
+            "attempt"
+          ],
+          "purpose": "How this lane's shell gets set up, and with which marker."
+        },
         "createTerminal": {
-          "line": 184,
+          "line": 403,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -3427,28 +3503,35 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 328,
+          "line": 607,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 343,
+          "line": 622,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 355,
+          "line": 634,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
+        "getSetupState": {
+          "line": 643,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "This lane's context state: `pending`, `installed`, `failed` or `unsupported`."
+        },
         "writeToTerminal": {
-          "line": 363,
+          "line": 651,
           "params": [
             "terminalId",
             "data"
@@ -3456,7 +3539,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 373,
+          "line": 669,
           "params": [
             "terminalId",
             "cols",
@@ -3465,40 +3548,40 @@
           "purpose": "Resize specific terminal"
         },
         "destroyTerminal": {
-          "line": 383,
+          "line": 679,
           "params": [
             "terminalId"
           ],
           "purpose": "Destroy specific terminal"
         },
         "destroyAll": {
-          "line": 401,
+          "line": 698,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 418,
+          "line": 716,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 425,
+          "line": 723,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 435,
+          "line": 733,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 445,
+          "line": 743,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 452,
+          "line": 750,
           "params": [
             "ipcMain"
           ],
@@ -3515,9 +3598,92 @@
         ],
         "emits": [
           "TERMINAL_OUTPUT_ID",
+          "TERMINAL_CONTEXT_STATE",
           "TERMINAL_DESTROYED",
           "TERMINAL_PROCESS_DATA"
         ]
+      }
+    },
+    "main/shellSetup": {
+      "file": "src/main/shellSetup.js",
+      "description": "shellSetup — how a lane Frame opens gets told about Frame.",
+      "exports": [
+        "SHELL_DIR",
+        "INIT_FILES",
+        "MARKER_PREFIX",
+        "shellFamily",
+        "shellInitPath",
+        "mintMarker",
+        "deliveryFor",
+        "manualCommand",
+        "splitOnMarker"
+      ],
+      "depends": [
+        "path",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "shellFamily": {
+          "line": 66,
+          "params": [
+            "shellPath"
+          ],
+          "purpose": "The shell family a shell path belongs to, or '' when Frame has no init file"
+        },
+        "shellInitPath": {
+          "line": 81,
+          "params": [
+            "projectPath",
+            "family"
+          ],
+          "purpose": "Absolute path to a project's generated init file for a family, or '' when"
+        },
+        "mintMarker": {
+          "line": 96,
+          "params": [
+            "terminalId",
+            "attempt = 1"
+          ]
+        },
+        "singleQuote": {
+          "line": 109,
+          "params": [
+            "value"
+          ],
+          "purpose": "Single-quote a value for a POSIX or fish command line."
+        },
+        "markerEcho": {
+          "line": 123,
+          "params": [
+            "marker"
+          ],
+          "purpose": "The `printf` that announces the marker — never containing it."
+        },
+        "deliveryFor": {
+          "line": 146,
+          "params": [
+            "shellPath",
+            "platform = process.platform",
+            "projectPath = ''",
+            "options = {}"
+          ],
+          "purpose": "How setup reaches one lane's shell."
+        },
+        "manualCommand": {
+          "line": 179,
+          "params": [
+            "shellPath"
+          ],
+          "purpose": "The line a user can paste into a lane to set it up by hand."
+        },
+        "splitOnMarker": {
+          "line": 195,
+          "params": [
+            "chunk",
+            "marker"
+          ],
+          "purpose": "What survives the marker in a buffered chunk."
+        }
       }
     },
     "main/specManager": {
@@ -4528,6 +4694,7 @@
         "init",
         "dispatch",
         "startDefaultAgent",
+        "startAgentInLane",
         "dispatchSpecCommand",
         "getSpecLaneInfo",
         "getTaskLaneInfo",
@@ -4540,6 +4707,7 @@
         "electron",
         "shared/ipcChannels",
         "laneStatus",
+        "laneContext",
         "state",
         "htmlUtils",
         "notify",
@@ -4548,14 +4716,14 @@
       ],
       "functions": {
         "init": {
-          "line": 46,
+          "line": 47,
           "params": [
             "ui"
           ],
           "purpose": "Initialize with the MultiTerminalUI instance."
         },
         "dispatch": {
-          "line": 91,
+          "line": 92,
           "params": [
             "{ terminalId = null",
             "createNew = false",
@@ -4569,22 +4737,29 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 255,
+          "line": 256,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 290,
+          "line": 291,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
           ],
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
+        "startAgentInLane": {
+          "line": 321,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Start the active tool's CLI in an existing lane, from outside this module."
+        },
         "_startAgentInNewFrame": {
-          "line": 307
+          "line": 325
         },
         "_askNewOrRestart": {
-          "line": 325,
+          "line": 343,
           "params": [
             "frameName",
             "hasAgent"
@@ -4592,7 +4767,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 382,
+          "line": 400,
           "params": [
             "{ slug",
             "title = null",
@@ -4601,7 +4776,7 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "_dispatchImplement": {
-          "line": 449,
+          "line": 467,
           "params": [
             "{ slug",
             "title",
@@ -4611,79 +4786,79 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "getSpecLaneInfo": {
-          "line": 540,
+          "line": 558,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 564,
+          "line": 582,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 585,
+          "line": 603,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 589,
+          "line": 607,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 593,
+          "line": 611,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 610,
+          "line": 628,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 618,
+          "line": 636,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 641,
+          "line": 659,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 649,
+          "line": 667,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 667,
+          "line": 685,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 677,
+          "line": 695,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 686,
+          "line": 704,
           "params": [
             "frameName",
             "specName"
@@ -4691,14 +4866,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 727,
+          "line": 745,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 756,
+          "line": 774,
           "params": [
             "terminalId",
             "message"
@@ -5868,6 +6043,7 @@
         "editor",
         "sidebarResize",
         "aiToolSelector",
+        "laneContext",
         "commandRegistry",
         "commandPalette",
         "cheatSheet",
@@ -5885,34 +6061,34 @@
       ],
       "functions": {
         "init": {
-          "line": 52,
+          "line": 53,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 253,
+          "line": 254,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 318,
+          "line": 319,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 407,
+          "line": 408,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 438,
+          "line": 439,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 464,
+          "line": 465,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 736,
+          "line": 737,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -6007,16 +6183,18 @@
         "electron",
         "shared/ipcChannels",
         "laneStatus",
+        "laneContext",
         "laneRail",
         "lucide",
         "htmlUtils",
         "notify",
         "orchestrator",
-        "openProjectModal"
+        "openProjectModal",
+        "agentDispatch"
       ],
       "functions": {
         "statusLabel": {
-          "line": 37,
+          "line": 38,
           "params": [
             "status",
             "foreground",
@@ -6025,34 +6203,34 @@
           "purpose": "\"Running · npm run dev\" beats a bare \"Running\" when we know what's"
         },
         "cleanCommand": {
-          "line": 48,
+          "line": 49,
           "params": [
             "commandLine"
           ],
           "purpose": "\"/usr/local/bin/node /Users/x/proj/server.js --port 3000\""
         },
         "assignmentIcon": {
-          "line": 62,
+          "line": 63,
           "params": [
             "assignment"
           ],
           "purpose": "Assignment chip (what the lane works on): the icon already says spec vs"
         },
         "assignmentText": {
-          "line": 66,
+          "line": 67,
           "params": [
             "assignment"
           ]
         },
         "lucideIcon": {
-          "line": 71,
+          "line": 72,
           "params": [
             "data",
             "size = 14"
           ]
         },
         "formatRelativeTime": {
-          "line": 79,
+          "line": 80,
           "params": [
             "ts"
           ]
@@ -6061,6 +6239,85 @@
       "ipc": {
         "listens": [
           "GIT_STATUS_DATA"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/laneContext": {
+      "file": "src/renderer/laneContext.js",
+      "description": "Lane Context Module",
+      "exports": [
+        "init",
+        "onChange",
+        "getState",
+        "isReady",
+        "getManualCommand",
+        "whenReady",
+        "remove"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 45,
+          "purpose": "Start listening. Init-once: a re-init must not stack a second set of"
+        },
+        "onChange": {
+          "line": 68,
+          "params": [
+            "callback"
+          ],
+          "purpose": "Subscribe to context-state changes. Returns an unsubscribe function."
+        },
+        "getState": {
+          "line": 76,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "This lane's context state, or 'pending' if it has not resolved yet."
+        },
+        "isReady": {
+          "line": 81,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "True only for a lane whose setup was confirmed."
+        },
+        "getManualCommand": {
+          "line": 89,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The one-liner that would set this lane up by hand, or '' when there is"
+        },
+        "whenReady": {
+          "line": 105,
+          "params": [
+            "terminalId",
+            "fallbackMs = 0"
+          ],
+          "purpose": "Resolve once this lane is ready to be typed into."
+        },
+        "remove": {
+          "line": 134,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Forget a lane. Called on TERMINAL_DESTROYED so the maps don't grow."
+        },
+        "_wake": {
+          "line": 146,
+          "params": [
+            "terminalId"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_CONTEXT_STATE",
+          "TERMINAL_DESTROYED"
         ],
         "emits": []
       }
@@ -6445,6 +6702,7 @@
         "terminalGrid",
         "laneBoard",
         "laneStatus",
+        "laneContext",
         "agentDispatch",
         "laneDetailRail",
         "overviewPanel",
@@ -9628,6 +9886,7 @@
         "REFERENCE_SPEC_LEGACY_MATCHERS",
         "AGENTS_SPEC_LEGACY_MATCHERS",
         "getWrapperTemplate",
+        "getShellInitTemplate",
         "getSpecHintSettings",
         "getStructureHookSnippet",
         "getStructurePreCommitHookTemplate",
@@ -9724,32 +9983,67 @@
           ],
           "purpose": "Wrapper script that hands a tool Frame's launch context."
         },
-        "getSpecHintSettings": {
+        "isDefinableToolId": {
           "line": 990,
+          "params": [
+            "id"
+          ],
+          "purpose": "A shell function name Frame is willing to define."
+        },
+        "shellQuote": {
+          "line": 997,
+          "params": [
+            "value"
+          ],
+          "purpose": "Single-quote for a generated shell file. Both POSIX shells and fish treat"
+        },
+        "getShellInitTemplate": {
+          "line": 1029,
+          "params": [
+            "options"
+          ],
+          "purpose": "The init file a lane sources at startup."
+        },
+        "posixInitTemplate": {
+          "line": 1041,
+          "params": [
+            "binDir",
+            "toolIds"
+          ]
+        },
+        "fishInitTemplate": {
+          "line": 1090,
+          "params": [
+            "binDir",
+            "toolIds"
+          ]
+        },
+        "getSpecHintSettings": {
+          "line": 1132,
           "purpose": "The spec-hint hooks, as a Claude Code settings object."
         },
         "getStructureHookSnippet": {
-          "line": 1020
+          "line": 1162
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1047,
+          "line": 1189,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1070,
+          "line": 1212,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1082,
+          "line": 1224,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1102
+          "line": 1244
         },
         "getOrchBinScripts": {
-          "line": 1120,
+          "line": 1262,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }
@@ -10208,6 +10502,11 @@
       },
       "TERMINAL_RESIZE": {
         "name": "terminal-resize",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_CONTEXT_STATE": {
+        "name": "terminal-context-state",
         "direction": "",
         "description": ""
       }
@@ -11007,6 +11306,18 @@
         "module": "renderer/commandRegistry",
         "file": "src/renderer/commandRegistry.js",
         "description": "Command Registry"
+      }
+    ],
+    "context": [
+      {
+        "module": "renderer/laneContext",
+        "file": "src/renderer/laneContext.js",
+        "description": "Lane Context Module"
+      },
+      {
+        "module": "shared/contextPreamble",
+        "file": "src/shared/contextPreamble.js",
+        "description": "contextPreamble — the short text Frame injects when it launches an AI tool."
       }
     ],
     "crash": [

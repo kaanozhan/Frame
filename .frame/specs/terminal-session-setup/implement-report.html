@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terminal Session Setup — the lane Frame opens is a lane Frame set up — Implementation Report</title>
+<style>
+  /* Frame's design system, dark theme — variable names and values copied
+     from src/renderer/styles/variables.css so a drift there is a one-line
+     diff here. Layout follows the app's dashboards: a gradient header bar
+     over a bg-deep page, content in bordered cards with a tinted head strip.
+     Diff rows use the system's dedicated diff colours rather than the
+     semantic success/error pair — a changed line is not a status. */
+  :root{
+    --bg-deep:#0f0f10;--bg-primary:#151516;--bg-secondary:#1a1a1c;--bg-tertiary:#222225;
+    --text-primary:#e8e6e3;--text-secondary:#a09b94;--text-tertiary:#6b6660;
+    --accent-primary:#d4a574;--accent-subtle:rgba(212,165,116,0.15);
+    --success:#7cb382;--warning:#e0a458;--error:#d47878;--info:#78a5d4;
+    --diff-ins-bg:rgba(63,185,80,0.15);--diff-del-bg:rgba(248,81,73,0.15);--diff-fg:#c9d1d9;
+    --border-subtle:rgba(255,255,255,0.06);--border-default:rgba(255,255,255,0.08);
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
+    --space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;
+    --radius-sm:6px;--radius-md:8px;--radius-lg:12px;
+    --font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-primary);line-height:1.55;}
+
+  /* Header bar — the app's dashboard header, verbatim in spirit. */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-md);flex-wrap:wrap;
+    padding:var(--space-lg) var(--space-xl);border-bottom:1px solid var(--border-subtle);
+    background:linear-gradient(180deg,var(--bg-secondary) 0%,var(--bg-primary) 100%);}
+  .topbar-title{display:flex;align-items:center;gap:var(--space-md);min-width:0;}
+  .logo{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
+    display:block;flex-shrink:0;}
+  .brand{font-size:16px;font-weight:700;letter-spacing:-0.2px;color:var(--accent-primary);}
+  .brand-sep{width:1px;align-self:stretch;background:var(--border-default);flex-shrink:0;}
+  .doc-block{display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+  .doc-type{font-size:14px;font-weight:600;color:var(--text-primary);
+    text-transform:uppercase;letter-spacing:.08em;}
+  .topbar-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:var(--space-xl) var(--space-lg);
+    display:flex;flex-direction:column;gap:var(--space-lg);}
+
+  /* Report head — the spec's full name lives here, not in the topbar, so the
+     bar stays a stable brand strip while the title gets document scale. */
+  .report-head{padding:var(--space-md) 0 var(--space-xs);}
+  .slug-chip{font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+    color:var(--accent-primary);background:var(--accent-subtle);
+    border:1px solid rgba(212,165,116,0.35);padding:3px 10px;border-radius:999px;}
+  .report-head h1{font-size:27px;font-weight:700;letter-spacing:-0.6px;
+    line-height:1.25;color:var(--text-primary);max-width:900px;}
+
+  .chip{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);
+    background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+    padding:3px 8px;border-radius:var(--radius-sm);}
+  .pill{display:inline-block;font-size:11px;color:var(--text-secondary);
+    background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+    padding:3px 10px;border-radius:999px;}
+  .pill.good{color:var(--success);border-color:var(--success);}
+  .pill.warn{color:var(--warning);border-color:var(--warning);}
+  .pill.bad{color:var(--error);border-color:var(--error);}
+
+  .card{background:var(--bg-secondary);border:1px solid var(--border-default);
+    border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .card-head{display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap;
+    padding:var(--space-md) var(--space-lg);background:var(--bg-tertiary);
+    border-bottom:1px solid var(--border-subtle);}
+  .card-id{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent-primary);
+    background:var(--accent-subtle);padding:2px 8px;border-radius:var(--radius-sm);}
+  .card-head h2{font-size:14px;font-weight:600;letter-spacing:-0.2px;color:var(--text-primary);flex:1;min-width:180px;}
+  .card-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+  .card-body{padding:var(--space-lg);}
+
+  .field{margin-bottom:var(--space-md);}
+  .label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-tertiary);margin-bottom:2px;}
+  .field p{font-size:13.5px;color:var(--text-primary);}
+  .muted{color:var(--text-secondary);font-size:13px;}
+  code{background:var(--bg-tertiary);border-radius:var(--radius-sm);padding:1px 5px;
+    font-size:12px;font-family:var(--font-mono);}
+
+  details{border-top:1px solid var(--border-subtle);padding-top:var(--space-md);}
+  summary{cursor:pointer;display:inline-flex;align-items:center;gap:var(--space-sm);
+    font-size:12px;font-weight:600;color:var(--accent-primary);text-transform:uppercase;
+    letter-spacing:.06em;background:var(--accent-subtle);
+    border:1px solid rgba(212,165,116,0.35);border-radius:var(--radius-sm);
+    padding:6px 14px;list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:'\25B8';font-size:11px;line-height:1;}
+  details[open] summary::before{content:'\25BE';}
+  summary:hover{border-color:var(--accent-primary);background:rgba(212,165,116,0.22);}
+  pre.diff{background:var(--bg-deep);border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+    padding:var(--space-md) 0;font-size:12px;font-family:var(--font-mono);line-height:1.5;
+    overflow-x:auto;margin-top:var(--space-sm);display:flex;flex-direction:column;}
+  pre.diff span{white-space:pre;padding:0 var(--space-lg);min-width:100%;width:max-content;}
+  .dl-add{background:var(--diff-ins-bg);color:var(--diff-fg);}
+  .dl-del{background:var(--diff-del-bg);color:var(--diff-fg);}
+  .dl-ctx{color:var(--text-secondary);}
+  .dl-hunk{color:var(--info);}
+  .dl-file{color:var(--text-primary);}
+  .dl-meta{color:var(--text-tertiary);}
+
+  /* Run-status banner — a live run's progress at the top of the report, the
+     reason a terminal-launched run's report is worth reloading. Live borrows
+     the accent tint; complete switches to success. */
+  .run-status{display:flex;align-items:center;gap:var(--space-sm) var(--space-md);flex-wrap:wrap;
+    padding:var(--space-md) var(--space-lg);border-radius:var(--radius-lg);
+    border:1px solid var(--border-default);background:var(--bg-secondary);font-size:13px;}
+  .run-status.live{border-color:rgba(212,165,116,0.35);background:var(--accent-subtle);}
+  .run-status.done{border-color:var(--success);background:rgba(124,179,130,0.12);}
+  .rs-badge{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+    padding:3px 10px;border-radius:999px;flex-shrink:0;}
+  .run-status.live .rs-badge{color:var(--accent-primary);background:rgba(212,165,116,0.18);
+    border:1px solid rgba(212,165,116,0.4);}
+  .run-status.done .rs-badge{color:var(--success);background:rgba(124,179,130,0.15);
+    border:1px solid var(--success);}
+  .rs-count{color:var(--text-primary);font-weight:500;min-width:0;}
+  .rs-task{font-family:var(--font-mono);font-size:12px;color:var(--accent-primary);}
+  .rs-note{color:var(--text-primary);font-size:12px;margin-left:auto;
+    display:inline-flex;align-items:center;gap:6px;}
+  .rs-info{flex-shrink:0;opacity:0.85;}
+
+  /* Empty state — the report before its first task. A dashed border reads as
+     a placeholder rather than a finished card; the icon and copy tell the
+     reader the page is waiting, not empty by mistake. */
+  .empty-state{display:flex;flex-direction:column;align-items:center;text-align:center;
+    gap:var(--space-md);padding:var(--space-xl) var(--space-lg);
+    background:var(--bg-secondary);border:1px dashed var(--border-default);
+    border-radius:var(--radius-lg);color:var(--accent-primary);}
+  .es-icon{width:44px;height:44px;opacity:0.85;}
+  .empty-state h2{font-size:16px;font-weight:600;letter-spacing:-0.2px;color:var(--text-primary);}
+  .empty-state p{font-size:13.5px;color:var(--text-secondary);max-width:480px;line-height:1.6;}
+  .empty-state .es-note{font-size:12px;color:var(--text-tertiary);}
+
+  footer{color:var(--text-tertiary);font-size:11.5px;text-align:center;
+    padding:var(--space-lg);border-top:1px solid var(--border-subtle);}
+  @media (max-width:560px){.card-head{gap:var(--space-sm);}.report-head h1{font-size:20px;}
+    .rs-note{margin-left:0;}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-title">
+    <img class="logo" src="data:image/png;base64,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" alt="Frame logo">
+    <span class="brand">Frame</span>
+    <span class="brand-sep"></span>
+    <div class="doc-block">
+      <span class="doc-type">Spec Implementation Report</span>
+      <span class="slug-chip">terminal-session-setup</span>
+    </div>
+  </div>
+  <div class="topbar-meta">
+    <span class="pill">8 tasks</span>
+    <span class="pill good">8 verified</span>
+    
+    <span class="chip">2026-08-02</span>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="run-status done">
+  <span class="rs-badge">Complete</span>
+  <span class="rs-count">8 of 8 tasks done</span>
+</div>
+<section class="report-head">
+  <h1>Terminal Session Setup — the lane Frame opens is a lane Frame set up</h1>
+</section>
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T01</span>
+    <h2>Add pure src/main/shellSetup.js — the delivery table for terminal session setup</h2>
+    <span class="card-meta"><span class="chip">f3cf5a2</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">468 tests, 0 failures</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>New pure module src/main/shellSetup.js: shellFamily() maps a shell path to posix/fish/none, shellInitPath() spells the .frame/runtime/shell/ layout once, mintMarker() mints a per-terminal per-attempt token, deliveryFor() returns the fish -C args / the typed POSIX line / none behind the win32, no-project and not-a-Frame-project gates, and splitOnMarker() says what part of a buffered chunk survives the marker. test/shellSetup.test.js covers all of it.</p></div>
+    <div class="field"><span class="label">Why</span><p>The marker is emitted as two adjacent single-quoted fragments so the literal token never appears in the line the tty echoes back — otherwise a scan of the output would match the echo and report setup installed before the shell had run anything. Markers are minted per attempt for the same reason in reverse: a retry reusing the first token would be resolved by output still in flight.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/shellSetup.js b/src/main/shellSetup.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..ffa45ea</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/main/shellSetup.js</span>
+<span class="dl-hunk">@@ -0,0 +1,201 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * shellSetup — how a lane Frame opens gets told about Frame.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `launchEnv` puts `.frame/bin` first on the `PATH` of every PTY Frame spawns,</span>
+<span class="dl-add">+ * which works right up until the user&#39;s own rc files disagree: they run *after*</span>
+<span class="dl-add">+ * Frame sets the environment, and nvm, Homebrew and pyenv all prepend their own</span>
+<span class="dl-add">+ * directory. Measured on a developer machine `.frame/bin` ends up sixth, behind</span>
+<span class="dl-add">+ * the nvm bin that `npm i -g` installs Codex and Gemini into — so the guarantee</span>
+<span class="dl-add">+ * held only for tools that happened to live elsewhere, and it failed silently.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The fix is a shell **function** per tool, defined by a generated file this</span>
+<span class="dl-add">+ * module knows how to deliver. A function is resolved before any `PATH` search,</span>
+<span class="dl-add">+ * so the ordering question disappears. The function is a router, not a second</span>
+<span class="dl-add">+ * injection point: it delegates to `.frame/bin/&lt;id&gt;`, which remains the only</span>
+<span class="dl-add">+ * thing that composes the preamble and the only thing that honours</span>
+<span class="dl-add">+ * `FRAME_NO_WRAP=1`.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * ── What lives here ──</span>
+<span class="dl-add">+ * The delivery *table*: which shell family a shell path belongs to, how setup</span>
+<span class="dl-add">+ * reaches that family, the marker that proves it arrived, and what part of a</span>
+<span class="dl-add">+ * buffered chunk survives that marker. Writing the init files is</span>
+<span class="dl-add">+ * `aiToolManager`&#39;s job; sending and verifying is `ptyManager`&#39;s.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Pure: no fs, no Electron, no spawn — `launchEnv.js` is the shape being</span>
+<span class="dl-add">+ * copied. The two facts this module cannot derive on its own (whether the</span>
+<span class="dl-add">+ * folder is really a Frame project, which is an fs question) are passed in.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { FRAME_DIR } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Where the generated init files live, relative to `.frame/`. Inside the</span>
+<span class="dl-add">+// overlay, like everything else Frame writes: no rc file, no ZDOTDIR, no</span>
+<span class="dl-add">+// registry (the non-invasive-overlay constraint applied to the terminal).</span>
+<span class="dl-add">+const SHELL_DIR = &#39;runtime/shell&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const INIT_FILES = {</span>
+<span class="dl-add">+  posix: &#39;init.sh&#39;,</span>
+<span class="dl-add">+  fish: &#39;init.fish&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// The marker&#39;s fixed half. The minted half follows it, and the two are never</span>
+<span class="dl-add">+// adjacent in anything sent to a shell — see `deliveryFor`.</span>
+<span class="dl-add">+const MARKER_PREFIX = &#39;__frame_ready_&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Shell basenames Frame can set up. `sh` and `dash` take the POSIX file;</span>
+<span class="dl-add">+// `nu`, `pwsh` and `cmd` are deliberately absent — Windows has no `.cmd`</span>
+<span class="dl-add">+// wrappers to point a function at, and nushell&#39;s function and `PATH` model</span>
+<span class="dl-add">+// matches neither generated file. That is `unsupported`, not a failure.</span>
+<span class="dl-add">+const FAMILY_BY_SHELL = {</span>
+<span class="dl-add">+  zsh: &#39;posix&#39;,</span>
+<span class="dl-add">+  bash: &#39;posix&#39;,</span>
+<span class="dl-add">+  sh: &#39;posix&#39;,</span>
+<span class="dl-add">+  dash: &#39;posix&#39;,</span>
+<span class="dl-add">+  ksh: &#39;posix&#39;,</span>
+<span class="dl-add">+  fish: &#39;fish&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The shell family a shell path belongs to, or &#39;&#39; when Frame has no init file</span>
+<span class="dl-add">+ * for it.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Basename only: `/opt/homebrew/bin/fish` and `/usr/local/bin/fish` are the</span>
+<span class="dl-add">+ * same shell, and a login-shell argv0 (`-zsh`) is the same shell too.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function shellFamily(shellPath) {</span>
+<span class="dl-add">+  if (!shellPath) return &#39;&#39;;</span>
+<span class="dl-add">+  const base = String(shellPath).trim().split(/[\\/]/).pop() || &#39;&#39;;</span>
+<span class="dl-add">+  const name = base.replace(/^-/, &#39;&#39;).replace(/\.exe$/i, &#39;&#39;).toLowerCase();</span>
+<span class="dl-add">+  return FAMILY_BY_SHELL[name] || &#39;&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Absolute path to a project&#39;s generated init file for a family, or &#39;&#39; when</span>
+<span class="dl-add">+ * either is missing.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The one place that spells the layout out; `aiToolManager` writes through it</span>
+<span class="dl-add">+ * rather than rebuilding the path, so the writer and the sender can never</span>
+<span class="dl-add">+ * disagree about where the file is.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function shellInitPath(projectPath, family) {</span>
+<span class="dl-add">+  const file = INIT_FILES[family];</span>
+<span class="dl-add">+  if (!projectPath || !file) return &#39;&#39;;</span>
+<span class="dl-add">+  return path.join(projectPath, FRAME_DIR, ...SHELL_DIR.split(&#39;/&#39;), file);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * A marker unique to one terminal and one attempt.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Uniqueness across attempts is load-bearing: the retry types a second line,</span>
+<span class="dl-add">+ * and if it carried the first attempt&#39;s token then output still in flight from</span>
+<span class="dl-add">+ * the first would resolve the second instantly and setup would be reported</span>
+<span class="dl-add">+ * installed without ever having run.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+let mintCount = 0;</span>
+<span class="dl-add">+function mintMarker(terminalId, attempt = 1) {</span>
+<span class="dl-add">+  mintCount += 1;</span>
+<span class="dl-add">+  const safe = String(terminalId == null ? &#39;&#39; : terminalId).replace(/[^A-Za-z0-9]/g, &#39;&#39;) || &#39;lane&#39;;</span>
+<span class="dl-add">+  return `${MARKER_PREFIX}${safe}_${attempt}_${mintCount.toString(36)}`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Single-quote a value for a POSIX or fish command line.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Both shells treat `&#39;` as fully literal and neither has an escape inside it,</span>
+<span class="dl-add">+ * so a quote in the path is closed, escaped and reopened. Project paths with</span>
+<span class="dl-add">+ * an apostrophe are rare and entirely legal.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function singleQuote(value) {</span>
+<span class="dl-add">+  return `&#39;${String(value).replace(/&#39;/g, &quot;&#39;\\&#39;&#39;&quot;)}&#39;`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The `printf` that announces the marker — never containing it.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * In typed mode the tty echoes the command before running it, so a scan of the</span>
+<span class="dl-add">+ * output would match the echo and declare setup installed before the shell had</span>
+<span class="dl-add">+ * done anything at all. The token is therefore emitted as two adjacent quoted</span>
+<span class="dl-add">+ * fragments, which both shells concatenate at run time: the literal marker</span>
+<span class="dl-add">+ * exists only in real output. Cheap, and it removes an entire class of</span>
+<span class="dl-add">+ * false positives.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function markerEcho(marker) {</span>
+<span class="dl-add">+  const cut = MARKER_PREFIX.length;</span>
+<span class="dl-add">+  return `printf &#39;%s\\n&#39; ${singleQuote(marker.slice(0, cut))}${singleQuote(marker.slice(cut))}`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * How setup reaches one lane&#39;s shell.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Returns one of three shapes:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   { mode: &#39;flag&#39;, args: [&#39;-C&#39;, &#39;…&#39;], marker }   fish — nothing is typed</span>
+<span class="dl-add">+ *   { mode: &#39;type&#39;, line: &#39; . …&#39;, marker }        zsh/bash/sh — typed at spawn</span>
+<span class="dl-add">+ *   { mode: &#39;none&#39;, reason }                      nothing is sent</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `mode: &#39;none&#39;` is the answer for Windows, for a lane with no project, for a</span>
+<span class="dl-add">+ * folder that is not a Frame project, and for a shell Frame has no init file</span>
+<span class="dl-add">+ * for. In every one of those cases nothing is sent and no function or variable</span>
+<span class="dl-add">+ * is defined — the lane behaves exactly as it did before this module existed.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * zsh and bash get a typed line rather than a flag because the only</span>
+<span class="dl-add">+ * post-startup hook they offer reroutes the user&#39;s own startup files, which</span>
+<span class="dl-add">+ * Frame does not do.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function deliveryFor(shellPath, platform = process.platform, projectPath = &#39;&#39;, options = {}) {</span>
+<span class="dl-add">+  const { marker = &#39;&#39;, isFrameProject = true } = options;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (platform === &#39;win32&#39;) return { mode: &#39;none&#39;, reason: &#39;platform&#39; };</span>
+<span class="dl-add">+  if (!projectPath) return { mode: &#39;none&#39;, reason: &#39;no-project&#39; };</span>
+<span class="dl-add">+  if (!isFrameProject) return { mode: &#39;none&#39;, reason: &#39;not-a-frame-project&#39; };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const family = shellFamily(shellPath);</span>
+<span class="dl-add">+  if (!family) return { mode: &#39;none&#39;, reason: &#39;unsupported-shell&#39; };</span>
+<span class="dl-add">+  if (!marker) return { mode: &#39;none&#39;, reason: &#39;no-marker&#39; };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const initFile = singleQuote(shellInitPath(projectPath, family));</span>
+<span class="dl-add">+  const echo = markerEcho(marker);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (family === &#39;fish&#39;) {</span>
+<span class="dl-add">+    // `-C` runs after fish&#39;s own config, so the function definitions win, and</span>
+<span class="dl-add">+    // the user sees nothing typed into their terminal.</span>
+<span class="dl-add">+    return { mode: &#39;flag&#39;, args: [&#39;-C&#39;, `source ${initFile}; ${echo}`], marker };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // The leading space keeps the line out of history where the shell is</span>
+<span class="dl-add">+  // configured to honour it; the suppression that makes it invisible is</span>
+<span class="dl-add">+  // `ptyManager`&#39;s buffer, not this space.</span>
+<span class="dl-add">+  return { mode: &#39;type&#39;, line: ` . ${initFile} &amp;&amp; ${echo}`, marker };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * What survives the marker in a buffered chunk.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Setup output is held back until the marker proves the shell processed it, at</span>
+<span class="dl-add">+ * which point everything up to and including the marker&#39;s own line is dropped</span>
+<span class="dl-add">+ * and the remainder — the real first prompt — enters the normal pipeline. A</span>
+<span class="dl-add">+ * marker whose line has not been terminated yet drops the whole chunk; the</span>
+<span class="dl-add">+ * prompt arrives in the next one.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function splitOnMarker(chunk, marker) {</span>
+<span class="dl-add">+  const text = chunk == null ? &#39;&#39; : String(chunk);</span>
+<span class="dl-add">+  if (!marker) return { found: false, rest: &#39;&#39; };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const at = text.indexOf(marker);</span>
+<span class="dl-add">+  if (at === -1) return { found: false, rest: &#39;&#39; };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const newline = text.indexOf(&#39;\n&#39;, at + marker.length);</span>
+<span class="dl-add">+  return { found: true, rest: newline === -1 ? &#39;&#39; : text.slice(newline + 1) };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  SHELL_DIR,</span>
+<span class="dl-add">+  INIT_FILES,</span>
+<span class="dl-add">+  MARKER_PREFIX,</span>
+<span class="dl-add">+  shellFamily,</span>
+<span class="dl-add">+  shellInitPath,</span>
+<span class="dl-add">+  mintMarker,</span>
+<span class="dl-add">+  deliveryFor,</span>
+<span class="dl-add">+  splitOnMarker</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/test/shellSetup.test.js b/test/shellSetup.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..545b706</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/shellSetup.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,218 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * shellSetup tests (T01): the delivery table for terminal session setup.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Two assertions here are load-bearing and the rest are guard rails. The first</span>
+<span class="dl-add">+ * is that the delivered line never contains the literal marker — the tty echoes</span>
+<span class="dl-add">+ * a typed command before running it, so a marker present in the line itself</span>
+<span class="dl-add">+ * would be matched in the echo and setup would be declared installed before the</span>
+<span class="dl-add">+ * shell had done anything. The second is that markers differ across attempts:</span>
+<span class="dl-add">+ * a retry reusing the first token would be resolved by output still in flight</span>
+<span class="dl-add">+ * from the first attempt.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const Module = require(&#39;module&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const shellSetup = require(&#39;../src/main/shellSetup&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const PROJECT = &#39;/tmp/some project&#39;;</span>
+<span class="dl-add">+const INIT_SH = path.join(PROJECT, &#39;.frame&#39;, &#39;runtime&#39;, &#39;shell&#39;, &#39;init.sh&#39;);</span>
+<span class="dl-add">+const INIT_FISH = path.join(PROJECT, &#39;.frame&#39;, &#39;runtime&#39;, &#39;shell&#39;, &#39;init.fish&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const deliver = (shellPath, overrides = {}) =&gt;</span>
+<span class="dl-add">+  shellSetup.deliveryFor(shellPath, overrides.platform || &#39;darwin&#39;, &#39;projectPath&#39; in overrides ? overrides.projectPath : PROJECT, {</span>
+<span class="dl-add">+    marker: &#39;marker&#39; in overrides ? overrides.marker : &#39;__frame_ready_t1_1_a&#39;,</span>
+<span class="dl-add">+    ...(&#39;isFrameProject&#39; in overrides ? { isFrameProject: overrides.isFrameProject } : {})</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── shellFamily ──────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the POSIX shells resolve to one family&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;/bin/zsh&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;/bin/bash&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;/bin/sh&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;/usr/bin/dash&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;fish is its own family, wherever it was installed&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;/opt/homebrew/bin/fish&#39;), &#39;fish&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;/usr/local/bin/fish&#39;), &#39;fish&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a login-shell argv0 is still the same shell&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;-zsh&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;shells Frame has no init file for get no family&#39;, () =&gt; {</span>
+<span class="dl-add">+  // Not a failure: nushell&#39;s function model matches neither generated file and</span>
+<span class="dl-add">+  // Windows has no .cmd wrappers to point one at.</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;/usr/local/bin/nu&#39;), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;/usr/bin/pwsh&#39;), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;C:\\Windows\\System32\\cmd.exe&#39;), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;&#39;), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(null), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── shellInitPath ────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;init files live inside the project overlay&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellInitPath(PROJECT, &#39;posix&#39;), INIT_SH);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellInitPath(PROJECT, &#39;fish&#39;), INIT_FISH);</span>
+<span class="dl-add">+  assert.ok(shellSetup.shellInitPath(PROJECT, &#39;posix&#39;).startsWith(path.join(PROJECT, &#39;.frame&#39;)));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;no project or no family means no path&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellInitPath(&#39;&#39;, &#39;posix&#39;), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellInitPath(PROJECT, &#39;nushell&#39;), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── mintMarker ───────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;markers differ across attempts on the same terminal&#39;, () =&gt; {</span>
+<span class="dl-add">+  const first = shellSetup.mintMarker(&#39;term-1&#39;, 1);</span>
+<span class="dl-add">+  const second = shellSetup.mintMarker(&#39;term-1&#39;, 2);</span>
+<span class="dl-add">+  assert.notEqual(first, second, &#39;a retry would be resolved by the first attempt\&#39;s output&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;markers differ across terminals and across repeated mints&#39;, () =&gt; {</span>
+<span class="dl-add">+  const a = shellSetup.mintMarker(&#39;term-1&#39;, 1);</span>
+<span class="dl-add">+  const b = shellSetup.mintMarker(&#39;term-2&#39;, 1);</span>
+<span class="dl-add">+  const c = shellSetup.mintMarker(&#39;term-1&#39;, 1);</span>
+<span class="dl-add">+  assert.equal(new Set([a, b, c]).size, 3);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a marker carries the shared prefix and nothing that needs quoting&#39;, () =&gt; {</span>
+<span class="dl-add">+  const marker = shellSetup.mintMarker(&#39;lane/with spaces:1&#39;, 1);</span>
+<span class="dl-add">+  assert.ok(marker.startsWith(shellSetup.MARKER_PREFIX));</span>
+<span class="dl-add">+  assert.match(marker, /^[A-Za-z0-9_]+$/);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── deliveryFor · gates ──────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;win32 gets nothing sent&#39;, () =&gt; {</span>
+<span class="dl-add">+  const delivery = deliver(&#39;C:\\Program Files\\Git\\bin\\bash.exe&#39;, { platform: &#39;win32&#39; });</span>
+<span class="dl-add">+  assert.equal(delivery.mode, &#39;none&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.reason, &#39;platform&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a folder that is not a Frame project gets nothing sent&#39;, () =&gt; {</span>
+<span class="dl-add">+  const delivery = deliver(&#39;/bin/zsh&#39;, { isFrameProject: false });</span>
+<span class="dl-add">+  assert.equal(delivery.mode, &#39;none&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.reason, &#39;not-a-frame-project&#39;);</span>
+<span class="dl-add">+  assert.ok(!(&#39;line&#39; in delivery) &amp;&amp; !(&#39;args&#39; in delivery), &#39;nothing to send, nothing to define&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a lane with no project gets nothing sent&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(deliver(&#39;/bin/zsh&#39;, { projectPath: &#39;&#39; }).mode, &#39;none&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;an unsupported shell gets nothing sent&#39;, () =&gt; {</span>
+<span class="dl-add">+  const delivery = deliver(&#39;/usr/local/bin/nu&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.mode, &#39;none&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.reason, &#39;unsupported-shell&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;no marker means no delivery&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(deliver(&#39;/bin/zsh&#39;, { marker: &#39;&#39; }).mode, &#39;none&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── deliveryFor · POSIX ──────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;zsh and bash are set up by a typed line that sources the init file&#39;, () =&gt; {</span>
+<span class="dl-add">+  const delivery = deliver(&#39;/bin/zsh&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.mode, &#39;type&#39;);</span>
+<span class="dl-add">+  assert.ok(delivery.line.includes(`. &#39;${INIT_SH}&#39;`), delivery.line);</span>
+<span class="dl-add">+  assert.equal(delivery.line, deliver(&#39;/bin/bash&#39;).line, &#39;one file serves the family&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the typed line starts with a space so the shell can keep it out of history&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.ok(deliver(&#39;/bin/zsh&#39;).line.startsWith(&#39; &#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the typed line never contains the literal marker&#39;, () =&gt; {</span>
+<span class="dl-add">+  // The invariant: the tty echoes this line before running it, and a scan that</span>
+<span class="dl-add">+  // matched the echo would report setup installed before the shell had run.</span>
+<span class="dl-add">+  const marker = shellSetup.mintMarker(&#39;term-9&#39;, 1);</span>
+<span class="dl-add">+  const delivery = shellSetup.deliveryFor(&#39;/bin/zsh&#39;, &#39;darwin&#39;, PROJECT, { marker });</span>
+<span class="dl-add">+  assert.equal(delivery.marker, marker);</span>
+<span class="dl-add">+  assert.ok(!delivery.line.includes(marker), `echo would match: ${delivery.line}`);</span>
+<span class="dl-add">+  // …while still carrying both halves, adjacent and separately quoted, so the</span>
+<span class="dl-add">+  // shell concatenates them back into the marker at run time.</span>
+<span class="dl-add">+  assert.ok(delivery.line.includes(`&#39;${shellSetup.MARKER_PREFIX}&#39;&#39;${marker.slice(shellSetup.MARKER_PREFIX.length)}&#39;`));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a project path with a quote in it is escaped rather than breaking the line&#39;, () =&gt; {</span>
+<span class="dl-add">+  const delivery = shellSetup.deliveryFor(&#39;/bin/zsh&#39;, &#39;darwin&#39;, &quot;/tmp/o&#39;brien&quot;, { marker: &#39;__frame_ready_x&#39; });</span>
+<span class="dl-add">+  assert.ok(delivery.line.includes(&quot;&#39;\\&#39;&#39;&quot;), delivery.line);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── deliveryFor · fish ───────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;fish is set up through -C, with nothing typed into the terminal&#39;, () =&gt; {</span>
+<span class="dl-add">+  const delivery = deliver(&#39;/opt/homebrew/bin/fish&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.mode, &#39;flag&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.args[0], &#39;-C&#39;);</span>
+<span class="dl-add">+  assert.ok(delivery.args[1].includes(`source &#39;${INIT_FISH}&#39;`), delivery.args[1]);</span>
+<span class="dl-add">+  assert.ok(!(&#39;line&#39; in delivery));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the fish command carries the split marker too&#39;, () =&gt; {</span>
+<span class="dl-add">+  const marker = shellSetup.mintMarker(&#39;term-fish&#39;, 1);</span>
+<span class="dl-add">+  const delivery = shellSetup.deliveryFor(&#39;/usr/local/bin/fish&#39;, &#39;darwin&#39;, PROJECT, { marker });</span>
+<span class="dl-add">+  assert.ok(!delivery.args[1].includes(marker));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── splitOnMarker ────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;output before and including the marker line is dropped, the rest survives&#39;, () =&gt; {</span>
+<span class="dl-add">+  const marker = &#39;__frame_ready_t1_1_a&#39;;</span>
+<span class="dl-add">+  const chunk = `some setup noise\n${marker}\nuser@host ~ $ `;</span>
+<span class="dl-add">+  const { found, rest } = shellSetup.splitOnMarker(chunk, marker);</span>
+<span class="dl-add">+  assert.equal(found, true);</span>
+<span class="dl-add">+  assert.equal(rest, &#39;user@host ~ $ &#39;, &#39;the first prompt is what the user should see&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a marker with no terminated line yet drops the whole chunk&#39;, () =&gt; {</span>
+<span class="dl-add">+  const marker = &#39;__frame_ready_t1_1_a&#39;;</span>
+<span class="dl-add">+  const { found, rest } = shellSetup.splitOnMarker(`noise\n${marker}`, marker);</span>
+<span class="dl-add">+  assert.equal(found, true);</span>
+<span class="dl-add">+  assert.equal(rest, &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a chunk without the marker resolves nothing&#39;, () =&gt; {</span>
+<span class="dl-add">+  const { found, rest } = shellSetup.splitOnMarker(&#39;just a prompt $ &#39;, &#39;__frame_ready_t1_1_a&#39;);</span>
+<span class="dl-add">+  assert.equal(found, false);</span>
+<span class="dl-add">+  assert.equal(rest, &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;splitting without a marker is never a match&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.deepEqual(shellSetup.splitOnMarker(&#39;anything&#39;, &#39;&#39;), { found: false, rest: &#39;&#39; });</span>
+<span class="dl-add">+  assert.deepEqual(shellSetup.splitOnMarker(null, &#39;__frame_ready_x&#39;), { found: false, rest: &#39;&#39; });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── purity ───────────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the module touches neither the filesystem nor Electron&#39;, () =&gt; {</span>
+<span class="dl-add">+  const source = require(&#39;fs&#39;).readFileSync(require.resolve(&#39;../src/main/shellSetup&#39;), &#39;utf8&#39;);</span>
+<span class="dl-add">+  for (const forbidden of [&#39;electron&#39;, &#39;fs&#39;, &#39;node:fs&#39;, &#39;child_process&#39;]) {</span>
+<span class="dl-add">+    assert.ok(!source.includes(`require(&#39;${forbidden}&#39;)`), `shellSetup requires ${forbidden}`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const realLoad = Module._load;</span>
+<span class="dl-add">+  Module._load = function (request, parent, isMain) {</span>
+<span class="dl-add">+    if (request === &#39;fs&#39; || request === &#39;node:fs&#39; || request === &#39;electron&#39;) {</span>
+<span class="dl-add">+      throw new Error(`shellSetup must not require ${request}`);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    return realLoad(request, parent, isMain);</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    delete require.cache[require.resolve(&#39;../src/main/shellSetup&#39;)];</span>
+<span class="dl-add">+    const fresh = require(&#39;../src/main/shellSetup&#39;);</span>
+<span class="dl-add">+    assert.equal(fresh.shellFamily(&#39;/bin/zsh&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    Module._load = realLoad;</span>
+<span class="dl-add">+    delete require.cache[require.resolve(&#39;../src/main/shellSetup&#39;)];</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T02</span>
+    <h2>Add getShellInitTemplate() to src/shared/frameTemplates.js — the generated init files</h2>
+    <span class="card-meta"><span class="chip">da41e20</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">488 tests, 0 failures</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>getShellInitTemplate({ family, binDir, toolIds }) generates the POSIX and fish init files: FRAME_BIN exported, .frame/bin moved (not duplicated) to the front of an exported PATH, and one function per configured tool delegating to &quot;$FRAME_BIN/&lt;id&gt;&quot; with a command &lt;id&gt; fallback. Ids that would not parse as a function name are skipped. test/frameTemplates.test.js gained string cases plus executed ones that source the real file in bash, sh and zsh.</p></div>
+    <div class="field"><span class="label">Why</span><p>The POSIX PATH rebuild uses prefix/suffix removal instead of splitting on &quot;:&quot; because zsh does not word-split unquoted parameters and the same file is sourced by zsh and bash — a for-loop over $PATH would have treated the whole list as one entry in zsh. FRAME_NO_WRAP is deliberately not handled here: the function routes to the wrapper, which already honours it, so the escape hatch behaves the same through the function and through PATH.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 3fd5a94..6903bc0 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -979,6 +979,148 @@ fi</span>
+<span class="dl-ctx"> `;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * A shell function name Frame is willing to define.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Tool ids come from a registry the user can add to, and a custom id is free</span>
+<span class="dl-add">+ * text. Anything that would not parse as a function name is skipped rather</span>
+<span class="dl-add">+ * than escaped: a broken definition would take the whole init file down with</span>
+<span class="dl-add">+ * it, and losing one tool&#39;s function is cheaper than losing every tool&#39;s.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function isDefinableToolId(id) {</span>
+<span class="dl-add">+  return typeof id === &#39;string&#39; &amp;&amp; /^[A-Za-z_][A-Za-z0-9_-]*$/.test(id);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Single-quote for a generated shell file. Both POSIX shells and fish treat</span>
+<span class="dl-add">+// `&#39;` as fully literal with no escape inside it, so a quote in the path is</span>
+<span class="dl-add">+// closed, escaped and reopened.</span>
+<span class="dl-add">+function shellQuote(value) {</span>
+<span class="dl-add">+  return `&#39;${String(value == null ? &#39;&#39; : value).replace(/&#39;/g, &quot;&#39;\\&#39;&#39;&quot;)}&#39;`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The init file a lane sources at startup.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `.frame/bin` first on `PATH` was never enough on its own: rc files run</span>
+<span class="dl-add">+ * *after* Frame sets the environment, and nvm, Homebrew and pyenv all prepend</span>
+<span class="dl-add">+ * their own directory — so a `codex` installed by `npm i -g` won not because</span>
+<span class="dl-add">+ * anything was wrong, but because it got to reorder the list last. This file</span>
+<span class="dl-add">+ * runs last instead, and does two things:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * 1. Moves `.frame/bin` back to the front of an **exported** `PATH`, so</span>
+<span class="dl-add">+ *    subshells — where functions do not reach — keep the base guarantee.</span>
+<span class="dl-add">+ * 2. Defines one function per configured tool. A function is resolved before</span>
+<span class="dl-add">+ *    any `PATH` search, which removes the ordering question entirely.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Each function is a **router**, not a second injection point: it delegates to</span>
+<span class="dl-add">+ * `&quot;$FRAME_BIN/&lt;id&gt;&quot;`, which stays the only thing that composes the preamble</span>
+<span class="dl-add">+ * and the only thing that honours `FRAME_NO_WRAP=1` — so the escape hatch</span>
+<span class="dl-add">+ * behaves identically whether the tool was reached through the function or</span>
+<span class="dl-add">+ * through `PATH`. When the wrapper file is missing the function falls back to</span>
+<span class="dl-add">+ * `command &lt;id&gt;`, which bypasses shell functions (so it cannot recurse into</span>
+<span class="dl-add">+ * itself) while still going through `PATH`.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * @param {object} options</span>
+<span class="dl-add">+ * @param {string} options.family - &#39;posix&#39; (zsh/bash/sh) or &#39;fish&#39;</span>
+<span class="dl-add">+ * @param {string} options.binDir - absolute path to the project&#39;s .frame/bin</span>
+<span class="dl-add">+ * @param {string[]} options.toolIds - configured tool ids, one function each</span>
+<span class="dl-add">+ * @returns {string} the file&#39;s content, or &#39;&#39; for a family Frame cannot serve</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function getShellInitTemplate(options) {</span>
+<span class="dl-add">+  const opts = options || {};</span>
+<span class="dl-add">+  const family = opts.family || &#39;&#39;;</span>
+<span class="dl-add">+  const binDir = opts.binDir || &#39;&#39;;</span>
+<span class="dl-add">+  const toolIds = (Array.isArray(opts.toolIds) ? opts.toolIds : []).filter(isDefinableToolId);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (!binDir) return &#39;&#39;;</span>
+<span class="dl-add">+  if (family === &#39;fish&#39;) return fishInitTemplate(binDir, toolIds);</span>
+<span class="dl-add">+  if (family === &#39;posix&#39;) return posixInitTemplate(binDir, toolIds);</span>
+<span class="dl-add">+  return &#39;&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function posixInitTemplate(binDir, toolIds) {</span>
+<span class="dl-add">+  const functions = toolIds</span>
+<span class="dl-add">+    .map(</span>
+<span class="dl-add">+      (id) =&gt; `${id}() {</span>
+<span class="dl-add">+  if [ -x &quot;$FRAME_BIN/${id}&quot; ]; then</span>
+<span class="dl-add">+    &quot;$FRAME_BIN/${id}&quot; &quot;$@&quot;</span>
+<span class="dl-add">+  else</span>
+<span class="dl-add">+    command ${id} &quot;$@&quot;</span>
+<span class="dl-add">+  fi</span>
+<span class="dl-add">+}`</span>
+<span class="dl-add">+    )</span>
+<span class="dl-add">+    .join(&#39;\n\n&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return `# Frame shell setup — sourced by zsh, bash and sh in terminals Frame opens.</span>
+<span class="dl-add">+# Generated file; Frame rewrites it whenever the content changes. Nothing</span>
+<span class="dl-add">+# outside .frame/ is touched, and nothing here runs in a shell Frame did not</span>
+<span class="dl-add">+# open.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+FRAME_BIN=${shellQuote(binDir)}</span>
+<span class="dl-add">+export FRAME_BIN</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+# Move FRAME_BIN to the front of PATH — the reason this file exists. Written</span>
+<span class="dl-add">+# with prefix/suffix removal instead of splitting on &quot;:&quot;, because zsh does not</span>
+<span class="dl-add">+# word-split unquoted parameters and this same file is sourced by zsh and bash.</span>
+<span class="dl-add">+__frame_path_front() {</span>
+<span class="dl-add">+  __frame_rest=&quot;$PATH&quot;</span>
+<span class="dl-add">+  __frame_out=&quot;&quot;</span>
+<span class="dl-add">+  while [ -n &quot;$__frame_rest&quot; ]; do</span>
+<span class="dl-add">+    case &quot;$__frame_rest&quot; in</span>
+<span class="dl-add">+      *:*) __frame_item=&quot;\${__frame_rest%%:*}&quot;; __frame_rest=&quot;\${__frame_rest#*:}&quot; ;;</span>
+<span class="dl-add">+      *) __frame_item=&quot;$__frame_rest&quot;; __frame_rest=&quot;&quot; ;;</span>
+<span class="dl-add">+    esac</span>
+<span class="dl-add">+    [ -z &quot;$__frame_item&quot; ] &amp;&amp; continue</span>
+<span class="dl-add">+    [ &quot;$__frame_item&quot; = &quot;$FRAME_BIN&quot; ] &amp;&amp; continue</span>
+<span class="dl-add">+    __frame_out=&quot;\${__frame_out:+$__frame_out:}$__frame_item&quot;</span>
+<span class="dl-add">+  done</span>
+<span class="dl-add">+  PATH=&quot;$FRAME_BIN\${__frame_out:+:$__frame_out}&quot;</span>
+<span class="dl-add">+  export PATH</span>
+<span class="dl-add">+  unset __frame_rest __frame_out __frame_item</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+__frame_path_front</span>
+<span class="dl-add">+unset -f __frame_path_front 2&gt;/dev/null</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+# One function per configured tool. Resolved before any PATH search, so where</span>
+<span class="dl-add">+# the user&#39;s rc files put their own directories stops mattering.</span>
+<span class="dl-add">+${functions}</span>
+<span class="dl-add">+`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function fishInitTemplate(binDir, toolIds) {</span>
+<span class="dl-add">+  const functions = toolIds</span>
+<span class="dl-add">+    .map(</span>
+<span class="dl-add">+      (id) =&gt; `function ${id} --wraps ${id}</span>
+<span class="dl-add">+    if test -x &quot;$FRAME_BIN/${id}&quot;</span>
+<span class="dl-add">+        &quot;$FRAME_BIN/${id}&quot; $argv</span>
+<span class="dl-add">+    else</span>
+<span class="dl-add">+        command ${id} $argv</span>
+<span class="dl-add">+    end</span>
+<span class="dl-add">+end`</span>
+<span class="dl-add">+    )</span>
+<span class="dl-add">+    .join(&#39;\n\n&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return `# Frame shell setup — sourced by fish in terminals Frame opens.</span>
+<span class="dl-add">+# Generated file; Frame rewrites it whenever the content changes.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+set -gx FRAME_BIN ${shellQuote(binDir)}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+# Move FRAME_BIN to the front of PATH. fish&#39;s PATH is a list, so this is a</span>
+<span class="dl-add">+# rebuild rather than string surgery — but the intent is the one the POSIX</span>
+<span class="dl-add">+# file has: exported, and first.</span>
+<span class="dl-add">+set -l __frame_rest</span>
+<span class="dl-add">+for __frame_entry in $PATH</span>
+<span class="dl-add">+    if test &quot;$__frame_entry&quot; != &quot;$FRAME_BIN&quot;</span>
+<span class="dl-add">+        set -a __frame_rest $__frame_entry</span>
+<span class="dl-add">+    end</span>
+<span class="dl-add">+end</span>
+<span class="dl-add">+set -gx PATH $FRAME_BIN $__frame_rest</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+# One function per configured tool, each delegating to the wrapper.</span>
+<span class="dl-add">+${functions}</span>
+<span class="dl-add">+`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * The spec-hint hooks, as a Claude Code settings object.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -1145,6 +1287,7 @@ module.exports = {</span>
+<span class="dl-ctx">   REFERENCE_SPEC_LEGACY_MATCHERS,</span>
+<span class="dl-ctx">   AGENTS_SPEC_LEGACY_MATCHERS,</span>
+<span class="dl-ctx">   getWrapperTemplate,</span>
+<span class="dl-add">+  getShellInitTemplate,</span>
+<span class="dl-ctx">   getSpecHintSettings,</span>
+<span class="dl-ctx">   getStructureHookSnippet,</span>
+<span class="dl-ctx">   getStructurePreCommitHookTemplate,</span>
+<span class="dl-meta">diff --git a/test/frameTemplates.test.js b/test/frameTemplates.test.js</span>
+<span class="dl-meta">index a6b78b9..353bcec 100644</span>
+<span class="dl-file">--- a/test/frameTemplates.test.js</span>
+<span class="dl-file">+++ b/test/frameTemplates.test.js</span>
+<span class="dl-hunk">@@ -257,3 +257,154 @@ test(&#39;an invalid gitSharing option falls back to local&#39;, () =&gt; {</span>
+<span class="dl-ctx">   const config = templates.getFrameConfigTemplate(&#39;MyProject&#39;, { gitSharing: &#39;team&#39; });</span>
+<span class="dl-ctx">   assert.equal(config.settings.gitSharing, &#39;local&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── shell init template (T02) ────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// `.frame/bin` first on PATH is set before the user&#39;s rc files run, and those</span>
+<span class="dl-add">+// files reorder PATH afterwards — which is how a `codex` installed by</span>
+<span class="dl-add">+// `npm i -g` came to win. These functions are what makes the ordering</span>
+<span class="dl-add">+// irrelevant, so the assertions that matter are: a function per tool, each</span>
+<span class="dl-add">+// delegating to the *wrapper* rather than re-execing the tool name (which</span>
+<span class="dl-add">+// would recurse), and PATH moved rather than duplicated.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const INIT_BIN = &#39;/tmp/some project/.frame/bin&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the POSIX init file defines one function per configured tool&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = templates.getShellInitTemplate({</span>
+<span class="dl-add">+    family: &#39;posix&#39;,</span>
+<span class="dl-add">+    binDir: INIT_BIN,</span>
+<span class="dl-add">+    toolIds: [&#39;claude&#39;, &#39;codex&#39;, &#39;gemini&#39;]</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  for (const id of [&#39;claude&#39;, &#39;codex&#39;, &#39;gemini&#39;]) {</span>
+<span class="dl-add">+    assert.ok(init.includes(`${id}() {`), `no function for ${id}`);</span>
+<span class="dl-add">+    assert.ok(init.includes(`&quot;$FRAME_BIN/${id}&quot; &quot;$@&quot;`), `${id} does not delegate to the wrapper`);</span>
+<span class="dl-add">+    assert.ok(init.includes(`command ${id} &quot;$@&quot;`), `${id} has no missing-wrapper fallback`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a custom tool gets its function in both files&#39;, () =&gt; {</span>
+<span class="dl-add">+  const posix = templates.getShellInitTemplate({ family: &#39;posix&#39;, binDir: INIT_BIN, toolIds: [&#39;my-cli&#39;] });</span>
+<span class="dl-add">+  const fish = templates.getShellInitTemplate({ family: &#39;fish&#39;, binDir: INIT_BIN, toolIds: [&#39;my-cli&#39;] });</span>
+<span class="dl-add">+  assert.ok(posix.includes(&#39;my-cli() {&#39;));</span>
+<span class="dl-add">+  assert.ok(fish.includes(&#39;function my-cli&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a function never re-execs the bare tool name outside `command`&#39;, () =&gt; {</span>
+<span class="dl-add">+  // `claude() { claude &quot;$@&quot;; }` would recurse forever. `command claude` is the</span>
+<span class="dl-add">+  // only bare form allowed: it bypasses functions while still using PATH.</span>
+<span class="dl-add">+  const init = templates.getShellInitTemplate({ family: &#39;posix&#39;, binDir: INIT_BIN, toolIds: [&#39;claude&#39;] });</span>
+<span class="dl-add">+  const body = init.slice(init.indexOf(&#39;claude() {&#39;));</span>
+<span class="dl-add">+  for (const line of body.split(&#39;\n&#39;)) {</span>
+<span class="dl-add">+    if (!line.includes(&#39;claude&#39;)) continue;</span>
+<span class="dl-add">+    assert.ok(</span>
+<span class="dl-add">+      line.includes(&#39;$FRAME_BIN/claude&#39;) || line.includes(&#39;command claude&#39;) || line.includes(&#39;claude() {&#39;),</span>
+<span class="dl-add">+      `bare re-exec would recurse: ${line}`</span>
+<span class="dl-add">+    );</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;an id that would not parse as a function name is skipped, not escaped&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = templates.getShellInitTemplate({</span>
+<span class="dl-add">+    family: &#39;posix&#39;,</span>
+<span class="dl-add">+    binDir: INIT_BIN,</span>
+<span class="dl-add">+    toolIds: [&#39;claude&#39;, &#39;rm -rf /&#39;, &#39;2bad&#39;, &#39;&#39;]</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.ok(init.includes(&#39;claude() {&#39;));</span>
+<span class="dl-add">+  assert.ok(!init.includes(&#39;rm -rf /&#39;), &#39;a broken definition takes the whole file down with it&#39;);</span>
+<span class="dl-add">+  assert.ok(!init.includes(&#39;2bad&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the bin directory is exported and quoted&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = templates.getShellInitTemplate({ family: &#39;posix&#39;, binDir: INIT_BIN, toolIds: [] });</span>
+<span class="dl-add">+  assert.ok(init.includes(`FRAME_BIN=&#39;${INIT_BIN}&#39;`), &#39;a path with a space would split&#39;);</span>
+<span class="dl-add">+  assert.ok(init.includes(&#39;export FRAME_BIN&#39;));</span>
+<span class="dl-add">+  assert.ok(init.includes(&#39;export PATH&#39;), &#39;subshells inherit PATH, not functions&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a path with a quote in it is escaped rather than breaking the file&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = templates.getShellInitTemplate({ family: &#39;posix&#39;, binDir: &quot;/tmp/o&#39;brien/.frame/bin&quot;, toolIds: [] });</span>
+<span class="dl-add">+  assert.ok(init.includes(&quot;&#39;\\&#39;&#39;&quot;), init.split(&#39;\n&#39;).find((l) =&gt; l.includes(&#39;FRAME_BIN=&#39;)));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the fish file uses fish syntax, not POSIX&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = templates.getShellInitTemplate({ family: &#39;fish&#39;, binDir: INIT_BIN, toolIds: [&#39;claude&#39;] });</span>
+<span class="dl-add">+  assert.ok(init.includes(`set -gx FRAME_BIN &#39;${INIT_BIN}&#39;`));</span>
+<span class="dl-add">+  assert.ok(init.includes(&#39;set -gx PATH $FRAME_BIN $__frame_rest&#39;));</span>
+<span class="dl-add">+  assert.ok(init.includes(&#39;&quot;$FRAME_BIN/claude&quot; $argv&#39;));</span>
+<span class="dl-add">+  assert.ok(init.includes(&#39;command claude $argv&#39;));</span>
+<span class="dl-add">+  assert.ok(!init.includes(&#39;&quot;$@&quot;&#39;), &#39;POSIX argument syntax leaked into the fish file&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a family Frame has no file for, or no bin directory, produces nothing&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(templates.getShellInitTemplate({ family: &#39;nushell&#39;, binDir: INIT_BIN, toolIds: [&#39;claude&#39;] }), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(templates.getShellInitTemplate({ family: &#39;posix&#39;, binDir: &#39;&#39;, toolIds: [&#39;claude&#39;] }), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(templates.getShellInitTemplate({}), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── shell init behaviour, executed ───────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// The string assertions above cannot tell a valid init file from one that</span>
+<span class="dl-add">+// makes the shell bail on a syntax error — and a file that fails to parse</span>
+<span class="dl-add">+// would leave the lane with no functions and no way to notice. These source it</span>
+<span class="dl-add">+// for real, in each shell family that takes it.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function stageInit(toolIds = [&#39;claude&#39;]) {</span>
+<span class="dl-add">+  const root = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-init-&#39;));</span>
+<span class="dl-add">+  const binDir = path.join(root, &#39;project with space&#39;, &#39;.frame&#39;, &#39;bin&#39;);</span>
+<span class="dl-add">+  const shellDir = path.join(root, &#39;project with space&#39;, &#39;.frame&#39;, &#39;runtime&#39;, &#39;shell&#39;);</span>
+<span class="dl-add">+  const realDir = path.join(root, &#39;real&#39;);</span>
+<span class="dl-add">+  fs.mkdirSync(binDir, { recursive: true });</span>
+<span class="dl-add">+  fs.mkdirSync(shellDir, { recursive: true });</span>
+<span class="dl-add">+  fs.mkdirSync(realDir, { recursive: true });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const initFile = path.join(shellDir, &#39;init.sh&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(initFile, templates.getShellInitTemplate({ family: &#39;posix&#39;, binDir, toolIds }));</span>
+<span class="dl-add">+  for (const id of toolIds) {</span>
+<span class="dl-add">+    fs.writeFileSync(path.join(binDir, id), `#!/usr/bin/env bash\necho &quot;WRAPPER:${id}:$*&quot;\n`, { mode: 0o755 });</span>
+<span class="dl-add">+    fs.writeFileSync(path.join(realDir, id), `#!/usr/bin/env bash\necho &quot;REAL:${id}:$*&quot;\n`, { mode: 0o755 });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return { root, binDir, realDir, initFile };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function sourceInit(shell, staged, script, extraPath = &#39;&#39;) {</span>
+<span class="dl-add">+  return execFileSync(shell, [&#39;-c&#39;, `. &#39;${staged.initFile}&#39;\n${script}`], {</span>
+<span class="dl-add">+    env: {</span>
+<span class="dl-add">+      ...process.env,</span>
+<span class="dl-add">+      PATH: `${extraPath ? `${extraPath}:` : &#39;&#39;}${staged.realDir}:/usr/bin:/bin`</span>
+<span class="dl-add">+    },</span>
+<span class="dl-add">+    encoding: &#39;utf8&#39;,</span>
+<span class="dl-add">+    timeout: 10000</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+for (const shell of [&#39;bash&#39;, &#39;sh&#39;, &#39;zsh&#39;]) {</span>
+<span class="dl-add">+  test(`the init file parses and routes ${shell} through the wrapper`, { skip: !POSIX }, () =&gt; {</span>
+<span class="dl-add">+    const staged = stageInit([&#39;claude&#39;]);</span>
+<span class="dl-add">+    const out = sourceInit(shell, staged, &#39;claude --resume x&#39;);</span>
+<span class="dl-add">+    assert.equal(out.trim(), &#39;WRAPPER:claude:--resume x&#39;, `${shell} did not resolve the function`);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  test(`${shell} gets the bin directory first on PATH, even set up last`, { skip: !POSIX }, () =&gt; {</span>
+<span class="dl-add">+    // The nvm case: a directory holding a real `claude` was prepended by the</span>
+<span class="dl-add">+    // user&#39;s rc files, i.e. after Frame set the environment.</span>
+<span class="dl-add">+    const staged = stageInit([&#39;claude&#39;]);</span>
+<span class="dl-add">+    const out = sourceInit(shell, staged, &#39;printf &quot;%s\\n&quot; &quot;$PATH&quot;&#39;, staged.realDir);</span>
+<span class="dl-add">+    const entries = out.trim().split(&#39;:&#39;);</span>
+<span class="dl-add">+    assert.equal(entries[0], staged.binDir, `${shell} PATH: ${out.trim()}`);</span>
+<span class="dl-add">+    assert.equal(entries.filter((e) =&gt; e === staged.binDir).length, 1, &#39;duplicated instead of moved&#39;);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  test(`a subshell of ${shell} still reaches the wrapper through PATH`, { skip: !POSIX }, () =&gt; {</span>
+<span class="dl-add">+    // Functions do not survive a subshell; the exported PATH is what does.</span>
+<span class="dl-add">+    const staged = stageInit([&#39;claude&#39;]);</span>
+<span class="dl-add">+    const out = sourceInit(shell, staged, `${shell} -c &#39;claude sub&#39;`);</span>
+<span class="dl-add">+    assert.equal(out.trim(), &#39;WRAPPER:claude:sub&#39;, &#39;the base PATH layer did not reach the subshell&#39;);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  test(`${shell} falls back to the real CLI when the wrapper is missing`, { skip: !POSIX }, () =&gt; {</span>
+<span class="dl-add">+    const staged = stageInit([&#39;claude&#39;]);</span>
+<span class="dl-add">+    fs.rmSync(path.join(staged.binDir, &#39;claude&#39;));</span>
+<span class="dl-add">+    const out = sourceInit(shell, staged, &#39;claude fallback&#39;);</span>
+<span class="dl-add">+    assert.equal(out.trim(), &#39;REAL:claude:fallback&#39;, &#39;a missing wrapper cost the user their CLI&#39;);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T03</span>
+    <h2>Write .frame/runtime/shell/init.sh and init.fish from aiToolManager</h2>
+    <span class="card-meta"><span class="chip">8bfddff</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">488 tests, 0 failures</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added writeShellInit(projectPath) to src/main/aiToolManager.js: gated on launchEnv.supportsWrappers(), it writes both family files through the existing writeIfChanged, using shellSetup.shellInitPath for the layout and every registered tool id for the functions. Called from refreshLaunchAssets behind the existing .frame/ check, and once per composed launch from getLaunchCommand.</p></div>
+    <div class="field"><span class="label">Why</span><p>Both families are written regardless of the user own shell — which file a lane reads is decided per terminal at spawn, so a user switching from zsh to fish should not have to reopen the project. Both call sites swallow their own failure and warn: a read-only checkout costs the user their shell functions, never their project, and .frame/bin on PATH is still there underneath.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/aiToolManager.js b/src/main/aiToolManager.js</span>
+<span class="dl-meta">index c6af631..c655272 100644</span>
+<span class="dl-file">--- a/src/main/aiToolManager.js</span>
+<span class="dl-file">+++ b/src/main/aiToolManager.js</span>
+<span class="dl-hunk">@@ -33,6 +33,7 @@ const frameStore = require(&#39;./frameStore&#39;);</span>
+<span class="dl-ctx"> const globalLayer = require(&#39;./globalLayer&#39;);</span>
+<span class="dl-ctx"> const instructionDiscovery = require(&#39;./instructionDiscovery&#39;);</span>
+<span class="dl-ctx"> const launchEnv = require(&#39;./launchEnv&#39;);</span>
+<span class="dl-add">+const shellSetup = require(&#39;./shellSetup&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> let mainWindow = null;</span>
+<span class="dl-ctx"> let configPath = null;</span>
+<span class="dl-hunk">@@ -673,6 +674,40 @@ function writeWrapper(projectPath, tool) {</span>
+<span class="dl-ctx">   return target;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Regenerate the shell init files every lane in this project sources.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * A launch asset like any other, written beside the wrappers and preambles and</span>
+<span class="dl-add">+ * through the same `writeIfChanged`, so a project open does not touch mtimes</span>
+<span class="dl-add">+ * and wake the `.frame/` watchers. Both families are written regardless of the</span>
+<span class="dl-add">+ * user&#39;s own shell: which one a lane reads is decided per terminal at spawn,</span>
+<span class="dl-add">+ * and a user who switches from zsh to fish should not have to reopen the</span>
+<span class="dl-add">+ * project to get their functions.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Every tool in the registry gets a function, so a newly configured custom tool</span>
+<span class="dl-add">+ * is routed through its wrapper the next time this runs rather than after a</span>
+<span class="dl-add">+ * restart.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Returns the paths written. Silent no-op where Frame writes no wrappers —</span>
+<span class="dl-add">+ * there would be nothing for a function to delegate to.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function writeShellInit(projectPath) {</span>
+<span class="dl-add">+  if (!projectPath || !launchEnv.supportsWrappers()) return [];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const binDir = launchEnv.frameBinDir(projectPath);</span>
+<span class="dl-add">+  const toolIds = Object.values(getAvailableTools()).map((tool) =&gt; tool.id);</span>
+<span class="dl-add">+  const written = [];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const family of Object.keys(shellSetup.INIT_FILES)) {</span>
+<span class="dl-add">+    const content = templates.getShellInitTemplate({ family, binDir, toolIds });</span>
+<span class="dl-add">+    if (!content) continue;</span>
+<span class="dl-add">+    const target = shellSetup.shellInitPath(projectPath, family);</span>
+<span class="dl-add">+    writeIfChanged(target, content);</span>
+<span class="dl-add">+    written.push(target);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return written;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Everything a launch of `tool` reads: its preamble, its settings file when it</span>
+<span class="dl-ctx">  * declares one, and its wrapper. Returns the composed preamble so a caller</span>
+<span class="dl-hunk">@@ -740,6 +775,15 @@ function refreshLaunchAssets(projectPath) {</span>
+<span class="dl-ctx">   if (!projectPath) return { written };</span>
+<span class="dl-ctx">   if (!fs.existsSync(path.join(projectPath, FRAME_DIR))) return { written };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    writeShellInit(projectPath);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    // Same bargain as the per-tool failure below: a read-only checkout costs</span>
+<span class="dl-add">+    // the user their shell functions, never their project. `.frame/bin` on</span>
+<span class="dl-add">+    // PATH is still there underneath.</span>
+<span class="dl-add">+    logger.warn(&#39;aiToolManager&#39;, &#39;shell init refresh failed:&#39;, err.message);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   for (const tool of Object.values(getAvailableTools())) {</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-ctx">       prepareLaunchAssets(projectPath, tool);</span>
+<span class="dl-hunk">@@ -791,6 +835,16 @@ function getLaunchCommand(projectPath, toolId, extraFlags) {</span>
+<span class="dl-ctx">     (tool.injection &amp;&amp; tool.injection.settingsFlag) || &#39;&#39;</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // The lane&#39;s shell functions are refreshed on the same schedule as the</span>
+<span class="dl-add">+  // wrappers they delegate to, so a tool configured mid-session is routed</span>
+<span class="dl-add">+  // through its wrapper without waiting for a project reopen. Its own failure</span>
+<span class="dl-add">+  // is not the launch&#39;s — `.frame/bin` is still on PATH underneath.</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    writeShellInit(projectPath);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    logger.warn(&#39;aiToolManager&#39;, &#39;shell init refresh failed:&#39;, err.message);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-ctx">     // Written immediately before the command is composed, so a dispatched</span>
+<span class="dl-ctx">     // launch is never staler than a hand-typed one.</span>
+<span class="dl-hunk">@@ -843,6 +897,7 @@ module.exports = {</span>
+<span class="dl-ctx">   getStartCommand,</span>
+<span class="dl-ctx">   getLaunchCommand,</span>
+<span class="dl-ctx">   refreshLaunchAssets,</span>
+<span class="dl-add">+  writeShellInit,</span>
+<span class="dl-ctx">   composeLaunchCommand,</span>
+<span class="dl-ctx">   addCustomTool,</span>
+<span class="dl-ctx">   removeCustomTool,</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T04</span>
+    <h2>Deliver setup at spawn in src/main/ptyManager.js</h2>
+    <span class="card-meta"><span class="chip">dd6369b</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">488 tests, 0 failures; delivered line also driven through a real zsh and bash — marker resolves, wrapper routes</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>createTerminal now resolves a delivery shape per lane through resolveSetup() — a never-throwing wrapper around shellSetup.deliveryFor() that supplies the fs half of the gate via isFrameProject(). fish gets its -C args appended to shellArgs before spawn; zsh/bash/sh get the line typed straight after the instance is registered. Each instance carries a setup record (state, mode, marker, attempt, shell, projectPath) and getSetupState() exposes it. Setup output is still visible — suppression is T05.</p></div>
+    <div class="field"><span class="label">Why</span><p>The typed line goes in immediately rather than after a delay: the tty holds type-ahead until the shell reads it, and a line that does get lost is precisely what the retry in T05 is for — a fixed delay would slow every lane to insure against the rare one. Every failure path leaves the spawn exactly as it was before this existed: PATH still carries .frame/bin.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/ptyManager.js b/src/main/ptyManager.js</span>
+<span class="dl-meta">index 43e565e..3a4d5ed 100644</span>
+<span class="dl-file">--- a/src/main/ptyManager.js</span>
+<span class="dl-file">+++ b/src/main/ptyManager.js</span>
+<span class="dl-hunk">@@ -3,13 +3,17 @@</span>
+<span class="dl-ctx">  * Manages multiple PTY instances for multi-terminal support</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const pty = require(&#39;node-pty&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-add">+const { FRAME_DIR } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const logger = require(&#39;./logger&#39;);</span>
+<span class="dl-ctx"> const promptLogger = require(&#39;./promptLogger&#39;);</span>
+<span class="dl-ctx"> const telemetry = require(&#39;./telemetry&#39;);</span>
+<span class="dl-ctx"> const pollGate = require(&#39;./pollGate&#39;);</span>
+<span class="dl-ctx"> const launchEnv = require(&#39;./launchEnv&#39;);</span>
+<span class="dl-add">+const shellSetup = require(&#39;./shellSetup&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Store multiple PTY instances</span>
+<span class="dl-ctx"> const ptyInstances = new Map(); // Map&lt;terminalId, {pty, cwd, projectPath}&gt;</span>
+<span class="dl-hunk">@@ -174,6 +178,43 @@ function getAvailableShells() {</span>
+<span class="dl-ctx">   return shells;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Whether this lane&#39;s folder is a Frame project.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The fs half of the setup gate — `shellSetup` is pure and cannot answer it.</span>
+<span class="dl-add">+ * A folder with no `.frame/` has no init file to source and no wrappers to</span>
+<span class="dl-add">+ * route to, so nothing is sent and no function or variable is defined.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function isFrameProject(projectPath) {</span>
+<span class="dl-add">+  if (!projectPath) return false;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return fs.existsSync(path.join(projectPath, FRAME_DIR));</span>
+<span class="dl-add">+  } catch (_) {</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * How this lane&#39;s shell gets set up, and with which marker.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Never throws: a resolution failure returns `none`, which leaves the spawn</span>
+<span class="dl-add">+ * exactly as it was before this existed — `.frame/bin` on `PATH` and nothing</span>
+<span class="dl-add">+ * else. Losing context is acceptable; losing the terminal is not.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveSetup(terminalId, shell, projectPath, attempt) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    const marker = shellSetup.mintMarker(terminalId, attempt);</span>
+<span class="dl-add">+    const delivery = shellSetup.deliveryFor(shell, process.platform, projectPath, {</span>
+<span class="dl-add">+      marker,</span>
+<span class="dl-add">+      isFrameProject: isFrameProject(projectPath)</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    return delivery;</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    logger.warn(&#39;ptyManager&#39;, `shell setup resolution failed for ${terminalId}:`, err.message);</span>
+<span class="dl-add">+    return { mode: &#39;none&#39;, reason: &#39;error&#39; };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Create a new terminal instance</span>
+<span class="dl-ctx">  * @param {string|null} workingDir - Working directory (defaults to HOME)</span>
+<span class="dl-hunk">@@ -210,6 +251,19 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Frame configures the session it creates. `.frame/bin` first on PATH (below)</span>
+<span class="dl-add">+  // is set *before* the user&#39;s rc files run, and those files reorder PATH</span>
+<span class="dl-add">+  // afterwards — which is how a `codex` from nvm&#39;s bin came to win. The init</span>
+<span class="dl-add">+  // file this delivers runs last and defines a function per tool, resolved</span>
+<span class="dl-add">+  // before any PATH search, so the ordering stops mattering. Nothing of the</span>
+<span class="dl-add">+  // user&#39;s own configuration is touched or rerouted.</span>
+<span class="dl-add">+  const setupProjectPath = projectPath || workingDir;</span>
+<span class="dl-add">+  const setup = resolveSetup(terminalId, shell, setupProjectPath, 1);</span>
+<span class="dl-add">+  if (setup.mode === &#39;flag&#39;) {</span>
+<span class="dl-add">+    // fish takes it at spawn: nothing is typed into the terminal at all.</span>
+<span class="dl-add">+    shellArgs = [...shellArgs, ...setup.args];</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   const ptyProcess = pty.spawn(shell, shellArgs, {</span>
+<span class="dl-ctx">     name: &#39;xterm-256color&#39;,</span>
+<span class="dl-ctx">     cols: 80,</span>
+<span class="dl-hunk">@@ -313,10 +367,35 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,</span>
+<span class="dl-ctx">     outputChunks: [],</span>
+<span class="dl-ctx">     outputBytes: 0,</span>
+<span class="dl-ctx">     flushTimer: null,</span>
+<span class="dl-del">-    paused: false</span>
+<span class="dl-add">+    paused: false,</span>
+<span class="dl-add">+    // Per-lane setup state. `pending` until the marker confirms it (or a</span>
+<span class="dl-add">+    // timeout gives up); `unsupported` the moment there was nothing to send.</span>
+<span class="dl-add">+    setup: {</span>
+<span class="dl-add">+      state: setup.mode === &#39;none&#39; ? &#39;unsupported&#39; : &#39;pending&#39;,</span>
+<span class="dl-add">+      mode: setup.mode,</span>
+<span class="dl-add">+      reason: setup.reason || &#39;&#39;,</span>
+<span class="dl-add">+      marker: setup.marker || &#39;&#39;,</span>
+<span class="dl-add">+      attempt: 1,</span>
+<span class="dl-add">+      shell,</span>
+<span class="dl-add">+      projectPath: setupProjectPath</span>
+<span class="dl-add">+    }</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx">   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || &#39;global&#39;})`);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // zsh, bash and sh have no post-startup flag that does not reroute the</span>
+<span class="dl-add">+  // user&#39;s own startup files, so the line is typed instead. It goes in</span>
+<span class="dl-add">+  // immediately: the tty holds type-ahead until the shell reads it, and a line</span>
+<span class="dl-add">+  // that does get lost is what the retry exists for.</span>
+<span class="dl-add">+  if (setup.mode === &#39;type&#39;) {</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      ptyProcess.write(`${setup.line}\n`);</span>
+<span class="dl-add">+    } catch (err) {</span>
+<span class="dl-add">+      logger.warn(&#39;ptyManager&#39;, `shell setup delivery failed for ${terminalId}:`, err.message);</span>
+<span class="dl-add">+      const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-add">+      if (inst) inst.setup.state = &#39;failed&#39;;</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   return terminalId;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -357,6 +436,15 @@ function getLastOutputAt(terminalId) {</span>
+<span class="dl-ctx">   return instance ? (instance.lastOutputAt || null) : null;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * This lane&#39;s context state: `pending`, `installed`, `failed` or `unsupported`.</span>
+<span class="dl-add">+ * Null for a terminal that no longer exists.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function getSetupState(terminalId) {</span>
+<span class="dl-add">+  const instance = ptyInstances.get(terminalId);</span>
+<span class="dl-add">+  return instance &amp;&amp; instance.setup ? instance.setup.state : null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Write data to specific terminal</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -519,6 +607,7 @@ module.exports = {</span>
+<span class="dl-ctx">   getTerminalsByProject,</span>
+<span class="dl-ctx">   getTerminalInfo,</span>
+<span class="dl-ctx">   getLastOutputAt,</span>
+<span class="dl-add">+  getSetupState,</span>
+<span class="dl-ctx">   getAvailableShells,</span>
+<span class="dl-ctx">   setupIPC</span>
+<span class="dl-ctx"> };</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T05</span>
+    <h2>Make setup invisible and verified in ptyManager, with the TERMINAL_CONTEXT_STATE channel</h2>
+    <span class="card-meta"><span class="chip">d480d58</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">488 tests, 0 failures; state machine also driven end to end against a stubbed node-pty — invisible window, split marker, queued input, timeout retry, failed, unsupported</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>While a lane setup is pending, output is buffered (capped at 256KB) instead of forwarded and writeToTerminal queues input instead of writing it. The marker is looked for in the accumulated buffer, resolves the lane to installed by dropping everything through its line, and the remainder enters the normal pipeline. A 4s timeout flushes the held output verbatim and retypes with a fresh marker; a second one ends in failed. finishSetup() is the single exit path — it flushes the input queue in order and emits the new TERMINAL_CONTEXT_STATE channel, including the immediate unsupported. pushOutput() now fronts the coalescing pipeline so the setup buffer flushes through the same backpressure.</p></div>
+    <div class="field"><span class="label">Why</span><p>The marker is matched against the accumulated buffer, not the chunk: a PTY will split it across two reads and a per-chunk scan would time out a lane that had actually worked. Input is queued rather than passed through because the buffer in front of it is about to be discarded — a keystroke written now would be echoed into output the user never sees, so they would watch their own typing vanish. fish gets no retry: its setup went in as a spawn flag, so there is no line to type again.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/ptyManager.js b/src/main/ptyManager.js</span>
+<span class="dl-meta">index 3a4d5ed..f4951c2 100644</span>
+<span class="dl-file">--- a/src/main/ptyManager.js</span>
+<span class="dl-file">+++ b/src/main/ptyManager.js</span>
+<span class="dl-hunk">@@ -27,6 +27,16 @@ const MAX_TERMINALS = 9;</span>
+<span class="dl-ctx"> const FLUSH_INTERVAL_MS = 16;</span>
+<span class="dl-ctx"> const OUTPUT_HIGH_WATER_BYTES = 1024 * 1024;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// Shell setup: how long one attempt may stay invisible, and how much output</span>
+<span class="dl-add">+// may pile up behind it. The timeout is generous next to a warm shell&#39;s</span>
+<span class="dl-add">+// startup and short enough that a lane which will never confirm does not sit</span>
+<span class="dl-add">+// blank while the user waits. The cap is the same promise from the other side:</span>
+<span class="dl-add">+// a shell that floods (an rc file printing a banner, an MOTD) stops being</span>
+<span class="dl-add">+// suppressed rather than swallowing megabytes nobody will ever see.</span>
+<span class="dl-add">+const SETUP_TIMEOUT_MS = 4000;</span>
+<span class="dl-add">+const SETUP_BUFFER_MAX_BYTES = 256 * 1024;</span>
+<span class="dl-add">+const SETUP_MAX_ATTEMPTS = 2;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /** Flush a terminal&#39;s buffered output as one coalesced send. */</span>
+<span class="dl-ctx"> function flushOutput(terminalId) {</span>
+<span class="dl-ctx">   const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-hunk">@@ -45,6 +55,165 @@ function flushOutput(terminalId) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Hand data to the coalescing pipeline.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The one door into it, so the setup buffer can flush through exactly the same</span>
+<span class="dl-add">+ * backpressure the PTY&#39;s own output goes through.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function pushOutput(terminalId, data) {</span>
+<span class="dl-add">+  const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-add">+  if (!inst || !data) return;</span>
+<span class="dl-add">+  inst.outputChunks.push(data);</span>
+<span class="dl-add">+  inst.outputBytes += data.length;</span>
+<span class="dl-add">+  // Backpressure: past the high-water mark, pause the PTY until the next</span>
+<span class="dl-add">+  // flush drains the buffer — a runaway `yes`-style stream can no longer</span>
+<span class="dl-add">+  // grow the buffer faster than the renderer consumes it.</span>
+<span class="dl-add">+  if (inst.outputBytes &gt;= OUTPUT_HIGH_WATER_BYTES &amp;&amp; !inst.paused) {</span>
+<span class="dl-add">+    try { inst.pty.pause(); inst.paused = true; } catch (_) { /* older node-pty */ }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (!inst.flushTimer) {</span>
+<span class="dl-add">+    inst.flushTimer = setTimeout(() =&gt; flushOutput(terminalId), FLUSH_INTERVAL_MS);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Tell the renderer what this lane&#39;s context state is. */</span>
+<span class="dl-add">+function emitContextState(terminalId, state) {</span>
+<span class="dl-add">+  if (mainWindow &amp;&amp; !mainWindow.isDestroyed()) {</span>
+<span class="dl-add">+    mainWindow.webContents.send(IPC.TERMINAL_CONTEXT_STATE, {</span>
+<span class="dl-add">+      terminalId,</span>
+<span class="dl-add">+      state,</span>
+<span class="dl-add">+      ready: state === &#39;installed&#39;</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * End a lane&#39;s setup, whatever the outcome.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Every exit path runs through here, because every exit path owes the user the</span>
+<span class="dl-add">+ * same two things: the input they typed into the invisible window, in the order</span>
+<span class="dl-add">+ * they typed it, and a terminal that is not left blank. Returns the output that</span>
+<span class="dl-add">+ * should reach the renderer.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function finishSetup(terminalId, state, forward = &#39;&#39;) {</span>
+<span class="dl-add">+  const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-add">+  if (!inst || !inst.setup) return forward;</span>
+<span class="dl-add">+  const setup = inst.setup;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (setup.timer) {</span>
+<span class="dl-add">+    clearTimeout(setup.timer);</span>
+<span class="dl-add">+    setup.timer = null;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  setup.state = state;</span>
+<span class="dl-add">+  setup.suppress = false;</span>
+<span class="dl-add">+  setup.buffer = [];</span>
+<span class="dl-add">+  setup.bytes = 0;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const queued = setup.inputQueue;</span>
+<span class="dl-add">+  setup.inputQueue = [];</span>
+<span class="dl-add">+  for (const data of queued) {</span>
+<span class="dl-add">+    try { inst.pty.write(data); } catch (err) {</span>
+<span class="dl-add">+      logger.warn(&#39;ptyManager&#39;, `queued input lost for ${terminalId}:`, err.message);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  emitContextState(terminalId, state);</span>
+<span class="dl-add">+  return forward;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * An attempt did not confirm in time — or flooded the buffer, which amounts to</span>
+<span class="dl-add">+ * the same thing.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The held output goes out verbatim first: whatever went wrong, the user is</span>
+<span class="dl-add">+ * looking at a terminal that must not be blank. Then one retry with a fresh</span>
+<span class="dl-add">+ * marker, typed visibly this time, and a second silence is `failed` — a</span>
+<span class="dl-add">+ * working terminal with no Frame context, which is exactly what a lane had</span>
+<span class="dl-add">+ * before this feature existed.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Returns the buffered output to flush.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function onSetupTimeout(terminalId) {</span>
+<span class="dl-add">+  const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-add">+  if (!inst || !inst.setup || inst.setup.state !== &#39;pending&#39;) return &#39;&#39;;</span>
+<span class="dl-add">+  const setup = inst.setup;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const buffered = setup.buffer.join(&#39;&#39;);</span>
+<span class="dl-add">+  setup.buffer = [];</span>
+<span class="dl-add">+  setup.bytes = 0;</span>
+<span class="dl-add">+  setup.suppress = false;</span>
+<span class="dl-add">+  if (setup.timer) {</span>
+<span class="dl-add">+    clearTimeout(setup.timer);</span>
+<span class="dl-add">+    setup.timer = null;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Only a typed line can be typed again. fish took its setup as a spawn flag,</span>
+<span class="dl-add">+  // so there is nothing to retry — a silent `-C` is a failure straight away.</span>
+<span class="dl-add">+  if (setup.mode !== &#39;type&#39; || setup.attempt &gt;= SETUP_MAX_ATTEMPTS) {</span>
+<span class="dl-add">+    return finishSetup(terminalId, &#39;failed&#39;, buffered);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const attempt = setup.attempt + 1;</span>
+<span class="dl-add">+  const retry = resolveSetup(terminalId, setup.shell, setup.projectPath, attempt);</span>
+<span class="dl-add">+  if (retry.mode !== &#39;type&#39;) return finishSetup(terminalId, &#39;failed&#39;, buffered);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  setup.attempt = attempt;</span>
+<span class="dl-add">+  setup.marker = retry.marker;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    inst.pty.write(`${retry.line}\n`);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    logger.warn(&#39;ptyManager&#39;, `shell setup retry failed for ${terminalId}:`, err.message);</span>
+<span class="dl-add">+    return finishSetup(terminalId, &#39;failed&#39;, buffered);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  armSetupTimer(terminalId);</span>
+<span class="dl-add">+  return buffered;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function armSetupTimer(terminalId) {</span>
+<span class="dl-add">+  const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-add">+  if (!inst || !inst.setup) return;</span>
+<span class="dl-add">+  if (inst.setup.timer) clearTimeout(inst.setup.timer);</span>
+<span class="dl-add">+  inst.setup.timer = setTimeout(() =&gt; {</span>
+<span class="dl-add">+    const flushed = onSetupTimeout(terminalId);</span>
+<span class="dl-add">+    if (flushed) pushOutput(terminalId, flushed);</span>
+<span class="dl-add">+  }, SETUP_TIMEOUT_MS);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Filter one chunk of output through a pending setup. Returns what the</span>
+<span class="dl-add">+ * renderer should see — &#39;&#39; while setup is still invisible.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The marker is looked for in the accumulated buffer rather than the chunk,</span>
+<span class="dl-add">+ * because a PTY will happily split it across two reads and a per-chunk scan</span>
+<span class="dl-add">+ * would then miss it and time out a lane that had actually worked.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function consumeSetupOutput(terminalId, chunk) {</span>
+<span class="dl-add">+  const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-add">+  if (!inst || !inst.setup) return chunk;</span>
+<span class="dl-add">+  const setup = inst.setup;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (!setup.suppress) {</span>
+<span class="dl-add">+    // Past the first timeout: output flows, but the marker can still land and</span>
+<span class="dl-add">+    // turn the lane `installed`.</span>
+<span class="dl-add">+    const seen = shellSetup.splitOnMarker(chunk, setup.marker);</span>
+<span class="dl-add">+    return seen.found ? finishSetup(terminalId, &#39;installed&#39;, seen.rest) : chunk;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  setup.buffer.push(chunk);</span>
+<span class="dl-add">+  setup.bytes += chunk.length;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const joined = setup.buffer.join(&#39;&#39;);</span>
+<span class="dl-add">+  const { found, rest } = shellSetup.splitOnMarker(joined, setup.marker);</span>
+<span class="dl-add">+  if (found) {</span>
+<span class="dl-add">+    // Everything through the marker&#39;s own line is setup noise the user never</span>
+<span class="dl-add">+    // asked to see; what follows is their real first prompt.</span>
+<span class="dl-add">+    return finishSetup(terminalId, &#39;installed&#39;, rest);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (setup.bytes &gt;= SETUP_BUFFER_MAX_BYTES) return onSetupTimeout(terminalId);</span>
+<span class="dl-add">+  return &#39;&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Initialize PTY manager with window reference</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -300,17 +469,16 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,</span>
+<span class="dl-ctx">     const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-ctx">     if (!inst) return;</span>
+<span class="dl-ctx">     inst.lastOutputAt = Date.now();</span>
+<span class="dl-del">-    inst.outputChunks.push(data);</span>
+<span class="dl-del">-    inst.outputBytes += data.length;</span>
+<span class="dl-del">-    // Backpressure: past the high-water mark, pause the PTY until the next</span>
+<span class="dl-del">-    // flush drains the buffer — a runaway `yes`-style stream can no longer</span>
+<span class="dl-del">-    // grow the buffer faster than the renderer consumes it.</span>
+<span class="dl-del">-    if (inst.outputBytes &gt;= OUTPUT_HIGH_WATER_BYTES &amp;&amp; !inst.paused) {</span>
+<span class="dl-del">-      try { ptyProcess.pause(); inst.paused = true; } catch (_) { /* older node-pty */ }</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-    if (!inst.flushTimer) {</span>
+<span class="dl-del">-      inst.flushTimer = setTimeout(() =&gt; flushOutput(terminalId), FLUSH_INTERVAL_MS);</span>
+<span class="dl-add">+    // Setup is held in front of the pipeline, not inside it: the user&#39;s first</span>
+<span class="dl-add">+    // prompt should be the one that follows setup, so none of it may reach the</span>
+<span class="dl-add">+    // renderer even coalesced.</span>
+<span class="dl-add">+    if (inst.setup &amp;&amp; inst.setup.state === &#39;pending&#39;) {</span>
+<span class="dl-add">+      const visible = consumeSetupOutput(terminalId, data);</span>
+<span class="dl-add">+      if (!visible) return;</span>
+<span class="dl-add">+      pushOutput(terminalId, visible);</span>
+<span class="dl-add">+      return;</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-add">+    pushOutput(terminalId, data);</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Handle PTY exit</span>
+<span class="dl-hunk">@@ -319,6 +487,14 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,</span>
+<span class="dl-ctx">     const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-ctx">     if (inst) {</span>
+<span class="dl-ctx">       if (inst.processPoll) inst.processPoll.dispose();</span>
+<span class="dl-add">+      // A shell that died during setup still owes the user whatever it printed</span>
+<span class="dl-add">+      // on the way out — an rc-file error, most likely, which is the one thing</span>
+<span class="dl-add">+      // worth reading here.</span>
+<span class="dl-add">+      if (inst.setup &amp;&amp; inst.setup.state === &#39;pending&#39;) {</span>
+<span class="dl-add">+        const held = inst.setup.buffer.join(&#39;&#39;);</span>
+<span class="dl-add">+        finishSetup(terminalId, &#39;failed&#39;);</span>
+<span class="dl-add">+        if (held) pushOutput(terminalId, held);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-ctx">       flushOutput(terminalId); // trailing output must land before DESTROYED</span>
+<span class="dl-ctx">       if (inst.flushTimer) clearTimeout(inst.flushTimer);</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-hunk">@@ -377,7 +553,15 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,</span>
+<span class="dl-ctx">       marker: setup.marker || &#39;&#39;,</span>
+<span class="dl-ctx">       attempt: 1,</span>
+<span class="dl-ctx">       shell,</span>
+<span class="dl-del">-      projectPath: setupProjectPath</span>
+<span class="dl-add">+      projectPath: setupProjectPath,</span>
+<span class="dl-add">+      // While `suppress` holds, output is buffered here instead of forwarded</span>
+<span class="dl-add">+      // and input is queued instead of written — the window in which setup is</span>
+<span class="dl-add">+      // invisible. Both are flushed by `finishSetup`, in order.</span>
+<span class="dl-add">+      suppress: setup.mode !== &#39;none&#39;,</span>
+<span class="dl-add">+      buffer: [],</span>
+<span class="dl-add">+      bytes: 0,</span>
+<span class="dl-add">+      inputQueue: [],</span>
+<span class="dl-add">+      timer: null</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx">   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || &#39;global&#39;})`);</span>
+<span class="dl-hunk">@@ -391,11 +575,18 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,</span>
+<span class="dl-ctx">       ptyProcess.write(`${setup.line}\n`);</span>
+<span class="dl-ctx">     } catch (err) {</span>
+<span class="dl-ctx">       logger.warn(&#39;ptyManager&#39;, `shell setup delivery failed for ${terminalId}:`, err.message);</span>
+<span class="dl-del">-      const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-del">-      if (inst) inst.setup.state = &#39;failed&#39;;</span>
+<span class="dl-add">+      finishSetup(terminalId, &#39;failed&#39;);</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  if (setup.mode === &#39;none&#39;) {</span>
+<span class="dl-add">+    // Nothing to wait for. Emitted a tick late so the renderer has its</span>
+<span class="dl-add">+    // TERMINAL_CREATED reply — and therefore the lane — before its state.</span>
+<span class="dl-add">+    setImmediate(() =&gt; emitContextState(terminalId, &#39;unsupported&#39;));</span>
+<span class="dl-add">+  } else if (ptyInstances.get(terminalId)?.setup.state === &#39;pending&#39;) {</span>
+<span class="dl-add">+    armSetupTimer(terminalId);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   return terminalId;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -450,9 +641,17 @@ function getSetupState(terminalId) {</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function writeToTerminal(terminalId, data) {</span>
+<span class="dl-ctx">   const instance = ptyInstances.get(terminalId);</span>
+<span class="dl-del">-  if (instance) {</span>
+<span class="dl-del">-    instance.pty.write(data);</span>
+<span class="dl-add">+  if (!instance) return;</span>
+<span class="dl-add">+  // Held, not passed through, while setup is invisible: the buffer in front of</span>
+<span class="dl-add">+  // it is about to be discarded, so a keystroke written now would be echoed</span>
+<span class="dl-add">+  // into output the user never sees — they would watch their own typing</span>
+<span class="dl-add">+  // vanish. The queue goes through in order the moment setup resolves.</span>
+<span class="dl-add">+  const setup = instance.setup;</span>
+<span class="dl-add">+  if (setup &amp;&amp; setup.state === &#39;pending&#39; &amp;&amp; setup.suppress) {</span>
+<span class="dl-add">+    setup.inputQueue.push(data);</span>
+<span class="dl-add">+    return;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-add">+  instance.pty.write(data);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-hunk">@@ -473,6 +672,7 @@ function destroyTerminal(terminalId) {</span>
+<span class="dl-ctx">   if (instance) {</span>
+<span class="dl-ctx">     if (instance.processPoll) instance.processPoll.dispose();</span>
+<span class="dl-ctx">     if (instance.flushTimer) clearTimeout(instance.flushTimer);</span>
+<span class="dl-add">+    if (instance.setup &amp;&amp; instance.setup.timer) clearTimeout(instance.setup.timer);</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-ctx">       instance.pty.kill();</span>
+<span class="dl-ctx">     } catch (e) {</span>
+<span class="dl-hunk">@@ -490,6 +690,7 @@ function destroyAll() {</span>
+<span class="dl-ctx">   for (const [terminalId, instance] of ptyInstances) {</span>
+<span class="dl-ctx">     if (instance.processPoll) instance.processPoll.dispose();</span>
+<span class="dl-ctx">     if (instance.flushTimer) clearTimeout(instance.flushTimer);</span>
+<span class="dl-add">+    if (instance.setup &amp;&amp; instance.setup.timer) clearTimeout(instance.setup.timer);</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-ctx">       instance.pty.kill();</span>
+<span class="dl-ctx">     } catch (e) {</span>
+<span class="dl-meta">diff --git a/src/shared/ipcChannels.js b/src/shared/ipcChannels.js</span>
+<span class="dl-meta">index 460333c..63e74d4 100644</span>
+<span class="dl-file">--- a/src/shared/ipcChannels.js</span>
+<span class="dl-file">+++ b/src/shared/ipcChannels.js</span>
+<span class="dl-hunk">@@ -64,6 +64,9 @@ const IPC = {</span>
+<span class="dl-ctx">   TERMINAL_RESIZE_ID: &#39;terminal-resize-id&#39;,</span>
+<span class="dl-ctx">   TERMINAL_PROCESS_DATA: &#39;terminal-process-data&#39;,</span>
+<span class="dl-ctx">   TERMINAL_FOCUS: &#39;terminal-focus&#39;,</span>
+<span class="dl-add">+  // Whether this lane&#39;s shell was set up with Frame&#39;s context:</span>
+<span class="dl-add">+  // { terminalId, state: &#39;installed&#39; | &#39;failed&#39; | &#39;unsupported&#39;, ready }</span>
+<span class="dl-add">+  TERMINAL_CONTEXT_STATE: &#39;terminal-context-state&#39;,</span>
+<span class="dl-ctx">   GET_AVAILABLE_SHELLS: &#39;get-available-shells&#39;,</span>
+<span class="dl-ctx">   AVAILABLE_SHELLS_DATA: &#39;available-shells-data&#39;,</span>
+<span class="dl-ctx">   RECONCILE_TERMINALS: &#39;reconcile-terminals&#39;,</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T06</span>
+    <h2>Add src/renderer/laneContext.js — the per-lane context-state cache</h2>
+    <span class="card-meta"><span class="chip">d0d4f31</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">488 tests, 0 failures; renderer bundle builds</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>New renderer module caching TERMINAL_CONTEXT_STATE per terminal, cleared on TERMINAL_DESTROYED, with an onChange subscription in laneStatus style and whenReady(terminalId, fallbackMs). Initialised from multiTerminalUI._setup() beside laneStatus.init and agentDispatch.init. No consumer yet — T07 and T08 are the consumers.</p></div>
+    <div class="field"><span class="label">Why</span><p>whenReady arms its fallback timer even for a lane already resolved to failed or unsupported: nothing confirmed the shell is listening there, so those lanes still owe their old delay. A destroyed lane releases its waiters immediately rather than leaving promises that could only be settled by a timeout.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/renderer/laneContext.js b/src/renderer/laneContext.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..2136d8f</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/renderer/laneContext.js</span>
+<span class="dl-hunk">@@ -0,0 +1,148 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Lane Context Module</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Whether a lane&#39;s shell was set up with Frame&#39;s context, renderer-side.</span>
+<span class="dl-add">+ * `ptyManager` decides it and pushes `TERMINAL_CONTEXT_STATE`; this module is</span>
+<span class="dl-add">+ * the single consumer, and everything that wants to know asks here.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Three states, from the main process:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   &#39;installed&#39;   — the shell confirmed setup; a hand-typed `claude` routes</span>
+<span class="dl-add">+ *                   through Frame&#39;s wrapper</span>
+<span class="dl-add">+ *   &#39;failed&#39;      — setup did not confirm after a retry. Working terminal, no</span>
+<span class="dl-add">+ *                   Frame context — the lane card says so and offers a start</span>
+<span class="dl-add">+ *                   button (see laneBoard)</span>
+<span class="dl-add">+ *   &#39;unsupported&#39; — nothing was sent: not a Frame project, Windows, or a shell</span>
+<span class="dl-add">+ *                   Frame has no init file for. Not a failure, so nothing is</span>
+<span class="dl-add">+ *                   shown</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * ── Why `whenReady` exists ──</span>
+<span class="dl-add">+ * Every flow that starts an agent used to wait a fixed number of milliseconds</span>
+<span class="dl-add">+ * for the shell to be ready — 800, 1000, 300, each a guess made once and never</span>
+<span class="dl-add">+ * revisited. The setup marker is *proof* the shell is processing input, so a</span>
+<span class="dl-add">+ * lane that confirms can be typed into immediately; one that cannot confirm</span>
+<span class="dl-add">+ * falls back to the number that call site already used. Nothing gets slower,</span>
+<span class="dl-add">+ * and the common case stops waiting for a worst case that already passed.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { ipcRenderer } = require(&#39;electron&#39;);</span>
+<span class="dl-add">+const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let initialized = false;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Map&lt;terminalId, &#39;installed&#39; | &#39;failed&#39; | &#39;unsupported&#39;&gt;</span>
+<span class="dl-add">+const states = new Map();</span>
+<span class="dl-add">+// Map&lt;terminalId, Set&lt;resolve&gt;&gt; — callers parked in whenReady</span>
+<span class="dl-add">+const waiters = new Map();</span>
+<span class="dl-add">+const listeners = new Set();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Start listening. Init-once: a re-init must not stack a second set of</span>
+<span class="dl-add">+ * ipcRenderer listeners (same reasoning as laneStatus.init).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function init() {</span>
+<span class="dl-add">+  if (initialized) return;</span>
+<span class="dl-add">+  initialized = true;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  ipcRenderer.on(IPC.TERMINAL_CONTEXT_STATE, (event, { terminalId, state }) =&gt; {</span>
+<span class="dl-add">+    if (!terminalId || !state) return;</span>
+<span class="dl-add">+    states.set(terminalId, state);</span>
+<span class="dl-add">+    _wake(terminalId);</span>
+<span class="dl-add">+    for (const cb of listeners) {</span>
+<span class="dl-add">+      try { cb(terminalId, state); } catch (_) { /* a bad listener is not the lane&#39;s problem */ }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) =&gt; {</span>
+<span class="dl-add">+    remove(terminalId);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Subscribe to context-state changes. Returns an unsubscribe function.</span>
+<span class="dl-add">+ * Callback signature: (terminalId, state)</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function onChange(callback) {</span>
+<span class="dl-add">+  listeners.add(callback);</span>
+<span class="dl-add">+  return () =&gt; listeners.delete(callback);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * This lane&#39;s context state, or &#39;pending&#39; if it has not resolved yet.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function getState(terminalId) {</span>
+<span class="dl-add">+  return states.get(terminalId) || &#39;pending&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** True only for a lane whose setup was confirmed. */</span>
+<span class="dl-add">+function isReady(terminalId) {</span>
+<span class="dl-add">+  return states.get(terminalId) === &#39;installed&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Resolve once this lane is ready to be typed into.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Resolves immediately for a lane already `installed`, on the state message</span>
+<span class="dl-add">+ * for one still pending, and after `fallbackMs` for a lane that will never</span>
+<span class="dl-add">+ * confirm — an unsupported shell, or setup that failed. The fallback is the</span>
+<span class="dl-add">+ * delay the call site used before this module existed, so the un-confirmable</span>
+<span class="dl-add">+ * case behaves exactly as it always did.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Never rejects: a caller waiting to type into a terminal is not helped by an</span>
+<span class="dl-add">+ * error, only by eventually going ahead.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function whenReady(terminalId, fallbackMs = 0) {</span>
+<span class="dl-add">+  if (!terminalId) return Promise.resolve(false);</span>
+<span class="dl-add">+  if (isReady(terminalId)) return Promise.resolve(true);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return new Promise((resolve) =&gt; {</span>
+<span class="dl-add">+    let done = false;</span>
+<span class="dl-add">+    const finish = (ready) =&gt; {</span>
+<span class="dl-add">+      if (done) return;</span>
+<span class="dl-add">+      done = true;</span>
+<span class="dl-add">+      const parked = waiters.get(terminalId);</span>
+<span class="dl-add">+      if (parked) {</span>
+<span class="dl-add">+        parked.delete(finish);</span>
+<span class="dl-add">+        if (parked.size === 0) waiters.delete(terminalId);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+      clearTimeout(timer);</span>
+<span class="dl-add">+      resolve(ready);</span>
+<span class="dl-add">+    };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // The fallback is armed even for a lane that has already resolved to</span>
+<span class="dl-add">+    // `failed` or `unsupported`: those lanes still need their old delay before</span>
+<span class="dl-add">+    // anything is typed, because nothing has confirmed the shell is listening.</span>
+<span class="dl-add">+    const timer = setTimeout(() =&gt; finish(false), Math.max(0, fallbackMs));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    if (!waiters.has(terminalId)) waiters.set(terminalId, new Set());</span>
+<span class="dl-add">+    waiters.get(terminalId).add(finish);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Forget a lane. Called on TERMINAL_DESTROYED so the maps don&#39;t grow. */</span>
+<span class="dl-add">+function remove(terminalId) {</span>
+<span class="dl-add">+  states.delete(terminalId);</span>
+<span class="dl-add">+  const parked = waiters.get(terminalId);</span>
+<span class="dl-add">+  if (parked) {</span>
+<span class="dl-add">+    // A destroyed lane will never be ready; release anyone still waiting</span>
+<span class="dl-add">+    // rather than leaving a promise that can only be settled by its timeout.</span>
+<span class="dl-add">+    for (const finish of Array.from(parked)) finish(false);</span>
+<span class="dl-add">+    waiters.delete(terminalId);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function _wake(terminalId) {</span>
+<span class="dl-add">+  if (!isReady(terminalId)) return;</span>
+<span class="dl-add">+  const parked = waiters.get(terminalId);</span>
+<span class="dl-add">+  if (!parked) return;</span>
+<span class="dl-add">+  for (const finish of Array.from(parked)) finish(true);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  init,</span>
+<span class="dl-add">+  onChange,</span>
+<span class="dl-add">+  getState,</span>
+<span class="dl-add">+  isReady,</span>
+<span class="dl-add">+  whenReady,</span>
+<span class="dl-add">+  remove</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/src/renderer/multiTerminalUI.js b/src/renderer/multiTerminalUI.js</span>
+<span class="dl-meta">index f78a5a2..d4d8a8f 100644</span>
+<span class="dl-file">--- a/src/renderer/multiTerminalUI.js</span>
+<span class="dl-file">+++ b/src/renderer/multiTerminalUI.js</span>
+<span class="dl-hunk">@@ -14,6 +14,7 @@ const { TerminalTabBar } = require(&#39;./terminalTabBar&#39;);</span>
+<span class="dl-ctx"> const { TerminalGrid } = require(&#39;./terminalGrid&#39;);</span>
+<span class="dl-ctx"> const { LaneBoard } = require(&#39;./laneBoard&#39;);</span>
+<span class="dl-ctx"> const laneStatus = require(&#39;./laneStatus&#39;);</span>
+<span class="dl-add">+const laneContext = require(&#39;./laneContext&#39;);</span>
+<span class="dl-ctx"> const agentDispatch = require(&#39;./agentDispatch&#39;);</span>
+<span class="dl-ctx"> const laneDetailRail = require(&#39;./laneDetailRail&#39;);</span>
+<span class="dl-ctx"> const overviewPanel = require(&#39;./overviewPanel&#39;);</span>
+<span class="dl-hunk">@@ -62,6 +63,10 @@ class MultiTerminalUI {</span>
+<span class="dl-ctx">     // Lane activity detection needs the manager to read xterm buffers</span>
+<span class="dl-ctx">     laneStatus.init(this.manager);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+    // Whether each lane&#39;s shell carries Frame&#39;s context — the signal that</span>
+<span class="dl-add">+    // replaces the fixed waits before anything is typed into a lane.</span>
+<span class="dl-add">+    laneContext.init();</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">     // Agent dispatch delivers prompts into lanes through us</span>
+<span class="dl-ctx">     agentDispatch.init(this);</span>
+<span class="dl-ctx"> </span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T07</span>
+    <h2>Render the failure row on a failed lane card</h2>
+    <span class="card-meta"><span class="chip">7221263</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">490 tests, 0 failures; renderer bundle builds</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>agentDispatch exports startAgentInLane (a named export of the existing _startAgentIn). laneBoard renders a context row on every card — hidden unless the lane state is failed — carrying the statement, a Start agent button wired to that export, and the manual one-liner, refreshed through the existing _updateCardStatus and a laneContext.onChange subscription. Styling in lane-board.css. Beyond the plan: shellSetup.manualCommand() and a command field on the TERMINAL_CONTEXT_STATE payload.</p></div>
+    <div class="field"><span class="label">Why</span><p>The manual one-liner has to be per shell family (. init.sh vs source init.fish) and only the main process knows which shell the lane got, so the command rides on the state payload rather than being guessed renderer-side — the plan documented the payload as terminalId/state/ready and did not account for it. Cards for installed and unsupported lanes are unchanged: a chip that always reads the same trains the eye to ignore the one time it does not.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/ptyManager.js b/src/main/ptyManager.js</span>
+<span class="dl-meta">index f4951c2..2e54b4d 100644</span>
+<span class="dl-file">--- a/src/main/ptyManager.js</span>
+<span class="dl-file">+++ b/src/main/ptyManager.js</span>
+<span class="dl-hunk">@@ -77,15 +77,24 @@ function pushOutput(terminalId, data) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-/** Tell the renderer what this lane&#39;s context state is. */</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Tell the renderer what this lane&#39;s context state is.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `command` rides along on the payload because the failure row offers the user</span>
+<span class="dl-add">+ * the one-liner they could run themselves, and only this side knows which</span>
+<span class="dl-add">+ * shell the lane actually got. It is &#39;&#39; for every state but `failed`, where</span>
+<span class="dl-add">+ * there is nothing to suggest.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-ctx"> function emitContextState(terminalId, state) {</span>
+<span class="dl-del">-  if (mainWindow &amp;&amp; !mainWindow.isDestroyed()) {</span>
+<span class="dl-del">-    mainWindow.webContents.send(IPC.TERMINAL_CONTEXT_STATE, {</span>
+<span class="dl-del">-      terminalId,</span>
+<span class="dl-del">-      state,</span>
+<span class="dl-del">-      ready: state === &#39;installed&#39;</span>
+<span class="dl-del">-    });</span>
+<span class="dl-del">-  }</span>
+<span class="dl-add">+  if (!mainWindow || mainWindow.isDestroyed()) return;</span>
+<span class="dl-add">+  const inst = ptyInstances.get(terminalId);</span>
+<span class="dl-add">+  const shell = inst &amp;&amp; inst.setup ? inst.setup.shell : &#39;&#39;;</span>
+<span class="dl-add">+  mainWindow.webContents.send(IPC.TERMINAL_CONTEXT_STATE, {</span>
+<span class="dl-add">+    terminalId,</span>
+<span class="dl-add">+    state,</span>
+<span class="dl-add">+    ready: state === &#39;installed&#39;,</span>
+<span class="dl-add">+    command: state === &#39;failed&#39; ? shellSetup.manualCommand(shell) : &#39;&#39;</span>
+<span class="dl-add">+  });</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-meta">diff --git a/src/main/shellSetup.js b/src/main/shellSetup.js</span>
+<span class="dl-meta">index ffa45ea..914373a 100644</span>
+<span class="dl-file">--- a/src/main/shellSetup.js</span>
+<span class="dl-file">+++ b/src/main/shellSetup.js</span>
+<span class="dl-hunk">@@ -169,6 +169,20 @@ function deliveryFor(shellPath, platform = process.platform, projectPath = &#39;&#39;, o</span>
+<span class="dl-ctx">   return { mode: &#39;type&#39;, line: ` . ${initFile} &amp;&amp; ${echo}`, marker };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The line a user can paste into a lane to set it up by hand.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * What the failure row on a lane card offers next to its button — the honest</span>
+<span class="dl-add">+ * answer to &quot;what would Frame have done here?&quot;. Project-relative, because a</span>
+<span class="dl-add">+ * lane&#39;s cwd is its project and a pasted absolute path is unreadable.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function manualCommand(shellPath) {</span>
+<span class="dl-add">+  const family = shellFamily(shellPath);</span>
+<span class="dl-add">+  if (!family) return &#39;&#39;;</span>
+<span class="dl-add">+  const rel = `${FRAME_DIR}/${SHELL_DIR}/${INIT_FILES[family]}`;</span>
+<span class="dl-add">+  return family === &#39;fish&#39; ? `source ${rel}` : `. ${rel}`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * What survives the marker in a buffered chunk.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -197,5 +211,6 @@ module.exports = {</span>
+<span class="dl-ctx">   shellInitPath,</span>
+<span class="dl-ctx">   mintMarker,</span>
+<span class="dl-ctx">   deliveryFor,</span>
+<span class="dl-add">+  manualCommand,</span>
+<span class="dl-ctx">   splitOnMarker</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-meta">diff --git a/src/renderer/agentDispatch.js b/src/renderer/agentDispatch.js</span>
+<span class="dl-meta">index aa731a7..9d8bf9c 100644</span>
+<span class="dl-file">--- a/src/renderer/agentDispatch.js</span>
+<span class="dl-file">+++ b/src/renderer/agentDispatch.js</span>
+<span class="dl-hunk">@@ -304,6 +304,18 @@ async function _startAgentIn(terminalId, { fresh = false } = {}) {</span>
+<span class="dl-ctx">   setTimeout(() =&gt; multiTerminalUI.sendCommand(startCommand, terminalId), fresh ? 800 : 50);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Start the active tool&#39;s CLI in an existing lane, from outside this module.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The lane board&#39;s &quot;context could not be installed&quot; row calls this. It is a</span>
+<span class="dl-add">+ * named export of `_startAgentIn` and nothing more: a lane whose shell setup</span>
+<span class="dl-add">+ * failed still needs an agent started the one way Frame starts agents, and a</span>
+<span class="dl-add">+ * second launch path would be a second place for the composition to drift.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+async function startAgentInLane(terminalId) {</span>
+<span class="dl-add">+  return _startAgentIn(terminalId);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> async function _startAgentInNewFrame() {</span>
+<span class="dl-ctx">   let id = null;</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-hunk">@@ -762,6 +774,7 @@ module.exports = {</span>
+<span class="dl-ctx">   init,</span>
+<span class="dl-ctx">   dispatch,</span>
+<span class="dl-ctx">   startDefaultAgent,</span>
+<span class="dl-add">+  startAgentInLane,</span>
+<span class="dl-ctx">   dispatchSpecCommand,</span>
+<span class="dl-ctx">   getSpecLaneInfo,</span>
+<span class="dl-ctx">   getTaskLaneInfo,</span>
+<span class="dl-meta">diff --git a/src/renderer/laneBoard.js b/src/renderer/laneBoard.js</span>
+<span class="dl-meta">index 53e2a23..b87b79f 100644</span>
+<span class="dl-file">--- a/src/renderer/laneBoard.js</span>
+<span class="dl-file">+++ b/src/renderer/laneBoard.js</span>
+<span class="dl-hunk">@@ -19,6 +19,7 @@</span>
+<span class="dl-ctx"> const { ipcRenderer } = require(&#39;electron&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const laneStatus = require(&#39;./laneStatus&#39;);</span>
+<span class="dl-add">+const laneContext = require(&#39;./laneContext&#39;);</span>
+<span class="dl-ctx"> const laneRail = require(&#39;./laneRail&#39;);</span>
+<span class="dl-ctx"> const { Plus, Pencil, X, FolderOpen, GitBranch, Bot, FileText, CheckSquare } = require(&#39;lucide&#39;);</span>
+<span class="dl-ctx"> const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-hunk">@@ -113,6 +114,12 @@ class LaneBoard {</span>
+<span class="dl-ctx">       if (this._isVisible()) this._updateCardStatus(terminalId);</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+    // Context state arrives a moment after a lane is created, so the failure</span>
+<span class="dl-add">+    // row appears through the same per-card refresh rather than a re-render.</span>
+<span class="dl-add">+    laneContext.onChange((terminalId) =&gt; {</span>
+<span class="dl-add">+      if (this._isVisible()) this._updateCardStatus(terminalId);</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">     // Current branch comes from the git status watcher fileTreeUI already</span>
+<span class="dl-ctx">     // starts per project — cards show it instead of the (redundant) project.</span>
+<span class="dl-ctx">     // Init-once across instances: LaneBoard is a singleton; a second</span>
+<span class="dl-hunk">@@ -200,13 +207,17 @@ class LaneBoard {</span>
+<span class="dl-ctx">         &lt;span class=&quot;lane-card-status-label ${status}&quot; title=&quot;${escapeHtml(commandLine || &#39;&#39;)}&quot;&gt;${escapeHtml(statusLabel(status, foreground, commandLine))}&lt;/span&gt;</span>
+<span class="dl-ctx">         &lt;span class=&quot;lane-card-activity&quot; data-ts=&quot;${lastActivityAt || &#39;&#39;}&quot;&gt;${formatRelativeTime(lastActivityAt)}&lt;/span&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-add">+      ${this._contextRowHtml(t.id)}</span>
+<span class="dl-ctx">     `;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">     card.addEventListener(&#39;click&#39;, (e) =&gt; {</span>
+<span class="dl-ctx">       if (e.target.closest(&#39;.lane-card-action&#39;) || e.target.closest(&#39;.lane-rename-input&#39;)) return;</span>
+<span class="dl-add">+      if (e.target.closest(&#39;.lane-card-context&#39;)) return;</span>
+<span class="dl-ctx">       this.onEnterLane(t.id);</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+    this._attachContextRow(card, t.id);</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">     card.querySelector(&#39;.lane-card-close&#39;).addEventListener(&#39;click&#39;, () =&gt; {</span>
+<span class="dl-ctx">       this.manager.closeTerminal(t.id);</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-hunk">@@ -363,6 +374,46 @@ class LaneBoard {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // ─── Live updates ───────────────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // ─── Context (shell setup) row ──────────────────────────</span>
+<span class="dl-add">+  //</span>
+<span class="dl-add">+  // Shown only on a lane whose setup failed. An `installed` lane is the normal</span>
+<span class="dl-add">+  // case and says nothing — a permanent chip that always reads the same trains</span>
+<span class="dl-add">+  // the eye to ignore the one time it doesn&#39;t — and `unsupported` is not a</span>
+<span class="dl-add">+  // failure, so it says nothing either.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  _contextRowHtml(terminalId) {</span>
+<span class="dl-add">+    const failed = laneContext.getState(terminalId) === &#39;failed&#39;;</span>
+<span class="dl-add">+    const command = laneContext.getManualCommand(terminalId);</span>
+<span class="dl-add">+    return `</span>
+<span class="dl-add">+      &lt;div class=&quot;lane-card-context&quot; style=&quot;${failed ? &#39;&#39; : &#39;display:none&#39;}&quot;&gt;</span>
+<span class="dl-add">+        &lt;span class=&quot;lane-card-context-note&quot;&gt;Frame context could not be installed in this shell.&lt;/span&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;lane-card-context-actions&quot;&gt;</span>
+<span class="dl-add">+          &lt;button class=&quot;lane-card-context-start&quot;&gt;Start agent&lt;/button&gt;</span>
+<span class="dl-add">+          &lt;code class=&quot;lane-card-context-cmd&quot; title=&quot;Run this in the lane to set it up by hand&quot;&gt;${escapeHtml(command)}&lt;/code&gt;</span>
+<span class="dl-add">+        &lt;/div&gt;</span>
+<span class="dl-add">+      &lt;/div&gt;</span>
+<span class="dl-add">+    `;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  _attachContextRow(card, terminalId) {</span>
+<span class="dl-add">+    card.querySelector(&#39;.lane-card-context-start&#39;)?.addEventListener(&#39;click&#39;, (e) =&gt; {</span>
+<span class="dl-add">+      e.stopPropagation();</span>
+<span class="dl-add">+      // Through agentDispatch&#39;s own launcher — this is not a second way to</span>
+<span class="dl-add">+      // start an agent, it is the same one reached from a different button.</span>
+<span class="dl-add">+      // Required lazily: agentDispatch is initialised with the UI that owns</span>
+<span class="dl-add">+      // this board, so a top-level require would be a cycle.</span>
+<span class="dl-add">+      require(&#39;./agentDispatch&#39;).startAgentInLane(terminalId);</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  _updateContextRow(card, terminalId) {</span>
+<span class="dl-add">+    const row = card.querySelector(&#39;.lane-card-context&#39;);</span>
+<span class="dl-add">+    if (!row) return;</span>
+<span class="dl-add">+    row.style.display = laneContext.getState(terminalId) === &#39;failed&#39; ? &#39;&#39; : &#39;none&#39;;</span>
+<span class="dl-add">+    const cmd = row.querySelector(&#39;.lane-card-context-cmd&#39;);</span>
+<span class="dl-add">+    if (cmd) cmd.textContent = laneContext.getManualCommand(terminalId);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   _isVisible() {</span>
+<span class="dl-ctx">     return !!(this.boardEl &amp;&amp; this.boardEl.isConnected);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-hunk">@@ -402,6 +453,8 @@ class LaneBoard {</span>
+<span class="dl-ctx">       activity.dataset.ts = lastActivityAt || &#39;&#39;;</span>
+<span class="dl-ctx">       activity.textContent = formatRelativeTime(lastActivityAt);</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    this._updateContextRow(card, terminalId);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   _updateBranchChips() {</span>
+<span class="dl-meta">diff --git a/src/renderer/laneContext.js b/src/renderer/laneContext.js</span>
+<span class="dl-meta">index 2136d8f..480ea91 100644</span>
+<span class="dl-file">--- a/src/renderer/laneContext.js</span>
+<span class="dl-file">+++ b/src/renderer/laneContext.js</span>
+<span class="dl-hunk">@@ -32,6 +32,8 @@ let initialized = false;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Map&lt;terminalId, &#39;installed&#39; | &#39;failed&#39; | &#39;unsupported&#39;&gt;</span>
+<span class="dl-ctx"> const states = new Map();</span>
+<span class="dl-add">+// Map&lt;terminalId, string&gt; — the one-liner a `failed` lane can be fixed with</span>
+<span class="dl-add">+const commands = new Map();</span>
+<span class="dl-ctx"> // Map&lt;terminalId, Set&lt;resolve&gt;&gt; — callers parked in whenReady</span>
+<span class="dl-ctx"> const waiters = new Map();</span>
+<span class="dl-ctx"> const listeners = new Set();</span>
+<span class="dl-hunk">@@ -44,9 +46,10 @@ function init() {</span>
+<span class="dl-ctx">   if (initialized) return;</span>
+<span class="dl-ctx">   initialized = true;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  ipcRenderer.on(IPC.TERMINAL_CONTEXT_STATE, (event, { terminalId, state }) =&gt; {</span>
+<span class="dl-add">+  ipcRenderer.on(IPC.TERMINAL_CONTEXT_STATE, (event, { terminalId, state, command }) =&gt; {</span>
+<span class="dl-ctx">     if (!terminalId || !state) return;</span>
+<span class="dl-ctx">     states.set(terminalId, state);</span>
+<span class="dl-add">+    if (command) commands.set(terminalId, command);</span>
+<span class="dl-ctx">     _wake(terminalId);</span>
+<span class="dl-ctx">     for (const cb of listeners) {</span>
+<span class="dl-ctx">       try { cb(terminalId, state); } catch (_) { /* a bad listener is not the lane&#39;s problem */ }</span>
+<span class="dl-hunk">@@ -79,6 +82,14 @@ function isReady(terminalId) {</span>
+<span class="dl-ctx">   return states.get(terminalId) === &#39;installed&#39;;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The one-liner that would set this lane up by hand, or &#39;&#39; when there is</span>
+<span class="dl-add">+ * nothing to suggest. Only a `failed` lane has one.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function getManualCommand(terminalId) {</span>
+<span class="dl-add">+  return commands.get(terminalId) || &#39;&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Resolve once this lane is ready to be typed into.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -122,6 +133,7 @@ function whenReady(terminalId, fallbackMs = 0) {</span>
+<span class="dl-ctx"> /** Forget a lane. Called on TERMINAL_DESTROYED so the maps don&#39;t grow. */</span>
+<span class="dl-ctx"> function remove(terminalId) {</span>
+<span class="dl-ctx">   states.delete(terminalId);</span>
+<span class="dl-add">+  commands.delete(terminalId);</span>
+<span class="dl-ctx">   const parked = waiters.get(terminalId);</span>
+<span class="dl-ctx">   if (parked) {</span>
+<span class="dl-ctx">     // A destroyed lane will never be ready; release anyone still waiting</span>
+<span class="dl-hunk">@@ -143,6 +155,7 @@ module.exports = {</span>
+<span class="dl-ctx">   onChange,</span>
+<span class="dl-ctx">   getState,</span>
+<span class="dl-ctx">   isReady,</span>
+<span class="dl-add">+  getManualCommand,</span>
+<span class="dl-ctx">   whenReady,</span>
+<span class="dl-ctx">   remove</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-meta">diff --git a/src/renderer/styles/components/lane-board.css b/src/renderer/styles/components/lane-board.css</span>
+<span class="dl-meta">index a735f18..8b863e9 100644</span>
+<span class="dl-file">--- a/src/renderer/styles/components/lane-board.css</span>
+<span class="dl-file">+++ b/src/renderer/styles/components/lane-board.css</span>
+<span class="dl-hunk">@@ -252,6 +252,58 @@</span>
+<span class="dl-ctx">   flex-shrink: 0;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/* Shell setup failed for this lane: the statement, a one-click start that goes</span>
+<span class="dl-add">+   through the normal launcher, and the command the user could run themselves.</span>
+<span class="dl-add">+   Only ever rendered on a failed lane — a lane that was set up says nothing. */</span>
+<span class="dl-add">+.lane-card-context {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  flex-direction: column;</span>
+<span class="dl-add">+  gap: 6px;</span>
+<span class="dl-add">+  margin-top: 8px;</span>
+<span class="dl-add">+  padding-top: 8px;</span>
+<span class="dl-add">+  border-top: 1px solid var(--border-color, rgba(128, 128, 128, 0.2));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.lane-card-context-note {</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  line-height: 1.4;</span>
+<span class="dl-add">+  color: var(--warning, #e5a50a);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.lane-card-context-actions {</span>
+<span class="dl-add">+  display: flex;</span>
+<span class="dl-add">+  align-items: center;</span>
+<span class="dl-add">+  gap: 8px;</span>
+<span class="dl-add">+  min-width: 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.lane-card-context-start {</span>
+<span class="dl-add">+  flex-shrink: 0;</span>
+<span class="dl-add">+  padding: 3px 9px;</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  font-weight: 500;</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+  background: var(--bg-tertiary, rgba(128, 128, 128, 0.12));</span>
+<span class="dl-add">+  border: 1px solid var(--border-color, rgba(128, 128, 128, 0.25));</span>
+<span class="dl-add">+  border-radius: 5px;</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.lane-card-context-start:hover {</span>
+<span class="dl-add">+  background: var(--bg-hover, rgba(128, 128, 128, 0.2));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.lane-card-context-cmd {</span>
+<span class="dl-add">+  font-family: var(--font-mono, ui-monospace, monospace);</span>
+<span class="dl-add">+  font-size: 10px;</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  white-space: nowrap;</span>
+<span class="dl-add">+  overflow: hidden;</span>
+<span class="dl-add">+  text-overflow: ellipsis;</span>
+<span class="dl-add">+  min-width: 0;</span>
+<span class="dl-add">+  user-select: text;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> .lane-card-status-label.agent-working  { color: var(--accent-primary); }</span>
+<span class="dl-ctx"> .lane-card-status-label.agent-approval { color: var(--error, #d45555); font-weight: 600; }</span>
+<span class="dl-ctx"> .lane-card-status-label.agent-input    { color: var(--warning, #e5a50a); }</span>
+<span class="dl-meta">diff --git a/test/shellSetup.test.js b/test/shellSetup.test.js</span>
+<span class="dl-meta">index 545b706..3392346 100644</span>
+<span class="dl-file">--- a/test/shellSetup.test.js</span>
+<span class="dl-file">+++ b/test/shellSetup.test.js</span>
+<span class="dl-hunk">@@ -164,6 +164,20 @@ test(&#39;the fish command carries the split marker too&#39;, () =&gt; {</span>
+<span class="dl-ctx">   assert.ok(!delivery.args[1].includes(marker));</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── manualCommand ────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the manual command is project-relative and per family&#39;, () =&gt; {</span>
+<span class="dl-add">+  // It is offered on a failed lane card for the user to paste into that lane,</span>
+<span class="dl-add">+  // whose cwd is the project — an absolute path would be unreadable.</span>
+<span class="dl-add">+  assert.equal(shellSetup.manualCommand(&#39;/bin/zsh&#39;), &#39;. .frame/runtime/shell/init.sh&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.manualCommand(&#39;/opt/homebrew/bin/fish&#39;), &#39;source .frame/runtime/shell/init.fish&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a shell Frame cannot set up has no command to suggest&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(shellSetup.manualCommand(&#39;/usr/local/bin/nu&#39;), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.manualCommand(&#39;&#39;), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // ─── splitOnMarker ────────────────────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> test(&#39;output before and including the marker line is dropped, the rest survives&#39;, () =&gt; {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T08</span>
+    <h2>Replace the fixed delays with laneContext.whenReady</h2>
+    <span class="card-meta"><span class="chip">8a2ec1e</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">490 tests, 0 failures; renderer bundle builds</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>agentDispatch._startAgentIn awaits whenReady(terminalId, fresh ? 800 : 50), index.js startAiSession awaits whenReady(id, 1000) and multiTerminalUI.sendCommand create-then-send path awaits whenReady(newId, 300). Each site keeps its own number as the fallback; the setTimeout wrappers are gone.</p></div>
+    <div class="field"><span class="label">Why</span><p>Every one of those numbers was a guess at when the shell would accept input, made once and never revisited. The setup marker is proof, so a confirmed lane types immediately and a lane that cannot confirm waits exactly as long as it always did — nothing gets slower, and the common case stops paying for a worst case that already passed.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/renderer/agentDispatch.js b/src/renderer/agentDispatch.js</span>
+<span class="dl-meta">index 9d8bf9c..889025b 100644</span>
+<span class="dl-file">--- a/src/renderer/agentDispatch.js</span>
+<span class="dl-file">+++ b/src/renderer/agentDispatch.js</span>
+<span class="dl-hunk">@@ -22,6 +22,7 @@</span>
+<span class="dl-ctx"> const { ipcRenderer } = require(&#39;electron&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const laneStatus = require(&#39;./laneStatus&#39;);</span>
+<span class="dl-add">+const laneContext = require(&#39;./laneContext&#39;);</span>
+<span class="dl-ctx"> const state = require(&#39;./state&#39;);</span>
+<span class="dl-ctx"> const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-ctx"> const notify = require(&#39;./notify&#39;);</span>
+<span class="dl-hunk">@@ -301,7 +302,12 @@ async function _startAgentIn(terminalId, { fresh = false } = {}) {</span>
+<span class="dl-ctx">   ipcRenderer.send(IPC.TELEMETRY_TRACK, &#39;agent_run_started&#39;, {</span>
+<span class="dl-ctx">     tool: currentTool ? currentTool.id : null</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-del">-  setTimeout(() =&gt; multiTerminalUI.sendCommand(startCommand, terminalId), fresh ? 800 : 50);</span>
+<span class="dl-add">+  // A freshly spawned shell used to get 800 ms and an existing one 50 ms,</span>
+<span class="dl-add">+  // both guesses at when the shell would accept input. The lane&#39;s own setup</span>
+<span class="dl-add">+  // marker answers it; each number stays as that call&#39;s fallback, so an</span>
+<span class="dl-add">+  // unsupported or failed lane behaves exactly as it does today.</span>
+<span class="dl-add">+  await laneContext.whenReady(terminalId, fresh ? 800 : 50);</span>
+<span class="dl-add">+  multiTerminalUI.sendCommand(startCommand, terminalId);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-meta">diff --git a/src/renderer/index.js b/src/renderer/index.js</span>
+<span class="dl-meta">index b36cefd..f85ada8 100644</span>
+<span class="dl-file">--- a/src/renderer/index.js</span>
+<span class="dl-file">+++ b/src/renderer/index.js</span>
+<span class="dl-hunk">@@ -33,6 +33,7 @@ const orchestrator = require(&#39;./orchestrator&#39;);</span>
+<span class="dl-ctx"> const editor = require(&#39;./editor&#39;);</span>
+<span class="dl-ctx"> const sidebarResize = require(&#39;./sidebarResize&#39;);</span>
+<span class="dl-ctx"> const aiToolSelector = require(&#39;./aiToolSelector&#39;);</span>
+<span class="dl-add">+const laneContext = require(&#39;./laneContext&#39;);</span>
+<span class="dl-ctx"> const commandRegistry = require(&#39;./commandRegistry&#39;);</span>
+<span class="dl-ctx"> const commandPalette = require(&#39;./commandPalette&#39;);</span>
+<span class="dl-ctx"> const cheatSheet = require(&#39;./cheatSheet&#39;);</span>
+<span class="dl-hunk">@@ -747,9 +748,11 @@ async function startAiSession() {</span>
+<span class="dl-ctx">   // attached. The board&#39;s agent chip is derived live from the foreground</span>
+<span class="dl-ctx">   // process, not tagged here.</span>
+<span class="dl-ctx">   const startCommand = await aiToolSelector.getLaunchCommand(projectPath);</span>
+<span class="dl-del">-  setTimeout(() =&gt; {</span>
+<span class="dl-del">-    terminal.sendCommand(startCommand, newTerminalId);</span>
+<span class="dl-del">-  }, 1000);</span>
+<span class="dl-add">+  // The shell&#39;s own setup marker says when it is processing input, which is</span>
+<span class="dl-add">+  // what the 1000 ms here used to guess. That number stays as the fallback,</span>
+<span class="dl-add">+  // so a lane that cannot confirm behaves exactly as it did before.</span>
+<span class="dl-add">+  await laneContext.whenReady(newTerminalId, 1000);</span>
+<span class="dl-add">+  terminal.sendCommand(startCommand, newTerminalId);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-meta">diff --git a/src/renderer/multiTerminalUI.js b/src/renderer/multiTerminalUI.js</span>
+<span class="dl-meta">index d4d8a8f..e14fa63 100644</span>
+<span class="dl-file">--- a/src/renderer/multiTerminalUI.js</span>
+<span class="dl-file">+++ b/src/renderer/multiTerminalUI.js</span>
+<span class="dl-hunk">@@ -527,11 +527,13 @@ class MultiTerminalUI {</span>
+<span class="dl-ctx">     if (!targetId) {</span>
+<span class="dl-ctx">       // Lanes belong to a project — without one there is nowhere to send</span>
+<span class="dl-ctx">       if (!this.manager.getCurrentProject()) return;</span>
+<span class="dl-del">-      this.createTerminalForCurrentProject().then((newId) =&gt; {</span>
+<span class="dl-add">+      this.createTerminalForCurrentProject().then(async (newId) =&gt; {</span>
+<span class="dl-ctx">         if (!newId) return;</span>
+<span class="dl-ctx">         this.enterLane(newId);</span>
+<span class="dl-del">-        // Give the shell a moment to be ready before the first command</span>
+<span class="dl-del">-        setTimeout(() =&gt; this.manager.sendCommand(command, newId), 300);</span>
+<span class="dl-add">+        // The lane&#39;s setup marker says when the shell is ready; the 300 ms</span>
+<span class="dl-add">+        // this used to wait unconditionally is now only the fallback.</span>
+<span class="dl-add">+        await laneContext.whenReady(newId, 300);</span>
+<span class="dl-add">+        this.manager.sendCommand(command, newId);</span>
+<span class="dl-ctx">       });</span>
+<span class="dl-ctx">       return;</span>
+<span class="dl-ctx">     }</span></pre>
+    </details>
+  </div>
+</section>
+</div>
+
+<footer>Generated by Frame from <code>report-data.json</code> · diffs read from git, never transcribed</footer>
+</body>
+</html>

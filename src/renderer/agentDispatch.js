@@ -22,6 +22,7 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
+const laneContext = require('./laneContext');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
@@ -301,7 +302,24 @@ async function _startAgentIn(terminalId, { fresh = false } = {}) {
   ipcRenderer.send(IPC.TELEMETRY_TRACK, 'agent_run_started', {
     tool: currentTool ? currentTool.id : null
   });
-  setTimeout(() => multiTerminalUI.sendCommand(startCommand, terminalId), fresh ? 800 : 50);
+  // A freshly spawned shell used to get 800 ms and an existing one 50 ms,
+  // both guesses at when the shell would accept input. The lane's own setup
+  // marker answers it; each number stays as that call's fallback, so an
+  // unsupported or failed lane behaves exactly as it does today.
+  await laneContext.whenReady(terminalId, fresh ? 800 : 50);
+  multiTerminalUI.sendCommand(startCommand, terminalId);
+}
+
+/**
+ * Start the active tool's CLI in an existing lane, from outside this module.
+ *
+ * The lane board's "context could not be installed" row calls this. It is a
+ * named export of `_startAgentIn` and nothing more: a lane whose shell setup
+ * failed still needs an agent started the one way Frame starts agents, and a
+ * second launch path would be a second place for the composition to drift.
+ */
+async function startAgentInLane(terminalId) {
+  return _startAgentIn(terminalId);
 }
 
 async function _startAgentInNewFrame() {
@@ -762,6 +780,7 @@ module.exports = {
   init,
   dispatch,
   startDefaultAgent,
+  startAgentInLane,
   dispatchSpecCommand,
   getSpecLaneInfo,
   getTaskLaneInfo,

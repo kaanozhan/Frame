@@ -980,6 +980,148 @@ fi
 }
 
 /**
+ * A shell function name Frame is willing to define.
+ *
+ * Tool ids come from a registry the user can add to, and a custom id is free
+ * text. Anything that would not parse as a function name is skipped rather
+ * than escaped: a broken definition would take the whole init file down with
+ * it, and losing one tool's function is cheaper than losing every tool's.
+ */
+function isDefinableToolId(id) {
+  return typeof id === 'string' && /^[A-Za-z_][A-Za-z0-9_-]*$/.test(id);
+}
+
+// Single-quote for a generated shell file. Both POSIX shells and fish treat
+// `'` as fully literal with no escape inside it, so a quote in the path is
+// closed, escaped and reopened.
+function shellQuote(value) {
+  return `'${String(value == null ? '' : value).replace(/'/g, "'\\''")}'`;
+}
+
+/**
+ * The init file a lane sources at startup.
+ *
+ * `.frame/bin` first on `PATH` was never enough on its own: rc files run
+ * *after* Frame sets the environment, and nvm, Homebrew and pyenv all prepend
+ * their own directory — so a `codex` installed by `npm i -g` won not because
+ * anything was wrong, but because it got to reorder the list last. This file
+ * runs last instead, and does two things:
+ *
+ * 1. Moves `.frame/bin` back to the front of an **exported** `PATH`, so
+ *    subshells — where functions do not reach — keep the base guarantee.
+ * 2. Defines one function per configured tool. A function is resolved before
+ *    any `PATH` search, which removes the ordering question entirely.
+ *
+ * Each function is a **router**, not a second injection point: it delegates to
+ * `"$FRAME_BIN/<id>"`, which stays the only thing that composes the preamble
+ * and the only thing that honours `FRAME_NO_WRAP=1` — so the escape hatch
+ * behaves identically whether the tool was reached through the function or
+ * through `PATH`. When the wrapper file is missing the function falls back to
+ * `command <id>`, which bypasses shell functions (so it cannot recurse into
+ * itself) while still going through `PATH`.
+ *
+ * @param {object} options
+ * @param {string} options.family - 'posix' (zsh/bash/sh) or 'fish'
+ * @param {string} options.binDir - absolute path to the project's .frame/bin
+ * @param {string[]} options.toolIds - configured tool ids, one function each
+ * @returns {string} the file's content, or '' for a family Frame cannot serve
+ */
+function getShellInitTemplate(options) {
+  const opts = options || {};
+  const family = opts.family || '';
+  const binDir = opts.binDir || '';
+  const toolIds = (Array.isArray(opts.toolIds) ? opts.toolIds : []).filter(isDefinableToolId);
+
+  if (!binDir) return '';
+  if (family === 'fish') return fishInitTemplate(binDir, toolIds);
+  if (family === 'posix') return posixInitTemplate(binDir, toolIds);
+  return '';
+}
+
+function posixInitTemplate(binDir, toolIds) {
+  const functions = toolIds
+    .map(
+      (id) => `${id}() {
+  if [ -x "$FRAME_BIN/${id}" ]; then
+    "$FRAME_BIN/${id}" "$@"
+  else
+    command ${id} "$@"
+  fi
+}`
+    )
+    .join('\n\n');
+
+  return `# Frame shell setup — sourced by zsh, bash and sh in terminals Frame opens.
+# Generated file; Frame rewrites it whenever the content changes. Nothing
+# outside .frame/ is touched, and nothing here runs in a shell Frame did not
+# open.
+
+FRAME_BIN=${shellQuote(binDir)}
+export FRAME_BIN
+
+# Move FRAME_BIN to the front of PATH — the reason this file exists. Written
+# with prefix/suffix removal instead of splitting on ":", because zsh does not
+# word-split unquoted parameters and this same file is sourced by zsh and bash.
+__frame_path_front() {
+  __frame_rest="$PATH"
+  __frame_out=""
+  while [ -n "$__frame_rest" ]; do
+    case "$__frame_rest" in
+      *:*) __frame_item="\${__frame_rest%%:*}"; __frame_rest="\${__frame_rest#*:}" ;;
+      *) __frame_item="$__frame_rest"; __frame_rest="" ;;
+    esac
+    [ -z "$__frame_item" ] && continue
+    [ "$__frame_item" = "$FRAME_BIN" ] && continue
+    __frame_out="\${__frame_out:+$__frame_out:}$__frame_item"
+  done
+  PATH="$FRAME_BIN\${__frame_out:+:$__frame_out}"
+  export PATH
+  unset __frame_rest __frame_out __frame_item
+}
+__frame_path_front
+unset -f __frame_path_front 2>/dev/null
+
+# One function per configured tool. Resolved before any PATH search, so where
+# the user's rc files put their own directories stops mattering.
+${functions}
+`;
+}
+
+function fishInitTemplate(binDir, toolIds) {
+  const functions = toolIds
+    .map(
+      (id) => `function ${id} --wraps ${id}
+    if test -x "$FRAME_BIN/${id}"
+        "$FRAME_BIN/${id}" $argv
+    else
+        command ${id} $argv
+    end
+end`
+    )
+    .join('\n\n');
+
+  return `# Frame shell setup — sourced by fish in terminals Frame opens.
+# Generated file; Frame rewrites it whenever the content changes.
+
+set -gx FRAME_BIN ${shellQuote(binDir)}
+
+# Move FRAME_BIN to the front of PATH. fish's PATH is a list, so this is a
+# rebuild rather than string surgery — but the intent is the one the POSIX
+# file has: exported, and first.
+set -l __frame_rest
+for __frame_entry in $PATH
+    if test "$__frame_entry" != "$FRAME_BIN"
+        set -a __frame_rest $__frame_entry
+    end
+end
+set -gx PATH $FRAME_BIN $__frame_rest
+
+# One function per configured tool, each delegating to the wrapper.
+${functions}
+`;
+}
+
+/**
  * The spec-hint hooks, as a Claude Code settings object.
  *
  * These used to be merged into the project's tracked `.claude/settings.json`.
@@ -1145,6 +1287,7 @@ module.exports = {
   REFERENCE_SPEC_LEGACY_MATCHERS,
   AGENTS_SPEC_LEGACY_MATCHERS,
   getWrapperTemplate,
+  getShellInitTemplate,
   getSpecHintSettings,
   getStructureHookSnippet,
   getStructurePreCommitHookTemplate,

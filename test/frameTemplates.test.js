@@ -257,3 +257,154 @@ test('an invalid gitSharing option falls back to local', () => {
   const config = templates.getFrameConfigTemplate('MyProject', { gitSharing: 'team' });
   assert.equal(config.settings.gitSharing, 'local');
 });
+
+// ─── shell init template (T02) ────────────────────────────────
+
+// `.frame/bin` first on PATH is set before the user's rc files run, and those
+// files reorder PATH afterwards — which is how a `codex` installed by
+// `npm i -g` came to win. These functions are what makes the ordering
+// irrelevant, so the assertions that matter are: a function per tool, each
+// delegating to the *wrapper* rather than re-execing the tool name (which
+// would recurse), and PATH moved rather than duplicated.
+
+const INIT_BIN = '/tmp/some project/.frame/bin';
+
+test('the POSIX init file defines one function per configured tool', () => {
+  const init = templates.getShellInitTemplate({
+    family: 'posix',
+    binDir: INIT_BIN,
+    toolIds: ['claude', 'codex', 'gemini']
+  });
+  for (const id of ['claude', 'codex', 'gemini']) {
+    assert.ok(init.includes(`${id}() {`), `no function for ${id}`);
+    assert.ok(init.includes(`"$FRAME_BIN/${id}" "$@"`), `${id} does not delegate to the wrapper`);
+    assert.ok(init.includes(`command ${id} "$@"`), `${id} has no missing-wrapper fallback`);
+  }
+});
+
+test('a custom tool gets its function in both files', () => {
+  const posix = templates.getShellInitTemplate({ family: 'posix', binDir: INIT_BIN, toolIds: ['my-cli'] });
+  const fish = templates.getShellInitTemplate({ family: 'fish', binDir: INIT_BIN, toolIds: ['my-cli'] });
+  assert.ok(posix.includes('my-cli() {'));
+  assert.ok(fish.includes('function my-cli'));
+});
+
+test('a function never re-execs the bare tool name outside `command`', () => {
+  // `claude() { claude "$@"; }` would recurse forever. `command claude` is the
+  // only bare form allowed: it bypasses functions while still using PATH.
+  const init = templates.getShellInitTemplate({ family: 'posix', binDir: INIT_BIN, toolIds: ['claude'] });
+  const body = init.slice(init.indexOf('claude() {'));
+  for (const line of body.split('\n')) {
+    if (!line.includes('claude')) continue;
+    assert.ok(
+      line.includes('$FRAME_BIN/claude') || line.includes('command claude') || line.includes('claude() {'),
+      `bare re-exec would recurse: ${line}`
+    );
+  }
+});
+
+test('an id that would not parse as a function name is skipped, not escaped', () => {
+  const init = templates.getShellInitTemplate({
+    family: 'posix',
+    binDir: INIT_BIN,
+    toolIds: ['claude', 'rm -rf /', '2bad', '']
+  });
+  assert.ok(init.includes('claude() {'));
+  assert.ok(!init.includes('rm -rf /'), 'a broken definition takes the whole file down with it');
+  assert.ok(!init.includes('2bad'));
+});
+
+test('the bin directory is exported and quoted', () => {
+  const init = templates.getShellInitTemplate({ family: 'posix', binDir: INIT_BIN, toolIds: [] });
+  assert.ok(init.includes(`FRAME_BIN='${INIT_BIN}'`), 'a path with a space would split');
+  assert.ok(init.includes('export FRAME_BIN'));
+  assert.ok(init.includes('export PATH'), 'subshells inherit PATH, not functions');
+});
+
+test('a path with a quote in it is escaped rather than breaking the file', () => {
+  const init = templates.getShellInitTemplate({ family: 'posix', binDir: "/tmp/o'brien/.frame/bin", toolIds: [] });
+  assert.ok(init.includes("'\\''"), init.split('\n').find((l) => l.includes('FRAME_BIN=')));
+});
+
+test('the fish file uses fish syntax, not POSIX', () => {
+  const init = templates.getShellInitTemplate({ family: 'fish', binDir: INIT_BIN, toolIds: ['claude'] });
+  assert.ok(init.includes(`set -gx FRAME_BIN '${INIT_BIN}'`));
+  assert.ok(init.includes('set -gx PATH $FRAME_BIN $__frame_rest'));
+  assert.ok(init.includes('"$FRAME_BIN/claude" $argv'));
+  assert.ok(init.includes('command claude $argv'));
+  assert.ok(!init.includes('"$@"'), 'POSIX argument syntax leaked into the fish file');
+});
+
+test('a family Frame has no file for, or no bin directory, produces nothing', () => {
+  assert.equal(templates.getShellInitTemplate({ family: 'nushell', binDir: INIT_BIN, toolIds: ['claude'] }), '');
+  assert.equal(templates.getShellInitTemplate({ family: 'posix', binDir: '', toolIds: ['claude'] }), '');
+  assert.equal(templates.getShellInitTemplate({}), '');
+});
+
+// ─── shell init behaviour, executed ───────────────────────────
+
+// The string assertions above cannot tell a valid init file from one that
+// makes the shell bail on a syntax error — and a file that fails to parse
+// would leave the lane with no functions and no way to notice. These source it
+// for real, in each shell family that takes it.
+
+function stageInit(toolIds = ['claude']) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-init-'));
+  const binDir = path.join(root, 'project with space', '.frame', 'bin');
+  const shellDir = path.join(root, 'project with space', '.frame', 'runtime', 'shell');
+  const realDir = path.join(root, 'real');
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.mkdirSync(shellDir, { recursive: true });
+  fs.mkdirSync(realDir, { recursive: true });
+
+  const initFile = path.join(shellDir, 'init.sh');
+  fs.writeFileSync(initFile, templates.getShellInitTemplate({ family: 'posix', binDir, toolIds }));
+  for (const id of toolIds) {
+    fs.writeFileSync(path.join(binDir, id), `#!/usr/bin/env bash\necho "WRAPPER:${id}:$*"\n`, { mode: 0o755 });
+    fs.writeFileSync(path.join(realDir, id), `#!/usr/bin/env bash\necho "REAL:${id}:$*"\n`, { mode: 0o755 });
+  }
+  return { root, binDir, realDir, initFile };
+}
+
+function sourceInit(shell, staged, script, extraPath = '') {
+  return execFileSync(shell, ['-c', `. '${staged.initFile}'\n${script}`], {
+    env: {
+      ...process.env,
+      PATH: `${extraPath ? `${extraPath}:` : ''}${staged.realDir}:/usr/bin:/bin`
+    },
+    encoding: 'utf8',
+    timeout: 10000
+  });
+}
+
+for (const shell of ['bash', 'sh', 'zsh']) {
+  test(`the init file parses and routes ${shell} through the wrapper`, { skip: !POSIX }, () => {
+    const staged = stageInit(['claude']);
+    const out = sourceInit(shell, staged, 'claude --resume x');
+    assert.equal(out.trim(), 'WRAPPER:claude:--resume x', `${shell} did not resolve the function`);
+  });
+
+  test(`${shell} gets the bin directory first on PATH, even set up last`, { skip: !POSIX }, () => {
+    // The nvm case: a directory holding a real `claude` was prepended by the
+    // user's rc files, i.e. after Frame set the environment.
+    const staged = stageInit(['claude']);
+    const out = sourceInit(shell, staged, 'printf "%s\\n" "$PATH"', staged.realDir);
+    const entries = out.trim().split(':');
+    assert.equal(entries[0], staged.binDir, `${shell} PATH: ${out.trim()}`);
+    assert.equal(entries.filter((e) => e === staged.binDir).length, 1, 'duplicated instead of moved');
+  });
+
+  test(`a subshell of ${shell} still reaches the wrapper through PATH`, { skip: !POSIX }, () => {
+    // Functions do not survive a subshell; the exported PATH is what does.
+    const staged = stageInit(['claude']);
+    const out = sourceInit(shell, staged, `${shell} -c 'claude sub'`);
+    assert.equal(out.trim(), 'WRAPPER:claude:sub', 'the base PATH layer did not reach the subshell');
+  });
+
+  test(`${shell} falls back to the real CLI when the wrapper is missing`, { skip: !POSIX }, () => {
+    const staged = stageInit(['claude']);
+    fs.rmSync(path.join(staged.binDir, 'claude'));
+    const out = sourceInit(shell, staged, 'claude fallback');
+    assert.equal(out.trim(), 'REAL:claude:fallback', 'a missing wrapper cost the user their CLI');
+  });
+}

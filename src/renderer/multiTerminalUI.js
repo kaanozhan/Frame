@@ -14,6 +14,7 @@ const { TerminalTabBar } = require('./terminalTabBar');
 const { TerminalGrid } = require('./terminalGrid');
 const { LaneBoard } = require('./laneBoard');
 const laneStatus = require('./laneStatus');
+const laneContext = require('./laneContext');
 const agentDispatch = require('./agentDispatch');
 const laneDetailRail = require('./laneDetailRail');
 const overviewPanel = require('./overviewPanel');
@@ -61,6 +62,10 @@ class MultiTerminalUI {
 
     // Lane activity detection needs the manager to read xterm buffers
     laneStatus.init(this.manager);
+
+    // Whether each lane's shell carries Frame's context — the signal that
+    // replaces the fixed waits before anything is typed into a lane.
+    laneContext.init();
 
     // Agent dispatch delivers prompts into lanes through us
     agentDispatch.init(this);
@@ -522,11 +527,13 @@ class MultiTerminalUI {
     if (!targetId) {
       // Lanes belong to a project — without one there is nowhere to send
       if (!this.manager.getCurrentProject()) return;
-      this.createTerminalForCurrentProject().then((newId) => {
+      this.createTerminalForCurrentProject().then(async (newId) => {
         if (!newId) return;
         this.enterLane(newId);
-        // Give the shell a moment to be ready before the first command
-        setTimeout(() => this.manager.sendCommand(command, newId), 300);
+        // The lane's setup marker says when the shell is ready; the 300 ms
+        // this used to wait unconditionally is now only the fallback.
+        await laneContext.whenReady(newId, 300);
+        this.manager.sendCommand(command, newId);
       });
       return;
     }

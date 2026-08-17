@@ -19,6 +19,7 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
+const laneContext = require('./laneContext');
 const laneRail = require('./laneRail');
 const { Plus, Pencil, X, FolderOpen, GitBranch, Bot, FileText, CheckSquare } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
@@ -113,6 +114,12 @@ class LaneBoard {
       if (this._isVisible()) this._updateCardStatus(terminalId);
     });
 
+    // Context state arrives a moment after a lane is created, so the failure
+    // row appears through the same per-card refresh rather than a re-render.
+    laneContext.onChange((terminalId) => {
+      if (this._isVisible()) this._updateCardStatus(terminalId);
+    });
+
     // Current branch comes from the git status watcher fileTreeUI already
     // starts per project — cards show it instead of the (redundant) project.
     // Init-once across instances: LaneBoard is a singleton; a second
@@ -200,12 +207,16 @@ class LaneBoard {
         <span class="lane-card-status-label ${status}" title="${escapeHtml(commandLine || '')}">${escapeHtml(statusLabel(status, foreground, commandLine))}</span>
         <span class="lane-card-activity" data-ts="${lastActivityAt || ''}">${formatRelativeTime(lastActivityAt)}</span>
       </div>
+      ${this._contextRowHtml(t.id)}
     `;
 
     card.addEventListener('click', (e) => {
       if (e.target.closest('.lane-card-action') || e.target.closest('.lane-rename-input')) return;
+      if (e.target.closest('.lane-card-context')) return;
       this.onEnterLane(t.id);
     });
+
+    this._attachContextRow(card, t.id);
 
     card.querySelector('.lane-card-close').addEventListener('click', () => {
       this.manager.closeTerminal(t.id);
@@ -363,6 +374,46 @@ class LaneBoard {
 
   // ─── Live updates ───────────────────────────────────────
 
+  // ─── Context (shell setup) row ──────────────────────────
+  //
+  // Shown only on a lane whose setup failed. An `installed` lane is the normal
+  // case and says nothing — a permanent chip that always reads the same trains
+  // the eye to ignore the one time it doesn't — and `unsupported` is not a
+  // failure, so it says nothing either.
+
+  _contextRowHtml(terminalId) {
+    const failed = laneContext.getState(terminalId) === 'failed';
+    const command = laneContext.getManualCommand(terminalId);
+    return `
+      <div class="lane-card-context" style="${failed ? '' : 'display:none'}">
+        <span class="lane-card-context-note">Frame context could not be installed in this shell.</span>
+        <div class="lane-card-context-actions">
+          <button class="lane-card-context-start">Start agent</button>
+          <code class="lane-card-context-cmd" title="Run this in the lane to set it up by hand">${escapeHtml(command)}</code>
+        </div>
+      </div>
+    `;
+  }
+
+  _attachContextRow(card, terminalId) {
+    card.querySelector('.lane-card-context-start')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Through agentDispatch's own launcher — this is not a second way to
+      // start an agent, it is the same one reached from a different button.
+      // Required lazily: agentDispatch is initialised with the UI that owns
+      // this board, so a top-level require would be a cycle.
+      require('./agentDispatch').startAgentInLane(terminalId);
+    });
+  }
+
+  _updateContextRow(card, terminalId) {
+    const row = card.querySelector('.lane-card-context');
+    if (!row) return;
+    row.style.display = laneContext.getState(terminalId) === 'failed' ? '' : 'none';
+    const cmd = row.querySelector('.lane-card-context-cmd');
+    if (cmd) cmd.textContent = laneContext.getManualCommand(terminalId);
+  }
+
   _isVisible() {
     return !!(this.boardEl && this.boardEl.isConnected);
   }
@@ -402,6 +453,8 @@ class LaneBoard {
       activity.dataset.ts = lastActivityAt || '';
       activity.textContent = formatRelativeTime(lastActivityAt);
     }
+
+    this._updateContextRow(card, terminalId);
   }
 
   _updateBranchChips() {

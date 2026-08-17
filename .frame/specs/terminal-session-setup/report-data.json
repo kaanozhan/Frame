@@ -1,0 +1,104 @@
+{
+  "spec": {
+    "slug": "terminal-session-setup",
+    "title": "Terminal Session Setup — the lane Frame opens is a lane Frame set up"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Add pure src/main/shellSetup.js — the delivery table for terminal session setup",
+      "commit": "f3cf5a2",
+      "whatChanged": "New pure module src/main/shellSetup.js: shellFamily() maps a shell path to posix/fish/none, shellInitPath() spells the .frame/runtime/shell/ layout once, mintMarker() mints a per-terminal per-attempt token, deliveryFor() returns the fish -C args / the typed POSIX line / none behind the win32, no-project and not-a-Frame-project gates, and splitOnMarker() says what part of a buffered chunk survives the marker. test/shellSetup.test.js covers all of it.",
+      "whyChanged": "The marker is emitted as two adjacent single-quoted fragments so the literal token never appears in the line the tty echoes back — otherwise a scan of the output would match the echo and report setup installed before the shell had run anything. Markers are minted per attempt for the same reason in reverse: a retry reusing the first token would be resolved by output still in flight.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "468 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Add getShellInitTemplate() to src/shared/frameTemplates.js — the generated init files",
+      "commit": "da41e20",
+      "whatChanged": "getShellInitTemplate({ family, binDir, toolIds }) generates the POSIX and fish init files: FRAME_BIN exported, .frame/bin moved (not duplicated) to the front of an exported PATH, and one function per configured tool delegating to \"$FRAME_BIN/<id>\" with a command <id> fallback. Ids that would not parse as a function name are skipped. test/frameTemplates.test.js gained string cases plus executed ones that source the real file in bash, sh and zsh.",
+      "whyChanged": "The POSIX PATH rebuild uses prefix/suffix removal instead of splitting on \":\" because zsh does not word-split unquoted parameters and the same file is sourced by zsh and bash — a for-loop over $PATH would have treated the whole list as one entry in zsh. FRAME_NO_WRAP is deliberately not handled here: the function routes to the wrapper, which already honours it, so the escape hatch behaves the same through the function and through PATH.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "488 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Write .frame/runtime/shell/init.sh and init.fish from aiToolManager",
+      "commit": "8bfddff",
+      "whatChanged": "Added writeShellInit(projectPath) to src/main/aiToolManager.js: gated on launchEnv.supportsWrappers(), it writes both family files through the existing writeIfChanged, using shellSetup.shellInitPath for the layout and every registered tool id for the functions. Called from refreshLaunchAssets behind the existing .frame/ check, and once per composed launch from getLaunchCommand.",
+      "whyChanged": "Both families are written regardless of the user own shell — which file a lane reads is decided per terminal at spawn, so a user switching from zsh to fish should not have to reopen the project. Both call sites swallow their own failure and warn: a read-only checkout costs the user their shell functions, never their project, and .frame/bin on PATH is still there underneath.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "488 tests, 0 failures"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Deliver setup at spawn in src/main/ptyManager.js",
+      "commit": "dd6369b",
+      "whatChanged": "createTerminal now resolves a delivery shape per lane through resolveSetup() — a never-throwing wrapper around shellSetup.deliveryFor() that supplies the fs half of the gate via isFrameProject(). fish gets its -C args appended to shellArgs before spawn; zsh/bash/sh get the line typed straight after the instance is registered. Each instance carries a setup record (state, mode, marker, attempt, shell, projectPath) and getSetupState() exposes it. Setup output is still visible — suppression is T05.",
+      "whyChanged": "The typed line goes in immediately rather than after a delay: the tty holds type-ahead until the shell reads it, and a line that does get lost is precisely what the retry in T05 is for — a fixed delay would slow every lane to insure against the rare one. Every failure path leaves the spawn exactly as it was before this existed: PATH still carries .frame/bin.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "488 tests, 0 failures; delivered line also driven through a real zsh and bash — marker resolves, wrapper routes"
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Make setup invisible and verified in ptyManager, with the TERMINAL_CONTEXT_STATE channel",
+      "commit": "d480d58",
+      "whatChanged": "While a lane setup is pending, output is buffered (capped at 256KB) instead of forwarded and writeToTerminal queues input instead of writing it. The marker is looked for in the accumulated buffer, resolves the lane to installed by dropping everything through its line, and the remainder enters the normal pipeline. A 4s timeout flushes the held output verbatim and retypes with a fresh marker; a second one ends in failed. finishSetup() is the single exit path — it flushes the input queue in order and emits the new TERMINAL_CONTEXT_STATE channel, including the immediate unsupported. pushOutput() now fronts the coalescing pipeline so the setup buffer flushes through the same backpressure.",
+      "whyChanged": "The marker is matched against the accumulated buffer, not the chunk: a PTY will split it across two reads and a per-chunk scan would time out a lane that had actually worked. Input is queued rather than passed through because the buffer in front of it is about to be discarded — a keystroke written now would be echoed into output the user never sees, so they would watch their own typing vanish. fish gets no retry: its setup went in as a spawn flag, so there is no line to type again.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "488 tests, 0 failures; state machine also driven end to end against a stubbed node-pty — invisible window, split marker, queued input, timeout retry, failed, unsupported"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "Add src/renderer/laneContext.js — the per-lane context-state cache",
+      "commit": "d0d4f31",
+      "whatChanged": "New renderer module caching TERMINAL_CONTEXT_STATE per terminal, cleared on TERMINAL_DESTROYED, with an onChange subscription in laneStatus style and whenReady(terminalId, fallbackMs). Initialised from multiTerminalUI._setup() beside laneStatus.init and agentDispatch.init. No consumer yet — T07 and T08 are the consumers.",
+      "whyChanged": "whenReady arms its fallback timer even for a lane already resolved to failed or unsupported: nothing confirmed the shell is listening there, so those lanes still owe their old delay. A destroyed lane releases its waiters immediately rather than leaving promises that could only be settled by a timeout.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "488 tests, 0 failures; renderer bundle builds"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Render the failure row on a failed lane card",
+      "commit": "7221263",
+      "whatChanged": "agentDispatch exports startAgentInLane (a named export of the existing _startAgentIn). laneBoard renders a context row on every card — hidden unless the lane state is failed — carrying the statement, a Start agent button wired to that export, and the manual one-liner, refreshed through the existing _updateCardStatus and a laneContext.onChange subscription. Styling in lane-board.css. Beyond the plan: shellSetup.manualCommand() and a command field on the TERMINAL_CONTEXT_STATE payload.",
+      "whyChanged": "The manual one-liner has to be per shell family (. init.sh vs source init.fish) and only the main process knows which shell the lane got, so the command rides on the state payload rather than being guessed renderer-side — the plan documented the payload as terminalId/state/ready and did not account for it. Cards for installed and unsupported lanes are unchanged: a chip that always reads the same trains the eye to ignore the one time it does not.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "490 tests, 0 failures; renderer bundle builds"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "Replace the fixed delays with laneContext.whenReady",
+      "commit": "8a2ec1e",
+      "whatChanged": "agentDispatch._startAgentIn awaits whenReady(terminalId, fresh ? 800 : 50), index.js startAiSession awaits whenReady(id, 1000) and multiTerminalUI.sendCommand create-then-send path awaits whenReady(newId, 300). Each site keeps its own number as the fallback; the setTimeout wrappers are gone.",
+      "whyChanged": "Every one of those numbers was a guess at when the shell would accept input, made once and never revisited. The setup marker is proof, so a confirmed lane types immediately and a lane that cannot confirm waits exactly as long as it always did — nothing gets slower, and the common case stops paying for a worst case that already passed.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "490 tests, 0 failures; renderer bundle builds"
+      }
+    }
+  ]
+}
