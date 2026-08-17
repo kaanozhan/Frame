@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-02T10:36:58.161Z",
+  "lastUpdated": "2026-08-17T00:00:00.000Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4932,10 +4932,40 @@
       "createdAt": "2026-08-02T10:03:40.884Z",
       "updatedAt": "2026-08-02T10:36:58.161Z",
       "completedAt": "2026-08-02T10:36:58.161Z"
+    },
+    {
+      "id": "task-stale-frame-bin-after-migration",
+      "title": "Re-stage .frame/bin scripts + hook during migration",
+      "description": "copyParserScripts runs only from bootstrapStructure <- runProjectInit, so .frame/bin/ holds whatever generation the project was initialized with; upgrading Frame never refreshes it. Same for .git/hooks/pre-commit, which git does not version. Pre-overlay generations of update-structure.js, find-module.js and check-freshness.js hardcode root meta paths (path.join(ROOT_DIR, 'STRUCTURE.json'), readJSON('tasks.json')); the shipped versions resolve via resolveMetaPath (.frame/ first, root fallback), so they are correct in both layouts. After embeddedMigration moves STRUCTURE.json into .frame/, the stale hook still runs the stale parser: loadStructure() cannot read the root file, silently returns an empty skeleton instead of erroring, --changed adds only the files in that commit, and saveStructure writes unconditionally — recreating a truncated root STRUCTURE.json. The old hook then sees the file it just created and git add's it. plan() will not clean it up on a later open (the config.files record and the symlinks it fingerprints on are both gone), so the root copy is permanent and both files stay live. Stale find-module.js reads the same truncated map, so agents following AGENTS.md ('node .frame/bin/find-module.js <keyword>') get 'no such module' for modules that exist. Fix: call copyParserScripts(projectPath) inside migrateProject BEFORE the artifact move (the shipped scripts are correct in both layouts, so early placement also closes the window on a half-failed run), and rewrite the FRAME_HOOK_MARKER_START/END block in .git/hooks/pre-commit with the current snippet — a replaceManagedHookBlock helper still needs writing; only the marker interior changes, husky/lefthook/custom setups and anything outside the block are left alone. Both steps non-fatal (try/catch) so migration never fails over them.",
+      "userRequest": "Madde 1'le başlayalım ama hala daha tam anlayamadım madde 1 problemini daha ayrıntılı reallife örneklerle tane tane anlat. / Bunun için var olan branch içinden yeni bir bug fix task'ı açalım",
+      "acceptanceCriteria": "A project initialized under <=2.6.0 and then migrated has current copies of update-structure.js, find-module.js and check-freshness.js in .frame/bin/, and its vanilla .git/hooks/pre-commit carries the current managed block. The first source-file commit after migration writes .frame/STRUCTURE.json, stages it in that same commit when it is tracked, and leaves no STRUCTURE.json at the repo root. find-module.js resolves modules from .frame/STRUCTURE.json. The hook rewrite is guarded twice: it runs only when FRAME_HOOK_MARKER_START and FRAME_HOOK_MARKER_END each appear exactly once and in order (anything else is left untouched), and the rewritten content must pass `sh -n` before it is written — a failed check writes nothing rather than leaving an unparseable hook that would block every commit. Husky, lefthook and custom hooks are untouched, as are user lines outside the markers. Migration still succeeds if either step throws.",
+      "notes": "Only 'vanilla' setups have a Frame-written hook (detectHookSetup); the other three only ever got a printed snippet. The truncation is intermittent — update-structure.js returns early when no source files changed, so a docs-only commit after migration looks fine and the damage lands on the first code commit, breaking the mental link to migration. FRAME_HOOK_MARKER_END is already imported in structureBootstrap.js but unused; the markers were left for exactly this in-place upgrade. Related: task-watcher-pause-mrxmgngj covers the separate derivePhase rewind. Not deployed anywhere yet — migration ships with the overlay branch — so no cleanup path for already-resurrected root files is needed.",
+      "status": "pending",
+      "priority": "high",
+      "category": "fix",
+      "context": "Session 2026-08-17 - overlay architecture 2.7.0 pre-merge review",
+      "createdAt": "2026-08-17T00:00:00.000Z",
+      "updatedAt": "2026-08-17T00:00:00.000Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-posture-ignores-legacy-root-artifacts",
+      "title": "Derive sharing posture from legacy root artifacts too",
+      "description": "resolveMode asks whether the project shares its Frame artifacts but looks only at .frame/ (gitExclude.isFrameTracked). On a pre-overlay project .frame/ may hold nothing committed while the artifacts that matter — tasks.json, AGENTS.md, CLAUDE.md, STRUCTURE.json, PROJECT_NOTES.md, QUICKSTART.md — sit at the root and are tracked. The question is right, the place it looks is incomplete, so it derives 'local'. gitSharing.ensureOnOpen runs at frameProject.js:572, before runForegroundMigration at line 601 in the same CHECK_IS_FRAME_PROJECT handler, and both persists that mode to config and has gitExclude.ensure write '.frame/' into .git/info/exclude. Migration then moves git-tracked root files into a directory git has been told to ignore. The commit the user is left with deletes six tracked files and adds nothing; .frame/migration-backup/ is inside the excluded tree as well (and is in MACHINE_LOCAL_PATHS regardless), so the safety net is invisible to git too. The migrating machine reproduces nothing — Frame reads .frame/ from disk and looks perfectly healthy — so whoever migrated is the last person able to diagnose it. Fix: add isLegacyArtifactTracked(projectPath) to gitExclude.js next to isFrameTracked (it already has the git helper and can import LEGACY_ROOT_FILES; the import graph embeddedMigration -> gitSharing -> gitExclude is one-directional, so no cycle), and OR it into resolveMode's derivation. Fixing the derivation is deliberately preferred over special-casing the migration: ensureOnOpen runs first, so a correct derivation means the wrong exclude block is never written at all — nothing to undo, and no window left behind by a half-failed run. Derivation persists on first call, so it runs once per project, on its first 2.7.0 open; that single moment is the whole fix.",
+      "userRequest": "Bu realworld'de nasıl bir sorun doğurabilir örnekle anlatır mısın / A ve B yolu ne tam olarak bu seçenekler neden var / 2 numaranın task'ını aç",
+      "acceptanceCriteria": "A project whose root artifacts are tracked but whose .frame/ has nothing committed derives 'repo' on first open, and no '.frame/' block is ever written to .git/info/exclude. After migration, git status shows both halves of the move — the root deletions and the new files under .frame/ — so git add -A produces a move rather than a bare deletion. A project with neither .frame/ nor root artifacts tracked still derives 'local'. An explicitly declared settings.gitSharing still wins over derivation. .frame/.gitignore still keeps MACHINE_LOCAL_PATHS out of the commit in repo mode. Covered in test/gitSharing.test.js and test/gitExclude.test.js.",
+      "notes": "Deliberately NOT doing the defer-and-ask variant (return deferred when tracked artifacts meet a local posture, mirroring the existing dirty guard). It only matters for a user who explicitly chose 'local' in Project Settings, and that user cannot exist: gitSharing.js, gitExclude.js and embeddedMigration.js all first appear in commits #8-#10 on feat/overlay-architecture and are absent from main, so settings.gitSharing is null in every config that will ever reach migration and no user decision is being overridden. Add the deferral later if such a user ever appears. task-spec-embedded-migration-T06 specified resolving posture 'after the move', which is what makes this a regression rather than an oversight: ensureOnOpen, added by task-spec-project-settings-T05, preempts that derivation with the pre-migration layout as its evidence — which is also why migrateProject's posture-step comment claiming declaredMode is null there is no longer accurate. Does not reproduce in Frame's own repo (169 tracked files under .frame/, gitSharing already declared 'repo'), so it needs a purpose-built fixture. Related: task-stale-frame-bin-after-migration is the other migration-path bug found in the same review.",
+      "status": "pending",
+      "priority": "high",
+      "category": "fix",
+      "context": "Session 2026-08-17 - overlay architecture 2.7.0 pre-merge review",
+      "createdAt": "2026-08-17T00:00:00.000Z",
+      "updatedAt": "2026-08-17T00:00:00.000Z",
+      "completedAt": null
     }
   ],
   "metadata": {
-    "totalCreated": 311,
+    "totalCreated": 313,
     "totalCompleted": 20
   },
   "categories": {
