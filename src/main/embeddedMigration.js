@@ -35,6 +35,7 @@ const {
 } = require('../shared/frameConstants');
 const instructionDiscovery = require('./instructionDiscovery');
 const gitSharing = require('./gitSharing');
+const structureBootstrap = require('./structureBootstrap');
 const { bucketCount } = require('./telemetryEvents');
 
 /** Everything removed is copied here first, and nothing prunes it. */
@@ -586,6 +587,22 @@ function migrateProject(projectPath, opts = {}) {
     // as a new untracked one.
     gitSharing.writeFrameGitignore(projectPath);
     writeBackup(projectPath, [...detected.artifacts.map((a) => a.rel), ...detected.symlinks]);
+
+    // Before the move, not after. The shipped parser resolves its meta paths
+    // through `.frame/` with a root fallback, so it is correct on either side
+    // of this step — refreshing first means even a run that dies mid-move
+    // leaves scripts that read the layout they actually find. Doing it after
+    // would leave that window open for whatever the next commit is.
+    //
+    // Never fatal: a project that migrates with a stale parser is a bug worth
+    // fixing, but not one worth failing the migration over.
+    step = 'scripts';
+    try {
+      const refreshed = structureBootstrap.refreshStagedScripts(projectPath);
+      record('migration.scripts', { scripts: refreshed.scripts.length, hook: refreshed.hook });
+    } catch (err) {
+      record('migration.scripts', { error: err.message });
+    }
 
     step = 'move';
     for (const artifact of detected.artifacts) {

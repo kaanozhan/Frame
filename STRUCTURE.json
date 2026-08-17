@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-02",
+  "lastUpdated": "2026-08-17",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -814,37 +814,38 @@
         "shared/frameConstants",
         "instructionDiscovery",
         "gitSharing",
+        "structureBootstrap",
         "telemetryEvents"
       ],
       "functions": {
         "init": {
-          "line": 103,
+          "line": 104,
           "params": [
             "deps = {}"
           ],
           "purpose": "record    — `activityLog.record(name, fields)`"
         },
         "record": {
-          "line": 108,
+          "line": 109,
           "params": [
             "name",
             "fields"
           ]
         },
         "lstat": {
-          "line": 118,
+          "line": 119,
           "params": [
             "target"
           ]
         },
         "exists": {
-          "line": 126,
+          "line": 127,
           "params": [
             "target"
           ]
         },
         "isFramePlantedSymlink": {
-          "line": 131,
+          "line": 132,
           "params": [
             "projectPath",
             "rel"
@@ -852,13 +853,13 @@
           "purpose": "True only for a symlink Frame planted: one that points at `AGENTS.md`."
         },
         "readFile": {
-          "line": 142,
+          "line": 143,
           "params": [
             "target"
           ]
         },
         "sameContent": {
-          "line": 151,
+          "line": 152,
           "params": [
             "a",
             "b"
@@ -866,20 +867,20 @@
           "purpose": "Byte comparison, not mtime or size: a stale copy can match on both."
         },
         "git": {
-          "line": 161,
+          "line": 162,
           "params": [
             "projectPath",
             "args"
           ]
         },
         "isGitRepo": {
-          "line": 169,
+          "line": 170,
           "params": [
             "projectPath"
           ]
         },
         "dirtyArtifacts": {
-          "line": 187,
+          "line": 188,
           "params": [
             "projectPath",
             "rels"
@@ -887,7 +888,7 @@
           "purpose": "Legacy artifacts git reports as modified or staged (D4)."
         },
         "trackedArtifacts": {
-          "line": 210,
+          "line": 211,
           "params": [
             "projectPath",
             "rels"
@@ -895,26 +896,26 @@
           "purpose": "Which artifacts git has committed. This drives the receipt's git sentence,"
         },
         "configPath": {
-          "line": 224,
+          "line": 225,
           "params": [
             "projectPath"
           ]
         },
         "readConfig": {
-          "line": 228,
+          "line": 229,
           "params": [
             "projectPath"
           ]
         },
         "artifactManifest": {
-          "line": 250,
+          "line": 251,
           "params": [
             "projectPath"
           ],
           "purpose": "The root files Frame created *for this project*, from the legacy config's"
         },
         "extractExisting": {
-          "line": 281,
+          "line": 282,
           "params": [
             "content",
             "label"
@@ -922,14 +923,14 @@
           "purpose": "Pull one `## Existing Instructions (from <label>)` block out of a merged"
         },
         "plan": {
-          "line": 311,
+          "line": 312,
           "params": [
             "projectPath"
           ],
           "purpose": "What migrating this project would do. Pure inspection — no writes, safe to"
         },
         "writeBackup": {
-          "line": 419,
+          "line": 420,
           "params": [
             "projectPath",
             "rels"
@@ -937,7 +938,7 @@
           "purpose": "Byte-copy everything the run will remove into `.frame/migration-backup/`,"
         },
         "applyArtifact": {
-          "line": 451,
+          "line": 452,
           "params": [
             "projectPath",
             "artifact"
@@ -945,14 +946,14 @@
           "purpose": "Carry out one artifact's disposition."
         },
         "rewriteConfig": {
-          "line": 473,
+          "line": 474,
           "params": [
             "projectPath"
           ],
           "purpose": "Drop the `files` block from `.frame/config.json`."
         },
         "removeSymlinks": {
-          "line": 489,
+          "line": 490,
           "params": [
             "projectPath",
             "rels"
@@ -960,7 +961,7 @@
           "purpose": "Remove the symlinks old init planted. Runs *before* restoration, not after"
         },
         "restoreInstructions": {
-          "line": 516,
+          "line": 517,
           "params": [
             "projectPath",
             "mergedRel"
@@ -968,7 +969,7 @@
           "purpose": "Hand back the instruction files old init took."
         },
         "migrateProject": {
-          "line": 553,
+          "line": 554,
           "params": [
             "projectPath",
             "opts = {}"
@@ -976,24 +977,24 @@
           "purpose": "Migrate one project. Either it completes or it leaves the project untouched"
         },
         "isMigrating": {
-          "line": 663,
+          "line": 680,
           "params": [
             "projectPath"
           ],
           "purpose": "True while a migration of this project is running (S15)."
         },
         "sweep": {
-          "line": 687,
+          "line": 704,
           "params": [
             "projectPaths"
           ],
           "purpose": "Migrate every project the workspace registry knows about."
         },
         "recordActivity": {
-          "line": 89
+          "line": 90
         },
         "sendTelemetry": {
-          "line": 90
+          "line": 91
         }
       }
     },
@@ -4079,6 +4080,7 @@
       "exports": [
         "bootstrapStructure",
         "copyParserScripts",
+        "refreshStagedScripts",
         "detectHookSetup",
         "installPreCommitHook",
         "runInitialFullScan"
@@ -4092,35 +4094,42 @@
       ],
       "functions": {
         "copyParserScripts": {
-          "line": 47,
+          "line": 48,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
+        "refreshStagedScripts": {
+          "line": 137,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Bring a project's staged copies in line with the running Frame."
+        },
         "detectHookSetup": {
-          "line": 120,
+          "line": 196,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "hasFrameSnippet": {
-          "line": 177,
+          "line": 253,
           "params": [
             "hookFilePath"
           ],
           "purpose": "Check if our managed snippet is already present in a hook file."
         },
         "installPreCommitHook": {
-          "line": 194,
+          "line": 270,
           "params": [
             "projectPath"
           ],
           "purpose": "Install (or append) the pre-commit hook based on detected setup."
         },
         "appendToHookFile": {
-          "line": 256,
+          "line": 332,
           "params": [
             "hookPath",
             "createIfMissing",
@@ -4129,14 +4138,14 @@
           "purpose": "Append the Frame snippet to an existing hook file (husky case)."
         },
         "runInitialFullScan": {
-          "line": 294,
+          "line": 370,
           "params": [
             "projectPath"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 332,
+          "line": 408,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -9890,6 +9899,7 @@
         "getSpecHintSettings",
         "getStructureHookSnippet",
         "getStructurePreCommitHookTemplate",
+        "replaceManagedHookBlock",
         "getOrchBinScripts",
         "FRAME_HOOK_MARKER_START",
         "FRAME_HOOK_MARKER_END"
@@ -10025,25 +10035,32 @@
         "getStructureHookSnippet": {
           "line": 1162
         },
+        "replaceManagedHookBlock": {
+          "line": 1202,
+          "params": [
+            "content"
+          ],
+          "purpose": "Swap the managed block inside an existing hook file for the current snippet."
+        },
         "getStructurePreCommitHookTemplate": {
-          "line": 1189,
+          "line": 1224,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1212,
+          "line": 1247,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1224,
+          "line": 1259,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1244
+          "line": 1279
         },
         "getOrchBinScripts": {
-          "line": 1262,
+          "line": 1297,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

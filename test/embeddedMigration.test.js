@@ -775,3 +775,65 @@ test('plan writes nothing at all', () => {
   assert.equal(git(dir, 'status', '--porcelain', '-uall').trim(), '', 'plan() touched the working tree');
   assert.ok(!fs.existsSync(path.join(dir, FRAME_DIR, migration.BACKUP_DIR)), 'plan() created the backup dir');
 });
+
+// ─── the staged scripts ───────────────────────────────────────
+//
+// `.frame/bin/` and `.git/hooks/pre-commit` are written at init and never
+// again, so a project reaching migration is still running the generation that
+// initialized it — one that resolves the meta files at the root migration is
+// about to empty. Refreshing them is part of the move, not a follow-up.
+
+/** Give a legacy project the stale parser and hook an old init left behind. */
+function stagePreOverlayTooling(dir) {
+  const binDir = path.join(dir, FRAME_DIR, 'bin');
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(binDir, 'update-structure.js'),
+    "const STRUCTURE_FILE = path.join(ROOT_DIR, 'STRUCTURE.json');\n"
+  );
+  fs.mkdirSync(path.join(dir, '.git', 'hooks'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, '.git', 'hooks', 'pre-commit'),
+    `#!/bin/sh\n${templates.FRAME_HOOK_MARKER_START}\n`
+      + `if [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then\n`
+      + `  git add "$FRAME_ROOT/STRUCTURE.json" || true\n`
+      + `fi\n${templates.FRAME_HOOK_MARKER_END}\nexit 0\n`,
+    { mode: 0o755 }
+  );
+}
+
+test('migration refreshes the parser and the hook it is about to invalidate', () => {
+  const dir = makeLegacyProject('tooling');
+  stagePreOverlayTooling(dir);
+
+  const result = migration.migrateProject(dir);
+  assert.equal(result.status, 'migrated');
+
+  const parser = fs.readFileSync(path.join(dir, FRAME_DIR, 'bin', 'update-structure.js'), 'utf8');
+  assert.ok(parser.includes('resolveMetaPath'), 'the parser would rebuild STRUCTURE.json at the root');
+
+  const hook = fs.readFileSync(path.join(dir, '.git', 'hooks', 'pre-commit'), 'utf8');
+  assert.ok(hook.includes('.frame/STRUCTURE.json'), 'the hook would stage a root map that should not exist');
+});
+
+test('the refresh happens before the move, so a half-finished run still leaves it done', () => {
+  // The shipped parser reads either layout, so refreshing first is safe and
+  // covers the window a mid-move failure would otherwise leave open.
+  const dir = makeLegacyProject('ordering');
+  stagePreOverlayTooling(dir);
+
+  const seen = [];
+  migration.migrateProject(dir, { onProgress: (a) => seen.push(a.rel) });
+
+  assert.ok(seen.length > 0, 'no artifact moved, so the ordering claim is untested');
+  const parser = fs.readFileSync(path.join(dir, FRAME_DIR, 'bin', 'update-structure.js'), 'utf8');
+  assert.ok(parser.includes('resolveMetaPath'));
+});
+
+test('a project with neither a hook nor a bin still migrates', () => {
+  const dir = makeLegacyProject('bare');
+  const result = migration.migrateProject(dir);
+
+  assert.equal(result.status, 'migrated');
+  assert.equal(fs.existsSync(path.join(dir, FRAME_DIR, 'bin')), false, 'planted machinery the project never had');
+});

@@ -1183,6 +1183,41 @@ ${FRAME_HOOK_MARKER_END}
 }
 
 /**
+ * Swap the managed block inside an existing hook file for the current snippet.
+ *
+ * `.git/hooks/` is not versioned and Frame writes it once, at init, so a
+ * project runs whatever generation initialized it forever. That was harmless
+ * while the snippet and the layout agreed — it stops being harmless once
+ * migration moves the meta files, because a pre-overlay block stages a root
+ * `STRUCTURE.json` that should no longer exist.
+ *
+ * Strict on purpose: each marker must appear exactly once and in order, or
+ * this returns null and the caller leaves the file alone. Everything outside
+ * the markers is preserved byte for byte — a partial or hand-edited match is
+ * not evidence enough to rewrite an executable file that runs on every commit.
+ *
+ * @param {string} content current hook file content
+ * @returns {string|null} updated content, or null when it must not be touched
+ */
+function replaceManagedHookBlock(content) {
+  if (typeof content !== 'string') return null;
+
+  const starts = content.split(FRAME_HOOK_MARKER_START).length - 1;
+  const ends = content.split(FRAME_HOOK_MARKER_END).length - 1;
+  if (starts !== 1 || ends !== 1) return null;
+
+  const from = content.indexOf(FRAME_HOOK_MARKER_START);
+  const to = content.indexOf(FRAME_HOOK_MARKER_END);
+  if (from > to) return null;
+
+  // The snippet carries its own markers and a trailing newline; drop the
+  // newline so the surrounding file keeps exactly the spacing it had.
+  const block = getStructureHookSnippet().replace(/\n+$/, '');
+  const updated = content.slice(0, from) + block + content.slice(to + FRAME_HOOK_MARKER_END.length);
+  return updated === content ? null : updated;
+}
+
+/**
  * Full pre-commit hook file content for the "no existing hook" case.
  * Husky/lefthook get the snippet appended into their own files instead.
  */
@@ -1291,6 +1326,7 @@ module.exports = {
   getSpecHintSettings,
   getStructureHookSnippet,
   getStructurePreCommitHookTemplate,
+  replaceManagedHookBlock,
   getOrchBinScripts,
   FRAME_HOOK_MARKER_START,
   FRAME_HOOK_MARKER_END

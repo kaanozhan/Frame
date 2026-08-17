@@ -408,3 +408,85 @@ for (const shell of ['bash', 'sh', 'zsh']) {
     assert.equal(out.trim(), 'REAL:claude:fallback', 'a missing wrapper cost the user their CLI');
   });
 }
+
+// ─── managed hook block replacement ───────────────────────────
+//
+// `.git/hooks/` is not versioned and Frame writes it once, at init, so a
+// project runs whatever generation initialized it until something rewrites
+// the block. These cover the rewrite and — mostly — the cases where it must
+// refuse, because the file it edits runs on every commit.
+
+/** A pre-overlay hook, as Frame <=2.6.0 wrote it: stages the root map. */
+const LEGACY_HOOK = `#!/bin/sh
+# Frame pre-commit hook
+# Auto-installed by Frame on project initialization. You can edit or delete
+# this file freely — Frame will not overwrite it on subsequent inits.
+
+${templates.FRAME_HOOK_MARKER_START}
+# Keep STRUCTURE.json in sync with staged JS changes. Safe to remove if you
+# don't want Frame to manage your STRUCTURE.json file.
+if command -v node >/dev/null 2>&1; then
+  FRAME_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [ -n "$FRAME_ROOT" ] && [ -f "$FRAME_ROOT/.frame/bin/update-structure.js" ]; then
+    FRAME_PROJECT_ROOT="$FRAME_ROOT" node "$FRAME_ROOT/.frame/bin/update-structure.js" --changed || true
+    if [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then
+      git add "$FRAME_ROOT/STRUCTURE.json" || true
+    fi
+  fi
+fi
+${templates.FRAME_HOOK_MARKER_END}
+exit 0
+`;
+
+test('the legacy block is swapped for the current one', () => {
+  const out = templates.replaceManagedHookBlock(LEGACY_HOOK);
+  assert.ok(out, 'a well-formed legacy hook was refused');
+  assert.ok(out.includes('.frame/STRUCTURE.json'), 'still points at the root map');
+  assert.ok(out.includes('git ls-files --error-unmatch'), 'lost the tracked-only guard');
+  assert.equal(
+    out.split(`git add "$FRAME_ROOT/STRUCTURE.json"`).length - 1,
+    1,
+    'the root path survives only as the pre-overlay fallback'
+  );
+});
+
+test('everything outside the markers is preserved byte for byte', () => {
+  const withUserLines = LEGACY_HOOK.replace('exit 0\n', 'npm run lint || exit 1\nexit 0\n');
+  const out = templates.replaceManagedHookBlock(withUserLines);
+  assert.ok(out.startsWith('#!/bin/sh\n# Frame pre-commit hook'), 'header was disturbed');
+  assert.ok(out.includes('npm run lint || exit 1'), "the user's own line was dropped");
+  assert.ok(out.endsWith('exit 0\n'), 'the tail was disturbed');
+});
+
+test('the rewritten hook parses as shell', { skip: process.platform === 'win32' }, () => {
+  const out = templates.replaceManagedHookBlock(LEGACY_HOOK);
+  const check = require('child_process').spawnSync('sh', ['-n'], { input: out, encoding: 'utf8' });
+  assert.equal(check.status, 0, `sh -n rejected the result: ${check.stderr}`);
+});
+
+test('a hook with no managed block is left alone', () => {
+  assert.equal(templates.replaceManagedHookBlock('#!/bin/sh\nnpm test\n'), null);
+});
+
+test('duplicated or reversed markers are refused rather than guessed at', () => {
+  const twice = LEGACY_HOOK + LEGACY_HOOK;
+  assert.equal(templates.replaceManagedHookBlock(twice), null, 'two blocks: which one?');
+
+  const reversed = `#!/bin/sh\n${templates.FRAME_HOOK_MARKER_END}\nx=1\n${templates.FRAME_HOOK_MARKER_START}\n`;
+  assert.equal(templates.replaceManagedHookBlock(reversed), null, 'end before start');
+});
+
+test('a hook already carrying the current block reports nothing to do', () => {
+  const current = templates.getStructurePreCommitHookTemplate();
+  assert.equal(templates.replaceManagedHookBlock(current), null);
+});
+
+test('replacement is idempotent — the second pass finds nothing left to change', () => {
+  const once = templates.replaceManagedHookBlock(LEGACY_HOOK);
+  assert.equal(templates.replaceManagedHookBlock(once), null);
+});
+
+test('non-string input is refused', () => {
+  assert.equal(templates.replaceManagedHookBlock(null), null);
+  assert.equal(templates.replaceManagedHookBlock(undefined), null);
+});

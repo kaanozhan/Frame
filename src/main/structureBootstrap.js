@@ -24,11 +24,12 @@
 
 const fs = require('fs');
 const path = require('path');
-const { exec, spawn } = require('child_process');
+const { exec, spawn, spawnSync } = require('child_process');
 const { FRAME_DIR, FRAME_BIN_DIR } = require('../shared/frameConstants');
 const {
   getStructureHookSnippet,
   getStructurePreCommitHookTemplate,
+  replaceManagedHookBlock,
   FRAME_HOOK_MARKER_START,
   FRAME_HOOK_MARKER_END
 } = require('../shared/frameTemplates');
@@ -105,6 +106,81 @@ function copyParserScripts(projectPath) {
     }
   }
   return copied;
+}
+
+/**
+ * Bring a project's staged copies in line with the running Frame.
+ *
+ * Both `.frame/bin/` and `.git/hooks/pre-commit` are written once, at init,
+ * and neither travels with the repository — so a project keeps whatever
+ * generation initialized it no matter how many times Frame is updated. That
+ * cost nothing while the scripts and the layout agreed. It stops being free
+ * the moment migration moves the meta files: a pre-overlay parser still
+ * resolves `STRUCTURE.json` at the root, finds nothing, treats the absence as
+ * a fresh project rather than an error, and writes a map holding only the
+ * files in that one commit — which the pre-overlay hook then stages.
+ *
+ * Same shape as `aiToolManager.refreshLaunchAssets`, which already does this
+ * for the AI-tool wrappers sitting in the very same directory.
+ *
+ * Conservative on both halves. Scripts are refreshed only where `.frame/bin/`
+ * already exists — a project without one has nothing stale to correct, and
+ * planting the machinery there would be introducing something the user
+ * removed. The hook is rewritten only between its markers, only when they are
+ * intact, and only when the result parses; husky, lefthook and hand-written
+ * hooks keep the treatment they have everywhere else in this module, which is
+ * to be left alone.
+ *
+ * @returns {{ scripts: string[], hook: string }} hook is one of 'updated',
+ *   'unchanged', 'absent', 'unmarked', 'invalid', 'error'
+ */
+function refreshStagedScripts(projectPath) {
+  const summary = { scripts: [], hook: 'absent' };
+  if (!projectPath) return summary;
+
+  const binDir = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR);
+  if (fs.existsSync(binDir)) {
+    try {
+      summary.scripts = copyParserScripts(projectPath);
+    } catch (err) {
+      console.warn(`[frame] parser refresh failed (non-fatal): ${err.message}`);
+    }
+  }
+
+  const hookFile = path.join(projectPath, '.git', 'hooks', 'pre-commit');
+  let current;
+  try {
+    current = fs.readFileSync(hookFile, 'utf8');
+  } catch (_) {
+    return summary; // no vanilla hook — husky/lefthook/none, not ours to touch
+  }
+
+  const updated = replaceManagedHookBlock(current);
+  if (updated === null) {
+    summary.hook = current.includes(FRAME_HOOK_MARKER_START) ? 'unchanged' : 'unmarked';
+    return summary;
+  }
+
+  // The hook runs on every commit and `sh` parses it whole, so an unbalanced
+  // block would not degrade — it would stop the user committing at all. Prove
+  // the result parses before it replaces something that currently works.
+  const check = spawnSync('sh', ['-n'], { input: updated, encoding: 'utf8' });
+  if (check.error || check.status !== 0) {
+    console.warn('[frame] refreshed pre-commit hook did not parse — left as-is');
+    summary.hook = 'invalid';
+    return summary;
+  }
+
+  try {
+    // Rewrite in place: the file already exists, so its mode carries over and
+    // a hook the user made executable stays that way.
+    fs.writeFileSync(hookFile, updated);
+    summary.hook = 'updated';
+  } catch (err) {
+    console.warn(`[frame] pre-commit hook refresh failed (non-fatal): ${err.message}`);
+    summary.hook = 'error';
+  }
+  return summary;
 }
 
 /**
@@ -354,6 +430,7 @@ async function bootstrapStructure(projectPath, structureWasCreated) {
 module.exports = {
   bootstrapStructure,
   copyParserScripts,
+  refreshStagedScripts,
   detectHookSetup,
   installPreCommitHook,
   runInitialFullScan
