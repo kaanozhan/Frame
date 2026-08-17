@@ -31,7 +31,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { FRAME_DIR } = require('../shared/frameConstants');
+const { FRAME_DIR, LEGACY_ROOT_FILES } = require('../shared/frameConstants');
 
 const MARKER = 'managed by Frame';
 const PATTERN = `${FRAME_DIR}/`;
@@ -68,6 +68,24 @@ function excludeFilePath(projectPath) {
 function isFrameTracked(projectPath) {
   try {
     return git(projectPath, ['ls-files', '--cached', '--', `${FRAME_DIR}/`]).trim().length > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * Is any of the pre-overlay root artifacts tracked in this repo?
+ *
+ * The companion question to `isFrameTracked`, and the one that matters on a
+ * project that has not migrated yet: its `.frame/` holds a config and little
+ * else, while `tasks.json`, `AGENTS.md` and the rest of Frame's output sit at
+ * the root — which is where the answer to "does this project share what Frame
+ * produces?" actually lives until migration moves them.
+ */
+function isLegacyArtifactTracked(projectPath) {
+  try {
+    const rels = Object.values(LEGACY_ROOT_FILES);
+    return git(projectPath, ['ls-files', '--cached', '--', ...rels]).trim().length > 0;
   } catch (_) {
     return false;
   }
@@ -180,4 +198,11 @@ function ensure(projectPath, mode) {
   }
 }
 
-module.exports = { ensure, excludeFilePath, isFrameTracked, EXCLUDE_BLOCK, MARKER };
+module.exports = {
+  ensure,
+  excludeFilePath,
+  isFrameTracked,
+  isLegacyArtifactTracked,
+  EXCLUDE_BLOCK,
+  MARKER
+};

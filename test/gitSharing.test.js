@@ -321,3 +321,86 @@ test('no .frame/ directory → no-op, nothing created', () => {
   assert.equal(gitSharing.writeFrameGitignore(repo), 'no-frame');
   assert.ok(!fs.existsSync(path.join(repo, FRAME_DIR)));
 });
+
+// ─── D4, the legacy half: root artifacts count as shared ──────
+//
+// A project that has not migrated keeps Frame's output at the root, where it
+// is usually committed, while `.frame/` holds a config and little else. Read
+// only `.frame/` and such a project derives `local`, which excludes `.frame/`
+// — and migration then moves tracked files into a directory git ignores.
+
+/** Commit the root artifacts a pre-overlay init planted. */
+function trackLegacyArtifacts(dir, names = ['tasks.json', 'AGENTS.md', 'STRUCTURE.json']) {
+  for (const name of names) fs.writeFileSync(path.join(dir, name), '{}\n');
+  git(dir, 'add', '--', ...names);
+  git(dir, 'commit', '-qm', 'frame artifacts');
+}
+
+test('committed root artifacts derive repo even with .frame/ untracked', () => {
+  const repo = makeRepo('legacy-tracked');
+  seedFrameProject(repo);
+  trackLegacyArtifacts(repo);
+
+  assert.equal(gitExclude.isFrameTracked(repo), false, 'precondition: .frame/ is not committed');
+  assert.equal(gitSharing.resolveMode(repo), 'repo');
+  assert.equal(readConfig(repo).settings.gitSharing, 'repo');
+});
+
+test('a single committed root artifact is enough', () => {
+  const repo = makeRepo('legacy-one');
+  seedFrameProject(repo);
+  trackLegacyArtifacts(repo, ['tasks.json']);
+
+  assert.equal(gitSharing.resolveMode(repo), 'repo');
+});
+
+test('root artifacts present but uncommitted still derive local', () => {
+  // Nothing of Frame's is in git, which is what `local` means.
+  const repo = makeRepo('legacy-untracked');
+  seedFrameProject(repo);
+  fs.writeFileSync(path.join(repo, 'tasks.json'), '{}\n');
+  fs.writeFileSync(path.join(repo, 'AGENTS.md'), '# a\n');
+
+  assert.equal(gitSharing.resolveMode(repo), 'local');
+});
+
+test('the widened derivation keeps .frame/ out of info/exclude', () => {
+  // The point of the fix: no exclude block means migration can move tracked
+  // root files into `.frame/` and have git still see them.
+  const repo = makeRepo('legacy-no-exclude');
+  seedFrameProject(repo);
+  trackLegacyArtifacts(repo);
+
+  gitSharing.ensureOnOpen(repo);
+
+  const excludePath = gitExclude.excludeFilePath(repo);
+  const exclude = fs.existsSync(excludePath) ? fs.readFileSync(excludePath, 'utf8') : '';
+  assert.ok(!exclude.includes(gitExclude.EXCLUDE_BLOCK), '.frame/ was excluded despite being shared');
+});
+
+test('an explicit local declaration still wins over the widened derivation', () => {
+  // Derivation answers only when the user has not. A choice made in Project
+  // Settings is not something committed root files may overrule.
+  const repo = makeRepo('legacy-declared-local');
+  seedFrameProject(repo, { version: '1.0', settings: { gitSharing: 'local' } });
+  trackLegacyArtifacts(repo);
+
+  assert.equal(gitSharing.resolveMode(repo), 'local');
+});
+
+test('getState reports the widened derivation as the effective mode', () => {
+  const repo = makeRepo('legacy-state');
+  seedFrameProject(repo);
+  trackLegacyArtifacts(repo);
+
+  const state = gitSharing.getState(repo);
+  assert.equal(state.declared, 'repo');
+  assert.equal(state.tracked, false, 'tracked still means .frame/ itself, not the root files');
+  assert.equal(state.effective, 'repo');
+});
+
+test('isLegacyArtifactTracked answers false outside a git repo', () => {
+  const plain = path.join(root, 'not-a-repo');
+  fs.mkdirSync(plain, { recursive: true });
+  assert.equal(gitExclude.isLegacyArtifactTracked(plain), false);
+});

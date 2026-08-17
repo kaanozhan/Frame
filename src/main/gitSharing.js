@@ -94,7 +94,20 @@ function declaredMode(config) {
 /**
  * The declared mode, derived once and persisted when absent (D4):
  * a pre-upgrade project keeps exactly the behaviour it already had —
- * tracked `.frame/` → `repo`, untracked → `local`.
+ * anything of Frame's committed → `repo`, nothing committed → `local`.
+ *
+ * The question is whether this project shares what Frame produces, and it is
+ * asked in both places that output can live. `.frame/` alone is the wrong
+ * evidence on a project that has not migrated yet: it holds a config and
+ * little else, while `tasks.json`, `AGENTS.md` and `STRUCTURE.json` — the
+ * files the team actually reads — are still at the root and, being at the
+ * root, are usually committed. Reading only `.frame/` derives `local` for
+ * them, and `local` writes `.frame/` into `.git/info/exclude`, so migration
+ * then moves tracked files into a directory git has been told to ignore and
+ * the user is left with a commit that deletes six files and adds none.
+ *
+ * Derivation runs once and persists, on a project's first open under this
+ * Frame — so this single answer is the one that has to be right.
  *
  * Returns `'local' | 'repo' | null` — null outside a git repo (no mode to
  * derive) or when the project has no `.frame/config.json` to persist into.
@@ -108,7 +121,9 @@ function resolveMode(projectPath) {
   const declared = declaredMode(config);
   if (declared) return declared;
 
-  const derived = gitExclude.isFrameTracked(projectPath) ? 'repo' : 'local';
+  const shared = gitExclude.isFrameTracked(projectPath)
+    || gitExclude.isLegacyArtifactTracked(projectPath);
+  const derived = shared ? 'repo' : 'local';
   config.settings = config.settings || {};
   config.settings.gitSharing = derived;
   writeConfig(projectPath, config);

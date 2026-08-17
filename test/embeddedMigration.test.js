@@ -470,8 +470,9 @@ test('the config keeps everything but its files block', () => {
   assert.ok(!('files' in config), 'the stale root-file manifest survived');
   assert.equal(config.version, '1.0');
   // `settings` gains the derived sharing mode — a recording of the posture the
-  // project already had, not a new choice (D7).
-  assert.equal(config.settings.gitSharing, 'local');
+  // project already had, not a new choice (D7). The fixture commits its root
+  // artifacts, which is what makes that posture `repo`.
+  assert.equal(config.settings.gitSharing, 'repo');
 });
 
 test('an interrupted run reconciles on the next pass', () => {
@@ -664,12 +665,31 @@ test('a project that committed .frame/ still shares it after migration', () => {
   assert.match(git(dir, 'status', '--porcelain', '-uall'), new RegExp(`${FRAME_DIR}/tasks\\.json`));
 });
 
-test('a project that never committed .frame/ derives local and hides it', () => {
-  const dir = makeLegacyProject('posture-local');
+test('a project that committed nothing of Frame\'s derives local and hides it', () => {
+  // Nothing of Frame's is in git — not `.frame/`, not the root artifacts.
+  // That, and only that, is what `local` records.
+  const dir = makeLegacyProject('posture-local', { commit: false });
   migration.migrateProject(dir);
 
   const config = JSON.parse(fs.readFileSync(path.join(dir, FRAME_DIR, 'config.json'), 'utf8'));
   assert.equal(config.settings.gitSharing, 'local');
+});
+
+test('committed root artifacts derive repo even with .frame/ untracked', () => {
+  // The posture question is whether this project shares what Frame produces,
+  // and before migration that output lives at the root — where it is normally
+  // committed, while `.frame/` holds a config and little else. Deriving from
+  // `.frame/` alone answers `local` here, which excludes `.frame/` and turns
+  // the move into a commit that deletes six tracked files and adds none.
+  const dir = makeLegacyProject('posture-legacy-tracked');
+
+  migration.migrateProject(dir);
+
+  const config = JSON.parse(fs.readFileSync(path.join(dir, FRAME_DIR, 'config.json'), 'utf8'));
+  assert.equal(config.settings.gitSharing, 'repo');
+
+  const status = git(dir, 'status', '--porcelain', '-uall');
+  assert.match(status, new RegExp(`${FRAME_DIR}/tasks\\.json`), 'the moved files never reached git');
 });
 
 test('the backup is ignored the moment it is written', () => {

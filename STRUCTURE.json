@@ -1806,6 +1806,7 @@
         "ensure",
         "excludeFilePath",
         "isFrameTracked",
+        "isLegacyArtifactTracked",
         "EXCLUDE_BLOCK",
         "MARKER"
       ],
@@ -1837,21 +1838,28 @@
           ],
           "purpose": "Is any path under `.frame/` tracked in this repo?"
         },
+        "isLegacyArtifactTracked": {
+          "line": 85,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Is any of the pre-overlay root artifacts tracked in this repo?"
+        },
         "stripOurs": {
-          "line": 84,
+          "line": 102,
           "params": [
             "lines"
           ],
           "purpose": "Strip every trace of ours from `lines`: the signed comment plus the pattern"
         },
         "readLines": {
-          "line": 110,
+          "line": 128,
           "params": [
             "excludePath"
           ]
         },
         "writeLines": {
-          "line": 124,
+          "line": 142,
           "params": [
             "excludePath",
             "lines"
@@ -1859,7 +1867,7 @@
           "purpose": "Write `lines` back, preserving the file's trailing-newline convention and"
         },
         "ensure": {
-          "line": 151,
+          "line": 169,
           "params": [
             "projectPath",
             "mode"
@@ -1929,21 +1937,21 @@
           ]
         },
         "resolveMode": {
-          "line": 102,
+          "line": 115,
           "params": [
             "projectPath"
           ],
           "purpose": "The declared mode, derived once and persisted when absent (D4):"
         },
         "getState": {
-          "line": 125,
+          "line": 140,
           "params": [
             "projectPath"
           ],
           "purpose": "The full sharing state for the UI's behaviour matrix."
         },
         "setMode": {
-          "line": 143,
+          "line": 158,
           "params": [
             "projectPath",
             "mode"
@@ -1951,14 +1959,14 @@
           "purpose": "The single write path for a mode change — the modal toggle and the sharing"
         },
         "ensureOnOpen": {
-          "line": 168,
+          "line": 183,
           "params": [
             "projectPath"
           ],
           "purpose": "The project-open path: resolve (deriving and persisting on first sight of"
         },
         "writeFrameGitignore": {
-          "line": 183,
+          "line": 198,
           "params": [
             "projectPath"
           ],
