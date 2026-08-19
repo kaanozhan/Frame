@@ -4962,10 +4962,25 @@
       "createdAt": "2026-08-17T00:00:00.000Z",
       "updatedAt": "2026-08-17T00:00:00.000Z",
       "completedAt": "2026-08-17T00:00:00.000Z"
+    },
+    {
+      "id": "task-project-settings-initialize",
+      "title": "Offer Frame setup from Project Settings",
+      "description": "projectSettingsModal.open() hides the Workflow and Sharing sections for a project that is not a Frame project, which leaves the modal showing its header and Remove and nothing else. That is the only place a per-project affordance lives, so a user who answered the init prompt with \"Not now\" and \"Don't ask again\" has no way back to setup: frameInitPromptSuppressed (state.js:23) is an in-memory Set keyed by project path, so the prompt stays suppressed until the app restarts and Project Settings offers no alternative. Add a Set up Frame section that renders exactly where the other two are hidden — the mirror of the existing isFrame check — with a button that opens the existing initialize modal via state.initializeAsFrameProject(). Deliberately reusing that modal rather than inlining its choices: it owns the Spec-Driven and Git Sharing options and their defaults, and a second copy would drift the moment either changes. The gear exists on every project row, so the modal can be showing a project that is not the active one; the button selects that project first (projectListUI.selectProject → state.setProjectPath sets currentProjectPath synchronously, so the initialize modal reads the right path), which is also what the init modal's sharing block needs since it queries GET_GIT_SHARING_STATE for currentProjectPath.",
+      "userRequest": "Frame üzerinde yeni branch açtım => Initialize Modal çıktı => Not now dedim do not show dedim => Sonra project çarkından project ayarlarını açtığımda sadece remove kalıyor bence o aşamada kullanıcının ordan da initialize edebileceği bir step olması lazım / böylelikle kullanıcı do not show demiş olmasına rağmen Frame'e restart atmadan proje ayarlarından yeniden initialize edebilir olmalı",
+      "acceptanceCriteria": "Opening Project Settings for a non-Frame project shows a setup section alongside Remove; its button opens the initialize modal with its options at their defaults and the \"Don't ask again\" box cleared, even when the prompt was suppressed for that project earlier in the session. Completing setup makes the project a Frame project without an app restart. A Frame project's settings are unchanged — the setup section is hidden exactly where Workflow and Sharing are shown. Opening setup for a project that is not the active one switches to it first, so the initialize modal acts on the project whose settings were open.",
+      "notes": "Same shape as the existing Remove handler: capture currentProject, close(), then lazy-require projectListUI (a top-level require both ways would cycle, since the gear in projectListUI opens this modal). No renderer test suite exists — test/ covers main and shared only — so this is verified by running the app through the reported flow rather than by a unit test.",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "Session 2026-08-17 - overlay architecture 2.7.0 pre-merge review",
+      "createdAt": "2026-08-17T00:00:00.000Z",
+      "updatedAt": "2026-08-17T00:00:00.000Z",
+      "completedAt": null
     }
   ],
   "metadata": {
-    "totalCreated": 313,
+    "totalCreated": 314,
     "totalCompleted": 22
   },
   "categories": {

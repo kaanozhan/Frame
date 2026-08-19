@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-17",
+  "lastUpdated": "2026-08-19",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -7480,45 +7480,46 @@
         "electron",
         "shared/ipcChannels",
         "specDrivenHint",
-        "projectListUI"
+        "projectListUI",
+        "state"
       ],
       "functions": {
         "init": {
-          "line": 38
+          "line": 44
         },
         "onSharingToggle": {
-          "line": 144,
+          "line": 177,
           "purpose": "Toggle change → SET_GIT_SHARING, the single write path shared with the"
         },
         "renderSharingState": {
-          "line": 170,
+          "line": 203,
           "params": [
             "state"
           ],
           "purpose": "Render the Sharing section from the behaviour matrix. `effective` carries"
         },
         "open": {
-          "line": 199,
+          "line": 233,
           "params": [
             "project"
           ],
           "purpose": "Open for a project row: { path, name, isFrameProject }. Non-Frame projects"
         },
         "syncSpecDrivenToggle": {
-          "line": 236,
+          "line": 275,
           "params": [
             "projectPath"
           ],
           "purpose": "Reflect this project's features.specDriven flag. The modal only shows the"
         },
         "setSpecDrivenNote": {
-          "line": 251,
+          "line": 290,
           "params": [
             "message"
           ]
         },
         "close": {
-          "line": 257
+          "line": 296
         }
       }
     },

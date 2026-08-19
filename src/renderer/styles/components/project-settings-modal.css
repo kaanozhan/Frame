@@ -55,6 +55,25 @@
   color: var(--text-primary);
 }
 
+/* Same shape as the remove button, in the accent instead of the error colour:
+   they sit in adjacent rows and setup is the affirmative one. */
+.project-settings-setup-btn {
+  background: transparent;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  color: var(--accent-primary);
+  font-size: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.project-settings-setup-btn:hover {
+  background: var(--accent-primary);
+  color: white;
+}
+
 .project-settings-remove-btn {
   background: transparent;
   border: 1px solid var(--error);

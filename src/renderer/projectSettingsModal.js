@@ -7,8 +7,12 @@
  * from App Settings), and "Remove from Frame". App Settings keeps only the
  * genuinely app-wide switches.
  *
- * For a project that isn't a Frame project the modal shows only the header
- * and Remove — there is no config to hold a per-project setting yet.
+ * A project that isn't a Frame project has no config to hold a per-project
+ * setting, so Workflow and Sharing are hidden and a "Set up Frame" section
+ * takes their place. That section is the only way back to setup once the init
+ * prompt has been dismissed with "Don't ask again": the suppression is an
+ * in-memory Set in state.js, so without it the answer stands until the app
+ * restarts.
  */
 
 const { ipcRenderer } = require('electron');
@@ -28,6 +32,8 @@ let sharingToggleEl = null;
 let sharingDescEl = null;
 let sharingWarningEl = null;
 let copyBtnEl = null;
+let setupSectionEl = null;
+let setupBtnEl = null;
 let removeBtnEl = null;
 
 let isOpen = false;
@@ -47,6 +53,8 @@ function init() {
   sharingDescEl = document.getElementById('project-settings-sharing-desc');
   sharingWarningEl = document.getElementById('project-settings-sharing-warning');
   copyBtnEl = document.getElementById('project-settings-copy-untrack');
+  setupSectionEl = document.getElementById('project-settings-setup-section');
+  setupBtnEl = document.getElementById('project-settings-setup-btn');
   removeBtnEl = document.getElementById('project-settings-remove-btn');
 
   if (!overlayEl || !sharingToggleEl) {
@@ -107,6 +115,29 @@ function init() {
       } catch (_) {
         copyBtnEl.textContent = UNTRACK_COMMAND;
       }
+    });
+  }
+
+  if (setupBtnEl) {
+    setupBtnEl.addEventListener('click', () => {
+      const project = currentProject;
+      close();
+      if (!project) return;
+
+      // The gear is on every row, so this may be a project Frame is not
+      // currently pointed at — and setup applies to the active one. Select it
+      // first: `setProjectPath` runs synchronously, so the initialize modal
+      // that opens next reads the path whose settings were just open, and its
+      // sharing block queries the right repository.
+      //
+      // Lazy requires for the same reason the remove handler below has one:
+      // projectListUI's gear opens this modal, so a top-level require in both
+      // directions would cycle.
+      require('./projectListUI').selectProject(project.path);
+      // Reopening the prompt is the point — `initializeAsFrameProject` does
+      // not consult the "Don't ask again" suppression, which only ever gated
+      // the automatic prompt, never a deliberate request for it.
+      require('./state').initializeAsFrameProject();
     });
   }
 
@@ -196,7 +227,8 @@ function renderSharingState(state) {
 
 /**
  * Open for a project row: { path, name, isFrameProject }. Non-Frame projects
- * get header + Remove only.
+ * get header + Set up Frame + Remove; the setup section and the two
+ * configuration sections are exact opposites, so the modal is never empty.
  */
 function open(project) {
   if (!project || !project.path) return;
@@ -208,6 +240,7 @@ function open(project) {
   const isFrame = project.isFrameProject === true;
   if (workflowSectionEl) workflowSectionEl.style.display = isFrame ? '' : 'none';
   if (sharingSectionEl) sharingSectionEl.style.display = isFrame ? '' : 'none';
+  if (setupSectionEl) setupSectionEl.style.display = isFrame ? 'none' : '';
 
   if (isFrame) {
     syncSpecDrivenToggle(project.path);
