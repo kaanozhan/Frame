@@ -2281,37 +2281,45 @@
   cursor: pointer;
 }
 
-.init-modal-file-list {
+/* What init writes, grouped by what it gives you rather than by filename.
+   The question at this screen is "what do I get", not "which filenames
+   appear": a row per file repeated ".frame/" on every line — burying the one
+   claim the list exists to make — and left specs/ in a muted footnote while
+   QUICKSTART.md got a row of its own. Two grid columns so the file names
+   line up without a fixed width, and no icons: the folder/file pair carried
+   no information once every row lived in the same directory. */
+.init-modal-artifacts {
   list-style: none;
-  padding: 0;
   margin: 0 0 var(--space-md) 0;
+  padding: var(--space-md);
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
-  padding: var(--space-md);
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-xs) var(--space-lg);
 }
 
-.init-modal-file-list li {
-  padding: var(--space-xs) 0;
+/* The li is a pure grouping element — its two spans are the grid items, so
+   purpose and files keep their own columns across every row. */
+.init-modal-artifacts li {
+  display: contents;
+}
+
+.init-modal-artifacts .artifact-purpose {
   font-size: 13px;
   color: var(--text-primary);
+}
+
+/* --text-secondary, not --text-muted: muted is 1.7:1 on this card in both
+   themes, which was tolerable when this column held a throwaway descriptor
+   and is not now that it holds the file names themselves. Secondary clears
+   AA (5.8:1 dark, 5.6:1 light) while staying quieter than the purpose. */
+.init-modal-artifacts .artifact-files {
   font-family: var(--font-mono);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.init-modal-file-list .file-icon {
-  font-size: 14px;
-  width: 20px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.init-modal-file-list .file-desc {
-  color: var(--text-muted);
-  font-size: 11px;
-  margin-left: auto;
-  font-family: var(--font-sans, sans-serif);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  align-self: center;
 }
 
 /* The two init choices (Spec-Driven, Git Sharing) below the no-write note.
@@ -4188,7 +4196,6 @@
 }
 
 .spotlight-card-files span {
-  font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   padding: 3px 8px;
   background: var(--accent-subtle);

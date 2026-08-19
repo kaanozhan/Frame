@@ -75,10 +75,11 @@
         in your repository is touched.
       </p>
       <div class="spotlight-card-files">
-        <span>.frame/tasks.json</span>
-        <span>.frame/STRUCTURE.json</span>
-        <span>.frame/PROJECT_NOTES.md</span>
-        <span>+ more</span>
+        <span>AI context</span>
+        <span>Task tracking</span>
+        <span>Session notes</span>
+        <span>Specs &amp; plans</span>
+        <span>Config &amp; tools</span>
       </div>
     </div>
 
@@ -640,10 +641,11 @@
           in your repository is touched.
         </p>
         <div class="spotlight-card-files">
-          <span>.frame/tasks.json</span>
-          <span>.frame/STRUCTURE.json</span>
-          <span>.frame/PROJECT_NOTES.md</span>
-          <span>+ more</span>
+          <span>AI context</span>
+          <span>Task tracking</span>
+          <span>Session notes</span>
+          <span>Specs &amp; plans</span>
+          <span>Config &amp; tools</span>
         </div>
         <button id="spotlight-dismiss" class="spotlight-card-btn">Got it</button>
       </div>
@@ -658,13 +660,13 @@
         </div>
         <div class="modal-body">
           <p class="init-modal-lead">This project isn't set up with Frame yet. Initialize it to enable AI context, task tracking, and session notes.</p>
-          <p class="init-modal-description">Frame creates one directory and touches nothing else:</p>
-          <ul class="init-modal-file-list">
-            <li><span class="file-icon">&#128193;</span> .frame/ <span class="file-desc">config, bin/, docs/, specs/</span></li>
-            <li><span class="file-icon">&#128196;</span> .frame/tasks.json <span class="file-desc">task tracking</span></li>
-            <li><span class="file-icon">&#128196;</span> .frame/STRUCTURE.json <span class="file-desc">module map</span></li>
-            <li><span class="file-icon">&#128196;</span> .frame/PROJECT_NOTES.md <span class="file-desc">session notes</span></li>
-            <li><span class="file-icon">&#128196;</span> .frame/QUICKSTART.md <span class="file-desc">getting started</span></li>
+          <p class="init-modal-description">Everything it creates lives in one directory &mdash; <code>.frame/</code>:</p>
+          <ul class="init-modal-artifacts">
+            <li><span class="artifact-purpose">AI context</span><span class="artifact-files">STRUCTURE.json &middot; QUICKSTART.md</span></li>
+            <li><span class="artifact-purpose">Task tracking</span><span class="artifact-files">tasks.json</span></li>
+            <li><span class="artifact-purpose">Session notes</span><span class="artifact-files">PROJECT_NOTES.md</span></li>
+            <li><span class="artifact-purpose">Specs &amp; plans</span><span class="artifact-files">specs/</span></li>
+            <li><span class="artifact-purpose">Config &amp; tools</span><span class="artifact-files">config.json &middot; bin/ &middot; docs/</span></li>
           </ul>
           <p class="init-modal-note">No file outside <code>.frame/</code> is created, modified or deleted &mdash; your <code>CLAUDE.md</code>, <code>AGENTS.md</code> and any other instruction files are read only, never rewritten. <code>.frame/</code> is kept out of git via <code>.git/info/exclude</code>, so <code>git status</code> stays clean.</p>
           <div class="init-modal-options">

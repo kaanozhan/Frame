@@ -1182,7 +1182,7 @@
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 148,
+          "line": 151,
           "params": [
             "projectPath",
             "projectName",
@@ -1190,7 +1190,7 @@
           ]
         },
         "doInitializeFrameProject": {
-          "line": 156,
+          "line": 159,
           "params": [
             "projectPath",
             "projectName",
@@ -1198,7 +1198,7 @@
           ]
         },
         "runProjectInit": {
-          "line": 168,
+          "line": 171,
           "params": [
             "projectPath",
             "projectName",
@@ -1206,60 +1206,60 @@
           ]
         },
         "installSpecHintHook": {
-          "line": 339,
+          "line": 342,
           "params": [
             "projectPath"
           ],
           "purpose": "Make the spec-hint hooks available to Claude Code."
         },
         "isSpecDrivenEnabled": {
-          "line": 370,
+          "line": 373,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 375,
+          "line": 378,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 402,
+          "line": 405,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag. The next launch composes a preamble"
         },
         "setSpecDrivenEnabled": {
-          "line": 416,
+          "line": 419,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 420,
+          "line": 423,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 428,
+          "line": 431,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 472,
+          "line": 475,
           "params": [
             "projectPath"
           ]
         },
         "runForegroundMigration": {
-          "line": 517,
+          "line": 520,
           "params": [
             "sender",
             "projectPath"
@@ -1267,7 +1267,7 @@
           "purpose": "Migrate a project the user is waiting on, reporting to the modal."
         },
         "setupIPC": {
-          "line": 557,
+          "line": 560,
           "params": [
             "ipcMain"
           ],

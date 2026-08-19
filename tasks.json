@@ -4977,11 +4977,27 @@
       "createdAt": "2026-08-17T00:00:00.000Z",
       "updatedAt": "2026-08-17T00:00:00.000Z",
       "completedAt": null
+    },
+    {
+      "id": "task-init-modal-artifact-list",
+      "title": "Group the init modal artifact list by purpose",
+      "description": "The Initialize as Frame Project modal lists what init creates as five flat rows that each repeat the '.frame/' prefix (index.html:662-668), so the one thing the list exists to prove — that Frame adds a single directory — is the part the repetition hides. The first row mixes two levels: '.frame/' is both the parent and a bucket whose children (config, bin/, docs/, specs/) sit in muted 11px text, which puts specs/ — the subject of the Spec-Driven checkbox right below it — in a footnote while QUICKSTART.md gets a row of its own. The list is also incomplete: init writes config.json, .gitignore, docs/REFERENCE.md, specs/ and bin/ as well (frameProject.js:181-270), so a screen that promises 'exactly what happens' shows five of nine. Replace it with a purpose-grouped list — left column the capability in sans (AI context, Task tracking, Session notes, Specs & plans, Config & tools), right column its files in mono — which answers 'what do I get' instead of 'which filenames appear', and covers every artifact without a row per file. Drop the emoji icons (they render as generic glyphs and the folder/file pair carries no information once the tree is gone). Same content lands in the other two places the list is duplicated: the spotlight card chips (index.html:642-647) and the native dialog fallback (frameProject.js:104-108), which drift apart today.",
+      "userRequest": "folder structure bu şekilde gözüküyor yeni initialize edilen bir projede sence bu doğru mu ? Bence daha farklı daha anlaşılır gösterebiliriz diye düşünüyorum ne dersin tartışalım / Sırada bence şu iş var sana bir ekran görüntüsü atmıştım project initialize da dosyaların garip durmasıyla alakalı",
+      "acceptanceCriteria": "The initialize modal shows five purpose rows (AI context, Task tracking, Session notes, Specs & plans, Config & tools) whose right column names the files each covers, with no '.frame/' prefix repeated per row and no emoji icons. Every artifact runProjectInit writes is represented by exactly one row. The spotlight card and the native dialog fallback use the same five groupings, so the three copies say the same thing. The no-write note below the list is unchanged — it still states that nothing outside .frame/ is created, modified or deleted, that instruction files are read-only, and that .git/info/exclude carries the local-mode exclusion. The list reads correctly in both light and dark themes at the modal's existing width.",
+      "notes": "Design was chosen from three options: a real indented tree with the repo's own files shown as 'unchanged', purpose grouping, and a minimal one-line + disclosure. Purpose grouping won because the user's actual question at that screen is 'what do I get', not 'which filenames appear'; the tree variant was rejected along with showing the repo's own entries, so the list stays scoped to .frame/. Deliberately NOT touching the two init options (Spec-Driven, Git Sharing) or the note paragraph — this is the artifact list only. No renderer test suite exists (test/ covers main and shared), so this is verified by opening the modal in the app; the native dialog path is only reachable when the renderer modal is bypassed (confirmed=false).\n\nOutcome: The five flat rows became five purpose rows (AI context, Task tracking, Session notes, Specs & plans, Config & tools), each naming the files it covers, so the '.frame/' prefix appears once in the lead line instead of on every row and every artifact runProjectInit writes is represented — the old list showed five of nine and left specs/ in a muted footnote. Two grid columns with `li { display: contents }` align the file names without a fixed width; the emoji icons are gone. The same grouping landed in both spotlight cards (index.html:77 and 642 were byte-identical copies) and in the native dialog fallback, so the three no longer drift. One thing surfaced while building it: the files column first used --text-muted, which measures 1.70:1 dark and 1.73:1 light against this card's background. That was tolerable when the column held a throwaway descriptor and is not now that it holds the file names, so it moved to --text-secondary (5.75:1 / 5.61:1, AA in both themes) at 12px. --text-muted may sit on the same background elsewhere; not audited here.",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "Session 2026-08-19 - overlay architecture 2.7.0 init UX",
+      "createdAt": "2026-08-19T00:00:00.000Z",
+      "updatedAt": "2026-08-19T00:00:00.000Z",
+      "completedAt": "2026-08-19T00:00:00.000Z"
     }
   ],
   "metadata": {
-    "totalCreated": 314,
-    "totalCompleted": 22
+    "totalCreated": 315,
+    "totalCompleted": 22,
+    "lastUpdated": "2026-08-19T00:00:00.000Z"
   },
   "categories": {
     "feature": "New features",

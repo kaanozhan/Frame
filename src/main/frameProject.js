@@ -99,12 +99,15 @@ async function showInitializeConfirmation(projectPath) {
   const existingFiles = checkExistingFrameFiles(projectPath);
   const discovered = instructionDiscovery.get(projectPath).nativeFiles;
 
-  let message = 'Frame will create one directory in your project and touch nothing else:\n\n';
-  message += '  • .frame/ — config, bin/, docs/, specs/\n';
-  message += '  • .frame/STRUCTURE.json (module map)\n';
-  message += '  • .frame/PROJECT_NOTES.md (session notes)\n';
-  message += '  • .frame/tasks.json (task tracking)\n';
-  message += '  • .frame/QUICKSTART.md (getting started)\n';
+  // Grouped by purpose, matching the renderer modal — the two are the same
+  // screen reached two ways, and a filename-per-line list drifted from it.
+  let message = 'Frame will create one directory in your project and touch nothing else.\n';
+  message += 'Everything below lives inside .frame/:\n\n';
+  message += '  • AI context     — STRUCTURE.json, QUICKSTART.md\n';
+  message += '  • Task tracking  — tasks.json\n';
+  message += '  • Session notes  — PROJECT_NOTES.md\n';
+  message += '  • Specs & plans  — specs/\n';
+  message += '  • Config & tools — config.json, bin/, docs/\n';
   message += '\nNo file outside .frame/ is created, modified or deleted. ';
   message += 'By default .frame/ is kept out of git via .git/info/exclude, so git status stays clean.\n';
 
