@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-17T00:00:00.000Z",
+  "lastUpdated": "2026-08-20T00:00:00.000Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4992,12 +4992,27 @@
       "createdAt": "2026-08-19T00:00:00.000Z",
       "updatedAt": "2026-08-19T00:00:00.000Z",
       "completedAt": "2026-08-19T00:00:00.000Z"
+    },
+    {
+      "id": "task-derive-phase-holds-task-driven-phases",
+      "title": "Stop the file fallback demoting implementing/done specs",
+      "description": "derivePhase (src/main/specManager.js:286-314) cannot tell \"the task data could not be read\" from \"this spec has no tasks\": collectSpecTasks returns [] for both, so the task-driven done/implementing branch is skipped and the file-based fallback decides. That fallback can only ever derive up to tasks_generated — implementing and done are reached through task statuses or the AI's own status.json write, never through which files exist — so with no task data it silently demotes every spec sitting in those two phases, and reconcilePhase writes the result. Add a tasksKnown() helper and hold the recorded phase when the data is unknown and the spec is in a task-driven phase, mirroring the existing busySpecSlugs guard at line 305. Unknown covers both a null tasksData (missing/unreadable tasks.json, the two paths listSpecs already collapses at line 241-247) and the corrupt:true reset that tasksManager.loadTasks returns at line 129-133. Files: src/main/specManager.js plus a regression test.",
+      "userRequest": "User said: \"şu an hangi branchteyiz ve git difflerin kaynağı migration doğru ama status'lar boşuna şey olmuş\" → \"root tasks.json'u sanırım silmemiz lazım. Bu status değişikliği de sanırım migration'dan önce onu çağırdığı için oldu değil mi yani nedeni ne olabilir bunun\" → after being offered the fix as item 3 of a three-part cleanup: \"hazırım\" → \"A ile devam edelim, task olarak aç ve bu branch'e ayrı bir commit olarak at.\"",
+      "acceptanceCriteria": "1. A spec in `implementing` or `done` keeps its phase when derivePhase runs with tasksData null. 2. The same holds when tasksData is the corrupt:true empty reset. 3. A spec in draft/specified/planned/tasks_generated still advances from file existence with tasksData null, so a project that has no tasks.json yet is unaffected. 4. With readable task data, existing behaviour is unchanged: task statuses still drive implementing/done both forward and backward. 5. reconcilePhase writes nothing in the held cases, so status.json timestamps stay untouched. 6. A regression test covers 1-4 and passes under `npm test`.",
+      "notes": "Found while explaining a 24-file status.json diff on feat/overlay-architecture. Timeline: the embedded migration moved tasks.json to .frame/ at 13:34:38 on 2026-08-19, a sweep at 13:36:37 demoted 24 specs to tasks_generated, a branch switch plus pull resurrected the root file at 13:39:04, and the next sweep restored the phases at 13:39:15. Net effect was timestamp churn only, which is why it went unnoticed — the phases came back solely because the file came back. The two specs left untouched (structure-non-standard-layouts, verification-discovery) were both in `specified` with no tasks.md, which is what confirmed the mechanism. Two options were put to the user. A (chosen): guard by phase — the fallback may not touch implementing/done when task data is unknown. B (rejected): guard by direction — the fallback may only ever advance, never rewind. B also fixes this, but additionally removes the existing tasks_generated → planned rewind when tasks.md is deleted, and it was unclear whether that rewind is intentional design or a side effect. A is the smaller behavioural change and mirrors a guard the file already has. The corrupt:true case is included deliberately: the comment at specManager.js:331-333 records that \"a conflicted tasks.json once walked 18 specs backwards from done\", which is the same defect through the other unknown-data path. Note for whoever picks this up: derivePhase and reconcilePhase have no test coverage at all today.",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "Session 2026-08-20 - overlay architecture, post-migration status.json churn",
+      "createdAt": "2026-08-20T00:00:00.000Z",
+      "updatedAt": "2026-08-20T00:00:00.000Z",
+      "completedAt": "2026-08-20T00:00:00.000Z"
     }
   ],
   "metadata": {
-    "totalCreated": 315,
-    "totalCompleted": 22,
-    "lastUpdated": "2026-08-19T00:00:00.000Z"
+    "totalCreated": 316,
+    "totalCompleted": 23,
+    "lastUpdated": "2026-08-20T00:00:00.000Z"
   },
   "categories": {
     "feature": "New features",

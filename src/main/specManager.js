@@ -303,10 +303,42 @@ function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
   // triggers a reconcile that applies the fallback once the turn ends.
   if (busySpecSlugs.has(slug)) return currentPhase;
 
+  // The fallback below tops out at `tasks_generated`: `implementing` and
+  // `done` are reached through task statuses or the AI's own status.json
+  // write, never through which files exist. So with no task data it has
+  // nothing to say about a spec already in one of those two phases, and
+  // moving it back is a guess, not a reconcile. Hold instead — same shape as
+  // the busy guard above, for the same reason. (Migration moving tasks.json
+  // under a running Frame walked 24 specs back to `tasks_generated` this way;
+  // they returned only because the file did.)
+  if (!tasksKnown(tasksDataOrNull) && TASK_DRIVEN_PHASES.has(currentPhase)) {
+    return currentPhase;
+  }
+
   if (fileExists(projectPath, slug, TASKS_FILE)) return 'tasks_generated';
   if (fileExists(projectPath, slug, PLAN_FILE)) return 'planned';
   if (fileExists(projectPath, slug, SPEC_FILE)) return 'specified';
   return 'draft';
+}
+
+// The two phases no amount of looking at files can establish.
+const TASK_DRIVEN_PHASES = new Set(['implementing', 'done']);
+
+/**
+ * Whether this project's tasks are actually known.
+ *
+ * "Could not read the tasks" and "this spec has no tasks" arrive here as the
+ * same empty list, and they are not the same answer — the first is missing
+ * evidence, the second is evidence. Both shapes below are the first:
+ *
+ *   - `null` — no tasks.json, or a read that failed; `listSpecs` collapses
+ *     both into null before the reconcile pass ever sees them.
+ *   - `corrupt: true` — parsed as neither the file nor its .bak, so
+ *     `tasksManager.loadTasks` swapped in a fresh empty list to keep CRUD
+ *     alive. The tasks are not gone, they are unreadable.
+ */
+function tasksKnown(tasksData) {
+  return Boolean(tasksData) && Array.isArray(tasksData.tasks) && !tasksData.corrupt;
 }
 
 function collectSpecTasks(slug, tasksData) {
