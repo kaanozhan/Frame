@@ -12,10 +12,23 @@ if [ -n "$STAGED_JS" ]; then
     # Run the structure update script
     npm run structure:changed --silent
 
-    # Stage the updated STRUCTURE.json
-    git add STRUCTURE.json
+    # .frame/ is where the map lives since the overlay migration; the root path
+    # is only there for a checkout still on the pre-overlay layout. Mirrors the
+    # snippet Frame ships to other projects (frameTemplates.getStructureHookSnippet).
+    if [ -f .frame/STRUCTURE.json ]; then
+        STRUCTURE_PATH=.frame/STRUCTURE.json
+    else
+        STRUCTURE_PATH=STRUCTURE.json
+    fi
 
-    echo "STRUCTURE.json updated and staged."
+    # Staged only when tracked — adding an ignored file would drag it into the
+    # commit. Report what actually happened: this hook used to print "staged"
+    # whether or not git accepted the path.
+    if git ls-files --error-unmatch "$STRUCTURE_PATH" >/dev/null 2>&1 && git add "$STRUCTURE_PATH"; then
+        echo "$STRUCTURE_PATH updated and staged."
+    else
+        echo "$STRUCTURE_PATH updated but not staged (untracked) — stage it yourself if you want it in."
+    fi
 fi
 
 # Freshness report — warn-only, never blocks the commit
