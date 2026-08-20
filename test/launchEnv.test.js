@@ -39,6 +39,47 @@ test('wrappers are a POSIX affair', () => {
   assert.equal(launchEnv.supportsWrappers('win32'), false);
 });
 
+// ─── wrapperFamily ────────────────────────────────────────────
+
+test('the wrapper family follows the platform, not the tool', () => {
+  assert.equal(launchEnv.wrapperFamily('darwin'), 'posix');
+  assert.equal(launchEnv.wrapperFamily('linux'), 'posix');
+  assert.equal(launchEnv.wrapperFamily('win32'), 'cmd');
+});
+
+// ─── wrapperFileName ──────────────────────────────────────────
+
+test('POSIX names an extensionless wrapper per tool, path-passing or not', () => {
+  for (const platform of ['darwin', 'linux']) {
+    assert.equal(launchEnv.wrapperFileName('claude', { platform, canPassPaths: true }), 'claude');
+    assert.equal(launchEnv.wrapperFileName('codex', { platform, canPassPaths: false }), 'codex');
+  }
+});
+
+test('Windows names a .cmd only for a tool that can take paths', () => {
+  // .cmd because it is the only extension in the default PATHEXT, which is
+  // what makes a bare `claude` resolve to it.
+  assert.equal(launchEnv.wrapperFileName('claude', { platform: 'win32', canPassPaths: true }), 'claude.cmd');
+});
+
+test('Windows refuses a wrapper for a tool that cannot take paths', () => {
+  // A batch file cannot carry a 993-byte, backtick-bearing preamble, and a
+  // wrapper that cannot run is worse than none — so Codex and Gemini get
+  // nothing here and behave exactly as they do today.
+  assert.equal(launchEnv.wrapperFileName('codex', { platform: 'win32', canPassPaths: false }), '');
+  assert.equal(launchEnv.wrapperFileName('gemini', { platform: 'win32' }), '');
+});
+
+test('no tool id means no wrapper name', () => {
+  assert.equal(launchEnv.wrapperFileName('', { platform: 'darwin', canPassPaths: true }), '');
+  assert.equal(launchEnv.wrapperFileName(null, { platform: 'win32', canPassPaths: true }), '');
+});
+
+test('canPassPaths defaults to false, so Windows opts a tool in explicitly', () => {
+  assert.equal(launchEnv.wrapperFileName('claude', { platform: 'win32' }), '');
+  assert.equal(launchEnv.wrapperFileName('claude', { platform: 'darwin' }), 'claude');
+});
+
 // ─── prependFrameBin ──────────────────────────────────────────
 
 test('the bin directory lands in front of the existing PATH', () => {
@@ -67,9 +108,27 @@ test('the platform separator is respected', () => {
   );
 });
 
-test('a non-wrapper platform gets its PATH back untouched', () => {
-  const original = 'C:\\Windows\\System32;C:\\bin';
-  assert.equal(launchEnv.prependFrameBin(original, PROJECT, 'win32'), original);
+test('Windows gets the entry too, joined with its own separator', () => {
+  // The old gate here was a category error: the check is about wrappers, the
+  // function is about PATH. Gating it is what kept the ';' below unreachable
+  // and left a Windows lane with no route to .frame/bin at all.
+  const WIN_PROJECT = 'C:\\Users\\dev\\my project';
+  const WIN_BIN = path.join(WIN_PROJECT, '.frame', 'bin');
+  const result = launchEnv.prependFrameBin('C:\\Windows\\System32;C:\\bin', WIN_PROJECT, 'win32');
+  assert.equal(result, `${WIN_BIN};C:\\Windows\\System32;C:\\bin`);
+});
+
+test('Windows prepending is idempotent and moves rather than duplicates', () => {
+  const WIN_PROJECT = 'C:\\Users\\dev\\my project';
+  const WIN_BIN = path.join(WIN_PROJECT, '.frame', 'bin');
+  const once = launchEnv.prependFrameBin('C:\\bin', WIN_PROJECT, 'win32');
+  assert.equal(launchEnv.prependFrameBin(once, WIN_PROJECT, 'win32'), once);
+
+  // nvm-windows and friends reorder PATH behind Frame's back; being present
+  // but second is the case that silently costs the session its context.
+  const behind = launchEnv.prependFrameBin(`C:\\nvm;${WIN_BIN};C:\\bin`, WIN_PROJECT, 'win32');
+  assert.equal(behind, `${WIN_BIN};C:\\nvm;C:\\bin`);
+  assert.equal(behind.split(';').filter((e) => e === WIN_BIN).length, 1);
 });
 
 test('no project means no injection', () => {

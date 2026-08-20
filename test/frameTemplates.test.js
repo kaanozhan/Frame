@@ -169,6 +169,155 @@ test('the settings flag is skipped when the settings file is absent', { skip: !P
   assert.ok(out.includes('ARG:--append-system-prompt'), out);
 });
 
+// ─── cmd wrapper template ─────────────────────────────────────
+
+// Nothing here executes: cmd.exe is not on this machine and the real
+// verification is the Windows test protocol this spec ships. These are string
+// assertions on the batch Frame generates, and they exist to pin the handful
+// of details a later edit would quietly break.
+
+const CMD_OPTS = {
+  promptFileFlag: '--append-system-prompt-file',
+  settingsFlag: '--settings',
+  preambleFile: '.frame/runtime/preamble-claude.txt',
+  settingsFile: '.frame/runtime/claude-settings.json'
+};
+
+function cmdWrapper(tool = 'claude', options = CMD_OPTS) {
+  return templates.getCmdWrapperTemplate(tool, options);
+}
+
+test('a tool with no file flag gets no cmd wrapper at all', () => {
+  // There is no batch spelling of --append-system-prompt with a 9-line,
+  // backtick-bearing preamble, and a wrapper that cannot do its job still
+  // shadows a working CLI.
+  assert.equal(templates.getCmdWrapperTemplate('codex', {}), '');
+  assert.equal(templates.getCmdWrapperTemplate('gemini', { settingsFlag: '--settings' }), '');
+});
+
+test('the cmd wrapper names its tool and disables echo', () => {
+  const script = cmdWrapper();
+  assert.ok(script.startsWith('@echo off\nsetlocal EnableExtensions\n'));
+  assert.ok(script.includes('Frame AI Tool Wrapper for claude (Windows).'));
+});
+
+test('the where loop skips any hit living in the wrapper\'s own directory', () => {
+  // .frame\bin leads PATH, so `where claude` reports this very file first.
+  const script = cmdWrapper();
+  assert.ok(script.includes(`for /f "delims=" %%I in ('where "claude" 2^>nul') do (`));
+  assert.ok(script.includes('if not defined FRAME_REAL if /i not "%%~dpI"=="%FRAME_SELF%" set "FRAME_REAL=%%I"'));
+  assert.ok(script.includes('set "FRAME_SELF=%~dp0"'));
+});
+
+test('a CLI that is not installed exits 127 and shadows nothing', () => {
+  const script = cmdWrapper();
+  assert.ok(script.includes('>&2 echo Frame: claude was not found on PATH.'));
+  assert.ok(script.includes('exit /b 127'));
+  // The message goes to stderr before the exit, and neither is inside a block.
+  assert.ok(!/\(\s*[^)]*not found on PATH/.test(script));
+});
+
+test('FRAME_NO_WRAP reaches the same pass-through every other branch uses', () => {
+  const script = cmdWrapper();
+  assert.ok(script.includes('if defined FRAME_NO_WRAP goto :frame_run'));
+});
+
+test('a line that already carries Frame\'s flag is left alone', () => {
+  // C1: one injection route. A launch Frame composed resolves through this
+  // file too, so its flags are already there — the two must never stack.
+  const script = cmdWrapper();
+  assert.ok(script.includes('call :frame_scan_args %*'));
+  assert.ok(script.includes('if defined FRAME_COMPOSED goto :frame_run'));
+  assert.ok(script.includes('if /i "%~1"=="--append-system-prompt-file" set "FRAME_COMPOSED=1"'));
+});
+
+test('arguments are compared one at a time, not by searching the whole line', () => {
+  // %~1 strips cmd's quotes, so `claude "a & b"` is compared as a value
+  // instead of being re-parsed as syntax.
+  const script = cmdWrapper();
+  assert.ok(script.includes('if "%~1"=="" goto :eof'));
+  assert.ok(script.includes('\nshift\ngoto :frame_scan_args'));
+  assert.ok(!script.includes('%FRAME_ARGS:'), 'a whole-line substring search is quote-fragile');
+});
+
+test('the project root is found by walking up to the directory holding .frame', () => {
+  const script = cmdWrapper();
+  assert.ok(script.includes('call :frame_find_root "%CD%"'));
+  assert.ok(script.includes('if exist "%FRAME_TRY%\\.frame\\" goto :frame_find_root_hit'));
+  assert.ok(script.includes('for %%P in ("%FRAME_TRY%\\..") do set "FRAME_UP=%%~fP"'));
+  // The walk has to stop at the filesystem root or it never returns.
+  assert.ok(script.includes('if /i "%FRAME_UP%"=="%FRAME_TRY%" goto :eof'));
+  assert.ok(script.includes('if not defined FRAME_ROOT goto :frame_run'));
+});
+
+test('the flags carry backslash paths, and every path is quoted', () => {
+  const script = cmdWrapper();
+  assert.ok(script.includes('set "FRAME_PREAMBLE=%FRAME_ROOT%\\.frame\\runtime\\preamble-claude.txt"'));
+  assert.ok(script.includes('set FRAME_FLAGS=--append-system-prompt-file "%FRAME_PREAMBLE%"'));
+  assert.ok(script.includes('set "FRAME_SETTINGS=%FRAME_ROOT%\\.frame\\runtime\\claude-settings.json"'));
+  assert.ok(script.includes('set FRAME_FLAGS=%FRAME_FLAGS% --settings "%FRAME_SETTINGS%"'));
+  // A project under Documents has a space in it as often as not.
+  assert.ok(!/%FRAME_ROOT%\\[^\n"]*[^"]\n/.test(script), 'an unquoted root path would break on a space');
+  assert.ok(!script.includes('.frame/runtime'), 'forward slashes leaked into the batch file');
+});
+
+test('the settings pair is dropped for a tool that declares no settings flag', () => {
+  const script = cmdWrapper('claude', { ...CMD_OPTS, settingsFlag: '' });
+  assert.ok(script.includes('--append-system-prompt-file'));
+  assert.ok(!script.includes('FRAME_SETTINGS'));
+});
+
+test('the settings file is optional in a way the preamble is not', () => {
+  const script = cmdWrapper();
+  // A missing preamble means there is nothing to inject; a missing settings
+  // file costs the hooks and keeps the preamble.
+  const preambleGuard = script.indexOf('if not exist "%FRAME_PREAMBLE%" goto :frame_run');
+  const settingsGuard = script.indexOf('if not exist "%FRAME_SETTINGS%" goto :frame_run');
+  const flagsSet = script.indexOf('set FRAME_FLAGS=--append-system-prompt-file');
+  assert.ok(preambleGuard > -1 && settingsGuard > -1 && flagsSet > -1);
+  assert.ok(preambleGuard < flagsSet, 'the preamble guard must precede the flags it guards');
+  assert.ok(flagsSet < settingsGuard, 'a missing settings file must not cost the preamble');
+});
+
+test('every branch reaches one call, and the tail is a bare exit /b', () => {
+  // S5: the child's exit code must arrive unchanged.
+  const script = cmdWrapper();
+  const calls = script.split('\n').filter((line) => line.startsWith('call "%FRAME_REAL%"'));
+  assert.equal(calls.length, 1, 'more than one call site means more than one place to lose the code');
+  assert.equal(calls[0], 'call "%FRAME_REAL%" %FRAME_FLAGS% %*');
+  assert.ok(script.includes('call "%FRAME_REAL%" %FRAME_FLAGS% %*\nexit /b\n'));
+});
+
+test('%ERRORLEVEL% appears nowhere, least of all inside a block', () => {
+  // cmd.exe expands variables when it *parses* a parenthesised block, so an
+  // `exit /b %ERRORLEVEL%` inside an `if (…)` reports the code from before
+  // the call. The goto-shaped tail is what makes the variable unnecessary.
+  const script = cmdWrapper();
+  assert.ok(!/%ERRORLEVEL%/i.test(script));
+  for (const line of script.split('\n')) {
+    if (!/^\s*(if|for)\b.*\($/.test(line)) continue;
+    assert.ok(!/%ERRORLEVEL%/i.test(line));
+  }
+});
+
+test('every goto has a label to land on', () => {
+  const script = cmdWrapper();
+  const labels = new Set(
+    script.split('\n')
+      .filter((line) => /^:[a-z_]/i.test(line))
+      .map((line) => line.trim().slice(1))
+  );
+  labels.add('eof');
+  for (const match of script.matchAll(/goto :([a-z_]+)/gi)) {
+    assert.ok(labels.has(match[1]), `goto :${match[1]} has no label`);
+  }
+  // And every label is reachable, so a rename cannot orphan a whole branch.
+  for (const label of labels) {
+    if (label === 'eof' || label === 'frame_scan_args' || label === 'frame_find_root') continue;
+    assert.ok(script.includes(`goto :${label}`), `:${label} is never jumped to`);
+  }
+});
+
 // ─── spec-hint settings ───────────────────────────────────────
 
 test('the spec-hint settings carry both hook events', () => {
@@ -339,6 +488,69 @@ test('a family Frame has no file for, or no bin directory, produces nothing', ()
   assert.equal(templates.getShellInitTemplate({ family: 'nushell', binDir: INIT_BIN, toolIds: ['claude'] }), '');
   assert.equal(templates.getShellInitTemplate({ family: 'posix', binDir: '', toolIds: ['claude'] }), '');
   assert.equal(templates.getShellInitTemplate({}), '');
+});
+
+// ─── shell init template · PowerShell ─────────────────────────
+
+const PS_BIN = 'C:\\Users\\dev\\my project\\.frame\\bin';
+
+function psInit(toolIds = ['claude']) {
+  return templates.getShellInitTemplate({ family: 'powershell', binDir: PS_BIN, toolIds });
+}
+
+test('the PowerShell file exports FRAME_BIN and puts it first on PATH', () => {
+  const init = psInit();
+  assert.ok(init.includes(`$env:FRAME_BIN = '${PS_BIN}'`));
+  assert.ok(init.includes("$env:PATH = (@($env:FRAME_BIN) + $frameRest) -join ';'"));
+  // Any later copy is dropped rather than left behind, or the rebuild would
+  // duplicate the entry every time a lane opens.
+  assert.ok(init.includes("Where-Object { $_ -and $_ -ne $env:FRAME_BIN }"));
+  assert.ok(init.includes("-split ';'"), 'the POSIX separator would split nothing on Windows');
+});
+
+test('the PowerShell file defines one function per tool, routed to its .cmd', () => {
+  const init = psInit(['claude', 'somecli']);
+  for (const id of ['claude', 'somecli']) {
+    assert.ok(init.includes(`function ${id} {`), `${id} has no function`);
+    assert.ok(init.includes(`Join-Path $env:FRAME_BIN '${id}.cmd'`), `${id} is not routed to its wrapper`);
+  }
+  assert.ok(init.includes('& $frameWrapper @args'), 'arguments are not forwarded');
+});
+
+test('the PowerShell fallback resolves an application, so it cannot recurse', () => {
+  // A function named `claude` looking up `claude` would find itself.
+  // -CommandType Application excludes functions and aliases — the PowerShell
+  // spelling of the POSIX file's `command <id>`.
+  const init = psInit();
+  assert.ok(init.includes("Get-Command 'claude' -CommandType Application -ErrorAction SilentlyContinue"));
+  assert.ok(init.includes('& $frameReal.Source @args'));
+  assert.ok(!/&\s*claude\b/.test(init), 'the fallback calls the tool by name, which is this function');
+});
+
+test('a tool that is missing entirely gets a message, not a stack trace', () => {
+  assert.ok(psInit().includes("Write-Error 'Frame: claude was not found on PATH.'"));
+});
+
+test('the PowerShell file uses PowerShell syntax, not POSIX', () => {
+  const init = psInit();
+  assert.ok(!init.includes('"$@"'), 'POSIX argument syntax leaked into the PowerShell file');
+  assert.ok(!init.includes('export '), 'POSIX export leaked into the PowerShell file');
+  assert.ok(init.startsWith('# Frame shell setup'));
+});
+
+test('a project path with an apostrophe is escaped the PowerShell way', () => {
+  const init = templates.getShellInitTemplate({
+    family: 'powershell',
+    binDir: "C:\\Users\\o'brien\\.frame\\bin",
+    toolIds: ['claude']
+  });
+  assert.ok(init.includes("'C:\\Users\\o''brien\\.frame\\bin'"), init.split('\n')[4]);
+  assert.ok(!init.includes("'\\''"), 'POSIX quoting leaked into the PowerShell file');
+});
+
+test('a family Frame has no file for still gets nothing', () => {
+  assert.equal(templates.getShellInitTemplate({ family: 'cmd', binDir: PS_BIN, toolIds: ['claude'] }), '');
+  assert.equal(templates.getShellInitTemplate({ family: 'powershell', binDir: '', toolIds: ['claude'] }), '');
 });
 
 // ─── shell init behaviour, executed ───────────────────────────

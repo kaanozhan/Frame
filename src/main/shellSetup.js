@@ -36,24 +36,46 @@ const SHELL_DIR = 'runtime/shell';
 
 const INIT_FILES = {
   posix: 'init.sh',
-  fish: 'init.fish'
+  fish: 'init.fish',
+  powershell: 'init.ps1'
 };
+
+/**
+ * Which families Frame can actually deliver on a platform.
+ *
+ * A family being *known* and a family being *deliverable here* are different
+ * questions, and conflating them is what the old blanket win32 short-circuit
+ * did. Git Bash on Windows resolves to the `posix` family, but its init file
+ * defines functions pointing at extensionless wrappers Windows never writes —
+ * delivering it would set the lane up to fail rather than leave it alone. The
+ * reverse holds too: `init.ps1` must never be offered to a Mac.
+ */
+function initFamilies(platform = process.platform) {
+  return platform === 'win32' ? ['powershell'] : ['posix', 'fish'];
+}
 
 // The marker's fixed half. The minted half follows it, and the two are never
 // adjacent in anything sent to a shell — see `deliveryFor`.
 const MARKER_PREFIX = '__frame_ready_';
 
 // Shell basenames Frame can set up. `sh` and `dash` take the POSIX file;
-// `nu`, `pwsh` and `cmd` are deliberately absent — Windows has no `.cmd`
-// wrappers to point a function at, and nushell's function and `PATH` model
-// matches neither generated file. That is `unsupported`, not a failure.
+// `powershell` and `pwsh` take the PowerShell one, which exists because
+// nvm-windows reorders `PATH` exactly as nvm does and a function wins over
+// any ordering. `nu` and `cmd` are deliberately absent: nushell's function
+// and `PATH` model matches no generated file here, and `cmd` has no functions
+// at all — `doskey` macros are too fragile to build on, so `cmd` gets the
+// `PATH` entry and `PATHEXT` resolution and nothing more. Both are
+// `unsupported`, which is silent by design: the lane works, it simply has no
+// Frame context.
 const FAMILY_BY_SHELL = {
   zsh: 'posix',
   bash: 'posix',
   sh: 'posix',
   dash: 'posix',
   ksh: 'posix',
-  fish: 'fish'
+  fish: 'fish',
+  powershell: 'powershell',
+  pwsh: 'powershell'
 };
 
 /**
@@ -111,6 +133,17 @@ function singleQuote(value) {
 }
 
 /**
+ * Single-quote a value for a PowerShell command line.
+ *
+ * PowerShell's single-quoted string is literal too — no backtick escapes
+ * inside it, which is the whole reason to use it here — and a quote is escaped
+ * by doubling rather than by the POSIX close-escape-reopen dance.
+ */
+function psQuote(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+/**
  * The `printf` that announces the marker — never containing it.
  *
  * In typed mode the tty echoes the command before running it, so a scan of the
@@ -126,6 +159,19 @@ function markerEcho(marker) {
 }
 
 /**
+ * The same trick in PowerShell: `Write-Output ('<prefix>' + '<token>')`.
+ *
+ * Concatenated at run time, so the literal marker exists only in real output.
+ * PowerShell's delivery is a spawn flag and echoes nothing, but the halves
+ * stay apart anyway — the property is the invariant, not the mode that
+ * happens to need it today.
+ */
+function psMarkerEcho(marker) {
+  const cut = MARKER_PREFIX.length;
+  return `Write-Output (${psQuote(marker.slice(0, cut))} + ${psQuote(marker.slice(cut))})`;
+}
+
+/**
  * How setup reaches one lane's shell.
  *
  * Returns one of three shapes:
@@ -134,25 +180,47 @@ function markerEcho(marker) {
  *   { mode: 'type', line: ' . …', marker }        zsh/bash/sh — typed at spawn
  *   { mode: 'none', reason }                      nothing is sent
  *
- * `mode: 'none'` is the answer for Windows, for a lane with no project, for a
- * folder that is not a Frame project, and for a shell Frame has no init file
- * for. In every one of those cases nothing is sent and no function or variable
- * is defined — the lane behaves exactly as it did before this module existed.
+ * `mode: 'none'` is the answer for a lane with no project, for a folder that
+ * is not a Frame project, and for a shell whose family Frame cannot deliver
+ * *here* — `cmd` and WSL on Windows, Git Bash too, since its `posix` init
+ * file points at wrappers Windows does not write. In every one of those cases
+ * nothing is sent and no function or variable is defined; the lane behaves
+ * exactly as it did before this module existed, which is what `unsupported`
+ * has always meant.
  *
  * zsh and bash get a typed line rather than a flag because the only
  * post-startup hook they offer reroutes the user's own startup files, which
- * Frame does not do.
+ * Frame does not do. PowerShell takes a flag, so like fish it types nothing.
  */
 function deliveryFor(shellPath, platform = process.platform, projectPath = '', options = {}) {
   const { marker = '', isFrameProject = true } = options;
 
-  if (platform === 'win32') return { mode: 'none', reason: 'platform' };
   if (!projectPath) return { mode: 'none', reason: 'no-project' };
   if (!isFrameProject) return { mode: 'none', reason: 'not-a-frame-project' };
 
   const family = shellFamily(shellPath);
   if (!family) return { mode: 'none', reason: 'unsupported-shell' };
+  if (!initFamilies(platform).includes(family)) return { mode: 'none', reason: 'unsupported-shell' };
   if (!marker) return { mode: 'none', reason: 'no-marker' };
+
+  if (family === 'powershell') {
+    // -ExecutionPolicy Bypass because a Windows client machine defaults to
+    // Restricted, which blocks dot-sourcing an unsigned local .ps1. It lifts
+    // the policy for this one process and touches nothing machine-wide — the
+    // same bargain launchEnv already makes for PATH. Where Group Policy
+    // overrides it the marker never arrives and the lane reports `failed`,
+    // which is the designed path rather than a new failure mode.
+    return {
+      mode: 'flag',
+      args: [
+        '-ExecutionPolicy', 'Bypass',
+        '-NoExit',
+        '-Command',
+        `. ${psQuote(shellInitPath(projectPath, family))}; ${psMarkerEcho(marker)}`
+      ],
+      marker
+    };
+  }
 
   const initFile = singleQuote(shellInitPath(projectPath, family));
   const echo = markerEcho(marker);
@@ -180,6 +248,8 @@ function manualCommand(shellPath) {
   const family = shellFamily(shellPath);
   if (!family) return '';
   const rel = `${FRAME_DIR}/${SHELL_DIR}/${INIT_FILES[family]}`;
+  // PowerShell dot-sources with the same operator POSIX does, and resolves a
+  // relative path with forward slashes without complaint.
   return family === 'fish' ? `source ${rel}` : `. ${rel}`;
 }
 
@@ -207,6 +277,7 @@ module.exports = {
   SHELL_DIR,
   INIT_FILES,
   MARKER_PREFIX,
+  initFamilies,
   shellFamily,
   shellInitPath,
   mintMarker,

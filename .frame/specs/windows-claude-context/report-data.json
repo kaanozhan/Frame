@@ -1,0 +1,140 @@
+{
+  "spec": {
+    "slug": "windows-claude-context",
+    "title": "Windows context parity for Claude Code"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Put .frame/bin on Windows PATH and name what lives there",
+      "commit": "6968791",
+      "whatChanged": "launchEnv.prependFrameBin lost its supportsWrappers gate, so .frame/bin now leads the PATH of every PTY Frame spawns on Windows too — the ';' separator the function already carried finally gets reached. Two siblings joined it: wrapperFamily(platform) answers 'posix' or 'cmd', and wrapperFileName(toolId, { platform, canPassPaths }) returns the filename a tool's wrapper takes here, or '' when it earns none.",
+      "whyChanged": "The gate was a category error: supportsWrappers asks whether this platform gets a POSIX wrapper for every tool, and PATH ordering is a different question — a .frame/bin that happens to be empty is a harmless first entry. wrapperFileName takes canPassPaths rather than a hardcoded 'claude only' list because a file-taking prompt flag is precisely what lets a batch wrapper stay plain; canPassPaths defaults to false so Windows opts a tool in explicitly and Codex/Gemini keep today's behaviour by construction. Both new functions take platform as a parameter, so Windows behaviour is asserted from a Mac.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "533 tests pass, 0 fail (19 in test/launchEnv.test.js, 8 of them new)"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Teach Claude's launch to pass paths instead of prose",
+      "commit": "defcd9b",
+      "whatChanged": "Claude's injection record gained promptFileFlag: '--append-system-prompt-file'. prepareLaunchAssets now also returns preambleRel and settingsRel — the same two files as project-relative, forward-slash paths. A new exported pure inlineInjectionFlags(tool, assets, platform) composes the wrapper-less branch and getLaunchCommand delegates to it, dropping its own flags.push pair and the now-unused `declared` local.",
+      "whyChanged": "The composed line is typed into the PTY, and the preamble is 9 lines with 6 backticks: cmd.exe submits at the first newline and PowerShell reads a backtick as an escape, so --settings — and with it the spec-hint hooks — is the first thing lost. Two paths make the line single-line and quote-free. The paths are relative because the PTY's cwd is the project, which sidesteps a space in the path and the backslash a POSIX shell would eat. The file flag is chosen only where !supportsWrappers(platform): it has no --help row of its own, so an older CLI rejects it outright, and the POSIX path that works today must not acquire that version dependency (C3).",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "545 tests pass, 0 fail (12 new in test/aiToolLaunch.test.js)"
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Write the .frame/bin/<id>.cmd wrapper template",
+      "commit": "f9bb6fb",
+      "whatChanged": "Added getCmdWrapperTemplate(toolCommand, options) to src/shared/frameTemplates.js. It generates plain batch that resolves the real CLI with `for /f … in ('where <tool>')` skipping any hit whose %%~dpI is %~dp0, exits 127 with a stderr message when nothing remains, passes through under FRAME_NO_WRAP and when promptFileFlag is already on the line, walks up from %CD% to the directory holding .frame\\, and routes every branch to one `call \"%FRAME_REAL%\" %FRAME_FLAGS% %*` followed by a bare `exit /b`. It returns '' for a tool with no promptFileFlag. 15 string assertions landed in test/frameTemplates.test.js.",
+      "whyChanged": "The already-composed check scans arguments one at a time in a :frame_scan_args subroutine using %~1 rather than searching the whole of %* with substring substitution — that is a deviation from the plan's wording, taken because %* expands during parsing and a user argument carrying & or | would be re-parsed as syntax; %~1 strips cmd's quotes and compares a value. Exit-code propagation is goto-shaped rather than %ERRORLEVEL%-shaped because cmd.exe expands variables when it parses a parenthesised block, so the variable never appears in the file at all. Nothing executes in the tests: cmd.exe is not on this machine, and the real verification is T10's protocol.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "559 tests pass, 0 fail (14 new in test/frameTemplates.test.js)"
+      }
+    },
+    {
+      "id": "T04",
+      "title": "Let writeWrapper choose its family and self-gate",
+      "commit": "81b375d",
+      "whatChanged": "writeWrapper now asks launchEnv for the filename (wrapperFileName with canPassPaths: !!injection.promptFileFlag) and the family (wrapperFamily), picks getCmdWrapperTemplate or getWrapperTemplate accordingly, skips the 0o755 chmod for the cmd family, and returns '' for a tool that earns no wrapper here. prepareLaunchAssets dropped its own supportsWrappers() call and simply calls it. wrapperLaunchCommand gained a comment recording why the .cmd is deliberately not the composed launch line.",
+      "whyChanged": "Self-gating is what keeps generation on project open, write-if-changed and per tool (C6) while making Codex and Gemini a condition rather than a special case: they declare no promptFileFlag, so on Windows they get no file and behave exactly as they do today. The chmod is skipped because Windows resolves a .cmd through PATHEXT and fs.chmodSync there is a no-op at best. Verified by simulation: forcing win32 through launchEnv writes only .frame/bin/claude.cmd, and the POSIX path still writes all three wrappers at mode 755.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "559 tests pass, 0 fail"
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Give shellSetup a PowerShell family",
+      "commit": "1b87f6d",
+      "whatChanged": "shellSetup gained INIT_FILES.powershell = 'init.ps1', powershell/pwsh in FAMILY_BY_SHELL, a new exported initFamilies(platform), a PowerShell single-quoter that doubles ', and psMarkerEcho building Write-Output ('<prefix>' + '<token>'). deliveryFor lost its blanket win32 short-circuit and instead answers unsupported-shell for any family initFamilies does not list here, then answers PowerShell with a spawn-flag delivery: -ExecutionPolicy Bypass -NoExit -Command \". '<init.ps1>'; <marker echo>\".",
+      "whyChanged": "The old short-circuit conflated 'a family Frame knows' with 'a family Frame can deliver here'. Git Bash resolves to the posix family, whose init file defines functions pointing at extensionless wrappers Windows never writes — delivering it would set the lane up to fail rather than leave it alone; the reverse guard keeps init.ps1 off a Mac. -ExecutionPolicy Bypass is there because a Windows client machine defaults to Restricted, which blocks dot-sourcing an unsigned local .ps1; it lifts the policy for one process and touches nothing machine-wide. cmd, Git Bash and WSL now report unsupported-shell, which is silent on the lane card by design — the gate decision was that a permanently-present row reading the same thing trains the eye to ignore it.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "570 tests pass, 0 fail (11 new in test/shellSetup.test.js; the old 'win32 gets nothing sent' test is gone and the no-family test no longer claims pwsh)"
+      }
+    },
+    {
+      "id": "T06",
+      "title": "Write init.ps1, and let initFamilies decide what gets written",
+      "commit": "c2cd083",
+      "whatChanged": "getShellInitTemplate grew a powershell branch: $env:FRAME_BIN, PATH rebuilt with FRAME_BIN first and any later copy dropped, and one function per tool routing to \"$env:FRAME_BIN\\<id>.cmd\" with a Get-Command -CommandType Application fallback. writeShellInit replaced its supportsWrappers() gate with shellSetup.initFamilies() and now passes only the tool ids that have a wrapper on this platform.",
+      "whyChanged": "-CommandType Application excludes functions and aliases, which is what keeps a function named claude from finding itself — the PowerShell spelling of the POSIX file's `command <id>`. The tool-id filter matters on Windows specifically: Codex and Gemini get no .cmd there, so a function for them would delegate to a file that does not exist. Driving the loop from initFamilies rather than Object.keys(INIT_FILES) is what stops init.sh being written on Windows, where its functions would point at extensionless wrappers Frame never writes. Verified by simulation: a forced win32 run writes only init.ps1 and only a claude function; the POSIX run still writes init.sh and init.fish with all three.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "577 tests pass, 0 fail (7 new in test/frameTemplates.test.js)"
+      }
+    },
+    {
+      "id": "T07",
+      "title": "Make a rejected flag cost the context, not the session",
+      "commit": "e62bb93",
+      "whatChanged": "The bare relaunch in agentDispatch now fires on the composed flag set rather than the caller's own launchFlags, and its notice branches: dropped permission flags keep today's guided-mode wording, while a dispatch that came up bare with no caller flags says Frame's context could not be attached and suggests updating the CLI. flagsDropped is still set only for caller flags, so the prompt's guided-mode note and the autonomous-lane pin are unchanged.",
+      "whyChanged": "The composed set is where Frame's own injection rides, and since T02 that can be --append-system-prompt-file — a flag with no --help row of its own, so an older CLI rejects it outright instead of ignoring it. With the old narrow gate a stale Windows install would have gone from losing its context to losing its session, which is strictly worse than the problem this spec set out to fix. This is the recorded answer to the spec's first open question. Untested by design: src/renderer/ has no DOM harness, which the plan records as the convention here.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "577 tests pass, 0 fail — this change is renderer-side and carries no test of its own"
+      }
+    },
+    {
+      "id": "T08",
+      "title": "Give npm test a Node launcher",
+      "commit": "e2f6d66",
+      "whatChanged": "Added scripts/run-tests.js — it sets FRAME_ACTIVITY_HOME, lists test/*.test.js from readdirSync itself (files only, so test/fixtures/ is excluded by rule rather than by what a glob happens to match), spawns node --test and forwards the child's exit code, treating a signal as a failure. package.json's test script now points at it. An optional substring filter argument runs a subset.",
+      "whyChanged": "The old script was a POSIX invocation wearing an npm script's clothes: cmd.exe sets no inline environment variable and expands no glob, and Node 20 does not expand it either — so the Windows CI leg added in T09 would have run zero tests while reporting success. CI deliberately runs no npm ci, so a cross-env dependency was not an option. Verified locally: the full suite still runs 577 tests, an unmatched filter exits 1, and a deliberately red test file makes the launcher exit 1.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "577 tests pass, 0 fail through the new launcher; a red suite was confirmed to exit 1"
+      }
+    },
+    {
+      "id": "T09",
+      "title": "Give the suite a Windows leg",
+      "commit": "54c1e12",
+      "whatChanged": "windows-latest joined the CI matrix in .github/workflows/ci.yml, with a comment recording why the leg exists and why npm test now runs through the Node launcher. Audited every test that shells out: the only bash/sh/zsh calls in the suite are in test/frameTemplates.test.js, and all four call sites already sit inside tests carrying { skip: !POSIX }, so no new guards were needed.",
+      "whyChanged": "The new Windows behaviour is asserted from pure modules with platform as a parameter, so this leg's real value is the reverse — it catches POSIX assumptions the suite itself makes. Two residual risks could not be settled from a Mac and are recorded as a followup rather than guessed at: fs.symlinkSync in test/embeddedMigration.test.js (Windows needs a privilege for file symlinks) and line-ending normalisation (the repo has no .gitattributes, so a CRLF checkout could break content comparisons). Adding .gitattributes is outside plan.md's Files list, so it is flagged, not done. The leg itself cannot be confirmed green from here: that needs a push, and this loop never pushes.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "577 tests pass, 0 fail, 0 skipped on macOS; the windows-latest leg is unverified until the branch is pushed"
+      }
+    },
+    {
+      "id": "T10",
+      "title": "Write the Windows verification handoff",
+      "commit": "5fb6353",
+      "whatChanged": "Added .frame/specs/windows-claude-context/test-protocol.md: ten numbered steps with the exact command and the exact expected output for each — preconditions and the CLI version, the composed launch's single line and byte-for-byte preamble, both spec-hint hook blocks, a hand-typed claude in cmd and in PowerShell (including the nvm-windows race), the lane states, where-shadowing and the 127 case, FRAME_NO_WRAP and an exit-code round trip, a project path with a space and one with an apostrophe, and the older-CLI bare relaunch. It closes with a fill-in block to paste into outcome.md under T11.",
+      "whyChanged": "Everything this spec ships was asserted from pure modules with platform as a parameter, which proves the decisions and nothing about the machine — so the protocol is the deliverable that closes the gap, not documentation of one. It states plainly that a hand-typed launch has no bare-retry (that lives in agentDispatch, which only sees launches Frame composed) and that Group Policy can defeat -ExecutionPolicy Bypass, in which case the lane reports failed by design. Git Bash and WSL are named as deliberately out of scope so a tester does not file their absence as a bug. Step 1's expected counts were checked against the real preamble: first line verbatim, 9 lines, 6 backticks, and the local CLI is 2.1.237.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "577 tests pass, 0 fail — this task ships a document, and its own verification is a teammate running it (T11)"
+      }
+    },
+    {
+      "id": "T11",
+      "title": "Close the spec with the Windows run unrecorded",
+      "commit": "cef2280",
+      "whatChanged": "Closed T11 by decision rather than by result. No Windows machine ran test-protocol.md, so outcome.md records the absence explicitly instead of a per-step table: the protocol exists, is unrun, and the Claude Code version it was designed against (2.1.237) is the only version fact on file. Wrote digest.md and moved the spec phase to done.",
+      "whyChanged": "The task asked for a teammate's run to be written down, and the honest close is to say it did not happen — a fabricated pass table would be worse than an empty one, because the next reader would trust it. What ships is therefore verified in one dimension and not the other: every decision is asserted from pure modules with platform as a parameter, and no line of it has touched a real Windows machine. digest.md carries that limit forward so a future session inherits the caveat rather than the conclusion.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "577 tests pass, 0 fail — a docs-and-state task; the Windows behaviour it was meant to certify remains unexercised"
+      }
+    }
+  ]
+}

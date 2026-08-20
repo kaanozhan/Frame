@@ -157,6 +157,7 @@
         "refreshLaunchAssets",
         "writeShellInit",
         "composeLaunchCommand",
+        "inlineInjectionFlags",
         "addCustomTool",
         "removeCustomTool",
         "AI_TOOLS"
@@ -186,7 +187,7 @@
           "purpose": "The user's real login shell. In a GUI-launched (packaged) app, process.env.SHELL"
         },
         "init": {
-          "line": 134,
+          "line": 145,
           "params": [
             "window",
             "app"
@@ -194,72 +195,72 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "detectDefaultTool": {
-          "line": 148,
+          "line": 159,
           "purpose": "First run only: default the active tool to a CLI that is actually"
         },
         "loadConfig": {
-          "line": 164,
+          "line": 175,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 191,
+          "line": 202,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 202,
+          "line": 213,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 209,
+          "line": 220,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 217,
+          "line": 228,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
         "getConfig": {
-          "line": 237,
+          "line": 248,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 247,
+          "line": 258,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 264,
+          "line": 275,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "quoteArg": {
-          "line": 284,
+          "line": 295,
           "params": [
             "arg"
           ],
           "purpose": "Compose the command line a lane actually types: the resolved CLI plus any"
         },
         "composeLaunchCommand": {
-          "line": 292,
+          "line": 303,
           "params": [
             "command",
             "launchFlags"
           ]
         },
         "isPathLike": {
-          "line": 297,
+          "line": 308,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 315,
+          "line": 326,
           "params": [
             "command",
             "projectPath"
@@ -267,53 +268,53 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "trackProbeFailure": {
-          "line": 381,
+          "line": 392,
           "params": [
             "reason"
           ]
         },
         "setupIPC": {
-          "line": 389,
+          "line": 400,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 466,
+          "line": 477,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 474,
+          "line": 485,
           "purpose": "Get the start command for active tool"
         },
         "runtimeDir": {
-          "line": 482,
+          "line": 493,
           "params": [
             "projectPath"
           ]
         },
         "preambleFileName": {
-          "line": 499,
+          "line": 510,
           "params": [
             "toolId"
           ],
           "purpose": "Runtime files are named per tool, not shared."
         },
         "settingsFileName": {
-          "line": 503,
+          "line": 514,
           "params": [
             "toolId"
           ]
         },
         "runtimeRelPath": {
-          "line": 507,
+          "line": 518,
           "params": [
             "name"
           ]
         },
         "buildPreamble": {
-          "line": 519,
+          "line": 530,
           "params": [
             "projectPath",
             "toolId"
@@ -321,10 +322,10 @@
           "purpose": "Build the preamble for this project and tool."
         },
         "safeGlobalPath": {
-          "line": 533
+          "line": 544
         },
         "writeIfChanged": {
-          "line": 549,
+          "line": 560,
           "params": [
             "target",
             "content",
@@ -333,7 +334,7 @@
           "purpose": "Write only when the content differs."
         },
         "writeRuntimeFile": {
-          "line": 559,
+          "line": 570,
           "params": [
             "projectPath",
             "name",
@@ -341,7 +342,7 @@
           ]
         },
         "writeToolSettings": {
-          "line": 573,
+          "line": 584,
           "params": [
             "projectPath",
             "tool",
@@ -350,13 +351,13 @@
           "purpose": "The spec-hint hooks, as a settings file inside Frame's own footprint."
         },
         "isPlainObject": {
-          "line": 585,
+          "line": 596,
           "params": [
             "value"
           ]
         },
         "mergeSettings": {
-          "line": 594,
+          "line": 605,
           "params": [
             "base",
             "incoming"
@@ -364,14 +365,14 @@
           "purpose": "Deep-merge a settings payload. Objects merge key by key, arrays concatenate"
         },
         "readSettingsSource": {
-          "line": 611,
+          "line": 622,
           "params": [
             "source"
           ],
           "purpose": "A `--settings` value is either a path or inline JSON — the CLI takes both,"
         },
         "takeSettingsFlags": {
-          "line": 634,
+          "line": 645,
           "params": [
             "extra",
             "settingsFlag"
@@ -379,7 +380,7 @@
           "purpose": "Split a dispatch's extra flags into the `--settings` payloads to merge and"
         },
         "writeWrapper": {
-          "line": 660,
+          "line": 680,
           "params": [
             "projectPath",
             "tool"
@@ -387,14 +388,14 @@
           "purpose": "Regenerate `.frame/bin/<id>` for a tool."
         },
         "writeShellInit": {
-          "line": 694,
+          "line": 731,
           "params": [
             "projectPath"
           ],
           "purpose": "Regenerate the shell init files every lane in this project sources."
         },
         "prepareLaunchAssets": {
-          "line": 716,
+          "line": 764,
           "params": [
             "projectPath",
             "tool",
@@ -402,8 +403,17 @@
           ],
           "purpose": "Everything a launch of `tool` reads: its preamble, its settings file when it"
         },
+        "inlineInjectionFlags": {
+          "line": 806,
+          "params": [
+            "tool",
+            "assets",
+            "platform = process.platform"
+          ],
+          "purpose": "The flags a launch adds itself, for a tool Frame could not wrap here."
+        },
         "wrapperLaunchCommand": {
-          "line": 761,
+          "line": 865,
           "params": [
             "projectPath",
             "tool"
@@ -411,19 +421,19 @@
           "purpose": "The command a launch types for this tool — the wrapper wherever Frame can"
         },
         "bareCommandFor": {
-          "line": 767,
+          "line": 871,
           "params": [
             "tool"
           ]
         },
         "refreshLaunchAssets": {
-          "line": 773,
+          "line": 877,
           "params": [
             "projectPath"
           ]
         },
         "getLaunchCommand": {
-          "line": 810,
+          "line": 914,
           "params": [
             "projectPath",
             "toolId",
@@ -2396,6 +2406,8 @@
       "description": "launchEnv — where Frame's own `PATH` entry comes from.",
       "exports": [
         "supportsWrappers",
+        "wrapperFamily",
+        "wrapperFileName",
         "frameBinDir",
         "prependFrameBin"
       ],
@@ -2405,21 +2417,36 @@
       ],
       "functions": {
         "supportsWrappers": {
-          "line": 36,
+          "line": 46,
           "params": [
             "platform = process.platform"
           ],
-          "purpose": "Whether this platform can run the wrappers Frame writes."
+          "purpose": "Whether this platform gets a POSIX wrapper for every tool."
+        },
+        "wrapperFamily": {
+          "line": 55,
+          "params": [
+            "platform = process.platform"
+          ],
+          "purpose": "Which flavour of wrapper this platform runs: `'posix'` or `'cmd'`."
+        },
+        "wrapperFileName": {
+          "line": 68,
+          "params": [
+            "toolId",
+            "options = {}"
+          ],
+          "purpose": "The filename a tool's wrapper takes here, or `''` when it gets none."
         },
         "frameBinDir": {
-          "line": 46,
+          "line": 84,
           "params": [
             "projectPath"
           ],
           "purpose": "Absolute path to a project's `.frame/bin`, or '' without a project."
         },
         "prependFrameBin": {
-          "line": 62,
+          "line": 102,
           "params": [
             "pathValue",
             "projectPath",
@@ -3620,6 +3647,7 @@
         "SHELL_DIR",
         "INIT_FILES",
         "MARKER_PREFIX",
+        "initFamilies",
         "shellFamily",
         "shellInitPath",
         "mintMarker",
@@ -3632,15 +3660,22 @@
         "shared/frameConstants"
       ],
       "functions": {
+        "initFamilies": {
+          "line": 53,
+          "params": [
+            "platform = process.platform"
+          ],
+          "purpose": "Which families Frame can actually deliver on a platform."
+        },
         "shellFamily": {
-          "line": 66,
+          "line": 88,
           "params": [
             "shellPath"
           ],
           "purpose": "The shell family a shell path belongs to, or '' when Frame has no init file"
         },
         "shellInitPath": {
-          "line": 81,
+          "line": 103,
           "params": [
             "projectPath",
             "family"
@@ -3648,28 +3683,42 @@
           "purpose": "Absolute path to a project's generated init file for a family, or '' when"
         },
         "mintMarker": {
-          "line": 96,
+          "line": 118,
           "params": [
             "terminalId",
             "attempt = 1"
           ]
         },
         "singleQuote": {
-          "line": 109,
+          "line": 131,
           "params": [
             "value"
           ],
           "purpose": "Single-quote a value for a POSIX or fish command line."
         },
+        "psQuote": {
+          "line": 142,
+          "params": [
+            "value"
+          ],
+          "purpose": "Single-quote a value for a PowerShell command line."
+        },
         "markerEcho": {
-          "line": 123,
+          "line": 156,
           "params": [
             "marker"
           ],
           "purpose": "The `printf` that announces the marker — never containing it."
         },
+        "psMarkerEcho": {
+          "line": 169,
+          "params": [
+            "marker"
+          ],
+          "purpose": "The same trick in PowerShell: `Write-Output ('<prefix>' + '<token>')`."
+        },
         "deliveryFor": {
-          "line": 146,
+          "line": 195,
           "params": [
             "shellPath",
             "platform = process.platform",
@@ -3679,14 +3728,14 @@
           "purpose": "How setup reaches one lane's shell."
         },
         "manualCommand": {
-          "line": 179,
+          "line": 247,
           "params": [
             "shellPath"
           ],
           "purpose": "The line a user can paste into a lane to set it up by hand."
         },
         "splitOnMarker": {
-          "line": 195,
+          "line": 265,
           "params": [
             "chunk",
             "marker"
@@ -4761,11 +4810,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 256,
+          "line": 270,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 291,
+          "line": 305,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -4773,17 +4822,17 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "startAgentInLane": {
-          "line": 321,
+          "line": 335,
           "params": [
             "terminalId"
           ],
           "purpose": "Start the active tool's CLI in an existing lane, from outside this module."
         },
         "_startAgentInNewFrame": {
-          "line": 325
+          "line": 339
         },
         "_askNewOrRestart": {
-          "line": 343,
+          "line": 357,
           "params": [
             "frameName",
             "hasAgent"
@@ -4791,7 +4840,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 400,
+          "line": 414,
           "params": [
             "{ slug",
             "title = null",
@@ -4800,7 +4849,7 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "_dispatchImplement": {
-          "line": 467,
+          "line": 481,
           "params": [
             "{ slug",
             "title",
@@ -4810,79 +4859,79 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "getSpecLaneInfo": {
-          "line": 558,
+          "line": 572,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 582,
+          "line": 596,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 603,
+          "line": 617,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 607,
+          "line": 621,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 611,
+          "line": 625,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 628,
+          "line": 642,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 636,
+          "line": 650,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 659,
+          "line": 673,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 667,
+          "line": 681,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 685,
+          "line": 699,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 695,
+          "line": 709,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 704,
+          "line": 718,
           "params": [
             "frameName",
             "specName"
@@ -4890,14 +4939,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 745,
+          "line": 759,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 774,
+          "line": 788,
           "params": [
             "terminalId",
             "message"
@@ -9911,6 +9960,7 @@
         "REFERENCE_SPEC_LEGACY_MATCHERS",
         "AGENTS_SPEC_LEGACY_MATCHERS",
         "getWrapperTemplate",
+        "getCmdWrapperTemplate",
         "getShellInitTemplate",
         "getSpecHintSettings",
         "getStructureHookSnippet",
@@ -10009,74 +10059,104 @@
           ],
           "purpose": "Wrapper script that hands a tool Frame's launch context."
         },
+        "getCmdWrapperTemplate": {
+          "line": 1025,
+          "params": [
+            "toolCommand",
+            "options"
+          ],
+          "purpose": "The Windows wrapper: `.frame\\bin\\<id>.cmd`."
+        },
+        "toBackslashes": {
+          "line": 1122,
+          "params": [
+            "value"
+          ],
+          "purpose": "A project-relative path as batch spells it. The rest of Frame carries these"
+        },
         "isDefinableToolId": {
-          "line": 990,
+          "line": 1134,
           "params": [
             "id"
           ],
           "purpose": "A shell function name Frame is willing to define."
         },
         "shellQuote": {
-          "line": 997,
+          "line": 1141,
           "params": [
             "value"
           ],
           "purpose": "Single-quote for a generated shell file. Both POSIX shells and fish treat"
         },
+        "psQuote": {
+          "line": 1148,
+          "params": [
+            "value"
+          ],
+          "purpose": "The same job for PowerShell, whose single-quoted string is literal too — no"
+        },
         "getShellInitTemplate": {
-          "line": 1029,
+          "line": 1180,
           "params": [
             "options"
           ],
           "purpose": "The init file a lane sources at startup."
         },
         "posixInitTemplate": {
-          "line": 1041,
+          "line": 1193,
           "params": [
             "binDir",
             "toolIds"
           ]
         },
+        "powershellInitTemplate": {
+          "line": 1256,
+          "params": [
+            "binDir",
+            "toolIds"
+          ],
+          "purpose": "The PowerShell init file, dot-sourced at spawn by `powershell` and `pwsh`."
+        },
         "fishInitTemplate": {
-          "line": 1090,
+          "line": 1297,
           "params": [
             "binDir",
             "toolIds"
           ]
         },
         "getSpecHintSettings": {
-          "line": 1132,
+          "line": 1339,
           "purpose": "The spec-hint hooks, as a Claude Code settings object."
         },
         "getStructureHookSnippet": {
-          "line": 1162
+          "line": 1369
         },
         "replaceManagedHookBlock": {
-          "line": 1202,
+          "line": 1409,
           "params": [
             "content"
           ],
           "purpose": "Swap the managed block inside an existing hook file for the current snippet."
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1224,
+          "line": 1431,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1247,
+          "line": 1454,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1259,
+          "line": 1466,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1279
+          "line": 1486
         },
         "getOrchBinScripts": {
-          "line": 1297,
+          "line": 1504,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

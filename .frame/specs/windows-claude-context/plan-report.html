@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Windows context parity for Claude Code — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+
+  /* ── Flow blocks (diagram style) ── */
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+
+  /* ── Decision cards ── */
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="card">
+  <h1>Windows context parity for Claude Code — Plan Overview</h1>
+  <p class="muted">2026-08-20 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/windows-claude-context/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">11 decisions taken</span><span class="pill">4 loop iterations</span><span class="pill">3 carriers, 0 new dependencies</span><span class="pill warn">1 footprint collision recorded</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Since Frame became a read-only overlay it plants no file at a repository's root, so an agent learns that Frame exists at <b>launch</b> — through a wrapper on <code>PATH</code>, or through flags Frame appends to the line it types into the terminal. Every one of those mechanisms is switched off on Windows: <code>launchEnv.supportsWrappers()</code> returns false for <code>win32</code>, and <code>shellSetup.deliveryFor()</code> answers <code>{ mode: 'none', reason: 'platform' }</code> before it looks at which shell the lane is running. What is left is the inline branch, which appends a 993-byte, 9-line, 6-backtick preamble to a command <i>typed into the PTY</i> — a POSIX shell swallows that as a quoted continuation, <code>cmd.exe</code> submits at the first newline and PowerShell reads every backtick as an escape. <code>--settings</code> sits at the end of that line and is the first thing lost, and with it the spec-hint hooks: a Windows session loses not just "Frame exists" but the project's recorded memory.</p>
+  <p>The shape of the fix is smaller than the problem, because of two facts the spec surfaced and this pass verified. First, the payload is <b>already correct on Windows</b> — <code>prepareLaunchAssets</code> gates only its wrapper line on the platform, so a Frame project on Windows today already holds a byte-correct <code>preamble-claude.txt</code> and <code>claude-settings.json</code>. What is missing is not a mechanism but a <b>carrier</b>. Second, Claude Code accepts <code>--append-system-prompt-file</code>, a path where <code>--append-system-prompt</code> takes a string. Both arguments become plain paths, the typed line becomes single-line, and newlines, backticks and quote nesting stop existing rather than being escaped around. Three independent carriers follow: the composed launch passes paths; <code>.frame/bin</code> finally joins the Windows <code>PATH</code>; and a <code>claude.cmd</code> plus a PowerShell init file catch a launch the user types by hand.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Four flows: the launch Frame composes, the launch the user types, the lane setup that runs at spawn, and the fallback when the CLI is too old to know the flag.</p>
+
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>Frame / shell work</span>
+    <span class="l-data">generated file</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — A launch Frame composes, on Windows</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Dispatch or "Start agent"</div><div class="fd-sub">agentDispatch → GET_LAUNCH_COMMAND</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">prepareLaunchAssets</div><div class="fd-sub">aiToolManager.js:716 — already platform-neutral</div></div>
+          <div class="fd-arrow"><span class="lbl">writes</span><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">preamble-claude.txt<br>claude-settings.json</div><div class="fd-sub">.frame/runtime/ — unchanged by this plan</div></div>
+        </div>
+        <div class="fd-row">
+          <div class="fd-node system"><div class="fd-title">inlineInjectionFlags</div><div class="fd-sub">new, pure, platform as a parameter</div></div>
+          <div class="fd-arrow"><span class="lbl">!supportsWrappers</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">One line, two relative paths</div><div class="fd-sub">claude --append-system-prompt-file … --settings …</div></div>
+          <div class="fd-arrow"><span class="lbl">typed</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Session with full context</div><div class="fd-sub">preamble byte-for-byte, hooks registered</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Nothing with a newline reaches the PTY:</b> the value of every flag is a path. The 993-byte string never appears on a command line, so <code>terminalManager.js:736</code>'s <code>command + '\r'</code> carries one line by construction, not by escaping.</li>
+          <li><b>Project-relative, forward slashes:</b> a lane's cwd is its project, Windows file APIs accept <code>/</code>, and a relative path dodges both the <code>\</code> escaping that breaks in a POSIX shell and any question about spaces in the project path — so the same line runs in <code>cmd</code>, <code>powershell</code>, <code>pwsh</code> and Git Bash.</li>
+          <li><b>POSIX is not made to depend on it:</b> the file flag is chosen only where <code>supportsWrappers(platform)</code> is false. macOS and Linux keep the wrapper and the string flag they have today, so a version-dependent flag never lands on a path that currently works.</li>
+          <li><b>Independent of the wrapper:</b> this line is composed whether or not <code>claude.cmd</code> was written, which is what lets goal 1 ship on its own.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — A hand-typed <code>claude</code>, and the one-injection-route rule</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">User types <code>claude</code></div><div class="fd-sub">in a lane Frame opened</div></div>
+          <div class="fd-arrow"><span class="lbl">PATH</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">.frame/bin first</div><div class="fd-sub">prependFrameBin, gate removed</div></div>
+          <div class="fd-arrow"><span class="lbl">PATHEXT</span><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Does the shell resolve <code>.cmd</code>?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">cmd · powershell · pwsh</span>
+          <div class="fd-node data"><div class="fd-title">.frame/bin/claude.cmd</div><div class="fd-sub">generated batch, paths only</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Flag already in <code>%*</code>?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">yes — Frame composed it</span>
+          <div class="fd-node system"><div class="fd-title">Pass through untouched</div><div class="fd-sub">call real CLI with %* — no second injection</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">One injection route</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">no — typed by hand</span>
+          <div class="fd-node system"><div class="fd-title">Wrapper composes the flags</div><div class="fd-sub">quoted absolute paths from the project root</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Same context as a dispatch</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">Git Bash — no PATHEXT</span>
+          <div class="fd-node system"><div class="fd-title">Bare CLI, no context</div><div class="fd-sub">stated limit, not an oversight (spec Out of Scope)</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Finding the real CLI without finding itself:</b> <code>for /f … in ('where claude')</code> walks every hit in <code>PATH</code> order and skips any whose <code>%%~dpI</code> equals <code>%~dp0</code> — the batch equivalent of the POSIX wrapper's <code>path_without_self</code>, resolved at run time so a version-manager switch is picked up rather than baked in.</li>
+          <li><b>A wrapper that cannot run is worse than no wrapper:</b> with nothing left after the self-exclusion, the script prints <code>Frame: claude was not found on PATH.</code> and exits 127, shadowing nothing. <code>FRAME_NO_WRAP=1</code> executes the real CLI with no Frame arguments — the same escape hatch, honoured in the same one place.</li>
+          <li><b>Exit codes survive:</b> every branch jumps to one pass-through label ending in a bare <code>exit /b</code>. <code>exit /b %ERRORLEVEL%</code> inside an <code>if (…)</code> block would report the code from <i>before</i> the call, because <code>cmd.exe</code> expands variables when it parses the whole block.</li>
+          <li><b>A tool earns a <code>.cmd</code> by having a file-taking flag:</b> the rule is <code>injection.promptFileFlag</code>, not a hardcoded tool name. Codex and Gemini have no equivalent, so they get no wrapper and behave on Windows exactly as they do today.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Lane setup at spawn, when a version manager reorders <code>PATH</code></div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">createTerminal</div><div class="fd-sub">ptyManager.js — unchanged by this plan</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">deliveryFor(shell, platform, …)</div><div class="fd-sub">win32 short-circuit removed</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Family deliverable here?</div><div class="fd-sub">initFamilies(platform)</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">powershell · pwsh</span>
+          <div class="fd-node system"><div class="fd-title">mode: 'flag'</div><div class="fd-sub">-ExecutionPolicy Bypass -NoExit -Command ". 'init.ps1'; &lt;marker&gt;"</div></div>
+          <div class="fd-arrow"><span class="lbl">marker seen</span><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Lane reports <code>installed</code></div><div class="fd-sub">whenReady stops paying the fallback delay</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">marker never arrives</span>
+          <div class="fd-node system"><div class="fd-title">Lane reports <code>failed</code></div><div class="fd-sub">card offers the manual dot-source line</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">cmd · Git Bash · WSL</span>
+          <div class="fd-node system"><div class="fd-title">mode: 'none' → <code>unsupported</code></div><div class="fd-sub">nothing sent, nothing shown</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b><code>ptyManager</code> needs no change:</b> <code>createTerminal</code> already appends a <code>mode: 'flag'</code> delivery's <code>args</code> to <code>shellArgs</code>, and the Windows branch leaves <code>shellArgs</code> empty — so a PowerShell delivery lands as spawn arguments with nothing typed into the terminal. That also dissolves the recorded <code>IN-FLIGHT</code> collision with <code>audit-q3-performance-resources</code>.</li>
+          <li><b>Execution policy, scoped:</b> Windows clients default to <code>Restricted</code>, which blocks dot-sourcing an unsigned local <code>.ps1</code>. <code>-ExecutionPolicy Bypass</code> lifts it for this one process — nothing machine-wide, the same bargain <code>launchEnv</code> already makes for <code>PATH</code>.</li>
+          <li><b>Why a family table rather than a platform check:</b> <code>bash.exe</code> resolves to family <code>posix</code>, so without <code>initFamilies</code> a Git Bash lane would be handed an <code>init.sh</code> defining functions that point at wrappers Windows does not write. The table is the thing that says "deliverable here", and it keeps <code>init.ps1</code> from ever being offered to a Mac.</li>
+          <li><b>No retry, by construction:</b> <code>onSetupTimeout</code> only retries <code>mode: 'type'</code>. A spawn flag cannot be re-sent, which is already true for fish and is correct here for the same reason.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow D — An older Claude Code that does not know the flag</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Composed line typed</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">Did the CLI reach ready?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node outcome"><div class="fd-title">Session with full context</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no — unknown option</span>
+          <div class="fd-node system"><div class="fd-title">Retry bare, once</div><div class="fd-sub">agentDispatch — gate widened to the composed flags</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">Working agent, no context</div><div class="fd-sub">notice says so</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>The mechanism already exists:</b> the bare relaunch was built for <code>--permission-mode auto</code>, which cannot be probed either. Only its gate is narrow — <code>launchFlags</code>, the caller's own extras, rather than the composed set that carries Frame's injection.</li>
+          <li><b>Verified failure mode:</b> an unrecognised option is fatal — <code>error: unknown option '--frame-bogus-flag-xyz'</code>. Without the fallback a stale Windows install would go from broken context to broken launch, which is strictly worse than the problem this spec set out to fix.</li>
+          <li><b>The notice has to branch:</b> today's wording promises guided mode, which is wrong for a dispatch that lost Frame's context instead of its permission flags.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The typed line, before and after</h3>
+  <pre># Windows today — 993 bytes over 9 lines, 6 backticks, typed into the PTY
+claude --append-system-prompt 'Frame context for this session…
+…' --settings /Users/…/.frame/runtime/claude-settings.json
+
+# Windows after this plan — one line, two paths, nothing to parse
+claude --append-system-prompt-file .frame/runtime/preamble-claude.txt --settings .frame/runtime/claude-settings.json
+
+# macOS and Linux — unchanged, still the wrapper, still the string flag
+./.frame/bin/claude</pre>
+</div>
+<div class="card">
+  <h2>3 · Decision story</h2>
+
+  <h4>Business decisions</h4>
+
+  <div class="dcard">
+    <div class="dhead">D1 · Should a Windows lane Frame cannot set up say so?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Stay silent</div>
+        <div class="opttrade">No new UI, consistent with macOS — but a user in <code>cmd.exe</code> never learns why their agent seems less informed.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">A quiet note on the lane card</div>
+        <div class="opttrade">Discoverable and honest — but renderer work in the one area with no test harness, and a row that is always present stops being read.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>unsupported</code> keeps meaning "nothing was sent, nothing is shown", exactly as it does for <code>nu</code> on macOS today; after this spec that state belongs to <code>cmd.exe</code>, Git Bash and WSL. The lane works — it simply carries no Frame context. <code>failed</code> stays the only state with a card row, which is what a PowerShell lane whose init could not be sourced will correctly report.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D2 · What happens when an older Claude Code rejects <code>--append-system-prompt-file</code>?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Auto-retry bare, with a notice</div>
+        <div class="opttrade">Costs one gate widening in <code>src/renderer/agentDispatch.js</code>, an area with no tests — and gives every platform the honest fallback.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">No fallback — let it fail loudly</div>
+        <div class="opttrade">Simpler, and treats the flag as a hard requirement — but the user meets a dead lane and a cryptic CLI error instead of a working agent.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> an unknown option is fatal, verified against the shipping CLI. Without a fallback, a stale Windows install would go from <i>broken context</i> to <i>broken launch</i> — strictly worse than the problem being fixed. The relaunch mechanism already exists for <code>--permission-mode auto</code>; only its gate needed widening from the caller's own flags to the composed set.</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+
+  <div class="dcard">
+    <div class="dhead">D3 · What carries the composed launch on Windows?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Bare CLI name + two project-relative path flags</div>
+        <div class="opttrade">One line every Windows shell runs, works with or without the wrapper — but it means the wrapper must defer rather than compose, to keep a single injection route.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Route through the wrapper, per shell</div>
+        <div class="opttrade">Mirrors the POSIX design exactly — but needs the lane's shell threaded into <code>getLaunchCommand</code>, and still leaves Git Bash with no answer.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> no wrapper path is shell-agnostic — <code>./.frame/bin/claude.cmd</code> reads as a switch to <code>cmd.exe</code>, and <code>.\.frame\bin\claude.cmd</code> has its backslashes eaten by Git Bash. A bare name plus relative paths is the only single line all four shells accept, and it keeps goal 1 independent of goal 2.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D4 · How does PowerShell receive its init?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname"><code>-ExecutionPolicy Bypass -NoExit -Command ". 'init.ps1'; &lt;marker&gt;"</code></div>
+        <div class="opttrade">Keeps the file-based shape the POSIX and fish lanes use and leaves something to paste by hand — but Group Policy can still override the flag on a locked-down machine.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Inline the definitions in <code>-Command</code>, no file</div>
+        <div class="opttrade">Immune to execution policy entirely — but a long generated string inside an argv node-pty must re-quote for ConPTY, with nothing to read or re-run when it fails.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Windows clients default to <code>Restricted</code>, which blocks dot-sourcing an unsigned local <code>.ps1</code>. The flag lifts it for one process and touches nothing machine-wide — the same bargain <code>launchEnv</code> already makes for <code>PATH</code>. Where Group Policy wins, the marker never arrives and the lane reports <code>failed</code>: the designed path, not a new failure mode.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D5 · Should this spec's work ship with tests?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Pure logic and data transforms only</div>
+        <div class="opttrade">Windows behaviour asserted from a Mac, because platform is a parameter — but the generated batch and PowerShell are checked as strings, not executed.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Everything testable</div>
+        <div class="opttrade">Would also execute <code>claude.cmd</code> and <code>init.ps1</code> under <code>{ skip: !win32 }</code> — genuinely stronger, but those assertions run only on the new CI leg and never on a developer's machine.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> this is the convention the testing record describes — target the pure module, skip its Electron-coupled wrapper — and the answer <code>terminal-session-setup</code> gave for the same area. Re-verified this pass: <code>src/renderer/</code> still has no DOM harness, with no <code>jsdom</code>, <code>playwright</code>, <code>@testing-library</code> or <code>puppeteer</code> in <code>devDependencies</code>.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D6 · Which tools get a Windows wrapper? <span class="tag">decided silently</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Any tool whose injection record has <code>promptFileFlag</code></div>
+        <div class="opttrade">A condition rather than a special case — Codex and Gemini fall out naturally, and a future tool that gains such a flag is covered without editing this rule.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">A hardcoded "claude only" branch</div>
+        <div class="opttrade">Shorter to write — but states the tool instead of the reason, and would have to be revisited by whoever picks up Codex.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the file-taking flag is precisely what lets the batch file stay plain — it passes paths, never a 993-byte preamble. A tool without one would need the prose embedded in a generated script, which is the problem this spec exists to remove.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D7 · How do the two injection routes avoid stacking? <span class="tag">follows from D3</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">The <code>.cmd</code> defers when the flag is already in <code>%*</code></div>
+        <div class="opttrade">Whoever composed first owns the injection — one extra process hop when a dispatch resolves through the wrapper.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Accept a duplicate flag pair</div>
+        <div class="opttrade">Last-wins would be harmless in practice since both point at the same files — but it contradicts the constraint outright and would rot the moment the two disagree.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> D3 makes the composed line resolve through <code>.frame/bin</code> on <code>PATH</code>, so both routes can be live at once. Reading its own arguments is how the wrapper knows which case it is in — the same "one path, not two guarded ones" rule <code>terminal-context-boundary</code> established, restated for a shell that resolves by extension.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D8 · How does the <code>.cmd</code> propagate the child's exit code? <span class="tag">follows from D3</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">One <code>goto</code> pass-through label ending in bare <code>exit /b</code></div>
+        <div class="opttrade">Slightly more label plumbing than inline exits — and the only form that is actually correct.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname"><code>exit /b %ERRORLEVEL%</code> after each <code>call</code></div>
+        <div class="opttrade">Reads more explicitly — but inside an <code>if (…)</code> block <code>cmd.exe</code> expands the variable when it parses the block, so it reports the code from before the call.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> success criterion S5 is "the child's exit code reaches the shell unchanged", and the naive form silently fails it in exactly the branches that matter. A bare <code>exit /b</code> leaves the errorlevel the <code>call</code> set.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D9 · Does <code>ptyManager</code> change for the PowerShell lane? <span class="tag">follows from D4</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">No — the existing <code>mode: 'flag'</code> path already carries it</div>
+        <div class="opttrade">Zero new code, and the file leaves this spec's footprint entirely.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Add a Windows branch to <code>createTerminal</code></div>
+        <div class="opttrade">More explicit about what Windows does — but duplicates a path that already works and collides with an in-flight spec.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>createTerminal</code> appends a flag delivery's <code>args</code> to <code>shellArgs</code> unconditionally, and the Windows branch leaves <code>shellArgs</code> empty — so PowerShell's setup lands as spawn arguments with nothing typed. As a consequence the recorded <code>IN-FLIGHT</code> collision with <code>audit-q3-performance-resources</code> on <code>ptyManager.js</code> disappears rather than needing to be scheduled around.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D10 · How does <code>npm test</code> run on Windows? <span class="tag">follows from D5</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">A repo-local <code>scripts/run-tests.js</code> launcher</div>
+        <div class="opttrade">One more file to maintain — but it makes the <code>fixtures/</code> exclusion explicit instead of a property of the shell that happened to expand the glob.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">A <code>cross-env</code>-style dependency</div>
+        <div class="opttrade">The conventional answer — but CI deliberately runs no <code>npm ci</code>, so anything in <code>node_modules</code> passes locally and fails in CI by design.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>FRAME_ACTIVITY_HOME=… node --test test/*.test.js</code> is POSIX-only twice over: <code>cmd.exe</code> sets no inline environment variable, and neither <code>cmd</code> nor Node 20 expands the glob. Success criterion S7 is unreachable without replacing the invocation, and the no-<code>npm ci</code> rule fixes which replacements are available.</div>
+  </div>
+
+  <div class="dcard">
+    <div class="dhead">D11 · Where does the <code>package.json</code> footprint collision go? <span class="tag">follows from D10</span></div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span>
+        <div class="optname">Recorded, and the two specs run sequentially</div>
+        <div class="opttrade">Costs the option of running this spec in a parallel worktree alongside the audit — which is not currently being asked for.</div>
+      </div>
+      <div class="opt rejected">
+        <div class="optname">Keep <code>package.json</code> out and run the launcher only in CI</div>
+        <div class="opttrade">Avoids the collision — but leaves <code>npm test</code> broken on a Windows developer's machine, and S7 names <code>npm test</code> specifically.</div>
+      </div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>audit-q3-performance-resources</code> is phase <code>implementing</code> with <code>package.json</code> in its footprint (T10 in progress, last touched 2026-07-19). This spec changes exactly one line of that file and nothing else in the audit's footprint, so sequencing is enough — but it is recorded rather than discovered at merge time.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>Claude Code too old to know <code>--append-system-prompt-file</code>. The flag has no <code>--help</code> row of its own — it appears only inside <code>--bare</code>'s description — and an unknown option is fatal.</td><td>D2: the bare relaunch fires on Frame's composed flags, so the session comes up without context and says so. The protocol records the version it was verified against (2.1.237); a hand-typed launch through the <code>.cmd</code> has no such retry, which the protocol states plainly along with <code>FRAME_NO_WRAP=1</code> as the manual way out.</td></tr>
+    <tr><td>A space in the project path. Frame projects live under <code>Documents</code> as often as not, and <code>%~dp0</code> quoting is the classic batch failure.</td><td>Flow A sidesteps it entirely by staying project-relative. Flow B cannot — the wrapper has to locate the project from wherever it was invoked — so every path in the <code>.cmd</code> is a quoted variable expansion, and the protocol tests it against a real path with a space rather than trusting the reasoning.</td></tr>
+    <tr><td>Group Policy overrides <code>-ExecutionPolicy Bypass</code> on a managed machine, so <code>init.ps1</code> cannot be dot-sourced.</td><td>The marker never arrives, the lane reports <code>failed</code>, and the card offers the manual line — the path <code>terminal-session-setup</code> already built. The manual line would fail for the same reason, which is a real limit and is stated in the protocol rather than papered over. Goals 1–3 are unaffected: the composed launch and <code>PATHEXT</code> resolution do not touch execution policy.</td></tr>
+    <tr><td>Git Bash resolves <code>PATH</code> with <code>:</code>, but <code>prependFrameBin</code> joins with <code>;</code> on <code>win32</code>.</td><td>Correct as written: the value being extended is <code>process.env.PATH</code>, which is already Windows-shaped, and MSYS converts the whole thing at startup. Git Bash gets goal 1 and goal 3; it is excluded from goal 2 (no <code>PATHEXT</code>) and from goal 4 (family <code>posix</code> is not deliverable on <code>win32</code>), both as stated limits.</td></tr>
+    <tr><td>The rest of the suite has never run on Windows. Several tests shell out to <code>bash</code>, <code>sh</code> or <code>zsh</code>.</td><td>The precedent already exists — <code>frameTemplates.test.js</code> guards its executed wrappers with <code>{ skip: !POSIX }</code>. Step 6 extends that guard to the remaining shell-executing tests and lets the new CI leg be the judge. Git-invoking tests are fine: <code>windows-latest</code> ships git.</td></tr>
+    <tr><td><code>writeIfChanged</code> chmods wrappers to <code>0o755</code>, which is meaningless on Windows.</td><td><code>writeWrapper</code> passes no mode for the <code>cmd</code> family. A <code>.cmd</code> is executable by extension, and Node's <code>chmod</code> on Windows only carries the read-only bit.</td></tr>
+    <tr><td>A Windows lane reporting <code>unsupported</code> looks identical to a working one.</td><td>Accepted, by D1. It is the same trade macOS already makes for <code>nu</code>, and reversing it later is a lane-card change, not an architecture change.</td></tr>
+    <tr><td>Two <code>--settings</code> values on one line would drop the spec-hint hooks.</td><td>Unchanged and already handled: <code>takeSettingsFlags</code> merges a caller's payload into the file Frame writes rather than passing a second flag. The file-flag branch composes from the same merged file.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: Codex and Gemini on Windows (no equivalent file flag — D6 leaves the door open without opening it); rewriting the POSIX wrapper to use the file flag (its own follow-up, so a version-dependent flag never lands on a path that works today); WSL (a second machine, not a shell — the supported route is running Frame <i>inside</i> WSL); a hand-typed <code>claude</code> in Git Bash (would need an extensionless wrapper on Windows and a per-shell carrier choice); <code>cmd.exe</code> function equivalence; Windows packaging and release artifacts.</p>
+</div>
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>The composed launch passes paths, not prose: Claude's injection config gains a file-taking prompt flag and the inline branch prefers it, so the typed line becomes <code>claude --append-system-prompt-file &lt;path&gt; --settings &lt;path&gt;</code> — shell-agnostic across cmd, powershell, pwsh and Git Bash. <span class="tag">G1</span></td><td>Flow A · Sequencing step 2 · <code>inlineInjectionFlags</code> in <code>aiToolManager.js</code></td></tr>
+    <tr><td>A <code>.cmd</code> wrapper covers the hand-typed launch for the shells that resolve one: <code>.frame/bin/claude.cmd</code> finds the real CLI with its own directory removed from the lookup and runs it with the same two path flags, staying plain batch with no Node process in between. <span class="tag">G2</span></td><td>Flow B · Sequencing step 3 · <code>getCmdWrapperTemplate</code> + <code>writeWrapper</code></td></tr>
+    <tr><td>The <code>PATH</code> entry is ungated — <code>prependFrameBin</code> already carries the <code>;</code> separator and was only ever blocked by a check about wrappers. <span class="tag">G3</span></td><td>Flow B · Sequencing step 1 · <code>launchEnv.prependFrameBin</code></td></tr>
+    <tr><td>A shell that reorders <code>PATH</code> does not win: a PowerShell init script sourced at spawn defines one function per tool, closing the nvm-windows analogue of the problem <code>terminal-session-setup</code> solved, and lets the lane report <code>installed</code> instead of <code>unsupported</code>. <span class="tag">G4</span></td><td>Flow C · Sequencing step 4 · <code>shellSetup</code> powershell family + <code>getShellInitTemplate</code></td></tr>
+    <tr><td>A test protocol is a deliverable: nobody on this side has a Windows machine, so verification is a written handoff with the expected output stated for each step. <span class="tag">G5</span></td><td>Sequencing step 7 · <code>test-protocol.md</code></td></tr>
+  </table>
+
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>One injection route, not two — where a wrapper exists Frame contributes no flags of its own; the file flag is what the wrapper passes, not a parallel path around it. <span class="tag">C1</span></td><td>D7 · the <code>.cmd</code> defers when <code>promptFileFlag</code> is already in its arguments; on POSIX <code>wrapperLaunchCommand</code> still suppresses Frame's flags entirely</td></tr>
+    <tr><td>A wrapper that cannot run is worse than no wrapper: the <code>.cmd</code> must pass through transparently when the real CLI is not found, and must propagate the child's exit code. <span class="tag">C2</span></td><td>Sequencing step 3 · exit 127 with a clear message, and D8's single bare <code>exit /b</code></td></tr>
+    <tr><td>The file flag is lower-profile than the string flag, so the POSIX path must not be made to depend on it in the same change. <span class="tag">C3</span></td><td>Sequencing step 2 · the file flag is chosen only where <code>supportsWrappers(platform)</code> is false; macOS and Linux keep the wrapper and the string flag</td></tr>
+    <tr><td><code>FRAME_NO_WRAP=1</code> stays the escape hatch, honoured in the <code>.cmd</code> as it is in the POSIX wrapper, and honoured nowhere else. <span class="tag">C4</span></td><td>Sequencing step 3 · one branch in the generated batch, no other file reads the variable</td></tr>
+    <tr><td>Nothing is written outside <code>.frame/</code>; <code>test/frameProjectInit.test.js</code> is the standing check and must hold on Windows. <span class="tag">C5</span></td><td>Steps 3 and 4 write only <code>.frame/bin/claude.cmd</code> and <code>.frame/runtime/shell/init.ps1</code>; step 6 puts the standing check on the <code>windows-latest</code> leg</td></tr>
+    <tr><td>Generation stays on project open, write-if-changed, per tool. <span class="tag">C6</span></td><td>Sequencing step 3 · <code>writeWrapper</code> self-gates inside <code>prepareLaunchAssets</code>, which <code>refreshLaunchAssets</code> already calls per tool on open, through the existing <code>writeIfChanged</code></td></tr>
+    <tr><td>Logic is testable without Windows: platform, <code>PATH</code> and paths are parameters, not <code>process</code> reads — the shape <code>launchEnv</code> and <code>shellSetup</code> already use. <span class="tag">C7</span></td><td>Steps 1, 2, 3 and 4 · <code>wrapperFamily(platform)</code>, <code>wrapperFileName(toolId, options)</code>, <code>inlineInjectionFlags(tool, assets, platform)</code>, <code>initFamilies(platform)</code>, <code>deliveryFor(shell, platform, …)</code></td></tr>
+    <tr><td>No change to what the preamble says or how it is composed. <span class="tag">C8</span></td><td>No plan file touches <code>src/shared/contextPreamble.js</code>, <code>buildPreamble</code> or <code>preambleFileName</code>; only the carrier changes</td></tr>
+  </table>
+
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>On Windows, a Claude session Frame starts receives the preamble byte for byte — all 9 lines, all 6 backticks — with nothing typed into the PTY containing a newline. <span class="tag">S1</span></td><td>Flow A / step 2 · proven by <code>test/aiToolLaunch.test.js</code> (the composed flags are two paths on <code>win32</code>) and by protocol step 1 on a real machine</td></tr>
+    <tr><td>The same session receives <code>--settings</code>, and the spec-hint hooks fire: a prompt produces the spec-context block, and an edit to a file with spec history produces the file-history block. <span class="tag">S2</span></td><td>Flow A / step 2 · proven by protocol steps 2–3 — the hooks themselves are unchanged and already correct on Windows</td></tr>
+    <tr><td>A hand-typed <code>claude</code> in a Frame lane on Windows gets both of the above. <span class="tag">S3</span></td><td>Flow B / steps 1 and 3 · proven by protocol step 4 in <code>cmd</code> and in PowerShell</td></tr>
+    <tr><td>With the real <code>claude</code> absent from <code>PATH</code>, the <code>.cmd</code> exits with a clear message and shadows nothing; with <code>FRAME_NO_WRAP=1</code>, it starts the real CLI with no Frame arguments. <span class="tag">S4</span></td><td>Step 3 · proven by the string assertions in <code>test/frameTemplates.test.js</code> and by protocol steps 5–6</td></tr>
+    <tr><td>The child's exit code reaches the shell unchanged. <span class="tag">S5</span></td><td>D8 / step 3 · proven by a template assertion that no <code>%ERRORLEVEL%</code> appears inside a parenthesised block, and by protocol step 7 (<code>echo %ERRORLEVEL%</code> after a known-failing invocation)</td></tr>
+    <tr><td>A lane on a Windows shell Frame can set up reports <code>installed</code>, not <code>unsupported</code>, so <code>laneContext.whenReady</code> stops paying the fallback delay. <span class="tag">S6</span></td><td>Flow C / step 4 · proven by <code>test/shellSetup.test.js</code> (delivery shape per shell and platform) and by protocol step 8</td></tr>
+    <tr><td><code>npm test</code> passes on <code>windows-latest</code> in CI. <span class="tag">S7</span></td><td>Step 6 · proven by the CI run itself, on all three matrix legs</td></tr>
+    <tr><td>The test protocol exists, was run by someone on Windows, and its result is recorded in <code>outcome.md</code> — including which Claude Code version was used, since the file flag's availability is version-dependent. <span class="tag">S8</span></td><td>Step 7 · the protocol carries a version line as its first recorded field; the spec does not close until <code>outcome.md</code> holds a real result</td></tr>
+  </table>
+
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td><code>supportsWrappers()</code> returns false for <code>win32</code> and gates every caller from one place.</td><td><span class="pill good">verified</span> <code>src/main/launchEnv.js:35-37</code>, called at <code>launchEnv.js:62</code>, <code>aiToolManager.js:695</code>, <code>:730</code>, <code>:762</code></td></tr>
+    <tr><td><code>shellSetup.deliveryFor()</code> answers <code>{ mode: 'none', reason: 'platform' }</code> before it looks at the shell.</td><td><span class="pill good">verified</span> <code>src/main/shellSetup.js:145</code> — first line of the function body</td></tr>
+    <tr><td>The inline branch appends <code>--append-system-prompt &lt;preamble&gt;</code> and <code>--settings &lt;path&gt;</code>.</td><td><span class="pill good">verified</span> <code>src/main/aiToolManager.js:861-867</code> (spec cited 860-864 — same branch)</td></tr>
+    <tr><td>The composed line is typed into the PTY as <code>data: command + '\r'</code>.</td><td><span class="pill warn">verified, path drifted</span> <code>src/renderer/terminalManager.js:730-737</code> — the file is in <code>src/renderer/</code>, not <code>src/main/</code>; line numbers as cited</td></tr>
+    <tr><td>The preamble is 993 bytes over 9 lines and contains 6 backticks.</td><td><span class="pill good">verified</span> <code>.frame/runtime/preamble-claude.txt</code> — <code>wc</code> reports 9 lines / 993 bytes, 6 backticks</td></tr>
+    <tr><td><code>prepareLaunchAssets</code> gates only its last line on <code>supportsWrappers()</code>, so the payload is already written on Windows.</td><td><span class="pill good">verified</span> <code>src/main/aiToolManager.js:716-732</code> — exactly as quoted</td></tr>
+    <tr><td>Losing <code>--settings</code> costs the spec archive: that file registers the <code>UserPromptSubmit</code> and <code>PreToolUse</code> hooks running <code>node .frame/bin/spec-hint.js</code>.</td><td><span class="pill good">verified</span> <code>src/shared/frameTemplates.js:1132-1145</code></td></tr>
+    <tr><td><code>--append-system-prompt-file</code> exists, takes a path, and is documented only inside <code>--bare</code>'s description.</td><td><span class="pill good">verified</span> CLI 2.1.237 — <code>--help</code> line 47 mentions <code>--append-system-prompt[-file]</code>; a missing path reports <code>Error: Append system prompt file not found: …</code></td></tr>
+    <tr><td>An older Claude Code may reject the flag as unknown and fail the launch outright.</td><td><span class="pill good">verified</span> an unrecognised option answers <code>error: unknown option '--frame-bogus-flag-xyz'</code> and does not start — the failure is hard, as the constraint assumed</td></tr>
+    <tr><td><code>prependFrameBin</code> already carries the <code>;</code> separator at <code>launchEnv.js:69</code>.</td><td><span class="pill good">verified</span> <code>src/main/launchEnv.js:69</code> — reached only after the <code>supportsWrappers</code> return at line 62</td></tr>
+    <tr><td>WSL stays in the shell list at <code>ptyManager.js:311-315</code>.</td><td><span class="pill good">verified</span> <code>src/main/ptyManager.js:310-315</code></td></tr>
+    <tr><td><code>launchEnv.js:18-20</code> states that a wrapper which cannot run is worse than no wrapper.</td><td><span class="pill good">verified</span> <code>src/main/launchEnv.js:18-21</code></td></tr>
+    <tr><td>A flag-mode delivery reaches the shell as spawn arguments, with no retry.</td><td><span class="pill good">new evidence</span> <code>src/main/ptyManager.js:441-444</code> appends <code>setup.args</code>; <code>:161-163</code> returns <code>failed</code> for anything that is not <code>mode: 'type'</code> — so goal 4 needs no <code>ptyManager</code> change</td></tr>
+    <tr><td>A bare relaunch already exists for flags that cannot be probed.</td><td><span class="pill good">new evidence</span> <code>src/renderer/agentDispatch.js:191-209</code> — gated on <code>launchFlags</code>, the caller's own extras, not on the composed set</td></tr>
+    <tr><td>Executed shell tests are already guarded for Windows.</td><td><span class="pill good">new evidence</span> <code>test/frameTemplates.test.js:90</code> — <code>const POSIX = process.platform !== 'win32'</code>, used as <code>{ skip: !POSIX }</code></td></tr>
+    <tr><td>The test invocation is POSIX-only.</td><td><span class="pill warn">new evidence — blocks S7</span> <code>package.json</code> <code>test</code>: <code>FRAME_ACTIVITY_HOME=… node --test test/*.test.js</code>; CI pins Node 20 and runs no <code>npm ci</code> (<code>.github/workflows/ci.yml</code>)</td></tr>
+    <tr><td>Testing record (from <code>.frame/PROJECT_NOTES.md</code> <code>## Testing</code>, recorded 2026-07-20): <code>node --test test/*.test.js</code>; <code>src/main/</code>, <code>src/shared/</code>, <code>scripts/</code> covered; <code>src/renderer/</code> not covered.</td><td><span class="pill good">verified, still true</span> re-checked the "not covered" line because this spec touches <code>src/renderer/</code>: no <code>jsdom</code>, <code>playwright</code>, <code>@testing-library</code> or <code>puppeteer</code> in <code>devDependencies</code></td></tr>
+    <tr><td>Footprint history — <code>ptyManager.js</code> is flagged <code>IN-FLIGHT</code> for <code>audit-q3-performance-resources</code>.</td><td><span class="pill good">verified, dissolved</span> that spec is phase <code>implementing</code> (T10 in progress); <code>ptyManager.js</code> left this plan's footprint via D9, leaving only <code>package.json</code> overlapping — recorded in D11</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — The draft put <code>src/main/ptyManager.js</code> in the footprint for goal 4, and inherited the <code>IN-FLIGHT</code> collision with <code>audit-q3-performance-resources</code> → re-read <code>createTerminal</code>: it already appends a flag delivery's <code>args</code> to <code>shellArgs</code>, and the Windows branch leaves <code>shellArgs</code> empty. Removed the file from Files and Footprint; the collision narrowed to <code>package.json</code> alone (D9, D11).</li>
+    <li><b>Iteration 2</b> — The draft routed the Windows composed launch through <code>./.frame/bin/claude.cmd</code>, mirroring POSIX → <code>cmd.exe</code> reads a leading <code>/</code> as a switch and Git Bash eats the backslashes of the <code>.\</code> form, so no single wrapper path is shell-agnostic. Replaced with the bare name plus relative path flags, and made the <code>.cmd</code> defer when the flag is already present so C1 still holds (D3, D7).</li>
+    <li><b>Iteration 3</b> — The draft's <code>.cmd</code> used <code>exit /b %ERRORLEVEL%</code> inside <code>if (…)</code> blocks → <code>cmd.exe</code> expands variables when it parses a block, so those branches would report the code from before the <code>call</code> and silently fail S5. Restructured to one <code>goto</code> pass-through label ending in a bare <code>exit /b</code>, and added a template assertion for it (D8).</li>
+    <li><b>Iteration 4</b> — The draft left <code>npm test</code> alone and simply added <code>windows-latest</code> to the matrix → the invocation is POSIX-only twice over (<code>cmd.exe</code> sets no inline environment variable; neither <code>cmd</code> nor Node 20 expands the glob), so S7 could not pass, and the no-<code>npm ci</code> rule rules out a <code>cross-env</code> dependency. Added <code>scripts/run-tests.js</code>, which also makes the <code>test/fixtures/</code> exclusion explicit rather than a property of the shell (D10).</li>
+  </ol>
+  <p class="muted">Checklist after iteration 4: format complete (five sections, in order); every G/C/S ID owned by a plan section; every gate decision embedded, no "TBD" and no unresolved fork; every referenced path and symbol either verified above or marked <b>New</b>; Sequencing's seven steps are each independently shippable and carry their own tests.</p>
+</div>
+
+<footer>Generated 2026-08-20 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/windows-claude-context/plan.md</code></footer>
+</div>
+</body>
+</html>

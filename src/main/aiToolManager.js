@@ -55,6 +55,16 @@ let configPath = null;
  * `--settings <file-or-json>`, verified against the shipping CLI. A build that
  * does not know them degrades to the wrapper path rather than passing an
  * unknown flag, which would make the CLI refuse to start at all.
+ *
+ * `promptFileFlag` is the same append, taking a **path** instead of the prose.
+ * It matters only where Frame writes no wrapper and the composed line is typed
+ * into a PTY: the preamble is 9 lines and carries 6 backticks, which `cmd.exe`
+ * submits at the first newline and PowerShell reads as escapes, so on Windows
+ * the string form loses `--settings` and with it the spec-hint hooks. Passing
+ * two paths makes the line single-line and quote-free, and every Windows shell
+ * runs it unchanged. It is deliberately *not* preferred on POSIX: the flag has
+ * no `--help` row of its own, so an older CLI may reject it, and the path that
+ * works today must not acquire a version dependency it does not need.
  */
 const INJECTION_FLAG = 'flag';
 const INJECTION_WRAPPER = 'wrapper';
@@ -75,6 +85,7 @@ const AI_TOOLS = {
     injection: {
       type: INJECTION_FLAG,
       promptFlag: '--append-system-prompt',
+      promptFileFlag: '--append-system-prompt-file',
       settingsFlag: '--settings'
     },
     commands: {
@@ -656,21 +667,42 @@ function takeSettingsFlags(extra, settingsFlag) {
  * flags itself would then inject them a second time on top of the wrapper's.
  * One path, not two guarded ones — which is why `injection` is now data the
  * wrapper reads rather than a switch between two mechanisms.
+ *
+ * Self-gating since Windows joined: the filename, the family and whether this
+ * tool earns a wrapper at all are `launchEnv`'s answers, and `''` comes back
+ * for a tool that gets none — a Windows tool with no file-taking prompt flag,
+ * where a batch wrapper could not carry the preamble and would shadow a
+ * working CLI for nothing. Callers no longer ask the platform first.
+ *
+ * The executable bit is POSIX-only. Windows resolves a `.cmd` through
+ * `PATHEXT`, and `fs.chmodSync` there is a no-op at best.
  */
 function writeWrapper(projectPath, tool) {
-  const target = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, tool.id);
-  const realCommand = tool.fallbackCommand || tool.command || tool.id;
   const injection = tool.injection || {};
-  writeIfChanged(
-    target,
-    templates.getWrapperTemplate(realCommand, {
+  const fileName = launchEnv.wrapperFileName(tool.id, {
+    canPassPaths: !!injection.promptFileFlag
+  });
+  if (!fileName) return '';
+
+  const realCommand = tool.fallbackCommand || tool.command || tool.id;
+  const isCmd = launchEnv.wrapperFamily() === 'cmd';
+  const content = isCmd
+    ? templates.getCmdWrapperTemplate(realCommand, {
+      promptFileFlag: injection.promptFileFlag || '',
+      settingsFlag: injection.settingsFlag || '',
+      preambleFile: runtimeRelPath(preambleFileName(tool.id)),
+      settingsFile: runtimeRelPath(settingsFileName(tool.id))
+    })
+    : templates.getWrapperTemplate(realCommand, {
       promptFlag: injection.promptFlag || '',
       settingsFlag: injection.settingsFlag || '',
       preambleFile: runtimeRelPath(preambleFileName(tool.id)),
       settingsFile: runtimeRelPath(settingsFileName(tool.id))
-    }),
-    0o755
-  );
+    });
+  if (!content) return '';
+
+  const target = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, fileName);
+  writeIfChanged(target, content, isCmd ? undefined : 0o755);
   return target;
 }
 
@@ -684,21 +716,30 @@ function writeWrapper(projectPath, tool) {
  * and a user who switches from zsh to fish should not have to reopen the
  * project to get their functions.
  *
- * Every tool in the registry gets a function, so a newly configured custom tool
- * is routed through its wrapper the next time this runs rather than after a
- * restart.
+ * Every tool that has a wrapper *here* gets a function, so a newly configured
+ * custom tool is routed through its wrapper the next time this runs rather
+ * than after a restart — and a tool Frame cannot wrap on this platform gets no
+ * function, since there would be nothing for it to delegate to.
  *
- * Returns the paths written. Silent no-op where Frame writes no wrappers —
- * there would be nothing for a function to delegate to.
+ * Which families are written is `shellSetup.initFamilies`' answer, not a
+ * platform check of this function's own: on Windows that is `init.ps1` alone,
+ * and writing `init.sh` there would produce functions pointing at
+ * extensionless wrappers that do not exist.
+ *
+ * Returns the paths written.
  */
 function writeShellInit(projectPath) {
-  if (!projectPath || !launchEnv.supportsWrappers()) return [];
+  if (!projectPath) return [];
 
   const binDir = launchEnv.frameBinDir(projectPath);
-  const toolIds = Object.values(getAvailableTools()).map((tool) => tool.id);
+  const toolIds = Object.values(getAvailableTools())
+    .filter((tool) => !!launchEnv.wrapperFileName(tool.id, {
+      canPassPaths: !!(tool.injection && tool.injection.promptFileFlag)
+    }))
+    .map((tool) => tool.id);
   const written = [];
 
-  for (const family of Object.keys(shellSetup.INIT_FILES)) {
+  for (const family of shellSetup.initFamilies()) {
     const content = templates.getShellInitTemplate({ family, binDir, toolIds });
     if (!content) continue;
     const target = shellSetup.shellInitPath(projectPath, family);
@@ -712,6 +753,13 @@ function writeShellInit(projectPath) {
  * Everything a launch of `tool` reads: its preamble, its settings file when it
  * declares one, and its wrapper. Returns the composed preamble so a caller
  * that still injects inline (a platform with no wrappers) can use it.
+ *
+ * `preambleRel`/`settingsRel` are the same two files as project-relative,
+ * forward-slash paths — what a line typed into a PTY should carry. Relative
+ * because the PTY's cwd is the project, which sidesteps both a space in the
+ * project path and the backslash a POSIX shell would eat; forward slashes
+ * because Windows file APIs accept them in arguments and every shell in
+ * Frame's Windows list passes them through untouched.
  */
 function prepareLaunchAssets(projectPath, tool, extraSettings) {
   let preamble = '';
@@ -727,8 +775,57 @@ function prepareLaunchAssets(projectPath, tool, extraSettings) {
     settingsPath = writeToolSettings(projectPath, tool, extraSettings);
   }
 
-  const wrapperPath = launchEnv.supportsWrappers() ? writeWrapper(projectPath, tool) : '';
-  return { preamble, settingsPath, wrapperPath };
+  const wrapperPath = writeWrapper(projectPath, tool);
+  return {
+    preamble,
+    settingsPath,
+    wrapperPath,
+    preambleRel: preamble ? runtimeRelPath(preambleFileName(tool.id)) : '',
+    settingsRel: settingsPath ? runtimeRelPath(settingsFileName(tool.id)) : ''
+  };
+}
+
+/**
+ * The flags a launch adds itself, for a tool Frame could not wrap here.
+ *
+ * Pure, exported and platform-parameterised, so Windows behaviour is asserted
+ * from a Mac. Two shapes, chosen by whether this platform writes wrappers:
+ *
+ *   no wrappers  — `promptFileFlag` with the two project-relative paths. One
+ *                  line, nothing for a shell to parse (see the injection note
+ *                  at the top of this file).
+ *   wrappers     — `promptFlag` with the preamble text and the absolute
+ *                  settings path, exactly as before. This branch is only
+ *                  reached when the wrapper file is missing, and it keeps the
+ *                  POSIX path free of a version-dependent flag.
+ *
+ * Returns `[]` whenever there is nothing to inject — a wrapper-type tool, a
+ * preamble that failed to compose, or a file-flag platform where the file was
+ * never written. The caller reads an empty array as "no injection".
+ */
+function inlineInjectionFlags(tool, assets, platform = process.platform) {
+  const injection = (tool && tool.injection) || {};
+  if (injection.type !== INJECTION_FLAG) return [];
+
+  const written = assets || {};
+  const byFile = !launchEnv.supportsWrappers(platform)
+    && !!injection.promptFileFlag
+    && !!written.preambleRel;
+
+  const flags = [];
+  if (byFile) {
+    flags.push(injection.promptFileFlag, written.preambleRel);
+  } else if (written.preamble && injection.promptFlag) {
+    flags.push(injection.promptFlag, written.preamble);
+  } else {
+    return [];
+  }
+
+  const settings = byFile ? written.settingsRel : written.settingsPath;
+  if (injection.settingsFlag && settings) {
+    flags.push(injection.settingsFlag, settings);
+  }
+  return flags;
 }
 
 /**
@@ -757,6 +854,13 @@ function prepareLaunchAssets(projectPath, tool, extraSettings) {
  * Falls back the moment the file is not there: the availability probe can run
  * before anything has been written, and a path that does not exist reads as
  * "CLI not installed" — a wrong and very confusing answer.
+ *
+ * POSIX only, deliberately, even though Windows now has a `.cmd` to point at.
+ * There is no single spelling of that path every Windows shell accepts:
+ * `./.frame/bin/claude.cmd` reads as a switch to `cmd.exe` and
+ * `.\.frame\bin\claude.cmd` has its backslashes eaten by Git Bash. The
+ * composed line there is the bare CLI plus two path flags instead — shell-
+ * agnostic, and it holds even where the `.cmd` was never written.
  */
 function wrapperLaunchCommand(projectPath, tool) {
   if (!projectPath || !launchEnv.supportsWrappers()) return '';
@@ -822,7 +926,6 @@ function getLaunchCommand(projectPath, toolId, extraFlags) {
     };
   }
 
-  const declared = (tool.injection && tool.injection.type) || INJECTION_WRAPPER;
   const flags = [];
   let command = bareCommandFor(tool);
   let injection = 'none';
@@ -858,13 +961,14 @@ function getLaunchCommand(projectPath, toolId, extraFlags) {
       // injection paths from stacking now that both exist for every tool.
       command = viaWrapper;
       injection = preamble ? INJECTION_WRAPPER : 'none';
-    } else if (preamble && declared === INJECTION_FLAG) {
-      // No wrapper on this platform: compose inline, exactly as before.
-      flags.push(tool.injection.promptFlag, preamble);
-      if (assets.settingsPath) {
-        flags.push(tool.injection.settingsFlag, assets.settingsPath);
+    } else {
+      // No wrapper for this tool here: compose inline. Which flag pair that
+      // means is `inlineInjectionFlags`' call, not this function's.
+      const inline = inlineInjectionFlags(tool, assets);
+      if (inline.length) {
+        flags.push(...inline);
+        injection = INJECTION_FLAG;
       }
-      injection = INJECTION_FLAG;
     }
   } catch (err) {
     // A read-only or full disk must not cost the user their agent; drop the
@@ -899,6 +1003,7 @@ module.exports = {
   refreshLaunchAssets,
   writeShellInit,
   composeLaunchCommand,
+  inlineInjectionFlags,
   addCustomTool,
   removeCustomTool,
   AI_TOOLS

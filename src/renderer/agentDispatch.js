@@ -194,7 +194,16 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     // So the flags are treated as best-effort: retry bare, once. The guard
     // is that no agent process is in the foreground — a merely slow CLI is
     // already detected by name, so this only fires when the launch died.
-    if (!ready && launchFlags && launchFlags.length && !laneStatus.getStatus(targetId).agentName) {
+    //
+    // The gate is the **composed** set, not the caller's own. Frame's own
+    // injection rides in there too, and on a wrapper-less platform that now
+    // means `--append-system-prompt-file` — a flag with no `--help` row of
+    // its own, so an older CLI rejects it outright rather than ignoring it.
+    // Without this widening, a stale install would go from losing its context
+    // to losing its session, which is strictly worse than what this was for.
+    const composed = Array.isArray(composedFlags) ? composedFlags : [];
+    const hadCallerFlags = !!(launchFlags && launchFlags.length);
+    if (!ready && composed.length && !laneStatus.getStatus(targetId).agentName) {
       const bareReady = _waitForAgentReady(targetId);
       if (enter) {
         multiTerminalUI.sendCommand(check.bareCommand || check.resolvedCommand, targetId);
@@ -203,8 +212,13 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
       }
       ready = await bareReady;
       if (ready) {
-        flagsDropped = true;
-        notify.info('Autonomous permissions were refused by this CLI — continuing in guided mode (same loop and report, paced by the CLI’s own prompts)');
+        // Only the caller's own flags being dropped changes what this run can
+        // promise; losing Frame's context costs the session what it knows, not
+        // what it is allowed to do. Two different facts, two different notices.
+        flagsDropped = hadCallerFlags;
+        notify.info(hadCallerFlags
+          ? 'Autonomous permissions were refused by this CLI — continuing in guided mode (same loop and report, paced by the CLI’s own prompts)'
+          : 'This CLI refused Frame’s launch flags — the agent started without Frame’s context (no preamble, no spec-history hooks). Updating the CLI usually fixes it.');
       }
     }
 

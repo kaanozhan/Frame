@@ -46,10 +46,10 @@ test('a login-shell argv0 is still the same shell', () => {
 });
 
 test('shells Frame has no init file for get no family', () => {
-  // Not a failure: nushell's function model matches neither generated file and
-  // Windows has no .cmd wrappers to point one at.
+  // Not a failure: nushell's function and PATH model matches no generated
+  // file, and cmd has no functions at all — doskey macros are too fragile to
+  // build on, so cmd gets the PATH entry and PATHEXT resolution and no more.
   assert.equal(shellSetup.shellFamily('/usr/local/bin/nu'), '');
-  assert.equal(shellSetup.shellFamily('/usr/bin/pwsh'), '');
   assert.equal(shellSetup.shellFamily('C:\\Windows\\System32\\cmd.exe'), '');
   assert.equal(shellSetup.shellFamily(''), '');
   assert.equal(shellSetup.shellFamily(null), '');
@@ -90,12 +90,6 @@ test('a marker carries the shared prefix and nothing that needs quoting', () => 
 });
 
 // ─── deliveryFor · gates ──────────────────────────────────────
-
-test('win32 gets nothing sent', () => {
-  const delivery = deliver('C:\\Program Files\\Git\\bin\\bash.exe', { platform: 'win32' });
-  assert.equal(delivery.mode, 'none');
-  assert.equal(delivery.reason, 'platform');
-});
 
 test('a folder that is not a Frame project gets nothing sent', () => {
   const delivery = deliver('/bin/zsh', { isFrameProject: false });
@@ -162,6 +156,115 @@ test('the fish command carries the split marker too', () => {
   const marker = shellSetup.mintMarker('term-fish', 1);
   const delivery = shellSetup.deliveryFor('/usr/local/bin/fish', 'darwin', PROJECT, { marker });
   assert.ok(!delivery.args[1].includes(marker));
+});
+
+// ─── initFamilies ─────────────────────────────────────────────
+
+test('each platform delivers only the families it can actually serve', () => {
+  assert.deepEqual(shellSetup.initFamilies('darwin'), ['posix', 'fish']);
+  assert.deepEqual(shellSetup.initFamilies('linux'), ['posix', 'fish']);
+  assert.deepEqual(shellSetup.initFamilies('win32'), ['powershell']);
+});
+
+// ─── deliveryFor · PowerShell ─────────────────────────────────
+
+const PS_PROJECT = 'C:\\Users\\dev\\my project';
+const INIT_PS1 = path.join(PS_PROJECT, '.frame', 'runtime', 'shell', 'init.ps1');
+
+const deliverPs = (shellPath, overrides = {}) =>
+  shellSetup.deliveryFor(shellPath, 'win32', 'projectPath' in overrides ? overrides.projectPath : PS_PROJECT, {
+    marker: 'marker' in overrides ? overrides.marker : '__frame_ready_t1_1_a',
+    ...('isFrameProject' in overrides ? { isFrameProject: overrides.isFrameProject } : {})
+  });
+
+test('powershell and pwsh are one family', () => {
+  assert.equal(shellSetup.shellFamily('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'), 'powershell');
+  assert.equal(shellSetup.shellFamily('C:\\Program Files\\PowerShell\\7\\pwsh.exe'), 'powershell');
+  assert.equal(shellSetup.shellFamily('pwsh'), 'powershell');
+});
+
+test('a PowerShell lane is set up at spawn, with nothing typed', () => {
+  const delivery = deliverPs('powershell.exe');
+  assert.equal(delivery.mode, 'flag');
+  assert.ok(!('line' in delivery), 'a typed line would be echoed into the user\'s terminal');
+  assert.deepEqual(delivery.args.slice(0, 4), ['-ExecutionPolicy', 'Bypass', '-NoExit', '-Command']);
+  assert.equal(delivery.args.length, 5);
+});
+
+test('the execution policy is lifted for this process and nothing else', () => {
+  // A Windows client machine defaults to Restricted, which blocks
+  // dot-sourcing an unsigned local .ps1 — the same bargain launchEnv makes
+  // for PATH, scoped to a process Frame spawned.
+  const args = deliverPs('pwsh.exe').args;
+  assert.equal(args[0], '-ExecutionPolicy');
+  assert.equal(args[1], 'Bypass');
+  assert.ok(!args.includes('-Scope'), 'nothing machine-wide is touched');
+});
+
+test('the PowerShell command dot-sources the init file it was given', () => {
+  const command = deliverPs('powershell.exe').args[4];
+  assert.ok(command.startsWith(`. '${INIT_PS1}'; `), command);
+});
+
+test('a project path with an apostrophe is quoted the PowerShell way', () => {
+  // PowerShell escapes a quote inside a literal string by doubling it, not by
+  // the POSIX close-escape-reopen dance.
+  const weird = "C:\\Users\\o'brien\\proj";
+  const command = shellSetup.deliveryFor('pwsh.exe', 'win32', weird, { marker: '__frame_ready_x' }).args[4];
+  assert.ok(command.includes("o''brien"), command);
+  assert.ok(!command.includes("'\\''"), 'POSIX quoting leaked into the PowerShell line');
+});
+
+test('the literal marker never appears in what is delivered', () => {
+  // The invariant that predates PowerShell: the two halves are concatenated
+  // at run time, so a match can only come from real output.
+  const marker = '__frame_ready_t1_1_a';
+  const delivery = deliverPs('powershell.exe');
+  assert.equal(delivery.marker, marker);
+  for (const arg of delivery.args) {
+    assert.ok(!arg.includes(marker), `the marker is spelled out in: ${arg}`);
+  }
+  assert.ok(delivery.args[4].includes("Write-Output ('__frame_ready_' + 't1_1_a')"), delivery.args[4]);
+});
+
+test('a PowerShell lane outside a Frame project still gets nothing', () => {
+  assert.equal(deliverPs('powershell.exe', { isFrameProject: false }).reason, 'not-a-frame-project');
+  assert.equal(deliverPs('powershell.exe', { projectPath: '' }).reason, 'no-project');
+  assert.equal(deliverPs('powershell.exe', { marker: '' }).reason, 'no-marker');
+});
+
+// ─── deliveryFor · the Windows shells Frame leaves alone ──────
+
+test('cmd, Git Bash and WSL are unsupported on Windows, not failures', () => {
+  // The gate decision: `unsupported` stays silent — the lane works, it simply
+  // has no Frame context, exactly as `nu` behaves on macOS.
+  for (const shell of ['cmd.exe', 'C:\\Program Files\\Git\\bin\\bash.exe', 'wsl.exe']) {
+    const delivery = deliverPs(shell);
+    assert.equal(delivery.mode, 'none', shell);
+    assert.equal(delivery.reason, 'unsupported-shell', shell);
+    assert.ok(!('line' in delivery) && !('args' in delivery), `${shell} was sent something`);
+  }
+});
+
+test('Git Bash is refused for its family, not for its name', () => {
+  // bash.exe resolves to `posix`, whose init file defines functions pointing
+  // at extensionless wrappers Windows never writes. Delivering it would set
+  // the lane up to fail rather than leave it alone.
+  assert.equal(shellSetup.shellFamily('C:\\Program Files\\Git\\bin\\bash.exe'), 'posix');
+  assert.ok(!shellSetup.initFamilies('win32').includes('posix'));
+});
+
+test('init.ps1 is never offered to a Mac', () => {
+  for (const shell of ['pwsh', 'powershell.exe']) {
+    const delivery = shellSetup.deliveryFor(shell, 'darwin', PROJECT, { marker: '__frame_ready_x' });
+    assert.equal(delivery.mode, 'none', shell);
+    assert.equal(delivery.reason, 'unsupported-shell', shell);
+  }
+});
+
+test('the POSIX families keep working now that the win32 short-circuit is gone', () => {
+  assert.equal(deliver('/bin/zsh').mode, 'type');
+  assert.equal(deliver('/opt/homebrew/bin/fish').mode, 'flag');
 });
 
 // ─── manualCommand ────────────────────────────────────────────

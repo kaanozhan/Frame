@@ -8,6 +8,17 @@
 # repo-local modules only (verified by running it without node_modules),
 # and postinstall (electron-rebuild) would need Electron binaries — slow
 # and fragile for zero benefit here.
+#
+# windows-latest joined the matrix with windows-claude-context, which is the
+# first spec to ship Windows behaviour: a .cmd wrapper, a PowerShell init file
+# and a launch line composed for shells that parse nothing. Those are asserted
+# from pure modules with `platform` as a parameter, so the value of this leg is
+# the opposite — it catches the POSIX assumptions the suite itself makes.
+# `npm test` runs through scripts/run-tests.js for the same reason: cmd.exe
+# would neither set the inline environment variable nor expand the glob the
+# script used to carry, and the leg would have passed while running nothing.
+# The tests that genuinely need a POSIX shell (executing a generated wrapper or
+# sourcing init.sh) carry `{ skip: !POSIX }` and report as skipped here.
 name: CI
 
 on:
@@ -20,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

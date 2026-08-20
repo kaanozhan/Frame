@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Windows context parity for Claude Code — Implementation Report</title>
+<style>
+  /* Frame's design system, dark theme — variable names and values copied
+     from src/renderer/styles/variables.css so a drift there is a one-line
+     diff here. Layout follows the app's dashboards: a gradient header bar
+     over a bg-deep page, content in bordered cards with a tinted head strip.
+     Diff rows use the system's dedicated diff colours rather than the
+     semantic success/error pair — a changed line is not a status. */
+  :root{
+    --bg-deep:#0f0f10;--bg-primary:#151516;--bg-secondary:#1a1a1c;--bg-tertiary:#222225;
+    --text-primary:#e8e6e3;--text-secondary:#a09b94;--text-tertiary:#6b6660;
+    --accent-primary:#d4a574;--accent-subtle:rgba(212,165,116,0.15);
+    --success:#7cb382;--warning:#e0a458;--error:#d47878;--info:#78a5d4;
+    --diff-ins-bg:rgba(63,185,80,0.15);--diff-del-bg:rgba(248,81,73,0.15);--diff-fg:#c9d1d9;
+    --border-subtle:rgba(255,255,255,0.06);--border-default:rgba(255,255,255,0.08);
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
+    --space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;
+    --radius-sm:6px;--radius-md:8px;--radius-lg:12px;
+    --font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-primary);line-height:1.55;}
+
+  /* Header bar — the app's dashboard header, verbatim in spirit. */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-md);flex-wrap:wrap;
+    padding:var(--space-lg) var(--space-xl);border-bottom:1px solid var(--border-subtle);
+    background:linear-gradient(180deg,var(--bg-secondary) 0%,var(--bg-primary) 100%);}
+  .topbar-title{display:flex;align-items:center;gap:var(--space-md);min-width:0;}
+  .logo{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
+    display:block;flex-shrink:0;}
+  .brand{font-size:16px;font-weight:700;letter-spacing:-0.2px;color:var(--accent-primary);}
+  .brand-sep{width:1px;align-self:stretch;background:var(--border-default);flex-shrink:0;}
+  .doc-block{display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+  .doc-type{font-size:14px;font-weight:600;color:var(--text-primary);
+    text-transform:uppercase;letter-spacing:.08em;}
+  .topbar-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:var(--space-xl) var(--space-lg);
+    display:flex;flex-direction:column;gap:var(--space-lg);}
+
+  /* Report head — the spec's full name lives here, not in the topbar, so the
+     bar stays a stable brand strip while the title gets document scale. */
+  .report-head{padding:var(--space-md) 0 var(--space-xs);}
+  .slug-chip{font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+    color:var(--accent-primary);background:var(--accent-subtle);
+    border:1px solid rgba(212,165,116,0.35);padding:3px 10px;border-radius:999px;}
+  .report-head h1{font-size:27px;font-weight:700;letter-spacing:-0.6px;
+    line-height:1.25;color:var(--text-primary);max-width:900px;}
+
+  .chip{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);
+    background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+    padding:3px 8px;border-radius:var(--radius-sm);}
+  .pill{display:inline-block;font-size:11px;color:var(--text-secondary);
+    background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+    padding:3px 10px;border-radius:999px;}
+  .pill.good{color:var(--success);border-color:var(--success);}
+  .pill.warn{color:var(--warning);border-color:var(--warning);}
+  .pill.bad{color:var(--error);border-color:var(--error);}
+
+  .card{background:var(--bg-secondary);border:1px solid var(--border-default);
+    border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .card-head{display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap;
+    padding:var(--space-md) var(--space-lg);background:var(--bg-tertiary);
+    border-bottom:1px solid var(--border-subtle);}
+  .card-id{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent-primary);
+    background:var(--accent-subtle);padding:2px 8px;border-radius:var(--radius-sm);}
+  .card-head h2{font-size:14px;font-weight:600;letter-spacing:-0.2px;color:var(--text-primary);flex:1;min-width:180px;}
+  .card-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+  .card-body{padding:var(--space-lg);}
+
+  .field{margin-bottom:var(--space-md);}
+  .label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-tertiary);margin-bottom:2px;}
+  .field p{font-size:13.5px;color:var(--text-primary);}
+  .muted{color:var(--text-secondary);font-size:13px;}
+  code{background:var(--bg-tertiary);border-radius:var(--radius-sm);padding:1px 5px;
+    font-size:12px;font-family:var(--font-mono);}
+
+  details{border-top:1px solid var(--border-subtle);padding-top:var(--space-md);}
+  summary{cursor:pointer;display:inline-flex;align-items:center;gap:var(--space-sm);
+    font-size:12px;font-weight:600;color:var(--accent-primary);text-transform:uppercase;
+    letter-spacing:.06em;background:var(--accent-subtle);
+    border:1px solid rgba(212,165,116,0.35);border-radius:var(--radius-sm);
+    padding:6px 14px;list-style:none;user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:'\25B8';font-size:11px;line-height:1;}
+  details[open] summary::before{content:'\25BE';}
+  summary:hover{border-color:var(--accent-primary);background:rgba(212,165,116,0.22);}
+  pre.diff{background:var(--bg-deep);border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+    padding:var(--space-md) 0;font-size:12px;font-family:var(--font-mono);line-height:1.5;
+    overflow-x:auto;margin-top:var(--space-sm);display:flex;flex-direction:column;}
+  pre.diff span{white-space:pre;padding:0 var(--space-lg);min-width:100%;width:max-content;}
+  .dl-add{background:var(--diff-ins-bg);color:var(--diff-fg);}
+  .dl-del{background:var(--diff-del-bg);color:var(--diff-fg);}
+  .dl-ctx{color:var(--text-secondary);}
+  .dl-hunk{color:var(--info);}
+  .dl-file{color:var(--text-primary);}
+  .dl-meta{color:var(--text-tertiary);}
+
+  /* Run-status banner — a live run's progress at the top of the report, the
+     reason a terminal-launched run's report is worth reloading. Live borrows
+     the accent tint; complete switches to success. */
+  .run-status{display:flex;align-items:center;gap:var(--space-sm) var(--space-md);flex-wrap:wrap;
+    padding:var(--space-md) var(--space-lg);border-radius:var(--radius-lg);
+    border:1px solid var(--border-default);background:var(--bg-secondary);font-size:13px;}
+  .run-status.live{border-color:rgba(212,165,116,0.35);background:var(--accent-subtle);}
+  .run-status.done{border-color:var(--success);background:rgba(124,179,130,0.12);}
+  .rs-badge{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+    padding:3px 10px;border-radius:999px;flex-shrink:0;}
+  .run-status.live .rs-badge{color:var(--accent-primary);background:rgba(212,165,116,0.18);
+    border:1px solid rgba(212,165,116,0.4);}
+  .run-status.done .rs-badge{color:var(--success);background:rgba(124,179,130,0.15);
+    border:1px solid var(--success);}
+  .rs-count{color:var(--text-primary);font-weight:500;min-width:0;}
+  .rs-task{font-family:var(--font-mono);font-size:12px;color:var(--accent-primary);}
+  .rs-note{color:var(--text-primary);font-size:12px;margin-left:auto;
+    display:inline-flex;align-items:center;gap:6px;}
+  .rs-info{flex-shrink:0;opacity:0.85;}
+
+  /* Empty state — the report before its first task. A dashed border reads as
+     a placeholder rather than a finished card; the icon and copy tell the
+     reader the page is waiting, not empty by mistake. */
+  .empty-state{display:flex;flex-direction:column;align-items:center;text-align:center;
+    gap:var(--space-md);padding:var(--space-xl) var(--space-lg);
+    background:var(--bg-secondary);border:1px dashed var(--border-default);
+    border-radius:var(--radius-lg);color:var(--accent-primary);}
+  .es-icon{width:44px;height:44px;opacity:0.85;}
+  .empty-state h2{font-size:16px;font-weight:600;letter-spacing:-0.2px;color:var(--text-primary);}
+  .empty-state p{font-size:13.5px;color:var(--text-secondary);max-width:480px;line-height:1.6;}
+  .empty-state .es-note{font-size:12px;color:var(--text-tertiary);}
+
+  footer{color:var(--text-tertiary);font-size:11.5px;text-align:center;
+    padding:var(--space-lg);border-top:1px solid var(--border-subtle);}
+  @media (max-width:560px){.card-head{gap:var(--space-sm);}.report-head h1{font-size:20px;}
+    .rs-note{margin-left:0;}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-title">
+    <img class="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAYKADAAQAAAABAAAAYAAAAACpM19OAAAlwUlEQVR4AY18aYxk13Xeq72q950z9HATRyTFMW2LhijJkOTYciRYluTAECAgduIgRmA4CJwEyJ8ESJAEiIEACZANiJAfSeAN3iDAsRPTsmzIMSSKZkBKikacMTVDDTmc7p7el+raq/J93znnvlfdoyR3uu+795zvfOfcc+999d6r11NaXnlokmWlUoZSykpoZ5kqb0jh7XKuog2lKLJKJiZ7YB0GuTKsyGaMHkc2Kapyg+/WmkwmJY4BP2E4DS0oiBNoGomeZYGGroegOskmGCEk0uY2YkEVHo029OhFkwjhhIU0dShgoYByWph+ukVMRCcNKh6jWDtocWT2GHTOph7weSTsyNBCTe2wDnIdCRRvcVwccVbComApKkyS18ApFuElZosyHRmmDcGkLjQg8q6ILPAcZvZFFpFgGMQYToMmG36D1I+pmxhDArgK+xohyXx1ijhZpIZbqI8AaIm2D2riCUro5MhTnmIrLJmEMWoO3oYX4ASQIw8AB8iFdYl12UkKNKwbSJDnMEUuBIUsEZV3TahwcteIDWoboUkVbVHm2gIhHcik7NTInFGEDwthakqhEoa58wR7oJyrMI+jJAX5NDF7opFYLWAtGKupkLnHYNoYm8wKZ6rwapzO4OcNw56vzSLsCtppRTWiYrgpMgUWYy4aJMQFcEGjXBmd2cJ7MaEGNZW1UQOgmlisGlsaBXNx0GugfEjsGkw1ujYMymN9KSAjoP4iiZk4TBC07ehbjGbyVPBlMtWGNcGFteajEMbbOKDrHRLTVMNGzY4BKPU4kBEsYa5ENRwjQAHkfQuHNdiMykTS0zaVvBOtcymGOP3AytpoKBIcyzG1TklHovIdZ44hMQOpEgl7khjKKSRhO5d6yw0vAEztWqNEJzcXcXSnYFMadrgMeVDikiOKoJCuoKLIxNIQZSXtaiQoZKHC0dCacDatW3QmCQXaF+hZ0A5JePStLW5vGkgdVPgxAWtDJCtTyNYrSEyYajRsEZl50DFNxlY0t/a03LdnMnfDHBQnaRkzndbwIw+UhTwXW4jqW3MKgo795AZxpjCJbBIHo7Qfc5UUD+LxHCVmgMM3j2qHIIEe6JVCH7I8co8n12FaWEFg1ZnJ2BMyNfLIjE4UAKdophrA2E944jHnktRW+zlAkeUcg6vEMk1FTYENSg41UdGFGaSaDesQZch0UifeZxSfYlG0X2BkSX0AOYHBCzBpS2mJoitJgILVjjSTbcTCATheumSdCHOCHOBOk0ocoEoTb2NwZ1qYmvPk3DUKXcJ0zsJg6AfD9rA83kiQKRQKeJEjNi1Zus1p1lOS8yGYyIyszQB8OtwPqYwLCoFw30SQ2vxIKZXOeiZzYxGSZbaJBT4ZE58DFBYrFRGoZaxOgUMCSJsqiOm5VOrCKUC4hwOWNFHS2CWI6yCnkzXa1qUph1cpI9bKbKteqVYhASXuDMtl/KCyBgQs4SQ/yrWC99CM3O4ts7NO7/7eUbubdO5ZoFKtmq2vLszONGXPJIWDfEAmsXhzr7DX8EdjlAlqdFGhA8xoNDrr9vuD4WCUlbkHgtVCCxaLqbCCoEh+kttSNtcsj4b9pYWFz/3SL860msgY08I5KFUqniBfDlMJAsTozFG4LRwb9drvf/Hlf/yvfiXLKgJz2Lb1OFGTSa/f//mf/vFP/dj7u72BSXLr5KuYfIbNBRD/mKZCgrQWs0n7rPcL/+jfn7YPGrUqFi9dY5NavKpT6KBTgsjLNHJAMRzrIoxaZfL+73/mA+995nsur9aqVZtMGqBwmmRoUvGYRtpEZj3XuKNs0mzUq9UKF6QVWxahNlm9WmvWGxxABOjgdGDQUcgUbNYSeaKUvrS8OPzsp3/4y//rW1+7fqvbz8bGUKg9WWJFgmyMyk5OHi6zDGvxJz76wl/9Kz96dNwejsaCJBxZ8atEqSU7U5tHA0hccGR9LvyCXsK8KnH1A2I/JgczV0cq0TRq4GGUcsScUhSpdfAYa//v/OynV1cWX37tRlaqCZJbkTt6OGoFkTfcSofKCgKCCnnp9bHIU+Euq1YqEWscc+aEVAN5sNXh02v0pRoWZKVwIcaVzi2mLNAQDezieq2Kk4gvCCWIgBTitCuZQa8jKq4gdnHeGY1A4mYYznA4xglUwAsVxACq9nMQ/X0XsCsiIhwR9M7+0d3NXeOnHVoBoDfbevlsWlhyUEDWqpXvvL2Fk3wKkCEpRybBGe7O3Z1XvvHGYDA0Vkw+uYnT2DUQH/XFzwgDZyWswSuXVtdXFnE+MmaF4m3PRRwIoEbT9YBzkEwDxCNGlGRslLKZVuPPvvqNf/ZvfrXVrFOf1OBFm+spfFMge1ORzwA6aIxYIKWebzbXigTter36X37rxf/8my9Sfr6Q0bLNBWqRBcZC0pQxn91e/5/8vZ/5mZ/66Gm7IwhCooFHySaKjdPzIgldYAUZG+FoUZZjbLIEVoWIOr3+P/+3v3b95ndqtfppl0MxYqYmL3KvAFMYRjDdpYy58UjtjBFxZ9lJBx/DidSvDAim28QXxhSElIAkLzVq9d/8vT99/dtv/4Of/wzmI9cILw+qaKEGqUiBn8JJOlQ2YtQc+4UyGo5ffvXGO9sHw0mlP+BlBYk8yWCkCU2lkFI7AjLGlYtlUnTgvlwk+GBIfLKZ3sZJIz3MShbMlHNFgdN86fVb72Ad2XVQWCJoOkVc+clABqyMpsQVpAgKUSSMN5Iq+vh0xsPsXn+i6dXAPKq8rZaYlTvquT5tL4DI9GLMoRFW0tOsCJ1qWziIjgT88IoiK++o3R9OZmo82VtK/ByQFq7swzhCIx8Cjk8xOqGI7vKmuhBRw2JN8qGN9BONpgnMzNphMdso42MKmwippPEk6/TiuiMZkkwkRo9uKpBMFXx6lmYb9IG84QIAW348xp2KrZ2AJrYUUmFTGcgWo1JU8OHBK57A+adYjEi+wySO4diPudgJTWCdXIkblNJ8q9yoYkjY9hwbMnVnp98dKLCERwM/BUP4uSCAjJuvXpk8vNyolksjfB6Vsk5/fNYf9Qal4Wj6PA02oAtEoofIpMyv1KoMLAEqTyZbBPlJOg9PUna5QmSEtqu5DLhvuchCJaRVZgUMdtJsPXtovvT8o/NXH5pdX8ANCq56ytuH3d9+5Z27h6MzbM+0AHPfoPFiUVKDlj6sRpNsvp49ulz51HNrl5eauKbBNdS9g7O3ds9efvNo83jcGdiWFwOjjKg1FOsxNHLyF6w+BjtAqGXuhsQQyJO0jRp96oRzUEoDKfhrZzM2isWoVYMSbmuVbHGm8q61+qMrzdl6+ajd4/VgJ+t0B+9eb/WG3a2T4WiUzc/YziOX2EVqrcSZlbFYTrvZTHWyOlu5ujE7Ho4OT3tAYQ3N1sqXFhvv3mgNJr2tY1zPxgDsWAjSkwFayxvGyXM3Ee7aD1qoYQgZV1B0hY4ejmRD0WxEDzKfhmk70bhBtjCTPbJc+8hTqxgDZp7Z0TXbYqv6wSdXjrs7vdH4oD1ebJWrWEiaSQwgPNMv49dGxJBxFd0bjNbmyleWa88/tsgpJIABYs+C88PvXjnp754NhoftiBkYo4uQPD4z1qgckgDJJEyJ8gtFa07XyRDinFZSV5GRwyoODGB2MTxZYQBzszOXH97AvQJuTQ4ODnd3DjHaenl8eaH0yWurC03cr+BiRxPsRDgwN/hRfic4y3zh+s5gNO4OxlhNG+vLq2srWIEw2t7cOTk+xW4BEtmaHhojgYhbWUuFTuiHfUXJNiX58ICWxgzVjpM0VaQzUtSp5G0QaSCGTIDUMF+MyQLTEVfDc/MzuMZHgm68tXtz8/TSYnN1rg6q5ZlavaooZQMrLQvEwO9a6JfuJs1q6drDc4PRpFYp39hqdyrNRx9rIhu4H9zfPdQ6A9woCiEyDBXmwx2YwEckEzqIpBhKjsMQLy8AgNQWCWhf7BNs611mVkUk7ixp1Hdr1/HuCQWDvb19cv3eySef21icqWKEyJqPK5nL0sbDptTIy/seX8IqOxuMP//aVjurfuS9hMDaA3N/MOAcsdbBWdmxktywQZAVWvBXQg09Edp1EB1B6xgZmW3COZORCEkJQUUjytTHwsVph0VLGDelr9689803dxaqkx95aqVZK+NT2YE0wE8qZpa6aFCLnTXCZJYzmHeGk1//4jff89jaD77nik5u8CF/bjodFXo5vbW0TsNDcYqIBcR55BrPS2XECbGEAgGJMQVJJNstGdBUCbQdTYkd0R2M8EgBZxzcvh0cn93dOmjhKmapiXM2kILlFoysWKB2BA9U8mqzdHmxsdgo37m3v3901u32cWJC7nrDMW5KtEadAjY5dZFWbT5nCkAow0uyNCRP0gBLmxJbxCQmLUjisF5xKK5P9N1EQWHl77dxgdt/8Zv3Ly22ZnY6X7q+fWm+9pefXcMIhzyV2tgj0bJK6z0iTkeouUnQRw5GWWmhVfv4tfW7h8e//N9fa1QmeLCzddS9sz866hgtDUXpdSIqNGwgArLJQh9YJba9PSnU4a6KWkKsWCx5z0KLvjar4xk55agsoADxM+WsP94+RS4HC83xQwsNXA3VKpQTHgl1r/Q47RUoIsWKiHnBKifKIi8asmy+WTntjbaPB4edwe7JsI2vKMBuaTY0rM9H5g4pB7ttFrSsq4YvZJ8RRoBPETMzPlp6UXhqu1UoiJfSTXI1NFLg2B1mdw/Hg1G/O1v+8NWlerWCq7iIn0zm1Thp57bi9Dan1JGM0i0om2QrM7XFVu3Vd052T4f7J3wQbOSOp50Hg6NlTKJCZXycHBX5cnWhzS+eBBEsKqw081dAFqhhkmcl5LDN0dqGFEwqFZ5xUETowbCfg9mbKlRJjZHRIo29gNK1D59F2vWwE7vlA7l990RCUgAOLoQWbmgRjztDjSMNomvQPEDm5YJ3A0M8bQVb7gb4KNjnzQtgmPPUBjlV8YvWNFI9aU3OmvOhEkd0xGRS/6i6EHj4MpT5jDaPZNOFolmCUYM0J/nyhn9fLzgUIiBFZGVaDNhCI5utT37k6eX1OWwvfFYC4QFOHcIwjuGAp0w3ofOkdmNy4WT0sWdWd077f3zzAHe/+Pax+NyLp1snKJjTzik4GcFGYUoyx8VZMb9xJR1cHo1b4gAei04r1JpWi8ir5Cl4cM3SqpfX5hsbCw1/FhER4GGFuefNJYT5VCfenI4RYBp1y4bYQJW7nWS4U8UjfzxR6Q0LQxQkvOXwNI5cxJZFnFxL5D06jwQlI8OzSz/4RVjKEY3wqx+2pwoECisXSoKlh+KRKRH4mH/pzZPT7mimXnnh8Tnc98vuAiEcaYKxEHCl89Kbp+3eaKZReeExmOg6Rma4pNCXyYxSFPlsIhKPiDuDZLjoU/geIyfcbCgA1js4cJVEQYJ8BqkwpDNzkUJAO1jQiD8UOYAtFomsmdqGprKo1TXxS7dP7p8MV2erP/joLEbrhufskxTfyk2yl26f7p4OVmarzz9SMDlnChPLqRqsbAAWAFKX8DZtdJFEaqSeaZBz3GqAhAlmhmOobBBreABqtVqz2cCcYnMMhtgXnN4HFcQSCqb0XHJoAQS2GBYOblM9dZMJb82hI6mPBg0Y4yGkvjXDjS5MSqhzp94sDNvYRcHh5EwgdVf4srvVqGHdocFH1KQjsMAbUFpQY1sM0WgdAUiF8GyzgW8/v/TS13f2DgdDPmHo9QbbB2doQvV/Kbhq4+mCLixY0rEnGVrcGtwg4/nFhfWHVtNlnsEZEG7Wd/YP9g4QBreSDOHRR25cxhY1Z5xZZiGPteR0OMrwaORzv/L7/NpHJ/jrb7zFNwOGBaA4ue4sSrLYp1gQaTz0ZlGaGF8y/8lXvv6H//NVWCFBUHb6Za45RuLREElS604w0/VqeaZexkWQkaQaVmtzPE0vNrE++MhiZW35iatPKAManQ8LOno4PjweDkfrs1U8iF6QSaKyaIFp1Uq9AZ698ekA88eHc6ICNNj6o8n2Xvtzv/Y/IIMJxHj8UuXbPMh8wjHasNBwwLO0sjF9EgoCYF2RW6HFjnOgab6ECyFmZWN28tRDMz/05DKCwDAjlURgaeA8jfVVzia4l33m2lOPPH6lVi2/+PLt3/vKLTy3Bjlm+xMfePwnPvBkbzDeurv5rW+8Xq5V8e0FeEQXcXE4+NJ9gkcDX7198K3N0902bT03EQ9BLOhbJKmLRrpvjYGYkhqz4K2GivVT06S+d8+7ChSO7pUIZ+BeRRMPcWbqVbs1FZ7h2ezgMxtZqFQra1cuLS4v4MSGJG7unb38+majziXX6Q1/4Oo6hFhfcwvzVx6/srezN+gPueToRiUmBSempk1DUjGoPB43kXee2B5QjCsYw4MB/Uo6TpgUkgO/ToWDebParNA2NUndKQUEswtxPIRjtliUbMq9ixP/M9/79OLyEjYGz8SlEt6+QFpxVYnPdWwW0OgMNf/Us09VazVGYb8ioWOSsZZD6cRtUnNjJu6dInevBq09HqNAbePCzlIbaHse5MMN0uIRGGAJjzr5KLgzvbz5snM8wabkUbnUQqccGWEe8AxkNL72+OrP/vhzS/OtuVbtr3/82R94ch1KcihNqGmAXx5gocywqQIgV6evD/TckmBromWNgkZKRZSTGJHYKITW7uZhJs9CBr11UGNuMRY7mTE2PCF0XfKOPtruHUfb25QyAY7WwULl1HkLQ8Olw/vec/n91668cmNrMCz/3c+8DzoIiVBBA0U1K/dDNf+hq0WXNMQIjI8N39eQAD3Ac7ywxr7EP8kLlZvlEnzMg9/EGkoiCAzW+SMPr13eWEYD4xqMRt964y4+WaZufMACjkgQ6fgpVB5luGjipbQ7gFw4YgEWno2M9xCT4fCvfewa5gIPCu10E3wEFApCjBWEo26G+QjXvIqU/DKwhtXIyHNPP8q3CPVe1ub2/tube3Jk3LSnmY4mQk00JfJosSadGniTcvDTP/mhX/wbnzg764Hu/u7xJ37ul/aP2pV8CSgai4gjx9P1yc7J8O39zspcrVmtcK9MewUz84arADx+xZWnUZXw4fUkRq9XNgmBGc7TTALJQZFYfBpB0O1P3tpv756OugN7IMeozSFqGvIsyVc5lxZan/sXf2uDr1GNW83Gf/jlF//pv/vtGb7iFIVeioVJye/FprSIRH18lCzOlhfnGmPOEQeFr3HWFuudThsvntrCIBC/FjxCmWT4uB0Mu0vN8pWVFh5rrc/XQk0osPgZDoe3bt5aWlnauLSOiKGArx4+pXkBjQ97FPtiZ39ne3cwgDNo8mUqb6Xtw95hZ3hj6/TN3d5pL3/bJCWSw1UykYdLK81WHZfRvFrC79xMbWGGOY1znWK04GjGAh4lKPGhAQSK1Tjoe+Qa3nSliDjMaLOO1SpYVMgULdwqw2d1bzi5vtl9+2i41Kp87Fl8k8ErGOg5bsFGw9GdW2+hXltfxbaCtW1E5o8o20Wl7a2dt998u9HA92jix84VFCPElwIv3znZaw8O28M+HlanUQBwoSBgXEMg9fBuYeIlZFxU4MknPPo5wBQpCdLoOgiKXJq4CdfOM9fyDyYPRBqljC4vBNfDpf0Jb7F6w+Hnv3b/qfUZfJ8Bwo15PB5COrlv8BLn7v3dw/1DDJ20EZ/lCM4hGA6GuGtSJIwG6Wj3htVy+Z2j3o3tNr4CavfGeyc4Z1koKXg2psYkcgVvYsbvDlPwyQCeNSQI8i1m3AkjfvdnRObS4pYiERdDcQJcDeL0Ml8v4RV9fGV8hJk67MFqgeck5hi3DsgAVhCup7msvDgnVxCbPkEDviSPxZvtnQ4O2n3cx+DmHleh840yXoo66+DrpfhGoBi3CCwNdBBOYm49VK0g6Ny1YCmMdJIWIBKXc1nYYISF8ZpTyZ00zX3kifeWLfwVwVzpw1cX3rU+ixeCcC++3x58Z697c7uNgJCdZx+e5T7lfRMDVTq4pr3wyUFqZjDcaw8hwYfdymz98dXm0/AxmeCm7t5h90s3drfbWbuPKSnGlRLiwthbkruj8OGuIku6NlFgxRVkBCnE8OW2pGKuz1FRKlramW0pW2iUNuYq73ts/iEsmHJ5tkGjhVb1sRW8KJTh65qT7vDWzhno0EUcHnosJG035op3G5yc0ml3CCI8D4KrVo3fINmDJKjW5usfvLr88ndO7x0P8blBTsSoEdJrFIWWgicKktQPFHc1kdh9ZoBPsfMg60udzKwRjGZLIu1iJ8DBjNBYbOJcU7328DxixUwrkgkGNrvUwJC2jnpnPXyTxQ8sfHoBb2tQK9Q4nIsdSQGYb5YfQX6lt0wyj9yztaWHazfvdw46Q3zkM1SdPtyt+qhshbKnQqdomG8bim0QSvMCksI5KOkiSABNxnznwiQzSscQ7InHm04NvLmBi1ZBrWIylawMc746W7OpsljATRC3GwaHpi9xykVql5q4ljG8iZMtHK3N1tp9vHPUD4COCa4eczSVp+RWEYYl3bshw+CiDZWTOsm5ETDNUTAO77mtu9LEQ/XCE0tXlrWvFJFmVH7QQgpQeLZIfpkUYsSidSGVXDDJ7BnY/UwNU+PBo5XHDvs3t7ZSJLTxCYuwp4+ipwgDNR9mm+TmFOdJSSwAwKPBiItJIZWXAgWbkSyiG1WegPAwU9fZSo+cByvgXEqpYAzMiGEEMjbUgbIjajaET9YeLIS4yqrX+EStwW8BHBwU7jzFaX3zxujNQxo6um5BR3HBJxDkuSqZcQx5THmLQik0PMDha65ewrubvNDJcd4CNA0vD0rKAr27IlLXQbKinutOjhJYEJNRi0vAtdkJXhL2RCgGAycTTaYNFda8aCyWvJe3UoKA/e5RBwsQMNWChM/EkhqUcfdBqZ88MGPAc892nw8GpMjNUovpSUZKBw21K3HEKQjmXdy7uW+P2ICo4TptfkKQo2BjIp0cn1QqlkjlnU4hdb6IXrzxfpDNj0zphmEZzYNqnTHMCWvEIXaDMg4J01BNgCdhX7l98F+/em//bIiLfq6H/2fxMRGJSx58m/arr2x+4caeZQRCJgQH6tMHdKJ1ZYThch9WfGKIBFWUwqitaR/zNEZ/KmbI7DxEoMBEqOFoHOSVcrSJsqM6qfLQeT/dqj263Lh70D3uDp9YbeE8hfFNOU1G0fAlMMn+4n4bF1BXlporLf01Ci8gzBaLhqsHFheofKtH0JZOUduCQlMZtvExehtLMrBbv/PDMlyESA4ziNGjS0FiMWR0DUWMS/yAz/j3Xpn/9HMbeLr+h6/v4hEXbh3+fwovF8ulL98++vLtwx97euWD71rSQybOCqjlJVydH0keZYyBiLQAPaMM0INkPNYUDr2pj3moIgnm2XrCcsQ+RzlGIrPB7FmYbNAPCkwYDP5ZSnUdM/nQ1eWjzuCLN/cvLzSef2Q+wDKIjtYC/PBm4ub22etbp9cuzSzhL1L49wwepIURS4wZUKDyzIrm6gQpw1dyJHAwPeWAMPI1CQUncZo34QuWaBLlpcAXomQkGD7FbISGVC0KVKXsyfUZvDB/e/ds67jH66EH0pGYCvDstfs377cfXmw+vTHLb9RIzhpqIvRrwXEarBXmPKIQE8XmCrJoWKgwNFPrcrJFlq9yqPGTUxFupxwwSazQKA1fdjRDs9QFIG4ge7ifwBDkDCh5ExphYK/hfIQTkN2sBp38BbU5tGDAybMVvkczaXgnFmNQvraO++8cdKfP/B5XwJWRxBDjlMPwKig1kSw0C7caiSmMgkQKI4EDSWPkksZUAIeHrVl78u2dzsHZoFqewxOq+RZnXVkA2KAcE35IliIWL7ihMRnbMJCF3KASg8JJsR2e8a+Nb26d4lHRQWfSGZIhIGYCO8Ll01SsDeb0MjGPUKHBnStdniBz6eTBc64r4hgKO+SMswDDx80QfurVPr7Jmal3ZhuVxZl54PDX8XznAYW5Mgs+IcUzPV7WTBeLRDI+J/GLcg6J/+UatFiAlnTchd0/7uPZwP2T3v2TwW6bphFzHEOS5oIKu5z0Wz+Rmr9kZEH4i+TSFaij70cYhZ12vnXAEFLh0LHTpB4R4AnX7mn/pF+5vMSrnuMuXl6pY3PxLRb84Q7++4ZS6bg3evXuCdcIoxGfSDhzwY7svHPYtSel+MPB7ePebL2CVblzOsCZbq5Z3W0PTroDvCqNhaqvbFPwpBAfyVDQ8RwxbvzyIJXpTZgny0y0gkiFLktqpnyHGDrEzQzhBW58EzXTqHfwp35YQL6EzJyYnfZ4t43nhqNWPXv3BpZR+db9zsKj1c5gfGev06riqwR881zaPO7fO+rDs/Ih50bFkXggaGCf4gdqPDe8s9fdmK8tzVRxxsELNE/Uy/97s33Y5rU1LPQpqXi9shVSwrtupcmg1+fflrNYQuQixh1HqWz3Gda3GKOM3Ngx5Vtot4cKr4x88qMvfO367deu3874X8LY+cVHaR17go73Jpql0it3TjBepOawy1eLsB0Ouzjb8k93cMvBIeHvNHHmQiPNEkOjx0Ydt/38uwWMDzx4x2HvpLd5XHljp4MvM/Dg9Y0dPFnSFy40yfBf1ES0kXMODC8KjL7vmXfhf9dAoqGgKys+rOgyiBhOyJQgLgutwBSjkIHRSkVHE4u/6P2Hf/uzv/Hf/vTGrbvLjRr55AYziOg088D7Fkdjp0tZuVTBny0JW2mf8qzTarVgh+8z2p0BHnQxaAvCvWItlVqNbKaJGalAvXUGc9zE1fC+5qSH/zShgheQkF/83zBzs/lArQWmFAn4Ot3+Zz7xoc9+6oePTvjAN6FTw32Gpjj62GKABNziRG1FsUdHx+N29y/90Pc//9xVmy8GA2PHoYlZBFfRi6INGbToA1WvVf7oz177l//xd/hwFcyafZgSSH2GPzP4+z/3kx/7yPO2O2J1gJpb0SOkQ3Oee4SxJYjxoo3H+3Ot45MzhZ9XMOCPGAhMnDmEH/PkpQ8hCqq8CZWUHAUKfOP/yZmbbaF9nrTAIlUsdRlOV6Vmo7Y4P4czdyJRCnIUHK0szX/PpTX/rpX+FWgkJ4dyGBpIiCIQ2kCF/cz1xp4Za0xsWkNyzQ1bKsYQXz2HNOmKhrVKBV+o4g/zU7IROt5cmjY61wttHHO1osRQ+eDD1p3mB2KLCUjLFAIGAjD8uPm5FMIi+FOCQpA7ZMschQO+oqh3FG29umdQKDYPUAR6u0NLlPElTTjBEUS/+4WXNu/v/83Pfty++fcgDUOzYihTnaSANHFLyMDwBpx9PGk7FD8Mczt8FwoY/vsX8vpeuODSfRacxLhJZJZOib1Swn+V8q//0+/g/0zhK3j5heVUiMynIo5PsRR+KIwQOHzO/vnX/+Ltezsffv/34dtbfDYxQfjlsIg2U4Yx5cIJcKCKY0s+TMX/u2RrZ19jgWrKMagFL93fP/72nc0eFq9Nn6N0FgMNQRQpxSkW5zcdOxyuO0DGsRU+/wdfvnf/oF7HpRlT75ERxQ4lLspK+A+3Te90BhJOcBI3a/hDZryRiYuR3CnaCKvI5SF41CKSGih3ZxMbGvAjPLyyc3DK7+YZVYRlCVqew/8nQad24pF3OLFzVkDdq0jFomz4mOlfqZEGlQQ4P4zHJ50JPj2TRwEQnwHyBHEFGYV70BiMLknwasDhGW4V4kRAtSl5DzkdqXrTQYlNjn0wNHd7H4gg0xUAp51xhh+BC3EJV8h12JkL9IzbxUlKha15tEq4wsiz4FAefC6SVXyKCZKITe3D5Bst+B9+PI/BldJijSC0qQ9Q4Wiwc1amP5diCrlmJnjxwQDJyroCqJkCVo8wQXVvijQxqGSrrnBWhSYBJDZGyayJBBmd8m4K8hLNWWZDv6j8U1JELg4rG2OAaWG2xZqMYWtHg5mzICQkYORD8UMuN7FrkjZJ7fyFkJIKjbxr7KYLT8m22IDSH7maFITCe2q/my2Yi+T0HaxipLlJ1KXO8NZAO/1IQrwBEo91aTldEGFh1LBKQHKEOdvTdoiHQpdKn7fPQae6QPmnGMQ0cTNvo0enSahGhBFE6hMZMK67KJRH+9zRVG6UQGgUbaQ2TA4xgKT5wgV7EZzQZnwxjARIYRlt6kaDd8nFEoQuQ9cl57awSc0Nzhc2mRe8QmAMaXrBa21TeTaLboiQd9UAA+nEfghAjlJLFcEF87AUhcxzV7lRgdBsyeKBRoLOjT+MiRQvBWqQIUnQFqPRWh0ZpUVeXEcBB0BeZ3YyP+hDpHiyi31EAv+EOc+awgGGMPR5KJSEKMjy5jlwUvC9HD60V24ESjxoIC+pm1xSbvZ2kFXiz1UYFaT4CRKq8Gs/aJvWGkY43XaqZBHZNGyyTqaOL5rBScRAGNoqmB6ioksZ+kXDXEWv/qZ9jhCYmMDFuc0lrjKteHN+CCVh5nMpm06Gg1ZE3oXATCTK5WglEtkzDCHPjcgipVKTQYizUIJmHj9UhQJ5riqQJy+G1XOGZGYTJU/hRWFFp8iT4jBrjULB6ZRUPBG4VWwW4A1srIa0jexWKR40wrWN3HvsuEbN6UEZuxSoDIAD0xExuOtzjsJXLuY7Eak4k/qWKTSVLBxFTpWTmOcLfigwnmJNOxbIfL2obRBKqQgXoDCJ2aAueKGJwKZk91zLRFYXDIEqajgf9hMEDzoypfHygptPw4xS3IVmuJIcdlyrsnMMOoF2FTCQqDZN6HPktOPoGa/1kg/jD0ITcygoxRpd23USOkCO2S4iDSCCi5WtoGRxEUCJs5vSB5ePMbdJ687cJ4U2HXrcQRENj4kDnbCVXpbWCoz1GElIwHZ+S5oqAOYfFmZkDCbM6wdLcwq8ZmyndTeB5iKdnyByVq6GxGxaU8oczzg5XkhCZZQ+NndeGCtgxhZ4kTluysoyQjx90CihLIBibc9tE6c3GFkYKkYzEU/EqRVvIf0fsWmyUBe5ZGQAAAAASUVORK5CYII=" alt="Frame logo">
+    <span class="brand">Frame</span>
+    <span class="brand-sep"></span>
+    <div class="doc-block">
+      <span class="doc-type">Spec Implementation Report</span>
+      <span class="slug-chip">windows-claude-context</span>
+    </div>
+  </div>
+  <div class="topbar-meta">
+    <span class="pill">11 tasks</span>
+    <span class="pill good">11 verified</span>
+    
+    <span class="chip">2026-08-20</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section class="report-head">
+  <h1>Windows context parity for Claude Code</h1>
+</section>
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T01</span>
+    <h2>Put .frame/bin on Windows PATH and name what lives there</h2>
+    <span class="card-meta"><span class="chip">6968791</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">533 tests pass, 0 fail (19 in test/launchEnv.test.js, 8 of them new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>launchEnv.prependFrameBin lost its supportsWrappers gate, so .frame/bin now leads the PATH of every PTY Frame spawns on Windows too — the &#39;;&#39; separator the function already carried finally gets reached. Two siblings joined it: wrapperFamily(platform) answers &#39;posix&#39; or &#39;cmd&#39;, and wrapperFileName(toolId, { platform, canPassPaths }) returns the filename a tool&#39;s wrapper takes here, or &#39;&#39; when it earns none.</p></div>
+    <div class="field"><span class="label">Why</span><p>The gate was a category error: supportsWrappers asks whether this platform gets a POSIX wrapper for every tool, and PATH ordering is a different question — a .frame/bin that happens to be empty is a harmless first entry. wrapperFileName takes canPassPaths rather than a hardcoded &#39;claude only&#39; list because a file-taking prompt flag is precisely what lets a batch wrapper stay plain; canPassPaths defaults to false so Windows opts a tool in explicitly and Codex/Gemini keep today&#39;s behaviour by construction. Both new functions take platform as a parameter, so Windows behaviour is asserted from a Mac.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/launchEnv.js b/src/main/launchEnv.js</span>
+<span class="dl-meta">index 84f4384..3eed4d4 100644</span>
+<span class="dl-file">--- a/src/main/launchEnv.js</span>
+<span class="dl-file">+++ b/src/main/launchEnv.js</span>
+<span class="dl-hunk">@@ -14,11 +14,21 @@</span>
+<span class="dl-ctx">  * block was not (see the terminal-context-boundary spec). There is</span>
+<span class="dl-ctx">  * correspondingly nothing to undo when Frame is uninstalled.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-del">- * ── POSIX only, for now ──</span>
+<span class="dl-del">- * Frame&#39;s wrappers are bash scripts. On Windows there is nothing runnable to</span>
+<span class="dl-del">- * put on `PATH`, and shadowing a working CLI with a script that cannot run is</span>
+<span class="dl-del">- * worse than not injecting at all — so `supportsWrappers()` gates every caller</span>
+<span class="dl-del">- * from one place rather than each doing its own `process.platform` check.</span>
+<span class="dl-add">+ * ── Two wrapper families, and a tool that may earn neither ──</span>
+<span class="dl-add">+ * POSIX gets an extensionless bash script per tool. Windows gets a `.cmd`,</span>
+<span class="dl-add">+ * because only `.cmd` is in the default `PATHEXT` and that is what makes a</span>
+<span class="dl-add">+ * bare `claude` resolve to it — but only for a tool whose CLI can take its</span>
+<span class="dl-add">+ * prompt as a *file path*. Without that, a batch wrapper would have to embed</span>
+<span class="dl-add">+ * a multi-line, backtick-bearing preamble in a language that cannot quote it,</span>
+<span class="dl-add">+ * and shadowing a working CLI with a script that cannot run is worse than not</span>
+<span class="dl-add">+ * injecting at all. `wrapperFamily` and `wrapperFileName` answer both</span>
+<span class="dl-add">+ * questions from one place, so no caller does its own `process.platform`</span>
+<span class="dl-add">+ * check.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `supportsWrappers` keeps its narrower meaning — *does this platform get a</span>
+<span class="dl-add">+ * POSIX wrapper for every tool* — and is what the inline-flag branch still</span>
+<span class="dl-add">+ * asks. The `PATH` entry is deliberately not gated on it: leading with</span>
+<span class="dl-add">+ * `.frame/bin` is right wherever a wrapper of any family might land there.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-ctx">  * Pure: no fs, no Electron, no spawn. Paths and strings in, strings out.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -27,16 +37,44 @@ const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const { FRAME_DIR, FRAME_BIN_DIR } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-del">- * Whether this platform can run the wrappers Frame writes.</span>
+<span class="dl-add">+ * Whether this platform gets a POSIX wrapper for every tool.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-del">- * The single gate for `PATH` injection and wrapper generation alike: when it</span>
+<span class="dl-del">- * is false Frame falls back to composing flags inline, which is exactly the</span>
+<span class="dl-del">- * behaviour Windows had before this module existed.</span>
+<span class="dl-add">+ * False on Windows, where a wrapper is per-tool and conditional — see</span>
+<span class="dl-add">+ * `wrapperFileName`. Callers that mean &quot;should I compose flags inline</span>
+<span class="dl-add">+ * instead of leaning on a wrapper&quot; want this one.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function supportsWrappers(platform = process.platform) {</span>
+<span class="dl-ctx">   return platform !== &#39;win32&#39;;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Which flavour of wrapper this platform runs: `&#39;posix&#39;` or `&#39;cmd&#39;`.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Names the family, says nothing about whether a given tool gets one.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function wrapperFamily(platform = process.platform) {</span>
+<span class="dl-add">+  return platform === &#39;win32&#39; ? &#39;cmd&#39; : &#39;posix&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The filename a tool&#39;s wrapper takes here, or `&#39;&#39;` when it gets none.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `canPassPaths` is the tool&#39;s side of the bargain: true when its CLI accepts</span>
+<span class="dl-add">+ * the preamble as a file path rather than a string. POSIX does not care — a</span>
+<span class="dl-add">+ * bash wrapper can expand the file itself — but on Windows it is the whole</span>
+<span class="dl-add">+ * condition, which is why Codex and Gemini get no `.cmd` and behave there</span>
+<span class="dl-add">+ * exactly as they do today.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function wrapperFileName(toolId, options = {}) {</span>
+<span class="dl-add">+  if (!toolId) return &#39;&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const { platform = process.platform, canPassPaths = false } = options;</span>
+<span class="dl-add">+  if (wrapperFamily(platform) === &#39;cmd&#39;) {</span>
+<span class="dl-add">+    return canPassPaths ? `${toolId}.cmd` : &#39;&#39;;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return String(toolId);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Absolute path to a project&#39;s `.frame/bin`, or &#39;&#39; without a project.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -56,12 +94,13 @@ function frameBinDir(projectPath) {</span>
+<span class="dl-ctx">  * duplicate on every respawn would be a slow leak nobody would look for. A</span>
+<span class="dl-ctx">  * value that already leads with the directory is returned untouched.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-del">- * Returns the input unchanged where Frame writes no wrappers, so callers need</span>
+<span class="dl-del">- * no platform branch of their own.</span>
+<span class="dl-add">+ * Platform-blind on purpose. The old `supportsWrappers` gate here was a</span>
+<span class="dl-add">+ * category error — the check is about wrappers, and this function is about</span>
+<span class="dl-add">+ * `PATH` — and it was what kept the `;` separator below from ever being</span>
+<span class="dl-add">+ * reached. A `.frame/bin` that holds nothing is a harmless first entry.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function prependFrameBin(pathValue, projectPath, platform = process.platform) {</span>
+<span class="dl-ctx">   const current = pathValue == null ? &#39;&#39; : String(pathValue);</span>
+<span class="dl-del">-  if (!supportsWrappers(platform)) return current;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const binDir = frameBinDir(projectPath);</span>
+<span class="dl-ctx">   if (!binDir) return current;</span>
+<span class="dl-hunk">@@ -79,6 +118,8 @@ function prependFrameBin(pathValue, projectPath, platform = process.platform) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> module.exports = {</span>
+<span class="dl-ctx">   supportsWrappers,</span>
+<span class="dl-add">+  wrapperFamily,</span>
+<span class="dl-add">+  wrapperFileName,</span>
+<span class="dl-ctx">   frameBinDir,</span>
+<span class="dl-ctx">   prependFrameBin</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-meta">diff --git a/test/launchEnv.test.js b/test/launchEnv.test.js</span>
+<span class="dl-meta">index 7a5c8fd..0d10b8b 100644</span>
+<span class="dl-file">--- a/test/launchEnv.test.js</span>
+<span class="dl-file">+++ b/test/launchEnv.test.js</span>
+<span class="dl-hunk">@@ -39,6 +39,47 @@ test(&#39;wrappers are a POSIX affair&#39;, () =&gt; {</span>
+<span class="dl-ctx">   assert.equal(launchEnv.supportsWrappers(&#39;win32&#39;), false);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── wrapperFamily ────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the wrapper family follows the platform, not the tool&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFamily(&#39;darwin&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFamily(&#39;linux&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFamily(&#39;win32&#39;), &#39;cmd&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── wrapperFileName ──────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;POSIX names an extensionless wrapper per tool, path-passing or not&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const platform of [&#39;darwin&#39;, &#39;linux&#39;]) {</span>
+<span class="dl-add">+    assert.equal(launchEnv.wrapperFileName(&#39;claude&#39;, { platform, canPassPaths: true }), &#39;claude&#39;);</span>
+<span class="dl-add">+    assert.equal(launchEnv.wrapperFileName(&#39;codex&#39;, { platform, canPassPaths: false }), &#39;codex&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Windows names a .cmd only for a tool that can take paths&#39;, () =&gt; {</span>
+<span class="dl-add">+  // .cmd because it is the only extension in the default PATHEXT, which is</span>
+<span class="dl-add">+  // what makes a bare `claude` resolve to it.</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFileName(&#39;claude&#39;, { platform: &#39;win32&#39;, canPassPaths: true }), &#39;claude.cmd&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Windows refuses a wrapper for a tool that cannot take paths&#39;, () =&gt; {</span>
+<span class="dl-add">+  // A batch file cannot carry a 993-byte, backtick-bearing preamble, and a</span>
+<span class="dl-add">+  // wrapper that cannot run is worse than none — so Codex and Gemini get</span>
+<span class="dl-add">+  // nothing here and behave exactly as they do today.</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFileName(&#39;codex&#39;, { platform: &#39;win32&#39;, canPassPaths: false }), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFileName(&#39;gemini&#39;, { platform: &#39;win32&#39; }), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;no tool id means no wrapper name&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFileName(&#39;&#39;, { platform: &#39;darwin&#39;, canPassPaths: true }), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFileName(null, { platform: &#39;win32&#39;, canPassPaths: true }), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;canPassPaths defaults to false, so Windows opts a tool in explicitly&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFileName(&#39;claude&#39;, { platform: &#39;win32&#39; }), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(launchEnv.wrapperFileName(&#39;claude&#39;, { platform: &#39;darwin&#39; }), &#39;claude&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // ─── prependFrameBin ──────────────────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> test(&#39;the bin directory lands in front of the existing PATH&#39;, () =&gt; {</span>
+<span class="dl-hunk">@@ -67,9 +108,27 @@ test(&#39;the platform separator is respected&#39;, () =&gt; {</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-test(&#39;a non-wrapper platform gets its PATH back untouched&#39;, () =&gt; {</span>
+<span class="dl-del">-  const original = &#39;C:\\Windows\\System32;C:\\bin&#39;;</span>
+<span class="dl-del">-  assert.equal(launchEnv.prependFrameBin(original, PROJECT, &#39;win32&#39;), original);</span>
+<span class="dl-add">+test(&#39;Windows gets the entry too, joined with its own separator&#39;, () =&gt; {</span>
+<span class="dl-add">+  // The old gate here was a category error: the check is about wrappers, the</span>
+<span class="dl-add">+  // function is about PATH. Gating it is what kept the &#39;;&#39; below unreachable</span>
+<span class="dl-add">+  // and left a Windows lane with no route to .frame/bin at all.</span>
+<span class="dl-add">+  const WIN_PROJECT = &#39;C:\\Users\\dev\\my project&#39;;</span>
+<span class="dl-add">+  const WIN_BIN = path.join(WIN_PROJECT, &#39;.frame&#39;, &#39;bin&#39;);</span>
+<span class="dl-add">+  const result = launchEnv.prependFrameBin(&#39;C:\\Windows\\System32;C:\\bin&#39;, WIN_PROJECT, &#39;win32&#39;);</span>
+<span class="dl-add">+  assert.equal(result, `${WIN_BIN};C:\\Windows\\System32;C:\\bin`);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Windows prepending is idempotent and moves rather than duplicates&#39;, () =&gt; {</span>
+<span class="dl-add">+  const WIN_PROJECT = &#39;C:\\Users\\dev\\my project&#39;;</span>
+<span class="dl-add">+  const WIN_BIN = path.join(WIN_PROJECT, &#39;.frame&#39;, &#39;bin&#39;);</span>
+<span class="dl-add">+  const once = launchEnv.prependFrameBin(&#39;C:\\bin&#39;, WIN_PROJECT, &#39;win32&#39;);</span>
+<span class="dl-add">+  assert.equal(launchEnv.prependFrameBin(once, WIN_PROJECT, &#39;win32&#39;), once);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // nvm-windows and friends reorder PATH behind Frame&#39;s back; being present</span>
+<span class="dl-add">+  // but second is the case that silently costs the session its context.</span>
+<span class="dl-add">+  const behind = launchEnv.prependFrameBin(`C:\\nvm;${WIN_BIN};C:\\bin`, WIN_PROJECT, &#39;win32&#39;);</span>
+<span class="dl-add">+  assert.equal(behind, `${WIN_BIN};C:\\nvm;C:\\bin`);</span>
+<span class="dl-add">+  assert.equal(behind.split(&#39;;&#39;).filter((e) =&gt; e === WIN_BIN).length, 1);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> test(&#39;no project means no injection&#39;, () =&gt; {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T02</span>
+    <h2>Teach Claude&#39;s launch to pass paths instead of prose</h2>
+    <span class="card-meta"><span class="chip">defcd9b</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">545 tests pass, 0 fail (12 new in test/aiToolLaunch.test.js)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Claude&#39;s injection record gained promptFileFlag: &#39;--append-system-prompt-file&#39;. prepareLaunchAssets now also returns preambleRel and settingsRel — the same two files as project-relative, forward-slash paths. A new exported pure inlineInjectionFlags(tool, assets, platform) composes the wrapper-less branch and getLaunchCommand delegates to it, dropping its own flags.push pair and the now-unused `declared` local.</p></div>
+    <div class="field"><span class="label">Why</span><p>The composed line is typed into the PTY, and the preamble is 9 lines with 6 backticks: cmd.exe submits at the first newline and PowerShell reads a backtick as an escape, so --settings — and with it the spec-hint hooks — is the first thing lost. Two paths make the line single-line and quote-free. The paths are relative because the PTY&#39;s cwd is the project, which sidesteps a space in the path and the backslash a POSIX shell would eat. The file flag is chosen only where !supportsWrappers(platform): it has no --help row of its own, so an older CLI rejects it outright, and the POSIX path that works today must not acquire that version dependency (C3).</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/aiToolManager.js b/src/main/aiToolManager.js</span>
+<span class="dl-meta">index c655272..1eba446 100644</span>
+<span class="dl-file">--- a/src/main/aiToolManager.js</span>
+<span class="dl-file">+++ b/src/main/aiToolManager.js</span>
+<span class="dl-hunk">@@ -55,6 +55,16 @@ let configPath = null;</span>
+<span class="dl-ctx">  * `--settings &lt;file-or-json&gt;`, verified against the shipping CLI. A build that</span>
+<span class="dl-ctx">  * does not know them degrades to the wrapper path rather than passing an</span>
+<span class="dl-ctx">  * unknown flag, which would make the CLI refuse to start at all.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `promptFileFlag` is the same append, taking a **path** instead of the prose.</span>
+<span class="dl-add">+ * It matters only where Frame writes no wrapper and the composed line is typed</span>
+<span class="dl-add">+ * into a PTY: the preamble is 9 lines and carries 6 backticks, which `cmd.exe`</span>
+<span class="dl-add">+ * submits at the first newline and PowerShell reads as escapes, so on Windows</span>
+<span class="dl-add">+ * the string form loses `--settings` and with it the spec-hint hooks. Passing</span>
+<span class="dl-add">+ * two paths makes the line single-line and quote-free, and every Windows shell</span>
+<span class="dl-add">+ * runs it unchanged. It is deliberately *not* preferred on POSIX: the flag has</span>
+<span class="dl-add">+ * no `--help` row of its own, so an older CLI may reject it, and the path that</span>
+<span class="dl-add">+ * works today must not acquire a version dependency it does not need.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> const INJECTION_FLAG = &#39;flag&#39;;</span>
+<span class="dl-ctx"> const INJECTION_WRAPPER = &#39;wrapper&#39;;</span>
+<span class="dl-hunk">@@ -75,6 +85,7 @@ const AI_TOOLS = {</span>
+<span class="dl-ctx">     injection: {</span>
+<span class="dl-ctx">       type: INJECTION_FLAG,</span>
+<span class="dl-ctx">       promptFlag: &#39;--append-system-prompt&#39;,</span>
+<span class="dl-add">+      promptFileFlag: &#39;--append-system-prompt-file&#39;,</span>
+<span class="dl-ctx">       settingsFlag: &#39;--settings&#39;</span>
+<span class="dl-ctx">     },</span>
+<span class="dl-ctx">     commands: {</span>
+<span class="dl-hunk">@@ -712,6 +723,13 @@ function writeShellInit(projectPath) {</span>
+<span class="dl-ctx">  * Everything a launch of `tool` reads: its preamble, its settings file when it</span>
+<span class="dl-ctx">  * declares one, and its wrapper. Returns the composed preamble so a caller</span>
+<span class="dl-ctx">  * that still injects inline (a platform with no wrappers) can use it.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `preambleRel`/`settingsRel` are the same two files as project-relative,</span>
+<span class="dl-add">+ * forward-slash paths — what a line typed into a PTY should carry. Relative</span>
+<span class="dl-add">+ * because the PTY&#39;s cwd is the project, which sidesteps both a space in the</span>
+<span class="dl-add">+ * project path and the backslash a POSIX shell would eat; forward slashes</span>
+<span class="dl-add">+ * because Windows file APIs accept them in arguments and every shell in</span>
+<span class="dl-add">+ * Frame&#39;s Windows list passes them through untouched.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function prepareLaunchAssets(projectPath, tool, extraSettings) {</span>
+<span class="dl-ctx">   let preamble = &#39;&#39;;</span>
+<span class="dl-hunk">@@ -728,7 +746,56 @@ function prepareLaunchAssets(projectPath, tool, extraSettings) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const wrapperPath = launchEnv.supportsWrappers() ? writeWrapper(projectPath, tool) : &#39;&#39;;</span>
+<span class="dl-del">-  return { preamble, settingsPath, wrapperPath };</span>
+<span class="dl-add">+  return {</span>
+<span class="dl-add">+    preamble,</span>
+<span class="dl-add">+    settingsPath,</span>
+<span class="dl-add">+    wrapperPath,</span>
+<span class="dl-add">+    preambleRel: preamble ? runtimeRelPath(preambleFileName(tool.id)) : &#39;&#39;,</span>
+<span class="dl-add">+    settingsRel: settingsPath ? runtimeRelPath(settingsFileName(tool.id)) : &#39;&#39;</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The flags a launch adds itself, for a tool Frame could not wrap here.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Pure, exported and platform-parameterised, so Windows behaviour is asserted</span>
+<span class="dl-add">+ * from a Mac. Two shapes, chosen by whether this platform writes wrappers:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   no wrappers  — `promptFileFlag` with the two project-relative paths. One</span>
+<span class="dl-add">+ *                  line, nothing for a shell to parse (see the injection note</span>
+<span class="dl-add">+ *                  at the top of this file).</span>
+<span class="dl-add">+ *   wrappers     — `promptFlag` with the preamble text and the absolute</span>
+<span class="dl-add">+ *                  settings path, exactly as before. This branch is only</span>
+<span class="dl-add">+ *                  reached when the wrapper file is missing, and it keeps the</span>
+<span class="dl-add">+ *                  POSIX path free of a version-dependent flag.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Returns `[]` whenever there is nothing to inject — a wrapper-type tool, a</span>
+<span class="dl-add">+ * preamble that failed to compose, or a file-flag platform where the file was</span>
+<span class="dl-add">+ * never written. The caller reads an empty array as &quot;no injection&quot;.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function inlineInjectionFlags(tool, assets, platform = process.platform) {</span>
+<span class="dl-add">+  const injection = (tool &amp;&amp; tool.injection) || {};</span>
+<span class="dl-add">+  if (injection.type !== INJECTION_FLAG) return [];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const written = assets || {};</span>
+<span class="dl-add">+  const byFile = !launchEnv.supportsWrappers(platform)</span>
+<span class="dl-add">+    &amp;&amp; !!injection.promptFileFlag</span>
+<span class="dl-add">+    &amp;&amp; !!written.preambleRel;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const flags = [];</span>
+<span class="dl-add">+  if (byFile) {</span>
+<span class="dl-add">+    flags.push(injection.promptFileFlag, written.preambleRel);</span>
+<span class="dl-add">+  } else if (written.preamble &amp;&amp; injection.promptFlag) {</span>
+<span class="dl-add">+    flags.push(injection.promptFlag, written.preamble);</span>
+<span class="dl-add">+  } else {</span>
+<span class="dl-add">+    return [];</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const settings = byFile ? written.settingsRel : written.settingsPath;</span>
+<span class="dl-add">+  if (injection.settingsFlag &amp;&amp; settings) {</span>
+<span class="dl-add">+    flags.push(injection.settingsFlag, settings);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return flags;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-hunk">@@ -822,7 +889,6 @@ function getLaunchCommand(projectPath, toolId, extraFlags) {</span>
+<span class="dl-ctx">     };</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const declared = (tool.injection &amp;&amp; tool.injection.type) || INJECTION_WRAPPER;</span>
+<span class="dl-ctx">   const flags = [];</span>
+<span class="dl-ctx">   let command = bareCommandFor(tool);</span>
+<span class="dl-ctx">   let injection = &#39;none&#39;;</span>
+<span class="dl-hunk">@@ -858,13 +924,14 @@ function getLaunchCommand(projectPath, toolId, extraFlags) {</span>
+<span class="dl-ctx">       // injection paths from stacking now that both exist for every tool.</span>
+<span class="dl-ctx">       command = viaWrapper;</span>
+<span class="dl-ctx">       injection = preamble ? INJECTION_WRAPPER : &#39;none&#39;;</span>
+<span class="dl-del">-    } else if (preamble &amp;&amp; declared === INJECTION_FLAG) {</span>
+<span class="dl-del">-      // No wrapper on this platform: compose inline, exactly as before.</span>
+<span class="dl-del">-      flags.push(tool.injection.promptFlag, preamble);</span>
+<span class="dl-del">-      if (assets.settingsPath) {</span>
+<span class="dl-del">-        flags.push(tool.injection.settingsFlag, assets.settingsPath);</span>
+<span class="dl-add">+    } else {</span>
+<span class="dl-add">+      // No wrapper for this tool here: compose inline. Which flag pair that</span>
+<span class="dl-add">+      // means is `inlineInjectionFlags`&#39; call, not this function&#39;s.</span>
+<span class="dl-add">+      const inline = inlineInjectionFlags(tool, assets);</span>
+<span class="dl-add">+      if (inline.length) {</span>
+<span class="dl-add">+        flags.push(...inline);</span>
+<span class="dl-add">+        injection = INJECTION_FLAG;</span>
+<span class="dl-ctx">       }</span>
+<span class="dl-del">-      injection = INJECTION_FLAG;</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   } catch (err) {</span>
+<span class="dl-ctx">     // A read-only or full disk must not cost the user their agent; drop the</span>
+<span class="dl-hunk">@@ -899,6 +966,7 @@ module.exports = {</span>
+<span class="dl-ctx">   refreshLaunchAssets,</span>
+<span class="dl-ctx">   writeShellInit,</span>
+<span class="dl-ctx">   composeLaunchCommand,</span>
+<span class="dl-add">+  inlineInjectionFlags,</span>
+<span class="dl-ctx">   addCustomTool,</span>
+<span class="dl-ctx">   removeCustomTool,</span>
+<span class="dl-ctx">   AI_TOOLS</span>
+<span class="dl-meta">diff --git a/test/aiToolLaunch.test.js b/test/aiToolLaunch.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..872b577</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/aiToolLaunch.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,160 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * aiToolManager launch-composition tests: `inlineInjectionFlags`, the pure</span>
+<span class="dl-add">+ * decision behind the line a lane types when Frame wrote no wrapper for the</span>
+<span class="dl-add">+ * tool.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The whole point of the function being pure and taking `platform` is that</span>
+<span class="dl-add">+ * Windows behaviour is assertable from a Mac — nobody on this side of the work</span>
+<span class="dl-add">+ * has a Windows machine, and the real verification is a written handoff. What</span>
+<span class="dl-add">+ * these tests pin down is that Windows gets two *paths* and POSIX keeps the</span>
+<span class="dl-add">+ * string form, because the version-dependent flag must not spread to the</span>
+<span class="dl-add">+ * platform that works today.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `aiToolManager` requires `electron` at load, so the module is loaded once</span>
+<span class="dl-add">+ * with `electron` stubbed. Nothing here touches the filesystem: the asset</span>
+<span class="dl-add">+ * object is the fixture.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const Module = require(&#39;module&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const realLoad = Module._load;</span>
+<span class="dl-add">+Module._load = function (request, parent, isMain) {</span>
+<span class="dl-add">+  if (request === &#39;electron&#39;) return { ipcMain: { handle() {}, on() {} } };</span>
+<span class="dl-add">+  return realLoad(request, parent, isMain);</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+let aiToolManager;</span>
+<span class="dl-add">+try {</span>
+<span class="dl-add">+  aiToolManager = require(&#39;../src/main/aiToolManager&#39;);</span>
+<span class="dl-add">+} finally {</span>
+<span class="dl-add">+  Module._load = realLoad;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { inlineInjectionFlags, AI_TOOLS } = aiToolManager;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// What `prepareLaunchAssets` hands back for a project at /tmp/some project.</span>
+<span class="dl-add">+const ASSETS = {</span>
+<span class="dl-add">+  preamble: &#39;Frame context for this session.\n\n- `AGENTS.md`\n&#39;,</span>
+<span class="dl-add">+  settingsPath: &#39;/tmp/some project/.frame/runtime/claude-settings.json&#39;,</span>
+<span class="dl-add">+  preambleRel: &#39;.frame/runtime/preamble-claude.txt&#39;,</span>
+<span class="dl-add">+  settingsRel: &#39;.frame/runtime/claude-settings.json&#39;,</span>
+<span class="dl-add">+  wrapperPath: &#39;&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// A flag-type tool that never learned the file form — a custom tool, or Claude</span>
+<span class="dl-add">+// on a build where the flag was not worth declaring.</span>
+<span class="dl-add">+const STRING_ONLY = {</span>
+<span class="dl-add">+  id: &#39;stringy&#39;,</span>
+<span class="dl-add">+  injection: { type: &#39;flag&#39;, promptFlag: &#39;--append-system-prompt&#39;, settingsFlag: &#39;--settings&#39; }</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── the record ───────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Claude declares both the string flag and the file flag&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(AI_TOOLS.claude.injection.promptFlag, &#39;--append-system-prompt&#39;);</span>
+<span class="dl-add">+  assert.equal(AI_TOOLS.claude.injection.promptFileFlag, &#39;--append-system-prompt-file&#39;);</span>
+<span class="dl-add">+  assert.equal(AI_TOOLS.claude.injection.settingsFlag, &#39;--settings&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Codex and Gemini declare no file flag, so nothing here changes for them&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(AI_TOOLS.codex.injection.promptFileFlag, undefined);</span>
+<span class="dl-add">+  assert.equal(AI_TOOLS.gemini.injection.promptFileFlag, undefined);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── win32: paths, not prose ──────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a wrapper-less platform passes the file flag and two relative paths&#39;, () =&gt; {</span>
+<span class="dl-add">+  const flags = inlineInjectionFlags(AI_TOOLS.claude, ASSETS, &#39;win32&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(flags, [</span>
+<span class="dl-add">+    &#39;--append-system-prompt-file&#39;,</span>
+<span class="dl-add">+    &#39;.frame/runtime/preamble-claude.txt&#39;,</span>
+<span class="dl-add">+    &#39;--settings&#39;,</span>
+<span class="dl-add">+    &#39;.frame/runtime/claude-settings.json&#39;</span>
+<span class="dl-add">+  ]);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;nothing a Windows shell has to parse survives into the line&#39;, () =&gt; {</span>
+<span class="dl-add">+  const flags = inlineInjectionFlags(AI_TOOLS.claude, ASSETS, &#39;win32&#39;);</span>
+<span class="dl-add">+  for (const value of flags) {</span>
+<span class="dl-add">+    assert.ok(!value.includes(&#39;\n&#39;), `a newline reached the typed line: ${value}`);</span>
+<span class="dl-add">+    assert.ok(!value.includes(&#39;`&#39;), `a backtick reached the typed line: ${value}`);</span>
+<span class="dl-add">+    assert.ok(!value.includes(&#39;\\&#39;), `a backslash reached the typed line: ${value}`);</span>
+<span class="dl-add">+    assert.ok(!/\s/.test(value), `whitespace reached the typed line: ${value}`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  // The preamble text itself is the thing that must not be there.</span>
+<span class="dl-add">+  assert.ok(!flags.includes(ASSETS.preamble));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── POSIX: unchanged ─────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;POSIX keeps the string flag and the absolute settings path&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const platform of [&#39;darwin&#39;, &#39;linux&#39;]) {</span>
+<span class="dl-add">+    assert.deepEqual(inlineInjectionFlags(AI_TOOLS.claude, ASSETS, platform), [</span>
+<span class="dl-add">+      &#39;--append-system-prompt&#39;,</span>
+<span class="dl-add">+      ASSETS.preamble,</span>
+<span class="dl-add">+      &#39;--settings&#39;,</span>
+<span class="dl-add">+      ASSETS.settingsPath</span>
+<span class="dl-add">+    ]);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the file flag does not leak onto the platform that works today&#39;, () =&gt; {</span>
+<span class="dl-add">+  // C3: it has no --help row of its own, so an older CLI rejects it outright.</span>
+<span class="dl-add">+  const flags = inlineInjectionFlags(AI_TOOLS.claude, ASSETS, &#39;darwin&#39;);</span>
+<span class="dl-add">+  assert.ok(!flags.includes(&#39;--append-system-prompt-file&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── a tool with no file flag ─────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a tool with no promptFileFlag gets the string form on both platforms&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const platform of [&#39;darwin&#39;, &#39;win32&#39;]) {</span>
+<span class="dl-add">+    assert.deepEqual(inlineInjectionFlags(STRING_ONLY, ASSETS, platform), [</span>
+<span class="dl-add">+      &#39;--append-system-prompt&#39;,</span>
+<span class="dl-add">+      ASSETS.preamble,</span>
+<span class="dl-add">+      &#39;--settings&#39;,</span>
+<span class="dl-add">+      ASSETS.settingsPath</span>
+<span class="dl-add">+    ]);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── nothing to inject ────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a wrapper-type tool composes no flags of its own&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(AI_TOOLS.codex, ASSETS, &#39;win32&#39;), []);</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(AI_TOOLS.gemini, ASSETS, &#39;darwin&#39;), []);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a preamble that failed to compose injects nothing anywhere&#39;, () =&gt; {</span>
+<span class="dl-add">+  const empty = { ...ASSETS, preamble: &#39;&#39;, preambleRel: &#39;&#39; };</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(AI_TOOLS.claude, empty, &#39;win32&#39;), []);</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(AI_TOOLS.claude, empty, &#39;darwin&#39;), []);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a settings file that was never written costs the settings flag, not the prompt&#39;, () =&gt; {</span>
+<span class="dl-add">+  const noSettings = { ...ASSETS, settingsPath: &#39;&#39;, settingsRel: &#39;&#39; };</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(AI_TOOLS.claude, noSettings, &#39;win32&#39;), [</span>
+<span class="dl-add">+    &#39;--append-system-prompt-file&#39;,</span>
+<span class="dl-add">+    &#39;.frame/runtime/preamble-claude.txt&#39;</span>
+<span class="dl-add">+  ]);</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(AI_TOOLS.claude, noSettings, &#39;darwin&#39;), [</span>
+<span class="dl-add">+    &#39;--append-system-prompt&#39;,</span>
+<span class="dl-add">+    ASSETS.preamble</span>
+<span class="dl-add">+  ]);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;missing tool or assets is answered, not thrown&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(null, ASSETS, &#39;win32&#39;), []);</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags({ id: &#39;x&#39; }, ASSETS, &#39;win32&#39;), []);</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(AI_TOOLS.claude, null, &#39;win32&#39;), []);</span>
+<span class="dl-add">+  assert.deepEqual(inlineInjectionFlags(AI_TOOLS.claude, undefined, &#39;darwin&#39;), []);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── purity ───────────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the flags come out the same however often they are composed&#39;, () =&gt; {</span>
+<span class="dl-add">+  const once = inlineInjectionFlags(AI_TOOLS.claude, ASSETS, &#39;win32&#39;);</span>
+<span class="dl-add">+  const twice = inlineInjectionFlags(AI_TOOLS.claude, ASSETS, &#39;win32&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(once, twice);</span>
+<span class="dl-add">+  assert.notEqual(once, twice, &#39;a shared array would let one caller mutate another\&#39;s flags&#39;);</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T03</span>
+    <h2>Write the .frame/bin/&lt;id&gt;.cmd wrapper template</h2>
+    <span class="card-meta"><span class="chip">f9bb6fb</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">559 tests pass, 0 fail (14 new in test/frameTemplates.test.js)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added getCmdWrapperTemplate(toolCommand, options) to src/shared/frameTemplates.js. It generates plain batch that resolves the real CLI with `for /f … in (&#39;where &lt;tool&gt;&#39;)` skipping any hit whose %%~dpI is %~dp0, exits 127 with a stderr message when nothing remains, passes through under FRAME_NO_WRAP and when promptFileFlag is already on the line, walks up from %CD% to the directory holding .frame\, and routes every branch to one `call &quot;%FRAME_REAL%&quot; %FRAME_FLAGS% %*` followed by a bare `exit /b`. It returns &#39;&#39; for a tool with no promptFileFlag. 15 string assertions landed in test/frameTemplates.test.js.</p></div>
+    <div class="field"><span class="label">Why</span><p>The already-composed check scans arguments one at a time in a :frame_scan_args subroutine using %~1 rather than searching the whole of %* with substring substitution — that is a deviation from the plan&#39;s wording, taken because %* expands during parsing and a user argument carrying &amp; or | would be re-parsed as syntax; %~1 strips cmd&#39;s quotes and compares a value. Exit-code propagation is goto-shaped rather than %ERRORLEVEL%-shaped because cmd.exe expands variables when it parses a parenthesised block, so the variable never appears in the file at all. Nothing executes in the tests: cmd.exe is not on this machine, and the real verification is T10&#39;s protocol.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 4983815..5bd0334 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -979,6 +979,150 @@ fi</span>
+<span class="dl-ctx"> `;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The Windows wrapper: `.frame\bin\&lt;id&gt;.cmd`.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Same job as `getWrapperTemplate` — catch a hand-typed `claude` and hand it</span>
+<span class="dl-add">+ * Frame&#39;s launch context — but it exists on different terms:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   * **`.cmd`, not `.ps1`.** Only `.cmd` is in the default `PATHEXT`, and</span>
+<span class="dl-add">+ *     `PATHEXT` is what makes a bare `claude` resolve to a file that is not an</span>
+<span class="dl-add">+ *     executable. `cmd`, `powershell` and `pwsh` consult it; Git Bash does</span>
+<span class="dl-add">+ *     not — it looks for an exact filename, so that lane gets its context from</span>
+<span class="dl-add">+ *     the launch Frame composes and nothing from here.</span>
+<span class="dl-add">+ *   * **It passes a path, never the prose.** Which is the only reason this can</span>
+<span class="dl-add">+ *     stay plain batch. A wrapper that had to embed a 9-line preamble carrying</span>
+<span class="dl-add">+ *     backticks would need a Node trampoline between the shell and an</span>
+<span class="dl-add">+ *     interactive CLI; one that passes two paths needs nothing.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Returns `&#39;&#39;` for a tool with no `promptFileFlag`. There is no batch spelling</span>
+<span class="dl-add">+ * of the string form, and a wrapper that cannot do its job would still shadow</span>
+<span class="dl-add">+ * a working CLI — worse than no wrapper at all.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Three details are load-bearing and easy to lose in a later edit:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   1. **It must not find itself.** `.frame\bin` leads `PATH`, so `where`</span>
+<span class="dl-add">+ *      reports this file before the real CLI. The loop takes the first hit</span>
+<span class="dl-add">+ *      whose directory is not `%~dp0`, resolved at run time so a</span>
+<span class="dl-add">+ *      version-manager switch is picked up without a rewrite.</span>
+<span class="dl-add">+ *   2. **It defers when Frame&#39;s flag is already on the line.** A launch Frame</span>
+<span class="dl-add">+ *      composed resolves through here too, so finding `promptFileFlag` in `%*`</span>
+<span class="dl-add">+ *      means someone already owns the injection. One route, never two.</span>
+<span class="dl-add">+ *   3. **Every branch jumps to one `call` and a bare `exit /b`.** `cmd.exe`</span>
+<span class="dl-add">+ *      expands variables when it *parses* a parenthesised block, so an</span>
+<span class="dl-add">+ *      `exit /b %ERRORLEVEL%` inside an `if (…)` would report the code from</span>
+<span class="dl-add">+ *      before the `call`. Jumping to a single tail leaves the child&#39;s exit</span>
+<span class="dl-add">+ *      code untouched — and `%ERRORLEVEL%` never appears in this file.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * @param {string} toolCommand - the real CLI to resolve and run</span>
+<span class="dl-add">+ * @param {object} [options]</span>
+<span class="dl-add">+ * @param {string} [options.promptFileFlag] - flag taking the preamble&#39;s path; &#39;&#39; means no wrapper</span>
+<span class="dl-add">+ * @param {string} [options.settingsFlag] - flag taking the settings file, &#39;&#39; for none</span>
+<span class="dl-add">+ * @param {string} [options.preambleFile] - project-relative preamble path</span>
+<span class="dl-add">+ * @param {string} [options.settingsFile] - project-relative settings path</span>
+<span class="dl-add">+ * @returns {string} the file&#39;s content, or &#39;&#39; for a tool that cannot be wrapped here</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function getCmdWrapperTemplate(toolCommand, options) {</span>
+<span class="dl-add">+  const opts = options || {};</span>
+<span class="dl-add">+  const promptFileFlag = opts.promptFileFlag || &#39;&#39;;</span>
+<span class="dl-add">+  if (!promptFileFlag) return &#39;&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const settingsFlag = opts.settingsFlag || &#39;&#39;;</span>
+<span class="dl-add">+  const preambleFile = toBackslashes(opts.preambleFile || &#39;.frame/runtime/preamble.txt&#39;);</span>
+<span class="dl-add">+  const settingsFile = toBackslashes(opts.settingsFile || &#39;.frame/runtime/claude-settings.json&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // The settings file is optional in a way the preamble is not: without it a</span>
+<span class="dl-add">+  // session loses its hooks, without the preamble there is nothing to inject.</span>
+<span class="dl-add">+  const settingsBlock = settingsFlag</span>
+<span class="dl-add">+    ? `</span>
+<span class="dl-add">+set &quot;FRAME_SETTINGS=%FRAME_ROOT%\\${settingsFile}&quot;</span>
+<span class="dl-add">+if not exist &quot;%FRAME_SETTINGS%&quot; goto :frame_run</span>
+<span class="dl-add">+set FRAME_FLAGS=%FRAME_FLAGS% ${settingsFlag} &quot;%FRAME_SETTINGS%&quot;</span>
+<span class="dl-add">+`</span>
+<span class="dl-add">+    : &#39;&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return `@echo off</span>
+<span class="dl-add">+setlocal EnableExtensions</span>
+<span class="dl-add">+rem Frame AI Tool Wrapper for ${toolCommand} (Windows).</span>
+<span class="dl-add">+rem Hands ${toolCommand} Frame&#39;s launch context. Generated file — Frame rewrites</span>
+<span class="dl-add">+rem it whenever the content changes; edits will be lost.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+set &quot;FRAME_SELF=%~dp0&quot;</span>
+<span class="dl-add">+set &quot;FRAME_REAL=&quot;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+rem This file&#39;s own directory leads PATH, so \`where\` reports it before the real</span>
+<span class="dl-add">+rem CLI. Take the first hit that does not live here.</span>
+<span class="dl-add">+for /f &quot;delims=&quot; %%I in (&#39;where &quot;${toolCommand}&quot; 2^&gt;nul&#39;) do (</span>
+<span class="dl-add">+  if not defined FRAME_REAL if /i not &quot;%%~dpI&quot;==&quot;%FRAME_SELF%&quot; set &quot;FRAME_REAL=%%I&quot;</span>
+<span class="dl-add">+)</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+if defined FRAME_REAL goto :frame_resolved</span>
+<span class="dl-add">+&gt;&amp;2 echo Frame: ${toolCommand} was not found on PATH.</span>
+<span class="dl-add">+exit /b 127</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+:frame_resolved</span>
+<span class="dl-add">+set &quot;FRAME_FLAGS=&quot;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+rem The escape hatch, honoured here exactly as in the POSIX wrapper.</span>
+<span class="dl-add">+if defined FRAME_NO_WRAP goto :frame_run</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+rem One injection route, not two: a launch Frame composed resolves through this</span>
+<span class="dl-add">+rem file as well, so its flags are already on the line. Whoever composed first</span>
+<span class="dl-add">+rem owns the injection.</span>
+<span class="dl-add">+set &quot;FRAME_COMPOSED=&quot;</span>
+<span class="dl-add">+call :frame_scan_args %*</span>
+<span class="dl-add">+if defined FRAME_COMPOSED goto :frame_run</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+set &quot;FRAME_ROOT=&quot;</span>
+<span class="dl-add">+call :frame_find_root &quot;%CD%&quot;</span>
+<span class="dl-add">+if not defined FRAME_ROOT goto :frame_run</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+set &quot;FRAME_PREAMBLE=%FRAME_ROOT%\\${preambleFile}&quot;</span>
+<span class="dl-add">+if not exist &quot;%FRAME_PREAMBLE%&quot; goto :frame_run</span>
+<span class="dl-add">+set FRAME_FLAGS=${promptFileFlag} &quot;%FRAME_PREAMBLE%&quot;</span>
+<span class="dl-add">+${settingsBlock}</span>
+<span class="dl-add">+:frame_run</span>
+<span class="dl-add">+call &quot;%FRAME_REAL%&quot; %FRAME_FLAGS% %*</span>
+<span class="dl-add">+exit /b</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+:frame_scan_args</span>
+<span class="dl-add">+rem Is Frame&#39;s own flag already on the line? Compared one argument at a time</span>
+<span class="dl-add">+rem with %~1 rather than by searching the whole of %*: %~1 strips the quotes</span>
+<span class="dl-add">+rem cmd put there, so a user argument containing a space, an ampersand or a</span>
+<span class="dl-add">+rem pipe is compared as a value instead of being re-parsed as syntax.</span>
+<span class="dl-add">+if &quot;%~1&quot;==&quot;&quot; goto :eof</span>
+<span class="dl-add">+if /i &quot;%~1&quot;==&quot;${promptFileFlag}&quot; set &quot;FRAME_COMPOSED=1&quot;</span>
+<span class="dl-add">+shift</span>
+<span class="dl-add">+goto :frame_scan_args</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+:frame_find_root</span>
+<span class="dl-add">+rem Walk up from %1 to the directory holding .frame\\, the same walk the POSIX</span>
+<span class="dl-add">+rem wrapper does. Leaves FRAME_ROOT empty outside a Frame project. Every path</span>
+<span class="dl-add">+rem stays quoted, because a project under Documents has a space in it as often</span>
+<span class="dl-add">+rem as not.</span>
+<span class="dl-add">+set &quot;FRAME_TRY=%~1&quot;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+:frame_find_root_step</span>
+<span class="dl-add">+if exist &quot;%FRAME_TRY%\\.frame\\&quot; goto :frame_find_root_hit</span>
+<span class="dl-add">+for %%P in (&quot;%FRAME_TRY%\\..&quot;) do set &quot;FRAME_UP=%%~fP&quot;</span>
+<span class="dl-add">+if /i &quot;%FRAME_UP%&quot;==&quot;%FRAME_TRY%&quot; goto :eof</span>
+<span class="dl-add">+set &quot;FRAME_TRY=%FRAME_UP%&quot;</span>
+<span class="dl-add">+goto :frame_find_root_step</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+:frame_find_root_hit</span>
+<span class="dl-add">+set &quot;FRAME_ROOT=%FRAME_TRY%&quot;</span>
+<span class="dl-add">+goto :eof</span>
+<span class="dl-add">+`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// A project-relative path as batch spells it. The rest of Frame carries these</span>
+<span class="dl-add">+// with forward slashes — Windows file APIs accept them in arguments — but a</span>
+<span class="dl-add">+// generated batch file reads better, and `if exist` behaves more predictably,</span>
+<span class="dl-add">+// with the native separator.</span>
+<span class="dl-add">+function toBackslashes(value) {</span>
+<span class="dl-add">+  return String(value == null ? &#39;&#39; : value).replace(/\//g, &#39;\\&#39;);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * A shell function name Frame is willing to define.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -1322,6 +1466,7 @@ module.exports = {</span>
+<span class="dl-ctx">   REFERENCE_SPEC_LEGACY_MATCHERS,</span>
+<span class="dl-ctx">   AGENTS_SPEC_LEGACY_MATCHERS,</span>
+<span class="dl-ctx">   getWrapperTemplate,</span>
+<span class="dl-add">+  getCmdWrapperTemplate,</span>
+<span class="dl-ctx">   getShellInitTemplate,</span>
+<span class="dl-ctx">   getSpecHintSettings,</span>
+<span class="dl-ctx">   getStructureHookSnippet,</span>
+<span class="dl-meta">diff --git a/test/frameTemplates.test.js b/test/frameTemplates.test.js</span>
+<span class="dl-meta">index ee55f1e..4b16d03 100644</span>
+<span class="dl-file">--- a/test/frameTemplates.test.js</span>
+<span class="dl-file">+++ b/test/frameTemplates.test.js</span>
+<span class="dl-hunk">@@ -169,6 +169,155 @@ test(&#39;the settings flag is skipped when the settings file is absent&#39;, { skip: !P</span>
+<span class="dl-ctx">   assert.ok(out.includes(&#39;ARG:--append-system-prompt&#39;), out);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── cmd wrapper template ─────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Nothing here executes: cmd.exe is not on this machine and the real</span>
+<span class="dl-add">+// verification is the Windows test protocol this spec ships. These are string</span>
+<span class="dl-add">+// assertions on the batch Frame generates, and they exist to pin the handful</span>
+<span class="dl-add">+// of details a later edit would quietly break.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const CMD_OPTS = {</span>
+<span class="dl-add">+  promptFileFlag: &#39;--append-system-prompt-file&#39;,</span>
+<span class="dl-add">+  settingsFlag: &#39;--settings&#39;,</span>
+<span class="dl-add">+  preambleFile: &#39;.frame/runtime/preamble-claude.txt&#39;,</span>
+<span class="dl-add">+  settingsFile: &#39;.frame/runtime/claude-settings.json&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function cmdWrapper(tool = &#39;claude&#39;, options = CMD_OPTS) {</span>
+<span class="dl-add">+  return templates.getCmdWrapperTemplate(tool, options);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a tool with no file flag gets no cmd wrapper at all&#39;, () =&gt; {</span>
+<span class="dl-add">+  // There is no batch spelling of --append-system-prompt with a 9-line,</span>
+<span class="dl-add">+  // backtick-bearing preamble, and a wrapper that cannot do its job still</span>
+<span class="dl-add">+  // shadows a working CLI.</span>
+<span class="dl-add">+  assert.equal(templates.getCmdWrapperTemplate(&#39;codex&#39;, {}), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(templates.getCmdWrapperTemplate(&#39;gemini&#39;, { settingsFlag: &#39;--settings&#39; }), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the cmd wrapper names its tool and disables echo&#39;, () =&gt; {</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(script.startsWith(&#39;@echo off\nsetlocal EnableExtensions\n&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;Frame AI Tool Wrapper for claude (Windows).&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the where loop skips any hit living in the wrapper\&#39;s own directory&#39;, () =&gt; {</span>
+<span class="dl-add">+  // .frame\bin leads PATH, so `where claude` reports this very file first.</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(script.includes(`for /f &quot;delims=&quot; %%I in (&#39;where &quot;claude&quot; 2^&gt;nul&#39;) do (`));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;if not defined FRAME_REAL if /i not &quot;%%~dpI&quot;==&quot;%FRAME_SELF%&quot; set &quot;FRAME_REAL=%%I&quot;&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;set &quot;FRAME_SELF=%~dp0&quot;&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a CLI that is not installed exits 127 and shadows nothing&#39;, () =&gt; {</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;&gt;&amp;2 echo Frame: claude was not found on PATH.&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;exit /b 127&#39;));</span>
+<span class="dl-add">+  // The message goes to stderr before the exit, and neither is inside a block.</span>
+<span class="dl-add">+  assert.ok(!/\(\s*[^)]*not found on PATH/.test(script));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;FRAME_NO_WRAP reaches the same pass-through every other branch uses&#39;, () =&gt; {</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;if defined FRAME_NO_WRAP goto :frame_run&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a line that already carries Frame\&#39;s flag is left alone&#39;, () =&gt; {</span>
+<span class="dl-add">+  // C1: one injection route. A launch Frame composed resolves through this</span>
+<span class="dl-add">+  // file too, so its flags are already there — the two must never stack.</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;call :frame_scan_args %*&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;if defined FRAME_COMPOSED goto :frame_run&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;if /i &quot;%~1&quot;==&quot;--append-system-prompt-file&quot; set &quot;FRAME_COMPOSED=1&quot;&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;arguments are compared one at a time, not by searching the whole line&#39;, () =&gt; {</span>
+<span class="dl-add">+  // %~1 strips cmd&#39;s quotes, so `claude &quot;a &amp; b&quot;` is compared as a value</span>
+<span class="dl-add">+  // instead of being re-parsed as syntax.</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;if &quot;%~1&quot;==&quot;&quot; goto :eof&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;\nshift\ngoto :frame_scan_args&#39;));</span>
+<span class="dl-add">+  assert.ok(!script.includes(&#39;%FRAME_ARGS:&#39;), &#39;a whole-line substring search is quote-fragile&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the project root is found by walking up to the directory holding .frame&#39;, () =&gt; {</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;call :frame_find_root &quot;%CD%&quot;&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;if exist &quot;%FRAME_TRY%\\.frame\\&quot; goto :frame_find_root_hit&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;for %%P in (&quot;%FRAME_TRY%\\..&quot;) do set &quot;FRAME_UP=%%~fP&quot;&#39;));</span>
+<span class="dl-add">+  // The walk has to stop at the filesystem root or it never returns.</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;if /i &quot;%FRAME_UP%&quot;==&quot;%FRAME_TRY%&quot; goto :eof&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;if not defined FRAME_ROOT goto :frame_run&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the flags carry backslash paths, and every path is quoted&#39;, () =&gt; {</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;set &quot;FRAME_PREAMBLE=%FRAME_ROOT%\\.frame\\runtime\\preamble-claude.txt&quot;&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;set FRAME_FLAGS=--append-system-prompt-file &quot;%FRAME_PREAMBLE%&quot;&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;set &quot;FRAME_SETTINGS=%FRAME_ROOT%\\.frame\\runtime\\claude-settings.json&quot;&#39;));</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;set FRAME_FLAGS=%FRAME_FLAGS% --settings &quot;%FRAME_SETTINGS%&quot;&#39;));</span>
+<span class="dl-add">+  // A project under Documents has a space in it as often as not.</span>
+<span class="dl-add">+  assert.ok(!/%FRAME_ROOT%\\[^\n&quot;]*[^&quot;]\n/.test(script), &#39;an unquoted root path would break on a space&#39;);</span>
+<span class="dl-add">+  assert.ok(!script.includes(&#39;.frame/runtime&#39;), &#39;forward slashes leaked into the batch file&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the settings pair is dropped for a tool that declares no settings flag&#39;, () =&gt; {</span>
+<span class="dl-add">+  const script = cmdWrapper(&#39;claude&#39;, { ...CMD_OPTS, settingsFlag: &#39;&#39; });</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;--append-system-prompt-file&#39;));</span>
+<span class="dl-add">+  assert.ok(!script.includes(&#39;FRAME_SETTINGS&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the settings file is optional in a way the preamble is not&#39;, () =&gt; {</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  // A missing preamble means there is nothing to inject; a missing settings</span>
+<span class="dl-add">+  // file costs the hooks and keeps the preamble.</span>
+<span class="dl-add">+  const preambleGuard = script.indexOf(&#39;if not exist &quot;%FRAME_PREAMBLE%&quot; goto :frame_run&#39;);</span>
+<span class="dl-add">+  const settingsGuard = script.indexOf(&#39;if not exist &quot;%FRAME_SETTINGS%&quot; goto :frame_run&#39;);</span>
+<span class="dl-add">+  const flagsSet = script.indexOf(&#39;set FRAME_FLAGS=--append-system-prompt-file&#39;);</span>
+<span class="dl-add">+  assert.ok(preambleGuard &gt; -1 &amp;&amp; settingsGuard &gt; -1 &amp;&amp; flagsSet &gt; -1);</span>
+<span class="dl-add">+  assert.ok(preambleGuard &lt; flagsSet, &#39;the preamble guard must precede the flags it guards&#39;);</span>
+<span class="dl-add">+  assert.ok(flagsSet &lt; settingsGuard, &#39;a missing settings file must not cost the preamble&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;every branch reaches one call, and the tail is a bare exit /b&#39;, () =&gt; {</span>
+<span class="dl-add">+  // S5: the child&#39;s exit code must arrive unchanged.</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  const calls = script.split(&#39;\n&#39;).filter((line) =&gt; line.startsWith(&#39;call &quot;%FRAME_REAL%&quot;&#39;));</span>
+<span class="dl-add">+  assert.equal(calls.length, 1, &#39;more than one call site means more than one place to lose the code&#39;);</span>
+<span class="dl-add">+  assert.equal(calls[0], &#39;call &quot;%FRAME_REAL%&quot; %FRAME_FLAGS% %*&#39;);</span>
+<span class="dl-add">+  assert.ok(script.includes(&#39;call &quot;%FRAME_REAL%&quot; %FRAME_FLAGS% %*\nexit /b\n&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;%ERRORLEVEL% appears nowhere, least of all inside a block&#39;, () =&gt; {</span>
+<span class="dl-add">+  // cmd.exe expands variables when it *parses* a parenthesised block, so an</span>
+<span class="dl-add">+  // `exit /b %ERRORLEVEL%` inside an `if (…)` reports the code from before</span>
+<span class="dl-add">+  // the call. The goto-shaped tail is what makes the variable unnecessary.</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  assert.ok(!/%ERRORLEVEL%/i.test(script));</span>
+<span class="dl-add">+  for (const line of script.split(&#39;\n&#39;)) {</span>
+<span class="dl-add">+    if (!/^\s*(if|for)\b.*\($/.test(line)) continue;</span>
+<span class="dl-add">+    assert.ok(!/%ERRORLEVEL%/i.test(line));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;every goto has a label to land on&#39;, () =&gt; {</span>
+<span class="dl-add">+  const script = cmdWrapper();</span>
+<span class="dl-add">+  const labels = new Set(</span>
+<span class="dl-add">+    script.split(&#39;\n&#39;)</span>
+<span class="dl-add">+      .filter((line) =&gt; /^:[a-z_]/i.test(line))</span>
+<span class="dl-add">+      .map((line) =&gt; line.trim().slice(1))</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+  labels.add(&#39;eof&#39;);</span>
+<span class="dl-add">+  for (const match of script.matchAll(/goto :([a-z_]+)/gi)) {</span>
+<span class="dl-add">+    assert.ok(labels.has(match[1]), `goto :${match[1]} has no label`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  // And every label is reachable, so a rename cannot orphan a whole branch.</span>
+<span class="dl-add">+  for (const label of labels) {</span>
+<span class="dl-add">+    if (label === &#39;eof&#39; || label === &#39;frame_scan_args&#39; || label === &#39;frame_find_root&#39;) continue;</span>
+<span class="dl-add">+    assert.ok(script.includes(`goto :${label}`), `:${label} is never jumped to`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // ─── spec-hint settings ───────────────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> test(&#39;the spec-hint settings carry both hook events&#39;, () =&gt; {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T04</span>
+    <h2>Let writeWrapper choose its family and self-gate</h2>
+    <span class="card-meta"><span class="chip">81b375d</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">559 tests pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>writeWrapper now asks launchEnv for the filename (wrapperFileName with canPassPaths: !!injection.promptFileFlag) and the family (wrapperFamily), picks getCmdWrapperTemplate or getWrapperTemplate accordingly, skips the 0o755 chmod for the cmd family, and returns &#39;&#39; for a tool that earns no wrapper here. prepareLaunchAssets dropped its own supportsWrappers() call and simply calls it. wrapperLaunchCommand gained a comment recording why the .cmd is deliberately not the composed launch line.</p></div>
+    <div class="field"><span class="label">Why</span><p>Self-gating is what keeps generation on project open, write-if-changed and per tool (C6) while making Codex and Gemini a condition rather than a special case: they declare no promptFileFlag, so on Windows they get no file and behave exactly as they do today. The chmod is skipped because Windows resolves a .cmd through PATHEXT and fs.chmodSync there is a no-op at best. Verified by simulation: forcing win32 through launchEnv writes only .frame/bin/claude.cmd, and the POSIX path still writes all three wrappers at mode 755.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/aiToolManager.js b/src/main/aiToolManager.js</span>
+<span class="dl-meta">index 1eba446..33e5221 100644</span>
+<span class="dl-file">--- a/src/main/aiToolManager.js</span>
+<span class="dl-file">+++ b/src/main/aiToolManager.js</span>
+<span class="dl-hunk">@@ -667,21 +667,42 @@ function takeSettingsFlags(extra, settingsFlag) {</span>
+<span class="dl-ctx">  * flags itself would then inject them a second time on top of the wrapper&#39;s.</span>
+<span class="dl-ctx">  * One path, not two guarded ones — which is why `injection` is now data the</span>
+<span class="dl-ctx">  * wrapper reads rather than a switch between two mechanisms.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Self-gating since Windows joined: the filename, the family and whether this</span>
+<span class="dl-add">+ * tool earns a wrapper at all are `launchEnv`&#39;s answers, and `&#39;&#39;` comes back</span>
+<span class="dl-add">+ * for a tool that gets none — a Windows tool with no file-taking prompt flag,</span>
+<span class="dl-add">+ * where a batch wrapper could not carry the preamble and would shadow a</span>
+<span class="dl-add">+ * working CLI for nothing. Callers no longer ask the platform first.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The executable bit is POSIX-only. Windows resolves a `.cmd` through</span>
+<span class="dl-add">+ * `PATHEXT`, and `fs.chmodSync` there is a no-op at best.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function writeWrapper(projectPath, tool) {</span>
+<span class="dl-del">-  const target = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, tool.id);</span>
+<span class="dl-del">-  const realCommand = tool.fallbackCommand || tool.command || tool.id;</span>
+<span class="dl-ctx">   const injection = tool.injection || {};</span>
+<span class="dl-del">-  writeIfChanged(</span>
+<span class="dl-del">-    target,</span>
+<span class="dl-del">-    templates.getWrapperTemplate(realCommand, {</span>
+<span class="dl-add">+  const fileName = launchEnv.wrapperFileName(tool.id, {</span>
+<span class="dl-add">+    canPassPaths: !!injection.promptFileFlag</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  if (!fileName) return &#39;&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const realCommand = tool.fallbackCommand || tool.command || tool.id;</span>
+<span class="dl-add">+  const isCmd = launchEnv.wrapperFamily() === &#39;cmd&#39;;</span>
+<span class="dl-add">+  const content = isCmd</span>
+<span class="dl-add">+    ? templates.getCmdWrapperTemplate(realCommand, {</span>
+<span class="dl-add">+      promptFileFlag: injection.promptFileFlag || &#39;&#39;,</span>
+<span class="dl-add">+      settingsFlag: injection.settingsFlag || &#39;&#39;,</span>
+<span class="dl-add">+      preambleFile: runtimeRelPath(preambleFileName(tool.id)),</span>
+<span class="dl-add">+      settingsFile: runtimeRelPath(settingsFileName(tool.id))</span>
+<span class="dl-add">+    })</span>
+<span class="dl-add">+    : templates.getWrapperTemplate(realCommand, {</span>
+<span class="dl-ctx">       promptFlag: injection.promptFlag || &#39;&#39;,</span>
+<span class="dl-ctx">       settingsFlag: injection.settingsFlag || &#39;&#39;,</span>
+<span class="dl-ctx">       preambleFile: runtimeRelPath(preambleFileName(tool.id)),</span>
+<span class="dl-ctx">       settingsFile: runtimeRelPath(settingsFileName(tool.id))</span>
+<span class="dl-del">-    }),</span>
+<span class="dl-del">-    0o755</span>
+<span class="dl-del">-  );</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  if (!content) return &#39;&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const target = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, fileName);</span>
+<span class="dl-add">+  writeIfChanged(target, content, isCmd ? undefined : 0o755);</span>
+<span class="dl-ctx">   return target;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -745,7 +766,7 @@ function prepareLaunchAssets(projectPath, tool, extraSettings) {</span>
+<span class="dl-ctx">     settingsPath = writeToolSettings(projectPath, tool, extraSettings);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const wrapperPath = launchEnv.supportsWrappers() ? writeWrapper(projectPath, tool) : &#39;&#39;;</span>
+<span class="dl-add">+  const wrapperPath = writeWrapper(projectPath, tool);</span>
+<span class="dl-ctx">   return {</span>
+<span class="dl-ctx">     preamble,</span>
+<span class="dl-ctx">     settingsPath,</span>
+<span class="dl-hunk">@@ -824,6 +845,13 @@ function inlineInjectionFlags(tool, assets, platform = process.platform) {</span>
+<span class="dl-ctx">  * Falls back the moment the file is not there: the availability probe can run</span>
+<span class="dl-ctx">  * before anything has been written, and a path that does not exist reads as</span>
+<span class="dl-ctx">  * &quot;CLI not installed&quot; — a wrong and very confusing answer.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * POSIX only, deliberately, even though Windows now has a `.cmd` to point at.</span>
+<span class="dl-add">+ * There is no single spelling of that path every Windows shell accepts:</span>
+<span class="dl-add">+ * `./.frame/bin/claude.cmd` reads as a switch to `cmd.exe` and</span>
+<span class="dl-add">+ * `.\.frame\bin\claude.cmd` has its backslashes eaten by Git Bash. The</span>
+<span class="dl-add">+ * composed line there is the bare CLI plus two path flags instead — shell-</span>
+<span class="dl-add">+ * agnostic, and it holds even where the `.cmd` was never written.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function wrapperLaunchCommand(projectPath, tool) {</span>
+<span class="dl-ctx">   if (!projectPath || !launchEnv.supportsWrappers()) return &#39;&#39;;</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T05</span>
+    <h2>Give shellSetup a PowerShell family</h2>
+    <span class="card-meta"><span class="chip">1b87f6d</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">570 tests pass, 0 fail (11 new in test/shellSetup.test.js; the old &#39;win32 gets nothing sent&#39; test is gone and the no-family test no longer claims pwsh)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>shellSetup gained INIT_FILES.powershell = &#39;init.ps1&#39;, powershell/pwsh in FAMILY_BY_SHELL, a new exported initFamilies(platform), a PowerShell single-quoter that doubles &#39;, and psMarkerEcho building Write-Output (&#39;&lt;prefix&gt;&#39; + &#39;&lt;token&gt;&#39;). deliveryFor lost its blanket win32 short-circuit and instead answers unsupported-shell for any family initFamilies does not list here, then answers PowerShell with a spawn-flag delivery: -ExecutionPolicy Bypass -NoExit -Command &quot;. &#39;&lt;init.ps1&gt;&#39;; &lt;marker echo&gt;&quot;.</p></div>
+    <div class="field"><span class="label">Why</span><p>The old short-circuit conflated &#39;a family Frame knows&#39; with &#39;a family Frame can deliver here&#39;. Git Bash resolves to the posix family, whose init file defines functions pointing at extensionless wrappers Windows never writes — delivering it would set the lane up to fail rather than leave it alone; the reverse guard keeps init.ps1 off a Mac. -ExecutionPolicy Bypass is there because a Windows client machine defaults to Restricted, which blocks dot-sourcing an unsigned local .ps1; it lifts the policy for one process and touches nothing machine-wide. cmd, Git Bash and WSL now report unsupported-shell, which is silent on the lane card by design — the gate decision was that a permanently-present row reading the same thing trains the eye to ignore it.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/shellSetup.js b/src/main/shellSetup.js</span>
+<span class="dl-meta">index 914373a..3e0f1ed 100644</span>
+<span class="dl-file">--- a/src/main/shellSetup.js</span>
+<span class="dl-file">+++ b/src/main/shellSetup.js</span>
+<span class="dl-hunk">@@ -36,24 +36,46 @@ const SHELL_DIR = &#39;runtime/shell&#39;;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const INIT_FILES = {</span>
+<span class="dl-ctx">   posix: &#39;init.sh&#39;,</span>
+<span class="dl-del">-  fish: &#39;init.fish&#39;</span>
+<span class="dl-add">+  fish: &#39;init.fish&#39;,</span>
+<span class="dl-add">+  powershell: &#39;init.ps1&#39;</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Which families Frame can actually deliver on a platform.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * A family being *known* and a family being *deliverable here* are different</span>
+<span class="dl-add">+ * questions, and conflating them is what the old blanket win32 short-circuit</span>
+<span class="dl-add">+ * did. Git Bash on Windows resolves to the `posix` family, but its init file</span>
+<span class="dl-add">+ * defines functions pointing at extensionless wrappers Windows never writes —</span>
+<span class="dl-add">+ * delivering it would set the lane up to fail rather than leave it alone. The</span>
+<span class="dl-add">+ * reverse holds too: `init.ps1` must never be offered to a Mac.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function initFamilies(platform = process.platform) {</span>
+<span class="dl-add">+  return platform === &#39;win32&#39; ? [&#39;powershell&#39;] : [&#39;posix&#39;, &#39;fish&#39;];</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // The marker&#39;s fixed half. The minted half follows it, and the two are never</span>
+<span class="dl-ctx"> // adjacent in anything sent to a shell — see `deliveryFor`.</span>
+<span class="dl-ctx"> const MARKER_PREFIX = &#39;__frame_ready_&#39;;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Shell basenames Frame can set up. `sh` and `dash` take the POSIX file;</span>
+<span class="dl-del">-// `nu`, `pwsh` and `cmd` are deliberately absent — Windows has no `.cmd`</span>
+<span class="dl-del">-// wrappers to point a function at, and nushell&#39;s function and `PATH` model</span>
+<span class="dl-del">-// matches neither generated file. That is `unsupported`, not a failure.</span>
+<span class="dl-add">+// `powershell` and `pwsh` take the PowerShell one, which exists because</span>
+<span class="dl-add">+// nvm-windows reorders `PATH` exactly as nvm does and a function wins over</span>
+<span class="dl-add">+// any ordering. `nu` and `cmd` are deliberately absent: nushell&#39;s function</span>
+<span class="dl-add">+// and `PATH` model matches no generated file here, and `cmd` has no functions</span>
+<span class="dl-add">+// at all — `doskey` macros are too fragile to build on, so `cmd` gets the</span>
+<span class="dl-add">+// `PATH` entry and `PATHEXT` resolution and nothing more. Both are</span>
+<span class="dl-add">+// `unsupported`, which is silent by design: the lane works, it simply has no</span>
+<span class="dl-add">+// Frame context.</span>
+<span class="dl-ctx"> const FAMILY_BY_SHELL = {</span>
+<span class="dl-ctx">   zsh: &#39;posix&#39;,</span>
+<span class="dl-ctx">   bash: &#39;posix&#39;,</span>
+<span class="dl-ctx">   sh: &#39;posix&#39;,</span>
+<span class="dl-ctx">   dash: &#39;posix&#39;,</span>
+<span class="dl-ctx">   ksh: &#39;posix&#39;,</span>
+<span class="dl-del">-  fish: &#39;fish&#39;</span>
+<span class="dl-add">+  fish: &#39;fish&#39;,</span>
+<span class="dl-add">+  powershell: &#39;powershell&#39;,</span>
+<span class="dl-add">+  pwsh: &#39;powershell&#39;</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-hunk">@@ -110,6 +132,17 @@ function singleQuote(value) {</span>
+<span class="dl-ctx">   return `&#39;${String(value).replace(/&#39;/g, &quot;&#39;\\&#39;&#39;&quot;)}&#39;`;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Single-quote a value for a PowerShell command line.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * PowerShell&#39;s single-quoted string is literal too — no backtick escapes</span>
+<span class="dl-add">+ * inside it, which is the whole reason to use it here — and a quote is escaped</span>
+<span class="dl-add">+ * by doubling rather than by the POSIX close-escape-reopen dance.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function psQuote(value) {</span>
+<span class="dl-add">+  return `&#39;${String(value).replace(/&#39;/g, &quot;&#39;&#39;&quot;)}&#39;`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * The `printf` that announces the marker — never containing it.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -125,6 +158,19 @@ function markerEcho(marker) {</span>
+<span class="dl-ctx">   return `printf &#39;%s\\n&#39; ${singleQuote(marker.slice(0, cut))}${singleQuote(marker.slice(cut))}`;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The same trick in PowerShell: `Write-Output (&#39;&lt;prefix&gt;&#39; + &#39;&lt;token&gt;&#39;)`.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Concatenated at run time, so the literal marker exists only in real output.</span>
+<span class="dl-add">+ * PowerShell&#39;s delivery is a spawn flag and echoes nothing, but the halves</span>
+<span class="dl-add">+ * stay apart anyway — the property is the invariant, not the mode that</span>
+<span class="dl-add">+ * happens to need it today.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function psMarkerEcho(marker) {</span>
+<span class="dl-add">+  const cut = MARKER_PREFIX.length;</span>
+<span class="dl-add">+  return `Write-Output (${psQuote(marker.slice(0, cut))} + ${psQuote(marker.slice(cut))})`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * How setup reaches one lane&#39;s shell.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -134,26 +180,48 @@ function markerEcho(marker) {</span>
+<span class="dl-ctx">  *   { mode: &#39;type&#39;, line: &#39; . …&#39;, marker }        zsh/bash/sh — typed at spawn</span>
+<span class="dl-ctx">  *   { mode: &#39;none&#39;, reason }                      nothing is sent</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-del">- * `mode: &#39;none&#39;` is the answer for Windows, for a lane with no project, for a</span>
+<span class="dl-del">- * folder that is not a Frame project, and for a shell Frame has no init file</span>
+<span class="dl-del">- * for. In every one of those cases nothing is sent and no function or variable</span>
+<span class="dl-del">- * is defined — the lane behaves exactly as it did before this module existed.</span>
+<span class="dl-add">+ * `mode: &#39;none&#39;` is the answer for a lane with no project, for a folder that</span>
+<span class="dl-add">+ * is not a Frame project, and for a shell whose family Frame cannot deliver</span>
+<span class="dl-add">+ * *here* — `cmd` and WSL on Windows, Git Bash too, since its `posix` init</span>
+<span class="dl-add">+ * file points at wrappers Windows does not write. In every one of those cases</span>
+<span class="dl-add">+ * nothing is sent and no function or variable is defined; the lane behaves</span>
+<span class="dl-add">+ * exactly as it did before this module existed, which is what `unsupported`</span>
+<span class="dl-add">+ * has always meant.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-ctx">  * zsh and bash get a typed line rather than a flag because the only</span>
+<span class="dl-ctx">  * post-startup hook they offer reroutes the user&#39;s own startup files, which</span>
+<span class="dl-del">- * Frame does not do.</span>
+<span class="dl-add">+ * Frame does not do. PowerShell takes a flag, so like fish it types nothing.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function deliveryFor(shellPath, platform = process.platform, projectPath = &#39;&#39;, options = {}) {</span>
+<span class="dl-ctx">   const { marker = &#39;&#39;, isFrameProject = true } = options;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  if (platform === &#39;win32&#39;) return { mode: &#39;none&#39;, reason: &#39;platform&#39; };</span>
+<span class="dl-ctx">   if (!projectPath) return { mode: &#39;none&#39;, reason: &#39;no-project&#39; };</span>
+<span class="dl-ctx">   if (!isFrameProject) return { mode: &#39;none&#39;, reason: &#39;not-a-frame-project&#39; };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const family = shellFamily(shellPath);</span>
+<span class="dl-ctx">   if (!family) return { mode: &#39;none&#39;, reason: &#39;unsupported-shell&#39; };</span>
+<span class="dl-add">+  if (!initFamilies(platform).includes(family)) return { mode: &#39;none&#39;, reason: &#39;unsupported-shell&#39; };</span>
+<span class="dl-ctx">   if (!marker) return { mode: &#39;none&#39;, reason: &#39;no-marker&#39; };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  if (family === &#39;powershell&#39;) {</span>
+<span class="dl-add">+    // -ExecutionPolicy Bypass because a Windows client machine defaults to</span>
+<span class="dl-add">+    // Restricted, which blocks dot-sourcing an unsigned local .ps1. It lifts</span>
+<span class="dl-add">+    // the policy for this one process and touches nothing machine-wide — the</span>
+<span class="dl-add">+    // same bargain launchEnv already makes for PATH. Where Group Policy</span>
+<span class="dl-add">+    // overrides it the marker never arrives and the lane reports `failed`,</span>
+<span class="dl-add">+    // which is the designed path rather than a new failure mode.</span>
+<span class="dl-add">+    return {</span>
+<span class="dl-add">+      mode: &#39;flag&#39;,</span>
+<span class="dl-add">+      args: [</span>
+<span class="dl-add">+        &#39;-ExecutionPolicy&#39;, &#39;Bypass&#39;,</span>
+<span class="dl-add">+        &#39;-NoExit&#39;,</span>
+<span class="dl-add">+        &#39;-Command&#39;,</span>
+<span class="dl-add">+        `. ${psQuote(shellInitPath(projectPath, family))}; ${psMarkerEcho(marker)}`</span>
+<span class="dl-add">+      ],</span>
+<span class="dl-add">+      marker</span>
+<span class="dl-add">+    };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   const initFile = singleQuote(shellInitPath(projectPath, family));</span>
+<span class="dl-ctx">   const echo = markerEcho(marker);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -180,6 +248,8 @@ function manualCommand(shellPath) {</span>
+<span class="dl-ctx">   const family = shellFamily(shellPath);</span>
+<span class="dl-ctx">   if (!family) return &#39;&#39;;</span>
+<span class="dl-ctx">   const rel = `${FRAME_DIR}/${SHELL_DIR}/${INIT_FILES[family]}`;</span>
+<span class="dl-add">+  // PowerShell dot-sources with the same operator POSIX does, and resolves a</span>
+<span class="dl-add">+  // relative path with forward slashes without complaint.</span>
+<span class="dl-ctx">   return family === &#39;fish&#39; ? `source ${rel}` : `. ${rel}`;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -207,6 +277,7 @@ module.exports = {</span>
+<span class="dl-ctx">   SHELL_DIR,</span>
+<span class="dl-ctx">   INIT_FILES,</span>
+<span class="dl-ctx">   MARKER_PREFIX,</span>
+<span class="dl-add">+  initFamilies,</span>
+<span class="dl-ctx">   shellFamily,</span>
+<span class="dl-ctx">   shellInitPath,</span>
+<span class="dl-ctx">   mintMarker,</span>
+<span class="dl-meta">diff --git a/test/shellSetup.test.js b/test/shellSetup.test.js</span>
+<span class="dl-meta">index 3392346..e2e8d56 100644</span>
+<span class="dl-file">--- a/test/shellSetup.test.js</span>
+<span class="dl-file">+++ b/test/shellSetup.test.js</span>
+<span class="dl-hunk">@@ -46,10 +46,10 @@ test(&#39;a login-shell argv0 is still the same shell&#39;, () =&gt; {</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> test(&#39;shells Frame has no init file for get no family&#39;, () =&gt; {</span>
+<span class="dl-del">-  // Not a failure: nushell&#39;s function model matches neither generated file and</span>
+<span class="dl-del">-  // Windows has no .cmd wrappers to point one at.</span>
+<span class="dl-add">+  // Not a failure: nushell&#39;s function and PATH model matches no generated</span>
+<span class="dl-add">+  // file, and cmd has no functions at all — doskey macros are too fragile to</span>
+<span class="dl-add">+  // build on, so cmd gets the PATH entry and PATHEXT resolution and no more.</span>
+<span class="dl-ctx">   assert.equal(shellSetup.shellFamily(&#39;/usr/local/bin/nu&#39;), &#39;&#39;);</span>
+<span class="dl-del">-  assert.equal(shellSetup.shellFamily(&#39;/usr/bin/pwsh&#39;), &#39;&#39;);</span>
+<span class="dl-ctx">   assert.equal(shellSetup.shellFamily(&#39;C:\\Windows\\System32\\cmd.exe&#39;), &#39;&#39;);</span>
+<span class="dl-ctx">   assert.equal(shellSetup.shellFamily(&#39;&#39;), &#39;&#39;);</span>
+<span class="dl-ctx">   assert.equal(shellSetup.shellFamily(null), &#39;&#39;);</span>
+<span class="dl-hunk">@@ -91,12 +91,6 @@ test(&#39;a marker carries the shared prefix and nothing that needs quoting&#39;, () =&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // ─── deliveryFor · gates ──────────────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-test(&#39;win32 gets nothing sent&#39;, () =&gt; {</span>
+<span class="dl-del">-  const delivery = deliver(&#39;C:\\Program Files\\Git\\bin\\bash.exe&#39;, { platform: &#39;win32&#39; });</span>
+<span class="dl-del">-  assert.equal(delivery.mode, &#39;none&#39;);</span>
+<span class="dl-del">-  assert.equal(delivery.reason, &#39;platform&#39;);</span>
+<span class="dl-del">-});</span>
+<span class="dl-del">-</span>
+<span class="dl-ctx"> test(&#39;a folder that is not a Frame project gets nothing sent&#39;, () =&gt; {</span>
+<span class="dl-ctx">   const delivery = deliver(&#39;/bin/zsh&#39;, { isFrameProject: false });</span>
+<span class="dl-ctx">   assert.equal(delivery.mode, &#39;none&#39;);</span>
+<span class="dl-hunk">@@ -164,6 +158,115 @@ test(&#39;the fish command carries the split marker too&#39;, () =&gt; {</span>
+<span class="dl-ctx">   assert.ok(!delivery.args[1].includes(marker));</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── initFamilies ─────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;each platform delivers only the families it can actually serve&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.deepEqual(shellSetup.initFamilies(&#39;darwin&#39;), [&#39;posix&#39;, &#39;fish&#39;]);</span>
+<span class="dl-add">+  assert.deepEqual(shellSetup.initFamilies(&#39;linux&#39;), [&#39;posix&#39;, &#39;fish&#39;]);</span>
+<span class="dl-add">+  assert.deepEqual(shellSetup.initFamilies(&#39;win32&#39;), [&#39;powershell&#39;]);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── deliveryFor · PowerShell ─────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const PS_PROJECT = &#39;C:\\Users\\dev\\my project&#39;;</span>
+<span class="dl-add">+const INIT_PS1 = path.join(PS_PROJECT, &#39;.frame&#39;, &#39;runtime&#39;, &#39;shell&#39;, &#39;init.ps1&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const deliverPs = (shellPath, overrides = {}) =&gt;</span>
+<span class="dl-add">+  shellSetup.deliveryFor(shellPath, &#39;win32&#39;, &#39;projectPath&#39; in overrides ? overrides.projectPath : PS_PROJECT, {</span>
+<span class="dl-add">+    marker: &#39;marker&#39; in overrides ? overrides.marker : &#39;__frame_ready_t1_1_a&#39;,</span>
+<span class="dl-add">+    ...(&#39;isFrameProject&#39; in overrides ? { isFrameProject: overrides.isFrameProject } : {})</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;powershell and pwsh are one family&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe&#39;), &#39;powershell&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;C:\\Program Files\\PowerShell\\7\\pwsh.exe&#39;), &#39;powershell&#39;);</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;pwsh&#39;), &#39;powershell&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a PowerShell lane is set up at spawn, with nothing typed&#39;, () =&gt; {</span>
+<span class="dl-add">+  const delivery = deliverPs(&#39;powershell.exe&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.mode, &#39;flag&#39;);</span>
+<span class="dl-add">+  assert.ok(!(&#39;line&#39; in delivery), &#39;a typed line would be echoed into the user\&#39;s terminal&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(delivery.args.slice(0, 4), [&#39;-ExecutionPolicy&#39;, &#39;Bypass&#39;, &#39;-NoExit&#39;, &#39;-Command&#39;]);</span>
+<span class="dl-add">+  assert.equal(delivery.args.length, 5);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the execution policy is lifted for this process and nothing else&#39;, () =&gt; {</span>
+<span class="dl-add">+  // A Windows client machine defaults to Restricted, which blocks</span>
+<span class="dl-add">+  // dot-sourcing an unsigned local .ps1 — the same bargain launchEnv makes</span>
+<span class="dl-add">+  // for PATH, scoped to a process Frame spawned.</span>
+<span class="dl-add">+  const args = deliverPs(&#39;pwsh.exe&#39;).args;</span>
+<span class="dl-add">+  assert.equal(args[0], &#39;-ExecutionPolicy&#39;);</span>
+<span class="dl-add">+  assert.equal(args[1], &#39;Bypass&#39;);</span>
+<span class="dl-add">+  assert.ok(!args.includes(&#39;-Scope&#39;), &#39;nothing machine-wide is touched&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the PowerShell command dot-sources the init file it was given&#39;, () =&gt; {</span>
+<span class="dl-add">+  const command = deliverPs(&#39;powershell.exe&#39;).args[4];</span>
+<span class="dl-add">+  assert.ok(command.startsWith(`. &#39;${INIT_PS1}&#39;; `), command);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a project path with an apostrophe is quoted the PowerShell way&#39;, () =&gt; {</span>
+<span class="dl-add">+  // PowerShell escapes a quote inside a literal string by doubling it, not by</span>
+<span class="dl-add">+  // the POSIX close-escape-reopen dance.</span>
+<span class="dl-add">+  const weird = &quot;C:\\Users\\o&#39;brien\\proj&quot;;</span>
+<span class="dl-add">+  const command = shellSetup.deliveryFor(&#39;pwsh.exe&#39;, &#39;win32&#39;, weird, { marker: &#39;__frame_ready_x&#39; }).args[4];</span>
+<span class="dl-add">+  assert.ok(command.includes(&quot;o&#39;&#39;brien&quot;), command);</span>
+<span class="dl-add">+  assert.ok(!command.includes(&quot;&#39;\\&#39;&#39;&quot;), &#39;POSIX quoting leaked into the PowerShell line&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the literal marker never appears in what is delivered&#39;, () =&gt; {</span>
+<span class="dl-add">+  // The invariant that predates PowerShell: the two halves are concatenated</span>
+<span class="dl-add">+  // at run time, so a match can only come from real output.</span>
+<span class="dl-add">+  const marker = &#39;__frame_ready_t1_1_a&#39;;</span>
+<span class="dl-add">+  const delivery = deliverPs(&#39;powershell.exe&#39;);</span>
+<span class="dl-add">+  assert.equal(delivery.marker, marker);</span>
+<span class="dl-add">+  for (const arg of delivery.args) {</span>
+<span class="dl-add">+    assert.ok(!arg.includes(marker), `the marker is spelled out in: ${arg}`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  assert.ok(delivery.args[4].includes(&quot;Write-Output (&#39;__frame_ready_&#39; + &#39;t1_1_a&#39;)&quot;), delivery.args[4]);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a PowerShell lane outside a Frame project still gets nothing&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(deliverPs(&#39;powershell.exe&#39;, { isFrameProject: false }).reason, &#39;not-a-frame-project&#39;);</span>
+<span class="dl-add">+  assert.equal(deliverPs(&#39;powershell.exe&#39;, { projectPath: &#39;&#39; }).reason, &#39;no-project&#39;);</span>
+<span class="dl-add">+  assert.equal(deliverPs(&#39;powershell.exe&#39;, { marker: &#39;&#39; }).reason, &#39;no-marker&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── deliveryFor · the Windows shells Frame leaves alone ──────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;cmd, Git Bash and WSL are unsupported on Windows, not failures&#39;, () =&gt; {</span>
+<span class="dl-add">+  // The gate decision: `unsupported` stays silent — the lane works, it simply</span>
+<span class="dl-add">+  // has no Frame context, exactly as `nu` behaves on macOS.</span>
+<span class="dl-add">+  for (const shell of [&#39;cmd.exe&#39;, &#39;C:\\Program Files\\Git\\bin\\bash.exe&#39;, &#39;wsl.exe&#39;]) {</span>
+<span class="dl-add">+    const delivery = deliverPs(shell);</span>
+<span class="dl-add">+    assert.equal(delivery.mode, &#39;none&#39;, shell);</span>
+<span class="dl-add">+    assert.equal(delivery.reason, &#39;unsupported-shell&#39;, shell);</span>
+<span class="dl-add">+    assert.ok(!(&#39;line&#39; in delivery) &amp;&amp; !(&#39;args&#39; in delivery), `${shell} was sent something`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Git Bash is refused for its family, not for its name&#39;, () =&gt; {</span>
+<span class="dl-add">+  // bash.exe resolves to `posix`, whose init file defines functions pointing</span>
+<span class="dl-add">+  // at extensionless wrappers Windows never writes. Delivering it would set</span>
+<span class="dl-add">+  // the lane up to fail rather than leave it alone.</span>
+<span class="dl-add">+  assert.equal(shellSetup.shellFamily(&#39;C:\\Program Files\\Git\\bin\\bash.exe&#39;), &#39;posix&#39;);</span>
+<span class="dl-add">+  assert.ok(!shellSetup.initFamilies(&#39;win32&#39;).includes(&#39;posix&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;init.ps1 is never offered to a Mac&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const shell of [&#39;pwsh&#39;, &#39;powershell.exe&#39;]) {</span>
+<span class="dl-add">+    const delivery = shellSetup.deliveryFor(shell, &#39;darwin&#39;, PROJECT, { marker: &#39;__frame_ready_x&#39; });</span>
+<span class="dl-add">+    assert.equal(delivery.mode, &#39;none&#39;, shell);</span>
+<span class="dl-add">+    assert.equal(delivery.reason, &#39;unsupported-shell&#39;, shell);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the POSIX families keep working now that the win32 short-circuit is gone&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(deliver(&#39;/bin/zsh&#39;).mode, &#39;type&#39;);</span>
+<span class="dl-add">+  assert.equal(deliver(&#39;/opt/homebrew/bin/fish&#39;).mode, &#39;flag&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // ─── manualCommand ────────────────────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> test(&#39;the manual command is project-relative and per family&#39;, () =&gt; {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T06</span>
+    <h2>Write init.ps1, and let initFamilies decide what gets written</h2>
+    <span class="card-meta"><span class="chip">c2cd083</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">577 tests pass, 0 fail (7 new in test/frameTemplates.test.js)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>getShellInitTemplate grew a powershell branch: $env:FRAME_BIN, PATH rebuilt with FRAME_BIN first and any later copy dropped, and one function per tool routing to &quot;$env:FRAME_BIN\&lt;id&gt;.cmd&quot; with a Get-Command -CommandType Application fallback. writeShellInit replaced its supportsWrappers() gate with shellSetup.initFamilies() and now passes only the tool ids that have a wrapper on this platform.</p></div>
+    <div class="field"><span class="label">Why</span><p>-CommandType Application excludes functions and aliases, which is what keeps a function named claude from finding itself — the PowerShell spelling of the POSIX file&#39;s `command &lt;id&gt;`. The tool-id filter matters on Windows specifically: Codex and Gemini get no .cmd there, so a function for them would delegate to a file that does not exist. Driving the loop from initFamilies rather than Object.keys(INIT_FILES) is what stops init.sh being written on Windows, where its functions would point at extensionless wrappers Frame never writes. Verified by simulation: a forced win32 run writes only init.ps1 and only a claude function; the POSIX run still writes init.sh and init.fish with all three.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/aiToolManager.js b/src/main/aiToolManager.js</span>
+<span class="dl-meta">index 33e5221..020520d 100644</span>
+<span class="dl-file">--- a/src/main/aiToolManager.js</span>
+<span class="dl-file">+++ b/src/main/aiToolManager.js</span>
+<span class="dl-hunk">@@ -716,21 +716,30 @@ function writeWrapper(projectPath, tool) {</span>
+<span class="dl-ctx">  * and a user who switches from zsh to fish should not have to reopen the</span>
+<span class="dl-ctx">  * project to get their functions.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-del">- * Every tool in the registry gets a function, so a newly configured custom tool</span>
+<span class="dl-del">- * is routed through its wrapper the next time this runs rather than after a</span>
+<span class="dl-del">- * restart.</span>
+<span class="dl-add">+ * Every tool that has a wrapper *here* gets a function, so a newly configured</span>
+<span class="dl-add">+ * custom tool is routed through its wrapper the next time this runs rather</span>
+<span class="dl-add">+ * than after a restart — and a tool Frame cannot wrap on this platform gets no</span>
+<span class="dl-add">+ * function, since there would be nothing for it to delegate to.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-del">- * Returns the paths written. Silent no-op where Frame writes no wrappers —</span>
+<span class="dl-del">- * there would be nothing for a function to delegate to.</span>
+<span class="dl-add">+ * Which families are written is `shellSetup.initFamilies`&#39; answer, not a</span>
+<span class="dl-add">+ * platform check of this function&#39;s own: on Windows that is `init.ps1` alone,</span>
+<span class="dl-add">+ * and writing `init.sh` there would produce functions pointing at</span>
+<span class="dl-add">+ * extensionless wrappers that do not exist.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Returns the paths written.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function writeShellInit(projectPath) {</span>
+<span class="dl-del">-  if (!projectPath || !launchEnv.supportsWrappers()) return [];</span>
+<span class="dl-add">+  if (!projectPath) return [];</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const binDir = launchEnv.frameBinDir(projectPath);</span>
+<span class="dl-del">-  const toolIds = Object.values(getAvailableTools()).map((tool) =&gt; tool.id);</span>
+<span class="dl-add">+  const toolIds = Object.values(getAvailableTools())</span>
+<span class="dl-add">+    .filter((tool) =&gt; !!launchEnv.wrapperFileName(tool.id, {</span>
+<span class="dl-add">+      canPassPaths: !!(tool.injection &amp;&amp; tool.injection.promptFileFlag)</span>
+<span class="dl-add">+    }))</span>
+<span class="dl-add">+    .map((tool) =&gt; tool.id);</span>
+<span class="dl-ctx">   const written = [];</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  for (const family of Object.keys(shellSetup.INIT_FILES)) {</span>
+<span class="dl-add">+  for (const family of shellSetup.initFamilies()) {</span>
+<span class="dl-ctx">     const content = templates.getShellInitTemplate({ family, binDir, toolIds });</span>
+<span class="dl-ctx">     if (!content) continue;</span>
+<span class="dl-ctx">     const target = shellSetup.shellInitPath(projectPath, family);</span>
+<span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 5bd0334..46f5b99 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -1142,6 +1142,13 @@ function shellQuote(value) {</span>
+<span class="dl-ctx">   return `&#39;${String(value == null ? &#39;&#39; : value).replace(/&#39;/g, &quot;&#39;\\&#39;&#39;&quot;)}&#39;`;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// The same job for PowerShell, whose single-quoted string is literal too — no</span>
+<span class="dl-add">+// backtick escapes inside it, which is exactly why it is used here — and</span>
+<span class="dl-add">+// escapes a quote by doubling it.</span>
+<span class="dl-add">+function psQuote(value) {</span>
+<span class="dl-add">+  return `&#39;${String(value == null ? &#39;&#39; : value).replace(/&#39;/g, &quot;&#39;&#39;&quot;)}&#39;`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * The init file a lane sources at startup.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -1165,7 +1172,7 @@ function shellQuote(value) {</span>
+<span class="dl-ctx">  * itself) while still going through `PATH`.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-ctx">  * @param {object} options</span>
+<span class="dl-del">- * @param {string} options.family - &#39;posix&#39; (zsh/bash/sh) or &#39;fish&#39;</span>
+<span class="dl-add">+ * @param {string} options.family - &#39;posix&#39; (zsh/bash/sh), &#39;fish&#39; or &#39;powershell&#39;</span>
+<span class="dl-ctx">  * @param {string} options.binDir - absolute path to the project&#39;s .frame/bin</span>
+<span class="dl-ctx">  * @param {string[]} options.toolIds - configured tool ids, one function each</span>
+<span class="dl-ctx">  * @returns {string} the file&#39;s content, or &#39;&#39; for a family Frame cannot serve</span>
+<span class="dl-hunk">@@ -1179,6 +1186,7 @@ function getShellInitTemplate(options) {</span>
+<span class="dl-ctx">   if (!binDir) return &#39;&#39;;</span>
+<span class="dl-ctx">   if (family === &#39;fish&#39;) return fishInitTemplate(binDir, toolIds);</span>
+<span class="dl-ctx">   if (family === &#39;posix&#39;) return posixInitTemplate(binDir, toolIds);</span>
+<span class="dl-add">+  if (family === &#39;powershell&#39;) return powershellInitTemplate(binDir, toolIds);</span>
+<span class="dl-ctx">   return &#39;&#39;;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -1231,6 +1239,61 @@ ${functions}</span>
+<span class="dl-ctx"> `;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The PowerShell init file, dot-sourced at spawn by `powershell` and `pwsh`.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Same argument as the POSIX one, with a Windows name attached: nvm-windows</span>
+<span class="dl-add">+ * prepends its own directory when the user&#39;s profile runs, which is *after*</span>
+<span class="dl-add">+ * Frame set the environment, so `.frame\bin` leading `PATH` is a guarantee the</span>
+<span class="dl-add">+ * profile can quietly undo. A function is resolved before any `PATH` search,</span>
+<span class="dl-add">+ * so it cannot be.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The fallback resolves with `-CommandType Application`, which excludes</span>
+<span class="dl-add">+ * functions and aliases. That is what keeps a function named `claude` from</span>
+<span class="dl-add">+ * finding itself and recursing until the stack gives out — the PowerShell</span>
+<span class="dl-add">+ * spelling of the POSIX file&#39;s `command &lt;id&gt;`.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function powershellInitTemplate(binDir, toolIds) {</span>
+<span class="dl-add">+  const functions = toolIds</span>
+<span class="dl-add">+    .map(</span>
+<span class="dl-add">+      (id) =&gt; `function ${id} {</span>
+<span class="dl-add">+    $frameWrapper = Join-Path $env:FRAME_BIN &#39;${id}.cmd&#39;</span>
+<span class="dl-add">+    if (Test-Path -LiteralPath $frameWrapper) {</span>
+<span class="dl-add">+        &amp; $frameWrapper @args</span>
+<span class="dl-add">+    } else {</span>
+<span class="dl-add">+        $frameReal = Get-Command &#39;${id}&#39; -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1</span>
+<span class="dl-add">+        if ($frameReal) {</span>
+<span class="dl-add">+            &amp; $frameReal.Source @args</span>
+<span class="dl-add">+        } else {</span>
+<span class="dl-add">+            Write-Error &#39;Frame: ${id} was not found on PATH.&#39;</span>
+<span class="dl-add">+        }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+}`</span>
+<span class="dl-add">+    )</span>
+<span class="dl-add">+    .join(&#39;\n\n&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return `# Frame shell setup — dot-sourced by PowerShell in terminals Frame opens.</span>
+<span class="dl-add">+# Generated file; Frame rewrites it whenever the content changes. Nothing</span>
+<span class="dl-add">+# outside .frame\\ is touched, and nothing here runs in a shell Frame did not</span>
+<span class="dl-add">+# open.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+$env:FRAME_BIN = ${psQuote(binDir)}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+# Move FRAME_BIN to the front of PATH — the reason this file exists. The</span>
+<span class="dl-add">+# profile that just ran may have prepended a version manager&#39;s directory, and</span>
+<span class="dl-add">+# a real claude.cmd found there would win.</span>
+<span class="dl-add">+$frameRest = @($env:PATH -split &#39;;&#39; | Where-Object { $_ -and $_ -ne $env:FRAME_BIN })</span>
+<span class="dl-add">+$env:PATH = (@($env:FRAME_BIN) + $frameRest) -join &#39;;&#39;</span>
+<span class="dl-add">+Remove-Variable frameRest -ErrorAction SilentlyContinue</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+# One function per tool that has a wrapper here. Resolved before any PATH</span>
+<span class="dl-add">+# search, so where the user&#39;s profile put its own directories stops mattering.</span>
+<span class="dl-add">+# Each is a router, not a second injection point: the .cmd remains the only</span>
+<span class="dl-add">+# thing that composes the flags and the only thing honouring FRAME_NO_WRAP.</span>
+<span class="dl-add">+${functions}</span>
+<span class="dl-add">+`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> function fishInitTemplate(binDir, toolIds) {</span>
+<span class="dl-ctx">   const functions = toolIds</span>
+<span class="dl-ctx">     .map(</span>
+<span class="dl-meta">diff --git a/test/frameTemplates.test.js b/test/frameTemplates.test.js</span>
+<span class="dl-meta">index 4b16d03..e18a8d2 100644</span>
+<span class="dl-file">--- a/test/frameTemplates.test.js</span>
+<span class="dl-file">+++ b/test/frameTemplates.test.js</span>
+<span class="dl-hunk">@@ -490,6 +490,69 @@ test(&#39;a family Frame has no file for, or no bin directory, produces nothing&#39;, ()</span>
+<span class="dl-ctx">   assert.equal(templates.getShellInitTemplate({}), &#39;&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── shell init template · PowerShell ─────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const PS_BIN = &#39;C:\\Users\\dev\\my project\\.frame\\bin&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function psInit(toolIds = [&#39;claude&#39;]) {</span>
+<span class="dl-add">+  return templates.getShellInitTemplate({ family: &#39;powershell&#39;, binDir: PS_BIN, toolIds });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the PowerShell file exports FRAME_BIN and puts it first on PATH&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = psInit();</span>
+<span class="dl-add">+  assert.ok(init.includes(`$env:FRAME_BIN = &#39;${PS_BIN}&#39;`));</span>
+<span class="dl-add">+  assert.ok(init.includes(&quot;$env:PATH = (@($env:FRAME_BIN) + $frameRest) -join &#39;;&#39;&quot;));</span>
+<span class="dl-add">+  // Any later copy is dropped rather than left behind, or the rebuild would</span>
+<span class="dl-add">+  // duplicate the entry every time a lane opens.</span>
+<span class="dl-add">+  assert.ok(init.includes(&quot;Where-Object { $_ -and $_ -ne $env:FRAME_BIN }&quot;));</span>
+<span class="dl-add">+  assert.ok(init.includes(&quot;-split &#39;;&#39;&quot;), &#39;the POSIX separator would split nothing on Windows&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the PowerShell file defines one function per tool, routed to its .cmd&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = psInit([&#39;claude&#39;, &#39;somecli&#39;]);</span>
+<span class="dl-add">+  for (const id of [&#39;claude&#39;, &#39;somecli&#39;]) {</span>
+<span class="dl-add">+    assert.ok(init.includes(`function ${id} {`), `${id} has no function`);</span>
+<span class="dl-add">+    assert.ok(init.includes(`Join-Path $env:FRAME_BIN &#39;${id}.cmd&#39;`), `${id} is not routed to its wrapper`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  assert.ok(init.includes(&#39;&amp; $frameWrapper @args&#39;), &#39;arguments are not forwarded&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the PowerShell fallback resolves an application, so it cannot recurse&#39;, () =&gt; {</span>
+<span class="dl-add">+  // A function named `claude` looking up `claude` would find itself.</span>
+<span class="dl-add">+  // -CommandType Application excludes functions and aliases — the PowerShell</span>
+<span class="dl-add">+  // spelling of the POSIX file&#39;s `command &lt;id&gt;`.</span>
+<span class="dl-add">+  const init = psInit();</span>
+<span class="dl-add">+  assert.ok(init.includes(&quot;Get-Command &#39;claude&#39; -CommandType Application -ErrorAction SilentlyContinue&quot;));</span>
+<span class="dl-add">+  assert.ok(init.includes(&#39;&amp; $frameReal.Source @args&#39;));</span>
+<span class="dl-add">+  assert.ok(!/&amp;\s*claude\b/.test(init), &#39;the fallback calls the tool by name, which is this function&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a tool that is missing entirely gets a message, not a stack trace&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.ok(psInit().includes(&quot;Write-Error &#39;Frame: claude was not found on PATH.&#39;&quot;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the PowerShell file uses PowerShell syntax, not POSIX&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = psInit();</span>
+<span class="dl-add">+  assert.ok(!init.includes(&#39;&quot;$@&quot;&#39;), &#39;POSIX argument syntax leaked into the PowerShell file&#39;);</span>
+<span class="dl-add">+  assert.ok(!init.includes(&#39;export &#39;), &#39;POSIX export leaked into the PowerShell file&#39;);</span>
+<span class="dl-add">+  assert.ok(init.startsWith(&#39;# Frame shell setup&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a project path with an apostrophe is escaped the PowerShell way&#39;, () =&gt; {</span>
+<span class="dl-add">+  const init = templates.getShellInitTemplate({</span>
+<span class="dl-add">+    family: &#39;powershell&#39;,</span>
+<span class="dl-add">+    binDir: &quot;C:\\Users\\o&#39;brien\\.frame\\bin&quot;,</span>
+<span class="dl-add">+    toolIds: [&#39;claude&#39;]</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.ok(init.includes(&quot;&#39;C:\\Users\\o&#39;&#39;brien\\.frame\\bin&#39;&quot;), init.split(&#39;\n&#39;)[4]);</span>
+<span class="dl-add">+  assert.ok(!init.includes(&quot;&#39;\\&#39;&#39;&quot;), &#39;POSIX quoting leaked into the PowerShell file&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a family Frame has no file for still gets nothing&#39;, () =&gt; {</span>
+<span class="dl-add">+  assert.equal(templates.getShellInitTemplate({ family: &#39;cmd&#39;, binDir: PS_BIN, toolIds: [&#39;claude&#39;] }), &#39;&#39;);</span>
+<span class="dl-add">+  assert.equal(templates.getShellInitTemplate({ family: &#39;powershell&#39;, binDir: &#39;&#39;, toolIds: [&#39;claude&#39;] }), &#39;&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // ─── shell init behaviour, executed ───────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // The string assertions above cannot tell a valid init file from one that</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T07</span>
+    <h2>Make a rejected flag cost the context, not the session</h2>
+    <span class="card-meta"><span class="chip">e62bb93</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">577 tests pass, 0 fail — this change is renderer-side and carries no test of its own</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>The bare relaunch in agentDispatch now fires on the composed flag set rather than the caller&#39;s own launchFlags, and its notice branches: dropped permission flags keep today&#39;s guided-mode wording, while a dispatch that came up bare with no caller flags says Frame&#39;s context could not be attached and suggests updating the CLI. flagsDropped is still set only for caller flags, so the prompt&#39;s guided-mode note and the autonomous-lane pin are unchanged.</p></div>
+    <div class="field"><span class="label">Why</span><p>The composed set is where Frame&#39;s own injection rides, and since T02 that can be --append-system-prompt-file — a flag with no --help row of its own, so an older CLI rejects it outright instead of ignoring it. With the old narrow gate a stale Windows install would have gone from losing its context to losing its session, which is strictly worse than the problem this spec set out to fix. This is the recorded answer to the spec&#39;s first open question. Untested by design: src/renderer/ has no DOM harness, which the plan records as the convention here.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/renderer/agentDispatch.js b/src/renderer/agentDispatch.js</span>
+<span class="dl-meta">index 889025b..4103c15 100644</span>
+<span class="dl-file">--- a/src/renderer/agentDispatch.js</span>
+<span class="dl-file">+++ b/src/renderer/agentDispatch.js</span>
+<span class="dl-hunk">@@ -194,7 +194,16 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p</span>
+<span class="dl-ctx">     // So the flags are treated as best-effort: retry bare, once. The guard</span>
+<span class="dl-ctx">     // is that no agent process is in the foreground — a merely slow CLI is</span>
+<span class="dl-ctx">     // already detected by name, so this only fires when the launch died.</span>
+<span class="dl-del">-    if (!ready &amp;&amp; launchFlags &amp;&amp; launchFlags.length &amp;&amp; !laneStatus.getStatus(targetId).agentName) {</span>
+<span class="dl-add">+    //</span>
+<span class="dl-add">+    // The gate is the **composed** set, not the caller&#39;s own. Frame&#39;s own</span>
+<span class="dl-add">+    // injection rides in there too, and on a wrapper-less platform that now</span>
+<span class="dl-add">+    // means `--append-system-prompt-file` — a flag with no `--help` row of</span>
+<span class="dl-add">+    // its own, so an older CLI rejects it outright rather than ignoring it.</span>
+<span class="dl-add">+    // Without this widening, a stale install would go from losing its context</span>
+<span class="dl-add">+    // to losing its session, which is strictly worse than what this was for.</span>
+<span class="dl-add">+    const composed = Array.isArray(composedFlags) ? composedFlags : [];</span>
+<span class="dl-add">+    const hadCallerFlags = !!(launchFlags &amp;&amp; launchFlags.length);</span>
+<span class="dl-add">+    if (!ready &amp;&amp; composed.length &amp;&amp; !laneStatus.getStatus(targetId).agentName) {</span>
+<span class="dl-ctx">       const bareReady = _waitForAgentReady(targetId);</span>
+<span class="dl-ctx">       if (enter) {</span>
+<span class="dl-ctx">         multiTerminalUI.sendCommand(check.bareCommand || check.resolvedCommand, targetId);</span>
+<span class="dl-hunk">@@ -203,8 +212,13 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p</span>
+<span class="dl-ctx">       }</span>
+<span class="dl-ctx">       ready = await bareReady;</span>
+<span class="dl-ctx">       if (ready) {</span>
+<span class="dl-del">-        flagsDropped = true;</span>
+<span class="dl-del">-        notify.info(&#39;Autonomous permissions were refused by this CLI — continuing in guided mode (same loop and report, paced by the CLI’s own prompts)&#39;);</span>
+<span class="dl-add">+        // Only the caller&#39;s own flags being dropped changes what this run can</span>
+<span class="dl-add">+        // promise; losing Frame&#39;s context costs the session what it knows, not</span>
+<span class="dl-add">+        // what it is allowed to do. Two different facts, two different notices.</span>
+<span class="dl-add">+        flagsDropped = hadCallerFlags;</span>
+<span class="dl-add">+        notify.info(hadCallerFlags</span>
+<span class="dl-add">+          ? &#39;Autonomous permissions were refused by this CLI — continuing in guided mode (same loop and report, paced by the CLI’s own prompts)&#39;</span>
+<span class="dl-add">+          : &#39;This CLI refused Frame’s launch flags — the agent started without Frame’s context (no preamble, no spec-history hooks). Updating the CLI usually fixes it.&#39;);</span>
+<span class="dl-ctx">       }</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx"> </span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T08</span>
+    <h2>Give npm test a Node launcher</h2>
+    <span class="card-meta"><span class="chip">e2f6d66</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">577 tests pass, 0 fail through the new launcher; a red suite was confirmed to exit 1</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added scripts/run-tests.js — it sets FRAME_ACTIVITY_HOME, lists test/*.test.js from readdirSync itself (files only, so test/fixtures/ is excluded by rule rather than by what a glob happens to match), spawns node --test and forwards the child&#39;s exit code, treating a signal as a failure. package.json&#39;s test script now points at it. An optional substring filter argument runs a subset.</p></div>
+    <div class="field"><span class="label">Why</span><p>The old script was a POSIX invocation wearing an npm script&#39;s clothes: cmd.exe sets no inline environment variable and expands no glob, and Node 20 does not expand it either — so the Windows CI leg added in T09 would have run zero tests while reporting success. CI deliberately runs no npm ci, so a cross-env dependency was not an option. Verified locally: the full suite still runs 577 tests, an unmatched filter exits 1, and a deliberately red test file makes the launcher exit 1.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/package.json b/package.json</span>
+<span class="dl-meta">index 3c393f6..0b09bb5 100644</span>
+<span class="dl-file">--- a/package.json</span>
+<span class="dl-file">+++ b/package.json</span>
+<span class="dl-hunk">@@ -9,7 +9,7 @@</span>
+<span class="dl-ctx">     &quot;build&quot;: &quot;esbuild src/renderer/index.js --bundle --outfile=dist/renderer.js --platform=node --external:electron&quot;,</span>
+<span class="dl-ctx">     &quot;watch&quot;: &quot;esbuild src/renderer/index.js --bundle --outfile=dist/renderer.js --platform=node --external:electron --watch&quot;,</span>
+<span class="dl-ctx">     &quot;start&quot;: &quot;npm run build &amp;&amp; electron .&quot;,</span>
+<span class="dl-del">-    &quot;test&quot;: &quot;FRAME_ACTIVITY_HOME=.frame/runtime/test-activity node --test test/*.test.js&quot;,</span>
+<span class="dl-add">+    &quot;test&quot;: &quot;node scripts/run-tests.js&quot;,</span>
+<span class="dl-ctx">     &quot;dev&quot;: &quot;npm run watch &amp; electron .&quot;,</span>
+<span class="dl-ctx">     &quot;structure&quot;: &quot;node scripts/update-structure.js&quot;,</span>
+<span class="dl-ctx">     &quot;structure:changed&quot;: &quot;node scripts/update-structure.js --changed&quot;,</span>
+<span class="dl-meta">diff --git a/scripts/run-tests.js b/scripts/run-tests.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..b6b3861</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/scripts/run-tests.js</span>
+<span class="dl-hunk">@@ -0,0 +1,84 @@</span>
+<span class="dl-add">+#!/usr/bin/env node</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Cross-platform test launcher.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * `FRAME_ACTIVITY_HOME=… node --test test/*.test.js` is a POSIX invocation</span>
+<span class="dl-add">+ * wearing an npm script&#39;s clothes: `cmd.exe` sets no inline environment</span>
+<span class="dl-add">+ * variable, does not expand the glob, and Node 20 does not expand it either —</span>
+<span class="dl-add">+ * so the Windows leg of CI would have run zero tests while reporting success.</span>
+<span class="dl-add">+ * CI deliberately installs nothing (see .github/workflows/ci.yml), so a</span>
+<span class="dl-add">+ * `cross-env`-shaped dependency is not available to fix it.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * This does the three things the shell was doing, in Node:</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ *   1. sets FRAME_ACTIVITY_HOME, so a test run never writes to the real</span>
+<span class="dl-add">+ *      activity log;</span>
+<span class="dl-add">+ *   2. lists the test files itself — which makes the `test/fixtures/`</span>
+<span class="dl-add">+ *      exclusion an explicit rule rather than an accident of what a glob</span>
+<span class="dl-add">+ *      happens to match;</span>
+<span class="dl-add">+ *   3. forwards the child&#39;s exit code, so a red suite is still a red build.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Usage:</span>
+<span class="dl-add">+ *   node scripts/run-tests.js                  # the whole suite</span>
+<span class="dl-add">+ *   node scripts/run-tests.js shellSetup       # only matching files</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { spawn } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const ROOT_DIR = path.join(__dirname, &#39;..&#39;);</span>
+<span class="dl-add">+const TEST_DIR = path.join(ROOT_DIR, &#39;test&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Only files directly in test/. `test/fixtures/` holds whole sample projects</span>
+<span class="dl-add">+// the suite runs *against*; a recursive walk would try to execute them.</span>
+<span class="dl-add">+function testFiles(filters) {</span>
+<span class="dl-add">+  const names = fs.readdirSync(TEST_DIR, { withFileTypes: true })</span>
+<span class="dl-add">+    .filter((entry) =&gt; entry.isFile() &amp;&amp; entry.name.endsWith(&#39;.test.js&#39;))</span>
+<span class="dl-add">+    .map((entry) =&gt; entry.name)</span>
+<span class="dl-add">+    .sort();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (!filters.length) return names;</span>
+<span class="dl-add">+  return names.filter((name) =&gt; filters.some((f) =&gt; name.toLowerCase().includes(f.toLowerCase())));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function main() {</span>
+<span class="dl-add">+  const filters = process.argv.slice(2).filter((arg) =&gt; !arg.startsWith(&#39;-&#39;));</span>
+<span class="dl-add">+  const files = testFiles(filters);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (!files.length) {</span>
+<span class="dl-add">+    console.error(filters.length</span>
+<span class="dl-add">+      ? `No test files match: ${filters.join(&#39;, &#39;)}`</span>
+<span class="dl-add">+      : &#39;No test files found in test/&#39;);</span>
+<span class="dl-add">+    process.exit(1);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const child = spawn(</span>
+<span class="dl-add">+    process.execPath,</span>
+<span class="dl-add">+    [&#39;--test&#39;, ...files.map((name) =&gt; path.join(&#39;test&#39;, name))],</span>
+<span class="dl-add">+    {</span>
+<span class="dl-add">+      cwd: ROOT_DIR,</span>
+<span class="dl-add">+      stdio: &#39;inherit&#39;,</span>
+<span class="dl-add">+      env: {</span>
+<span class="dl-add">+        ...process.env,</span>
+<span class="dl-add">+        // A relative path, resolved by each test against the repo root, so the</span>
+<span class="dl-add">+        // value reads the same on every platform.</span>
+<span class="dl-add">+        FRAME_ACTIVITY_HOME: process.env.FRAME_ACTIVITY_HOME || path.join(&#39;.frame&#39;, &#39;runtime&#39;, &#39;test-activity&#39;)</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Exit code first, signal second: a suite killed by SIGINT must not look</span>
+<span class="dl-add">+  // like a pass to CI.</span>
+<span class="dl-add">+  child.on(&#39;exit&#39;, (code, signal) =&gt; {</span>
+<span class="dl-add">+    process.exit(signal ? 1 : (code == null ? 1 : code));</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  child.on(&#39;error&#39;, (err) =&gt; {</span>
+<span class="dl-add">+    console.error(`Could not start the test runner: ${err.message}`);</span>
+<span class="dl-add">+    process.exit(1);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+if (require.main === module) main();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = { testFiles };</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T09</span>
+    <h2>Give the suite a Windows leg</h2>
+    <span class="card-meta"><span class="chip">54c1e12</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">577 tests pass, 0 fail, 0 skipped on macOS; the windows-latest leg is unverified until the branch is pushed</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>windows-latest joined the CI matrix in .github/workflows/ci.yml, with a comment recording why the leg exists and why npm test now runs through the Node launcher. Audited every test that shells out: the only bash/sh/zsh calls in the suite are in test/frameTemplates.test.js, and all four call sites already sit inside tests carrying { skip: !POSIX }, so no new guards were needed.</p></div>
+    <div class="field"><span class="label">Why</span><p>The new Windows behaviour is asserted from pure modules with platform as a parameter, so this leg&#39;s real value is the reverse — it catches POSIX assumptions the suite itself makes. Two residual risks could not be settled from a Mac and are recorded as a followup rather than guessed at: fs.symlinkSync in test/embeddedMigration.test.js (Windows needs a privilege for file symlinks) and line-ending normalisation (the repo has no .gitattributes, so a CRLF checkout could break content comparisons). Adding .gitattributes is outside plan.md&#39;s Files list, so it is flagged, not done. The leg itself cannot be confirmed green from here: that needs a push, and this loop never pushes.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml</span>
+<span class="dl-meta">index 4e79545..ff7dff2 100644</span>
+<span class="dl-file">--- a/.github/workflows/ci.yml</span>
+<span class="dl-file">+++ b/.github/workflows/ci.yml</span>
+<span class="dl-hunk">@@ -8,6 +8,17 @@</span>
+<span class="dl-ctx"> # repo-local modules only (verified by running it without node_modules),</span>
+<span class="dl-ctx"> # and postinstall (electron-rebuild) would need Electron binaries — slow</span>
+<span class="dl-ctx"> # and fragile for zero benefit here.</span>
+<span class="dl-add">+#</span>
+<span class="dl-add">+# windows-latest joined the matrix with windows-claude-context, which is the</span>
+<span class="dl-add">+# first spec to ship Windows behaviour: a .cmd wrapper, a PowerShell init file</span>
+<span class="dl-add">+# and a launch line composed for shells that parse nothing. Those are asserted</span>
+<span class="dl-add">+# from pure modules with `platform` as a parameter, so the value of this leg is</span>
+<span class="dl-add">+# the opposite — it catches the POSIX assumptions the suite itself makes.</span>
+<span class="dl-add">+# `npm test` runs through scripts/run-tests.js for the same reason: cmd.exe</span>
+<span class="dl-add">+# would neither set the inline environment variable nor expand the glob the</span>
+<span class="dl-add">+# script used to carry, and the leg would have passed while running nothing.</span>
+<span class="dl-add">+# The tests that genuinely need a POSIX shell (executing a generated wrapper or</span>
+<span class="dl-add">+# sourcing init.sh) carry `{ skip: !POSIX }` and report as skipped here.</span>
+<span class="dl-ctx"> name: CI</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> on:</span>
+<span class="dl-hunk">@@ -20,7 +31,7 @@ jobs:</span>
+<span class="dl-ctx">     strategy:</span>
+<span class="dl-ctx">       fail-fast: false</span>
+<span class="dl-ctx">       matrix:</span>
+<span class="dl-del">-        os: [ubuntu-latest, macos-latest]</span>
+<span class="dl-add">+        os: [ubuntu-latest, macos-latest, windows-latest]</span>
+<span class="dl-ctx">     runs-on: ${{ matrix.os }}</span>
+<span class="dl-ctx">     steps:</span>
+<span class="dl-ctx">       - uses: actions/checkout@v4</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T10</span>
+    <h2>Write the Windows verification handoff</h2>
+    <span class="card-meta"><span class="chip">5fb6353</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">577 tests pass, 0 fail — this task ships a document, and its own verification is a teammate running it (T11)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added .frame/specs/windows-claude-context/test-protocol.md: ten numbered steps with the exact command and the exact expected output for each — preconditions and the CLI version, the composed launch&#39;s single line and byte-for-byte preamble, both spec-hint hook blocks, a hand-typed claude in cmd and in PowerShell (including the nvm-windows race), the lane states, where-shadowing and the 127 case, FRAME_NO_WRAP and an exit-code round trip, a project path with a space and one with an apostrophe, and the older-CLI bare relaunch. It closes with a fill-in block to paste into outcome.md under T11.</p></div>
+    <div class="field"><span class="label">Why</span><p>Everything this spec ships was asserted from pure modules with platform as a parameter, which proves the decisions and nothing about the machine — so the protocol is the deliverable that closes the gap, not documentation of one. It states plainly that a hand-typed launch has no bare-retry (that lives in agentDispatch, which only sees launches Frame composed) and that Group Policy can defeat -ExecutionPolicy Bypass, in which case the lane reports failed by design. Git Bash and WSL are named as deliberately out of scope so a tester does not file their absence as a bug. Step 1&#39;s expected counts were checked against the real preamble: first line verbatim, 9 lines, 6 backticks, and the local CLI is 2.1.237.</p></div>
+    <details open>
+      <summary>Diff</summary>
+      <p class="muted">No diff — this commit touched only Frame bookkeeping.</p>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T11</span>
+    <h2>Close the spec with the Windows run unrecorded</h2>
+    <span class="card-meta"><span class="chip">cef2280</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">577 tests pass, 0 fail — a docs-and-state task; the Windows behaviour it was meant to certify remains unexercised</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Closed T11 by decision rather than by result. No Windows machine ran test-protocol.md, so outcome.md records the absence explicitly instead of a per-step table: the protocol exists, is unrun, and the Claude Code version it was designed against (2.1.237) is the only version fact on file. Wrote digest.md and moved the spec phase to done.</p></div>
+    <div class="field"><span class="label">Why</span><p>The task asked for a teammate&#39;s run to be written down, and the honest close is to say it did not happen — a fabricated pass table would be worse than an empty one, because the next reader would trust it. What ships is therefore verified in one dimension and not the other: every decision is asserted from pure modules with platform as a parameter, and no line of it has touched a real Windows machine. digest.md carries that limit forward so a future session inherits the caveat rather than the conclusion.</p></div>
+    <details open>
+      <summary>Diff</summary>
+      <p class="muted">No diff — this commit touched only Frame bookkeeping.</p>
+    </details>
+  </div>
+</section>
+</div>
+
+<footer>Generated by Frame from <code>report-data.json</code> · diffs read from git, never transcribed</footer>
+</body>
+</html>

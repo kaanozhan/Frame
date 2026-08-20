@@ -980,6 +980,150 @@ fi
 }
 
 /**
+ * The Windows wrapper: `.frame\bin\<id>.cmd`.
+ *
+ * Same job as `getWrapperTemplate` — catch a hand-typed `claude` and hand it
+ * Frame's launch context — but it exists on different terms:
+ *
+ *   * **`.cmd`, not `.ps1`.** Only `.cmd` is in the default `PATHEXT`, and
+ *     `PATHEXT` is what makes a bare `claude` resolve to a file that is not an
+ *     executable. `cmd`, `powershell` and `pwsh` consult it; Git Bash does
+ *     not — it looks for an exact filename, so that lane gets its context from
+ *     the launch Frame composes and nothing from here.
+ *   * **It passes a path, never the prose.** Which is the only reason this can
+ *     stay plain batch. A wrapper that had to embed a 9-line preamble carrying
+ *     backticks would need a Node trampoline between the shell and an
+ *     interactive CLI; one that passes two paths needs nothing.
+ *
+ * Returns `''` for a tool with no `promptFileFlag`. There is no batch spelling
+ * of the string form, and a wrapper that cannot do its job would still shadow
+ * a working CLI — worse than no wrapper at all.
+ *
+ * Three details are load-bearing and easy to lose in a later edit:
+ *
+ *   1. **It must not find itself.** `.frame\bin` leads `PATH`, so `where`
+ *      reports this file before the real CLI. The loop takes the first hit
+ *      whose directory is not `%~dp0`, resolved at run time so a
+ *      version-manager switch is picked up without a rewrite.
+ *   2. **It defers when Frame's flag is already on the line.** A launch Frame
+ *      composed resolves through here too, so finding `promptFileFlag` in `%*`
+ *      means someone already owns the injection. One route, never two.
+ *   3. **Every branch jumps to one `call` and a bare `exit /b`.** `cmd.exe`
+ *      expands variables when it *parses* a parenthesised block, so an
+ *      `exit /b %ERRORLEVEL%` inside an `if (…)` would report the code from
+ *      before the `call`. Jumping to a single tail leaves the child's exit
+ *      code untouched — and `%ERRORLEVEL%` never appears in this file.
+ *
+ * @param {string} toolCommand - the real CLI to resolve and run
+ * @param {object} [options]
+ * @param {string} [options.promptFileFlag] - flag taking the preamble's path; '' means no wrapper
+ * @param {string} [options.settingsFlag] - flag taking the settings file, '' for none
+ * @param {string} [options.preambleFile] - project-relative preamble path
+ * @param {string} [options.settingsFile] - project-relative settings path
+ * @returns {string} the file's content, or '' for a tool that cannot be wrapped here
+ */
+function getCmdWrapperTemplate(toolCommand, options) {
+  const opts = options || {};
+  const promptFileFlag = opts.promptFileFlag || '';
+  if (!promptFileFlag) return '';
+
+  const settingsFlag = opts.settingsFlag || '';
+  const preambleFile = toBackslashes(opts.preambleFile || '.frame/runtime/preamble.txt');
+  const settingsFile = toBackslashes(opts.settingsFile || '.frame/runtime/claude-settings.json');
+
+  // The settings file is optional in a way the preamble is not: without it a
+  // session loses its hooks, without the preamble there is nothing to inject.
+  const settingsBlock = settingsFlag
+    ? `
+set "FRAME_SETTINGS=%FRAME_ROOT%\\${settingsFile}"
+if not exist "%FRAME_SETTINGS%" goto :frame_run
+set FRAME_FLAGS=%FRAME_FLAGS% ${settingsFlag} "%FRAME_SETTINGS%"
+`
+    : '';
+
+  return `@echo off
+setlocal EnableExtensions
+rem Frame AI Tool Wrapper for ${toolCommand} (Windows).
+rem Hands ${toolCommand} Frame's launch context. Generated file — Frame rewrites
+rem it whenever the content changes; edits will be lost.
+
+set "FRAME_SELF=%~dp0"
+set "FRAME_REAL="
+
+rem This file's own directory leads PATH, so \`where\` reports it before the real
+rem CLI. Take the first hit that does not live here.
+for /f "delims=" %%I in ('where "${toolCommand}" 2^>nul') do (
+  if not defined FRAME_REAL if /i not "%%~dpI"=="%FRAME_SELF%" set "FRAME_REAL=%%I"
+)
+
+if defined FRAME_REAL goto :frame_resolved
+>&2 echo Frame: ${toolCommand} was not found on PATH.
+exit /b 127
+
+:frame_resolved
+set "FRAME_FLAGS="
+
+rem The escape hatch, honoured here exactly as in the POSIX wrapper.
+if defined FRAME_NO_WRAP goto :frame_run
+
+rem One injection route, not two: a launch Frame composed resolves through this
+rem file as well, so its flags are already on the line. Whoever composed first
+rem owns the injection.
+set "FRAME_COMPOSED="
+call :frame_scan_args %*
+if defined FRAME_COMPOSED goto :frame_run
+
+set "FRAME_ROOT="
+call :frame_find_root "%CD%"
+if not defined FRAME_ROOT goto :frame_run
+
+set "FRAME_PREAMBLE=%FRAME_ROOT%\\${preambleFile}"
+if not exist "%FRAME_PREAMBLE%" goto :frame_run
+set FRAME_FLAGS=${promptFileFlag} "%FRAME_PREAMBLE%"
+${settingsBlock}
+:frame_run
+call "%FRAME_REAL%" %FRAME_FLAGS% %*
+exit /b
+
+:frame_scan_args
+rem Is Frame's own flag already on the line? Compared one argument at a time
+rem with %~1 rather than by searching the whole of %*: %~1 strips the quotes
+rem cmd put there, so a user argument containing a space, an ampersand or a
+rem pipe is compared as a value instead of being re-parsed as syntax.
+if "%~1"=="" goto :eof
+if /i "%~1"=="${promptFileFlag}" set "FRAME_COMPOSED=1"
+shift
+goto :frame_scan_args
+
+:frame_find_root
+rem Walk up from %1 to the directory holding .frame\\, the same walk the POSIX
+rem wrapper does. Leaves FRAME_ROOT empty outside a Frame project. Every path
+rem stays quoted, because a project under Documents has a space in it as often
+rem as not.
+set "FRAME_TRY=%~1"
+
+:frame_find_root_step
+if exist "%FRAME_TRY%\\.frame\\" goto :frame_find_root_hit
+for %%P in ("%FRAME_TRY%\\..") do set "FRAME_UP=%%~fP"
+if /i "%FRAME_UP%"=="%FRAME_TRY%" goto :eof
+set "FRAME_TRY=%FRAME_UP%"
+goto :frame_find_root_step
+
+:frame_find_root_hit
+set "FRAME_ROOT=%FRAME_TRY%"
+goto :eof
+`;
+}
+
+// A project-relative path as batch spells it. The rest of Frame carries these
+// with forward slashes — Windows file APIs accept them in arguments — but a
+// generated batch file reads better, and `if exist` behaves more predictably,
+// with the native separator.
+function toBackslashes(value) {
+  return String(value == null ? '' : value).replace(/\//g, '\\');
+}
+
+/**
  * A shell function name Frame is willing to define.
  *
  * Tool ids come from a registry the user can add to, and a custom id is free
@@ -996,6 +1140,13 @@ function isDefinableToolId(id) {
 // closed, escaped and reopened.
 function shellQuote(value) {
   return `'${String(value == null ? '' : value).replace(/'/g, "'\\''")}'`;
+}
+
+// The same job for PowerShell, whose single-quoted string is literal too — no
+// backtick escapes inside it, which is exactly why it is used here — and
+// escapes a quote by doubling it.
+function psQuote(value) {
+  return `'${String(value == null ? '' : value).replace(/'/g, "''")}'`;
 }
 
 /**
@@ -1021,7 +1172,7 @@ function shellQuote(value) {
  * itself) while still going through `PATH`.
  *
  * @param {object} options
- * @param {string} options.family - 'posix' (zsh/bash/sh) or 'fish'
+ * @param {string} options.family - 'posix' (zsh/bash/sh), 'fish' or 'powershell'
  * @param {string} options.binDir - absolute path to the project's .frame/bin
  * @param {string[]} options.toolIds - configured tool ids, one function each
  * @returns {string} the file's content, or '' for a family Frame cannot serve
@@ -1035,6 +1186,7 @@ function getShellInitTemplate(options) {
   if (!binDir) return '';
   if (family === 'fish') return fishInitTemplate(binDir, toolIds);
   if (family === 'posix') return posixInitTemplate(binDir, toolIds);
+  if (family === 'powershell') return powershellInitTemplate(binDir, toolIds);
   return '';
 }
 
@@ -1083,6 +1235,61 @@ unset -f __frame_path_front 2>/dev/null
 
 # One function per configured tool. Resolved before any PATH search, so where
 # the user's rc files put their own directories stops mattering.
+${functions}
+`;
+}
+
+/**
+ * The PowerShell init file, dot-sourced at spawn by `powershell` and `pwsh`.
+ *
+ * Same argument as the POSIX one, with a Windows name attached: nvm-windows
+ * prepends its own directory when the user's profile runs, which is *after*
+ * Frame set the environment, so `.frame\bin` leading `PATH` is a guarantee the
+ * profile can quietly undo. A function is resolved before any `PATH` search,
+ * so it cannot be.
+ *
+ * The fallback resolves with `-CommandType Application`, which excludes
+ * functions and aliases. That is what keeps a function named `claude` from
+ * finding itself and recursing until the stack gives out — the PowerShell
+ * spelling of the POSIX file's `command <id>`.
+ */
+function powershellInitTemplate(binDir, toolIds) {
+  const functions = toolIds
+    .map(
+      (id) => `function ${id} {
+    $frameWrapper = Join-Path $env:FRAME_BIN '${id}.cmd'
+    if (Test-Path -LiteralPath $frameWrapper) {
+        & $frameWrapper @args
+    } else {
+        $frameReal = Get-Command '${id}' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($frameReal) {
+            & $frameReal.Source @args
+        } else {
+            Write-Error 'Frame: ${id} was not found on PATH.'
+        }
+    }
+}`
+    )
+    .join('\n\n');
+
+  return `# Frame shell setup — dot-sourced by PowerShell in terminals Frame opens.
+# Generated file; Frame rewrites it whenever the content changes. Nothing
+# outside .frame\\ is touched, and nothing here runs in a shell Frame did not
+# open.
+
+$env:FRAME_BIN = ${psQuote(binDir)}
+
+# Move FRAME_BIN to the front of PATH — the reason this file exists. The
+# profile that just ran may have prepended a version manager's directory, and
+# a real claude.cmd found there would win.
+$frameRest = @($env:PATH -split ';' | Where-Object { $_ -and $_ -ne $env:FRAME_BIN })
+$env:PATH = (@($env:FRAME_BIN) + $frameRest) -join ';'
+Remove-Variable frameRest -ErrorAction SilentlyContinue
+
+# One function per tool that has a wrapper here. Resolved before any PATH
+# search, so where the user's profile put its own directories stops mattering.
+# Each is a router, not a second injection point: the .cmd remains the only
+# thing that composes the flags and the only thing honouring FRAME_NO_WRAP.
 ${functions}
 `;
 }
@@ -1322,6 +1529,7 @@ module.exports = {
   REFERENCE_SPEC_LEGACY_MATCHERS,
   AGENTS_SPEC_LEGACY_MATCHERS,
   getWrapperTemplate,
+  getCmdWrapperTemplate,
   getShellInitTemplate,
   getSpecHintSettings,
   getStructureHookSnippet,

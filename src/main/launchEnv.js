@@ -14,11 +14,21 @@
  * block was not (see the terminal-context-boundary spec). There is
  * correspondingly nothing to undo when Frame is uninstalled.
  *
- * ── POSIX only, for now ──
- * Frame's wrappers are bash scripts. On Windows there is nothing runnable to
- * put on `PATH`, and shadowing a working CLI with a script that cannot run is
- * worse than not injecting at all — so `supportsWrappers()` gates every caller
- * from one place rather than each doing its own `process.platform` check.
+ * ── Two wrapper families, and a tool that may earn neither ──
+ * POSIX gets an extensionless bash script per tool. Windows gets a `.cmd`,
+ * because only `.cmd` is in the default `PATHEXT` and that is what makes a
+ * bare `claude` resolve to it — but only for a tool whose CLI can take its
+ * prompt as a *file path*. Without that, a batch wrapper would have to embed
+ * a multi-line, backtick-bearing preamble in a language that cannot quote it,
+ * and shadowing a working CLI with a script that cannot run is worse than not
+ * injecting at all. `wrapperFamily` and `wrapperFileName` answer both
+ * questions from one place, so no caller does its own `process.platform`
+ * check.
+ *
+ * `supportsWrappers` keeps its narrower meaning — *does this platform get a
+ * POSIX wrapper for every tool* — and is what the inline-flag branch still
+ * asks. The `PATH` entry is deliberately not gated on it: leading with
+ * `.frame/bin` is right wherever a wrapper of any family might land there.
  *
  * Pure: no fs, no Electron, no spawn. Paths and strings in, strings out.
  */
@@ -27,14 +37,42 @@ const path = require('path');
 const { FRAME_DIR, FRAME_BIN_DIR } = require('../shared/frameConstants');
 
 /**
- * Whether this platform can run the wrappers Frame writes.
+ * Whether this platform gets a POSIX wrapper for every tool.
  *
- * The single gate for `PATH` injection and wrapper generation alike: when it
- * is false Frame falls back to composing flags inline, which is exactly the
- * behaviour Windows had before this module existed.
+ * False on Windows, where a wrapper is per-tool and conditional — see
+ * `wrapperFileName`. Callers that mean "should I compose flags inline
+ * instead of leaning on a wrapper" want this one.
  */
 function supportsWrappers(platform = process.platform) {
   return platform !== 'win32';
+}
+
+/**
+ * Which flavour of wrapper this platform runs: `'posix'` or `'cmd'`.
+ *
+ * Names the family, says nothing about whether a given tool gets one.
+ */
+function wrapperFamily(platform = process.platform) {
+  return platform === 'win32' ? 'cmd' : 'posix';
+}
+
+/**
+ * The filename a tool's wrapper takes here, or `''` when it gets none.
+ *
+ * `canPassPaths` is the tool's side of the bargain: true when its CLI accepts
+ * the preamble as a file path rather than a string. POSIX does not care — a
+ * bash wrapper can expand the file itself — but on Windows it is the whole
+ * condition, which is why Codex and Gemini get no `.cmd` and behave there
+ * exactly as they do today.
+ */
+function wrapperFileName(toolId, options = {}) {
+  if (!toolId) return '';
+
+  const { platform = process.platform, canPassPaths = false } = options;
+  if (wrapperFamily(platform) === 'cmd') {
+    return canPassPaths ? `${toolId}.cmd` : '';
+  }
+  return String(toolId);
 }
 
 /**
@@ -56,12 +94,13 @@ function frameBinDir(projectPath) {
  * duplicate on every respawn would be a slow leak nobody would look for. A
  * value that already leads with the directory is returned untouched.
  *
- * Returns the input unchanged where Frame writes no wrappers, so callers need
- * no platform branch of their own.
+ * Platform-blind on purpose. The old `supportsWrappers` gate here was a
+ * category error — the check is about wrappers, and this function is about
+ * `PATH` — and it was what kept the `;` separator below from ever being
+ * reached. A `.frame/bin` that holds nothing is a harmless first entry.
  */
 function prependFrameBin(pathValue, projectPath, platform = process.platform) {
   const current = pathValue == null ? '' : String(pathValue);
-  if (!supportsWrappers(platform)) return current;
 
   const binDir = frameBinDir(projectPath);
   if (!binDir) return current;
@@ -79,6 +118,8 @@ function prependFrameBin(pathValue, projectPath, platform = process.platform) {
 
 module.exports = {
   supportsWrappers,
+  wrapperFamily,
+  wrapperFileName,
   frameBinDir,
   prependFrameBin
 };
