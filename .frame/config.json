@@ -10,14 +10,6 @@
     "taskRecognition": true,
     "gitSharing": "repo"
   },
-  "files": {
-    "agents": "AGENTS.md",
-    "claudeSymlink": "CLAUDE.md",
-    "structure": "STRUCTURE.json",
-    "notes": "PROJECT_NOTES.md",
-    "tasks": "tasks.json",
-    "quickstart": "QUICKSTART.md"
-  },
   "features": {
     "specDriven": true
   },
