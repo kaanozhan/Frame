@@ -39,6 +39,18 @@
         "status": "pass",
         "detail": "242 pass, 0 fail (6 new in test/scriptsProjectRoot.test.js)"
       }
+    },
+    {
+      "id": "T04",
+      "title": "Init writes the new layout, delivered natively",
+      "commit": "c59834b",
+      "whatChanged": "frameTemplates: AGENTS/REFERENCE templates on .frame/ paths with the pointer note replacing the symlink note, config template with projectId and settings.gitSharing and no files record, new getClaudeRuleTemplate() and getFrameGitignoreBlock(), SPEC_HINT_HOOKS moved here in the guarded sh -c form (plus LEGACY_SPEC_HINT_COMMANDS for migration), Codex/generic wrappers on .frame/AGENTS.md. frameProject.runProjectInit writes only .frame/* plus .claude/rules/frame.md via the new ensureClaudePointer, stamps the id with frameStore.ensureProjectId, and installs hooks through installSpecHintHook(projectPath, {file}) chosen by sharing mode; createSymlinkSafe, the consume block and every GEMINI.md path are gone, and removeSpecHintHook lands for T10. The sample project moved to the new layout. New tests: frameProjectInit.test.js (10) and nativeContext.test.js.",
+      "whyChanged": "Re-init now carries over the existing projectId and gitSharing instead of rewriting config.json from the template, because a fresh UUID on every init would break the identity the cloud layer is supposed to anchor on. The sample-project conversion (nominally T05) landed here because the init suite's no-legacy-fingerprint case asserts it. nativeContext.test.js skips rather than fails without the CLI, and it really ran here: claude -p returned both codewords, proving criterion 3.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "253 pass, 0 fail (11 new)"
+      }
     }
   ]
 }

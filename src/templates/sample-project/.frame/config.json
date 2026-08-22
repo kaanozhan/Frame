@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "name": "sample-project",
+  "description": "Frame's bundled sample project \u2014 a small task tracker to poke at.",
+  "createdAt": "2026-08-23T00:00:00.000Z",
+  "initializedBy": "Frame",
+  "projectId": "57a3d82e-1c73-4a99-8735-19452d8314d4",
+  "settings": {
+    "autoUpdateStructure": true,
+    "autoUpdateNotes": false,
+    "taskRecognition": true,
+    "gitSharing": "repo"
+  },
+  "features": {
+    "specDriven": true
+  }
+}

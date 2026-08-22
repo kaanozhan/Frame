@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">3 tasks</span>
-    <span class="pill good">3 verified</span>
+    <span class="pill">4 tasks</span>
+    <span class="pill good">4 verified</span>
     
     <span class="chip">2026-08-22</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">3 of 12 tasks done · next: <span class="rs-task">T04 — Rewrite `src/shared/frameTemplates.js` (AGENTS and REFERENCE templates…</span></span>
+  <span class="rs-count">4 of 12 tasks done · next: <span class="rs-task">T05 — Update the user-facing layout surfaces to the new layout: init modal…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -1712,6 +1712,1615 @@
 <span class="dl-add">+</span>
 <span class="dl-add">+  fs.rmSync(otherDir, { recursive: true, force: true });</span>
 <span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T04</span>
+    <h2>Init writes the new layout, delivered natively</h2>
+    <span class="card-meta"><span class="chip">c59834b</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">253 pass, 0 fail (11 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>frameTemplates: AGENTS/REFERENCE templates on .frame/ paths with the pointer note replacing the symlink note, config template with projectId and settings.gitSharing and no files record, new getClaudeRuleTemplate() and getFrameGitignoreBlock(), SPEC_HINT_HOOKS moved here in the guarded sh -c form (plus LEGACY_SPEC_HINT_COMMANDS for migration), Codex/generic wrappers on .frame/AGENTS.md. frameProject.runProjectInit writes only .frame/* plus .claude/rules/frame.md via the new ensureClaudePointer, stamps the id with frameStore.ensureProjectId, and installs hooks through installSpecHintHook(projectPath, {file}) chosen by sharing mode; createSymlinkSafe, the consume block and every GEMINI.md path are gone, and removeSpecHintHook lands for T10. The sample project moved to the new layout. New tests: frameProjectInit.test.js (10) and nativeContext.test.js.</p></div>
+    <div class="field"><span class="label">Why</span><p>Re-init now carries over the existing projectId and gitSharing instead of rewriting config.json from the template, because a fresh UUID on every init would break the identity the cloud layer is supposed to anchor on. The sample-project conversion (nominally T05) landed here because the init suite&#39;s no-legacy-fingerprint case asserts it. nativeContext.test.js skips rather than fails without the CLI, and it really ran here: claude -p returned both codewords, proving criterion 3.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index cf7b3a2..3a1d173 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -7,7 +7,7 @@ const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const fsp = require(&#39;fs&#39;).promises;</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-del">-const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-add">+const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PATH } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const templates = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-ctx"> const frameStore = require(&#39;./frameStore&#39;);</span>
+<span class="dl-ctx"> const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-hunk">@@ -20,11 +20,6 @@ const detector = require(&#39;../../scripts/detect-project&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> let mainWindow = null;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// Gemini handling is on its way out (spec non-invasive-overlay, T04: the init</span>
+<span class="dl-del">-// rewrite drops every GEMINI.md path), so the name no longer lives in</span>
+<span class="dl-del">-// FRAME_FILES. Inlined here to keep the current init working until then.</span>
+<span class="dl-del">-const LEGACY_GEMINI_FILE = &#39;GEMINI.md&#39;;</span>
+<span class="dl-del">-</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Initialize frame project module</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -67,50 +62,6 @@ async function createFileIfNotExists(filePath, content) {</span>
+<span class="dl-ctx">   return false;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-/**</span>
+<span class="dl-del">- * Create a symlink safely with Windows fallback</span>
+<span class="dl-del">- * @param {string} target - The target file name (relative)</span>
+<span class="dl-del">- * @param {string} linkPath - The full path for the symlink</span>
+<span class="dl-del">- * @returns {boolean} - Whether the operation succeeded</span>
+<span class="dl-del">- */</span>
+<span class="dl-del">-async function createSymlinkSafe(target, linkPath) {</span>
+<span class="dl-del">-  try {</span>
+<span class="dl-del">-    // Check if symlink/file already exists</span>
+<span class="dl-del">-    if (fs.existsSync(linkPath)) {</span>
+<span class="dl-del">-      const stats = fs.lstatSync(linkPath);</span>
+<span class="dl-del">-      if (stats.isSymbolicLink()) {</span>
+<span class="dl-del">-        // Remove existing symlink to recreate it</span>
+<span class="dl-del">-        await fsp.unlink(linkPath);</span>
+<span class="dl-del">-      } else {</span>
+<span class="dl-del">-        // Regular file exists - don&#39;t overwrite, skip</span>
+<span class="dl-del">-        console.warn(`${linkPath} exists and is not a symlink, skipping`);</span>
+<span class="dl-del">-        return false;</span>
+<span class="dl-del">-      }</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-    // Create relative symlink</span>
+<span class="dl-del">-    await fsp.symlink(target, linkPath);</span>
+<span class="dl-del">-    return true;</span>
+<span class="dl-del">-  } catch (error) {</span>
+<span class="dl-del">-    // Windows without admin/Developer Mode - copy file as fallback</span>
+<span class="dl-del">-    if (error.code === &#39;EPERM&#39; || error.code === &#39;EPROTO&#39;) {</span>
+<span class="dl-del">-      try {</span>
+<span class="dl-del">-        const targetPath = path.resolve(path.dirname(linkPath), target);</span>
+<span class="dl-del">-        if (fs.existsSync(targetPath)) {</span>
+<span class="dl-del">-          await fsp.copyFile(targetPath, linkPath);</span>
+<span class="dl-del">-          console.warn(`Symlink not supported, copied ${target} to ${linkPath}`);</span>
+<span class="dl-del">-          return true;</span>
+<span class="dl-del">-        }</span>
+<span class="dl-del">-      } catch (copyError) {</span>
+<span class="dl-del">-        console.error(&#39;Failed to create symlink or copy file:&#39;, copyError);</span>
+<span class="dl-del">-      }</span>
+<span class="dl-del">-    } else {</span>
+<span class="dl-del">-      console.error(&#39;Failed to create symlink:&#39;, error);</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-    return false;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Check which Frame files already exist in the project</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -190,28 +141,33 @@ async function showInitializeConfirmation(projectPath) {</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> const inFlightInits = new Map();</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-function initializeFrameProject(projectPath, projectName) {</span>
+<span class="dl-add">+function initializeFrameProject(projectPath, projectName, options = {}) {</span>
+<span class="dl-ctx">   if (inFlightInits.has(projectPath)) return inFlightInits.get(projectPath);</span>
+<span class="dl-del">-  const run = doInitializeFrameProject(projectPath, projectName)</span>
+<span class="dl-add">+  const run = doInitializeFrameProject(projectPath, projectName, options)</span>
+<span class="dl-ctx">     .finally(() =&gt; inFlightInits.delete(projectPath));</span>
+<span class="dl-ctx">   inFlightInits.set(projectPath, run);</span>
+<span class="dl-ctx">   return run;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-async function doInitializeFrameProject(projectPath, projectName) {</span>
+<span class="dl-add">+async function doInitializeFrameProject(projectPath, projectName, options = {}) {</span>
+<span class="dl-ctx">   // Point the activity record at this project before init starts, so the</span>
+<span class="dl-ctx">   // work init itself does lands in the right bucket rather than in `app`.</span>
+<span class="dl-ctx">   activityLog.setProject(projectPath);</span>
+<span class="dl-ctx">   perfMonitor.opStart(&#39;project-init&#39;);</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-del">-    return await runProjectInit(projectPath, projectName);</span>
+<span class="dl-add">+    return await runProjectInit(projectPath, projectName, options);</span>
+<span class="dl-ctx">   } finally {</span>
+<span class="dl-ctx">     perfMonitor.opEnd(&#39;project-init&#39;);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-async function runProjectInit(projectPath, projectName) {</span>
+<span class="dl-add">+async function runProjectInit(projectPath, projectName, options = {}) {</span>
+<span class="dl-ctx">   const name = projectName || path.basename(projectPath);</span>
+<span class="dl-add">+  // Re-init must not reset what the project already decided: identity and</span>
+<span class="dl-add">+  // sharing mode are carried over unless the caller explicitly picks one.</span>
+<span class="dl-add">+  const existingConfig = frameStore.readConfig(projectPath);</span>
+<span class="dl-add">+  const previousSharing = existingConfig &amp;&amp; existingConfig.settings &amp;&amp; existingConfig.settings.gitSharing;</span>
+<span class="dl-add">+  const gitSharing = (options.gitSharing || previousSharing) === &#39;local&#39; ? &#39;local&#39; : &#39;repo&#39;;</span>
+<span class="dl-ctx">   const frameDirPath = path.join(projectPath, FRAME_DIR);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Create .frame directory</span>
+<span class="dl-hunk">@@ -229,6 +185,10 @@ async function runProjectInit(projectPath, projectName) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Create .frame/config.json (carrying the detected project block)</span>
+<span class="dl-ctx">   const config = templates.getFrameConfigTemplate(name);</span>
+<span class="dl-add">+  config.settings.gitSharing = gitSharing;</span>
+<span class="dl-add">+  if (existingConfig &amp;&amp; existingConfig.projectId) {</span>
+<span class="dl-add">+    config.projectId = existingConfig.projectId;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-ctx">   if (detectedProject) {</span>
+<span class="dl-ctx">     config.project = detectedProject;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-hunk">@@ -237,66 +197,20 @@ async function runProjectInit(projectPath, projectName) {</span>
+<span class="dl-ctx">     JSON.stringify(config, null, 2),</span>
+<span class="dl-ctx">     &#39;utf8&#39;</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-add">+  // Re-init of a project written before projectId existed: stamp it now, so</span>
+<span class="dl-add">+  // every Frame project has a stable identity from here on.</span>
+<span class="dl-add">+  frameStore.ensureProjectId(projectPath);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  // Create root-level Frame files (only if they don&#39;t exist)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  // Detect if this was already a Frame project before this init</span>
+<span class="dl-del">-  // .frame/config.json presence is the canonical indicator</span>
+<span class="dl-del">-  const wasAlreadyFrameProject = isFrameProject(projectPath);</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  // Collect existing MD content to merge into AGENTS.md</span>
+<span class="dl-del">-  // Only for files that Frame will convert to symlinks (CLAUDE.md, GEMINI.md)</span>
+<span class="dl-del">-  // or for AGENTS.md if the project was never a Frame project</span>
+<span class="dl-del">-  let existingInstructions = [];</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  // Check CLAUDE.md — real file means existing project directives</span>
+<span class="dl-del">-  const claudeMdPath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);</span>
+<span class="dl-del">-  if (fs.existsSync(claudeMdPath)) {</span>
+<span class="dl-del">-    const stats = fs.lstatSync(claudeMdPath);</span>
+<span class="dl-del">-    if (!stats.isSymbolicLink()) {</span>
+<span class="dl-del">-      existingInstructions.push({ label: &#39;CLAUDE.md&#39;, content: await fsp.readFile(claudeMdPath, &#39;utf8&#39;) });</span>
+<span class="dl-del">-      await fsp.unlink(claudeMdPath);</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  // Check .claude/CLAUDE.md and .claude/claude.md — Claude Code&#39;s subfolder convention</span>
+<span class="dl-del">-  const claudeDirCandidates = [</span>
+<span class="dl-del">-    path.join(projectPath, &#39;.claude&#39;, &#39;CLAUDE.md&#39;),</span>
+<span class="dl-del">-    path.join(projectPath, &#39;.claude&#39;, &#39;claude.md&#39;)</span>
+<span class="dl-del">-  ];</span>
+<span class="dl-del">-  for (const candidate of claudeDirCandidates) {</span>
+<span class="dl-del">-    if (fs.existsSync(candidate)) {</span>
+<span class="dl-del">-      existingInstructions.push({ label: &#39;.claude/CLAUDE.md&#39;, content: await fsp.readFile(candidate, &#39;utf8&#39;) });</span>
+<span class="dl-del">-      break; // Only read one</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  // Check AGENTS.md — if project was not previously a Frame project, merge its content</span>
+<span class="dl-del">-  const agentsMdPath = path.join(projectPath, FRAME_FILES.AGENTS);</span>
+<span class="dl-del">-  let existingAgentsContent = null;</span>
+<span class="dl-del">-  if (!wasAlreadyFrameProject &amp;&amp; fs.existsSync(agentsMdPath)) {</span>
+<span class="dl-del">-    existingAgentsContent = await fsp.readFile(agentsMdPath, &#39;utf8&#39;);</span>
+<span class="dl-del">-    existingInstructions.push({ label: &#39;AGENTS.md&#39;, content: existingAgentsContent });</span>
+<span class="dl-del">-    await fsp.unlink(agentsMdPath);</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  // Build AGENTS.md content: Frame template + any existing instructions appended.</span>
+<span class="dl-del">-  // Spec-Driven Development is ON for new projects (config template sets</span>
+<span class="dl-del">-  // features.specDriven), so the section ships with the file — the spec</span>
+<span class="dl-del">-  // commands are staged at init anyway, and hiding the panel only meant the</span>
+<span class="dl-del">-  // user couldn&#39;t see specs their AI session had already written. Opting out</span>
+<span class="dl-del">-  // happens in Settings → Workflow (disableSpecDriven).</span>
+<span class="dl-del">-  let agentsContent = templates.getAgentsTemplate(name, { specDriven: true, project: detectedProject });</span>
+<span class="dl-del">-  if (existingInstructions.length &gt; 0) {</span>
+<span class="dl-del">-    const merged = existingInstructions</span>
+<span class="dl-del">-      .map(({ label, content }) =&gt; `## Existing Instructions (from ${label})\n\n${content}`)</span>
+<span class="dl-del">-      .join(&#39;\n\n---\n\n&#39;);</span>
+<span class="dl-del">-    agentsContent += &#39;\n\n---\n\n&#39; + merged;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-add">+  // Everything Frame writes lives under .frame/ (plus the one pointer file</span>
+<span class="dl-add">+  // below). Nothing at the project root is read, consumed or replaced: an</span>
+<span class="dl-add">+  // existing CLAUDE.md / AGENTS.md / .cursorrules is the user&#39;s, and Frame</span>
+<span class="dl-add">+  // reaching an AI session no longer depends on owning a root file.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // .frame/AGENTS.md — Spec-Driven Development is ON for new projects (config</span>
+<span class="dl-add">+  // template sets features.specDriven), so the section ships with the file.</span>
+<span class="dl-ctx">   await createFileIfNotExists(</span>
+<span class="dl-del">-    path.join(projectPath, FRAME_FILES.AGENTS),</span>
+<span class="dl-del">-    agentsContent</span>
+<span class="dl-add">+    frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS),</span>
+<span class="dl-add">+    templates.getAgentsTemplate(name, { specDriven: true, project: detectedProject })</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // .frame/docs/REFERENCE.md — the reference-on-demand companion to the lean</span>
+<span class="dl-hunk">@@ -315,50 +229,31 @@ async function runProjectInit(projectPath, projectName) {</span>
+<span class="dl-ctx">   await fsp.mkdir(specsDirPath, { recursive: true });</span>
+<span class="dl-ctx">   await createFileIfNotExists(path.join(specsDirPath, &#39;.gitkeep&#39;), &#39;&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  // CLAUDE.md - Symlink to AGENTS.md for Claude Code compatibility</span>
+<span class="dl-del">-  await createSymlinkSafe(</span>
+<span class="dl-del">-    FRAME_FILES.AGENTS,</span>
+<span class="dl-del">-    path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK)</span>
+<span class="dl-del">-  );</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  // GEMINI.md - Symlink to AGENTS.md for Gemini CLI compatibility</span>
+<span class="dl-del">-  // If it exists as a real file, append its content to AGENTS.md then remove it so the symlink can be created</span>
+<span class="dl-del">-  const geminiMdPath = path.join(projectPath, LEGACY_GEMINI_FILE);</span>
+<span class="dl-del">-  if (fs.existsSync(geminiMdPath)) {</span>
+<span class="dl-del">-    const geminiStats = fs.lstatSync(geminiMdPath);</span>
+<span class="dl-del">-    if (!geminiStats.isSymbolicLink()) {</span>
+<span class="dl-del">-      const geminiContent = await fsp.readFile(geminiMdPath, &#39;utf8&#39;);</span>
+<span class="dl-del">-      const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);</span>
+<span class="dl-del">-      const current = await fsp.readFile(agentsPath, &#39;utf8&#39;);</span>
+<span class="dl-del">-      await fsp.writeFile(agentsPath, current + &#39;\n\n---\n\n## Existing Instructions (from GEMINI.md)\n\n&#39; + geminiContent, &#39;utf8&#39;);</span>
+<span class="dl-del">-      await fsp.unlink(geminiMdPath);</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-  await createSymlinkSafe(</span>
+<span class="dl-del">-    FRAME_FILES.AGENTS,</span>
+<span class="dl-del">-    path.join(projectPath, LEGACY_GEMINI_FILE)</span>
+<span class="dl-del">-  );</span>
+<span class="dl-del">-</span>
+<span class="dl-ctx">   const structureWasCreated = await createFileIfNotExists(</span>
+<span class="dl-del">-    path.join(projectPath, FRAME_FILES.STRUCTURE),</span>
+<span class="dl-add">+    frameStore.resolvePath(projectPath, FRAME_FILES.STRUCTURE),</span>
+<span class="dl-ctx">     templates.getStructureTemplate(name, detectedProject)</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   await createFileIfNotExists(</span>
+<span class="dl-del">-    path.join(projectPath, FRAME_FILES.NOTES),</span>
+<span class="dl-add">+    frameStore.resolvePath(projectPath, FRAME_FILES.NOTES),</span>
+<span class="dl-ctx">     templates.getNotesTemplate(name)</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   await createFileIfNotExists(</span>
+<span class="dl-del">-    path.join(projectPath, FRAME_FILES.TASKS),</span>
+<span class="dl-add">+    frameStore.resolvePath(projectPath, FRAME_FILES.TASKS),</span>
+<span class="dl-ctx">     templates.getTasksTemplate(name)</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   await createFileIfNotExists(</span>
+<span class="dl-del">-    path.join(projectPath, FRAME_FILES.QUICKSTART),</span>
+<span class="dl-add">+    frameStore.resolvePath(projectPath, FRAME_FILES.QUICKSTART),</span>
+<span class="dl-ctx">     templates.getQuickstartTemplate(name, detectedProject)</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // .claude/rules/frame.md — the pointer Claude Code loads at session start.</span>
+<span class="dl-add">+  // The whole native-delivery mechanism: two lines that @-import</span>
+<span class="dl-add">+  // .frame/AGENTS.md, replacing the CLAUDE.md symlink Frame used to plant.</span>
+<span class="dl-add">+  ensureClaudePointer(projectPath);</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // Create .frame/bin directory for AI tool wrappers</span>
+<span class="dl-ctx">   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);</span>
+<span class="dl-ctx">   await fsp.mkdir(binDirPath, { recursive: true });</span>
+<span class="dl-hunk">@@ -397,7 +292,9 @@ async function runProjectInit(projectPath, projectName) {</span>
+<span class="dl-ctx">   // .claude/settings.json, non-fatal like the bootstrap above.</span>
+<span class="dl-ctx">   let specHintSummary = null;</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-del">-    specHintSummary = installSpecHintHook(projectPath);</span>
+<span class="dl-add">+    specHintSummary = installSpecHintHook(projectPath, {</span>
+<span class="dl-add">+      file: gitSharing === &#39;local&#39; ? &#39;settings.local.json&#39; : &#39;settings.json&#39;</span>
+<span class="dl-add">+    });</span>
+<span class="dl-ctx">     if (specHintSummary.manual) {</span>
+<span class="dl-ctx">       console.warn(&#39;[frame] spec-hint hook needs manual install:&#39;, specHintSummary.reason);</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-hunk">@@ -411,32 +308,44 @@ async function runProjectInit(projectPath, projectName) {</span>
+<span class="dl-ctx">   return { ...config, _structureBootstrap: structureBootstrapSummary, _specHintHook: specHintSummary };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// ─── Spec-knowledge hook install ──────────────────────────</span>
+<span class="dl-add">+// ─── Claude Code pointer file ─────────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// Hook entries for a user project (scripts live in .frame/bin/ there).</span>
+<span class="dl-del">-const SPEC_HINT_HOOKS = {</span>
+<span class="dl-del">-  PreToolUse: [</span>
+<span class="dl-del">-    {</span>
+<span class="dl-del">-      matcher: &#39;Edit|Write&#39;,</span>
+<span class="dl-del">-      hooks: [{ type: &#39;command&#39;, command: &#39;node .frame/bin/spec-hint.js pre-edit&#39; }]</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-  ],</span>
+<span class="dl-del">-  UserPromptSubmit: [</span>
+<span class="dl-del">-    { hooks: [{ type: &#39;command&#39;, command: &#39;node .frame/bin/spec-hint.js prompt&#39; }] }</span>
+<span class="dl-del">-  ]</span>
+<span class="dl-del">-};</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Write `.claude/rules/frame.md` — the only thing Frame puts outside</span>
+<span class="dl-add">+ * `.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start</span>
+<span class="dl-add">+ * and follows the `@` import to `.frame/AGENTS.md`, which is how Frame reaches</span>
+<span class="dl-add">+ * a session without a launch wrapper or a root file. Rewritten every init so a</span>
+<span class="dl-add">+ * stale pointer heals; a user who deletes it has detached on purpose.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function ensureClaudePointer(projectPath) {</span>
+<span class="dl-add">+  const rulePath = path.join(projectPath, ...CLAUDE_RULE_PATH.split(&#39;/&#39;));</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    fs.mkdirSync(path.dirname(rulePath), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(rulePath, templates.getClaudeRuleTemplate(), &#39;utf8&#39;);</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.warn(&#39;[frame] could not write .claude/rules/frame.md (non-fatal):&#39;, err.message);</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── Spec-knowledge hook install ──────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-del">- * Register the spec-hint hooks in the project&#39;s .claude/settings.json.</span>
+<span class="dl-add">+ * Register the spec-hint hooks in the project&#39;s Claude settings file.</span>
+<span class="dl-ctx">  * Gated on the active AI tool being Claude Code — other CLIs have no hook</span>
+<span class="dl-ctx">  * system, they keep the AGENTS.md advisory layer.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-add">+ * `file` selects the settings file: `settings.json` (sharing mode `repo`, the</span>
+<span class="dl-add">+ * default) or `settings.local.json` (mode `local`, so nothing Frame writes</span>
+<span class="dl-add">+ * shows up in git status).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-ctx">  * Merge-safe write: read-modify-write preserving every existing key; a hook</span>
+<span class="dl-ctx">  * entry is appended only when an identical one isn&#39;t already present, so</span>
+<span class="dl-ctx">  * re-init is idempotent. Unparseable JSON → no write, manual instructions</span>
+<span class="dl-ctx">  * surfaced via the returned summary.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-del">-function installSpecHintHook(projectPath) {</span>
+<span class="dl-add">+function installSpecHintHook(projectPath, { file = &#39;settings.json&#39; } = {}) {</span>
+<span class="dl-ctx">   // Lazy require — aiToolManager pulls telemetry; keep init&#39;s module graph flat.</span>
+<span class="dl-ctx">   const aiToolManager = require(&#39;./aiToolManager&#39;);</span>
+<span class="dl-ctx">   const active = aiToolManager.getActiveTool();</span>
+<span class="dl-hunk">@@ -445,7 +354,7 @@ function installSpecHintHook(projectPath) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const settingsDir = path.join(projectPath, &#39;.claude&#39;);</span>
+<span class="dl-del">-  const settingsPath = path.join(settingsDir, &#39;settings.json&#39;);</span>
+<span class="dl-add">+  const settingsPath = path.join(settingsDir, file);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   let settings = {};</span>
+<span class="dl-ctx">   if (fs.existsSync(settingsPath)) {</span>
+<span class="dl-hunk">@@ -455,16 +364,16 @@ function installSpecHintHook(projectPath) {</span>
+<span class="dl-ctx">       return {</span>
+<span class="dl-ctx">         installed: false,</span>
+<span class="dl-ctx">         manual: true,</span>
+<span class="dl-del">-        reason: `.claude/settings.json is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md &quot;Spec Knowledge Layer&quot;`</span>
+<span class="dl-add">+        reason: `.claude/${file} is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md &quot;Spec Knowledge Layer&quot;`</span>
+<span class="dl-ctx">       };</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   settings.hooks = settings.hooks || {};</span>
+<span class="dl-ctx">   let added = 0;</span>
+<span class="dl-del">-  for (const eventName of Object.keys(SPEC_HINT_HOOKS)) {</span>
+<span class="dl-add">+  for (const eventName of Object.keys(templates.SPEC_HINT_HOOKS)) {</span>
+<span class="dl-ctx">     const list = Array.isArray(settings.hooks[eventName]) ? settings.hooks[eventName] : [];</span>
+<span class="dl-del">-    for (const entry of SPEC_HINT_HOOKS[eventName]) {</span>
+<span class="dl-add">+    for (const entry of templates.SPEC_HINT_HOOKS[eventName]) {</span>
+<span class="dl-ctx">       const sig = JSON.stringify(entry);</span>
+<span class="dl-ctx">       if (!list.some((x) =&gt; JSON.stringify(x) === sig)) {</span>
+<span class="dl-ctx">         list.push(entry);</span>
+<span class="dl-hunk">@@ -478,7 +387,56 @@ function installSpecHintHook(projectPath) {</span>
+<span class="dl-ctx">     fs.mkdirSync(settingsDir, { recursive: true });</span>
+<span class="dl-ctx">     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + &#39;\n&#39;);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-del">-  return { installed: true, added };</span>
+<span class="dl-add">+  return { installed: true, added, file };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Take Frame&#39;s hook entries back out of a Claude settings file. Exact-match on</span>
+<span class="dl-add">+ * the command string (the current guarded form and the older unguarded one) —</span>
+<span class="dl-add">+ * a hook the user wrote, even one that calls spec-hint.js differently, is not</span>
+<span class="dl-add">+ * ours to remove. Empty event arrays and an empty `hooks` object are cleaned</span>
+<span class="dl-add">+ * up so removal leaves no Frame-shaped residue; every other key survives.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function removeSpecHintHook(projectPath, { file = &#39;settings.json&#39; } = {}) {</span>
+<span class="dl-add">+  const settingsPath = path.join(projectPath, &#39;.claude&#39;, file);</span>
+<span class="dl-add">+  if (!fs.existsSync(settingsPath)) return { removed: 0 };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  let settings;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    settings = JSON.parse(fs.readFileSync(settingsPath, &#39;utf8&#39;));</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    return { removed: 0, manual: true, reason: `.claude/${file} is not valid JSON` };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (!settings.hooks || typeof settings.hooks !== &#39;object&#39;) return { removed: 0 };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const frameCommands = new Set(templates.LEGACY_SPEC_HINT_COMMANDS);</span>
+<span class="dl-add">+  for (const entries of Object.values(templates.SPEC_HINT_HOOKS)) {</span>
+<span class="dl-add">+    for (const entry of entries) {</span>
+<span class="dl-add">+      for (const hook of entry.hooks) frameCommands.add(hook.command);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  const isFrameEntry = (entry) =&gt;</span>
+<span class="dl-add">+    entry &amp;&amp; Array.isArray(entry.hooks) &amp;&amp;</span>
+<span class="dl-add">+    entry.hooks.length &gt; 0 &amp;&amp;</span>
+<span class="dl-add">+    entry.hooks.every((h) =&gt; h &amp;&amp; frameCommands.has(h.command));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  let removed = 0;</span>
+<span class="dl-add">+  for (const eventName of Object.keys(settings.hooks)) {</span>
+<span class="dl-add">+    const list = settings.hooks[eventName];</span>
+<span class="dl-add">+    if (!Array.isArray(list)) continue;</span>
+<span class="dl-add">+    const kept = list.filter((entry) =&gt; {</span>
+<span class="dl-add">+      if (!isFrameEntry(entry)) return true;</span>
+<span class="dl-add">+      removed++;</span>
+<span class="dl-add">+      return false;</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    if (kept.length &gt; 0) settings.hooks[eventName] = kept;</span>
+<span class="dl-add">+    else delete settings.hooks[eventName];</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (removed === 0) return { removed: 0 };</span>
+<span class="dl-add">+  if (Object.keys(settings.hooks).length === 0) delete settings.hooks;</span>
+<span class="dl-add">+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + &#39;\n&#39;);</span>
+<span class="dl-add">+  return { removed, file };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // ─── Spec-Driven Development toggle ──────────────────────────</span>
+<span class="dl-hunk">@@ -762,6 +720,10 @@ module.exports = {</span>
+<span class="dl-ctx">   isFrameProject,</span>
+<span class="dl-ctx">   getFrameConfig,</span>
+<span class="dl-ctx">   initializeFrameProject,</span>
+<span class="dl-add">+  runProjectInit,</span>
+<span class="dl-add">+  ensureClaudePointer,</span>
+<span class="dl-add">+  installSpecHintHook,</span>
+<span class="dl-add">+  removeSpecHintHook,</span>
+<span class="dl-ctx">   isSpecDrivenEnabled,</span>
+<span class="dl-ctx">   enableSpecDriven,</span>
+<span class="dl-ctx">   disableSpecDriven,</span>
+<span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 46d315b..7fb0a8a 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -4,7 +4,9 @@</span>
+<span class="dl-ctx">  * Each template includes instructions header for Claude Code</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+const crypto = require(&#39;crypto&#39;);</span>
+<span class="dl-ctx"> const managedBlock = require(&#39;./docsManagedBlock&#39;);</span>
+<span class="dl-add">+const { FRAME_FILE_CLASSES } = require(&#39;./frameConstants&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Get current date in YYYY-MM-DD format</span>
+<span class="dl-hunk">@@ -378,9 +380,9 @@ implemented without approval.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **Read these at the start of each session:**</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-1. **STRUCTURE.json** — module map, which file is where</span>
+<span class="dl-del">-2. **PROJECT_NOTES.md** — project vision, past decisions, session notes</span>
+<span class="dl-del">-3. **tasks.json** — pending tasks</span>
+<span class="dl-add">+1. **\`.frame/STRUCTURE.json\`** — module map, which file is where</span>
+<span class="dl-add">+2. **\`.frame/PROJECT_NOTES.md\`** — project vision, past decisions, session notes</span>
+<span class="dl-add">+3. **\`.frame/tasks.json\`** — pending tasks</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **Fast file lookup** — before manual grep/glob, run:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -414,17 +416,17 @@ ${renderSpecCoreSection()}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ## Writing Frame meta files — read the reference first</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-| Before writing…  | Read in \`.frame/docs/REFERENCE.md\` |</span>
+<span class="dl-del">-| ---------------- | ------------------------------------ |</span>
+<span class="dl-del">-| tasks.json       | &quot;Task Management&quot; (schema + rules)   |</span>
+<span class="dl-del">-| PROJECT_NOTES.md | &quot;PROJECT_NOTES.md Rules&quot;             |</span>
+<span class="dl-del">-| STRUCTURE.json   | &quot;STRUCTURE.json Rules&quot;               |</span>
+<span class="dl-del">-| QUICKSTART.md    | &quot;QUICKSTART.md Rules&quot;                |</span>
+<span class="dl-add">+| Before writing…              | Read in \`.frame/docs/REFERENCE.md\` |</span>
+<span class="dl-add">+| ---------------------------- | ------------------------------------ |</span>
+<span class="dl-add">+| \`.frame/tasks.json\`          | &quot;Task Management&quot; (schema + rules)   |</span>
+<span class="dl-add">+| \`.frame/PROJECT_NOTES.md\`    | &quot;PROJECT_NOTES.md Rules&quot;             |</span>
+<span class="dl-add">+| \`.frame/STRUCTURE.json\`      | &quot;STRUCTURE.json Rules&quot;               |</span>
+<span class="dl-add">+| \`.frame/QUICKSTART.md\`       | &quot;QUICKSTART.md Rules&quot;                |</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Quick reminders that always apply:</span>
+<span class="dl-ctx"> - Task work: \`status: &quot;in_progress&quot;\` when starting, \`&quot;completed&quot;\` +</span>
+<span class="dl-ctx">   \`completedAt\` when done; re-check statuses after commits.</span>
+<span class="dl-del">-- Important decisions: append to PROJECT_NOTES.md as</span>
+<span class="dl-add">+- Important decisions: append to \`.frame/PROJECT_NOTES.md\` as</span>
+<span class="dl-ctx">   \`### [YYYY-MM-DD] Title\` with the conversation&#39;s context (not a summary).</span>
+<span class="dl-ctx"> - Documentation in English; dates in ISO 8601.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -435,7 +437,9 @@ Quick reminders that always apply:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-**Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.</span>
+<span class="dl-add">+**Note:** This file lives at \`.frame/AGENTS.md\` and is named \`AGENTS.md\` to be</span>
+<span class="dl-add">+AI-tool agnostic. Claude Code reaches it through \`.claude/rules/frame.md\`,</span>
+<span class="dl-add">+which imports this file; delete that pointer to detach.</span>
+<span class="dl-ctx"> `;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -450,8 +454,9 @@ function getReferenceTemplate(projectName) {</span>
+<span class="dl-ctx">   return `# ${projectName} — Frame Reference</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Read the relevant section of this file **before writing a Frame meta file**</span>
+<span class="dl-del">-(tasks.json, PROJECT_NOTES.md, STRUCTURE.json, QUICKSTART.md). The always-on</span>
+<span class="dl-del">-orientation lives in \`AGENTS.md\`; this file is loaded on demand.</span>
+<span class="dl-add">+(\`.frame/tasks.json\`, \`.frame/PROJECT_NOTES.md\`, \`.frame/STRUCTURE.json\`,</span>
+<span class="dl-add">+\`.frame/QUICKSTART.md\`). The always-on orientation lives in</span>
+<span class="dl-add">+\`.frame/AGENTS.md\`; this file is loaded on demand.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -799,10 +804,17 @@ function getFrameConfigTemplate(projectName) {</span>
+<span class="dl-ctx">     description: &quot;&quot;,</span>
+<span class="dl-ctx">     createdAt: getISOTimestamp(),</span>
+<span class="dl-ctx">     initializedBy: &quot;Frame&quot;,</span>
+<span class="dl-add">+    // Stable identity for this project, stamped once (frameStore.ensureProjectId</span>
+<span class="dl-add">+    // fills it in for projects created before this field existed).</span>
+<span class="dl-add">+    projectId: crypto.randomUUID(),</span>
+<span class="dl-ctx">     settings: {</span>
+<span class="dl-ctx">       autoUpdateStructure: true,</span>
+<span class="dl-ctx">       autoUpdateNotes: false,</span>
+<span class="dl-del">-      taskRecognition: true</span>
+<span class="dl-add">+      taskRecognition: true,</span>
+<span class="dl-add">+      // How Frame&#39;s own files relate to git: &quot;repo&quot; tracks .frame/ and puts</span>
+<span class="dl-add">+      // hooks in .claude/settings.json; &quot;local&quot; excludes them and uses</span>
+<span class="dl-add">+      // .claude/settings.local.json. Chosen at init, changeable in Settings.</span>
+<span class="dl-add">+      gitSharing: &quot;repo&quot;</span>
+<span class="dl-ctx">     },</span>
+<span class="dl-ctx">     features: {</span>
+<span class="dl-ctx">       // Spec-Driven Development is ON for new projects: the spec commands</span>
+<span class="dl-hunk">@@ -811,18 +823,75 @@ function getFrameConfigTemplate(projectName) {</span>
+<span class="dl-ctx">       // it off in Settings → Workflow, which flips this flag and strips the</span>
+<span class="dl-ctx">       // spec section from AGENTS.md.</span>
+<span class="dl-ctx">       specDriven: true</span>
+<span class="dl-del">-    },</span>
+<span class="dl-del">-    files: {</span>
+<span class="dl-del">-      agents: &quot;AGENTS.md&quot;,</span>
+<span class="dl-del">-      claudeSymlink: &quot;CLAUDE.md&quot;,</span>
+<span class="dl-del">-      structure: &quot;STRUCTURE.json&quot;,</span>
+<span class="dl-del">-      notes: &quot;PROJECT_NOTES.md&quot;,</span>
+<span class="dl-del">-      tasks: &quot;tasks.json&quot;,</span>
+<span class="dl-del">-      quickstart: &quot;QUICKSTART.md&quot;</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-add">+    // No `files` record: every meta file lives under .frame/ now, and the</span>
+<span class="dl-add">+    // record&#39;s only remaining job is marking a project as pre-overlay (it is</span>
+<span class="dl-add">+    // the migration fingerprint frameStore.isLegacyLayout looks for).</span>
+<span class="dl-ctx">   };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * `.claude/rules/frame.md` — the pointer Claude Code loads at session start.</span>
+<span class="dl-add">+ * Two lines: what it is, and an @-import of Frame&#39;s instructions. Nothing</span>
+<span class="dl-add">+ * Frame has to say lives here, so a user who deletes it detaches cleanly.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function getClaudeRuleTemplate() {</span>
+<span class="dl-add">+  return `&lt;!-- Written by Frame. Loads Frame&#39;s project instructions; delete to detach. --&gt;</span>
+<span class="dl-add">+@../../.frame/AGENTS.md</span>
+<span class="dl-add">+`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The managed block of `.frame/.gitignore`, generated from the file classes:</span>
+<span class="dl-add">+ * derived and runtime entries are machine-local. STRUCTURE.json is derived but</span>
+<span class="dl-add">+ * deliberately stays tracked — teammates and worktrees rely on it being in the</span>
+<span class="dl-add">+ * repo. Lines outside the markers are the user&#39;s and are never touched.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const FRAME_GITIGNORE_MARKER_START = &#39;# managed by Frame — machine-local; edit outside this block&#39;;</span>
+<span class="dl-add">+const FRAME_GITIGNORE_MARKER_END = &#39;# end managed by Frame&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function getFrameGitignoreBlock() {</span>
+<span class="dl-add">+  const entries = [</span>
+<span class="dl-add">+    ...FRAME_FILE_CLASSES.runtime,</span>
+<span class="dl-add">+    ...FRAME_FILE_CLASSES.derived.filter((entry) =&gt; entry !== &#39;STRUCTURE.json&#39;)</span>
+<span class="dl-add">+  ];</span>
+<span class="dl-add">+  return `${FRAME_GITIGNORE_MARKER_START}\n${entries.join(&#39;\n&#39;)}\n${FRAME_GITIGNORE_MARKER_END}\n`;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Spec-knowledge hook entries for a user project. The command is guarded so a</span>
+<span class="dl-add">+ * clone without `.frame/bin/` (sharing mode `local`, or a teammate who hasn&#39;t</span>
+<span class="dl-add">+ * run Frame) produces no hook error — the `[ -f ... ]` test simply fails and</span>
+<span class="dl-add">+ * the hook exits 0. The literal command string is Frame&#39;s marker: entries are</span>
+<span class="dl-add">+ * added and removed by exact match, never by fuzzy matching.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const SPEC_HINT_HOOKS = {</span>
+<span class="dl-add">+  PreToolUse: [</span>
+<span class="dl-add">+    {</span>
+<span class="dl-add">+      matcher: &#39;Edit|Write&#39;,</span>
+<span class="dl-add">+      hooks: [{</span>
+<span class="dl-add">+        type: &#39;command&#39;,</span>
+<span class="dl-add">+        command: &quot;sh -c &#39;[ -f .frame/bin/spec-hint.js ] &amp;&amp; exec node .frame/bin/spec-hint.js pre-edit&#39;&quot;</span>
+<span class="dl-add">+      }]</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  ],</span>
+<span class="dl-add">+  UserPromptSubmit: [</span>
+<span class="dl-add">+    {</span>
+<span class="dl-add">+      hooks: [{</span>
+<span class="dl-add">+        type: &#39;command&#39;,</span>
+<span class="dl-add">+        command: &quot;sh -c &#39;[ -f .frame/bin/spec-hint.js ] &amp;&amp; exec node .frame/bin/spec-hint.js prompt&#39;&quot;</span>
+<span class="dl-add">+      }]</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  ]</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// The unguarded form Frame installed before the overlay layout. Migration</span>
+<span class="dl-add">+// replaces these with the guarded entries above; nothing else matches them.</span>
+<span class="dl-add">+const LEGACY_SPEC_HINT_COMMANDS = [</span>
+<span class="dl-add">+  &#39;node .frame/bin/spec-hint.js pre-edit&#39;,</span>
+<span class="dl-add">+  &#39;node .frame/bin/spec-hint.js prompt&#39;</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * AI Tool Wrapper Script Templates</span>
+<span class="dl-ctx">  * These wrappers inject AGENTS.md as system prompt for non-Claude tools</span>
+<span class="dl-hunk">@@ -835,11 +904,11 @@ function getFrameConfigTemplate(projectName) {</span>
+<span class="dl-ctx"> function getCodexWrapperTemplate() {</span>
+<span class="dl-ctx">   return `#!/usr/bin/env bash</span>
+<span class="dl-ctx"> # Frame AI Tool Wrapper for Codex CLI</span>
+<span class="dl-del">-# This script injects AGENTS.md as initial prompt</span>
+<span class="dl-add">+# This script injects .frame/AGENTS.md as initial prompt</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-AGENTS_FILE=&quot;AGENTS.md&quot;</span>
+<span class="dl-add">+AGENTS_FILE=&quot;.frame/AGENTS.md&quot;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-# Find AGENTS.md in current directory or parent directories</span>
+<span class="dl-add">+# Find .frame/AGENTS.md in current directory or parent directories</span>
+<span class="dl-ctx"> find_agents_file() {</span>
+<span class="dl-ctx">   local dir=&quot;$PWD&quot;</span>
+<span class="dl-ctx">   while [ &quot;$dir&quot; != &quot;/&quot; ]; do</span>
+<span class="dl-hunk">@@ -856,7 +925,7 @@ AGENTS_PATH=$(find_agents_file)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> # Run codex with initial prompt to read AGENTS.md</span>
+<span class="dl-ctx"> if [ -n &quot;$AGENTS_PATH&quot; ]; then</span>
+<span class="dl-del">-  exec codex &quot;Please read AGENTS.md and follow the project instructions. This file contains important rules for this project.&quot; &quot;$@&quot;</span>
+<span class="dl-add">+  exec codex &quot;Please read .frame/AGENTS.md and follow the project instructions. This file contains important rules for this project.&quot; &quot;$@&quot;</span>
+<span class="dl-ctx"> else</span>
+<span class="dl-ctx">   exec codex &quot;$@&quot;</span>
+<span class="dl-ctx"> fi</span>
+<span class="dl-hunk">@@ -873,11 +942,11 @@ function getGenericWrapperTemplate(toolCommand, promptFlag = &#39;&#39;) {</span>
+<span class="dl-ctx">   const flagPart = promptFlag ? `${promptFlag} ` : &#39;&#39;;</span>
+<span class="dl-ctx">   return `#!/usr/bin/env bash</span>
+<span class="dl-ctx"> # Frame AI Tool Wrapper for ${toolCommand}</span>
+<span class="dl-del">-# This script injects AGENTS.md as initial prompt</span>
+<span class="dl-add">+# This script injects .frame/AGENTS.md as initial prompt</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-AGENTS_FILE=&quot;AGENTS.md&quot;</span>
+<span class="dl-add">+AGENTS_FILE=&quot;.frame/AGENTS.md&quot;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-# Find AGENTS.md in current directory or parent directories</span>
+<span class="dl-add">+# Find .frame/AGENTS.md in current directory or parent directories</span>
+<span class="dl-ctx"> find_agents_file() {</span>
+<span class="dl-ctx">   local dir=&quot;$PWD&quot;</span>
+<span class="dl-ctx">   while [ &quot;$dir&quot; != &quot;/&quot; ]; do</span>
+<span class="dl-hunk">@@ -894,7 +963,7 @@ AGENTS_PATH=$(find_agents_file)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> # Run tool with initial prompt to read AGENTS.md</span>
+<span class="dl-ctx"> if [ -n &quot;$AGENTS_PATH&quot; ]; then</span>
+<span class="dl-del">-  exec ${toolCommand} ${flagPart}&quot;Please read AGENTS.md and follow the project instructions.&quot; &quot;$@&quot;</span>
+<span class="dl-add">+  exec ${toolCommand} ${flagPart}&quot;Please read .frame/AGENTS.md and follow the project instructions.&quot; &quot;$@&quot;</span>
+<span class="dl-ctx"> else</span>
+<span class="dl-ctx">   exec ${toolCommand} &quot;$@&quot;</span>
+<span class="dl-ctx"> fi</span>
+<span class="dl-hunk">@@ -1030,6 +1099,12 @@ module.exports = {</span>
+<span class="dl-ctx">   getTasksTemplate,</span>
+<span class="dl-ctx">   getQuickstartTemplate,</span>
+<span class="dl-ctx">   getFrameConfigTemplate,</span>
+<span class="dl-add">+  getClaudeRuleTemplate,</span>
+<span class="dl-add">+  getFrameGitignoreBlock,</span>
+<span class="dl-add">+  FRAME_GITIGNORE_MARKER_START,</span>
+<span class="dl-add">+  FRAME_GITIGNORE_MARKER_END,</span>
+<span class="dl-add">+  SPEC_HINT_HOOKS,</span>
+<span class="dl-add">+  LEGACY_SPEC_HINT_COMMANDS,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_SECTION,</span>
+<span class="dl-ctx">   SPEC_DRIVEN_CORE_SECTION,</span>
+<span class="dl-ctx">   renderSpecSection,</span>
+<span class="dl-meta">diff --git a/src/templates/sample-project/.claude/rules/frame.md b/src/templates/sample-project/.claude/rules/frame.md</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..0763b97</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/templates/sample-project/.claude/rules/frame.md</span>
+<span class="dl-hunk">@@ -0,0 +1,2 @@</span>
+<span class="dl-add">+&lt;!-- Written by Frame. Loads Frame&#39;s project instructions; delete to detach. --&gt;</span>
+<span class="dl-add">+@../../.frame/AGENTS.md</span>
+<span class="dl-meta">diff --git a/src/templates/sample-project/AGENTS.md b/src/templates/sample-project/.frame/AGENTS.md</span>
+<span class="dl-meta">similarity index 98%</span>
+<span class="dl-meta">rename from src/templates/sample-project/AGENTS.md</span>
+<span class="dl-meta">rename to src/templates/sample-project/.frame/AGENTS.md</span>
+<span class="dl-meta">index 434a1c3..72f76ba 100644</span>
+<span class="dl-file">--- a/src/templates/sample-project/AGENTS.md</span>
+<span class="dl-file">+++ b/src/templates/sample-project/.frame/AGENTS.md</span>
+<span class="dl-hunk">@@ -259,4 +259,4 @@ Beyond the standard Frame rules above, here&#39;s what&#39;s specific to this codebase:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-**Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A `CLAUDE.md` symlink is provided for Claude Code compatibility, and a `GEMINI.md` for Gemini CLI.</span>
+<span class="dl-add">+**Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`, which imports this file; delete that pointer to detach.</span>
+<span class="dl-meta">diff --git a/src/templates/sample-project/PROJECT_NOTES.md b/src/templates/sample-project/.frame/PROJECT_NOTES.md</span>
+<span class="dl-meta">similarity index 100%</span>
+<span class="dl-meta">rename from src/templates/sample-project/PROJECT_NOTES.md</span>
+<span class="dl-meta">rename to src/templates/sample-project/.frame/PROJECT_NOTES.md</span>
+<span class="dl-meta">diff --git a/src/templates/sample-project/STRUCTURE.json b/src/templates/sample-project/.frame/STRUCTURE.json</span>
+<span class="dl-meta">similarity index 100%</span>
+<span class="dl-meta">rename from src/templates/sample-project/STRUCTURE.json</span>
+<span class="dl-meta">rename to src/templates/sample-project/.frame/STRUCTURE.json</span>
+<span class="dl-meta">diff --git a/src/templates/sample-project/.frame/config.json b/src/templates/sample-project/.frame/config.json</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..7f9a3d7</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/templates/sample-project/.frame/config.json</span>
+<span class="dl-hunk">@@ -0,0 +1,17 @@</span>
+<span class="dl-add">+{</span>
+<span class="dl-add">+  &quot;version&quot;: &quot;1.0&quot;,</span>
+<span class="dl-add">+  &quot;name&quot;: &quot;sample-project&quot;,</span>
+<span class="dl-add">+  &quot;description&quot;: &quot;Frame&#39;s bundled sample project \u2014 a small task tracker to poke at.&quot;,</span>
+<span class="dl-add">+  &quot;createdAt&quot;: &quot;2026-08-23T00:00:00.000Z&quot;,</span>
+<span class="dl-add">+  &quot;initializedBy&quot;: &quot;Frame&quot;,</span>
+<span class="dl-add">+  &quot;projectId&quot;: &quot;57a3d82e-1c73-4a99-8735-19452d8314d4&quot;,</span>
+<span class="dl-add">+  &quot;settings&quot;: {</span>
+<span class="dl-add">+    &quot;autoUpdateStructure&quot;: true,</span>
+<span class="dl-add">+    &quot;autoUpdateNotes&quot;: false,</span>
+<span class="dl-add">+    &quot;taskRecognition&quot;: true,</span>
+<span class="dl-add">+    &quot;gitSharing&quot;: &quot;repo&quot;</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  &quot;features&quot;: {</span>
+<span class="dl-add">+    &quot;specDriven&quot;: true</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-meta">diff --git a/src/templates/sample-project/tasks.json b/src/templates/sample-project/.frame/tasks.json</span>
+<span class="dl-meta">similarity index 100%</span>
+<span class="dl-meta">rename from src/templates/sample-project/tasks.json</span>
+<span class="dl-meta">rename to src/templates/sample-project/.frame/tasks.json</span>
+<span class="dl-meta">diff --git a/src/templates/sample-project/CLAUDE.md b/src/templates/sample-project/CLAUDE.md</span>
+<span class="dl-meta">deleted file mode 100644</span>
+<span class="dl-meta">index 434a1c3..0000000</span>
+<span class="dl-file">--- a/src/templates/sample-project/CLAUDE.md</span>
+<span class="dl-file">+++ /dev/null</span>
+<span class="dl-hunk">@@ -1,262 +0,0 @@</span>
+<span class="dl-del">-# TaskFlow - Frame Project</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-This project is managed with **Frame**. AI assistants should follow the rules below to keep documentation up to date.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-&gt; **Note:** This is the **sample project** that ships with Frame. It&#39;s a fictional codebase used to demonstrate Frame&#39;s workflow on realistic content. None of this code runs. When you&#39;re ready, open your own project to start real work.</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## Task Management (tasks.json)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Task Recognition Rules</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**These ARE TASKS - add to tasks.json:**</span>
+<span class="dl-del">-- When the user requests a feature or change</span>
+<span class="dl-del">-- Decisions like &quot;Let&#39;s do this&quot;, &quot;Let&#39;s add this&quot;, &quot;Improve this&quot;</span>
+<span class="dl-del">-- Deferred work when we say &quot;We&#39;ll do this later&quot;, &quot;Let&#39;s leave it for now&quot;</span>
+<span class="dl-del">-- Gaps or improvement opportunities discovered while coding</span>
+<span class="dl-del">-- Situations requiring bug fixes</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**These are NOT TASKS:**</span>
+<span class="dl-del">-- Error messages and debugging sessions</span>
+<span class="dl-del">-- Questions, explanations, information exchange</span>
+<span class="dl-del">-- Temporary experiments and tests</span>
+<span class="dl-del">-- Work already completed and closed</span>
+<span class="dl-del">-- Instant fixes (like typo fixes)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Task Creation Flow</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-1. Detect task patterns during conversation</span>
+<span class="dl-del">-2. Ask the user at an appropriate moment: &quot;I identified these tasks from our conversation, should I add them to tasks.json?&quot;</span>
+<span class="dl-del">-3. If the user approves, add to tasks.json</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Task Structure</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-```json</span>
+<span class="dl-del">-{</span>
+<span class="dl-del">-  &quot;id&quot;: &quot;unique-id&quot;,</span>
+<span class="dl-del">-  &quot;title&quot;: &quot;Short and clear title&quot;,</span>
+<span class="dl-del">-  &quot;description&quot;: &quot;Detailed explanation&quot;,</span>
+<span class="dl-del">-  &quot;status&quot;: &quot;pending | in_progress | completed&quot;,</span>
+<span class="dl-del">-  &quot;priority&quot;: &quot;high | medium | low&quot;,</span>
+<span class="dl-del">-  &quot;context&quot;: &quot;Where/how this task originated&quot;,</span>
+<span class="dl-del">-  &quot;createdAt&quot;: &quot;ISO date&quot;,</span>
+<span class="dl-del">-  &quot;updatedAt&quot;: &quot;ISO date&quot;,</span>
+<span class="dl-del">-  &quot;completedAt&quot;: &quot;ISO date | null&quot;</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Task Status Updates</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-- When starting work on a task: `status: &quot;in_progress&quot;`</span>
+<span class="dl-del">-- When task is completed: `status: &quot;completed&quot;`, update `completedAt`</span>
+<span class="dl-del">-- After commit: Check and update the status of related tasks</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-&lt;!-- frame:managed:spec-section v=1 --&gt;</span>
+<span class="dl-del">-## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Frame supports a structured `spec → plan → tasks → implement` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps `tasks.json` in sync.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### File layout</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Each spec lives in its own folder:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-.frame/specs/&lt;slug&gt;/</span>
+<span class="dl-del">-  spec.md       — what we&#39;re building</span>
+<span class="dl-del">-  plan.md       — how (architecture, files, footprint, sequencing)</span>
+<span class="dl-del">-  tasks.md      — flat bullet list, &quot;- T01 · description&quot;</span>
+<span class="dl-del">-  status.json   — phase + metadata</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-`&lt;slug&gt;` is kebab-case, derived from the spec title.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Lifecycle phases</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-`draft` → `specified` → `planned` → `tasks_generated` → `implementing` → `done`</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Frame auto-advances phase from filesystem state (file presence). The command templates below tell you exactly which `status.json` updates to make; Frame&#39;s watcher reconciles if anything is missed.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Running spec commands — the self-serve protocol</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-The four spec commands are `spec.new`, `spec.plan`, `spec.tasks` and `spec.implement`. Whether the user types them as slash commands or asks conversationally (&quot;plan the auth spec&quot;, &quot;implement the tasks&quot;), the flow is **never improvised from memory** — each command&#39;s current flow lives in a template file that Frame keeps staged in the project. Run one like this:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**1. Resolve the target spec.** An explicitly named spec always wins. Otherwise list the specs (`.frame/specs/*/status.json`) whose phase the command acts on — `spec.plan` → `specified`, `spec.tasks` → `planned`, `spec.implement` → `tasks_generated` or `implementing`. Exactly one candidate → take it silently; zero or several → present the candidates and ask. `spec.new` creates a new spec: derive the kebab-case slug from the title.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**2. Resolve the template.** Take the first that exists:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-1. `.frame/templates/commands/&lt;tool&gt;/&lt;command&gt;.md` — project override</span>
+<span class="dl-del">-2. `.frame/runtime/commands/&lt;tool&gt;/&lt;command&gt;.md` — staged by Frame on project open</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-`&lt;tool&gt;` is the directory matching your CLI (Claude Code → `claude-code`). If neither file exists, say so and ask the user to open this project in Frame once so it stages the current templates — then stop. **Do not reconstruct the flow from this file, from memory, or from an older prompt.**</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**3. Interpolate the placeholders.** Replace each `{placeholder}` token in the template:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-| Placeholder | Value |</span>
+<span class="dl-del">-| --- | --- |</span>
+<span class="dl-del">-| `{project_path}` | absolute path of the project root |</span>
+<span class="dl-del">-| `{slug}` | the spec&#39;s slug |</span>
+<span class="dl-del">-| `{title}` | the spec&#39;s title (from `status.json`; for `spec.new`, the new title) |</span>
+<span class="dl-del">-| `{description}` | the user&#39;s description (`spec.new` only; empty otherwise) |</span>
+<span class="dl-del">-| `{report_template_path}` | `.frame/runtime/commands/&lt;tool&gt;/plan-report-template.html` |</span>
+<span class="dl-del">-| `{report_generator_path}` | `.frame/runtime/commands/&lt;tool&gt;/build-implement-report.mjs` |</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**4. Follow the interpolated template exactly**, including every `status.json` update it prescribes. The template is the flow; this section only tells you how to find it.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**5. Autonomous implement ceiling.** `spec.implement`&#39;s autonomous mode needs permission flags that only a fresh, flagged launch can carry — a running session cannot acquire them. If the user picks autonomous conversationally, do what the template says: record the choice in the spec&#39;s `status.json` and hand off — the user clicks Implement on the spec&#39;s page in Frame and picks Autonomous, or runs `node .frame/bin/implement-launch.js &lt;slug&gt;` in a fresh terminal. Never run a degraded imitation silently.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### tasks.json linkage</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-After `spec.tasks`, **do not** also write entries to `tasks.json` — Frame&#39;s watcher imports them automatically with `source: &quot;spec:&lt;slug&gt;:T&lt;n&gt;&quot;` markers. Spec-generated tasks carry that `source` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from `tasks.md`.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When to suggest a spec (steer the conversation)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Spec-driven is Frame&#39;s core way of working, so when a user describes meaningful</span>
+<span class="dl-del">-new work **mid-conversation**, gently steer them toward a spec instead of</span>
+<span class="dl-del">-silently diving into code. Suggest a spec only for **significant work** — don&#39;t</span>
+<span class="dl-del">-make this a reflex on every message.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Suggest a spec for:**</span>
+<span class="dl-del">-- A new **feature** or capability (&quot;users should be able to …&quot;, &quot;add a … system&quot;)</span>
+<span class="dl-del">-- A change that will touch **multiple files / modules** or affect architecture</span>
+<span class="dl-del">-- Anything that clearly benefits from a **plan and ordered tasks** before coding</span>
+<span class="dl-del">-- Work the user describes vaguely/largely that would benefit from being scoped first</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Do NOT suggest a spec for:**</span>
+<span class="dl-del">-- Typos, one-line fixes, small tweaks, renames → just do it</span>
+<span class="dl-del">-- Small, discrete tracked work → that&#39;s a task (`tasks.json`)</span>
+<span class="dl-del">-- Questions, debugging, explanations, experiments</span>
+<span class="dl-del">-- Anything the user explicitly says to &quot;just do&quot; / &quot;do directly&quot;</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Rough ladder: *trivial → just do it · small but worth tracking → task · sizable</span>
+<span class="dl-del">-feature or multi-file change → spec.*</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Ask once, in plain language, before coding. If they agree, start the spec flow</span>
+<span class="dl-del">-(`spec.new` → `spec.plan` → `spec.tasks`). If they decline or say &quot;just do</span>
+<span class="dl-del">-it&quot;, proceed directly and **don&#39;t ask again for that same piece of work** in the</span>
+<span class="dl-del">-session. Never force it — the spec is an offer, not a gate; the user&#39;s stated</span>
+<span class="dl-del">-preference always wins.</span>
+<span class="dl-del">-&lt;!-- /frame:managed:spec-section --&gt;</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## PROJECT_NOTES.md Rules</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When to Update?</span>
+<span class="dl-del">-- When an important architectural decision is made</span>
+<span class="dl-del">-- When a technology choice is made</span>
+<span class="dl-del">-- When an important problem is solved and the solution method is noteworthy</span>
+<span class="dl-del">-- When an approach is determined together with the user</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Format</span>
+<span class="dl-del">-Free format. Date + title is sufficient:</span>
+<span class="dl-del">-```markdown</span>
+<span class="dl-del">-### [2026-01-26] Topic title</span>
+<span class="dl-del">-Conversation/decision as is, with its context...</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Update Flow</span>
+<span class="dl-del">-- Update immediately after a decision is made</span>
+<span class="dl-del">-- You can add without asking the user (for important decisions)</span>
+<span class="dl-del">-- You can accumulate small decisions and add them in bulk</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## 📝 Context Preservation (Automatic Note Taking)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Frame&#39;s core purpose is to prevent context loss. Therefore, capture important moments and ask the user.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When to Ask?</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Ask the user when one of the following situations occurs: **&quot;Should I add this conversation to PROJECT_NOTES.md?&quot;**</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-- When a task is successfully completed</span>
+<span class="dl-del">-- When an important architectural/technical decision is made</span>
+<span class="dl-del">-- When a bug is fixed and the solution method is noteworthy</span>
+<span class="dl-del">-- When &quot;let&#39;s do this later&quot; is said (in this case, also add to tasks.json)</span>
+<span class="dl-del">-- When a new pattern or best practice is discovered</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Completion Detection</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Pay attention to these signals:</span>
+<span class="dl-del">-- User approval: &quot;okay&quot;, &quot;done&quot;, &quot;it worked&quot;, &quot;nice&quot;, &quot;fixed&quot;, &quot;yes&quot;</span>
+<span class="dl-del">-- Moving from one topic to another</span>
+<span class="dl-del">-- User continuing after build/run succeeds</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### How to Add?</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-1. **DON&#39;T write a summary** - Add the conversation as is, with its context</span>
+<span class="dl-del">-2. **Add date** - In `### [YYYY-MM-DD] Title` format</span>
+<span class="dl-del">-3. **Add to Session Notes section** - At the end of PROJECT_NOTES.md</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When NOT to Ask</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-- For every small change (it becomes spam)</span>
+<span class="dl-del">-- Typo fixes, simple corrections</span>
+<span class="dl-del">-- If the user already said &quot;no&quot; or &quot;not needed&quot;, don&#39;t ask again for the same topic in that session</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### If User Says &quot;No&quot;</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-No problem, continue. The user can also say what they consider important themselves: &quot;add this to notes&quot;</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## STRUCTURE.json Rules</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**This file is the map of the codebase.**</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When to Update?</span>
+<span class="dl-del">-- When a new file/folder is created</span>
+<span class="dl-del">-- When a file/folder is deleted or moved</span>
+<span class="dl-del">-- When module dependencies change</span>
+<span class="dl-del">-- When an important architectural pattern is discovered (architectureNotes)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Format</span>
+<span class="dl-del">-```json</span>
+<span class="dl-del">-{</span>
+<span class="dl-del">-  &quot;modules&quot;: {</span>
+<span class="dl-del">-    &quot;moduleName&quot;: {</span>
+<span class="dl-del">-      &quot;path&quot;: &quot;src/module&quot;,</span>
+<span class="dl-del">-      &quot;purpose&quot;: &quot;What this module does&quot;,</span>
+<span class="dl-del">-      &quot;depends&quot;: [&quot;otherModule&quot;]</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-  },</span>
+<span class="dl-del">-  &quot;architectureNotes&quot;: {}</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## General Rules</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-1. **Language:** Write documentation in English (except code examples)</span>
+<span class="dl-del">-2. **Date Format:** ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)</span>
+<span class="dl-del">-3. **After Commit:** Check tasks.json and STRUCTURE.json</span>
+<span class="dl-del">-4. **Session Start:** Review pending tasks in tasks.json</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## TaskFlow — Project Specifics</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Beyond the standard Frame rules above, here&#39;s what&#39;s specific to this codebase:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Stack:**</span>
+<span class="dl-del">-- Backend: Node.js 20, Express 4</span>
+<span class="dl-del">-- Database: PostgreSQL 16 (migrated from SQLite — see `.frame/specs/migrate-to-postgres/`)</span>
+<span class="dl-del">-- Auth: Google OAuth via Passport.js</span>
+<span class="dl-del">-- Frontend: React 18 + Vite</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Conventions:**</span>
+<span class="dl-del">-- Database access lives in `src/db/`; API handlers never touch SQL directly</span>
+<span class="dl-del">-- React components stay under 150 lines; split into sub-folders when they grow</span>
+<span class="dl-del">-- Commit messages: imperative mood, one-line summary + optional body</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Specs in flight:**</span>
+<span class="dl-del">-- `.frame/specs/add-google-oauth/` — shipped (read `outcome.md`)</span>
+<span class="dl-del">-- `.frame/specs/migrate-to-postgres/` — implementing (4 of 8 tasks done)</span>
+<span class="dl-del">-- `.frame/specs/email-notifications/` — planned, awaiting `/spec.tasks`</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A `CLAUDE.md` symlink is provided for Claude Code compatibility, and a `GEMINI.md` for Gemini CLI.</span>
+<span class="dl-meta">diff --git a/src/templates/sample-project/GEMINI.md b/src/templates/sample-project/GEMINI.md</span>
+<span class="dl-meta">deleted file mode 100644</span>
+<span class="dl-meta">index 434a1c3..0000000</span>
+<span class="dl-file">--- a/src/templates/sample-project/GEMINI.md</span>
+<span class="dl-file">+++ /dev/null</span>
+<span class="dl-hunk">@@ -1,262 +0,0 @@</span>
+<span class="dl-del">-# TaskFlow - Frame Project</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-This project is managed with **Frame**. AI assistants should follow the rules below to keep documentation up to date.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-&gt; **Note:** This is the **sample project** that ships with Frame. It&#39;s a fictional codebase used to demonstrate Frame&#39;s workflow on realistic content. None of this code runs. When you&#39;re ready, open your own project to start real work.</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## Task Management (tasks.json)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Task Recognition Rules</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**These ARE TASKS - add to tasks.json:**</span>
+<span class="dl-del">-- When the user requests a feature or change</span>
+<span class="dl-del">-- Decisions like &quot;Let&#39;s do this&quot;, &quot;Let&#39;s add this&quot;, &quot;Improve this&quot;</span>
+<span class="dl-del">-- Deferred work when we say &quot;We&#39;ll do this later&quot;, &quot;Let&#39;s leave it for now&quot;</span>
+<span class="dl-del">-- Gaps or improvement opportunities discovered while coding</span>
+<span class="dl-del">-- Situations requiring bug fixes</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**These are NOT TASKS:**</span>
+<span class="dl-del">-- Error messages and debugging sessions</span>
+<span class="dl-del">-- Questions, explanations, information exchange</span>
+<span class="dl-del">-- Temporary experiments and tests</span>
+<span class="dl-del">-- Work already completed and closed</span>
+<span class="dl-del">-- Instant fixes (like typo fixes)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Task Creation Flow</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-1. Detect task patterns during conversation</span>
+<span class="dl-del">-2. Ask the user at an appropriate moment: &quot;I identified these tasks from our conversation, should I add them to tasks.json?&quot;</span>
+<span class="dl-del">-3. If the user approves, add to tasks.json</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Task Structure</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-```json</span>
+<span class="dl-del">-{</span>
+<span class="dl-del">-  &quot;id&quot;: &quot;unique-id&quot;,</span>
+<span class="dl-del">-  &quot;title&quot;: &quot;Short and clear title&quot;,</span>
+<span class="dl-del">-  &quot;description&quot;: &quot;Detailed explanation&quot;,</span>
+<span class="dl-del">-  &quot;status&quot;: &quot;pending | in_progress | completed&quot;,</span>
+<span class="dl-del">-  &quot;priority&quot;: &quot;high | medium | low&quot;,</span>
+<span class="dl-del">-  &quot;context&quot;: &quot;Where/how this task originated&quot;,</span>
+<span class="dl-del">-  &quot;createdAt&quot;: &quot;ISO date&quot;,</span>
+<span class="dl-del">-  &quot;updatedAt&quot;: &quot;ISO date&quot;,</span>
+<span class="dl-del">-  &quot;completedAt&quot;: &quot;ISO date | null&quot;</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Task Status Updates</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-- When starting work on a task: `status: &quot;in_progress&quot;`</span>
+<span class="dl-del">-- When task is completed: `status: &quot;completed&quot;`, update `completedAt`</span>
+<span class="dl-del">-- After commit: Check and update the status of related tasks</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-&lt;!-- frame:managed:spec-section v=1 --&gt;</span>
+<span class="dl-del">-## Spec-Driven Development (.frame/specs/)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Frame supports a structured `spec → plan → tasks → implement` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps `tasks.json` in sync.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### File layout</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Each spec lives in its own folder:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-.frame/specs/&lt;slug&gt;/</span>
+<span class="dl-del">-  spec.md       — what we&#39;re building</span>
+<span class="dl-del">-  plan.md       — how (architecture, files, footprint, sequencing)</span>
+<span class="dl-del">-  tasks.md      — flat bullet list, &quot;- T01 · description&quot;</span>
+<span class="dl-del">-  status.json   — phase + metadata</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-`&lt;slug&gt;` is kebab-case, derived from the spec title.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Lifecycle phases</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-`draft` → `specified` → `planned` → `tasks_generated` → `implementing` → `done`</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Frame auto-advances phase from filesystem state (file presence). The command templates below tell you exactly which `status.json` updates to make; Frame&#39;s watcher reconciles if anything is missed.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Running spec commands — the self-serve protocol</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-The four spec commands are `spec.new`, `spec.plan`, `spec.tasks` and `spec.implement`. Whether the user types them as slash commands or asks conversationally (&quot;plan the auth spec&quot;, &quot;implement the tasks&quot;), the flow is **never improvised from memory** — each command&#39;s current flow lives in a template file that Frame keeps staged in the project. Run one like this:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**1. Resolve the target spec.** An explicitly named spec always wins. Otherwise list the specs (`.frame/specs/*/status.json`) whose phase the command acts on — `spec.plan` → `specified`, `spec.tasks` → `planned`, `spec.implement` → `tasks_generated` or `implementing`. Exactly one candidate → take it silently; zero or several → present the candidates and ask. `spec.new` creates a new spec: derive the kebab-case slug from the title.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**2. Resolve the template.** Take the first that exists:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-1. `.frame/templates/commands/&lt;tool&gt;/&lt;command&gt;.md` — project override</span>
+<span class="dl-del">-2. `.frame/runtime/commands/&lt;tool&gt;/&lt;command&gt;.md` — staged by Frame on project open</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-`&lt;tool&gt;` is the directory matching your CLI (Claude Code → `claude-code`). If neither file exists, say so and ask the user to open this project in Frame once so it stages the current templates — then stop. **Do not reconstruct the flow from this file, from memory, or from an older prompt.**</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**3. Interpolate the placeholders.** Replace each `{placeholder}` token in the template:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-| Placeholder | Value |</span>
+<span class="dl-del">-| --- | --- |</span>
+<span class="dl-del">-| `{project_path}` | absolute path of the project root |</span>
+<span class="dl-del">-| `{slug}` | the spec&#39;s slug |</span>
+<span class="dl-del">-| `{title}` | the spec&#39;s title (from `status.json`; for `spec.new`, the new title) |</span>
+<span class="dl-del">-| `{description}` | the user&#39;s description (`spec.new` only; empty otherwise) |</span>
+<span class="dl-del">-| `{report_template_path}` | `.frame/runtime/commands/&lt;tool&gt;/plan-report-template.html` |</span>
+<span class="dl-del">-| `{report_generator_path}` | `.frame/runtime/commands/&lt;tool&gt;/build-implement-report.mjs` |</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**4. Follow the interpolated template exactly**, including every `status.json` update it prescribes. The template is the flow; this section only tells you how to find it.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**5. Autonomous implement ceiling.** `spec.implement`&#39;s autonomous mode needs permission flags that only a fresh, flagged launch can carry — a running session cannot acquire them. If the user picks autonomous conversationally, do what the template says: record the choice in the spec&#39;s `status.json` and hand off — the user clicks Implement on the spec&#39;s page in Frame and picks Autonomous, or runs `node .frame/bin/implement-launch.js &lt;slug&gt;` in a fresh terminal. Never run a degraded imitation silently.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### tasks.json linkage</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-After `spec.tasks`, **do not** also write entries to `tasks.json` — Frame&#39;s watcher imports them automatically with `source: &quot;spec:&lt;slug&gt;:T&lt;n&gt;&quot;` markers. Spec-generated tasks carry that `source` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from `tasks.md`.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When to suggest a spec (steer the conversation)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Spec-driven is Frame&#39;s core way of working, so when a user describes meaningful</span>
+<span class="dl-del">-new work **mid-conversation**, gently steer them toward a spec instead of</span>
+<span class="dl-del">-silently diving into code. Suggest a spec only for **significant work** — don&#39;t</span>
+<span class="dl-del">-make this a reflex on every message.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Suggest a spec for:**</span>
+<span class="dl-del">-- A new **feature** or capability (&quot;users should be able to …&quot;, &quot;add a … system&quot;)</span>
+<span class="dl-del">-- A change that will touch **multiple files / modules** or affect architecture</span>
+<span class="dl-del">-- Anything that clearly benefits from a **plan and ordered tasks** before coding</span>
+<span class="dl-del">-- Work the user describes vaguely/largely that would benefit from being scoped first</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Do NOT suggest a spec for:**</span>
+<span class="dl-del">-- Typos, one-line fixes, small tweaks, renames → just do it</span>
+<span class="dl-del">-- Small, discrete tracked work → that&#39;s a task (`tasks.json`)</span>
+<span class="dl-del">-- Questions, debugging, explanations, experiments</span>
+<span class="dl-del">-- Anything the user explicitly says to &quot;just do&quot; / &quot;do directly&quot;</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Rough ladder: *trivial → just do it · small but worth tracking → task · sizable</span>
+<span class="dl-del">-feature or multi-file change → spec.*</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Ask once, in plain language, before coding. If they agree, start the spec flow</span>
+<span class="dl-del">-(`spec.new` → `spec.plan` → `spec.tasks`). If they decline or say &quot;just do</span>
+<span class="dl-del">-it&quot;, proceed directly and **don&#39;t ask again for that same piece of work** in the</span>
+<span class="dl-del">-session. Never force it — the spec is an offer, not a gate; the user&#39;s stated</span>
+<span class="dl-del">-preference always wins.</span>
+<span class="dl-del">-&lt;!-- /frame:managed:spec-section --&gt;</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## PROJECT_NOTES.md Rules</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When to Update?</span>
+<span class="dl-del">-- When an important architectural decision is made</span>
+<span class="dl-del">-- When a technology choice is made</span>
+<span class="dl-del">-- When an important problem is solved and the solution method is noteworthy</span>
+<span class="dl-del">-- When an approach is determined together with the user</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Format</span>
+<span class="dl-del">-Free format. Date + title is sufficient:</span>
+<span class="dl-del">-```markdown</span>
+<span class="dl-del">-### [2026-01-26] Topic title</span>
+<span class="dl-del">-Conversation/decision as is, with its context...</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Update Flow</span>
+<span class="dl-del">-- Update immediately after a decision is made</span>
+<span class="dl-del">-- You can add without asking the user (for important decisions)</span>
+<span class="dl-del">-- You can accumulate small decisions and add them in bulk</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## 📝 Context Preservation (Automatic Note Taking)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Frame&#39;s core purpose is to prevent context loss. Therefore, capture important moments and ask the user.</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When to Ask?</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Ask the user when one of the following situations occurs: **&quot;Should I add this conversation to PROJECT_NOTES.md?&quot;**</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-- When a task is successfully completed</span>
+<span class="dl-del">-- When an important architectural/technical decision is made</span>
+<span class="dl-del">-- When a bug is fixed and the solution method is noteworthy</span>
+<span class="dl-del">-- When &quot;let&#39;s do this later&quot; is said (in this case, also add to tasks.json)</span>
+<span class="dl-del">-- When a new pattern or best practice is discovered</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Completion Detection</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Pay attention to these signals:</span>
+<span class="dl-del">-- User approval: &quot;okay&quot;, &quot;done&quot;, &quot;it worked&quot;, &quot;nice&quot;, &quot;fixed&quot;, &quot;yes&quot;</span>
+<span class="dl-del">-- Moving from one topic to another</span>
+<span class="dl-del">-- User continuing after build/run succeeds</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### How to Add?</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-1. **DON&#39;T write a summary** - Add the conversation as is, with its context</span>
+<span class="dl-del">-2. **Add date** - In `### [YYYY-MM-DD] Title` format</span>
+<span class="dl-del">-3. **Add to Session Notes section** - At the end of PROJECT_NOTES.md</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When NOT to Ask</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-- For every small change (it becomes spam)</span>
+<span class="dl-del">-- Typo fixes, simple corrections</span>
+<span class="dl-del">-- If the user already said &quot;no&quot; or &quot;not needed&quot;, don&#39;t ask again for the same topic in that session</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### If User Says &quot;No&quot;</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-No problem, continue. The user can also say what they consider important themselves: &quot;add this to notes&quot;</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## STRUCTURE.json Rules</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**This file is the map of the codebase.**</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### When to Update?</span>
+<span class="dl-del">-- When a new file/folder is created</span>
+<span class="dl-del">-- When a file/folder is deleted or moved</span>
+<span class="dl-del">-- When module dependencies change</span>
+<span class="dl-del">-- When an important architectural pattern is discovered (architectureNotes)</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-### Format</span>
+<span class="dl-del">-```json</span>
+<span class="dl-del">-{</span>
+<span class="dl-del">-  &quot;modules&quot;: {</span>
+<span class="dl-del">-    &quot;moduleName&quot;: {</span>
+<span class="dl-del">-      &quot;path&quot;: &quot;src/module&quot;,</span>
+<span class="dl-del">-      &quot;purpose&quot;: &quot;What this module does&quot;,</span>
+<span class="dl-del">-      &quot;depends&quot;: [&quot;otherModule&quot;]</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-  },</span>
+<span class="dl-del">-  &quot;architectureNotes&quot;: {}</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-```</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## General Rules</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-1. **Language:** Write documentation in English (except code examples)</span>
+<span class="dl-del">-2. **Date Format:** ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)</span>
+<span class="dl-del">-3. **After Commit:** Check tasks.json and STRUCTURE.json</span>
+<span class="dl-del">-4. **Session Start:** Review pending tasks in tasks.json</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-## TaskFlow — Project Specifics</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-Beyond the standard Frame rules above, here&#39;s what&#39;s specific to this codebase:</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Stack:**</span>
+<span class="dl-del">-- Backend: Node.js 20, Express 4</span>
+<span class="dl-del">-- Database: PostgreSQL 16 (migrated from SQLite — see `.frame/specs/migrate-to-postgres/`)</span>
+<span class="dl-del">-- Auth: Google OAuth via Passport.js</span>
+<span class="dl-del">-- Frontend: React 18 + Vite</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Conventions:**</span>
+<span class="dl-del">-- Database access lives in `src/db/`; API handlers never touch SQL directly</span>
+<span class="dl-del">-- React components stay under 150 lines; split into sub-folders when they grow</span>
+<span class="dl-del">-- Commit messages: imperative mood, one-line summary + optional body</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Specs in flight:**</span>
+<span class="dl-del">-- `.frame/specs/add-google-oauth/` — shipped (read `outcome.md`)</span>
+<span class="dl-del">-- `.frame/specs/migrate-to-postgres/` — implementing (4 of 8 tasks done)</span>
+<span class="dl-del">-- `.frame/specs/email-notifications/` — planned, awaiting `/spec.tasks`</span>
+<span class="dl-del">-</span>
+<span class="dl-file">----</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-**Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A `CLAUDE.md` symlink is provided for Claude Code compatibility, and a `GEMINI.md` for Gemini CLI.</span>
+<span class="dl-meta">diff --git a/test/frameProjectInit.test.js b/test/frameProjectInit.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..5310011</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/frameProjectInit.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,229 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Init footprint tests (non-invasive-overlay T04+).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The promise this spec makes is measurable: after an init, the only things</span>
+<span class="dl-add">+ * that changed in a project are `.frame/`, `.claude/rules/frame.md`, the</span>
+<span class="dl-add">+ * Claude settings file and `.git/` internals. Every file the user owns —</span>
+<span class="dl-add">+ * CLAUDE.md, .claude/CLAUDE.md, AGENTS.md, .cursorrules, .husky/pre-commit —</span>
+<span class="dl-add">+ * is byte-identical afterwards, because Frame no longer reads, consumes or</span>
+<span class="dl-add">+ * replaces anything at the project root.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Electron and the telemetry package are stubbed (the specTasksSync pattern):</span>
+<span class="dl-add">+ * CI runs this suite with no node_modules.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test, beforeEach, afterEach } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const os = require(&#39;os&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const crypto = require(&#39;crypto&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const Module = require(&#39;node:module&#39;);</span>
+<span class="dl-add">+const EXTERNAL_STUBS = {</span>
+<span class="dl-add">+  &#39;@aptabase/electron/main&#39;: { initialize() {}, trackEvent() {} },</span>
+<span class="dl-add">+  electron: {</span>
+<span class="dl-add">+    app: { getPath: () =&gt; os.tmpdir(), getVersion: () =&gt; &#39;0.0.0-test&#39; },</span>
+<span class="dl-add">+    ipcMain: { handle() {}, on() {} },</span>
+<span class="dl-add">+    dialog: { showMessageBox: async () =&gt; ({ response: 1 }) }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+const loadOriginal = Module._load;</span>
+<span class="dl-add">+Module._load = function (request, ...rest) {</span>
+<span class="dl-add">+  if (Object.prototype.hasOwnProperty.call(EXTERNAL_STUBS, request)) {</span>
+<span class="dl-add">+    return EXTERNAL_STUBS[request];</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return loadOriginal.call(this, request, ...rest);</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const frameProject = require(&#39;../src/main/frameProject&#39;);</span>
+<span class="dl-add">+const frameStore = require(&#39;../src/main/frameStore&#39;);</span>
+<span class="dl-add">+const aiToolManager = require(&#39;../src/main/aiToolManager&#39;);</span>
+<span class="dl-add">+const { FRAME_DIR, FRAME_FILES, CLAUDE_RULE_PATH } = require(&#39;../src/shared/frameConstants&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// The hook install is gated on Claude Code being the active tool; the test</span>
+<span class="dl-add">+// asserts the hook entries, so pin it rather than depending on user settings.</span>
+<span class="dl-add">+aiToolManager.getActiveTool = () =&gt; ({ id: &#39;claude&#39;, name: &#39;Claude Code&#39; });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let projectDir;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Files a user might already have. None of them are Frame&#39;s to touch. */</span>
+<span class="dl-add">+const USER_FILES = {</span>
+<span class="dl-add">+  &#39;CLAUDE.md&#39;: &#39;# House rules\n\nIndent with tabs.\n&#39;,</span>
+<span class="dl-add">+  &#39;.claude/CLAUDE.md&#39;: &#39;# Subfolder rules\n\nNever force-push.\n&#39;,</span>
+<span class="dl-add">+  &#39;AGENTS.md&#39;: &#39;# Our own agents file\n\nRun the linter first.\n&#39;,</span>
+<span class="dl-add">+  &#39;.cursorrules&#39;: &#39;always write tests\n&#39;,</span>
+<span class="dl-add">+  &#39;.husky/pre-commit&#39;: &#39;#!/bin/sh\nnpm run lint\n&#39;,</span>
+<span class="dl-add">+  &#39;src/app.js&#39;: &#39;/** App — entry point. */\nmodule.exports = {};\n&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function writeUserFiles(dir) {</span>
+<span class="dl-add">+  for (const [rel, content] of Object.entries(USER_FILES)) {</span>
+<span class="dl-add">+    const target = path.join(dir, ...rel.split(&#39;/&#39;));</span>
+<span class="dl-add">+    fs.mkdirSync(path.dirname(target), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(target, content, &#39;utf8&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function hashFile(file) {</span>
+<span class="dl-add">+  return crypto.createHash(&#39;sha256&#39;).update(fs.readFileSync(file)).digest(&#39;hex&#39;);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Every file in the tree → sha256, excluding paths Frame is allowed to own. */</span>
+<span class="dl-add">+function snapshotTree(dir, { excludeFrameOwned = true } = {}) {</span>
+<span class="dl-add">+  const snapshot = {};</span>
+<span class="dl-add">+  const walk = (current) =&gt; {</span>
+<span class="dl-add">+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {</span>
+<span class="dl-add">+      const full = path.join(current, entry.name);</span>
+<span class="dl-add">+      const rel = path.relative(dir, full).split(path.sep).join(&#39;/&#39;);</span>
+<span class="dl-add">+      if (rel === &#39;.git&#39; || rel.startsWith(&#39;.git/&#39;)) continue;</span>
+<span class="dl-add">+      if (excludeFrameOwned) {</span>
+<span class="dl-add">+        if (rel === FRAME_DIR || rel.startsWith(`${FRAME_DIR}/`)) continue;</span>
+<span class="dl-add">+        if (rel === CLAUDE_RULE_PATH || rel === &#39;.claude/rules&#39;) continue;</span>
+<span class="dl-add">+        if (rel === &#39;.claude/settings.json&#39; || rel === &#39;.claude/settings.local.json&#39;) continue;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+      if (entry.isDirectory()) walk(full);</span>
+<span class="dl-add">+      else snapshot[rel] = hashFile(full);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+  walk(dir);</span>
+<span class="dl-add">+  return snapshot;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+beforeEach(() =&gt; {</span>
+<span class="dl-add">+  projectDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-init-&#39;));</span>
+<span class="dl-add">+  writeUserFiles(projectDir);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+afterEach(() =&gt; {</span>
+<span class="dl-add">+  fs.rmSync(projectDir, { recursive: true, force: true });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;init writes only .frame/, the pointer and the Claude settings file&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const before = snapshotTree(projectDir);</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+  const after = snapshotTree(projectDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.deepEqual(after, before, &#39;no file outside Frame\&#39;s own paths changed or appeared&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;every user file is byte-identical after init&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const before = {};</span>
+<span class="dl-add">+  for (const rel of Object.keys(USER_FILES)) {</span>
+<span class="dl-add">+    before[rel] = hashFile(path.join(projectDir, ...rel.split(&#39;/&#39;)));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const rel of Object.keys(USER_FILES)) {</span>
+<span class="dl-add">+    const file = path.join(projectDir, ...rel.split(&#39;/&#39;));</span>
+<span class="dl-add">+    assert.ok(fs.existsSync(file), `${rel} still exists`);</span>
+<span class="dl-add">+    assert.equal(hashFile(file), before[rel], `${rel} is byte-identical`);</span>
+<span class="dl-add">+    assert.ok(!fs.lstatSync(file).isSymbolicLink(), `${rel} was not replaced by a symlink`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the meta files land under .frame/, never at the project root&#39;, async () =&gt; {</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const name of [FRAME_FILES.AGENTS, FRAME_FILES.STRUCTURE, FRAME_FILES.NOTES, FRAME_FILES.TASKS, FRAME_FILES.QUICKSTART]) {</span>
+<span class="dl-add">+    assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, name)), `.frame/${name} written`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  // AGENTS.md at the root is the user&#39;s file from the fixture — untouched,</span>
+<span class="dl-add">+  // and definitely not Frame&#39;s template.</span>
+<span class="dl-add">+  assert.equal(fs.readFileSync(path.join(projectDir, &#39;AGENTS.md&#39;), &#39;utf8&#39;), USER_FILES[&#39;AGENTS.md&#39;]);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_FILES.STRUCTURE)), &#39;no root STRUCTURE.json&#39;);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_FILES.TASKS)), &#39;no root tasks.json&#39;);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;GEMINI.md&#39;)), &#39;no GEMINI.md, ever again&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the pointer file is what reaches Claude Code&#39;, async () =&gt; {</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const rule = fs.readFileSync(path.join(projectDir, ...CLAUDE_RULE_PATH.split(&#39;/&#39;)), &#39;utf8&#39;);</span>
+<span class="dl-add">+  assert.match(rule, /Written by Frame/);</span>
+<span class="dl-add">+  assert.match(rule, /@\.\.\/\.\.\/\.frame\/AGENTS\.md/);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;hook entries are guarded and land in settings.json under repo sharing&#39;, async () =&gt; {</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const settings = JSON.parse(fs.readFileSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+  const commands = Object.values(settings.hooks).flat().flatMap((e) =&gt; e.hooks.map((h) =&gt; h.command));</span>
+<span class="dl-add">+  assert.equal(commands.length, 2);</span>
+<span class="dl-add">+  for (const command of commands) {</span>
+<span class="dl-add">+    assert.match(command, /^sh -c &#39;\[ -f \.frame\/bin\/spec-hint\.js \] &amp;&amp; exec node \.frame\/bin\/spec-hint\.js (pre-edit|prompt)&#39;$/);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.local.json&#39;)));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;local sharing puts the hook entries in settings.local.json instead&#39;, async () =&gt; {</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;, { gitSharing: &#39;local&#39; });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.local.json&#39;)));</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;)));</span>
+<span class="dl-add">+  assert.equal(frameStore.readConfig(projectDir).settings.gitSharing, &#39;local&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;config carries a projectId and no files record&#39;, async () =&gt; {</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const config = frameStore.readConfig(projectDir);</span>
+<span class="dl-add">+  assert.match(config.projectId, /^[0-9a-f-]{36}$/);</span>
+<span class="dl-add">+  assert.equal(config.files, undefined, &#39;the files record is the legacy fingerprint — never written again&#39;);</span>
+<span class="dl-add">+  assert.equal(config.settings.gitSharing, &#39;repo&#39;);</span>
+<span class="dl-add">+  assert.equal(frameStore.isLegacyLayout(projectDir), false);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;re-init is idempotent: same identity, no duplicate hook entries&#39;, async () =&gt; {</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+  const firstId = frameStore.getProjectId(projectDir);</span>
+<span class="dl-add">+  const agents = fs.readFileSync(path.join(projectDir, FRAME_DIR, FRAME_FILES.AGENTS), &#39;utf8&#39;);</span>
+<span class="dl-add">+  const userSnapshot = snapshotTree(projectDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(frameStore.getProjectId(projectDir), firstId, &#39;identity survives re-init&#39;);</span>
+<span class="dl-add">+  assert.equal(fs.readFileSync(path.join(projectDir, FRAME_DIR, FRAME_FILES.AGENTS), &#39;utf8&#39;), agents);</span>
+<span class="dl-add">+  assert.deepEqual(snapshotTree(projectDir), userSnapshot, &#39;still nothing outside Frame\&#39;s paths&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const settings = JSON.parse(fs.readFileSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+  assert.equal(Object.values(settings.hooks).flat().length, 2, &#39;hook entries not duplicated&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a project that was never initialized gets nothing written to it&#39;, () =&gt; {</span>
+<span class="dl-add">+  // The launch path only reads: a non-Frame project must survive being opened</span>
+<span class="dl-add">+  // and having an agent started in it without gaining a single Frame byte.</span>
+<span class="dl-add">+  const before = snapshotTree(projectDir, { excludeFrameOwned: false });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(frameProject.isFrameProject(projectDir), false);</span>
+<span class="dl-add">+  assert.equal(frameProject.getFrameConfig(projectDir), null);</span>
+<span class="dl-add">+  assert.equal(frameStore.getTasks(projectDir).data, null);</span>
+<span class="dl-add">+  assert.equal(frameStore.readAgents(projectDir), null);</span>
+<span class="dl-add">+  assert.equal(frameStore.ensureProjectId(projectDir), null);</span>
+<span class="dl-add">+  frameProject.upgradeSpecDocs(projectDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.deepEqual(snapshotTree(projectDir, { excludeFrameOwned: false }), before);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_DIR)));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the sample project ships the new layout with no legacy fingerprint&#39;, () =&gt; {</span>
+<span class="dl-add">+  const sampleDir = path.join(__dirname, &#39;..&#39;, &#39;src&#39;, &#39;templates&#39;, &#39;sample-project&#39;);</span>
+<span class="dl-add">+  const config = JSON.parse(fs.readFileSync(path.join(sampleDir, FRAME_DIR, &#39;config.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(config.files, undefined, &#39;no files record — the sample never triggers the migration modal&#39;);</span>
+<span class="dl-add">+  assert.match(config.projectId, /^[0-9a-f-]{36}$/);</span>
+<span class="dl-add">+  assert.equal(config.settings.gitSharing, &#39;repo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // The sample ships four of the five (it never carried a QUICKSTART), and</span>
+<span class="dl-add">+  // none of them may sit at its root.</span>
+<span class="dl-add">+  for (const name of [FRAME_FILES.AGENTS, FRAME_FILES.STRUCTURE, FRAME_FILES.NOTES, FRAME_FILES.TASKS]) {</span>
+<span class="dl-add">+    assert.ok(fs.existsSync(path.join(sampleDir, FRAME_DIR, name)), `.frame/${name} present`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  for (const name of Object.values(FRAME_FILES)) {</span>
+<span class="dl-add">+    assert.ok(!fs.existsSync(path.join(sampleDir, name)), `${name} not at the sample&#39;s root`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(sampleDir, ...CLAUDE_RULE_PATH.split(&#39;/&#39;))), &#39;pointer present&#39;);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(sampleDir, &#39;CLAUDE.md&#39;)), &#39;no CLAUDE.md&#39;);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(sampleDir, &#39;GEMINI.md&#39;)), &#39;no GEMINI.md&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-meta">diff --git a/test/nativeContext.test.js b/test/nativeContext.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..d5ead94</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/nativeContext.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,69 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Native delivery test (non-invasive-overlay T04).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The spec&#39;s central bet: Frame reaches a Claude Code session with no launch</span>
+<span class="dl-add">+ * flags, no wrapper and no root file — the session loads the repo&#39;s own</span>
+<span class="dl-add">+ * CLAUDE.md natively AND `.frame/AGENTS.md` through `.claude/rules/frame.md`.</span>
+<span class="dl-add">+ * That is only provable against the real CLI, so this test builds a scratch</span>
+<span class="dl-add">+ * repo, runs `claude -p` in it, and asserts both facts come back.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Skipped (not failed) when `claude` is not on PATH or CI is set: the suite</span>
+<span class="dl-add">+ * must stay runnable offline and in a container without the CLI installed.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const os = require(&#39;os&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { spawnSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const CLAUDE_ON_PATH = spawnSync(&#39;which&#39;, [&#39;claude&#39;], { encoding: &#39;utf8&#39; }).status === 0;</span>
+<span class="dl-add">+const SKIP = process.env.CI</span>
+<span class="dl-add">+  ? &#39;CI is set — this test drives the real Claude Code CLI&#39;</span>
+<span class="dl-add">+  : (!CLAUDE_ON_PATH ? &#39;claude is not on PATH&#39; : false);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// Two facts that cannot come from anywhere but the two files.</span>
+<span class="dl-add">+const USER_FACT = &#39;zorblat&#39;;</span>
+<span class="dl-add">+const FRAME_MARKER = &#39;quixotry&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;claude -p sees the repo\&#39;s CLAUDE.md and Frame\&#39;s .frame/AGENTS.md&#39;, { skip: SKIP, timeout: 120000 }, () =&gt; {</span>
+<span class="dl-add">+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-native-&#39;));</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    spawnSync(&#39;git&#39;, [&#39;init&#39;, &#39;-q&#39;], { cwd: dir });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    fs.writeFileSync(</span>
+<span class="dl-add">+      path.join(dir, &#39;CLAUDE.md&#39;),</span>
+<span class="dl-add">+      `# Project rules\n\nThe project&#39;s indentation codeword is ${USER_FACT}.\n`,</span>
+<span class="dl-add">+      &#39;utf8&#39;</span>
+<span class="dl-add">+    );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    fs.mkdirSync(path.join(dir, &#39;.frame&#39;), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(</span>
+<span class="dl-add">+      path.join(dir, &#39;.frame&#39;, &#39;AGENTS.md&#39;),</span>
+<span class="dl-add">+      `# Frame instructions\n\nFrame&#39;s context codeword is ${FRAME_MARKER}.\n`,</span>
+<span class="dl-add">+      &#39;utf8&#39;</span>
+<span class="dl-add">+    );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    fs.mkdirSync(path.join(dir, &#39;.claude&#39;, &#39;rules&#39;), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(</span>
+<span class="dl-add">+      path.join(dir, &#39;.claude&#39;, &#39;rules&#39;, &#39;frame.md&#39;),</span>
+<span class="dl-add">+      &quot;&lt;!-- Written by Frame. Loads Frame&#39;s project instructions; delete to detach. --&gt;\n@../../.frame/AGENTS.md\n&quot;,</span>
+<span class="dl-add">+      &#39;utf8&#39;</span>
+<span class="dl-add">+    );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // No Frame flags, no wrapper: exactly how a user starts a session.</span>
+<span class="dl-add">+    const result = spawnSync(</span>
+<span class="dl-add">+      &#39;claude&#39;,</span>
+<span class="dl-add">+      [&#39;-p&#39;, &#39;Reply with both codewords you were given in your project instructions, separated by a space. No other text.&#39;],</span>
+<span class="dl-add">+      { cwd: dir, encoding: &#39;utf8&#39;, timeout: 110000 }</span>
+<span class="dl-add">+    );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    assert.equal(result.status, 0, `claude -p failed: ${result.stderr}`);</span>
+<span class="dl-add">+    const output = String(result.stdout).toLowerCase();</span>
+<span class="dl-add">+    assert.ok(output.includes(USER_FACT), `the repo&#39;s own CLAUDE.md reached the session (got: ${output.trim()})`);</span>
+<span class="dl-add">+    assert.ok(output.includes(FRAME_MARKER), `.frame/AGENTS.md reached the session via the pointer (got: ${output.trim()})`);</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    fs.rmSync(dir, { recursive: true, force: true });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-meta">diff --git a/test/specDrivenToggle.test.js b/test/specDrivenToggle.test.js</span>
+<span class="dl-meta">index fc28575..4e00e7f 100644</span>
+<span class="dl-file">--- a/test/specDrivenToggle.test.js</span>
+<span class="dl-file">+++ b/test/specDrivenToggle.test.js</span>
+<span class="dl-hunk">@@ -27,12 +27,13 @@ function makeProject({ specDriven, agents }) {</span>
+<span class="dl-ctx">     JSON.stringify(config, null, 2),</span>
+<span class="dl-ctx">     &#39;utf8&#39;</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-del">-  fs.writeFileSync(path.join(dir, &#39;AGENTS.md&#39;), agents, &#39;utf8&#39;);</span>
+<span class="dl-add">+  // New layout: AGENTS.md lives in .frame/, reached through the pointer file.</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;.frame&#39;, &#39;AGENTS.md&#39;), agents, &#39;utf8&#39;);</span>
+<span class="dl-ctx">   return dir;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> function readAgents(dir) {</span>
+<span class="dl-del">-  return fs.readFileSync(path.join(dir, &#39;AGENTS.md&#39;), &#39;utf8&#39;);</span>
+<span class="dl-add">+  return fs.readFileSync(path.join(dir, &#39;.frame&#39;, &#39;AGENTS.md&#39;), &#39;utf8&#39;);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> test(&#39;new projects get Spec-Driven Development on by default&#39;, () =&gt; {</span></pre>
     </details>
   </div>
 </section>

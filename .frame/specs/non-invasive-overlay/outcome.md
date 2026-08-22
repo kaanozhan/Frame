@@ -68,3 +68,25 @@ while the other five cover the overlay case.
 _Captured: 2026-08-22 · 8 file change(s)_
 
 ---
+
+## T04 — Init writes the new layout, delivered natively
+
+Rewrote `runProjectInit` to write only `.frame/*` and `.claude/rules/frame.md`
+(new `ensureClaudePointer`), stamp identity via `frameStore.ensureProjectId`,
+and install the guarded `sh -c '[ -f .frame/bin/spec-hint.js ] && …'` hooks
+through `installSpecHintHook(projectPath, {file})` chosen by sharing mode;
+`createSymlinkSafe`, the consume block and every `GEMINI.md` path are deleted,
+and `removeSpecHintHook` lands ready for T10. `frameTemplates` moved to `.frame/`
+paths throughout and gained `getClaudeRuleTemplate`, `getFrameGitignoreBlock`,
+`SPEC_HINT_HOOKS` + `LEGACY_SPEC_HINT_COMMANDS`, a `projectId` and
+`settings.gitSharing` in the config template and no `files` record. Departures
+from plan.md: re-init carries the existing `projectId`/`gitSharing` forward
+rather than regenerating them, and the sample-project conversion (nominally T05)
+landed here because the init suite asserts it. `test/nativeContext.test.js`
+skips without the CLI but ran for real here — `claude -p` returned both the
+repo's own CLAUDE.md codeword and the `.frame/AGENTS.md` one, which is success
+criterion 3.
+
+_Captured: 2026-08-23 · 12 file change(s)_
+
+---

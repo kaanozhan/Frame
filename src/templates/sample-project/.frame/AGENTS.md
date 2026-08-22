@@ -259,4 +259,4 @@ Beyond the standard Frame rules above, here's what's specific to this codebase:
 
 ---
 
-**Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A `CLAUDE.md` symlink is provided for Claude Code compatibility, and a `GEMINI.md` for Gemini CLI.
+**Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`, which imports this file; delete that pointer to detach.

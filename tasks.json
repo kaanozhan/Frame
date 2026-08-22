@@ -4811,13 +4811,13 @@
       "title": "Rewrite `src/shared/frameTemplates.js` (AGENTS and REFERENCE templates on `.frame/` paths with the precedence sentence and no symlink note, config template with `projectId` and `settings.gitSharing` and no `files` record, `getClaudeRuleTemplate()`, `getFrameGitignoreBlock()`, `SPEC_HINT_HOOKS` moved here with the guarded `sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js <mode>'` command, Codex wrapper on `.frame/AGENTS.md`) and `src/main/frameProject.js`'s `runProjectInit` — writes only `.frame/*`, `.claude/rules/frame.md`, hook entries via `installSpecHintHook(projectPath, {file})`, `ensureProjectId`; delete `createSymlinkSafe`, the consume block and all `GEMINI.md` handling; ships with `test/frameProjectInit.test.js` (tree walk, byte-identical user `CLAUDE.md`/`.claude/CLAUDE.md`/`AGENTS.md`/`.cursorrules`/`.husky/pre-commit`, re-init idempotent, non-initialized project writes nothing) and `test/nativeContext.test.js`, with `test/projectAgnostic.test.js` and `test/specDrivenToggle.test.js` adjusted.",
       "description": "",
       "source": "spec:non-invasive-overlay:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T09:00:00.000Z",
+      "completedAt": "2026-08-23T09:00:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T05",

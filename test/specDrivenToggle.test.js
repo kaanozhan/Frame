@@ -27,12 +27,13 @@ function makeProject({ specDriven, agents }) {
     JSON.stringify(config, null, 2),
     'utf8'
   );
-  fs.writeFileSync(path.join(dir, 'AGENTS.md'), agents, 'utf8');
+  // New layout: AGENTS.md lives in .frame/, reached through the pointer file.
+  fs.writeFileSync(path.join(dir, '.frame', 'AGENTS.md'), agents, 'utf8');
   return dir;
 }
 
 function readAgents(dir) {
-  return fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8');
+  return fs.readFileSync(path.join(dir, '.frame', 'AGENTS.md'), 'utf8');
 }
 
 test('new projects get Spec-Driven Development on by default', () => {

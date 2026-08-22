@@ -727,6 +727,10 @@
         "isFrameProject",
         "getFrameConfig",
         "initializeFrameProject",
+        "runProjectInit",
+        "ensureClaudePointer",
+        "installSpecHintHook",
+        "removeSpecHintHook",
         "isSpecDrivenEnabled",
         "enableSpecDriven",
         "disableSpecDriven",
@@ -754,139 +758,150 @@
       ],
       "functions": {
         "init": {
-          "line": 31,
+          "line": 26,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 38,
+          "line": 33,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 46,
+          "line": 41,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 59,
+          "line": 54,
           "params": [
             "filePath",
             "content"
           ],
           "purpose": "Create file if it doesn't exist"
         },
-        "createSymlinkSafe": {
-          "line": 76,
-          "params": [
-            "target",
-            "linkPath"
-          ],
-          "purpose": "Create a symlink safely with Windows fallback"
-        },
         "checkExistingFrameFiles": {
-          "line": 117,
+          "line": 68,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 141,
+          "line": 92,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 193,
+          "line": 144,
           "params": [
             "projectPath",
-            "projectName"
+            "projectName",
+            "options = {}"
           ]
         },
         "doInitializeFrameProject": {
-          "line": 201,
+          "line": 152,
           "params": [
             "projectPath",
-            "projectName"
+            "projectName",
+            "options = {}"
           ]
         },
         "runProjectInit": {
-          "line": 213,
+          "line": 164,
           "params": [
             "projectPath",
-            "projectName"
+            "projectName",
+            "options = {}"
           ]
         },
-        "installSpecHintHook": {
-          "line": 439,
+        "ensureClaudePointer": {
+          "line": 320,
           "params": [
             "projectPath"
           ],
-          "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
+          "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start"
+        },
+        "installSpecHintHook": {
+          "line": 348,
+          "params": [
+            "projectPath",
+            "{ file = 'settings.json' } = {}"
+          ],
+          "purpose": "Register the spec-hint hooks in the project's Claude settings file."
+        },
+        "removeSpecHintHook": {
+          "line": 400,
+          "params": [
+            "projectPath",
+            "{ file = 'settings.json' } = {}"
+          ],
+          "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 496,
+          "line": 454,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 501,
+          "line": 459,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 528,
+          "line": 486,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 555,
+          "line": 513,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 559,
+          "line": 517,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 573,
+          "line": 531,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 583,
+          "line": 541,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 655,
+          "line": 613,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 696,
+          "line": 654,
           "params": [
             "ipcMain"
           ],
@@ -8587,6 +8602,12 @@
         "getTasksTemplate",
         "getQuickstartTemplate",
         "getFrameConfigTemplate",
+        "getClaudeRuleTemplate",
+        "getFrameGitignoreBlock",
+        "FRAME_GITIGNORE_MARKER_START",
+        "FRAME_GITIGNORE_MARKER_END",
+        "SPEC_HINT_HOOKS",
+        "LEGACY_SPEC_HINT_COMMANDS",
         "SPEC_DRIVEN_SECTION",
         "SPEC_DRIVEN_CORE_SECTION",
         "renderSpecSection",
@@ -8606,49 +8627,51 @@
         "FRAME_HOOK_MARKER_END"
       ],
       "depends": [
+        "crypto",
         "docsManagedBlock",
+        "frameConstants",
         "fs",
         "path"
       ],
       "functions": {
         "getDateString": {
-          "line": 12,
+          "line": 14,
           "purpose": "Get current date in YYYY-MM-DD format"
         },
         "getISOTimestamp": {
-          "line": 19,
+          "line": 21,
           "purpose": "Get current ISO timestamp"
         },
         "renderSpecSection": {
-          "line": 298,
+          "line": 300,
           "purpose": "The spec sections as actually emitted into docs: wrapped in managed-block"
         },
         "renderSpecCoreSection": {
-          "line": 302
+          "line": 304
         },
         "formatProjectFacts": {
-          "line": 323,
+          "line": 325,
           "params": [
             "project"
           ],
           "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
         },
         "getAgentsTemplate": {
-          "line": 352,
+          "line": 354,
           "params": [
             "projectName",
             "options"
           ]
         },
         "getReferenceTemplate": {
-          "line": 448,
+          "line": 452,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 623,
+          "line": 628,
           "params": [
             "projectName",
             "project"
@@ -8656,21 +8679,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 648,
+          "line": 653,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 668,
+          "line": 673,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 714,
+          "line": 719,
           "params": [
             "projectName",
             "project"
@@ -8678,18 +8701,25 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 795,
+          "line": 800,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
+        "getClaudeRuleTemplate": {
+          "line": 838,
+          "purpose": "`.claude/rules/frame.md` — the pointer Claude Code loads at session start."
+        },
+        "getFrameGitignoreBlock": {
+          "line": 853
+        },
         "getCodexWrapperTemplate": {
-          "line": 835,
+          "line": 904,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 872,
+          "line": 941,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -8697,27 +8727,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 918
+          "line": 987
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 943,
+          "line": 1012,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 966,
+          "line": 1035,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 978,
+          "line": 1047,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 998
+          "line": 1067
         },
         "getOrchBinScripts": {
-          "line": 1016,
+          "line": 1085,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

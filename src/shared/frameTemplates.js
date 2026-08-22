@@ -4,7 +4,9 @@
  * Each template includes instructions header for Claude Code
  */
 
+const crypto = require('crypto');
 const managedBlock = require('./docsManagedBlock');
+const { FRAME_FILE_CLASSES } = require('./frameConstants');
 
 /**
  * Get current date in YYYY-MM-DD format
@@ -378,9 +380,9 @@ implemented without approval.
 
 **Read these at the start of each session:**
 
-1. **STRUCTURE.json** — module map, which file is where
-2. **PROJECT_NOTES.md** — project vision, past decisions, session notes
-3. **tasks.json** — pending tasks
+1. **\`.frame/STRUCTURE.json\`** — module map, which file is where
+2. **\`.frame/PROJECT_NOTES.md\`** — project vision, past decisions, session notes
+3. **\`.frame/tasks.json\`** — pending tasks
 
 **Fast file lookup** — before manual grep/glob, run:
 
@@ -414,17 +416,17 @@ ${renderSpecCoreSection()}
 
 ## Writing Frame meta files — read the reference first
 
-| Before writing…  | Read in \`.frame/docs/REFERENCE.md\` |
-| ---------------- | ------------------------------------ |
-| tasks.json       | "Task Management" (schema + rules)   |
-| PROJECT_NOTES.md | "PROJECT_NOTES.md Rules"             |
-| STRUCTURE.json   | "STRUCTURE.json Rules"               |
-| QUICKSTART.md    | "QUICKSTART.md Rules"                |
+| Before writing…              | Read in \`.frame/docs/REFERENCE.md\` |
+| ---------------------------- | ------------------------------------ |
+| \`.frame/tasks.json\`          | "Task Management" (schema + rules)   |
+| \`.frame/PROJECT_NOTES.md\`    | "PROJECT_NOTES.md Rules"             |
+| \`.frame/STRUCTURE.json\`      | "STRUCTURE.json Rules"               |
+| \`.frame/QUICKSTART.md\`       | "QUICKSTART.md Rules"                |
 
 Quick reminders that always apply:
 - Task work: \`status: "in_progress"\` when starting, \`"completed"\` +
   \`completedAt\` when done; re-check statuses after commits.
-- Important decisions: append to PROJECT_NOTES.md as
+- Important decisions: append to \`.frame/PROJECT_NOTES.md\` as
   \`### [YYYY-MM-DD] Title\` with the conversation's context (not a summary).
 - Documentation in English; dates in ISO 8601.
 
@@ -435,7 +437,9 @@ Quick reminders that always apply:
 
 ---
 
-**Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.
+**Note:** This file lives at \`.frame/AGENTS.md\` and is named \`AGENTS.md\` to be
+AI-tool agnostic. Claude Code reaches it through \`.claude/rules/frame.md\`,
+which imports this file; delete that pointer to detach.
 `;
 }
 
@@ -450,8 +454,9 @@ function getReferenceTemplate(projectName) {
   return `# ${projectName} — Frame Reference
 
 Read the relevant section of this file **before writing a Frame meta file**
-(tasks.json, PROJECT_NOTES.md, STRUCTURE.json, QUICKSTART.md). The always-on
-orientation lives in \`AGENTS.md\`; this file is loaded on demand.
+(\`.frame/tasks.json\`, \`.frame/PROJECT_NOTES.md\`, \`.frame/STRUCTURE.json\`,
+\`.frame/QUICKSTART.md\`). The always-on orientation lives in
+\`.frame/AGENTS.md\`; this file is loaded on demand.
 
 ---
 
@@ -799,10 +804,17 @@ function getFrameConfigTemplate(projectName) {
     description: "",
     createdAt: getISOTimestamp(),
     initializedBy: "Frame",
+    // Stable identity for this project, stamped once (frameStore.ensureProjectId
+    // fills it in for projects created before this field existed).
+    projectId: crypto.randomUUID(),
     settings: {
       autoUpdateStructure: true,
       autoUpdateNotes: false,
-      taskRecognition: true
+      taskRecognition: true,
+      // How Frame's own files relate to git: "repo" tracks .frame/ and puts
+      // hooks in .claude/settings.json; "local" excludes them and uses
+      // .claude/settings.local.json. Chosen at init, changeable in Settings.
+      gitSharing: "repo"
     },
     features: {
       // Spec-Driven Development is ON for new projects: the spec commands
@@ -811,17 +823,74 @@ function getFrameConfigTemplate(projectName) {
       // it off in Settings → Workflow, which flips this flag and strips the
       // spec section from AGENTS.md.
       specDriven: true
-    },
-    files: {
-      agents: "AGENTS.md",
-      claudeSymlink: "CLAUDE.md",
-      structure: "STRUCTURE.json",
-      notes: "PROJECT_NOTES.md",
-      tasks: "tasks.json",
-      quickstart: "QUICKSTART.md"
     }
+    // No `files` record: every meta file lives under .frame/ now, and the
+    // record's only remaining job is marking a project as pre-overlay (it is
+    // the migration fingerprint frameStore.isLegacyLayout looks for).
   };
 }
+
+/**
+ * `.claude/rules/frame.md` — the pointer Claude Code loads at session start.
+ * Two lines: what it is, and an @-import of Frame's instructions. Nothing
+ * Frame has to say lives here, so a user who deletes it detaches cleanly.
+ */
+function getClaudeRuleTemplate() {
+  return `<!-- Written by Frame. Loads Frame's project instructions; delete to detach. -->
+@../../.frame/AGENTS.md
+`;
+}
+
+/**
+ * The managed block of `.frame/.gitignore`, generated from the file classes:
+ * derived and runtime entries are machine-local. STRUCTURE.json is derived but
+ * deliberately stays tracked — teammates and worktrees rely on it being in the
+ * repo. Lines outside the markers are the user's and are never touched.
+ */
+const FRAME_GITIGNORE_MARKER_START = '# managed by Frame — machine-local; edit outside this block';
+const FRAME_GITIGNORE_MARKER_END = '# end managed by Frame';
+
+function getFrameGitignoreBlock() {
+  const entries = [
+    ...FRAME_FILE_CLASSES.runtime,
+    ...FRAME_FILE_CLASSES.derived.filter((entry) => entry !== 'STRUCTURE.json')
+  ];
+  return `${FRAME_GITIGNORE_MARKER_START}\n${entries.join('\n')}\n${FRAME_GITIGNORE_MARKER_END}\n`;
+}
+
+/**
+ * Spec-knowledge hook entries for a user project. The command is guarded so a
+ * clone without `.frame/bin/` (sharing mode `local`, or a teammate who hasn't
+ * run Frame) produces no hook error — the `[ -f ... ]` test simply fails and
+ * the hook exits 0. The literal command string is Frame's marker: entries are
+ * added and removed by exact match, never by fuzzy matching.
+ */
+const SPEC_HINT_HOOKS = {
+  PreToolUse: [
+    {
+      matcher: 'Edit|Write',
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js pre-edit'"
+      }]
+    }
+  ],
+  UserPromptSubmit: [
+    {
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js prompt'"
+      }]
+    }
+  ]
+};
+
+// The unguarded form Frame installed before the overlay layout. Migration
+// replaces these with the guarded entries above; nothing else matches them.
+const LEGACY_SPEC_HINT_COMMANDS = [
+  'node .frame/bin/spec-hint.js pre-edit',
+  'node .frame/bin/spec-hint.js prompt'
+];
 
 /**
  * AI Tool Wrapper Script Templates
@@ -835,11 +904,11 @@ function getFrameConfigTemplate(projectName) {
 function getCodexWrapperTemplate() {
   return `#!/usr/bin/env bash
 # Frame AI Tool Wrapper for Codex CLI
-# This script injects AGENTS.md as initial prompt
+# This script injects .frame/AGENTS.md as initial prompt
 
-AGENTS_FILE="AGENTS.md"
+AGENTS_FILE=".frame/AGENTS.md"
 
-# Find AGENTS.md in current directory or parent directories
+# Find .frame/AGENTS.md in current directory or parent directories
 find_agents_file() {
   local dir="$PWD"
   while [ "$dir" != "/" ]; do
@@ -856,7 +925,7 @@ AGENTS_PATH=$(find_agents_file)
 
 # Run codex with initial prompt to read AGENTS.md
 if [ -n "$AGENTS_PATH" ]; then
-  exec codex "Please read AGENTS.md and follow the project instructions. This file contains important rules for this project." "$@"
+  exec codex "Please read .frame/AGENTS.md and follow the project instructions. This file contains important rules for this project." "$@"
 else
   exec codex "$@"
 fi
@@ -873,11 +942,11 @@ function getGenericWrapperTemplate(toolCommand, promptFlag = '') {
   const flagPart = promptFlag ? `${promptFlag} ` : '';
   return `#!/usr/bin/env bash
 # Frame AI Tool Wrapper for ${toolCommand}
-# This script injects AGENTS.md as initial prompt
+# This script injects .frame/AGENTS.md as initial prompt
 
-AGENTS_FILE="AGENTS.md"
+AGENTS_FILE=".frame/AGENTS.md"
 
-# Find AGENTS.md in current directory or parent directories
+# Find .frame/AGENTS.md in current directory or parent directories
 find_agents_file() {
   local dir="$PWD"
   while [ "$dir" != "/" ]; do
@@ -894,7 +963,7 @@ AGENTS_PATH=$(find_agents_file)
 
 # Run tool with initial prompt to read AGENTS.md
 if [ -n "$AGENTS_PATH" ]; then
-  exec ${toolCommand} ${flagPart}"Please read AGENTS.md and follow the project instructions." "$@"
+  exec ${toolCommand} ${flagPart}"Please read .frame/AGENTS.md and follow the project instructions." "$@"
 else
   exec ${toolCommand} "$@"
 fi
@@ -1030,6 +1099,12 @@ module.exports = {
   getTasksTemplate,
   getQuickstartTemplate,
   getFrameConfigTemplate,
+  getClaudeRuleTemplate,
+  getFrameGitignoreBlock,
+  FRAME_GITIGNORE_MARKER_START,
+  FRAME_GITIGNORE_MARKER_END,
+  SPEC_HINT_HOOKS,
+  LEGACY_SPEC_HINT_COMMANDS,
   SPEC_DRIVEN_SECTION,
   SPEC_DRIVEN_CORE_SECTION,
   renderSpecSection,

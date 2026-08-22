@@ -7,7 +7,7 @@ const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
-const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('../shared/frameConstants');
+const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PATH } = require('../shared/frameConstants');
 const templates = require('../shared/frameTemplates');
 const frameStore = require('./frameStore');
 const workspace = require('./workspace');
@@ -19,11 +19,6 @@ const activityLog = require('./activityLog');
 const detector = require('../../scripts/detect-project');
 
 let mainWindow = null;
-
-// Gemini handling is on its way out (spec non-invasive-overlay, T04: the init
-// rewrite drops every GEMINI.md path), so the name no longer lives in
-// FRAME_FILES. Inlined here to keep the current init working until then.
-const LEGACY_GEMINI_FILE = 'GEMINI.md';
 
 /**
  * Initialize frame project module
@@ -65,50 +60,6 @@ async function createFileIfNotExists(filePath, content) {
     return true;
   }
   return false;
-}
-
-/**
- * Create a symlink safely with Windows fallback
- * @param {string} target - The target file name (relative)
- * @param {string} linkPath - The full path for the symlink
- * @returns {boolean} - Whether the operation succeeded
- */
-async function createSymlinkSafe(target, linkPath) {
-  try {
-    // Check if symlink/file already exists
-    if (fs.existsSync(linkPath)) {
-      const stats = fs.lstatSync(linkPath);
-      if (stats.isSymbolicLink()) {
-        // Remove existing symlink to recreate it
-        await fsp.unlink(linkPath);
-      } else {
-        // Regular file exists - don't overwrite, skip
-        console.warn(`${linkPath} exists and is not a symlink, skipping`);
-        return false;
-      }
-    }
-
-    // Create relative symlink
-    await fsp.symlink(target, linkPath);
-    return true;
-  } catch (error) {
-    // Windows without admin/Developer Mode - copy file as fallback
-    if (error.code === 'EPERM' || error.code === 'EPROTO') {
-      try {
-        const targetPath = path.resolve(path.dirname(linkPath), target);
-        if (fs.existsSync(targetPath)) {
-          await fsp.copyFile(targetPath, linkPath);
-          console.warn(`Symlink not supported, copied ${target} to ${linkPath}`);
-          return true;
-        }
-      } catch (copyError) {
-        console.error('Failed to create symlink or copy file:', copyError);
-      }
-    } else {
-      console.error('Failed to create symlink:', error);
-    }
-    return false;
-  }
 }
 
 /**
@@ -190,28 +141,33 @@ async function showInitializeConfirmation(projectPath) {
  */
 const inFlightInits = new Map();
 
-function initializeFrameProject(projectPath, projectName) {
+function initializeFrameProject(projectPath, projectName, options = {}) {
   if (inFlightInits.has(projectPath)) return inFlightInits.get(projectPath);
-  const run = doInitializeFrameProject(projectPath, projectName)
+  const run = doInitializeFrameProject(projectPath, projectName, options)
     .finally(() => inFlightInits.delete(projectPath));
   inFlightInits.set(projectPath, run);
   return run;
 }
 
-async function doInitializeFrameProject(projectPath, projectName) {
+async function doInitializeFrameProject(projectPath, projectName, options = {}) {
   // Point the activity record at this project before init starts, so the
   // work init itself does lands in the right bucket rather than in `app`.
   activityLog.setProject(projectPath);
   perfMonitor.opStart('project-init');
   try {
-    return await runProjectInit(projectPath, projectName);
+    return await runProjectInit(projectPath, projectName, options);
   } finally {
     perfMonitor.opEnd('project-init');
   }
 }
 
-async function runProjectInit(projectPath, projectName) {
+async function runProjectInit(projectPath, projectName, options = {}) {
   const name = projectName || path.basename(projectPath);
+  // Re-init must not reset what the project already decided: identity and
+  // sharing mode are carried over unless the caller explicitly picks one.
+  const existingConfig = frameStore.readConfig(projectPath);
+  const previousSharing = existingConfig && existingConfig.settings && existingConfig.settings.gitSharing;
+  const gitSharing = (options.gitSharing || previousSharing) === 'local' ? 'local' : 'repo';
   const frameDirPath = path.join(projectPath, FRAME_DIR);
 
   // Create .frame directory
@@ -229,6 +185,10 @@ async function runProjectInit(projectPath, projectName) {
 
   // Create .frame/config.json (carrying the detected project block)
   const config = templates.getFrameConfigTemplate(name);
+  config.settings.gitSharing = gitSharing;
+  if (existingConfig && existingConfig.projectId) {
+    config.projectId = existingConfig.projectId;
+  }
   if (detectedProject) {
     config.project = detectedProject;
   }
@@ -237,66 +197,20 @@ async function runProjectInit(projectPath, projectName) {
     JSON.stringify(config, null, 2),
     'utf8'
   );
+  // Re-init of a project written before projectId existed: stamp it now, so
+  // every Frame project has a stable identity from here on.
+  frameStore.ensureProjectId(projectPath);
 
-  // Create root-level Frame files (only if they don't exist)
+  // Everything Frame writes lives under .frame/ (plus the one pointer file
+  // below). Nothing at the project root is read, consumed or replaced: an
+  // existing CLAUDE.md / AGENTS.md / .cursorrules is the user's, and Frame
+  // reaching an AI session no longer depends on owning a root file.
 
-  // Detect if this was already a Frame project before this init
-  // .frame/config.json presence is the canonical indicator
-  const wasAlreadyFrameProject = isFrameProject(projectPath);
-
-  // Collect existing MD content to merge into AGENTS.md
-  // Only for files that Frame will convert to symlinks (CLAUDE.md, GEMINI.md)
-  // or for AGENTS.md if the project was never a Frame project
-  let existingInstructions = [];
-
-  // Check CLAUDE.md — real file means existing project directives
-  const claudeMdPath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);
-  if (fs.existsSync(claudeMdPath)) {
-    const stats = fs.lstatSync(claudeMdPath);
-    if (!stats.isSymbolicLink()) {
-      existingInstructions.push({ label: 'CLAUDE.md', content: await fsp.readFile(claudeMdPath, 'utf8') });
-      await fsp.unlink(claudeMdPath);
-    }
-  }
-
-  // Check .claude/CLAUDE.md and .claude/claude.md — Claude Code's subfolder convention
-  const claudeDirCandidates = [
-    path.join(projectPath, '.claude', 'CLAUDE.md'),
-    path.join(projectPath, '.claude', 'claude.md')
-  ];
-  for (const candidate of claudeDirCandidates) {
-    if (fs.existsSync(candidate)) {
-      existingInstructions.push({ label: '.claude/CLAUDE.md', content: await fsp.readFile(candidate, 'utf8') });
-      break; // Only read one
-    }
-  }
-
-  // Check AGENTS.md — if project was not previously a Frame project, merge its content
-  const agentsMdPath = path.join(projectPath, FRAME_FILES.AGENTS);
-  let existingAgentsContent = null;
-  if (!wasAlreadyFrameProject && fs.existsSync(agentsMdPath)) {
-    existingAgentsContent = await fsp.readFile(agentsMdPath, 'utf8');
-    existingInstructions.push({ label: 'AGENTS.md', content: existingAgentsContent });
-    await fsp.unlink(agentsMdPath);
-  }
-
-  // Build AGENTS.md content: Frame template + any existing instructions appended.
-  // Spec-Driven Development is ON for new projects (config template sets
-  // features.specDriven), so the section ships with the file — the spec
-  // commands are staged at init anyway, and hiding the panel only meant the
-  // user couldn't see specs their AI session had already written. Opting out
-  // happens in Settings → Workflow (disableSpecDriven).
-  let agentsContent = templates.getAgentsTemplate(name, { specDriven: true, project: detectedProject });
-  if (existingInstructions.length > 0) {
-    const merged = existingInstructions
-      .map(({ label, content }) => `## Existing Instructions (from ${label})\n\n${content}`)
-      .join('\n\n---\n\n');
-    agentsContent += '\n\n---\n\n' + merged;
-  }
-
+  // .frame/AGENTS.md — Spec-Driven Development is ON for new projects (config
+  // template sets features.specDriven), so the section ships with the file.
   await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.AGENTS),
-    agentsContent
+    frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS),
+    templates.getAgentsTemplate(name, { specDriven: true, project: detectedProject })
   );
 
   // .frame/docs/REFERENCE.md — the reference-on-demand companion to the lean
@@ -315,49 +229,30 @@ async function runProjectInit(projectPath, projectName) {
   await fsp.mkdir(specsDirPath, { recursive: true });
   await createFileIfNotExists(path.join(specsDirPath, '.gitkeep'), '');
 
-  // CLAUDE.md - Symlink to AGENTS.md for Claude Code compatibility
-  await createSymlinkSafe(
-    FRAME_FILES.AGENTS,
-    path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK)
-  );
-
-  // GEMINI.md - Symlink to AGENTS.md for Gemini CLI compatibility
-  // If it exists as a real file, append its content to AGENTS.md then remove it so the symlink can be created
-  const geminiMdPath = path.join(projectPath, LEGACY_GEMINI_FILE);
-  if (fs.existsSync(geminiMdPath)) {
-    const geminiStats = fs.lstatSync(geminiMdPath);
-    if (!geminiStats.isSymbolicLink()) {
-      const geminiContent = await fsp.readFile(geminiMdPath, 'utf8');
-      const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
-      const current = await fsp.readFile(agentsPath, 'utf8');
-      await fsp.writeFile(agentsPath, current + '\n\n---\n\n## Existing Instructions (from GEMINI.md)\n\n' + geminiContent, 'utf8');
-      await fsp.unlink(geminiMdPath);
-    }
-  }
-  await createSymlinkSafe(
-    FRAME_FILES.AGENTS,
-    path.join(projectPath, LEGACY_GEMINI_FILE)
-  );
-
   const structureWasCreated = await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.STRUCTURE),
+    frameStore.resolvePath(projectPath, FRAME_FILES.STRUCTURE),
     templates.getStructureTemplate(name, detectedProject)
   );
 
   await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.NOTES),
+    frameStore.resolvePath(projectPath, FRAME_FILES.NOTES),
     templates.getNotesTemplate(name)
   );
 
   await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.TASKS),
+    frameStore.resolvePath(projectPath, FRAME_FILES.TASKS),
     templates.getTasksTemplate(name)
   );
 
   await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.QUICKSTART),
+    frameStore.resolvePath(projectPath, FRAME_FILES.QUICKSTART),
     templates.getQuickstartTemplate(name, detectedProject)
   );
+
+  // .claude/rules/frame.md — the pointer Claude Code loads at session start.
+  // The whole native-delivery mechanism: two lines that @-import
+  // .frame/AGENTS.md, replacing the CLAUDE.md symlink Frame used to plant.
+  ensureClaudePointer(projectPath);
 
   // Create .frame/bin directory for AI tool wrappers
   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);
@@ -397,7 +292,9 @@ async function runProjectInit(projectPath, projectName) {
   // .claude/settings.json, non-fatal like the bootstrap above.
   let specHintSummary = null;
   try {
-    specHintSummary = installSpecHintHook(projectPath);
+    specHintSummary = installSpecHintHook(projectPath, {
+      file: gitSharing === 'local' ? 'settings.local.json' : 'settings.json'
+    });
     if (specHintSummary.manual) {
       console.warn('[frame] spec-hint hook needs manual install:', specHintSummary.reason);
     }
@@ -411,32 +308,44 @@ async function runProjectInit(projectPath, projectName) {
   return { ...config, _structureBootstrap: structureBootstrapSummary, _specHintHook: specHintSummary };
 }
 
-// ─── Spec-knowledge hook install ──────────────────────────
-
-// Hook entries for a user project (scripts live in .frame/bin/ there).
-const SPEC_HINT_HOOKS = {
-  PreToolUse: [
-    {
-      matcher: 'Edit|Write',
-      hooks: [{ type: 'command', command: 'node .frame/bin/spec-hint.js pre-edit' }]
-    }
-  ],
-  UserPromptSubmit: [
-    { hooks: [{ type: 'command', command: 'node .frame/bin/spec-hint.js prompt' }] }
-  ]
-};
+// ─── Claude Code pointer file ─────────────────────────────
 
 /**
- * Register the spec-hint hooks in the project's .claude/settings.json.
+ * Write `.claude/rules/frame.md` — the only thing Frame puts outside
+ * `.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start
+ * and follows the `@` import to `.frame/AGENTS.md`, which is how Frame reaches
+ * a session without a launch wrapper or a root file. Rewritten every init so a
+ * stale pointer heals; a user who deletes it has detached on purpose.
+ */
+function ensureClaudePointer(projectPath) {
+  const rulePath = path.join(projectPath, ...CLAUDE_RULE_PATH.split('/'));
+  try {
+    fs.mkdirSync(path.dirname(rulePath), { recursive: true });
+    fs.writeFileSync(rulePath, templates.getClaudeRuleTemplate(), 'utf8');
+    return true;
+  } catch (err) {
+    console.warn('[frame] could not write .claude/rules/frame.md (non-fatal):', err.message);
+    return false;
+  }
+}
+
+// ─── Spec-knowledge hook install ──────────────────────────
+
+/**
+ * Register the spec-hint hooks in the project's Claude settings file.
  * Gated on the active AI tool being Claude Code — other CLIs have no hook
  * system, they keep the AGENTS.md advisory layer.
+ *
+ * `file` selects the settings file: `settings.json` (sharing mode `repo`, the
+ * default) or `settings.local.json` (mode `local`, so nothing Frame writes
+ * shows up in git status).
  *
  * Merge-safe write: read-modify-write preserving every existing key; a hook
  * entry is appended only when an identical one isn't already present, so
  * re-init is idempotent. Unparseable JSON → no write, manual instructions
  * surfaced via the returned summary.
  */
-function installSpecHintHook(projectPath) {
+function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
   // Lazy require — aiToolManager pulls telemetry; keep init's module graph flat.
   const aiToolManager = require('./aiToolManager');
   const active = aiToolManager.getActiveTool();
@@ -445,7 +354,7 @@ function installSpecHintHook(projectPath) {
   }
 
   const settingsDir = path.join(projectPath, '.claude');
-  const settingsPath = path.join(settingsDir, 'settings.json');
+  const settingsPath = path.join(settingsDir, file);
 
   let settings = {};
   if (fs.existsSync(settingsPath)) {
@@ -455,16 +364,16 @@ function installSpecHintHook(projectPath) {
       return {
         installed: false,
         manual: true,
-        reason: `.claude/settings.json is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md "Spec Knowledge Layer"`
+        reason: `.claude/${file} is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md "Spec Knowledge Layer"`
       };
     }
   }
 
   settings.hooks = settings.hooks || {};
   let added = 0;
-  for (const eventName of Object.keys(SPEC_HINT_HOOKS)) {
+  for (const eventName of Object.keys(templates.SPEC_HINT_HOOKS)) {
     const list = Array.isArray(settings.hooks[eventName]) ? settings.hooks[eventName] : [];
-    for (const entry of SPEC_HINT_HOOKS[eventName]) {
+    for (const entry of templates.SPEC_HINT_HOOKS[eventName]) {
       const sig = JSON.stringify(entry);
       if (!list.some((x) => JSON.stringify(x) === sig)) {
         list.push(entry);
@@ -478,7 +387,56 @@ function installSpecHintHook(projectPath) {
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
   }
-  return { installed: true, added };
+  return { installed: true, added, file };
+}
+
+/**
+ * Take Frame's hook entries back out of a Claude settings file. Exact-match on
+ * the command string (the current guarded form and the older unguarded one) —
+ * a hook the user wrote, even one that calls spec-hint.js differently, is not
+ * ours to remove. Empty event arrays and an empty `hooks` object are cleaned
+ * up so removal leaves no Frame-shaped residue; every other key survives.
+ */
+function removeSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
+  const settingsPath = path.join(projectPath, '.claude', file);
+  if (!fs.existsSync(settingsPath)) return { removed: 0 };
+
+  let settings;
+  try {
+    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  } catch (err) {
+    return { removed: 0, manual: true, reason: `.claude/${file} is not valid JSON` };
+  }
+  if (!settings.hooks || typeof settings.hooks !== 'object') return { removed: 0 };
+
+  const frameCommands = new Set(templates.LEGACY_SPEC_HINT_COMMANDS);
+  for (const entries of Object.values(templates.SPEC_HINT_HOOKS)) {
+    for (const entry of entries) {
+      for (const hook of entry.hooks) frameCommands.add(hook.command);
+    }
+  }
+  const isFrameEntry = (entry) =>
+    entry && Array.isArray(entry.hooks) &&
+    entry.hooks.length > 0 &&
+    entry.hooks.every((h) => h && frameCommands.has(h.command));
+
+  let removed = 0;
+  for (const eventName of Object.keys(settings.hooks)) {
+    const list = settings.hooks[eventName];
+    if (!Array.isArray(list)) continue;
+    const kept = list.filter((entry) => {
+      if (!isFrameEntry(entry)) return true;
+      removed++;
+      return false;
+    });
+    if (kept.length > 0) settings.hooks[eventName] = kept;
+    else delete settings.hooks[eventName];
+  }
+
+  if (removed === 0) return { removed: 0 };
+  if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+  return { removed, file };
 }
 
 // ─── Spec-Driven Development toggle ──────────────────────────
@@ -762,6 +720,10 @@ module.exports = {
   isFrameProject,
   getFrameConfig,
   initializeFrameProject,
+  runProjectInit,
+  ensureClaudePointer,
+  installSpecHintHook,
+  removeSpecHintHook,
   isSpecDrivenEnabled,
   enableSpecDriven,
   disableSpecDriven,
