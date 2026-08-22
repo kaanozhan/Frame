@@ -1,0 +1,20 @@
+{
+  "spec": {
+    "slug": "non-invasive-overlay",
+    "title": "Frame footprint: meta files move into .frame/, delivery stays native"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Add src/main/frameStore.js and the new frameConstants entries",
+      "commit": "b359ded",
+      "whatChanged": "New src/main/frameStore.js owns the overlay/legacy resolution rule and the projectPath-keyed typed API (tasks, notes, structure, quickstart, agents, config, projectId, metaDir, isLegacyLayout), reading from disk and writing through fsSafe.writeFileAtomic. src/shared/frameConstants.js gains CLAUDE_RULE_PATH, FRAME_GITIGNORE_FILE, LEGACY_SYMLINKS, MIGRATION_BACKUP_DIR and FRAME_FILE_CLASSES, and drops FRAME_FILES.GEMINI_SYMLINK. test/frameStore.test.js covers the rule, the fingerprint gate, the round-trips, the .bak and the identity stamp.",
+      "whyChanged": "getTasks returns fsSafe's { data, source, error } record because tasksManager renders a different UI for 'restored from .bak' than for unrecoverable corruption; flattening it would push tasksManager back to reading the file itself. resolvePath is exported so migration and the IPC layer get the same answer without re-joining .frame/. frameProject.js's two GEMINI.md references were pointed at a local constant so the dropped FRAME_FILES entry does not break init before T04 removes that block.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "235 pass, 0 fail (13 new in test/frameStore.test.js)"
+      }
+    }
+  ]
+}

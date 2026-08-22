@@ -15,11 +15,11 @@ const WORKSPACE_DIR = '.frame';
 // Workspace file name
 const WORKSPACE_FILE = 'workspaces.json';
 
-// Frame auto-generated files
+// Frame auto-generated files. Names only — where they live (root or .frame/)
+// is frameStore's business, never a caller's.
 const FRAME_FILES = {
   AGENTS: 'AGENTS.md',
   CLAUDE_SYMLINK: 'CLAUDE.md',
-  GEMINI_SYMLINK: 'GEMINI.md',
   STRUCTURE: 'STRUCTURE.json',
   NOTES: 'PROJECT_NOTES.md',
   TASKS: 'tasks.json',
@@ -28,6 +28,50 @@ const FRAME_FILES = {
 
 // Frame bin directory for AI tool wrappers
 const FRAME_BIN_DIR = 'bin';
+
+// ─── Overlay layout (.frame/) ────────────────────────────────
+
+// Pointer file Claude Code loads at session start; it @-imports
+// .frame/AGENTS.md, which is how Frame reaches an AI session without
+// planting anything at the project root. Project-relative, joined by callers.
+const CLAUDE_RULE_PATH = '.claude/rules/frame.md';
+
+// Managed ignore file inside .frame/ (never the project's tracked .gitignore)
+const FRAME_GITIGNORE_FILE = '.gitignore';
+
+// Root files older Frame projects carry as symlinks to AGENTS.md. Migration
+// removes them when they point at AGENTS.md; a real file is never touched.
+const LEGACY_SYMLINKS = ['CLAUDE.md', 'GEMINI.md'];
+
+// Where migration parks a copy of every root file before it moves it
+const MIGRATION_BACKUP_DIR = 'migration-backup';
+
+// What each .frame/ entry *is*, which decides how git and (later) sync treat
+// it. Paths are relative to .frame/. Class is not the same as tracking:
+// STRUCTURE.json is derived but stays tracked for now, so the managed
+// .frame/.gitignore block is built from these lists minus that one file.
+const FRAME_FILE_CLASSES = {
+  instruction: ['AGENTS.md', 'docs/'],
+  data: ['tasks.json', 'PROJECT_NOTES.md', 'QUICKSTART.md', 'specs/'],
+  derived: [
+    'STRUCTURE.json',
+    'index/',
+    'specs/*/implement-report.html',
+    'specs/*/plan-report.html',
+    'specs/*/report-data.json'
+  ],
+  runtime: [
+    'runtime/',
+    'worktrees/',
+    'orchestration/',
+    'bin/',
+    'migration-backup/',
+    'implement-permissions.json',
+    '*.bak',
+    '*.tmp',
+    '*.corrupt-*'
+  ]
+};
 
 // ─── Orchestration (conductor / parallel spec execution) ──
 
@@ -60,6 +104,11 @@ module.exports = {
   WORKSPACE_FILE,
   FRAME_FILES,
   FRAME_BIN_DIR,
+  CLAUDE_RULE_PATH,
+  FRAME_GITIGNORE_FILE,
+  LEGACY_SYMLINKS,
+  MIGRATION_BACKUP_DIR,
+  FRAME_FILE_CLASSES,
   ORCH_WORKTREES_DIR,
   ORCH_BUS_DIR,
   ORCH_BUS_ENV,

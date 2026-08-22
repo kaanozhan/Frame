@@ -4772,13 +4772,13 @@
       "title": "Add `src/main/frameStore.js` — overlay/legacy resolution rule, `projectPath`-keyed typed read/write API (tasks, notes, structure, quickstart, agents, config), `getProjectId`/`ensureProjectId`, `metaDir`, `isLegacyLayout`, disk reads with `fsSafe` atomic writes plus `.bak` — together with the new `src/shared/frameConstants.js` entries (`CLAUDE_RULE_PATH`, `FRAME_GITIGNORE_FILE`, `LEGACY_SYMLINKS`, `FRAME_FILE_CLASSES`, `MIGRATION_BACKUP_DIR`, drop `FRAME_FILES.GEMINI_SYMLINK`); ships with `test/frameStore.test.js`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-22T18:40:00.000Z",
+      "completedAt": "2026-08-22T18:40:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T02",

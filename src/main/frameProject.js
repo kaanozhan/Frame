@@ -19,6 +19,11 @@ const detector = require('../../scripts/detect-project');
 
 let mainWindow = null;
 
+// Gemini handling is on its way out (spec non-invasive-overlay, T04: the init
+// rewrite drops every GEMINI.md path), so the name no longer lives in
+// FRAME_FILES. Inlined here to keep the current init working until then.
+const LEGACY_GEMINI_FILE = 'GEMINI.md';
+
 /**
  * Initialize frame project module
  */
@@ -317,7 +322,7 @@ async function runProjectInit(projectPath, projectName) {
 
   // GEMINI.md - Symlink to AGENTS.md for Gemini CLI compatibility
   // If it exists as a real file, append its content to AGENTS.md then remove it so the symlink can be created
-  const geminiMdPath = path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK);
+  const geminiMdPath = path.join(projectPath, LEGACY_GEMINI_FILE);
   if (fs.existsSync(geminiMdPath)) {
     const geminiStats = fs.lstatSync(geminiMdPath);
     if (!geminiStats.isSymbolicLink()) {
@@ -330,7 +335,7 @@ async function runProjectInit(projectPath, projectName) {
   }
   await createSymlinkSafe(
     FRAME_FILES.AGENTS,
-    path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK)
+    path.join(projectPath, LEGACY_GEMINI_FILE)
   );
 
   const structureWasCreated = await createFileIfNotExists(
