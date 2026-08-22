@@ -27,6 +27,18 @@
         "status": "pass",
         "detail": "236 pass, 0 fail"
       }
+    },
+    {
+      "id": "T03",
+      "title": "Scripts resolve their own project root; hooks stage .frame/STRUCTURE.json",
+      "commit": "5b05a80",
+      "whatChanged": "update-structure.js, find-module.js and check-freshness.js each resolve the project the way spec-index.js does (FRAME_PROJECT_ROOT wins, then .frame/bin two up, then scripts/.., then cwd) and take meta paths from a local resolveMetaPath that prefers .frame/, falls back to an existing root file and never creates one at the root; update-structure.js mkdirs .frame/ before writing. .githooks/pre-commit and frameTemplates.getStructureHookSnippet stage .frame/STRUCTURE.json when it exists and the root copy otherwise, and structureBootstrap's lefthook instructions name the .frame/ path. New test/scriptsProjectRoot.test.js stages the scripts with the real copyParserScripts and runs all three with no env.",
+      "whyChanged": "check-freshness needed resolveMetaPath to return the root-relative form as well, because its QUICKSTART staleness check passes the path to git as a pathspec. The js-src-app fixture keeps its golden at the project root, so test/projectAgnostic.test.js now covers both halves of the rule: that fixture exercises the legacy fallback while the other five, having no root copy, assert the parser writes .frame/STRUCTURE.json.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "242 pass, 0 fail (6 new in test/scriptsProjectRoot.test.js)"
+      }
     }
   ]
 }

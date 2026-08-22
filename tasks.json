@@ -4798,13 +4798,13 @@
       "title": "Give `scripts/update-structure.js`, `scripts/find-module.js` and `scripts/check-freshness.js` the `.frame/bin`-aware project-root resolution (`FRAME_PROJECT_ROOT` wins, `spec-index.js:51-54` pattern) and a `resolveMetaPath` that prefers `.frame/`, falls back to legacy root and never creates a root file, and point `.githooks/pre-commit` and `src/main/structureBootstrap.js` (vanilla snippet, husky/lefthook snippet text, `hasFrameSnippet` target, initial scan target, `copyParserScripts` exported for migration) at `.frame/STRUCTURE.json` with root fallback; ships with `test/scriptsProjectRoot.test.js`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-22T19:35:00.000Z",
+      "completedAt": "2026-08-22T19:35:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T04",

@@ -47,3 +47,24 @@ into `.frame/migration-backup/`, never leave it at the root.
 _Captured: 2026-08-22 · 10 file change(s)_
 
 ---
+
+## T03 — Scripts resolve their own project root; hooks stage `.frame/STRUCTURE.json`
+
+Gave `update-structure.js`, `find-module.js` and `check-freshness.js` the
+`spec-index.js` root rule (`FRAME_PROJECT_ROOT` → `.frame/bin` two up →
+`scripts/..` → cwd) and a local `resolveMetaPath` that prefers `.frame/`, falls
+back to an existing root file and never creates one at the root; the parser
+mkdirs `.frame/` before writing. `.githooks/pre-commit` and
+`frameTemplates.getStructureHookSnippet` stage `.frame/STRUCTURE.json` when it
+exists and the root copy otherwise, and `structureBootstrap`'s lefthook
+instructions and prose follow (`copyParserScripts` was already exported, so
+migration's refresh path needed no change). Departure from plan.md:
+`check-freshness`'s `resolveMetaPath` returns `{ path, rel }` because its
+QUICKSTART check hands the path to git as a pathspec, and
+`test/projectAgnostic.test.js` had to follow the parser's new target — the
+js-src-app fixture keeps its root golden, so it now covers the legacy fallback
+while the other five cover the overlay case.
+
+_Captured: 2026-08-22 · 8 file change(s)_
+
+---

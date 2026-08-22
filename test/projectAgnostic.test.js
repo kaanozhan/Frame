@@ -28,6 +28,10 @@ test('golden: js-src-app STRUCTURE.json is in sync with the parser (--check)', (
   assert.equal(res.status, 0, `--check reported drift:\n${res.stdout}${res.stderr}`);
 });
 
+// The js-src-app fixture carries its golden at the project root, so this pair
+// also covers the parser's legacy fallback: an existing root STRUCTURE.json
+// keeps being updated in place. Every other fixture has none, so the parser
+// writes .frame/STRUCTURE.json — the overlay-first half of the same rule.
 test('golden: full regen on js-src-app copy is byte-identical to the committed golden', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-golden-'));
   try {
@@ -59,7 +63,7 @@ function initAndParse(fixtureName) {
     assert.equal(detect.status, 0, detect.stderr);
     const parse = runParser(tmp);
     assert.equal(parse.status, 0, parse.stderr);
-    const raw = fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8');
+    const raw = fs.readFileSync(path.join(tmp, '.frame', 'STRUCTURE.json'), 'utf8');
     // Output must never carry Frame's own vocabulary into a user project
     for (const sentinel of ['TERMINAL_', 'CLAUDE_', 'GITHUB_', 'FRAME_PROJECT', 'multiTerminal']) {
       assert.ok(!raw.includes(sentinel), `fixture output contains Frame vocabulary "${sentinel}"`);
@@ -200,7 +204,7 @@ test('ipc channels sync from the config-named file with token-derived categories
     ].join('\n'));
     const res = runParser(tmp);
     assert.equal(res.status, 0, res.stderr);
-    const s = JSON.parse(fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8'));
+    const s = JSON.parse(fs.readFileSync(path.join(tmp, '.frame', 'STRUCTURE.json'), 'utf8'));
     assert.ok(s.ipcChannels.reports.LOAD_REPORTS, 'LOAD_REPORTS → category "reports"');
     assert.ok(s.ipcChannels.export.TOGGLE_EXPORT_PANEL, 'TOGGLE_EXPORT_PANEL → category "export"');
   } finally {
@@ -220,7 +224,7 @@ test('walker safety: symlink cycle + ignored dirs terminate with clean output', 
     fs.symlinkSync(path.join(tmp, 'lib'), path.join(tmp, 'lib', 'loop'));
     const res = runParser(tmp);
     assert.equal(res.status, 0, res.stderr);
-    const s = JSON.parse(fs.readFileSync(path.join(tmp, 'STRUCTURE.json'), 'utf8'));
+    const s = JSON.parse(fs.readFileSync(path.join(tmp, '.frame', 'STRUCTURE.json'), 'utf8'));
     assert.deepEqual(Object.keys(s.modules), ['lib/a']); // no node_modules, no cycle dupes
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">2 tasks</span>
-    <span class="pill good">2 verified</span>
+    <span class="pill">3 tasks</span>
+    <span class="pill good">3 verified</span>
     
     <span class="chip">2026-08-22</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">2 of 12 tasks done · next: <span class="rs-task">T03 — Give `scripts/update-structure.js`, `scripts/find-module.js` and…</span></span>
+  <span class="rs-count">3 of 12 tasks done · next: <span class="rs-task">T04 — Rewrite `src/shared/frameTemplates.js` (AGENTS and REFERENCE templates…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -1221,6 +1221,496 @@
 <span class="dl-add">+  const onDisk = JSON.parse(fs.readFileSync(rootTasksPath, &#39;utf8&#39;));</span>
 <span class="dl-add">+  assert.equal(onDisk.tasks.length, 2, &#39;the root file is the one that changed&#39;);</span>
 <span class="dl-add">+  assert.ok(!fs.existsSync(tasksPath), &#39;no second copy appears under .frame/&#39;);</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T03</span>
+    <h2>Scripts resolve their own project root; hooks stage .frame/STRUCTURE.json</h2>
+    <span class="card-meta"><span class="chip">5b05a80</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">242 pass, 0 fail (6 new in test/scriptsProjectRoot.test.js)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>update-structure.js, find-module.js and check-freshness.js each resolve the project the way spec-index.js does (FRAME_PROJECT_ROOT wins, then .frame/bin two up, then scripts/.., then cwd) and take meta paths from a local resolveMetaPath that prefers .frame/, falls back to an existing root file and never creates one at the root; update-structure.js mkdirs .frame/ before writing. .githooks/pre-commit and frameTemplates.getStructureHookSnippet stage .frame/STRUCTURE.json when it exists and the root copy otherwise, and structureBootstrap&#39;s lefthook instructions name the .frame/ path. New test/scriptsProjectRoot.test.js stages the scripts with the real copyParserScripts and runs all three with no env.</p></div>
+    <div class="field"><span class="label">Why</span><p>check-freshness needed resolveMetaPath to return the root-relative form as well, because its QUICKSTART staleness check passes the path to git as a pathspec. The js-src-app fixture keeps its golden at the project root, so test/projectAgnostic.test.js now covers both halves of the rule: that fixture exercises the legacy fallback while the other five, having no root copy, assert the parser writes .frame/STRUCTURE.json.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/.githooks/pre-commit b/.githooks/pre-commit</span>
+<span class="dl-meta">index 0ca38a6..9581df3 100755</span>
+<span class="dl-file">--- a/.githooks/pre-commit</span>
+<span class="dl-file">+++ b/.githooks/pre-commit</span>
+<span class="dl-hunk">@@ -12,8 +12,13 @@ if [ -n &quot;$STAGED_JS&quot; ]; then</span>
+<span class="dl-ctx">     # Run the structure update script</span>
+<span class="dl-ctx">     npm run structure:changed --silent</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-    # Stage the updated STRUCTURE.json</span>
+<span class="dl-del">-    git add STRUCTURE.json</span>
+<span class="dl-add">+    # Stage the updated STRUCTURE.json — .frame/ once this repo has migrated,</span>
+<span class="dl-add">+    # the root copy until then</span>
+<span class="dl-add">+    if [ -f .frame/STRUCTURE.json ]; then</span>
+<span class="dl-add">+        git add .frame/STRUCTURE.json</span>
+<span class="dl-add">+    else</span>
+<span class="dl-add">+        git add STRUCTURE.json</span>
+<span class="dl-add">+    fi</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">     echo &quot;STRUCTURE.json updated and staged.&quot;</span>
+<span class="dl-ctx"> fi</span>
+<span class="dl-meta">diff --git a/scripts/check-freshness.js b/scripts/check-freshness.js</span>
+<span class="dl-meta">index 43e6ab0..abac78b 100644</span>
+<span class="dl-file">--- a/scripts/check-freshness.js</span>
+<span class="dl-file">+++ b/scripts/check-freshness.js</span>
+<span class="dl-hunk">@@ -14,12 +14,38 @@ const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const { execSync, spawnSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user</span>
+<span class="dl-del">-// project. Frame&#39;s own callers don&#39;t set it — behavior is unchanged.</span>
+<span class="dl-ctx"> const STARTED_AT = Date.now();</span>
+<span class="dl-del">-const ROOT_DIR = process.env.FRAME_PROJECT_ROOT</span>
+<span class="dl-del">-  ? path.resolve(process.env.FRAME_PROJECT_ROOT)</span>
+<span class="dl-del">-  : path.join(__dirname, &#39;..&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Which project this run is about. `__dirname/..` was wrong for the shipped</span>
+<span class="dl-add">+ * copy: run by hand from a user project, it reported on Frame&#39;s own files.</span>
+<span class="dl-add">+ * Same rule as spec-index.js / detect-project.js.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveProjectRoot() {</span>
+<span class="dl-add">+  if (process.env.FRAME_PROJECT_ROOT) return path.resolve(process.env.FRAME_PROJECT_ROOT);</span>
+<span class="dl-add">+  // Shipped copy: &lt;project&gt;/.frame/bin/ — the project is two levels up.</span>
+<span class="dl-add">+  if (path.basename(__dirname) === &#39;bin&#39; &amp;&amp; path.basename(path.dirname(__dirname)) === &#39;.frame&#39;) {</span>
+<span class="dl-add">+    return path.dirname(path.dirname(__dirname));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  // Frame&#39;s own repo: scripts/</span>
+<span class="dl-add">+  if (path.basename(__dirname) === &#39;scripts&#39;) return path.join(__dirname, &#39;..&#39;);</span>
+<span class="dl-add">+  return process.cwd();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const ROOT_DIR = resolveProjectRoot();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Where a meta file lives: `.frame/&lt;name&gt;` for a migrated project, the root</span>
+<span class="dl-add">+ * only while an unmigrated project still has it there. Returns the path and</span>
+<span class="dl-add">+ * its root-relative form, which is what git pathspecs below need.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveMetaPath(name) {</span>
+<span class="dl-add">+  const overlay = path.join(ROOT_DIR, &#39;.frame&#39;, name);</span>
+<span class="dl-add">+  if (fs.existsSync(overlay)) return { path: overlay, rel: `.frame/${name}` };</span>
+<span class="dl-add">+  const legacy = path.join(ROOT_DIR, name);</span>
+<span class="dl-add">+  if (fs.existsSync(legacy)) return { path: legacy, rel: name };</span>
+<span class="dl-add">+  return { path: overlay, rel: `.frame/${name}` };</span>
+<span class="dl-add">+}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const STALE_TASK_DAYS = 14;</span>
+<span class="dl-ctx"> const NOTES_COMMIT_THRESHOLD = 10;</span>
+<span class="dl-hunk">@@ -43,9 +69,9 @@ function git(cmd) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-function readJSON(file) {</span>
+<span class="dl-add">+function readJSON(name) {</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-del">-    return JSON.parse(fs.readFileSync(path.join(ROOT_DIR, file), &#39;utf-8&#39;));</span>
+<span class="dl-add">+    return JSON.parse(fs.readFileSync(resolveMetaPath(name).path, &#39;utf-8&#39;));</span>
+<span class="dl-ctx">   } catch (e) {</span>
+<span class="dl-ctx">     return null;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-hunk">@@ -110,10 +136,10 @@ function checkStructureDrift(structure) {</span>
+<span class="dl-ctx">  * 3. Notes staleness — commits landed since the last dated PROJECT_NOTES entry</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function checkNotesStaleness() {</span>
+<span class="dl-del">-  const notesPath = path.join(ROOT_DIR, &#39;PROJECT_NOTES.md&#39;);</span>
+<span class="dl-del">-  if (!fs.existsSync(notesPath)) return;</span>
+<span class="dl-add">+  const notes = resolveMetaPath(&#39;PROJECT_NOTES.md&#39;);</span>
+<span class="dl-add">+  if (!fs.existsSync(notes.path)) return;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const content = fs.readFileSync(notesPath, &#39;utf-8&#39;);</span>
+<span class="dl-add">+  const content = fs.readFileSync(notes.path, &#39;utf-8&#39;);</span>
+<span class="dl-ctx">   const dates = [...content.matchAll(/^###\s*\[(\d{4}-\d{2}-\d{2})\]/gm)].map(m =&gt; m[1]);</span>
+<span class="dl-ctx">   if (dates.length === 0) return;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -149,9 +175,10 @@ function checkStuckTasks() {</span>
+<span class="dl-ctx">  * 5. QUICKSTART staleness — commits landed since QUICKSTART.md was last touched</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function checkQuickstartStaleness() {</span>
+<span class="dl-del">-  if (!fs.existsSync(path.join(ROOT_DIR, &#39;QUICKSTART.md&#39;))) return;</span>
+<span class="dl-add">+  const quickstart = resolveMetaPath(&#39;QUICKSTART.md&#39;);</span>
+<span class="dl-add">+  if (!fs.existsSync(quickstart.path)) return;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const lastTouched = git(&#39;git log -1 --format=%cs -- QUICKSTART.md&#39;);</span>
+<span class="dl-add">+  const lastTouched = git(`git log -1 --format=%cs -- ${quickstart.rel}`);</span>
+<span class="dl-ctx">   if (!lastTouched) return;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const commitsSince = git(`git rev-list --count HEAD --since=${lastTouched}`);</span>
+<span class="dl-meta">diff --git a/scripts/find-module.js b/scripts/find-module.js</span>
+<span class="dl-meta">index 2af8162..4e79309 100644</span>
+<span class="dl-file">--- a/scripts/find-module.js</span>
+<span class="dl-file">+++ b/scripts/find-module.js</span>
+<span class="dl-hunk">@@ -16,12 +16,36 @@ const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const { execSync, spawnSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user</span>
+<span class="dl-del">-// project. Frame&#39;s own callers don&#39;t set it — behavior is unchanged.</span>
+<span class="dl-del">-const ROOT_DIR = process.env.FRAME_PROJECT_ROOT</span>
+<span class="dl-del">-  ? path.resolve(process.env.FRAME_PROJECT_ROOT)</span>
+<span class="dl-del">-  : path.join(__dirname, &#39;..&#39;);</span>
+<span class="dl-del">-const STRUCTURE_FILE = path.join(ROOT_DIR, &#39;STRUCTURE.json&#39;);</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Which project this run is about. `__dirname/..` was wrong for the shipped</span>
+<span class="dl-add">+ * copy: run by hand from a user project, it read Frame&#39;s own STRUCTURE.json.</span>
+<span class="dl-add">+ * Same rule as spec-index.js / detect-project.js.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveProjectRoot() {</span>
+<span class="dl-add">+  if (process.env.FRAME_PROJECT_ROOT) return path.resolve(process.env.FRAME_PROJECT_ROOT);</span>
+<span class="dl-add">+  // Shipped copy: &lt;project&gt;/.frame/bin/ — the project is two levels up.</span>
+<span class="dl-add">+  if (path.basename(__dirname) === &#39;bin&#39; &amp;&amp; path.basename(path.dirname(__dirname)) === &#39;.frame&#39;) {</span>
+<span class="dl-add">+    return path.dirname(path.dirname(__dirname));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  // Frame&#39;s own repo: scripts/</span>
+<span class="dl-add">+  if (path.basename(__dirname) === &#39;scripts&#39;) return path.join(__dirname, &#39;..&#39;);</span>
+<span class="dl-add">+  return process.cwd();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Where a meta file lives: `.frame/&lt;name&gt;` for a migrated project, the root</span>
+<span class="dl-add">+ * only while an unmigrated project still has it there.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveMetaPath(name) {</span>
+<span class="dl-add">+  const overlay = path.join(ROOT_DIR, &#39;.frame&#39;, name);</span>
+<span class="dl-add">+  if (fs.existsSync(overlay)) return overlay;</span>
+<span class="dl-add">+  const legacy = path.join(ROOT_DIR, name);</span>
+<span class="dl-add">+  if (fs.existsSync(legacy)) return legacy;</span>
+<span class="dl-add">+  return overlay;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const ROOT_DIR = resolveProjectRoot();</span>
+<span class="dl-add">+const STRUCTURE_FILE = resolveMetaPath(&#39;STRUCTURE.json&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> function loadStructure() {</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-meta">diff --git a/scripts/update-structure.js b/scripts/update-structure.js</span>
+<span class="dl-meta">index 9829303..2416cfa 100644</span>
+<span class="dl-file">--- a/scripts/update-structure.js</span>
+<span class="dl-file">+++ b/scripts/update-structure.js</span>
+<span class="dl-hunk">@@ -17,13 +17,37 @@ const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const { execSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user</span>
+<span class="dl-del">-// project. Frame&#39;s own pre-commit hook doesn&#39;t set it, so behavior is identical</span>
+<span class="dl-del">-// to before; only callers who explicitly opt in get the override.</span>
+<span class="dl-del">-const ROOT_DIR = process.env.FRAME_PROJECT_ROOT</span>
+<span class="dl-del">-  ? path.resolve(process.env.FRAME_PROJECT_ROOT)</span>
+<span class="dl-del">-  : path.join(__dirname, &#39;..&#39;);</span>
+<span class="dl-del">-const STRUCTURE_FILE = path.join(ROOT_DIR, &#39;STRUCTURE.json&#39;);</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Which project this run is about. `__dirname/..` was wrong for the shipped</span>
+<span class="dl-add">+ * copy: run by hand from a user project, it wrote Frame&#39;s own STRUCTURE.json.</span>
+<span class="dl-add">+ * Same rule as spec-index.js / detect-project.js.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveProjectRoot() {</span>
+<span class="dl-add">+  if (process.env.FRAME_PROJECT_ROOT) return path.resolve(process.env.FRAME_PROJECT_ROOT);</span>
+<span class="dl-add">+  // Shipped copy: &lt;project&gt;/.frame/bin/ — the project is two levels up.</span>
+<span class="dl-add">+  if (path.basename(__dirname) === &#39;bin&#39; &amp;&amp; path.basename(path.dirname(__dirname)) === &#39;.frame&#39;) {</span>
+<span class="dl-add">+    return path.dirname(path.dirname(__dirname));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  // Frame&#39;s own repo: scripts/</span>
+<span class="dl-add">+  if (path.basename(__dirname) === &#39;scripts&#39;) return path.join(__dirname, &#39;..&#39;);</span>
+<span class="dl-add">+  return process.cwd();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Where a meta file lives: `.frame/&lt;name&gt;` for a migrated project, the root</span>
+<span class="dl-add">+ * only while an unmigrated project still has it there. A file that exists in</span>
+<span class="dl-add">+ * neither place resolves to `.frame/` — new files are never created at the root.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function resolveMetaPath(name) {</span>
+<span class="dl-add">+  const overlay = path.join(ROOT_DIR, &#39;.frame&#39;, name);</span>
+<span class="dl-add">+  if (fs.existsSync(overlay)) return overlay;</span>
+<span class="dl-add">+  const legacy = path.join(ROOT_DIR, name);</span>
+<span class="dl-add">+  if (fs.existsSync(legacy)) return legacy;</span>
+<span class="dl-add">+  return overlay;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const ROOT_DIR = resolveProjectRoot();</span>
+<span class="dl-add">+const STRUCTURE_FILE = resolveMetaPath(&#39;STRUCTURE.json&#39;);</span>
+<span class="dl-ctx"> const SRC_DIR = path.join(ROOT_DIR, &#39;src&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Directories never scanned for source files, regardless of .gitignore.</span>
+<span class="dl-hunk">@@ -334,6 +358,9 @@ function saveStructure(structure) {</span>
+<span class="dl-ctx">     structure.lastUpdated = new Date().toISOString().split(&#39;T&#39;)[0];</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // First run in a project whose .frame/ isn&#39;t there yet (running this script</span>
+<span class="dl-add">+  // by hand is a legitimate way to bootstrap the map).</span>
+<span class="dl-add">+  fs.mkdirSync(path.dirname(STRUCTURE_FILE), { recursive: true });</span>
+<span class="dl-ctx">   fs.writeFileSync(STRUCTURE_FILE, JSON.stringify(structure, null, 2) + &#39;\n&#39;);</span>
+<span class="dl-ctx">   console.log(`✓ Updated STRUCTURE.json (${Object.keys(structure.modules).length} modules)`);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-meta">diff --git a/src/main/structureBootstrap.js b/src/main/structureBootstrap.js</span>
+<span class="dl-meta">index 453e5c3..b09cccc 100644</span>
+<span class="dl-file">--- a/src/main/structureBootstrap.js</span>
+<span class="dl-file">+++ b/src/main/structureBootstrap.js</span>
+<span class="dl-hunk">@@ -6,17 +6,20 @@</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-ctx">  *   1. Copy scripts/update-structure.js + scripts/find-module.js into</span>
+<span class="dl-ctx">  *      .frame/bin/ so the project carries its own parser. Same code as</span>
+<span class="dl-del">- *      Frame&#39;s own repo; the only portability change is reading</span>
+<span class="dl-del">- *      FRAME_PROJECT_ROOT from env.</span>
+<span class="dl-add">+ *      Frame&#39;s own repo; the shipped copy resolves the project from its own</span>
+<span class="dl-add">+ *      location (.frame/bin → project), with FRAME_PROJECT_ROOT overriding.</span>
+<span class="dl-add">+ *      Also re-run by migration, to refresh the scripts of a project that</span>
+<span class="dl-add">+ *      was initialized before this rule.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-ctx">  *   2. Install a pre-commit hook that runs the parser on staged changes.</span>
+<span class="dl-ctx">  *      Detects existing hook setups (husky, lefthook, vanilla custom) and</span>
+<span class="dl-ctx">  *      either appends to them idempotently or surfaces manual instructions —</span>
+<span class="dl-ctx">  *      we never overwrite the user&#39;s existing hook content.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-del">- *   3. Run one full-mode parse so STRUCTURE.json is populated immediately</span>
+<span class="dl-del">- *      after init, not on the next commit. Only runs when STRUCTURE.json was</span>
+<span class="dl-del">- *      just created by Frame (we don&#39;t touch a pre-existing one).</span>
+<span class="dl-add">+ *   3. Run one full-mode parse so .frame/STRUCTURE.json is populated</span>
+<span class="dl-add">+ *      immediately after init, not on the next commit. Only runs when</span>
+<span class="dl-add">+ *      STRUCTURE.json was just created by Frame (we don&#39;t touch a</span>
+<span class="dl-add">+ *      pre-existing one, wherever it lives).</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-ctx">  * Failures in any step are non-fatal: a project must successfully initialize</span>
+<span class="dl-ctx">  * even if hook install fails (no git, permission issues, etc.).</span>
+<span class="dl-hunk">@@ -211,7 +214,7 @@ async function installPreCommitHook(projectPath) {</span>
+<span class="dl-ctx">         &#39;pre-commit:&#39;,</span>
+<span class="dl-ctx">         &#39;  commands:&#39;,</span>
+<span class="dl-ctx">         &#39;    frame-structure:&#39;,</span>
+<span class="dl-del">-        &#39;      run: node .frame/bin/update-structure.js --changed &amp;&amp; git add STRUCTURE.json&#39;,</span>
+<span class="dl-add">+        &#39;      run: node .frame/bin/update-structure.js --changed &amp;&amp; git add .frame/STRUCTURE.json&#39;,</span>
+<span class="dl-ctx">         &#39;      env:&#39;,</span>
+<span class="dl-ctx">         &#39;        FRAME_PROJECT_ROOT: &quot;{root}&quot;&#39;</span>
+<span class="dl-ctx">       ].join(&#39;\n&#39;)</span>
+<span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 366071a..46d315b 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -923,7 +923,11 @@ if command -v node &gt;/dev/null 2&gt;&amp;1; then</span>
+<span class="dl-ctx">   FRAME_ROOT=&quot;$(git rev-parse --show-toplevel 2&gt;/dev/null)&quot;</span>
+<span class="dl-ctx">   if [ -n &quot;$FRAME_ROOT&quot; ] &amp;&amp; [ -f &quot;$FRAME_ROOT/.frame/bin/update-structure.js&quot; ]; then</span>
+<span class="dl-ctx">     FRAME_PROJECT_ROOT=&quot;$FRAME_ROOT&quot; node &quot;$FRAME_ROOT/.frame/bin/update-structure.js&quot; --changed || true</span>
+<span class="dl-del">-    if [ -f &quot;$FRAME_ROOT/STRUCTURE.json&quot; ]; then</span>
+<span class="dl-add">+    # .frame/STRUCTURE.json is where the parser writes; the root copy only</span>
+<span class="dl-add">+    # exists in a project that has not migrated yet.</span>
+<span class="dl-add">+    if [ -f &quot;$FRAME_ROOT/.frame/STRUCTURE.json&quot; ]; then</span>
+<span class="dl-add">+      git add &quot;$FRAME_ROOT/.frame/STRUCTURE.json&quot; || true</span>
+<span class="dl-add">+    elif [ -f &quot;$FRAME_ROOT/STRUCTURE.json&quot; ]; then</span>
+<span class="dl-ctx">       git add &quot;$FRAME_ROOT/STRUCTURE.json&quot; || true</span>
+<span class="dl-ctx">     fi</span>
+<span class="dl-ctx">   fi</span>
+<span class="dl-meta">diff --git a/test/projectAgnostic.test.js b/test/projectAgnostic.test.js</span>
+<span class="dl-meta">index 206db70..6c50e0f 100644</span>
+<span class="dl-file">--- a/test/projectAgnostic.test.js</span>
+<span class="dl-file">+++ b/test/projectAgnostic.test.js</span>
+<span class="dl-hunk">@@ -28,6 +28,10 @@ test(&#39;golden: js-src-app STRUCTURE.json is in sync with the parser (--check)&#39;, (</span>
+<span class="dl-ctx">   assert.equal(res.status, 0, `--check reported drift:\n${res.stdout}${res.stderr}`);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// The js-src-app fixture carries its golden at the project root, so this pair</span>
+<span class="dl-add">+// also covers the parser&#39;s legacy fallback: an existing root STRUCTURE.json</span>
+<span class="dl-add">+// keeps being updated in place. Every other fixture has none, so the parser</span>
+<span class="dl-add">+// writes .frame/STRUCTURE.json — the overlay-first half of the same rule.</span>
+<span class="dl-ctx"> test(&#39;golden: full regen on js-src-app copy is byte-identical to the committed golden&#39;, () =&gt; {</span>
+<span class="dl-ctx">   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-golden-&#39;));</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-hunk">@@ -59,7 +63,7 @@ function initAndParse(fixtureName) {</span>
+<span class="dl-ctx">     assert.equal(detect.status, 0, detect.stderr);</span>
+<span class="dl-ctx">     const parse = runParser(tmp);</span>
+<span class="dl-ctx">     assert.equal(parse.status, 0, parse.stderr);</span>
+<span class="dl-del">-    const raw = fs.readFileSync(path.join(tmp, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;);</span>
+<span class="dl-add">+    const raw = fs.readFileSync(path.join(tmp, &#39;.frame&#39;, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;);</span>
+<span class="dl-ctx">     // Output must never carry Frame&#39;s own vocabulary into a user project</span>
+<span class="dl-ctx">     for (const sentinel of [&#39;TERMINAL_&#39;, &#39;CLAUDE_&#39;, &#39;GITHUB_&#39;, &#39;FRAME_PROJECT&#39;, &#39;multiTerminal&#39;]) {</span>
+<span class="dl-ctx">       assert.ok(!raw.includes(sentinel), `fixture output contains Frame vocabulary &quot;${sentinel}&quot;`);</span>
+<span class="dl-hunk">@@ -200,7 +204,7 @@ test(&#39;ipc channels sync from the config-named file with token-derived categories</span>
+<span class="dl-ctx">     ].join(&#39;\n&#39;));</span>
+<span class="dl-ctx">     const res = runParser(tmp);</span>
+<span class="dl-ctx">     assert.equal(res.status, 0, res.stderr);</span>
+<span class="dl-del">-    const s = JSON.parse(fs.readFileSync(path.join(tmp, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+    const s = JSON.parse(fs.readFileSync(path.join(tmp, &#39;.frame&#39;, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-ctx">     assert.ok(s.ipcChannels.reports.LOAD_REPORTS, &#39;LOAD_REPORTS → category &quot;reports&quot;&#39;);</span>
+<span class="dl-ctx">     assert.ok(s.ipcChannels.export.TOGGLE_EXPORT_PANEL, &#39;TOGGLE_EXPORT_PANEL → category &quot;export&quot;&#39;);</span>
+<span class="dl-ctx">   } finally {</span>
+<span class="dl-hunk">@@ -220,7 +224,7 @@ test(&#39;walker safety: symlink cycle + ignored dirs terminate with clean output&#39;,</span>
+<span class="dl-ctx">     fs.symlinkSync(path.join(tmp, &#39;lib&#39;), path.join(tmp, &#39;lib&#39;, &#39;loop&#39;));</span>
+<span class="dl-ctx">     const res = runParser(tmp);</span>
+<span class="dl-ctx">     assert.equal(res.status, 0, res.stderr);</span>
+<span class="dl-del">-    const s = JSON.parse(fs.readFileSync(path.join(tmp, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+    const s = JSON.parse(fs.readFileSync(path.join(tmp, &#39;.frame&#39;, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-ctx">     assert.deepEqual(Object.keys(s.modules), [&#39;lib/a&#39;]); // no node_modules, no cycle dupes</span>
+<span class="dl-ctx">   } finally {</span>
+<span class="dl-ctx">     fs.rmSync(tmp, { recursive: true, force: true });</span>
+<span class="dl-meta">diff --git a/test/scriptsProjectRoot.test.js b/test/scriptsProjectRoot.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..80f7b7a</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/scriptsProjectRoot.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,158 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Shipped-script project-root tests (non-invasive-overlay T03).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The copies under a project&#39;s `.frame/bin/` used to resolve their project as</span>
+<span class="dl-add">+ * `__dirname/..`, which is `.frame/` — so running one by hand from a user</span>
+<span class="dl-add">+ * project reported on (or wrote into) the wrong tree. Each script now derives</span>
+<span class="dl-add">+ * the project from its own location, honours FRAME_PROJECT_ROOT above</span>
+<span class="dl-add">+ * everything, and resolves meta files overlay-first without ever creating one</span>
+<span class="dl-add">+ * at the project root.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The scripts are staged with the real `copyParserScripts`, so this also pins</span>
+<span class="dl-add">+ * that migration&#39;s refresh path ships everything they require.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test, before, after } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const os = require(&#39;os&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { spawnSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const structureBootstrap = require(&#39;../src/main/structureBootstrap&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let projectDir;</span>
+<span class="dl-add">+let binDir;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function run(script, args = [], env = {}) {</span>
+<span class="dl-add">+  return spawnSync(&#39;node&#39;, [path.join(binDir, script), ...args], {</span>
+<span class="dl-add">+    // cwd is deliberately somewhere else: the script must find the project</span>
+<span class="dl-add">+    // from its own location, not from where it happens to be invoked.</span>
+<span class="dl-add">+    cwd: os.tmpdir(),</span>
+<span class="dl-add">+    encoding: &#39;utf8&#39;,</span>
+<span class="dl-add">+    env: { ...process.env, FRAME_PROJECT_ROOT: undefined, ...env },</span>
+<span class="dl-add">+    timeout: 30000</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+before(() =&gt; {</span>
+<span class="dl-add">+  projectDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-scripts-&#39;));</span>
+<span class="dl-add">+  fs.mkdirSync(path.join(projectDir, &#39;src&#39;), { recursive: true });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  fs.writeFileSync(</span>
+<span class="dl-add">+    path.join(projectDir, &#39;src&#39;, &#39;widgetManager.js&#39;),</span>
+<span class="dl-add">+    [</span>
+<span class="dl-add">+      &#39;/**&#39;,</span>
+<span class="dl-add">+      &#39; * Widget Manager — creates and stores widgets.&#39;,</span>
+<span class="dl-add">+      &#39; */&#39;,</span>
+<span class="dl-add">+      &#39;function createWidget(name) { return { name }; }&#39;,</span>
+<span class="dl-add">+      &#39;module.exports = { createWidget };&#39;,</span>
+<span class="dl-add">+      &#39;&#39;</span>
+<span class="dl-add">+    ].join(&#39;\n&#39;),</span>
+<span class="dl-add">+    &#39;utf8&#39;</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+  fs.writeFileSync(</span>
+<span class="dl-add">+    path.join(projectDir, &#39;src&#39;, &#39;reportPrinter.js&#39;),</span>
+<span class="dl-add">+    [</span>
+<span class="dl-add">+      &#39;/**&#39;,</span>
+<span class="dl-add">+      &#39; * Report Printer — renders widget reports.&#39;,</span>
+<span class="dl-add">+      &#39; */&#39;,</span>
+<span class="dl-add">+      &#39;function printReport(rows) { return rows.join(&quot;\\n&quot;); }&#39;,</span>
+<span class="dl-add">+      &#39;module.exports = { printReport };&#39;,</span>
+<span class="dl-add">+      &#39;&#39;</span>
+<span class="dl-add">+    ].join(&#39;\n&#39;),</span>
+<span class="dl-add">+    &#39;utf8&#39;</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  binDir = path.join(projectDir, &#39;.frame&#39;, &#39;bin&#39;);</span>
+<span class="dl-add">+  structureBootstrap.copyParserScripts(projectDir);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+after(() =&gt; {</span>
+<span class="dl-add">+  fs.rmSync(projectDir, { recursive: true, force: true });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;copyParserScripts stages the scripts and their extractors&#39;, () =&gt; {</span>
+<span class="dl-add">+  for (const file of [&#39;update-structure.js&#39;, &#39;find-module.js&#39;, &#39;check-freshness.js&#39;, &#39;intent-map.json&#39;]) {</span>
+<span class="dl-add">+    assert.ok(fs.existsSync(path.join(binDir, file)), `${file} staged`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(binDir, &#39;lang&#39;, &#39;javascript.js&#39;)), &#39;lang extractors staged&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;update-structure.js writes .frame/STRUCTURE.json for the project it lives in&#39;, () =&gt; {</span>
+<span class="dl-add">+  const result = run(&#39;update-structure.js&#39;);</span>
+<span class="dl-add">+  assert.equal(result.status, 0, result.stderr);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const overlayPath = path.join(projectDir, &#39;.frame&#39;, &#39;STRUCTURE.json&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(overlayPath), &#39;map written under .frame/&#39;);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;STRUCTURE.json&#39;)), &#39;nothing created at the project root&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const structure = JSON.parse(fs.readFileSync(overlayPath, &#39;utf8&#39;));</span>
+<span class="dl-add">+  const keys = Object.keys(structure.modules);</span>
+<span class="dl-add">+  assert.ok(keys.some((k) =&gt; k.includes(&#39;widgetManager&#39;)), `widgetManager in ${keys}`);</span>
+<span class="dl-add">+  assert.ok(keys.some((k) =&gt; k.includes(&#39;reportPrinter&#39;)), `reportPrinter in ${keys}`);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;find-module.js resolves the same project&#39;, () =&gt; {</span>
+<span class="dl-add">+  const result = run(&#39;find-module.js&#39;, [&#39;widget&#39;]);</span>
+<span class="dl-add">+  assert.equal(result.status, 0, result.stderr);</span>
+<span class="dl-add">+  assert.match(result.stdout, /widgetManager/);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;check-freshness.js reports no phantom modules for a freshly parsed tree&#39;, () =&gt; {</span>
+<span class="dl-add">+  const result = run(&#39;check-freshness.js&#39;, [&#39;--json&#39;]);</span>
+<span class="dl-add">+  assert.equal(result.status, 0, result.stderr);</span>
+<span class="dl-add">+  const findings = JSON.parse(result.stdout);</span>
+<span class="dl-add">+  const phantom = (findings.findings || findings).filter((f) =&gt; f.check === &#39;phantom-module&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(phantom, [], &#39;the modules it lists are the ones on disk&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;an existing root STRUCTURE.json keeps being updated in place&#39;, () =&gt; {</span>
+<span class="dl-add">+  // Unmigrated project: the map is still at the root, so the parser must</span>
+<span class="dl-add">+  // keep writing there rather than starting a second copy under .frame/.</span>
+<span class="dl-add">+  const legacyDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-scripts-legacy-&#39;));</span>
+<span class="dl-add">+  fs.mkdirSync(path.join(legacyDir, &#39;src&#39;), { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(</span>
+<span class="dl-add">+    path.join(legacyDir, &#39;src&#39;, &#39;legacyModule.js&#39;),</span>
+<span class="dl-add">+    &#39;/** Legacy Module — one export. */\nmodule.exports = { legacy: true };\n&#39;,</span>
+<span class="dl-add">+    &#39;utf8&#39;</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(legacyDir, &#39;STRUCTURE.json&#39;), JSON.stringify({ modules: {} }, null, 2) + &#39;\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  structureBootstrap.copyParserScripts(legacyDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const result = spawnSync(&#39;node&#39;, [path.join(legacyDir, &#39;.frame&#39;, &#39;bin&#39;, &#39;update-structure.js&#39;)], {</span>
+<span class="dl-add">+    cwd: os.tmpdir(),</span>
+<span class="dl-add">+    encoding: &#39;utf8&#39;,</span>
+<span class="dl-add">+    env: { ...process.env, FRAME_PROJECT_ROOT: undefined },</span>
+<span class="dl-add">+    timeout: 30000</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  assert.equal(result.status, 0, result.stderr);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const structure = JSON.parse(fs.readFileSync(path.join(legacyDir, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+  assert.ok(Object.keys(structure.modules).some((k) =&gt; k.includes(&#39;legacyModule&#39;)), &#39;root map updated&#39;);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(legacyDir, &#39;.frame&#39;, &#39;STRUCTURE.json&#39;)), &#39;no second copy under .frame/&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  fs.rmSync(legacyDir, { recursive: true, force: true });</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;FRAME_PROJECT_ROOT still wins over the script location&#39;, () =&gt; {</span>
+<span class="dl-add">+  const otherDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-scripts-other-&#39;));</span>
+<span class="dl-add">+  fs.mkdirSync(path.join(otherDir, &#39;src&#39;), { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(</span>
+<span class="dl-add">+    path.join(otherDir, &#39;src&#39;, &#39;otherModule.js&#39;),</span>
+<span class="dl-add">+    &#39;/** Other Module — elsewhere entirely. */\nmodule.exports = { other: true };\n&#39;,</span>
+<span class="dl-add">+    &#39;utf8&#39;</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Same staged script, pointed at a different project by env alone.</span>
+<span class="dl-add">+  const result = run(&#39;update-structure.js&#39;, [], { FRAME_PROJECT_ROOT: otherDir });</span>
+<span class="dl-add">+  assert.equal(result.status, 0, result.stderr);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const structure = JSON.parse(fs.readFileSync(path.join(otherDir, &#39;.frame&#39;, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+  assert.ok(Object.keys(structure.modules).some((k) =&gt; k.includes(&#39;otherModule&#39;)), &#39;env target parsed&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const staged = JSON.parse(fs.readFileSync(path.join(projectDir, &#39;.frame&#39;, &#39;STRUCTURE.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+  assert.ok(!Object.keys(staged.modules).some((k) =&gt; k.includes(&#39;otherModule&#39;)), &#39;the script\&#39;s own project untouched&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  fs.rmSync(otherDir, { recursive: true, force: true });</span>
 <span class="dl-add">+});</span></pre>
     </details>
   </div>

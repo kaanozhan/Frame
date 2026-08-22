@@ -17,13 +17,37 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user
-// project. Frame's own pre-commit hook doesn't set it, so behavior is identical
-// to before; only callers who explicitly opt in get the override.
-const ROOT_DIR = process.env.FRAME_PROJECT_ROOT
-  ? path.resolve(process.env.FRAME_PROJECT_ROOT)
-  : path.join(__dirname, '..');
-const STRUCTURE_FILE = path.join(ROOT_DIR, 'STRUCTURE.json');
+/**
+ * Which project this run is about. `__dirname/..` was wrong for the shipped
+ * copy: run by hand from a user project, it wrote Frame's own STRUCTURE.json.
+ * Same rule as spec-index.js / detect-project.js.
+ */
+function resolveProjectRoot() {
+  if (process.env.FRAME_PROJECT_ROOT) return path.resolve(process.env.FRAME_PROJECT_ROOT);
+  // Shipped copy: <project>/.frame/bin/ — the project is two levels up.
+  if (path.basename(__dirname) === 'bin' && path.basename(path.dirname(__dirname)) === '.frame') {
+    return path.dirname(path.dirname(__dirname));
+  }
+  // Frame's own repo: scripts/
+  if (path.basename(__dirname) === 'scripts') return path.join(__dirname, '..');
+  return process.cwd();
+}
+
+/**
+ * Where a meta file lives: `.frame/<name>` for a migrated project, the root
+ * only while an unmigrated project still has it there. A file that exists in
+ * neither place resolves to `.frame/` — new files are never created at the root.
+ */
+function resolveMetaPath(name) {
+  const overlay = path.join(ROOT_DIR, '.frame', name);
+  if (fs.existsSync(overlay)) return overlay;
+  const legacy = path.join(ROOT_DIR, name);
+  if (fs.existsSync(legacy)) return legacy;
+  return overlay;
+}
+
+const ROOT_DIR = resolveProjectRoot();
+const STRUCTURE_FILE = resolveMetaPath('STRUCTURE.json');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 
 // Directories never scanned for source files, regardless of .gitignore.
@@ -334,6 +358,9 @@ function saveStructure(structure) {
     structure.lastUpdated = new Date().toISOString().split('T')[0];
   }
 
+  // First run in a project whose .frame/ isn't there yet (running this script
+  // by hand is a legitimate way to bootstrap the map).
+  fs.mkdirSync(path.dirname(STRUCTURE_FILE), { recursive: true });
   fs.writeFileSync(STRUCTURE_FILE, JSON.stringify(structure, null, 2) + '\n');
   console.log(`✓ Updated STRUCTURE.json (${Object.keys(structure.modules).length} modules)`);
 }

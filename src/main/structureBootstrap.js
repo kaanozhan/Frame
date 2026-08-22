@@ -6,17 +6,20 @@
  *
  *   1. Copy scripts/update-structure.js + scripts/find-module.js into
  *      .frame/bin/ so the project carries its own parser. Same code as
- *      Frame's own repo; the only portability change is reading
- *      FRAME_PROJECT_ROOT from env.
+ *      Frame's own repo; the shipped copy resolves the project from its own
+ *      location (.frame/bin → project), with FRAME_PROJECT_ROOT overriding.
+ *      Also re-run by migration, to refresh the scripts of a project that
+ *      was initialized before this rule.
  *
  *   2. Install a pre-commit hook that runs the parser on staged changes.
  *      Detects existing hook setups (husky, lefthook, vanilla custom) and
  *      either appends to them idempotently or surfaces manual instructions —
  *      we never overwrite the user's existing hook content.
  *
- *   3. Run one full-mode parse so STRUCTURE.json is populated immediately
- *      after init, not on the next commit. Only runs when STRUCTURE.json was
- *      just created by Frame (we don't touch a pre-existing one).
+ *   3. Run one full-mode parse so .frame/STRUCTURE.json is populated
+ *      immediately after init, not on the next commit. Only runs when
+ *      STRUCTURE.json was just created by Frame (we don't touch a
+ *      pre-existing one, wherever it lives).
  *
  * Failures in any step are non-fatal: a project must successfully initialize
  * even if hook install fails (no git, permission issues, etc.).
@@ -211,7 +214,7 @@ async function installPreCommitHook(projectPath) {
         'pre-commit:',
         '  commands:',
         '    frame-structure:',
-        '      run: node .frame/bin/update-structure.js --changed && git add STRUCTURE.json',
+        '      run: node .frame/bin/update-structure.js --changed && git add .frame/STRUCTURE.json',
         '      env:',
         '        FRAME_PROJECT_ROOT: "{root}"'
       ].join('\n')

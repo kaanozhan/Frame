@@ -3161,35 +3161,35 @@
       ],
       "functions": {
         "copyParserScripts": {
-          "line": 47,
+          "line": 50,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "detectHookSetup": {
-          "line": 120,
+          "line": 123,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "hasFrameSnippet": {
-          "line": 177,
+          "line": 180,
           "params": [
             "hookFilePath"
           ],
           "purpose": "Check if our managed snippet is already present in a hook file."
         },
         "installPreCommitHook": {
-          "line": 194,
+          "line": 197,
           "params": [
             "projectPath"
           ],
           "purpose": "Install (or append) the pre-commit hook based on detected setup."
         },
         "appendToHookFile": {
-          "line": 249,
+          "line": 252,
           "params": [
             "hookPath",
             "createIfMissing",
@@ -3198,14 +3198,14 @@
           "purpose": "Append the Frame snippet to an existing hook file (husky case)."
         },
         "runInitialFullScan": {
-          "line": 287,
+          "line": 290,
           "params": [
             "projectPath"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 325,
+          "line": 328,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -8700,24 +8700,24 @@
           "line": 918
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 939,
+          "line": 943,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 962,
+          "line": 966,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 974,
+          "line": 978,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 994
+          "line": 998
         },
         "getOrchBinScripts": {
-          "line": 1012,
+          "line": 1016,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

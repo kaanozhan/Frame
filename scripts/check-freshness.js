@@ -14,12 +14,38 @@ const fs = require('fs');
 const path = require('path');
 const { execSync, spawnSync } = require('child_process');
 
-// FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user
-// project. Frame's own callers don't set it — behavior is unchanged.
 const STARTED_AT = Date.now();
-const ROOT_DIR = process.env.FRAME_PROJECT_ROOT
-  ? path.resolve(process.env.FRAME_PROJECT_ROOT)
-  : path.join(__dirname, '..');
+
+/**
+ * Which project this run is about. `__dirname/..` was wrong for the shipped
+ * copy: run by hand from a user project, it reported on Frame's own files.
+ * Same rule as spec-index.js / detect-project.js.
+ */
+function resolveProjectRoot() {
+  if (process.env.FRAME_PROJECT_ROOT) return path.resolve(process.env.FRAME_PROJECT_ROOT);
+  // Shipped copy: <project>/.frame/bin/ — the project is two levels up.
+  if (path.basename(__dirname) === 'bin' && path.basename(path.dirname(__dirname)) === '.frame') {
+    return path.dirname(path.dirname(__dirname));
+  }
+  // Frame's own repo: scripts/
+  if (path.basename(__dirname) === 'scripts') return path.join(__dirname, '..');
+  return process.cwd();
+}
+
+const ROOT_DIR = resolveProjectRoot();
+
+/**
+ * Where a meta file lives: `.frame/<name>` for a migrated project, the root
+ * only while an unmigrated project still has it there. Returns the path and
+ * its root-relative form, which is what git pathspecs below need.
+ */
+function resolveMetaPath(name) {
+  const overlay = path.join(ROOT_DIR, '.frame', name);
+  if (fs.existsSync(overlay)) return { path: overlay, rel: `.frame/${name}` };
+  const legacy = path.join(ROOT_DIR, name);
+  if (fs.existsSync(legacy)) return { path: legacy, rel: name };
+  return { path: overlay, rel: `.frame/${name}` };
+}
 
 const STALE_TASK_DAYS = 14;
 const NOTES_COMMIT_THRESHOLD = 10;
@@ -43,9 +69,9 @@ function git(cmd) {
   }
 }
 
-function readJSON(file) {
+function readJSON(name) {
   try {
-    return JSON.parse(fs.readFileSync(path.join(ROOT_DIR, file), 'utf-8'));
+    return JSON.parse(fs.readFileSync(resolveMetaPath(name).path, 'utf-8'));
   } catch (e) {
     return null;
   }
@@ -110,10 +136,10 @@ function checkStructureDrift(structure) {
  * 3. Notes staleness — commits landed since the last dated PROJECT_NOTES entry
  */
 function checkNotesStaleness() {
-  const notesPath = path.join(ROOT_DIR, 'PROJECT_NOTES.md');
-  if (!fs.existsSync(notesPath)) return;
+  const notes = resolveMetaPath('PROJECT_NOTES.md');
+  if (!fs.existsSync(notes.path)) return;
 
-  const content = fs.readFileSync(notesPath, 'utf-8');
+  const content = fs.readFileSync(notes.path, 'utf-8');
   const dates = [...content.matchAll(/^###\s*\[(\d{4}-\d{2}-\d{2})\]/gm)].map(m => m[1]);
   if (dates.length === 0) return;
 
@@ -149,9 +175,10 @@ function checkStuckTasks() {
  * 5. QUICKSTART staleness — commits landed since QUICKSTART.md was last touched
  */
 function checkQuickstartStaleness() {
-  if (!fs.existsSync(path.join(ROOT_DIR, 'QUICKSTART.md'))) return;
+  const quickstart = resolveMetaPath('QUICKSTART.md');
+  if (!fs.existsSync(quickstart.path)) return;
 
-  const lastTouched = git('git log -1 --format=%cs -- QUICKSTART.md');
+  const lastTouched = git(`git log -1 --format=%cs -- ${quickstart.rel}`);
   if (!lastTouched) return;
 
   const commitsSince = git(`git rev-list --count HEAD --since=${lastTouched}`);

@@ -923,7 +923,11 @@ if command -v node >/dev/null 2>&1; then
   FRAME_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
   if [ -n "$FRAME_ROOT" ] && [ -f "$FRAME_ROOT/.frame/bin/update-structure.js" ]; then
     FRAME_PROJECT_ROOT="$FRAME_ROOT" node "$FRAME_ROOT/.frame/bin/update-structure.js" --changed || true
-    if [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then
+    # .frame/STRUCTURE.json is where the parser writes; the root copy only
+    # exists in a project that has not migrated yet.
+    if [ -f "$FRAME_ROOT/.frame/STRUCTURE.json" ]; then
+      git add "$FRAME_ROOT/.frame/STRUCTURE.json" || true
+    elif [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then
       git add "$FRAME_ROOT/STRUCTURE.json" || true
     fi
   fi
