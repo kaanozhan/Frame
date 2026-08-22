@@ -1856,6 +1856,126 @@
         ]
       }
     },
+    "main/layoutMigration": {
+      "file": "src/main/layoutMigration.js",
+      "description": "layoutMigration — move a pre-overlay project's meta files into `.frame/`",
+      "exports": [
+        "init",
+        "plan",
+        "run",
+        "upgradeAgentsText",
+        "isFramePlantedSymlink",
+        "AGENTS_LINE_EDITS"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "fsSafe",
+        "frameStore",
+        "gitExclude",
+        "gitSharing",
+        "structureBootstrap",
+        "shared/frameTemplates",
+        "shared/frameConstants",
+        "frameProject"
+      ],
+      "functions": {
+        "init": {
+          "line": 43,
+          "params": [
+            "{ activityLog"
+          ]
+        },
+        "record": {
+          "line": 47,
+          "params": [
+            "event",
+            "fields"
+          ]
+        },
+        "git": {
+          "line": 55,
+          "params": [
+            "projectPath",
+            "args"
+          ]
+        },
+        "legacyNames": {
+          "line": 70,
+          "params": [
+            "config"
+          ],
+          "purpose": "The meta names this project's config claims, in a stable order."
+        },
+        "sameBytes": {
+          "line": 77,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "isFramePlantedSymlink": {
+          "line": 89,
+          "params": [
+            "file"
+          ],
+          "purpose": "Is this a Frame-planted symlink? Only when it is a symlink whose target's"
+        },
+        "extractClaudeBlock": {
+          "line": 103,
+          "params": [
+            "agentsText"
+          ],
+          "purpose": "The `## Existing Instructions (from CLAUDE.md)` block old inits appended to"
+        },
+        "dirtyAmong": {
+          "line": 127,
+          "params": [
+            "projectPath",
+            "relPaths"
+          ],
+          "purpose": "Files with uncommitted changes, compared repo-root-relative so a project in"
+        },
+        "trackedAmong": {
+          "line": 152,
+          "params": [
+            "projectPath",
+            "relPaths"
+          ],
+          "purpose": "Which of these paths git already tracks (decides the sharing posture)."
+        },
+        "plan": {
+          "line": 174,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Describe what migrating this project would do. Pure: no writes, no git"
+        },
+        "copyVerified": {
+          "line": 230,
+          "params": [
+            "from",
+            "to"
+          ]
+        },
+        "upgradeAgentsText": {
+          "line": 253,
+          "params": [
+            "text"
+          ]
+        },
+        "run": {
+          "line": 281,
+          "params": [
+            "projectPath",
+            "migrationPlan",
+            "onProgress = ("
+          ],
+          "purpose": "Execute a plan. Reports progress through `onProgress({ step, detail })` and"
+        }
+      }
+    },
     "main/logger": {
       "file": "src/main/logger.js",
       "description": "Logger — rotating, redacted log file for the main process.",
@@ -8664,32 +8784,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 206,
+          "line": 240,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 210,
+          "line": 244,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 214,
+          "line": 248,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 218,
+          "line": 252,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 241,
+          "line": 275,
           "params": [
             "name",
             "fields"
@@ -8697,7 +8817,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 258,
+          "line": 292,
           "params": [
             "name",
             "fields"
@@ -8705,7 +8825,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 279,
+          "line": 313,
           "params": [
             "name",
             "fields"

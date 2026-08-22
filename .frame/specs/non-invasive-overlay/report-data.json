@@ -87,6 +87,18 @@
         "status": "pass",
         "detail": "267 pass, 0 fail"
       }
+    },
+    {
+      "id": "T08",
+      "title": "layoutMigration: pure plan(), consented run()",
+      "commit": "277584d",
+      "whatChanged": "New src/main/layoutMigration.js. plan() is pure: fingerprint (config.files record plus a root file), per-artifact dispositions (move / delete-identical / backup-conflict / backup-only for .bak siblings), Frame-planted symlinks only (target basename AGENTS.md), the restorable CLAUDE.md block, the dirty list from git status --porcelain compared against show-prefix + rel, the tracked list and the derived sharing mode. run() backs every file up before touching it, copies via fsSafe and byte-verifies before unlinking, restores CLAUDE.md verbatim, makes targeted AGENTS.md line edits with a review list for anything it could not find, writes the pointer, stamps the id, drops the files record, replaces the unguarded hook entries, applies the sharing mode and refreshes .frame/bin. Added migration.* and sharing.mode_changed to the activity registry. 13 tests in test/layoutMigration.test.js.",
+      "whyChanged": "Untracked files are deliberately NOT dirty: in an unshared project every meta file is untracked, so counting them would make migration impossible exactly where it is safest — only tracked modifications defer. Two bugs the tests caught: porcelain lines must be matched, not sliced at a fixed column (the git helper trims, which shifts the first line by one char), and sharing.mode_changed had to be registered or the activity layer would silently drop T06's record.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "280 pass, 0 fail (13 new)"
+      }
     }
   ]
 }

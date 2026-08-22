@@ -4863,13 +4863,13 @@
       "title": "Add `src/main/layoutMigration.js` — pure `plan(projectPath)` (fingerprint = `config.files` record plus a root file, dispositions `move`/`delete-identical`/`backup-conflict`, Frame-planted `CLAUDE.md`/`GEMINI.md` symlinks, restorable `CLAUDE.md` block, dirty list from `git status --porcelain` compared against `show-prefix + rel`, tracked list) and `run(projectPath, plan, onProgress)` (backup + `fsSafe` copy + byte verify + unlink, verbatim `CLAUDE.md` restoration, targeted `AGENTS.md` line edit with a review list, pointer write, guarded hook replacement, `ensureProjectId`, drop `files`, `.frame/.gitignore`, sharing posture derived from tracked state, `copyParserScripts` refresh, `migration.*` activity events, receipt); ships with `test/layoutMigration.test.js`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T11:15:00.000Z",
+      "completedAt": "2026-08-23T11:15:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T09",

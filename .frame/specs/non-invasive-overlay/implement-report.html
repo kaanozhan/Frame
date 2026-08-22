@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">7 tasks</span>
-    <span class="pill good">7 verified</span>
+    <span class="pill">8 tasks</span>
+    <span class="pill good">8 verified</span>
     
     <span class="chip">2026-08-22</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">7 of 12 tasks done · next: <span class="rs-task">T08 — Add `src/main/layoutMigration.js` — pure `plan(projectPath)`…</span></span>
+  <span class="rs-count">8 of 12 tasks done · next: <span class="rs-task">T09 — Wire migration consent end to end: `CHECK_IS_FRAME_PROJECT` answering…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -4692,6 +4692,830 @@
 <span class="dl-add">+  const after = gitSharing.setMode(projectDir, &#39;local&#39;);</span>
 <span class="dl-add">+  assert.equal(after.hookFile, &#39;settings.local.json&#39;);</span>
 <span class="dl-add">+  assert.equal(gitSharing.hookFileFor(&#39;repo&#39;), &#39;settings.json&#39;);</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T08</span>
+    <h2>layoutMigration: pure plan(), consented run()</h2>
+    <span class="card-meta"><span class="chip">277584d</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">280 pass, 0 fail (13 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>New src/main/layoutMigration.js. plan() is pure: fingerprint (config.files record plus a root file), per-artifact dispositions (move / delete-identical / backup-conflict / backup-only for .bak siblings), Frame-planted symlinks only (target basename AGENTS.md), the restorable CLAUDE.md block, the dirty list from git status --porcelain compared against show-prefix + rel, the tracked list and the derived sharing mode. run() backs every file up before touching it, copies via fsSafe and byte-verifies before unlinking, restores CLAUDE.md verbatim, makes targeted AGENTS.md line edits with a review list for anything it could not find, writes the pointer, stamps the id, drops the files record, replaces the unguarded hook entries, applies the sharing mode and refreshes .frame/bin. Added migration.* and sharing.mode_changed to the activity registry. 13 tests in test/layoutMigration.test.js.</p></div>
+    <div class="field"><span class="label">Why</span><p>Untracked files are deliberately NOT dirty: in an unshared project every meta file is untracked, so counting them would make migration impossible exactly where it is safest — only tracked modifications defer. Two bugs the tests caught: porcelain lines must be matched, not sliced at a fixed column (the git helper trims, which shifts the first line by one char), and sharing.mode_changed had to be registered or the activity layer would silently drop T06&#39;s record.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/layoutMigration.js b/src/main/layoutMigration.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..37178af</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/main/layoutMigration.js</span>
+<span class="dl-hunk">@@ -0,0 +1,408 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * layoutMigration — move a pre-overlay project&#39;s meta files into `.frame/`</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Only ever with consent: `plan()` is pure (it reads, it never writes) so the</span>
+<span class="dl-add">+ * modal can show exactly what will happen, and `run()` executes a plan the</span>
+<span class="dl-add">+ * user clicked through. &quot;Later&quot; leaves the project untouched and working —</span>
+<span class="dl-add">+ * frameStore&#39;s legacy fallback keeps reading the root files.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * The fingerprint is deliberately narrow: `config.files` (Frame&#39;s own init</span>
+<span class="dl-add">+ * signature) **and** at least one listed file at the project root. A</span>
+<span class="dl-add">+ * `CLAUDE.md → AGENTS.md` symlink is not proof of anything — it is a public</span>
+<span class="dl-add">+ * convention, and plenty of repos have one Frame never wrote.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Losing a file here would be unforgivable, so every move is: copy to</span>
+<span class="dl-add">+ * `.frame/migration-backup/&lt;name&gt;`, copy to `.frame/&lt;name&gt;`, compare bytes,</span>
+<span class="dl-add">+ * and only then unlink the root copy. A `.frame/` counterpart that already</span>
+<span class="dl-add">+ * exists and differs is never overwritten — the root copy goes to the backup</span>
+<span class="dl-add">+ * and onto the receipt&#39;s review list instead.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Idempotent by construction: after a successful run the `files` record is</span>
+<span class="dl-add">+ * gone, so a second `plan()` finds no fingerprint and reports nothing to do.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { execFileSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+const fsSafe = require(&#39;./fsSafe&#39;);</span>
+<span class="dl-add">+const frameStore = require(&#39;./frameStore&#39;);</span>
+<span class="dl-add">+const gitExclude = require(&#39;./gitExclude&#39;);</span>
+<span class="dl-add">+const gitSharing = require(&#39;./gitSharing&#39;);</span>
+<span class="dl-add">+const structureBootstrap = require(&#39;./structureBootstrap&#39;);</span>
+<span class="dl-add">+const templates = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-add">+const {</span>
+<span class="dl-add">+  FRAME_DIR,</span>
+<span class="dl-add">+  FRAME_FILES,</span>
+<span class="dl-add">+  LEGACY_SYMLINKS,</span>
+<span class="dl-add">+  MIGRATION_BACKUP_DIR,</span>
+<span class="dl-add">+  CLAUDE_RULE_PATH</span>
+<span class="dl-add">+} = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let activityLog = null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function init({ activityLog: log } = {}) {</span>
+<span class="dl-add">+  activityLog = log || null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function record(event, fields) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    if (activityLog) activityLog.record(event, fields);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    /* bookkeeping never breaks a migration */</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function git(projectPath, args) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return execFileSync(&#39;git&#39;, args, {</span>
+<span class="dl-add">+      cwd: projectPath,</span>
+<span class="dl-add">+      encoding: &#39;utf8&#39;,</span>
+<span class="dl-add">+      stdio: [&#39;ignore&#39;, &#39;pipe&#39;, &#39;ignore&#39;]</span>
+<span class="dl-add">+    }).trim();</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    return null;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── Plan (pure) ──────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** The meta names this project&#39;s config claims, in a stable order. */</span>
+<span class="dl-add">+function legacyNames(config) {</span>
+<span class="dl-add">+  if (!config || !config.files || typeof config.files !== &#39;object&#39;) return [];</span>
+<span class="dl-add">+  const listed = Object.values(config.files).filter((n) =&gt; typeof n === &#39;string&#39; &amp;&amp; n);</span>
+<span class="dl-add">+  // The symlinks are handled separately — they are removed, never moved.</span>
+<span class="dl-add">+  return [...new Set(listed)].filter((n) =&gt; !LEGACY_SYMLINKS.includes(n));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function sameBytes(a, b) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return fs.readFileSync(a).equals(fs.readFileSync(b));</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Is this a Frame-planted symlink? Only when it is a symlink whose target&#39;s</span>
+<span class="dl-add">+ * basename is AGENTS.md. A real file with content is the user&#39;s, always.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function isFramePlantedSymlink(file) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    if (!fs.lstatSync(file).isSymbolicLink()) return false;</span>
+<span class="dl-add">+    return path.basename(fs.readlinkSync(file)) === FRAME_FILES.AGENTS;</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The `## Existing Instructions (from CLAUDE.md)` block old inits appended to</span>
+<span class="dl-add">+ * AGENTS.md, verbatim. Returns null when there is none — a project whose</span>
+<span class="dl-add">+ * CLAUDE.md Frame never consumed has nothing to restore.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function extractClaudeBlock(agentsText) {</span>
+<span class="dl-add">+  if (!agentsText) return null;</span>
+<span class="dl-add">+  const heading = &#39;## Existing Instructions (from CLAUDE.md)&#39;;</span>
+<span class="dl-add">+  const start = agentsText.indexOf(heading);</span>
+<span class="dl-add">+  if (start === -1) return null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const bodyStart = start + heading.length;</span>
+<span class="dl-add">+  // The block ends at the next &quot;---&quot; separator that introduces another</span>
+<span class="dl-add">+  // &quot;## Existing Instructions&quot; section, or at end of file.</span>
+<span class="dl-add">+  const rest = agentsText.slice(bodyStart);</span>
+<span class="dl-add">+  const nextBlock = rest.search(/\n-{3,}\n\s*## Existing Instructions \(from /);</span>
+<span class="dl-add">+  const body = nextBlock === -1 ? rest : rest.slice(0, nextBlock);</span>
+<span class="dl-add">+  return body.replace(/^\s*\n/, &#39;&#39;).replace(/\s+$/, &#39;&#39;) + &#39;\n&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Files with uncommitted changes, compared repo-root-relative so a project in</span>
+<span class="dl-add">+ * a sub-directory is covered. Untracked entries (`??`) are not dirty: nothing</span>
+<span class="dl-add">+ * committed can be lost by moving a file git never knew about, and in an</span>
+<span class="dl-add">+ * unshared project every meta file is untracked — treating those as dirty</span>
+<span class="dl-add">+ * would make migration impossible exactly where it is safest.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Returns [] outside git (nothing to defer for).</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function dirtyAmong(projectPath, relPaths) {</span>
+<span class="dl-add">+  if (!gitExclude.isGitRepo(projectPath)) return [];</span>
+<span class="dl-add">+  const porcelain = git(projectPath, [&#39;status&#39;, &#39;--porcelain&#39;, &#39;--&#39;, ...relPaths]);</span>
+<span class="dl-add">+  if (!porcelain) return [];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const prefix = git(projectPath, [&#39;rev-parse&#39;, &#39;--show-prefix&#39;]) || &#39;&#39;;</span>
+<span class="dl-add">+  const dirty = new Set();</span>
+<span class="dl-add">+  for (const raw of porcelain.split(&#39;\n&#39;)) {</span>
+<span class="dl-add">+    const line = raw.trimStart();</span>
+<span class="dl-add">+    if (!line) continue;</span>
+<span class="dl-add">+    if (line.startsWith(&#39;??&#39;)) continue; // untracked — see above</span>
+<span class="dl-add">+    // &quot;XY &lt;path&gt;&quot;, and for renames &quot;XY &lt;old&gt; -&gt; &lt;new&gt;&quot;. Matched rather than</span>
+<span class="dl-add">+    // sliced at a fixed column: a leading status space is easy to lose (the</span>
+<span class="dl-add">+    // git helper trims), which would shift every path by one character.</span>
+<span class="dl-add">+    const match = line.match(/^[A-Z?!]{1,2}\s+(.*)$/);</span>
+<span class="dl-add">+    if (!match) continue;</span>
+<span class="dl-add">+    const listed = match[1].split(&#39; -&gt; &#39;).pop().replace(/^&quot;|&quot;$/g, &#39;&#39;);</span>
+<span class="dl-add">+    for (const rel of relPaths) {</span>
+<span class="dl-add">+      if (listed === `${prefix}${rel}` || listed === rel) dirty.add(rel);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return [...dirty];</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Which of these paths git already tracks (decides the sharing posture). */</span>
+<span class="dl-add">+function trackedAmong(projectPath, relPaths) {</span>
+<span class="dl-add">+  if (!gitExclude.isGitRepo(projectPath)) return [];</span>
+<span class="dl-add">+  const listed = git(projectPath, [&#39;ls-files&#39;, &#39;--cached&#39;, &#39;--&#39;, ...relPaths]);</span>
+<span class="dl-add">+  if (!listed) return [];</span>
+<span class="dl-add">+  const prefix = git(projectPath, [&#39;rev-parse&#39;, &#39;--show-prefix&#39;]) || &#39;&#39;;</span>
+<span class="dl-add">+  return listed</span>
+<span class="dl-add">+    .split(&#39;\n&#39;)</span>
+<span class="dl-add">+    .map((l) =&gt; (prefix &amp;&amp; l.startsWith(prefix) ? l.slice(prefix.length) : l))</span>
+<span class="dl-add">+    .filter((l) =&gt; relPaths.includes(l));</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Describe what migrating this project would do. Pure: no writes, no git</span>
+<span class="dl-add">+ * mutation. Returns null when the project shows no legacy fingerprint.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Dispositions:</span>
+<span class="dl-add">+ *   move             — root file goes to .frame/ (with a backup first)</span>
+<span class="dl-add">+ *   delete-identical — .frame/ already has a byte-identical copy; the root</span>
+<span class="dl-add">+ *                      copy is redundant and is backed up, then removed</span>
+<span class="dl-add">+ *   backup-conflict  — .frame/ has a *different* copy; the root file is</span>
+<span class="dl-add">+ *                      backed up and reported, and nothing is overwritten</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function plan(projectPath) {</span>
+<span class="dl-add">+  const config = frameStore.readConfig(projectPath);</span>
+<span class="dl-add">+  const names = legacyNames(config);</span>
+<span class="dl-add">+  if (names.length === 0) return null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const artifacts = [];</span>
+<span class="dl-add">+  for (const name of names) {</span>
+<span class="dl-add">+    const rootPath = path.join(projectPath, name);</span>
+<span class="dl-add">+    if (!fs.existsSync(rootPath)) continue;</span>
+<span class="dl-add">+    if (isFramePlantedSymlink(rootPath)) continue; // handled as a symlink</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const overlayPath = path.join(projectPath, FRAME_DIR, name);</span>
+<span class="dl-add">+    let disposition = &#39;move&#39;;</span>
+<span class="dl-add">+    if (fs.existsSync(overlayPath)) {</span>
+<span class="dl-add">+      disposition = sameBytes(rootPath, overlayPath) ? &#39;delete-identical&#39; : &#39;backup-conflict&#39;;</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    artifacts.push({ name, disposition });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // A `.bak` Frame&#39;s own atomic writes left beside the file is Frame&#39;s too:</span>
+<span class="dl-add">+    // it travels into the backup rather than staying at the project root.</span>
+<span class="dl-add">+    if (fs.existsSync(`${rootPath}.bak`)) {</span>
+<span class="dl-add">+      artifacts.push({ name: `${name}.bak`, disposition: &#39;backup-only&#39; });</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (artifacts.length === 0) return null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const symlinks = LEGACY_SYMLINKS</span>
+<span class="dl-add">+    .filter((name) =&gt; isFramePlantedSymlink(path.join(projectPath, name)));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const agentsText = frameStore.readAgents(projectPath);</span>
+<span class="dl-add">+  const restorableClaudeMd = symlinks.includes(FRAME_FILES.CLAUDE_SYMLINK)</span>
+<span class="dl-add">+    ? extractClaudeBlock(agentsText)</span>
+<span class="dl-add">+    : null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const rels = artifacts.map((a) =&gt; a.name);</span>
+<span class="dl-add">+  const dirty = dirtyAmong(projectPath, rels);</span>
+<span class="dl-add">+  const tracked = trackedAmong(projectPath, rels);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return {</span>
+<span class="dl-add">+    projectPath,</span>
+<span class="dl-add">+    artifacts,</span>
+<span class="dl-add">+    symlinks,</span>
+<span class="dl-add">+    restorableClaudeMd,</span>
+<span class="dl-add">+    dirty,</span>
+<span class="dl-add">+    tracked,</span>
+<span class="dl-add">+    backupDir: `${FRAME_DIR}/${MIGRATION_BACKUP_DIR}`,</span>
+<span class="dl-add">+    // Derived, not asked: a project whose meta files are committed clearly</span>
+<span class="dl-add">+    // shares them; one where they were never tracked stays local.</span>
+<span class="dl-add">+    sharingMode: tracked.length &gt; 0 ? &#39;repo&#39; : &#39;local&#39;,</span>
+<span class="dl-add">+    canRun: dirty.length === 0</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── Run ──────────────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function copyVerified(from, to) {</span>
+<span class="dl-add">+  fs.mkdirSync(path.dirname(to), { recursive: true });</span>
+<span class="dl-add">+  fsSafe.writeFileAtomic(to, fs.readFileSync(from));</span>
+<span class="dl-add">+  if (!sameBytes(from, to)) throw new Error(`copy of ${path.basename(from)} did not verify`);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The AGENTS.md lines the old templates wrote, and their `.frame/` forms. A</span>
+<span class="dl-add">+ * line that isn&#39;t found is left alone and named in the receipt&#39;s review list:</span>
+<span class="dl-add">+ * people customise AGENTS.md, and a full rewrite would be hostile.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+const AGENTS_LINE_EDITS = [</span>
+<span class="dl-add">+  [&#39;1. **STRUCTURE.json**&#39;, &#39;1. **`.frame/STRUCTURE.json`**&#39;],</span>
+<span class="dl-add">+  [&#39;2. **PROJECT_NOTES.md**&#39;, &#39;2. **`.frame/PROJECT_NOTES.md`**&#39;],</span>
+<span class="dl-add">+  [&#39;3. **tasks.json**&#39;, &#39;3. **`.frame/tasks.json`**&#39;],</span>
+<span class="dl-add">+  [&#39;| tasks.json  &#39;, &#39;| `.frame/tasks.json`  &#39;],</span>
+<span class="dl-add">+  [&#39;| PROJECT_NOTES.md &#39;, &#39;| `.frame/PROJECT_NOTES.md` &#39;],</span>
+<span class="dl-add">+  [&#39;| STRUCTURE.json &#39;, &#39;| `.frame/STRUCTURE.json` &#39;],</span>
+<span class="dl-add">+  [&#39;| QUICKSTART.md &#39;, &#39;| `.frame/QUICKSTART.md` &#39;]</span>
+<span class="dl-add">+];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const AGENTS_SYMLINK_NOTE = /\*\*Note:\*\* This file is named `AGENTS\.md`[^\n]*\n?/;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function upgradeAgentsText(text) {</span>
+<span class="dl-add">+  if (!text) return { text, review: [&#39;AGENTS.md (not found)&#39;] };</span>
+<span class="dl-add">+  let next = text;</span>
+<span class="dl-add">+  const review = [];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const [from, to] of AGENTS_LINE_EDITS) {</span>
+<span class="dl-add">+    if (next.includes(from)) next = next.replace(from, to);</span>
+<span class="dl-add">+    else review.push(from.trim());</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (AGENTS_SYMLINK_NOTE.test(next)) {</span>
+<span class="dl-add">+    next = next.replace(</span>
+<span class="dl-add">+      AGENTS_SYMLINK_NOTE,</span>
+<span class="dl-add">+      &#39;**Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be\n&#39; +</span>
+<span class="dl-add">+      &#39;AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,\n&#39; +</span>
+<span class="dl-add">+      &#39;which imports this file; delete that pointer to detach.\n&#39;</span>
+<span class="dl-add">+    );</span>
+<span class="dl-add">+  } else {</span>
+<span class="dl-add">+    review.push(&#39;the CLAUDE.md symlink note&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return { text: next, review };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Execute a plan. Reports progress through `onProgress({ step, detail })` and</span>
+<span class="dl-add">+ * returns a receipt: what moved, what was backed up, what needs a human look.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-add">+  const started = Date.now();</span>
+<span class="dl-add">+  const activePlan = migrationPlan || plan(projectPath);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (!activePlan) {</span>
+<span class="dl-add">+    record(&#39;migration.skipped&#39;, { reason: &#39;no-fingerprint&#39; });</span>
+<span class="dl-add">+    return { ran: false, reason: &#39;no-fingerprint&#39;, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (!activePlan.canRun) {</span>
+<span class="dl-add">+    record(&#39;migration.skipped&#39;, { reason: &#39;dirty-tree&#39; });</span>
+<span class="dl-add">+    return { ran: false, reason: &#39;dirty-tree&#39;, dirty: activePlan.dirty, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const frameDir = path.join(projectPath, FRAME_DIR);</span>
+<span class="dl-add">+  const backupDir = path.join(frameDir, MIGRATION_BACKUP_DIR);</span>
+<span class="dl-add">+  fs.mkdirSync(backupDir, { recursive: true });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const moved = [];</span>
+<span class="dl-add">+  const backedUp = [];</span>
+<span class="dl-add">+  const review = [];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // 1. The files themselves. Backup first, always — even for the copies that</span>
+<span class="dl-add">+  //    only get deleted, so an interrupted run can always be reconstructed.</span>
+<span class="dl-add">+  for (const artifact of activePlan.artifacts) {</span>
+<span class="dl-add">+    const rootPath = path.join(projectPath, artifact.name);</span>
+<span class="dl-add">+    if (!fs.existsSync(rootPath)) continue;</span>
+<span class="dl-add">+    onProgress({ step: &#39;move&#39;, detail: artifact.name });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    copyVerified(rootPath, path.join(backupDir, artifact.name));</span>
+<span class="dl-add">+    backedUp.push(artifact.name);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    if (artifact.disposition === &#39;move&#39;) {</span>
+<span class="dl-add">+      copyVerified(rootPath, path.join(frameDir, artifact.name));</span>
+<span class="dl-add">+      moved.push(artifact.name);</span>
+<span class="dl-add">+    } else if (artifact.disposition === &#39;backup-conflict&#39;) {</span>
+<span class="dl-add">+      review.push(`${artifact.name} differs from the copy already in .frame/ — the root version is in ${activePlan.backupDir}/`);</span>
+<span class="dl-add">+      record(&#39;migration.conflict&#39;, { path: artifact.name });</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    fs.unlinkSync(rootPath);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // 2. Frame-planted symlinks come out; a real CLAUDE.md is restored from the</span>
+<span class="dl-add">+  //    block old inits folded into AGENTS.md, verbatim.</span>
+<span class="dl-add">+  for (const name of activePlan.symlinks) {</span>
+<span class="dl-add">+    onProgress({ step: &#39;symlink&#39;, detail: name });</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      fs.unlinkSync(path.join(projectPath, name));</span>
+<span class="dl-add">+    } catch (err) {</span>
+<span class="dl-add">+      review.push(`could not remove the ${name} symlink: ${err.message}`);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (activePlan.restorableClaudeMd) {</span>
+<span class="dl-add">+    const claudePath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);</span>
+<span class="dl-add">+    if (!fs.existsSync(claudePath)) {</span>
+<span class="dl-add">+      fs.writeFileSync(claudePath, activePlan.restorableClaudeMd, &#39;utf8&#39;);</span>
+<span class="dl-add">+      onProgress({ step: &#39;restore&#39;, detail: FRAME_FILES.CLAUDE_SYMLINK });</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // 3. AGENTS.md now resolves to .frame/ — point its own prose there too.</span>
+<span class="dl-add">+  const agentsText = frameStore.readAgents(projectPath);</span>
+<span class="dl-add">+  const upgraded = upgradeAgentsText(agentsText);</span>
+<span class="dl-add">+  if (upgraded.text &amp;&amp; upgraded.text !== agentsText) {</span>
+<span class="dl-add">+    frameStore.writeAgents(projectPath, upgraded.text);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  for (const item of upgraded.review) {</span>
+<span class="dl-add">+    review.push(`AGENTS.md: could not find ${item} — check it by hand`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // 4. The pointer, the identity, and the end of the fingerprint.</span>
+<span class="dl-add">+  onProgress({ step: &#39;pointer&#39;, detail: CLAUDE_RULE_PATH });</span>
+<span class="dl-add">+  require(&#39;./frameProject&#39;).ensureClaudePointer(projectPath);</span>
+<span class="dl-add">+  frameStore.ensureProjectId(projectPath);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const config = frameStore.readConfig(projectPath) || {};</span>
+<span class="dl-add">+  delete config.files; // the fingerprint: gone, so a second plan() finds nothing</span>
+<span class="dl-add">+  config.settings = config.settings || {};</span>
+<span class="dl-add">+  config.settings.gitSharing = activePlan.sharingMode;</span>
+<span class="dl-add">+  frameStore.writeConfig(projectPath, config);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // 5. Hook entries: replace the old unguarded commands with the guarded ones</span>
+<span class="dl-add">+  //    in the file this sharing mode uses.</span>
+<span class="dl-add">+  onProgress({ step: &#39;hooks&#39;, detail: gitSharing.hookFileFor(activePlan.sharingMode) });</span>
+<span class="dl-add">+  const frameProject = require(&#39;./frameProject&#39;);</span>
+<span class="dl-add">+  for (const file of [&#39;settings.json&#39;, &#39;settings.local.json&#39;]) {</span>
+<span class="dl-add">+    frameProject.removeSpecHintHook(projectPath, { file });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  frameProject.installSpecHintHook(projectPath, { file: gitSharing.hookFileFor(activePlan.sharingMode) });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // 6. Sharing posture + a refreshed set of staged scripts (the old copies</span>
+<span class="dl-add">+  //    resolve their project as `.frame/`, which is the bug T03 fixed).</span>
+<span class="dl-add">+  onProgress({ step: &#39;sharing&#39;, detail: activePlan.sharingMode });</span>
+<span class="dl-add">+  gitSharing.setMode(projectPath, activePlan.sharingMode);</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    structureBootstrap.copyParserScripts(projectPath);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    review.push(`could not refresh .frame/bin scripts: ${err.message}`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  record(&#39;migration.completed&#39;, {</span>
+<span class="dl-add">+    moved: moved.length,</span>
+<span class="dl-add">+    backedUp: backedUp.length,</span>
+<span class="dl-add">+    review: review.length,</span>
+<span class="dl-add">+    ms: Date.now() - started</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return {</span>
+<span class="dl-add">+    ran: true,</span>
+<span class="dl-add">+    moved,</span>
+<span class="dl-add">+    backedUp,</span>
+<span class="dl-add">+    review,</span>
+<span class="dl-add">+    backupDir: activePlan.backupDir,</span>
+<span class="dl-add">+    sharingMode: activePlan.sharingMode,</span>
+<span class="dl-add">+    claudeMdRestored: Boolean(activePlan.restorableClaudeMd),</span>
+<span class="dl-add">+    symlinksRemoved: activePlan.symlinks</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = {</span>
+<span class="dl-add">+  init,</span>
+<span class="dl-add">+  plan,</span>
+<span class="dl-add">+  run,</span>
+<span class="dl-add">+  // exported for tests and for the receipt&#39;s prose</span>
+<span class="dl-add">+  extractClaudeBlock,</span>
+<span class="dl-add">+  upgradeAgentsText,</span>
+<span class="dl-add">+  isFramePlantedSymlink,</span>
+<span class="dl-add">+  AGENTS_LINE_EDITS</span>
+<span class="dl-add">+};</span>
+<span class="dl-meta">diff --git a/src/shared/activityEvents.js b/src/shared/activityEvents.js</span>
+<span class="dl-meta">index 2c5aa48..d681fab 100644</span>
+<span class="dl-file">--- a/src/shared/activityEvents.js</span>
+<span class="dl-file">+++ b/src/shared/activityEvents.js</span>
+<span class="dl-hunk">@@ -157,6 +157,34 @@ const EVENTS = {</span>
+<span class="dl-ctx">         : &#39;Background polling paused while the window is hidden&#39;</span>
+<span class="dl-ctx">   },</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // ─── layout migration + sharing mode ────────────────────</span>
+<span class="dl-add">+  //</span>
+<span class="dl-add">+  // Frame moving a project&#39;s own files is exactly the kind of work this</span>
+<span class="dl-add">+  // record exists for: the user consented once in a modal, and everything</span>
+<span class="dl-add">+  // after that happens without them watching.</span>
+<span class="dl-add">+  &#39;migration.completed&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { moved: COUNT, backedUp: COUNT, review: COUNT, ms: MS },</span>
+<span class="dl-add">+    label: (r) =&gt; `Moved ${r.moved ?? 0} Frame file${r.moved === 1 ? &#39;&#39; : &#39;s&#39;} into .frame/`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  &#39;migration.skipped&#39;: {</span>
+<span class="dl-add">+    kind: &#39;suppression&#39;,</span>
+<span class="dl-add">+    fields: { reason: enumOf([&#39;dirty-tree&#39;, &#39;no-fingerprint&#39;, &#39;nothing-to-move&#39;]), repeats: REPEATS },</span>
+<span class="dl-add">+    label: (r) =&gt; `Layout migration skipped — ${MIGRATION_SKIP_TEXT[r.reason] || r.reason}`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  &#39;migration.conflict&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { path: PATH },</span>
+<span class="dl-add">+    label: (r) =&gt; `${r.path || &#39;A file&#39;} differed from its .frame/ copy — kept in migration-backup/`</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+  &#39;sharing.mode_changed&#39;: {</span>
+<span class="dl-add">+    kind: &#39;action&#39;,</span>
+<span class="dl-add">+    fields: { from: enumOf([&#39;repo&#39;, &#39;local&#39;]), to: enumOf([&#39;repo&#39;, &#39;local&#39;]) },</span>
+<span class="dl-add">+    label: (r) =&gt; (r.to === &#39;local&#39;</span>
+<span class="dl-add">+      ? &#39;Frame\&#39;s files are now local to this machine&#39;</span>
+<span class="dl-add">+      : &#39;Frame\&#39;s files are now shared with the repo&#39;)</span>
+<span class="dl-add">+  },</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // ─── scripts running outside Frame&#39;s process ────────────</span>
+<span class="dl-ctx">   &#39;script.ran&#39;: {</span>
+<span class="dl-ctx">     kind: &#39;action&#39;,</span>
+<span class="dl-hunk">@@ -181,6 +209,12 @@ const HINT_REASON_TEXT = {</span>
+<span class="dl-ctx">   &#39;no-context&#39;: &#39;nothing to send&#39;</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+const MIGRATION_SKIP_TEXT = {</span>
+<span class="dl-add">+  &#39;dirty-tree&#39;: &#39;the files have uncommitted changes&#39;,</span>
+<span class="dl-add">+  &#39;no-fingerprint&#39;: &#39;this project already uses the .frame/ layout&#39;,</span>
+<span class="dl-add">+  &#39;nothing-to-move&#39;: &#39;nothing was left at the project root&#39;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> const WATCHER_TEXT = {</span>
+<span class="dl-ctx">   specs: &#39;Specs watcher&#39;,</span>
+<span class="dl-ctx">   &#39;spec-tasks&#39;: &#39;Spec tasks watcher&#39;,</span>
+<span class="dl-meta">diff --git a/test/layoutMigration.test.js b/test/layoutMigration.test.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..b2fad88</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/test/layoutMigration.test.js</span>
+<span class="dl-hunk">@@ -0,0 +1,337 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * layoutMigration tests (non-invasive-overlay T08/T09).</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Migration touches a user&#39;s repository, so the properties worth pinning are</span>
+<span class="dl-add">+ * the conservative ones: the fingerprint is narrow enough that a repo Frame</span>
+<span class="dl-add">+ * never initialized is left alone, a dirty tree defers with zero writes, every</span>
+<span class="dl-add">+ * moved file is byte-equal to its backup, a conflicting `.frame/` copy is</span>
+<span class="dl-add">+ * never overwritten, a consumed CLAUDE.md comes back verbatim, and a second</span>
+<span class="dl-add">+ * run finds nothing to do.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { test, beforeEach, afterEach } = require(&#39;node:test&#39;);</span>
+<span class="dl-add">+const assert = require(&#39;node:assert/strict&#39;);</span>
+<span class="dl-add">+const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+const os = require(&#39;os&#39;);</span>
+<span class="dl-add">+const path = require(&#39;path&#39;);</span>
+<span class="dl-add">+const { execFileSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const Module = require(&#39;node:module&#39;);</span>
+<span class="dl-add">+const EXTERNAL_STUBS = {</span>
+<span class="dl-add">+  &#39;@aptabase/electron/main&#39;: { initialize() {}, trackEvent() {} },</span>
+<span class="dl-add">+  electron: { app: { getPath: () =&gt; os.tmpdir() }, ipcMain: { handle() {}, on() {} } }</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+const loadOriginal = Module._load;</span>
+<span class="dl-add">+Module._load = function (request, ...rest) {</span>
+<span class="dl-add">+  if (Object.prototype.hasOwnProperty.call(EXTERNAL_STUBS, request)) return EXTERNAL_STUBS[request];</span>
+<span class="dl-add">+  return loadOriginal.call(this, request, ...rest);</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const layoutMigration = require(&#39;../src/main/layoutMigration&#39;);</span>
+<span class="dl-add">+const frameStore = require(&#39;../src/main/frameStore&#39;);</span>
+<span class="dl-add">+const aiToolManager = require(&#39;../src/main/aiToolManager&#39;);</span>
+<span class="dl-add">+const { FRAME_DIR, FRAME_FILES } = require(&#39;../src/shared/frameConstants&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+aiToolManager.getActiveTool = () =&gt; ({ id: &#39;claude&#39;, name: &#39;Claude Code&#39; });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let projectDir;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function git(cwd, args) {</span>
+<span class="dl-add">+  return execFileSync(&#39;git&#39;, args, { cwd, encoding: &#39;utf8&#39;, stdio: [&#39;ignore&#39;, &#39;pipe&#39;, &#39;ignore&#39;] }).trim();</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const AGENTS_BODY = `# demo — AI Instructions</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+## Project Navigation</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+1. **STRUCTURE.json** — module map, which file is where</span>
+<span class="dl-add">+2. **PROJECT_NOTES.md** — project vision, past decisions, session notes</span>
+<span class="dl-add">+3. **tasks.json** — pending tasks</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+| Before writing…  | Read in \`.frame/docs/REFERENCE.md\` |</span>
+<span class="dl-add">+| ---------------- | ------------------------------------ |</span>
+<span class="dl-add">+| tasks.json       | &quot;Task Management&quot; (schema + rules)   |</span>
+<span class="dl-add">+| PROJECT_NOTES.md | &quot;PROJECT_NOTES.md Rules&quot;             |</span>
+<span class="dl-add">+| STRUCTURE.json   | &quot;STRUCTURE.json Rules&quot;               |</span>
+<span class="dl-add">+| QUICKSTART.md    | &quot;QUICKSTART.md Rules&quot;                |</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+---</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+**Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.</span>
+<span class="dl-add">+`;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const USER_CLAUDE_MD = &#39;# House rules\n\nIndent with tabs. Never force-push.\n&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** A project as Frame&#39;s pre-overlay init left it. */</span>
+<span class="dl-add">+function makeLegacyProject({ withClaudeBlock = true, commit = false } = {}) {</span>
+<span class="dl-add">+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-migrate-&#39;));</span>
+<span class="dl-add">+  git(dir, [&#39;init&#39;, &#39;-q&#39;]);</span>
+<span class="dl-add">+  git(dir, [&#39;config&#39;, &#39;user.email&#39;, &#39;test@example.com&#39;]);</span>
+<span class="dl-add">+  git(dir, [&#39;config&#39;, &#39;user.name&#39;, &#39;Test&#39;]);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  fs.mkdirSync(path.join(dir, FRAME_DIR), { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, FRAME_DIR, &#39;config.json&#39;), JSON.stringify({</span>
+<span class="dl-add">+    version: &#39;1.0&#39;,</span>
+<span class="dl-add">+    name: &#39;demo&#39;,</span>
+<span class="dl-add">+    settings: { autoUpdateStructure: true },</span>
+<span class="dl-add">+    features: { specDriven: true },</span>
+<span class="dl-add">+    files: {</span>
+<span class="dl-add">+      agents: &#39;AGENTS.md&#39;,</span>
+<span class="dl-add">+      claudeSymlink: &#39;CLAUDE.md&#39;,</span>
+<span class="dl-add">+      structure: &#39;STRUCTURE.json&#39;,</span>
+<span class="dl-add">+      notes: &#39;PROJECT_NOTES.md&#39;,</span>
+<span class="dl-add">+      tasks: &#39;tasks.json&#39;,</span>
+<span class="dl-add">+      quickstart: &#39;QUICKSTART.md&#39;</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }, null, 2), &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const agents = withClaudeBlock</span>
+<span class="dl-add">+    ? `${AGENTS_BODY}\n---\n\n## Existing Instructions (from CLAUDE.md)\n\n${USER_CLAUDE_MD}`</span>
+<span class="dl-add">+    : AGENTS_BODY;</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;AGENTS.md&#39;), agents, &#39;utf8&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;STRUCTURE.json&#39;), JSON.stringify({ modules: {} }, null, 2), &#39;utf8&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;PROJECT_NOTES.md&#39;), &#39;# Notes\n\n### [2026-01-01] Started\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;tasks.json&#39;), JSON.stringify({ version: &#39;2.0&#39;, tasks: [] }, null, 2), &#39;utf8&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(dir, &#39;QUICKSTART.md&#39;), &#39;# Quickstart\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  fs.symlinkSync(&#39;AGENTS.md&#39;, path.join(dir, &#39;CLAUDE.md&#39;));</span>
+<span class="dl-add">+  fs.symlinkSync(&#39;AGENTS.md&#39;, path.join(dir, &#39;GEMINI.md&#39;));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (commit) {</span>
+<span class="dl-add">+    git(dir, [&#39;add&#39;, &#39;-A&#39;]);</span>
+<span class="dl-add">+    git(dir, [&#39;commit&#39;, &#39;-q&#39;, &#39;-m&#39;, &#39;frame init&#39;]);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return dir;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+afterEach(() =&gt; {</span>
+<span class="dl-add">+  if (projectDir) fs.rmSync(projectDir, { recursive: true, force: true });</span>
+<span class="dl-add">+  projectDir = null;</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a symlink-only repo Frame never initialized is not a migration candidate&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-symlink-only-&#39;));</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(projectDir, &#39;AGENTS.md&#39;), &#39;# ours\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  fs.symlinkSync(&#39;AGENTS.md&#39;, path.join(projectDir, &#39;CLAUDE.md&#39;));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(layoutMigration.plan(projectDir), null, &#39;no config.files record — never touched&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Even with a .frame/ config, an overlay-era one has no files record.</span>
+<span class="dl-add">+  frameStore.writeConfig(projectDir, { version: &#39;1.0&#39;, projectId: &#39;x&#39; });</span>
+<span class="dl-add">+  assert.equal(layoutMigration.plan(projectDir), null);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;plan describes the move without writing anything&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  const before = fs.readdirSync(projectDir).sort();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const p = layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+  assert.ok(p);</span>
+<span class="dl-add">+  assert.equal(p.canRun, true);</span>
+<span class="dl-add">+  assert.deepEqual(</span>
+<span class="dl-add">+    p.artifacts.map((a) =&gt; a.name).sort(),</span>
+<span class="dl-add">+    [&#39;AGENTS.md&#39;, &#39;PROJECT_NOTES.md&#39;, &#39;QUICKSTART.md&#39;, &#39;STRUCTURE.json&#39;, &#39;tasks.json&#39;]</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+  assert.ok(p.artifacts.every((a) =&gt; a.disposition === &#39;move&#39;));</span>
+<span class="dl-add">+  assert.deepEqual(p.symlinks.sort(), [&#39;CLAUDE.md&#39;, &#39;GEMINI.md&#39;]);</span>
+<span class="dl-add">+  assert.equal(p.restorableClaudeMd, USER_CLAUDE_MD);</span>
+<span class="dl-add">+  assert.equal(p.sharingMode, &#39;repo&#39;, &#39;committed meta files mean the repo shares them&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(fs.readdirSync(projectDir).sort(), before, &#39;plan() wrote nothing&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a dirty tree defers with zero writes, including from a sub-directory project&#39;, () =&gt; {</span>
+<span class="dl-add">+  const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-monorepo-&#39;));</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    git(repoDir, [&#39;init&#39;, &#39;-q&#39;]);</span>
+<span class="dl-add">+    git(repoDir, [&#39;config&#39;, &#39;user.email&#39;, &#39;test@example.com&#39;]);</span>
+<span class="dl-add">+    git(repoDir, [&#39;config&#39;, &#39;user.name&#39;, &#39;Test&#39;]);</span>
+<span class="dl-add">+    const appDir = path.join(repoDir, &#39;apps&#39;, &#39;web&#39;);</span>
+<span class="dl-add">+    fs.mkdirSync(appDir, { recursive: true });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const legacy = makeLegacyProject({ commit: false });</span>
+<span class="dl-add">+    fs.cpSync(legacy, appDir, { recursive: true, dereference: false });</span>
+<span class="dl-add">+    fs.rmSync(path.join(appDir, &#39;.git&#39;), { recursive: true, force: true });</span>
+<span class="dl-add">+    fs.rmSync(legacy, { recursive: true, force: true });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    git(repoDir, [&#39;add&#39;, &#39;-A&#39;]);</span>
+<span class="dl-add">+    git(repoDir, [&#39;commit&#39;, &#39;-q&#39;, &#39;-m&#39;, &#39;init&#39;]);</span>
+<span class="dl-add">+    fs.appendFileSync(path.join(appDir, &#39;PROJECT_NOTES.md&#39;), &#39;\n### [2026-02-02] Uncommitted\n&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const p = layoutMigration.plan(appDir);</span>
+<span class="dl-add">+    assert.deepEqual(p.dirty, [&#39;PROJECT_NOTES.md&#39;], &#39;porcelain paths compared against show-prefix + rel&#39;);</span>
+<span class="dl-add">+    assert.equal(p.canRun, false);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const before = fs.readdirSync(appDir).sort();</span>
+<span class="dl-add">+    const result = layoutMigration.run(appDir, p);</span>
+<span class="dl-add">+    assert.equal(result.ran, false);</span>
+<span class="dl-add">+    assert.equal(result.reason, &#39;dirty-tree&#39;);</span>
+<span class="dl-add">+    assert.deepEqual(fs.readdirSync(appDir).sort(), before, &#39;a deferred run writes nothing&#39;);</span>
+<span class="dl-add">+    assert.ok(!fs.existsSync(path.join(appDir, FRAME_DIR, &#39;migration-backup&#39;)));</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    fs.rmSync(repoDir, { recursive: true, force: true });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a full run moves every file, backs it up byte-equal, and clears the fingerprint&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  const originals = {};</span>
+<span class="dl-add">+  for (const name of [&#39;AGENTS.md&#39;, &#39;STRUCTURE.json&#39;, &#39;PROJECT_NOTES.md&#39;, &#39;tasks.json&#39;, &#39;QUICKSTART.md&#39;]) {</span>
+<span class="dl-add">+    originals[name] = fs.readFileSync(path.join(projectDir, name));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const steps = [];</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, layoutMigration.plan(projectDir), (s) =&gt; steps.push(s.step));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(receipt.ran, true);</span>
+<span class="dl-add">+  assert.equal(receipt.moved.length, 5);</span>
+<span class="dl-add">+  assert.ok(steps.includes(&#39;move&#39;) &amp;&amp; steps.includes(&#39;pointer&#39;) &amp;&amp; steps.includes(&#39;hooks&#39;));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const [name, content] of Object.entries(originals)) {</span>
+<span class="dl-add">+    assert.ok(!fs.existsSync(path.join(projectDir, name)), `${name} left the project root`);</span>
+<span class="dl-add">+    const backup = fs.readFileSync(path.join(projectDir, FRAME_DIR, &#39;migration-backup&#39;, name));</span>
+<span class="dl-add">+    assert.ok(backup.equals(content), `${name} backup is byte-equal`);</span>
+<span class="dl-add">+    if (name !== &#39;AGENTS.md&#39;) {</span>
+<span class="dl-add">+      // AGENTS.md is deliberately edited after the move; the rest are verbatim.</span>
+<span class="dl-add">+      const moved = fs.readFileSync(path.join(projectDir, FRAME_DIR, name));</span>
+<span class="dl-add">+      assert.ok(moved.equals(content), `${name} arrived byte-equal`);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(frameStore.readConfig(projectDir).files, undefined, &#39;fingerprint cleared&#39;);</span>
+<span class="dl-add">+  assert.equal(frameStore.isLegacyLayout(projectDir), false);</span>
+<span class="dl-add">+  assert.match(frameStore.getProjectId(projectDir), /^[0-9a-f-]{36}$/);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the symlinks go and a consumed CLAUDE.md comes back verbatim&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;GEMINI.md&#39;)), &#39;GEMINI.md symlink removed&#39;);</span>
+<span class="dl-add">+  const claudePath = path.join(projectDir, &#39;CLAUDE.md&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(claudePath));</span>
+<span class="dl-add">+  assert.equal(fs.lstatSync(claudePath).isSymbolicLink(), false, &#39;a real file, not a symlink&#39;);</span>
+<span class="dl-add">+  assert.equal(fs.readFileSync(claudePath, &#39;utf8&#39;), USER_CLAUDE_MD, &#39;restored verbatim&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;no consumed block means no CLAUDE.md is invented&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ withClaudeBlock: false, commit: true });</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(receipt.claudeMdRestored, false);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;CLAUDE.md&#39;)), &#39;symlink removed, nothing put back&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;AGENTS.md gets targeted line edits and reports what it could not find&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const agents = frameStore.readAgents(projectDir);</span>
+<span class="dl-add">+  assert.match(agents, /1\. \*\*`\.frame\/STRUCTURE\.json`\*\*/);</span>
+<span class="dl-add">+  assert.match(agents, /\| `\.frame\/tasks\.json`/);</span>
+<span class="dl-add">+  assert.match(agents, /\.claude\/rules\/frame\.md/);</span>
+<span class="dl-add">+  assert.ok(!/A `CLAUDE\.md` symlink is provided/.test(agents), &#39;symlink note replaced&#39;);</span>
+<span class="dl-add">+  assert.match(agents, /## Existing Instructions \(from CLAUDE\.md\)/, &#39;user content in AGENTS.md survives&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const custom = layoutMigration.upgradeAgentsText(&#39;# My own file\n\nNothing Frame wrote.\n&#39;);</span>
+<span class="dl-add">+  assert.ok(custom.review.length &gt; 0, &#39;a customised file is left alone and listed for review&#39;);</span>
+<span class="dl-add">+  assert.equal(custom.text, &#39;# My own file\n\nNothing Frame wrote.\n&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a conflicting .frame/ copy is backed up, never overwritten&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  const overlayNotes = path.join(projectDir, FRAME_DIR, &#39;PROJECT_NOTES.md&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(overlayNotes, &#39;# Different notes already in .frame/\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  const identical = path.join(projectDir, FRAME_DIR, &#39;QUICKSTART.md&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(identical, fs.readFileSync(path.join(projectDir, &#39;QUICKSTART.md&#39;)));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const p = layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+  const byName = Object.fromEntries(p.artifacts.map((a) =&gt; [a.name, a.disposition]));</span>
+<span class="dl-add">+  assert.equal(byName[&#39;PROJECT_NOTES.md&#39;], &#39;backup-conflict&#39;);</span>
+<span class="dl-add">+  assert.equal(byName[&#39;QUICKSTART.md&#39;], &#39;delete-identical&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, p);</span>
+<span class="dl-add">+  assert.equal(fs.readFileSync(overlayNotes, &#39;utf8&#39;), &#39;# Different notes already in .frame/\n&#39;, &#39;not overwritten&#39;);</span>
+<span class="dl-add">+  assert.ok(receipt.review.some((r) =&gt; r.includes(&#39;PROJECT_NOTES.md&#39;)), &#39;conflict is on the receipt&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, &#39;migration-backup&#39;, &#39;PROJECT_NOTES.md&#39;)));</span>
+<span class="dl-add">+  assert.ok(!receipt.moved.includes(&#39;PROJECT_NOTES.md&#39;));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a .bak sibling travels into the backup instead of staying at the root&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(projectDir, &#39;tasks.json.bak&#39;), &#39;{&quot;version&quot;:&quot;2.0&quot;,&quot;tasks&quot;:[]}&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;tasks.json.bak&#39;)), &#39;no Frame residue at the root&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, &#39;migration-backup&#39;, &#39;tasks.json.bak&#39;)));</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;hook entries are replaced with the guarded form&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  fs.mkdirSync(path.join(projectDir, &#39;.claude&#39;), { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;), JSON.stringify({</span>
+<span class="dl-add">+    permissions: { allow: [&#39;Bash(npm test)&#39;] },</span>
+<span class="dl-add">+    hooks: {</span>
+<span class="dl-add">+      UserPromptSubmit: [{ hooks: [{ type: &#39;command&#39;, command: &#39;node .frame/bin/spec-hint.js prompt&#39; }] }],</span>
+<span class="dl-add">+      PreToolUse: [{ matcher: &#39;Edit|Write&#39;, hooks: [{ type: &#39;command&#39;, command: &#39;node .frame/bin/spec-hint.js pre-edit&#39; }] }]</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }, null, 2), &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const settings = JSON.parse(fs.readFileSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+  const commands = Object.values(settings.hooks).flat().flatMap((e) =&gt; e.hooks.map((h) =&gt; h.command));</span>
+<span class="dl-add">+  assert.equal(commands.length, 2);</span>
+<span class="dl-add">+  assert.ok(commands.every((c) =&gt; c.startsWith(&quot;sh -c &#39;[ -f .frame/bin/spec-hint.js ]&quot;)), &#39;guarded form&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(settings.permissions.allow, [&#39;Bash(npm test)&#39;], &#39;the rest of the file survives&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a second run is a no-op, and an interrupted one reconciles&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(layoutMigration.plan(projectDir), null, &#39;no fingerprint left to find&#39;);</span>
+<span class="dl-add">+  const second = layoutMigration.run(projectDir);</span>
+<span class="dl-add">+  assert.equal(second.ran, false);</span>
+<span class="dl-add">+  assert.equal(second.reason, &#39;no-fingerprint&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Interrupted run: the record is still there and one file is still at the</span>
+<span class="dl-add">+  // root, exactly as HEAD has it (the crash landed between copy and unlink).</span>
+<span class="dl-add">+  // Planning again picks up that file and nothing else.</span>
+<span class="dl-add">+  const config = frameStore.readConfig(projectDir);</span>
+<span class="dl-add">+  config.files = { tasks: &#39;tasks.json&#39;, notes: &#39;PROJECT_NOTES.md&#39; };</span>
+<span class="dl-add">+  frameStore.writeConfig(projectDir, config);</span>
+<span class="dl-add">+  fs.writeFileSync(</span>
+<span class="dl-add">+    path.join(projectDir, &#39;tasks.json&#39;),</span>
+<span class="dl-add">+    JSON.stringify({ version: &#39;2.0&#39;, tasks: [] }, null, 2),</span>
+<span class="dl-add">+    &#39;utf8&#39;</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const p = layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+  assert.deepEqual(p.artifacts.map((a) =&gt; a.name), [&#39;tasks.json&#39;]);</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, p);</span>
+<span class="dl-add">+  assert.equal(receipt.ran, true);</span>
+<span class="dl-add">+  assert.equal(frameStore.readConfig(projectDir).files, undefined);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the receipt carries what the modal shows&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.deepEqual(Object.keys(receipt).sort(), [</span>
+<span class="dl-add">+    &#39;backedUp&#39;, &#39;backupDir&#39;, &#39;claudeMdRestored&#39;, &#39;moved&#39;, &#39;ran&#39;, &#39;review&#39;, &#39;sharingMode&#39;, &#39;symlinksRemoved&#39;</span>
+<span class="dl-add">+  ]);</span>
+<span class="dl-add">+  assert.equal(receipt.backupDir, &#39;.frame/migration-backup&#39;);</span>
+<span class="dl-add">+  assert.equal(receipt.sharingMode, &#39;repo&#39;);</span>
+<span class="dl-add">+  assert.deepEqual(receipt.symlinksRemoved.sort(), [&#39;CLAUDE.md&#39;, &#39;GEMINI.md&#39;]);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;an untracked legacy project migrates to local sharing&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: false });</span>
+<span class="dl-add">+  const p = layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+  assert.deepEqual(p.tracked, []);</span>
+<span class="dl-add">+  assert.equal(p.sharingMode, &#39;local&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, p);</span>
+<span class="dl-add">+  assert.equal(receipt.sharingMode, &#39;local&#39;);</span>
+<span class="dl-add">+  assert.equal(frameStore.readConfig(projectDir).settings.gitSharing, &#39;local&#39;);</span>
 <span class="dl-add">+});</span></pre>
     </details>
   </div>

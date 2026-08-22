@@ -142,3 +142,24 @@ early because both were one-liners in surfaces this task already touched.
 _Captured: 2026-08-23 · 8 file change(s)_
 
 ---
+
+## T08 — `layoutMigration`: pure `plan()`, consented `run()`
+
+Added `src/main/layoutMigration.js`: a pure `plan()` (narrow fingerprint,
+dispositions incl. `backup-only` for `.bak` siblings, Frame-planted symlinks
+only, restorable CLAUDE.md block, dirty and tracked lists, derived sharing
+mode) and a `run()` that backs up before it touches anything, copies through
+`fsSafe` and byte-verifies before unlinking, restores CLAUDE.md verbatim, makes
+targeted AGENTS.md edits with a review list, writes the pointer, stamps the id,
+drops the `files` record, replaces the unguarded hooks and refreshes
+`.frame/bin`. Departure from plan.md: untracked files are not treated as dirty
+— in an unshared project every meta file is untracked, so counting them would
+block migration exactly where it is safest; only tracked modifications defer.
+Two bugs the tests caught: porcelain lines must be regex-matched rather than
+sliced at a fixed column (the git helper trims, shifting the first line), and
+`sharing.mode_changed` had to be added to the activity registry or T06's record
+was silently dropped.
+
+_Captured: 2026-08-23 · 3 file change(s)_
+
+---
