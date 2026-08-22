@@ -248,7 +248,17 @@ const AGENTS_LINE_EDITS = [
   ['| QUICKSTART.md ', '| `.frame/QUICKSTART.md` ']
 ];
 
-const AGENTS_SYMLINK_NOTE = /\*\*Note:\*\* This file is named `AGENTS\.md`[^\n]*\n?/;
+// The whole note paragraph, however it is wrapped: templates have written it
+// as one long line, as several wrapped lines, and as a blockquote. Matching a
+// single line left the continuation behind and produced a mangled paragraph —
+// found migrating Frame's own repository.
+const AGENTS_SYMLINK_NOTE = /(^|\n)([ \t]*>?[ \t]*)\*\*Note:\*\* This file is named `AGENTS\.md`[\s\S]*?(?=\n[ \t]*\n|$)/;
+
+const AGENTS_POINTER_NOTE = [
+  '**Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be',
+  'AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,',
+  'which imports this file; delete that pointer to detach.'
+];
 
 function upgradeAgentsText(text) {
   if (!text) return { text, review: ['AGENTS.md (not found)'] };
@@ -260,13 +270,13 @@ function upgradeAgentsText(text) {
     else review.push(from.trim());
   }
 
-  if (AGENTS_SYMLINK_NOTE.test(next)) {
-    next = next.replace(
-      AGENTS_SYMLINK_NOTE,
-      '**Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be\n' +
-      'AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,\n' +
-      'which imports this file; delete that pointer to detach.\n'
-    );
+  const match = next.match(AGENTS_SYMLINK_NOTE);
+  if (match) {
+    // Keep whatever prefix the note carried (a blockquote marker, indentation)
+    // so the replacement sits in the document the same way the original did.
+    const prefix = match[2] || '';
+    const quoted = AGENTS_POINTER_NOTE.map((line) => `${prefix}${line}`).join('\n');
+    next = next.replace(AGENTS_SYMLINK_NOTE, `${match[1]}${quoted}`);
   } else {
     review.push('the CLAUDE.md symlink note');
   }

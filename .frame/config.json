@@ -7,15 +7,8 @@
   "settings": {
     "autoUpdateStructure": true,
     "autoUpdateNotes": false,
-    "taskRecognition": true
-  },
-  "files": {
-    "agents": "AGENTS.md",
-    "claudeSymlink": "CLAUDE.md",
-    "structure": "STRUCTURE.json",
-    "notes": "PROJECT_NOTES.md",
-    "tasks": "tasks.json",
-    "quickstart": "QUICKSTART.md"
+    "taskRecognition": true,
+    "gitSharing": "repo"
   },
   "features": {
     "specDriven": true
@@ -41,5 +34,6 @@
     "detectedAt": "2026-07-12T14:59:05.548Z",
     "confidence": "high",
     "ipcChannelsFile": "src/shared/ipcChannels.js"
-  }
+  },
+  "projectId": "c5e0246e-2f78-4caa-acbd-ce5168932746"
 }

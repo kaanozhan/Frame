@@ -5,8 +5,9 @@ AI agents oriented across sessions. This file is the always-on core.
 **Before writing any Frame meta file, read the matching section of
 `.frame/docs/REFERENCE.md`** — the maintenance rules live there, not here.
 
-> **Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A
-> `CLAUDE.md` symlink is provided for Claude Code compatibility.
+> **Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be
+> AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,
+> which imports this file; delete that pointer to detach.
 
 ---
 
@@ -27,9 +28,9 @@ AI agents oriented across sessions. This file is the always-on core.
 
 **Read these at the start of each session:**
 
-1. **STRUCTURE.json** — module map, which file is where
-2. **PROJECT_NOTES.md** — project vision, past decisions, session notes
-3. **tasks.json** — pending tasks
+1. **`.frame/STRUCTURE.json`** — module map, which file is where
+2. **`.frame/PROJECT_NOTES.md`** — project vision, past decisions, session notes
+3. **`.frame/tasks.json`** — pending tasks
 
 **Fast file lookup** — before manual grep/glob, run:
 
@@ -75,10 +76,10 @@ see **"Spec-driven development"** in `.frame/docs/REFERENCE.md`.
 
 | Before writing…    | Read in `.frame/docs/REFERENCE.md`      |
 | ------------------ | --------------------------------------- |
-| tasks.json         | "Task Management" (schema + rules)      |
-| PROJECT_NOTES.md   | "PROJECT_NOTES.md Rules"                 |
-| STRUCTURE.json     | "STRUCTURE.json Rules" (usually auto: `npm run structure`) |
-| QUICKSTART.md      | "QUICKSTART.md Rules"                    |
+| `.frame/tasks.json`         | "Task Management" (schema + rules)      |
+| `.frame/PROJECT_NOTES.md`   | "PROJECT_NOTES.md Rules"                 |
+| `.frame/STRUCTURE.json`     | "STRUCTURE.json Rules" (usually auto: `npm run structure`) |
+| `.frame/QUICKSTART.md`      | "QUICKSTART.md Rules"                    |
 
 Quick reminders that always apply:
 - Task work: set `status: "in_progress"` when starting, `"completed"` +

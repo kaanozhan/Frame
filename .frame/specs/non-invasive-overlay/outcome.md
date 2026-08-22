@@ -212,3 +212,26 @@ markdown and JSON under `.frame/` that any CLI can be pointed at.
 _Captured: 2026-08-23 · 9 file change(s)_
 
 ---
+
+## T12 — Dogfood: migrate this repository
+
+Drove `layoutMigration.plan()`/`run()` **headlessly** on this repo (Electron
+stubbed as the tests do — a Frame window cannot host its own migration mid-run;
+the modal path is exercised separately in the live app). `AGENTS.md`,
+`STRUCTURE.json`, `PROJECT_NOTES.md`, `tasks.json` and `QUICKSTART.md` moved
+into `.frame/` with byte-equal copies in `.frame/migration-backup/`,
+`tasks.json.bak` travelled with them, the `CLAUDE.md` symlink is gone, and
+`.claude/rules/frame.md`, `.frame/.gitignore`, `projectId` and
+`settings.gitSharing: repo` are in place. `npm test` (286), `npm run structure`
+(116 modules → `.frame/STRUCTURE.json`), `spec-context.js` and `find-module.js`
+all pass on the migrated layout. The dogfood earned its place: this repo's
+symlink note is a two-line blockquote, and the single-line regex left the
+continuation behind — the matcher now replaces the whole paragraph and keeps
+its prefix, with a regression test. This repo's hooks call
+`scripts/spec-hint.js`, not the `.frame/bin` form, so they were correctly left
+untouched; the guarded entries migration added alongside them were reverted to
+keep this repo's wiring exactly as it was.
+
+_Captured: 2026-08-23 · migrated in place_
+
+---

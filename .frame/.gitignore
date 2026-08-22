@@ -1,0 +1,15 @@
+# managed by Frame — machine-local; edit outside this block
+runtime/
+worktrees/
+orchestration/
+bin/
+migration-backup/
+implement-permissions.json
+*.bak
+*.tmp
+*.corrupt-*
+index/
+specs/*/implement-report.html
+specs/*/plan-report.html
+specs/*/report-data.json
+# end managed by Frame

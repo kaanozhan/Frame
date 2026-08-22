@@ -1983,13 +1983,13 @@
           ]
         },
         "upgradeAgentsText": {
-          "line": 253,
+          "line": 263,
           "params": [
             "text"
           ]
         },
         "run": {
-          "line": 281,
+          "line": 291,
           "params": [
             "projectPath",
             "migrationPlan",
@@ -5428,6 +5428,29 @@
         ]
       }
     },
+    "renderer/ipcWatchdog": {
+      "file": "src/renderer/ipcWatchdog.js",
+      "description": "IPC Watchdog",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "electron",
+        "notify"
+      ],
+      "functions": {
+        "bump": {
+          "line": 26,
+          "params": [
+            "direction",
+            "channel"
+          ]
+        },
+        "init": {
+          "line": 32
+        }
+      }
+    },
     "renderer/laneBoard": {
       "file": "src/renderer/laneBoard.js",
       "description": "Lane Board Module",
@@ -6245,6 +6268,57 @@
         }
       }
     },
+    "renderer/paletteSources": {
+      "file": "src/renderer/paletteSources.js",
+      "description": "Palette Sources (palette-jump spec)",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "commandRegistry",
+        "state",
+        "laneStatus",
+        "projectListUI",
+        "specSection"
+      ],
+      "functions": {
+        "basename": {
+          "line": 20,
+          "params": [
+            "p"
+          ]
+        },
+        "init": {
+          "line": 24,
+          "params": [
+            "ui"
+          ]
+        },
+        "warmSpecs": {
+          "line": 41
+        },
+        "projectItems": {
+          "line": 52
+        },
+        "terminalItems": {
+          "line": 63
+        },
+        "specItems": {
+          "line": 88
+        },
+        "viewItems": {
+          "line": 102
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SPEC_DATA"
+        ],
+        "emits": []
+      }
+    },
     "renderer/platform": {
       "file": "src/renderer/platform.js",
       "description": "Platform helpers",
@@ -6418,6 +6492,49 @@
         "listens": [
           "PLUGIN_TOGGLED",
           "TOGGLE_PLUGINS_PANEL"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/presenceBar": {
+      "file": "src/renderer/presenceBar.js",
+      "description": "Presence Bar (topbar-presence spec)",
+      "exports": [
+        "init",
+        "recompute"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "laneStatus",
+        "state",
+        "htmlUtils"
+      ],
+      "functions": {
+        "init": {
+          "line": 37,
+          "params": [
+            "ui",
+            "container"
+          ]
+        },
+        "schedule": {
+          "line": 47
+        },
+        "recompute": {
+          "line": 56
+        },
+        "_focus": {
+          "line": 109,
+          "params": [
+            "a"
+          ],
+          "purpose": "Focus the agent's terminal. When it lives in another project, switch to"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_DESTROYED"
         ],
         "emits": []
       }
@@ -8787,6 +8904,37 @@
           "REFRESH_CLAUDE_USAGE",
           "LOAD_CLAUDE_USAGE"
         ]
+      }
+    },
+    "renderer/terminalsView": {
+      "file": "src/renderer/terminalsView.js",
+      "description": "Terminals View Module",
+      "exports": [
+        "TerminalsView"
+      ],
+      "depends": [
+        "laneStatus",
+        "htmlUtils",
+        "lucide"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 21,
+          "params": [
+            "data",
+            "size = 13"
+          ]
+        },
+        "_loadAllPrefs": {
+          "line": 29
+        },
+        "_saveProjectPrefs": {
+          "line": 37,
+          "params": [
+            "projectKey",
+            "prefs"
+          ]
+        }
       }
     },
     "renderer/welcomeOverlay": {

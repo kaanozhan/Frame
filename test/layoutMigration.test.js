@@ -384,3 +384,29 @@ test('"Later" leaves the project untouched and still working', () => {
   assert.ok(frameStore.readAgents(projectDir).includes('AI Instructions'));
   assert.equal(frameStore.isLegacyLayout(projectDir), true);
 });
+
+test('the symlink note is replaced whole, however it was wrapped', () => {
+  // Frame's own AGENTS.md carries it as a two-line blockquote; older
+  // templates wrote it as one long line. Matching only the first line left
+  // the continuation behind — the bug that migrating this repo surfaced.
+  const blockquote = [
+    '# Project',
+    '',
+    '> **Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A',
+    '> `CLAUDE.md` symlink is provided for Claude Code compatibility.',
+    '',
+    '## Next section',
+    ''
+  ].join('\n');
+
+  const upgraded = layoutMigration.upgradeAgentsText(blockquote);
+  assert.ok(!upgraded.text.includes('symlink is provided'), 'no orphaned continuation line');
+  assert.match(upgraded.text, /> \*\*Note:\*\* This file lives at `\.frame\/AGENTS\.md`/);
+  assert.match(upgraded.text, /> which imports this file/, 'replacement keeps the blockquote prefix');
+  assert.match(upgraded.text, /\n## Next section/, 'the rest of the document is intact');
+
+  const oneLine = '# P\n\n**Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A `CLAUDE.md` symlink is provided for Claude Code compatibility.\n\n## After\n';
+  const flat = layoutMigration.upgradeAgentsText(oneLine);
+  assert.ok(!flat.text.includes('symlink is provided'));
+  assert.match(flat.text, /\n## After/);
+});

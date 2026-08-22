@@ -135,6 +135,18 @@
         "status": "pass",
         "detail": "285 pass, 0 fail"
       }
+    },
+    {
+      "id": "T12",
+      "title": "Dogfood: migrate this repository",
+      "commit": "ca2ae50",
+      "whatChanged": "Ran layoutMigration.plan()/run() headlessly against this repo (Electron stubbed the way the tests do). AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, tasks.json and QUICKSTART.md moved into .frame/ with byte-equal copies in .frame/migration-backup/ (tasks.json.bak travelled with them), the CLAUDE.md symlink is gone, .claude/rules/frame.md and .frame/.gitignore are written, config.json lost its files record and gained projectId + settings.gitSharing: repo. npm test (286), npm run structure (116 modules into .frame/STRUCTURE.json), spec-context.js and find-module.js all pass against the migrated layout.",
+      "whyChanged": "The dogfood found a real bug: this repo's symlink note is a two-line blockquote, and the single-line regex left the continuation behind, mangling the paragraph — the matcher now takes the whole note paragraph and preserves its prefix, with a regression test. This repo's own .claude/settings.json hooks call scripts/spec-hint.js rather than the .frame/bin form, so removeSpecHintHook correctly left them alone; the guarded entries migration added on top were reverted to keep this repo's hook wiring exactly as it was.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "286 pass, 0 fail"
+      }
     }
   ]
 }
