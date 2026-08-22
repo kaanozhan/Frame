@@ -1406,6 +1406,194 @@
         "emits": []
       }
     },
+    "main/gitExclude": {
+      "file": "src/main/gitExclude.js",
+      "description": "gitExclude — Frame's marker block in `.git/info/exclude`",
+      "exports": [
+        "ensureExcluded",
+        "removeExcluded",
+        "hasBlock",
+        "isFrameTracked",
+        "isGitRepo",
+        "excludeFilePath",
+        "entriesFor",
+        "MARKER_START",
+        "MARKER_END"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "git": {
+          "line": 36,
+          "params": [
+            "projectPath",
+            "args"
+          ],
+          "purpose": "Run a git command in the project, returning trimmed stdout or null."
+        },
+        "isGitRepo": {
+          "line": 48,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "excludeFilePath": {
+          "line": 57,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Absolute path of the exclude file for this project's repository. `git-path`"
+        },
+        "repoPrefix": {
+          "line": 68,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The project's path relative to the repository root, with a trailing slash"
+        },
+        "entriesFor": {
+          "line": 74,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The anchored entries Frame excludes, in block order."
+        },
+        "isFrameTracked": {
+          "line": 80,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "True when any `.frame/` path in this project is tracked by git."
+        },
+        "splitBlock": {
+          "line": 89,
+          "params": [
+            "text"
+          ],
+          "purpose": "Split a file's text into { head, tail } around Frame's block. Returns the"
+        },
+        "readExclude": {
+          "line": 99,
+          "params": [
+            "file"
+          ]
+        },
+        "ensureExcluded": {
+          "line": 112,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Put Frame's block in the exclude file (idempotent). Refuses — and removes"
+        },
+        "removeExcluded": {
+          "line": 142,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Take Frame's block back out, leaving every user line untouched."
+        },
+        "hasBlock": {
+          "line": 157,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Whether Frame's block is currently in the exclude file."
+        }
+      }
+    },
+    "main/gitSharing": {
+      "file": "src/main/gitSharing.js",
+      "description": "gitSharing — is Frame's context shared with the repo, or local to this machine?",
+      "exports": [
+        "init",
+        "getMode",
+        "setMode",
+        "getState",
+        "reconcile",
+        "hookFileFor",
+        "ensureFrameGitignore",
+        "MODES",
+        "DEFAULT_MODE"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "frameStore",
+        "gitExclude",
+        "shared/frameTemplates",
+        "shared/frameConstants",
+        "frameProject"
+      ],
+      "functions": {
+        "init": {
+          "line": 35,
+          "params": [
+            "{ activityLog"
+          ],
+          "purpose": "Wired from index.js so mode changes land in the activity record."
+        },
+        "record": {
+          "line": 39,
+          "params": [
+            "event",
+            "fields"
+          ]
+        },
+        "normalizeMode": {
+          "line": 47,
+          "params": [
+            "mode"
+          ]
+        },
+        "getMode": {
+          "line": 52,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The mode a project is in (defaulting to `repo` for configs written before it)."
+        },
+        "hookFileFor": {
+          "line": 58,
+          "params": [
+            "mode"
+          ],
+          "purpose": "Which Claude settings file this mode's hook entries belong in."
+        },
+        "ensureFrameGitignore": {
+          "line": 68,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Write (or refresh) the managed block in `.frame/.gitignore`. Lines the user"
+        },
+        "getState": {
+          "line": 103,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "What the UI needs to render the control: the current mode, whether `.frame/`"
+        },
+        "setMode": {
+          "line": 123,
+          "params": [
+            "projectPath",
+            "requestedMode"
+          ],
+          "purpose": "Apply a mode: store it, move Frame's hook entries to the file that mode"
+        },
+        "reconcile": {
+          "line": 160,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Re-apply the stored mode. Called on project open and after migration: the"
+        }
+      }
+    },
     "main/gitStatusManager": {
       "file": "src/main/gitStatusManager.js",
       "description": "Git Status Manager",
@@ -10025,6 +10213,18 @@
         "module": "shared/frameTemplates",
         "file": "src/shared/frameTemplates.js",
         "description": "Frame Templates"
+      }
+    ],
+    "git": [
+      {
+        "module": "main/gitExclude",
+        "file": "src/main/gitExclude.js",
+        "description": "gitExclude — Frame's marker block in `.git/info/exclude`"
+      },
+      {
+        "module": "main/gitSharing",
+        "file": "src/main/gitSharing.js",
+        "description": "gitSharing — is Frame's context shared with the repo, or local to this machine?"
       }
     ],
     "git-branches": [

@@ -107,3 +107,21 @@ conversion this task nominally owned shipped in T04.
 _Captured: 2026-08-23 · 6 file change(s)_
 
 ---
+
+## T06 — Sharing mode: `gitExclude` and `gitSharing`
+
+Added `src/main/gitExclude.js` (marker block in the file `git rev-parse
+--git-path info/exclude` names, anchored entries with `show-prefix` for
+sub-directory projects, tracked detection, user lines preserved, no-op outside
+git) and `src/main/gitSharing.js` (mode read/write, managed `.frame/.gitignore`
+block from the file classes with `STRUCTURE.json` deliberately absent, hook
+entries moved between `settings.json` and `settings.local.json`, UI state with
+the tracked-under-local warning). Beyond plan.md: `ensureExcluded` *withdraws*
+an existing block when `.frame/` becomes tracked instead of merely declining to
+add one, and `gitSharing.reconcile()` exists so project open and post-migration
+re-derive that; both follow from tracked state changing outside Frame. Frame
+never runs `git rm` — the warning carries the command instead.
+
+_Captured: 2026-08-23 · 4 file change(s)_
+
+---

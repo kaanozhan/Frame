@@ -63,6 +63,18 @@
         "status": "pass",
         "detail": "253 pass, 0 fail"
       }
+    },
+    {
+      "id": "T06",
+      "title": "Sharing mode: gitExclude and gitSharing",
+      "commit": "b85f90b",
+      "whatChanged": "New src/main/gitExclude.js owns Frame's marker block in the file named by `git rev-parse --git-path info/exclude`, with anchored entries carrying `show-prefix` for sub-directory projects, tracked detection via `git ls-files --cached -- .frame/`, user lines preserved and a stated no-op outside git. New src/main/gitSharing.js reads and writes settings.gitSharing, regenerates the managed .frame/.gitignore block from the file classes (STRUCTURE.json excluded from it, per the tracked decision), moves the spec-hint hook entries between .claude/settings.json and settings.local.json, and returns { mode, tracked, inGit, warning, hookFile } for the UI. 13 new tests across test/gitExclude.test.js and test/gitSharing.test.js.",
+      "whyChanged": "ensureExcluded actively withdraws an existing block when .frame/ is tracked rather than just declining to add one, because tracked state changes behind Frame's back the moment someone commits .frame/ — that is also why gitSharing.reconcile() exists for project open and post-migration. A tracked .frame/ under `local` stores the preference and hands the UI the `git rm -r --cached` command; Frame never runs it.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "266 pass, 0 fail (13 new)"
+      }
     }
   ]
 }

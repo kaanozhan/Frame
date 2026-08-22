@@ -4837,13 +4837,13 @@
       "title": "Add `src/main/gitExclude.js` (marker block in the file from `git rev-parse --git-path info/exclude`, anchored `/.frame/` and `/.claude/rules/frame.md` entries with `show-prefix` for sub-directory projects, tracked detection via `git ls-files --cached -- .frame/`, user lines preserved, no-op outside git) and `src/main/gitSharing.js` (read/write `settings.gitSharing`, apply the exclude block only while `.frame/` is untracked, target `.claude/settings.json` vs `settings.local.json` for hook entries, write the managed `.frame/.gitignore` block from the file classes with `STRUCTURE.json` tracked, warn instead of running `git rm` when `.frame/` is tracked under `local`); ships with `test/gitExclude.test.js` and `test/gitSharing.test.js`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T10:00:00.000Z",
+      "completedAt": "2026-08-23T10:00:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T07",
