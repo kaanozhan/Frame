@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame footprint: meta files move into .frame/, delivery stays native — Plan Overview</title>
+<style>
+  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
+  h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
+  h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
+  h3{font-size:14.5px;color:var(--ink);margin:18px 0 8px;}
+  h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;}
+  p{font-size:14px;margin-bottom:8px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .pill{display:inline-block;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-right:6px;}
+  .pill.good{color:var(--good);border-color:var(--good);}
+  .pill.warn{color:var(--warn);border-color:var(--warn);}
+  .tag{display:inline-block;background:var(--code);border-radius:4px;padding:0 6px;font-size:10.5px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:var(--font-mono);}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:12.5px;font-family:var(--font-mono);overflow-x:auto;margin:8px 0;}
+  ul,ol{padding-left:20px;font-size:14px;}
+  li{margin-bottom:5px;}
+  .flowblock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .flowblock .flowtitle{background:var(--dim);border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--primary);}
+  .flowbody{padding:14px;}
+  .fd{display:flex;flex-direction:column;gap:10px;overflow-x:auto;padding:4px 2px;}
+  .fd-row{display:flex;align-items:stretch;gap:0;width:max-content;}
+  .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
+  .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
+  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor .fd-title{color:var(--primary);}
+  .fd-node.system{border-color:var(--line);}
+  .fd-node.data{border-color:var(--line);background:var(--code);}
+  .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
+  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision .fd-title{color:var(--accent);}
+  .fd-node.decision .fd-title::before{content:"◇ ";}
+  .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
+  .fd-node.outcome .fd-title{color:var(--good);}
+  .fd-arrow{flex:none;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 4px;min-width:34px;}
+  .fd-arrow .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-bottom:1px;}
+  .fd-arrow .ln{display:flex;align-items:center;width:100%;}
+  .fd-arrow .ln::before{content:"";flex:1;height:2px;background:var(--line);min-width:14px;}
+  .fd-arrow .ln::after{content:"";width:0;height:0;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent;}
+  .fd-row.fd-branch{margin-left:34px;position:relative;}
+  .fd-row.fd-branch::before{content:"";position:absolute;left:-20px;top:-10px;bottom:50%;width:14px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;}
+  .fd-branchlbl{flex:none;align-self:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:8px;white-space:nowrap;}
+  .fd-branchlbl.ok{color:var(--good);border-color:var(--good);}
+  .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
+  .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
+  .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-data{background:var(--code);}
+  .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
+  .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
+  .flownotes{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;}
+  .flownotes h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .flownotes ul{font-size:13px;}
+  .dcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .dhead{background:var(--dim);border-bottom:1px solid var(--line);padding:10px 14px;font-size:14px;font-weight:600;}
+  .dopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+  @media (max-width:640px){.dopts{grid-template-columns:1fr;}}
+  .opt{border:1px solid var(--line);border-radius:8px;padding:12px;position:relative;}
+  .opt .optname{font-size:13.5px;font-weight:600;margin-bottom:6px;padding-right:60px;}
+  .opt .opttrade{font-size:12.5px;color:var(--muted);}
+  .opt.chosen{border-color:var(--good);background:var(--goodbg);}
+  .opt.chosen .optname{color:var(--good);}
+  .opt.chosen .optname::before{content:"✓ ";}
+  .opt.rejected{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
+  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .dwhy b{color:var(--ink);}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+  <h1>Frame footprint: meta files move into <code>.frame/</code>, delivery stays native — Plan Overview</h1>
+  <p class="muted">2026-08-22 · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/non-invasive-overlay/plan.md</code> · produced by <code>/spec.plan</code></p>
+  <p><span class="pill good">13 decisions taken</span><span class="pill">3 loop iterations</span><span class="pill">4 new main modules</span><span class="pill">7 new IPC channels</span><span class="pill">7 new test files</span><span class="pill warn">supersedes the 2026-06-02 spec</span></p>
+</div>
+
+<div class="card">
+  <h2>1 · What &amp; why</h2>
+  <p>Frame currently writes six files into the root of every project it manages and consumes the project's own <code>CLAUDE.md</code> into a symlink. This plan moves the five data/instruction files (<code>AGENTS.md</code>, <code>tasks.json</code>, <code>STRUCTURE.json</code>, <code>PROJECT_NOTES.md</code>, <code>QUICKSTART.md</code>) under <code>.frame/</code>, stops touching user-owned instruction files, and replaces the symlink with a one-line <code>.claude/rules/frame.md</code> that imports <code>.frame/AGENTS.md</code> — a mechanism Claude Code loads natively at session start, for subagents and <code>-p</code> runs alike. Hooks stay in <code>.claude/settings.json</code> exactly as today. A solo/team setting (<code>gitSharing</code>), a consented migration for existing projects, a data-centric storage seam (<code>frameStore</code>), a stable <code>projectId</code> and a file-class table prepare the later database/cloud layer without changing how anything behaves now.</p>
+  <p>The obvious alternative — the June spec's and PR #116's "inject context at launch time via wrappers/PATH/shell init" — was reviewed and rejected: it turns a guaranteed file-based mechanism into a best-effort one (no subagents, no context outside Frame, alias/PATH failure modes) and puts repository content on every terminal's PATH. The other alternative, leaving the root layout as it is, keeps the problems the spec names (root pollution, consumed <code>CLAUDE.md</code>, no solo/team distinction, no seam). The chosen shape keeps the data move and the native delivery.</p>
+</div>
+
+<div class="card">
+  <h2>2 · Architecture walkthrough</h2>
+  <p>Four flows: resolution through the seam, init of a new project, consented migration of a legacy project, and the sharing-mode switch.</p>
+  <div class="fd-legend">
+    <span class="l-actor">user / trigger</span>
+    <span>Frame main process</span>
+    <span class="l-data">files / git</span>
+    <span class="l-decision">◇ decision</span>
+    <span class="l-outcome">outcome</span>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow A — Every meta read/write goes through <code>frameStore</code></div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Caller</div><div class="fd-sub">tasksManager · overviewManager · frameProject · structureMap (IPC)</div></div>
+          <div class="fd-arrow"><span class="lbl">getTasks(projectPath)</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">frameStore.resolve</div><div class="fd-sub">one rule, one module</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">.frame/&lt;name&gt; exists?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node data"><div class="fd-title">.frame/&lt;name&gt;</div><div class="fd-sub">overlay layout</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">read / fsSafe write</div><div class="fd-sub">disk is the source of truth</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">no, legacy record + root file</span>
+          <div class="fd-node data"><div class="fd-title">&lt;root&gt;/&lt;name&gt;</div><div class="fd-sub">until the user migrates</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">works as today</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">neither</span>
+          <div class="fd-node data"><div class="fd-title">.frame/&lt;name&gt;</div><div class="fd-sub">new files always under .frame/</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>No write-behind cache:</b> agents edit these files with their own tools; <code>tasksManager</code>'s directory watcher now watches <code>frameStore.metaDir()</code> and must see every change. The existing mtime+size parse cache is a read cache, kept.</li>
+          <li><b>Path-keyed API, id stored:</b> <code>getProjectId()</code>/<code>ensureProjectId()</code> stamp a UUID into <code>config.json</code>; a future backend maps path→id inside the seam.</li>
+          <li><b>Scripts mirror the rule:</b> <code>update-structure/find-module/check-freshness</code> resolve the project from <code>.frame/bin</code> like <code>spec-index.js</code> already does, so a hand-run never erases <code>STRUCTURE.json</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow B — Init of a new project</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Initialize</div><div class="fd-sub">modal: file list + sharing radio (repo pre-selected)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">runProjectInit</div><div class="fd-sub">no consume, no symlink, no root writes</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.frame/*</div><div class="fd-sub">config(projectId, gitSharing) · 5 meta · docs · specs · bin · .gitignore</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.claude/rules/frame.md</div><div class="fd-sub">@../../.frame/AGENTS.md</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">hooks entry</div><div class="fd-sub">settings.json (repo) · settings.local.json (local)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">mode?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">repo</span>
+          <div class="fd-node outcome"><div class="fd-title">git status: .frame/ + .claude/</div><div class="fd-sub">user files byte-identical</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl">local</span>
+          <div class="fd-node data"><div class="fd-title">.git/info/exclude</div><div class="fd-sub">/.frame/ · /.claude/rules/frame.md (while untracked)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">git status: clean</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Write surface outside <code>.frame/</code> is enumerable:</b> the rule file, Frame's hook entries, <code>.git/info/exclude</code>, <code>.git/hooks/pre-commit</code> — asserted by the tree-walk test.</li>
+          <li><b>Guarded hook command:</b> <code>sh -c '[ -f .frame/bin/spec-hint.js ] &amp;&amp; exec node .frame/bin/spec-hint.js &lt;mode&gt;'</code> — a clone without <code>.frame/bin</code> stays silent; the literal string is the Frame marker for add/remove.</li>
+          <li><b>Non-initialized projects write nothing</b> — launch paths do not touch <code>.frame/</code> (PR #116 regression avoided; covered by the init test).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow C — Consented migration of a legacy project</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Select project</div><div class="fd-sub">CHECK_IS_FRAME_PROJECT</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">layoutMigration.plan</div><div class="fd-sub">pure · fingerprint = config.files record + root file</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">legacy &amp; clean?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">no fingerprint</span>
+          <div class="fd-node outcome"><div class="fd-title">nothing happens</div><div class="fd-sub">a bare CLAUDE.md→AGENTS.md symlink is not proof</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">dirty</span>
+          <div class="fd-node system"><div class="fd-title">modal: deferred</div><div class="fd-sub">commit/stash, then reopen; zero writes</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">yes</span>
+          <div class="fd-node actor"><div class="fd-title">Migrate / Later</div><div class="fd-sub">modal lists moves + backup dir</div></div>
+          <div class="fd-arrow"><span class="lbl">Migrate</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">layoutMigration.run</div><div class="fd-sub">backup → fsSafe copy → verify → unlink</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node data"><div class="fd-title">.frame/* · backup/ · rules/frame.md</div><div class="fd-sub">symlinks removed · CLAUDE.md restored · hooks replaced · projectId</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">receipt</div><div class="fd-sub">moved / restored / backed-up / review</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Dirty check is repo-root-relative:</b> porcelain paths are compared against <code>show-prefix + rel</code>, so sub-directory projects defer correctly.</li>
+          <li><b>Conflict never overwrites:</b> a differing <code>.frame/</code> copy keeps its place; the root file goes to <code>migration-backup/</code> and the receipt says so.</li>
+          <li><b>AGENTS.md is edited, not rewritten:</b> known template lines get their <code>.frame/</code> form; anything unmatched is listed for review. Users customise this file.</li>
+          <li><b>Idempotent:</b> after a run the <code>files</code> record is gone, so <code>plan()</code> finds nothing; an interrupted run reconciles on the next pass (identical copy → delete root).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flowblock">
+    <div class="flowtitle">Flow D — Switching sharing mode (Settings → Workflow)</div>
+    <div class="flowbody">
+      <div class="fd">
+        <div class="fd-row">
+          <div class="fd-node actor"><div class="fd-title">Git sharing: repo ⇄ local</div></div>
+          <div class="fd-arrow"><span class="lbl">SET_GIT_SHARING</span><span class="ln"></span></div>
+          <div class="fd-node system"><div class="fd-title">gitSharing.setMode</div><div class="fd-sub">config · exclude block · hook file target</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node decision"><div class="fd-title">local while .frame/ tracked?</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl ok">no</span>
+          <div class="fd-node data"><div class="fd-title">.git/info/exclude</div><div class="fd-sub">block added (local) / removed (repo)</div></div>
+          <div class="fd-arrow"><span class="ln"></span></div>
+          <div class="fd-node outcome"><div class="fd-title">state reflected in UI</div></div>
+        </div>
+        <div class="fd-row fd-branch">
+          <span class="fd-branchlbl err">yes</span>
+          <div class="fd-node system"><div class="fd-title">warn + show git rm --cached</div><div class="fd-sub">Frame never runs it</div></div>
+        </div>
+      </div>
+      <div class="flownotes"><h5>Architectural notes</h5>
+        <ul>
+          <li><b>Conditional exclude:</b> the entry exists only while <code>.frame/</code> is untracked — committing it is the whole opt-in; teammates never get invisible files.</li>
+          <li><b>Anchored entries:</b> <code>/.frame/</code>, not <code>.frame/</code> — a monorepo's other <code>.frame/</code> dirs are unaffected; sub-dir projects get <code>/&lt;prefix&gt;/.frame/</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>The on-disk contract, in one look</h3>
+  <pre>&lt;project&gt;/
+  .frame/
+    config.json          { projectId, settings.gitSharing, features, project }   (no `files` record)
+    AGENTS.md  PROJECT_NOTES.md  QUICKSTART.md  STRUCTURE.json  tasks.json
+    .gitignore           managed block: runtime/ index/ worktrees/ orchestration/ bin/ migration-backup/
+                         implement-permissions.json specs/*/{implement,plan}-report.html specs/*/report-data.json *.bak *.tmp *.corrupt-*
+    docs/ specs/ bin/ runtime/ index/ migration-backup/
+  .claude/rules/frame.md   "@../../.frame/AGENTS.md"
+  .claude/settings.json    (repo)  |  .claude/settings.local.json (local)   ← Frame's two guarded hook entries
+  .git/info/exclude        (local only, while .frame/ untracked)  /.frame/  /.claude/rules/frame.md
+  .git/hooks/pre-commit    (vanilla only) Frame marker block staging .frame/STRUCTURE.json</pre>
+</div>
+
+<div class="card">
+  <h2>3 · Decision story</h2>
+  <h4>Business decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D1 · What is the default sharing mode when a project is initialized?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">repo pre-selected, local selectable</div><div class="opttrade">Shared context and orchestration work out of the box; a user who wants a clean tree picks local.</div></div>
+      <div class="opt rejected"><div class="optname">local pre-selected / no pre-selection</div><div class="opttrade">Zero-touch by default, but team and orchestration flows are one step away; asking every time adds friction.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Frame's value is shared context; a repo that already tracks <code>.frame/</code> is repo regardless of the radio.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D2 · STRUCTURE.json is derived — keep it tracked or ignore and regenerate?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Stays tracked</div><div class="opttrade">Teammates and worktrees have the map immediately; pre-commit hook keeps it current.</div></div>
+      <div class="opt rejected"><div class="optname">Ignore + regenerate on open</div><div class="opttrade">Cleaner diffs, but no map until first open and a dependency on the staged parser.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> least risk now; "derived → ignored" is a separate later decision.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D3 · Where do the sharing control and "Remove Frame" live?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Settings → Workflow</div><div class="opttrade">Existing per-project section and IPC pattern; no new modal.</div></div>
+      <div class="opt rejected"><div class="optname">New Project Settings modal (PR #116 style)</div><div class="opttrade">More discoverable, but a new surface, CSS and projectSection changes.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> one place for per-project workflow switches, smallest footprint.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D4 · How is migration consent collected?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Renderer modal on project selection</div><div class="opttrade">Can list moves, show progress and a persistent receipt; appears only for the project the user opened.</div></div>
+      <div class="opt rejected"><div class="optname">Electron dialog / startup sweep</div><div class="opttrade">Native dialog cannot show a receipt; a sweep touches projects the user is not looking at.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> a receipt with moved/restored/backed-up/review lists is the point of asking.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D5 · What happens to a legacy project whose user clicks "Later"?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Dual resolution — root layout keeps working until migrated</div><div class="opttrade">Two layouts supported by one rule; new files always go under <code>.frame/</code>.</div></div>
+      <div class="opt rejected"><div class="optname">Force migration before use</div><div class="opttrade">Simpler code, but "Later" would leave the project half-usable (PR #116's deferred-then-conflict trap).</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the deterministic workflow must not break for anyone who defers; the scripts already resolve this way.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D6 · Pointer mechanism and Claude Code version floor</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Only <code>.claude/rules/frame.md</code>; state the minimum version</div><div class="opttrade">Never collides with user files; Windows-safe; one mechanism.</div></div>
+      <div class="opt rejected"><div class="optname">Also write a root CLAUDE.md fallback when absent</div><div class="opttrade">Works on older Claude Code, but two mechanisms and a root file again.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> verified with <code>claude -p</code> on 2026-08-22; one mechanism beats two.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D7 · Gemini</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Remove all GEMINI.md handling</div><div class="opttrade">Migration only removes a Frame-planted symlink.</div></div>
+      <div class="opt rejected"><div class="optname">Keep GEMINI.md symlink/consume</div><div class="opttrade">Support for a CLI that is being dropped.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> Gemini support is being removed (owner's call).</div>
+  </div>
+
+  <h4>Technical decisions</h4>
+  <div class="dcard">
+    <div class="dhead">D8 · What keys the frameStore API?</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">projectPath; projectId resolved inside</div><div class="opttrade">Zero churn at ~50 call sites and IPC payloads; id stored and exposed.</div></div>
+      <div class="opt rejected"><div class="optname">projectId; callers migrate</div><div class="opttrade">Cloud-ready signature, but a registry map and every caller change in this spec.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the seam's job now is to be the only path-joiner; the backend swap later maps path→id internally. Spec D7 wording refined.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D9 · Test posture</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Everything testable</div><div class="opttrade">Seven new <code>node --test</code> files incl. tree-walk init and a skippable <code>claude -p</code> native test; renderer excluded.</div></div>
+      <div class="opt rejected"><div class="optname">Pure logic only / none</div><div class="opttrade">Leaves git/fs paths and the migration engine — the riskiest code — unproven.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> the project's record covers <code>src/main</code>, <code>src/shared</code>, <code>scripts</code>; migration moves user data.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D10 · Renderer access to STRUCTURE.json</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">IPC <code>LOAD_STRUCTURE_MAP</code> via frameStore</div><div class="opttrade">One more channel; no renderer module joins a meta path.</div></div>
+      <div class="opt rejected"><div class="optname">Keep <code>fs.readFileSync</code> in structureMap.js with a new path</div><div class="opttrade">Smaller diff, but a second path-joiner and a broken S6 criterion.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> seam integrity is the point of the spec.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D11 · Hook entry form</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname"><code>sh -c '[ -f … ] &amp;&amp; exec node …'</code>, literal string as marker</div><div class="opttrade">Silent on clones without <code>.frame/bin</code>; exact-match add/remove.</div></div>
+      <div class="opt rejected"><div class="optname">Unguarded <code>node .frame/bin/spec-hint.js</code> (today)</div><div class="opttrade">Errors on every prompt in a clone that lacks <code>.frame/bin</code>.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> scenario 5 (Frame-less teammate) must not see hook errors.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D12 · AGENTS.md during migration</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Targeted line edit + review list</div><div class="opttrade">Preserves customisations; unmatched lines are reported, not forced.</div></div>
+      <div class="opt rejected"><div class="optname">Rewrite from template / leave as is</div><div class="opttrade">Rewrite destroys user edits; leaving it makes agents recreate root <code>tasks.json</code>.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> same reasoning <code>ensureSpecDrivenArtifacts</code> already records for this file.</div>
+  </div>
+  <div class="dcard">
+    <div class="dhead">D13 · In-flight footprints</div>
+    <div class="dopts">
+      <div class="opt chosen"><span class="badge chosenb">chosen</span><div class="optname">Proceed: perf spec is finished (outcome.md present); cross-platform re-plans after</div><div class="opttrade">No blocking; cross-platform's plan must be refreshed on top of this.</div></div>
+      <div class="opt rejected"><div class="optname">Wait for both to close</div><div class="opttrade">Blocks on a status that is merely stale.</div></div>
+    </div>
+    <div class="dwhy"><b>Why:</b> <code>audit-q3-performance-resources</code> has <code>outcome.md</code> + <code>measurements.md</code>; <code>audit-q3-cross-platform</code> has not started.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Risks &amp; edges</h2>
+  <table>
+    <tr><th>Edge / risk</th><th>Plan's answer</th></tr>
+    <tr><td>Repo with <code>CLAUDE.md → AGENTS.md</code> symlink but never a Frame project</td><td>Fingerprint requires the <code>config.files</code> record; <code>plan()</code> returns empty; tested.</td></tr>
+    <tr><td>Partial copy then retry</td><td>Copy via <code>fsSafe.writeFileAtomic</code> (tmp+fsync+rename) then byte-compare; a differing <code>.frame/</code> copy is a conflict → root to backup, never deleted as "identical".</td></tr>
+    <tr><td>Sub-directory project in a monorepo</td><td>Dirty check uses <code>show-prefix</code>; exclude entries anchored with the prefix.</td></tr>
+    <tr><td>Linked worktree (<code>.git</code> is a file)</td><td><code>git rev-parse --git-path info/exclude</code> → shared common exclude; tested.</td></tr>
+    <tr><td>User has their own <code>.claude/rules/</code> or <code>.claude/CLAUDE.md</code></td><td>Frame writes only <code>rules/frame.md</code>; nothing else read or changed; byte-identical test.</td></tr>
+    <tr><td>Clone received <code>.claude/settings.json</code> but not <code>.frame/bin</code></td><td>Guarded hook command exits silently.</td></tr>
+    <tr><td>Older Claude Code without <code>.claude/rules/</code></td><td>Minimum version stated in the init modal and docs; no second mechanism.</td></tr>
+    <tr><td>Legacy project left unmigrated ("Later")</td><td>Dual resolution keeps it fully working; modal reappears on next selection.</td></tr>
+    <tr><td>Orchestration worker worktrees</td><td>Unchanged contract: tracked <code>.frame/</code> + rule file (repo mode). Local-mode orchestration is a separate spec.</td></tr>
+    <tr><td>Agent edits <code>tasks.json</code> while Frame runs</td><td>Watcher moves to <code>frameStore.metaDir()</code>; reads hit disk; no write-behind cache.</td></tr>
+    <tr><td>Sample project ships the old layout</td><td>Converted in step 3 so it never triggers the modal.</td></tr>
+    <tr><td>This repository itself</td><td>Step 8 runs the product migration here and commits; tests and <code>npm run structure</code> must pass after.</td></tr>
+  </table>
+  <p class="muted">Deliberately deferred: database/cloud backend for the data class (separate spec; seam + classes + projectId prepared here); agent-facing CLI instead of direct file edits (decided with the cloud spec); local-mode orchestration (materialising <code>.frame/</code> into worktrees); STRUCTURE.json → ignored/regenerated; cross-platform re-plan.</p>
+</div>
+
+<div class="card">
+  <h2>5 · Coverage &amp; verification</h2>
+  <h4>Goals</h4>
+  <table>
+    <tr><th>Spec goal</th><th>Owned by (plan)</th></tr>
+    <tr><td>Meta files live under <code>.frame/</code>; nothing Frame-authored at the root <span class="tag">G1</span></td><td>Flow A/B · Sequencing 1, 3</td></tr>
+    <tr><td>Context delivery stays file-based and native via <code>.claude/rules/frame.md</code>; user instruction files never touched; Gemini removed <span class="tag">G2</span></td><td>Flow B · D6, D7 · Sequencing 3</td></tr>
+    <tr><td>Hooks stay in <code>.claude/settings.json</code> (guarded, Frame-marked) <span class="tag">G3</span></td><td>D11 · Sequencing 3</td></tr>
+    <tr><td>Solo vs team is an explicit <code>gitSharing</code> setting with conditional, anchored exclude <span class="tag">G4</span></td><td>Flow D · D1, D3 · Sequencing 4</td></tr>
+    <tr><td>Storage seam is data-centric; files remain source of truth; scripts resolve the root correctly <span class="tag">G5</span></td><td>Flow A · D8, D10 · Sequencing 1, 2</td></tr>
+    <tr><td>Files are classified and the class decides git and future sync <span class="tag">G6</span></td><td>Architecture (managed block) · D2 · Sequencing 4</td></tr>
+    <tr><td>Stable <code>projectId</code> at init and migration <span class="tag">G7</span></td><td>Flow A/B/C · Sequencing 3, 5</td></tr>
+    <tr><td>Existing projects migrate with consent, strict fingerprint, backup, restoration, receipt <span class="tag">G8</span></td><td>Flow C · D4, D5, D12 · Sequencing 5</td></tr>
+    <tr><td>Removing Frame is one enumerable action <span class="tag">G9</span></td><td>Architecture (Remove Frame) · Sequencing 6</td></tr>
+    <tr><td>Pre-commit: vanilla written, husky/lefthook snippet only <span class="tag">G10</span></td><td>structureBootstrap changes · Sequencing 2, 3</td></tr>
+  </table>
+  <h4>Constraints</h4>
+  <table>
+    <tr><th>Spec constraint</th><th>Owned by (plan)</th></tr>
+    <tr><td>No behaviour change in delivery — no wrapper, PATH, shell init or system-prompt flags <span class="tag">C1</span></td><td>Whole plan; nativeContext test · Sequencing 3</td></tr>
+    <tr><td>Write surface outside <code>.frame/</code> is exactly the rule file, Frame hook entries, exclude, pre-commit <span class="tag">C2</span></td><td>Flow B notes · tree-walk test · Sequencing 3</td></tr>
+    <tr><td>Non-initialized projects stay untouched <span class="tag">C3</span></td><td>frameProjectInit test case · Sequencing 3</td></tr>
+    <tr><td>Agents edit files; Frame must see it (reads from disk) <span class="tag">C4</span></td><td>Flow A notes · Sequencing 1</td></tr>
+    <tr><td>Orchestration keeps today's contract; local-mode orchestration deferred <span class="tag">C5</span></td><td>Risks table · D13</td></tr>
+    <tr><td>Claude Code version floor stated; no root fallback <span class="tag">C6</span></td><td>D6 · Sequencing 3, 7</td></tr>
+    <tr><td>Cross-platform: no symlinks anywhere <span class="tag">C7</span></td><td>Flow B · D6</td></tr>
+    <tr><td>This repository migrates too <span class="tag">C8</span></td><td>Sequencing 8</td></tr>
+  </table>
+  <h4>Success criteria</h4>
+  <table>
+    <tr><th>Spec criterion</th><th>Owned by (plan) &amp; proof</th></tr>
+    <tr><td>Clean root after init + session; only <code>.frame/</code> and <code>.claude/</code> (repo) or nothing (local) <span class="tag">S1</span></td><td>Sequencing 3, 4 · proven by <code>test/frameProjectInit.test.js</code> tree-walk</td></tr>
+    <tr><td>User files byte-identical through init, session and removal <span class="tag">S2</span></td><td>Sequencing 3, 6 · proven by checksum assertions in <code>test/frameProjectInit.test.js</code></td></tr>
+    <tr><td>Context both ways, natively, incl. subagents <span class="tag">S3</span></td><td>Sequencing 3 · proven by <code>test/nativeContext.test.js</code> (<code>claude -p</code>)</td></tr>
+    <tr><td>Hooks fire as before; no error on clones without <code>.frame/bin</code> <span class="tag">S4</span></td><td>Sequencing 3 · proven by hook-entry assertions + guard string test</td></tr>
+    <tr><td>Migration consented, lossless, idempotent; symlink-only repo untouched <span class="tag">S5</span></td><td>Sequencing 5, 8 · proven by <code>test/layoutMigration.test.js</code> and the dogfood run</td></tr>
+    <tr><td>No module outside <code>frameStore</code>/<code>specManager</code> joins a meta path <span class="tag">S6</span></td><td>Sequencing 1 · proven by the grep in the criterion (run at implement time) and the structureMap IPC change</td></tr>
+    <tr><td>Scripts safe by hand from a user project <span class="tag">S7</span></td><td>Sequencing 2 · proven by <code>test/scriptsProjectRoot.test.js</code></td></tr>
+    <tr><td>Feature parity <span class="tag">S8</span></td><td>Sequencing 1 (legacy fallback) + existing suite</td></tr>
+    <tr><td>Removal leaves no Frame bytes <span class="tag">S9</span></td><td>Sequencing 6 · proven by removal case in <code>test/frameProjectInit.test.js</code></td></tr>
+  </table>
+  <h4>Evidence pass — verified claims</h4>
+  <table>
+    <tr><th>Spec claim</th><th>Ground truth</th></tr>
+    <tr><td>Init writes five root files</td><td><span class="pill good">verified</span> <code>src/main/frameProject.js:269-272, 336-354</code></td></tr>
+    <tr><td>Init consumes <code>CLAUDE.md</code> (and <code>.claude/CLAUDE.md</code>, <code>AGENTS.md</code>, <code>GEMINI.md</code>) and symlinks</td><td><span class="pill good">verified</span> <code>frameProject.js:243-267, 300-334</code> (<code>.claude/CLAUDE.md</code> is read, not deleted)</td></tr>
+    <tr><td>Windows symlink falls back to a copy</td><td><span class="pill good">verified</span> <code>frameProject.js:70-109</code> (<code>createSymlinkSafe</code>)</td></tr>
+    <tr><td>Hooks merged into <code>.claude/settings.json</code>, merge-safe, idempotent, gated on active tool = claude</td><td><span class="pill good">verified</span> <code>frameProject.js:411-476</code></td></tr>
+    <tr><td>No storage seam; root joins spread across modules</td><td><span class="pill good">verified</span> <code>frameProject.js</code> (17 <code>FRAME_FILES</code> joins), <code>tasksManager.js:54-55</code>, <code>overviewManager.js:56,96,149</code>, renderer <code>structureMap.js:276-284</code> via <code>fs</code></td></tr>
+    <tr><td><code>config.json.files</code> record exists (migration fingerprint)</td><td><span class="pill good">verified</span> <code>src/shared/frameTemplates.js:817-824</code></td></tr>
+    <tr><td>Scripts resolve root as <code>__dirname/..</code> (wrong from <code>.frame/bin</code>)</td><td><span class="pill good">verified</span> <code>scripts/update-structure.js:23-26</code>, <code>find-module.js:21-23</code>, <code>check-freshness.js:20-22</code>; <code>spec-index.js:51-54</code> and <code>detect-project.js:335-341</code> already do it right</td></tr>
+    <tr><td>Hook snippet stages root <code>STRUCTURE.json</code></td><td><span class="pill good">verified</span> <code>frameTemplates.js:918-933</code>; lefthook text <code>structureBootstrap.js:214</code>; this repo's <code>.githooks/pre-commit</code></td></tr>
+    <tr><td>Spec-driven toggle/upgrade read root <code>AGENTS.md</code></td><td><span class="pill good">verified</span> <code>frameProject.js:578-692</code></td></tr>
+    <tr><td>Workspace registry has no project id</td><td><span class="pill good">verified</span> <code>src/main/workspace.js:108-132</code> (path, name, isFrameProject, addedAt)</td></tr>
+    <tr><td>Settings → Workflow hosts the per-project Spec-Driven toggle</td><td><span class="pill good">verified</span> <code>index.html:1227-1245</code>, <code>settingsModal.js:90</code></td></tr>
+    <tr><td>Init modal + confirmation list the old layout incl. GEMINI symlink</td><td><span class="pill good">verified</span> <code>index.html:607-625</code>, <code>frameProject.js:135-186</code>, <code>renderer/index.js:201</code></td></tr>
+    <tr><td>Sample project ships the legacy layout</td><td><span class="pill warn">new evidence</span> <code>src/templates/sample-project/</code> (root AGENTS/CLAUDE/GEMINI/tasks.json) — added to the plan</td></tr>
+    <tr><td>In-flight footprint collisions</td><td><span class="pill warn">stale status</span> <code>audit-q3-performance-resources</code> implementing but <code>outcome.md</code> present; <code>audit-q3-cross-platform</code> planned, not started</td></tr>
+    <tr><td>Testing record</td><td><span class="pill good">verified</span> <code>PROJECT_NOTES.md ## Testing</code> — <code>node --test test/*.test.js</code>; covered <code>src/main</code>, <code>src/shared</code>, <code>scripts</code>; renderer not covered</td></tr>
+    <tr><td>Pointer variants load natively</td><td><span class="pill good">verified</span> 2026-08-22 <code>claude -p</code> scratch runs: rule-only, rule + user CLAUDE.md, root pointer — all loaded</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>6 · Convergence log</h2>
+  <ol>
+    <li><b>Iteration 1</b> — coverage: S3 (native context) and C8 (this repo migrates) had no owner → added <code>test/nativeContext.test.js</code> and Sequencing step 8; evidence pass surfaced <code>src/templates/sample-project/</code> on the legacy layout → added to Files and step 3.</li>
+    <li><b>Iteration 2</b> — reality/decisions: spec D7 text ("calls take the id") contradicted the gate decision → refined in Architecture; <code>specManager.js</code> had no concrete change → dropped from Files/Footprint to avoid a false collision; "upgrade AGENTS.md" was vague → defined as targeted line edit with a review list (D12).</li>
+    <li><b>Iteration 3</b> — task-derivability: step 1 bundled seam + callers + IPC → split the renderer IPC change and the watcher-dir change into explicit bullets; hook command fixed to its exact string so tests and migration match on it; migration's sharing posture derivation (tracked → repo, else local) written into the design.</li>
+  </ol>
+</div>
+
+<footer>Generated 2026-08-22 · next step: <code>/spec.tasks</code> · canonical plan: <code>.frame/specs/non-invasive-overlay/plan.md</code></footer>
+</div>
+</body>
+</html>

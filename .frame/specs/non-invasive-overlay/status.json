@@ -1,10 +1,23 @@
 {
   "slug": "non-invasive-overlay",
-  "title": "Non-Invasive Frame Overlay (.frame-only, zero-touch)",
-  "phase": "specified",
+  "title": "Frame footprint: meta files move into .frame/, delivery stays native",
+  "phase": "tasks_generated",
   "ai_tool": "claude-code",
-  "generated_task_ids": [],
+  "generated_task_ids": [
+    "task-spec-non-invasive-overlay-T01",
+    "task-spec-non-invasive-overlay-T02",
+    "task-spec-non-invasive-overlay-T03",
+    "task-spec-non-invasive-overlay-T04",
+    "task-spec-non-invasive-overlay-T05",
+    "task-spec-non-invasive-overlay-T06",
+    "task-spec-non-invasive-overlay-T07",
+    "task-spec-non-invasive-overlay-T08",
+    "task-spec-non-invasive-overlay-T09",
+    "task-spec-non-invasive-overlay-T10",
+    "task-spec-non-invasive-overlay-T11",
+    "task-spec-non-invasive-overlay-T12"
+  ],
   "created_at": "2026-06-02T12:08:24.367Z",
-  "updated_at": "2026-06-02T12:14:39.963Z",
-  "last_phase_at": "2026-06-02T12:14:39.963Z"
+  "updated_at": "2026-08-22T17:14:33.563Z",
+  "last_phase_at": "2026-08-22T17:14:33.563Z"
 }
