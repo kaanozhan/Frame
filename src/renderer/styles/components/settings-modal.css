@@ -134,6 +134,55 @@
   text-decoration: underline;
 }
 
+/* Git sharing: a select instead of a switch — two named modes, not on/off. */
+.settings-select {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.settings-select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Warning line under a row: the tracked-under-local case, where Frame stores
+   the preference but will not untrack files for you. */
+.settings-row-warning {
+  color: var(--warning, #c8a03c);
+}
+
+/* Destructive action (Remove Frame): quiet until hovered, never a primary. */
+.settings-danger-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.settings-danger-btn:hover:not(:disabled) {
+  color: var(--error, #d16b6b);
+  border-color: var(--error, #d16b6b);
+}
+
+.settings-danger-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* iOS-style switch */
 .settings-switch {
   position: relative;

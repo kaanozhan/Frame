@@ -75,6 +75,18 @@
         "status": "pass",
         "detail": "266 pass, 0 fail (13 new)"
       }
+    },
+    {
+      "id": "T07",
+      "title": "Sharing mode wired into the UI",
+      "commit": "b142579",
+      "whatChanged": "Added GET_GIT_SHARING_STATE and SET_GIT_SHARING (plus the migration and remove channels T09/T10 need) to ipcChannels, handled in frameProject.setupIPC through gitSharing; CHECK_IS_FRAME_PROJECT now also answers layout: none|legacy|overlay. runProjectInit takes the mode from the init modal (state.js reads the checked radio) and calls gitSharing.reconcile so the exclude block and .frame/.gitignore land at init. Settings → Workflow gained a Git-sharing select with a warning line and the Remove Frame row, wired in settingsModal.js with the same ipcRenderer.invoke pattern as the spec-driven toggle, styled in settings-modal.css; index.js calls gitSharing.init({ activityLog }).",
+      "whyChanged": "The select renders entirely from main's state object (mode, tracked, inGit, warning, hookFile) rather than tracking its own state, so the tracked-under-local warning cannot drift from what git actually says. The layout answer and the Remove Frame markup landed here rather than in T09/T10 because both are one-line additions to surfaces this task was already rewriting.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "267 pass, 0 fail"
+      }
     }
   ]
 }

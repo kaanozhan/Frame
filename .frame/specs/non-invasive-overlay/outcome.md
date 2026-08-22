@@ -125,3 +125,20 @@ never runs `git rm` — the warning carries the command instead.
 _Captured: 2026-08-23 · 4 file change(s)_
 
 ---
+
+## T07 — Sharing mode wired into the UI
+
+Wired `GET_GIT_SHARING_STATE`/`SET_GIT_SHARING` (and the migration/remove
+channels for T09/T10) through `frameProject.setupIPC` into `gitSharing`, made
+`CHECK_IS_FRAME_PROJECT` answer `layout`, and had init take the modal's radio
+value (`state.js`) and call `gitSharing.reconcile` so the exclude block and
+`.frame/.gitignore` exist from the first run. Settings → Workflow gained the
+Git-sharing select plus warning line and the Remove Frame row, wired with the
+same `ipcRenderer.invoke` pattern as the spec-driven toggle. The select renders
+wholly from main's state object so the tracked-under-local warning cannot drift
+from what git reports; the `layout` answer and the Remove Frame markup landed
+early because both were one-liners in surfaces this task already touched.
+
+_Captured: 2026-08-23 · 8 file change(s)_
+
+---

@@ -150,3 +150,17 @@ test('a non-Frame directory cannot have a mode set', () => {
     fs.rmSync(plainDir, { recursive: true, force: true });
   }
 });
+
+test('the state handed to the UI carries mode, tracked and hookFile', () => {
+  // Shape contract for Settings → Workflow: the select renders from `mode`,
+  // the warning line from `warning`, and nothing else is needed.
+  const state = gitSharing.getState(projectDir);
+  assert.deepEqual(Object.keys(state).sort(), ['hookFile', 'inGit', 'mode', 'tracked', 'warning']);
+  assert.ok(gitSharing.MODES.includes(state.mode));
+  assert.equal(typeof state.tracked, 'boolean');
+  assert.equal(typeof state.inGit, 'boolean');
+
+  const after = gitSharing.setMode(projectDir, 'local');
+  assert.equal(after.hookFile, 'settings.local.json');
+  assert.equal(gitSharing.hookFileFor('repo'), 'settings.json');
+});

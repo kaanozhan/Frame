@@ -217,12 +217,18 @@ function dismissInitPrompt() {
  * Handle initialize Frame confirmation
  */
 function handleInitializeFrame() {
+  // Read the sharing choice before the modal is hidden — `repo` is
+  // pre-selected in the markup, so this is what the user actually saw.
+  const selected = document.querySelector('input[name="init-frame-sharing"]:checked');
+  const gitSharing = selected ? selected.value : 'repo';
+
   hideInitializeFrameModal();
   if (currentProjectPath) {
     const projectName = currentProjectPath.split('/').pop() || currentProjectPath.split('\\').pop();
     ipcRenderer.send(IPC.INITIALIZE_FRAME_PROJECT, {
       projectPath: currentProjectPath,
       projectName: projectName,
+      gitSharing,
       confirmed: true
     });
   }

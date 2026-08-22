@@ -1259,6 +1259,34 @@
               <span class="settings-switch-slider"></span>
             </label>
           </div>
+
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-git-sharing">Git sharing</label>
+              <p class="settings-row-desc">
+                Whether <code>.frame/</code> is committed with the repo, or kept local to this
+                machine through <code>.git/info/exclude</code>. Frame never edits your tracked
+                <code>.gitignore</code> and never untracks files for you.
+              </p>
+              <p class="settings-row-desc settings-row-warning" id="settings-git-sharing-warning" style="display:none;"></p>
+            </div>
+            <select class="settings-select" id="settings-git-sharing">
+              <option value="repo">Share with the repo</option>
+              <option value="local">Local to me</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label">Remove Frame from this project</label>
+              <p class="settings-row-desc">
+                Deletes <code>.frame/</code>, <code>.claude/rules/frame.md</code> and Frame's hook
+                entries. Your own files are never touched.
+              </p>
+              <p class="settings-row-desc" id="settings-remove-frame-note" style="display:none;"></p>
+            </div>
+            <button type="button" class="settings-danger-btn" id="settings-remove-frame">Remove Frame</button>
+          </div>
         </div>
 
         <div class="settings-section">

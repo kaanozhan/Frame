@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">6 tasks</span>
-    <span class="pill good">6 verified</span>
+    <span class="pill">7 tasks</span>
+    <span class="pill good">7 verified</span>
     
     <span class="chip">2026-08-22</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">6 of 12 tasks done · next: <span class="rs-task">T07 — Wire the sharing mode into the UI: `repo`-pre-selected sharing radios…</span></span>
+  <span class="rs-count">7 of 12 tasks done · next: <span class="rs-task">T08 — Add `src/main/layoutMigration.js` — pure `plan(projectPath)`…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -4309,6 +4309,389 @@
 <span class="dl-add">+  } finally {</span>
 <span class="dl-add">+    fs.rmSync(plainDir, { recursive: true, force: true });</span>
 <span class="dl-add">+  }</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T07</span>
+    <h2>Sharing mode wired into the UI</h2>
+    <span class="card-meta"><span class="chip">b142579</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">267 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Added GET_GIT_SHARING_STATE and SET_GIT_SHARING (plus the migration and remove channels T09/T10 need) to ipcChannels, handled in frameProject.setupIPC through gitSharing; CHECK_IS_FRAME_PROJECT now also answers layout: none|legacy|overlay. runProjectInit takes the mode from the init modal (state.js reads the checked radio) and calls gitSharing.reconcile so the exclude block and .frame/.gitignore land at init. Settings → Workflow gained a Git-sharing select with a warning line and the Remove Frame row, wired in settingsModal.js with the same ipcRenderer.invoke pattern as the spec-driven toggle, styled in settings-modal.css; index.js calls gitSharing.init({ activityLog }).</p></div>
+    <div class="field"><span class="label">Why</span><p>The select renders entirely from main&#39;s state object (mode, tracked, inGit, warning, hookFile) rather than tracking its own state, so the tracked-under-local warning cannot drift from what git actually says. The layout answer and the Remove Frame markup landed here rather than in T09/T10 because both are one-line additions to surfaces this task was already rewriting.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/index.html b/index.html</span>
+<span class="dl-meta">index 5f9aefc..1c27220 100644</span>
+<span class="dl-file">--- a/index.html</span>
+<span class="dl-file">+++ b/index.html</span>
+<span class="dl-hunk">@@ -1259,6 +1259,34 @@</span>
+<span class="dl-ctx">               &lt;span class=&quot;settings-switch-slider&quot;&gt;&lt;/span&gt;</span>
+<span class="dl-ctx">             &lt;/label&gt;</span>
+<span class="dl-ctx">           &lt;/div&gt;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+          &lt;div class=&quot;settings-row&quot;&gt;</span>
+<span class="dl-add">+            &lt;div class=&quot;settings-row-text&quot;&gt;</span>
+<span class="dl-add">+              &lt;label class=&quot;settings-row-label&quot; for=&quot;settings-git-sharing&quot;&gt;Git sharing&lt;/label&gt;</span>
+<span class="dl-add">+              &lt;p class=&quot;settings-row-desc&quot;&gt;</span>
+<span class="dl-add">+                Whether &lt;code&gt;.frame/&lt;/code&gt; is committed with the repo, or kept local to this</span>
+<span class="dl-add">+                machine through &lt;code&gt;.git/info/exclude&lt;/code&gt;. Frame never edits your tracked</span>
+<span class="dl-add">+                &lt;code&gt;.gitignore&lt;/code&gt; and never untracks files for you.</span>
+<span class="dl-add">+              &lt;/p&gt;</span>
+<span class="dl-add">+              &lt;p class=&quot;settings-row-desc settings-row-warning&quot; id=&quot;settings-git-sharing-warning&quot; style=&quot;display:none;&quot;&gt;&lt;/p&gt;</span>
+<span class="dl-add">+            &lt;/div&gt;</span>
+<span class="dl-add">+            &lt;select class=&quot;settings-select&quot; id=&quot;settings-git-sharing&quot;&gt;</span>
+<span class="dl-add">+              &lt;option value=&quot;repo&quot;&gt;Share with the repo&lt;/option&gt;</span>
+<span class="dl-add">+              &lt;option value=&quot;local&quot;&gt;Local to me&lt;/option&gt;</span>
+<span class="dl-add">+            &lt;/select&gt;</span>
+<span class="dl-add">+          &lt;/div&gt;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+          &lt;div class=&quot;settings-row&quot;&gt;</span>
+<span class="dl-add">+            &lt;div class=&quot;settings-row-text&quot;&gt;</span>
+<span class="dl-add">+              &lt;label class=&quot;settings-row-label&quot;&gt;Remove Frame from this project&lt;/label&gt;</span>
+<span class="dl-add">+              &lt;p class=&quot;settings-row-desc&quot;&gt;</span>
+<span class="dl-add">+                Deletes &lt;code&gt;.frame/&lt;/code&gt;, &lt;code&gt;.claude/rules/frame.md&lt;/code&gt; and Frame&#39;s hook</span>
+<span class="dl-add">+                entries. Your own files are never touched.</span>
+<span class="dl-add">+              &lt;/p&gt;</span>
+<span class="dl-add">+              &lt;p class=&quot;settings-row-desc&quot; id=&quot;settings-remove-frame-note&quot; style=&quot;display:none;&quot;&gt;&lt;/p&gt;</span>
+<span class="dl-add">+            &lt;/div&gt;</span>
+<span class="dl-add">+            &lt;button type=&quot;button&quot; class=&quot;settings-danger-btn&quot; id=&quot;settings-remove-frame&quot;&gt;Remove Frame&lt;/button&gt;</span>
+<span class="dl-add">+          &lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;/div&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">         &lt;div class=&quot;settings-section&quot;&gt;</span>
+<span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 39654b8..c6948fa 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -10,6 +10,7 @@ const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PATH } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const templates = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-ctx"> const frameStore = require(&#39;./frameStore&#39;);</span>
+<span class="dl-add">+const gitSharing = require(&#39;./gitSharing&#39;);</span>
+<span class="dl-ctx"> const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-ctx"> const structureBootstrap = require(&#39;./structureBootstrap&#39;);</span>
+<span class="dl-ctx"> const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-hunk">@@ -298,6 +299,15 @@ async function runProjectInit(projectPath, projectName, options = {}) {</span>
+<span class="dl-ctx">     console.warn(&#39;[frame] spec-hint hook install failed (non-fatal):&#39;, err.message);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Apply the sharing mode&#39;s side effects: the managed .frame/.gitignore</span>
+<span class="dl-add">+  // block, and (mode `local`) the anchored exclude entries. Non-fatal — a</span>
+<span class="dl-add">+  // project without git still initializes fine.</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    gitSharing.reconcile(projectPath);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    console.warn(&#39;[frame] applying sharing mode failed (non-fatal):&#39;, err.message);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // Update workspace to mark as Frame project</span>
+<span class="dl-ctx">   workspace.updateProjectFrameStatus(projectPath, true);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -651,11 +661,14 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">   ipcMain.on(IPC.CHECK_IS_FRAME_PROJECT, (event, projectPath) =&gt; {</span>
+<span class="dl-ctx">     const isFrame = isFrameProject(projectPath);</span>
+<span class="dl-ctx">     workspace.updateProjectFrameStatus(projectPath, isFrame);</span>
+<span class="dl-del">-    event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame });</span>
+<span class="dl-add">+    // `layout` tells the renderer whether this project still carries the</span>
+<span class="dl-add">+    // pre-overlay layout, which is what opens the migration modal.</span>
+<span class="dl-add">+    const layout = !isFrame ? &#39;none&#39; : (frameStore.isLegacyLayout(projectPath) ? &#39;legacy&#39; : &#39;overlay&#39;);</span>
+<span class="dl-add">+    event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout });</span>
+<span class="dl-ctx">     event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed }) =&gt; {</span>
+<span class="dl-add">+  ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed, gitSharing }) =&gt; {</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-ctx">       // If not already confirmed by renderer modal, show native dialog as fallback</span>
+<span class="dl-ctx">       if (!confirmed) {</span>
+<span class="dl-hunk">@@ -670,7 +683,7 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">         }</span>
+<span class="dl-ctx">       }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-      const config = await initializeFrameProject(projectPath, projectName);</span>
+<span class="dl-add">+      const config = await initializeFrameProject(projectPath, projectName, { gitSharing });</span>
+<span class="dl-ctx">       // Lazy require, same reason as aiToolManager below: telemetry pulls</span>
+<span class="dl-ctx">       // @aptabase/electron → electron, and CI runs the suite with no</span>
+<span class="dl-ctx">       // node_modules. Keep this module&#39;s load graph Electron-free.</span>
+<span class="dl-hunk">@@ -709,6 +722,17 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">   ipcMain.handle(IPC.SET_SPEC_DRIVEN, (event, { projectPath, enabled }) =&gt;</span>
+<span class="dl-ctx">     setSpecDrivenEnabled(projectPath, enabled === true)</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // ─── Git sharing ───────────────────────────────────────────</span>
+<span class="dl-add">+  ipcMain.handle(IPC.GET_GIT_SHARING_STATE, (event, projectPath) =&gt; {</span>
+<span class="dl-add">+    if (!projectPath || !isFrameProject(projectPath)) return { error: &#39;not a Frame project&#39; };</span>
+<span class="dl-add">+    return gitSharing.getState(projectPath);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  ipcMain.handle(IPC.SET_GIT_SHARING, (event, { projectPath, mode }) =&gt; {</span>
+<span class="dl-add">+    if (!projectPath || !isFrameProject(projectPath)) return { error: &#39;not a Frame project&#39; };</span>
+<span class="dl-add">+    return gitSharing.setMode(projectPath, mode);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> module.exports = {</span>
+<span class="dl-meta">diff --git a/src/main/index.js b/src/main/index.js</span>
+<span class="dl-meta">index 78b659f..bac3d49 100644</span>
+<span class="dl-file">--- a/src/main/index.js</span>
+<span class="dl-file">+++ b/src/main/index.js</span>
+<span class="dl-hunk">@@ -21,6 +21,7 @@ const promptLogger = require(&#39;./promptLogger&#39;);</span>
+<span class="dl-ctx"> const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-ctx"> const frameProject = require(&#39;./frameProject&#39;);</span>
+<span class="dl-ctx"> const frameStore = require(&#39;./frameStore&#39;);</span>
+<span class="dl-add">+const gitSharing = require(&#39;./gitSharing&#39;);</span>
+<span class="dl-ctx"> const fileEditor = require(&#39;./fileEditor&#39;);</span>
+<span class="dl-ctx"> const tasksManager = require(&#39;./tasksManager&#39;);</span>
+<span class="dl-ctx"> const pluginsManager = require(&#39;./pluginsManager&#39;);</span>
+<span class="dl-hunk">@@ -272,6 +273,10 @@ function init() {</span>
+<span class="dl-ctx">   // filling its ring; the panel reads it, nothing is transmitted.</span>
+<span class="dl-ctx">   activityLog.init();</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Sharing mode + layout migration record what they do (mode changes,</span>
+<span class="dl-add">+  // migration steps) into the activity ring.</span>
+<span class="dl-add">+  gitSharing.init({ activityLog });</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // Initialize prompt logger with app paths</span>
+<span class="dl-ctx">   promptLogger.init(app);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/renderer/settingsModal.js b/src/renderer/settingsModal.js</span>
+<span class="dl-meta">index 9b0524a..c4d7479 100644</span>
+<span class="dl-file">--- a/src/renderer/settingsModal.js</span>
+<span class="dl-file">+++ b/src/renderer/settingsModal.js</span>
+<span class="dl-hunk">@@ -19,6 +19,8 @@ let overlayEl = null;</span>
+<span class="dl-ctx"> let toggleEl = null;</span>
+<span class="dl-ctx"> let crashDumpsToggleEl = null;</span>
+<span class="dl-ctx"> let specDrivenToggleEl = null;</span>
+<span class="dl-add">+let gitSharingSelectEl = null;</span>
+<span class="dl-add">+let gitSharingWarningEl = null;</span>
+<span class="dl-ctx"> let specDrivenNoteEl = null;</span>
+<span class="dl-ctx"> let isOpen = false;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -39,6 +41,8 @@ function init() {</span>
+<span class="dl-ctx">   crashDumpsToggleEl = document.getElementById(&#39;settings-crash-dumps-toggle&#39;);</span>
+<span class="dl-ctx">   specDrivenToggleEl = document.getElementById(&#39;settings-spec-driven-toggle&#39;);</span>
+<span class="dl-ctx">   specDrivenNoteEl = document.getElementById(&#39;settings-spec-driven-note&#39;);</span>
+<span class="dl-add">+  gitSharingSelectEl = document.getElementById(&#39;settings-git-sharing&#39;);</span>
+<span class="dl-add">+  gitSharingWarningEl = document.getElementById(&#39;settings-git-sharing-warning&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // About section</span>
+<span class="dl-ctx">   aboutVersionEl = document.getElementById(&#39;settings-version&#39;);</span>
+<span class="dl-hunk">@@ -112,6 +116,27 @@ function init() {</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Git sharing: per-project, like the spec-driven flag. Main applies the</span>
+<span class="dl-add">+  // mode (exclude block, .frame/.gitignore, which settings file the hooks</span>
+<span class="dl-add">+  // live in) and answers with the state we re-render from — including the</span>
+<span class="dl-add">+  // warning when .frame/ is already committed.</span>
+<span class="dl-add">+  if (gitSharingSelectEl) {</span>
+<span class="dl-add">+    gitSharingSelectEl.addEventListener(&#39;change&#39;, async () =&gt; {</span>
+<span class="dl-add">+      const projectPath = state.getProjectPath();</span>
+<span class="dl-add">+      const mode = gitSharingSelectEl.value;</span>
+<span class="dl-add">+      if (!projectPath) return;</span>
+<span class="dl-add">+      gitSharingSelectEl.disabled = true;</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        const result = await ipcRenderer.invoke(IPC.SET_GIT_SHARING, { projectPath, mode });</span>
+<span class="dl-add">+        renderGitSharing(result);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        setGitSharingWarning(&#39;Could not change this setting: &#39; + err.message);</span>
+<span class="dl-add">+      } finally {</span>
+<span class="dl-add">+        gitSharingSelectEl.disabled = false;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   overlayEl.addEventListener(&#39;mousedown&#39;, (e) =&gt; {</span>
+<span class="dl-ctx">     if (e.target === overlayEl) close();</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-hunk">@@ -331,6 +356,7 @@ async function syncToggleFromSettings() {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   await syncSpecDrivenToggle();</span>
+<span class="dl-add">+  await syncGitSharing();</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-hunk">@@ -358,6 +384,47 @@ async function syncSpecDrivenToggle() {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Paint the sharing row from main&#39;s state object. `error` means the project</span>
+<span class="dl-add">+ * isn&#39;t a Frame project (or none is open) — the control goes inert rather</span>
+<span class="dl-add">+ * than showing a mode the project doesn&#39;t have.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function renderGitSharing(stateObj) {</span>
+<span class="dl-add">+  if (!gitSharingSelectEl) return;</span>
+<span class="dl-add">+  if (!stateObj || stateObj.error) {</span>
+<span class="dl-add">+    gitSharingSelectEl.disabled = true;</span>
+<span class="dl-add">+    setGitSharingWarning(</span>
+<span class="dl-add">+      stateObj &amp;&amp; stateObj.error === &#39;not a Frame project&#39;</span>
+<span class="dl-add">+        ? &#39;Initialize this project with Frame to choose how its files relate to git.&#39;</span>
+<span class="dl-add">+        : null</span>
+<span class="dl-add">+    );</span>
+<span class="dl-add">+    return;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  gitSharingSelectEl.disabled = false;</span>
+<span class="dl-add">+  gitSharingSelectEl.value = stateObj.mode;</span>
+<span class="dl-add">+  setGitSharingWarning(stateObj.warning);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+async function syncGitSharing() {</span>
+<span class="dl-add">+  if (!gitSharingSelectEl) return;</span>
+<span class="dl-add">+  const projectPath = state.getProjectPath();</span>
+<span class="dl-add">+  if (!projectPath) {</span>
+<span class="dl-add">+    renderGitSharing({ error: &#39;no project&#39; });</span>
+<span class="dl-add">+    return;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    renderGitSharing(await ipcRenderer.invoke(IPC.GET_GIT_SHARING_STATE, projectPath));</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    renderGitSharing({ error: err.message });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function setGitSharingWarning(message) {</span>
+<span class="dl-add">+  if (!gitSharingWarningEl) return;</span>
+<span class="dl-add">+  gitSharingWarningEl.textContent = message || &#39;&#39;;</span>
+<span class="dl-add">+  gitSharingWarningEl.style.display = message ? &#39;&#39; : &#39;none&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> function setSpecDrivenNote(message) {</span>
+<span class="dl-ctx">   if (!specDrivenNoteEl) return;</span>
+<span class="dl-ctx">   specDrivenNoteEl.textContent = message || &#39;&#39;;</span>
+<span class="dl-meta">diff --git a/src/renderer/state.js b/src/renderer/state.js</span>
+<span class="dl-meta">index 1f848fe..826d14b 100644</span>
+<span class="dl-file">--- a/src/renderer/state.js</span>
+<span class="dl-file">+++ b/src/renderer/state.js</span>
+<span class="dl-hunk">@@ -217,12 +217,18 @@ function dismissInitPrompt() {</span>
+<span class="dl-ctx">  * Handle initialize Frame confirmation</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function handleInitializeFrame() {</span>
+<span class="dl-add">+  // Read the sharing choice before the modal is hidden — `repo` is</span>
+<span class="dl-add">+  // pre-selected in the markup, so this is what the user actually saw.</span>
+<span class="dl-add">+  const selected = document.querySelector(&#39;input[name=&quot;init-frame-sharing&quot;]:checked&#39;);</span>
+<span class="dl-add">+  const gitSharing = selected ? selected.value : &#39;repo&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   hideInitializeFrameModal();</span>
+<span class="dl-ctx">   if (currentProjectPath) {</span>
+<span class="dl-ctx">     const projectName = currentProjectPath.split(&#39;/&#39;).pop() || currentProjectPath.split(&#39;\\&#39;).pop();</span>
+<span class="dl-ctx">     ipcRenderer.send(IPC.INITIALIZE_FRAME_PROJECT, {</span>
+<span class="dl-ctx">       projectPath: currentProjectPath,</span>
+<span class="dl-ctx">       projectName: projectName,</span>
+<span class="dl-add">+      gitSharing,</span>
+<span class="dl-ctx">       confirmed: true</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-meta">diff --git a/src/renderer/styles/components/settings-modal.css b/src/renderer/styles/components/settings-modal.css</span>
+<span class="dl-meta">index 4f61679..575a1d4 100644</span>
+<span class="dl-file">--- a/src/renderer/styles/components/settings-modal.css</span>
+<span class="dl-file">+++ b/src/renderer/styles/components/settings-modal.css</span>
+<span class="dl-hunk">@@ -134,6 +134,55 @@</span>
+<span class="dl-ctx">   text-decoration: underline;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/* Git sharing: a select instead of a switch — two named modes, not on/off. */</span>
+<span class="dl-add">+.settings-select {</span>
+<span class="dl-add">+  flex-shrink: 0;</span>
+<span class="dl-add">+  align-self: flex-start;</span>
+<span class="dl-add">+  padding: 4px 8px;</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  font-family: inherit;</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+  background: var(--bg-tertiary);</span>
+<span class="dl-add">+  border: 1px solid var(--border-primary);</span>
+<span class="dl-add">+  border-radius: var(--radius-sm);</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.settings-select:disabled {</span>
+<span class="dl-add">+  opacity: 0.5;</span>
+<span class="dl-add">+  cursor: default;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* Warning line under a row: the tracked-under-local case, where Frame stores</span>
+<span class="dl-add">+   the preference but will not untrack files for you. */</span>
+<span class="dl-add">+.settings-row-warning {</span>
+<span class="dl-add">+  color: var(--warning, #c8a03c);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* Destructive action (Remove Frame): quiet until hovered, never a primary. */</span>
+<span class="dl-add">+.settings-danger-btn {</span>
+<span class="dl-add">+  flex-shrink: 0;</span>
+<span class="dl-add">+  align-self: flex-start;</span>
+<span class="dl-add">+  padding: 4px 10px;</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  font-family: inherit;</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  background: transparent;</span>
+<span class="dl-add">+  border: 1px solid var(--border-primary);</span>
+<span class="dl-add">+  border-radius: var(--radius-sm);</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.settings-danger-btn:hover:not(:disabled) {</span>
+<span class="dl-add">+  color: var(--error, #d16b6b);</span>
+<span class="dl-add">+  border-color: var(--error, #d16b6b);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.settings-danger-btn:disabled {</span>
+<span class="dl-add">+  opacity: 0.5;</span>
+<span class="dl-add">+  cursor: default;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /* iOS-style switch */</span>
+<span class="dl-ctx"> .settings-switch {</span>
+<span class="dl-ctx">   position: relative;</span>
+<span class="dl-meta">diff --git a/src/shared/ipcChannels.js b/src/shared/ipcChannels.js</span>
+<span class="dl-meta">index 10c24c0..639cb0e 100644</span>
+<span class="dl-file">--- a/src/shared/ipcChannels.js</span>
+<span class="dl-file">+++ b/src/shared/ipcChannels.js</span>
+<span class="dl-hunk">@@ -190,6 +190,18 @@ const IPC = {</span>
+<span class="dl-ctx">   // Meta-file store (frameStore owns where .frame/ files live)</span>
+<span class="dl-ctx">   LOAD_STRUCTURE_MAP: &#39;load-structure-map&#39;,          // renderer → main (invoke): parsed STRUCTURE.json, or { error }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Git sharing mode (.frame/ shared with the repo, or local to this machine)</span>
+<span class="dl-add">+  GET_GIT_SHARING_STATE: &#39;get-git-sharing-state&#39;,    // renderer → main (invoke): { mode, tracked, inGit, warning }</span>
+<span class="dl-add">+  SET_GIT_SHARING: &#39;set-git-sharing&#39;,                // renderer → main (invoke): { projectPath, mode } → same state</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Layout migration (pre-overlay project → .frame/), consented per project</span>
+<span class="dl-add">+  GET_LAYOUT_MIGRATION_PLAN: &#39;get-layout-migration-plan&#39;,  // renderer → main (invoke): the plan, or null</span>
+<span class="dl-add">+  RUN_LAYOUT_MIGRATION: &#39;run-layout-migration&#39;,            // renderer → main (invoke): the receipt</span>
+<span class="dl-add">+  LAYOUT_MIGRATION_PROGRESS: &#39;layout-migration-progress&#39;,  // main → renderer: { step, detail }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Detach Frame from a project (deletes everything Frame authored)</span>
+<span class="dl-add">+  REMOVE_FRAME_FROM_PROJECT: &#39;remove-frame-from-project&#39;,   // renderer → main (invoke): { removed, errors }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // Activity record (the work Frame does on its own — local only, never sent)</span>
+<span class="dl-ctx">   GET_ACTIVITY: &#39;get-activity&#39;,                      // renderer → main: backlog (ring + what landed while closed)</span>
+<span class="dl-ctx">   ACTIVITY_DATA: &#39;activity-data&#39;                     // main → renderer: coalesced batch of new entries</span>
+<span class="dl-meta">diff --git a/test/gitSharing.test.js b/test/gitSharing.test.js</span>
+<span class="dl-meta">index 861341f..d01cd81 100644</span>
+<span class="dl-file">--- a/test/gitSharing.test.js</span>
+<span class="dl-file">+++ b/test/gitSharing.test.js</span>
+<span class="dl-hunk">@@ -150,3 +150,17 @@ test(&#39;a non-Frame directory cannot have a mode set&#39;, () =&gt; {</span>
+<span class="dl-ctx">     fs.rmSync(plainDir, { recursive: true, force: true });</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the state handed to the UI carries mode, tracked and hookFile&#39;, () =&gt; {</span>
+<span class="dl-add">+  // Shape contract for Settings → Workflow: the select renders from `mode`,</span>
+<span class="dl-add">+  // the warning line from `warning`, and nothing else is needed.</span>
+<span class="dl-add">+  const state = gitSharing.getState(projectDir);</span>
+<span class="dl-add">+  assert.deepEqual(Object.keys(state).sort(), [&#39;hookFile&#39;, &#39;inGit&#39;, &#39;mode&#39;, &#39;tracked&#39;, &#39;warning&#39;]);</span>
+<span class="dl-add">+  assert.ok(gitSharing.MODES.includes(state.mode));</span>
+<span class="dl-add">+  assert.equal(typeof state.tracked, &#39;boolean&#39;);</span>
+<span class="dl-add">+  assert.equal(typeof state.inGit, &#39;boolean&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const after = gitSharing.setMode(projectDir, &#39;local&#39;);</span>
+<span class="dl-add">+  assert.equal(after.hookFile, &#39;settings.local.json&#39;);</span>
+<span class="dl-add">+  assert.equal(gitSharing.hookFileFor(&#39;repo&#39;), &#39;settings.json&#39;);</span>
 <span class="dl-add">+});</span></pre>
     </details>
   </div>

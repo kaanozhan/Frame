@@ -745,6 +745,7 @@
         "shared/frameConstants",
         "shared/frameTemplates",
         "frameStore",
+        "gitSharing",
         "workspace",
         "structureBootstrap",
         "commandStaging",
@@ -758,28 +759,28 @@
       ],
       "functions": {
         "init": {
-          "line": 26,
+          "line": 27,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 33,
+          "line": 34,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 41,
+          "line": 42,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 54,
+          "line": 55,
           "params": [
             "filePath",
             "content"
@@ -787,21 +788,21 @@
           "purpose": "Create file if it doesn't exist"
         },
         "checkExistingFrameFiles": {
-          "line": 68,
+          "line": 69,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 95,
+          "line": 96,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 140,
+          "line": 141,
           "params": [
             "projectPath",
             "projectName",
@@ -809,7 +810,7 @@
           ]
         },
         "doInitializeFrameProject": {
-          "line": 148,
+          "line": 149,
           "params": [
             "projectPath",
             "projectName",
@@ -817,7 +818,7 @@
           ]
         },
         "runProjectInit": {
-          "line": 160,
+          "line": 161,
           "params": [
             "projectPath",
             "projectName",
@@ -825,14 +826,14 @@
           ]
         },
         "ensureClaudePointer": {
-          "line": 316,
+          "line": 326,
           "params": [
             "projectPath"
           ],
           "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start"
         },
         "installSpecHintHook": {
-          "line": 344,
+          "line": 354,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -840,7 +841,7 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "removeSpecHintHook": {
-          "line": 396,
+          "line": 406,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -848,60 +849,60 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 450,
+          "line": 460,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 455,
+          "line": 465,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 482,
+          "line": 492,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 509,
+          "line": 519,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 513,
+          "line": 523,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 527,
+          "line": 537,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 537,
+          "line": 547,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 609,
+          "line": 619,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 650,
+          "line": 660,
           "params": [
             "ipcMain"
           ],
@@ -915,7 +916,9 @@
           "GET_FRAME_CONFIG",
           "IS_SPEC_DRIVEN_ENABLED",
           "ENABLE_SPEC_DRIVEN",
-          "SET_SPEC_DRIVEN"
+          "SET_SPEC_DRIVEN",
+          "GET_GIT_SHARING_STATE",
+          "SET_GIT_SHARING"
         ],
         "emits": [
           "IS_FRAME_PROJECT_RESULT",
@@ -1791,6 +1794,7 @@
         "workspace",
         "frameProject",
         "frameStore",
+        "gitSharing",
         "fileEditor",
         "tasksManager",
         "pluginsManager",
@@ -1811,26 +1815,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 49,
+          "line": 50,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 67,
+          "line": 68,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 159
+          "line": 160
         },
         "setupAllIPC": {
-          "line": 185,
+          "line": 186,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 263,
+          "line": 264,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 298,
+          "line": 303,
           "params": [
             "window"
           ],
@@ -6631,19 +6635,19 @@
       ],
       "functions": {
         "init": {
-          "line": 36
+          "line": 38
         },
         "initAboutSection": {
-          "line": 140
+          "line": 165
         },
         "runCheck": {
-          "line": 225,
+          "line": 250,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 264,
+          "line": 289,
           "params": [
             "{ checked",
             "found",
@@ -6655,44 +6659,60 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 288,
+          "line": 313,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 299
+          "line": 324
         },
         "hideSidebarDot": {
-          "line": 303
+          "line": 328
         },
         "formatRelative": {
-          "line": 310,
+          "line": 335,
           "params": [
             "date"
           ]
         },
         "syncToggleFromSettings": {
-          "line": 321
+          "line": 346
         },
         "syncSpecDrivenToggle": {
-          "line": 341,
+          "line": 367,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
+        "renderGitSharing": {
+          "line": 392,
+          "params": [
+            "stateObj"
+          ],
+          "purpose": "Paint the sharing row from main's state object. `error` means the project"
+        },
+        "syncGitSharing": {
+          "line": 408
+        },
+        "setGitSharingWarning": {
+          "line": 422,
+          "params": [
+            "message"
+          ]
+        },
         "setSpecDrivenNote": {
-          "line": 361,
+          "line": 428,
           "params": [
             "message"
           ]
         },
         "open": {
-          "line": 367
+          "line": 434
         },
         "close": {
-          "line": 374
+          "line": 441
         },
         "toggle": {
-          "line": 381
+          "line": 448
         }
       },
       "ipc": {
@@ -7527,50 +7547,50 @@
           "purpose": "Handle initialize Frame confirmation"
         },
         "setupInitFrameModalListeners": {
-          "line": 234,
+          "line": 240,
           "purpose": "Setup initialize Frame modal listeners"
         },
         "showInitSpotlight": {
-          "line": 260,
+          "line": 266,
           "purpose": "Show spotlight tour for the initialize button (first time only)"
         },
         "dismissSpotlight": {
-          "line": 301,
+          "line": 307,
           "purpose": "Dismiss spotlight and mark as seen"
         },
         "setupSpotlightListeners": {
-          "line": 312,
+          "line": 318,
           "purpose": "Setup spotlight tour listeners"
         },
         "updateProjectUI": {
-          "line": 354,
+          "line": 360,
           "purpose": "Update project UI elements"
         },
         "selectProjectFolder": {
-          "line": 378,
+          "line": 384,
           "purpose": "Request folder selection"
         },
         "createNewProject": {
-          "line": 385,
+          "line": 391,
           "purpose": "Request new project creation"
         },
         "openSampleProject": {
-          "line": 395,
+          "line": 401,
           "purpose": "Open the bundled sample project. Main copies it into the user-data"
         },
         "getIsSampleProject": {
-          "line": 402,
+          "line": 408,
           "purpose": "Check whether the current project is the bundled sample."
         },
         "onSampleChange": {
-          "line": 410,
+          "line": 416,
           "params": [
             "callback"
           ],
           "purpose": "Register a callback fired whenever the current project's"
         },
         "setupIPC": {
-          "line": 417,
+          "line": 423,
           "purpose": "Setup IPC listeners"
         }
       },
@@ -9770,6 +9790,11 @@
         "name": "frame-config-data",
         "direction": "",
         "description": ""
+      },
+      "REMOVE_FRAME_FROM_PROJECT": {
+        "name": "remove-frame-from-project",
+        "direction": "",
+        "description": ""
       }
     },
     "editor": {
@@ -10081,6 +10106,35 @@
     "structure": {
       "LOAD_STRUCTURE_MAP": {
         "name": "load-structure-map",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "git": {
+      "GET_GIT_SHARING_STATE": {
+        "name": "get-git-sharing-state",
+        "direction": "",
+        "description": ""
+      },
+      "SET_GIT_SHARING": {
+        "name": "set-git-sharing",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "layout": {
+      "GET_LAYOUT_MIGRATION_PLAN": {
+        "name": "get-layout-migration-plan",
+        "direction": "",
+        "description": ""
+      },
+      "RUN_LAYOUT_MIGRATION": {
+        "name": "run-layout-migration",
+        "direction": "",
+        "description": ""
+      },
+      "LAYOUT_MIGRATION_PROGRESS": {
+        "name": "layout-migration-progress",
         "direction": "",
         "description": ""
       }

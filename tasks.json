@@ -4850,13 +4850,13 @@
       "title": "Wire the sharing mode into the UI: `repo`-pre-selected sharing radios in the init modal (`index.html`, value passed from `src/renderer/state.js` into init), the Git-sharing select and tracked-under-local warning line in Settings → Workflow (`index.html`, `src/renderer/settingsModal.js`, `src/renderer/styles/components/settings-modal.css`), `GET_GIT_SHARING_STATE`/`SET_GIT_SHARING` in `src/shared/ipcChannels.js` and `src/main/frameProject.js`, and `gitSharing` init with `activityLog` in `src/main/index.js`; cover the returned state shape (mode, tracked, warning) in `test/gitSharing.test.js`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T10:30:00.000Z",
+      "completedAt": "2026-08-23T10:30:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T08",

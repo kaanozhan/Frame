@@ -10,6 +10,7 @@ const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PATH } = require('../shared/frameConstants');
 const templates = require('../shared/frameTemplates');
 const frameStore = require('./frameStore');
+const gitSharing = require('./gitSharing');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
@@ -296,6 +297,15 @@ async function runProjectInit(projectPath, projectName, options = {}) {
     }
   } catch (err) {
     console.warn('[frame] spec-hint hook install failed (non-fatal):', err.message);
+  }
+
+  // Apply the sharing mode's side effects: the managed .frame/.gitignore
+  // block, and (mode `local`) the anchored exclude entries. Non-fatal — a
+  // project without git still initializes fine.
+  try {
+    gitSharing.reconcile(projectPath);
+  } catch (err) {
+    console.warn('[frame] applying sharing mode failed (non-fatal):', err.message);
   }
 
   // Update workspace to mark as Frame project
@@ -651,11 +661,14 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.CHECK_IS_FRAME_PROJECT, (event, projectPath) => {
     const isFrame = isFrameProject(projectPath);
     workspace.updateProjectFrameStatus(projectPath, isFrame);
-    event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame });
+    // `layout` tells the renderer whether this project still carries the
+    // pre-overlay layout, which is what opens the migration modal.
+    const layout = !isFrame ? 'none' : (frameStore.isLegacyLayout(projectPath) ? 'legacy' : 'overlay');
+    event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout });
     event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
   });
 
-  ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed }) => {
+  ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed, gitSharing }) => {
     try {
       // If not already confirmed by renderer modal, show native dialog as fallback
       if (!confirmed) {
@@ -670,7 +683,7 @@ function setupIPC(ipcMain) {
         }
       }
 
-      const config = await initializeFrameProject(projectPath, projectName);
+      const config = await initializeFrameProject(projectPath, projectName, { gitSharing });
       // Lazy require, same reason as aiToolManager below: telemetry pulls
       // @aptabase/electron → electron, and CI runs the suite with no
       // node_modules. Keep this module's load graph Electron-free.
@@ -709,6 +722,17 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.SET_SPEC_DRIVEN, (event, { projectPath, enabled }) =>
     setSpecDrivenEnabled(projectPath, enabled === true)
   );
+
+  // ─── Git sharing ───────────────────────────────────────────
+  ipcMain.handle(IPC.GET_GIT_SHARING_STATE, (event, projectPath) => {
+    if (!projectPath || !isFrameProject(projectPath)) return { error: 'not a Frame project' };
+    return gitSharing.getState(projectPath);
+  });
+
+  ipcMain.handle(IPC.SET_GIT_SHARING, (event, { projectPath, mode }) => {
+    if (!projectPath || !isFrameProject(projectPath)) return { error: 'not a Frame project' };
+    return gitSharing.setMode(projectPath, mode);
+  });
 }
 
 module.exports = {

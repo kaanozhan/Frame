@@ -21,6 +21,7 @@ const promptLogger = require('./promptLogger');
 const workspace = require('./workspace');
 const frameProject = require('./frameProject');
 const frameStore = require('./frameStore');
+const gitSharing = require('./gitSharing');
 const fileEditor = require('./fileEditor');
 const tasksManager = require('./tasksManager');
 const pluginsManager = require('./pluginsManager');
@@ -271,6 +272,10 @@ function init() {
   // Activity record — the work Frame does on its own. Always on and always
   // filling its ring; the panel reads it, nothing is transmitted.
   activityLog.init();
+
+  // Sharing mode + layout migration record what they do (mode changes,
+  // migration steps) into the activity ring.
+  gitSharing.init({ activityLog });
 
   // Initialize prompt logger with app paths
   promptLogger.init(app);
