@@ -87,8 +87,9 @@ function readSpecTasks() {
 
 beforeEach(() => {
   projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-spec-sync-'));
+  fs.mkdirSync(path.join(projectDir, FRAME_DIR), { recursive: true });
   fs.writeFileSync(
-    path.join(projectDir, FRAME_FILES.TASKS),
+    path.join(projectDir, FRAME_DIR, FRAME_FILES.TASKS),
     JSON.stringify({ version: '2.0', tasks: [] }, null, 2),
     'utf8'
   );

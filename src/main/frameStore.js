@@ -33,6 +33,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const fsSafe = require('./fsSafe');
+const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES } = require('../shared/frameConstants');
 
 // ─── Config ───────────────────────────────────────────────────
@@ -206,8 +207,24 @@ function ensureProjectId(projectPath) {
   return config.projectId;
 }
 
+// ─── IPC ──────────────────────────────────────────────────────
+
+/**
+ * The renderer used to read STRUCTURE.json off disk itself, which meant a
+ * renderer module knew the layout. It asks for the parsed map instead.
+ */
+function setupIPC(ipcMain) {
+  ipcMain.handle(IPC.LOAD_STRUCTURE_MAP, (event, projectPath) => {
+    if (!projectPath) return { error: 'No project selected' };
+    const data = getStructure(projectPath);
+    if (!data) return { error: 'STRUCTURE.json not found' };
+    return data;
+  });
+}
+
 module.exports = {
   resolvePath,
+  setupIPC,
   metaDir,
   isLegacyLayout,
   getTasks,

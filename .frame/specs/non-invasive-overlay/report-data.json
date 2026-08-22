@@ -15,6 +15,18 @@
         "status": "pass",
         "detail": "235 pass, 0 fail (13 new in test/frameStore.test.js)"
       }
+    },
+    {
+      "id": "T02",
+      "title": "Route every meta-file caller through the seam",
+      "commit": "cf36b5c",
+      "whatChanged": "tasksManager takes its path from frameStore.resolvePath, reads via frameStore.getTasks, writes via frameStore.saveTasks and watches frameStore.metaDir(projectPath) with the filename === 'tasks.json' check intact, plus a new restartWatching(projectPath) for T09 to call after a migration. overviewManager's loadStructure/loadTasks/loadDecisions and frameProject's spec-driven AGENTS.md reads and writes go through the store; specManager's tasks.json watcher resolves its path the same way. New LOAD_STRUCTURE_MAP channel, handled by frameStore.setupIPC (registered in src/main/index.js), lets src/renderer/structureMap.js drop its fs/path requires and invoke instead.",
+      "whyChanged": "The watcher now keys on the meta directory rather than the project path so a layout change re-arms instead of silently watching the wrong directory, and the parse-once cache keeps its mtime+size key (the perf spec's) by asking frameStore for the resolved path. test/tasksManager.test.js and test/specTasksSync.test.js moved their fixtures into .frame/ because a bare root tasks.json with no config.files record is deliberately not Frame's file any more; a new tasksManager case pins that an unmigrated project still reads and writes its root copy.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "236 pass, 0 fail"
+      }
     }
   ]
 }

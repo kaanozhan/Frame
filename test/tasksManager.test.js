@@ -10,9 +10,10 @@ const os = require('os');
 const path = require('path');
 
 const tasksManager = require('../src/main/tasksManager');
-const { FRAME_FILES } = require('../src/shared/frameConstants');
+const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES } = require('../src/shared/frameConstants');
 
 let projectDir;
+let metaDir;
 let tasksPath;
 
 function writeTasksFile(tasks) {
@@ -20,8 +21,12 @@ function writeTasksFile(tasks) {
 }
 
 beforeEach(() => {
+  // Overlay layout: tasks.json lives in .frame/, which is where frameStore
+  // puts every file Frame creates today.
   projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-tasks-'));
-  tasksPath = path.join(projectDir, FRAME_FILES.TASKS);
+  metaDir = path.join(projectDir, FRAME_DIR);
+  fs.mkdirSync(metaDir, { recursive: true });
+  tasksPath = path.join(metaDir, FRAME_FILES.TASKS);
   tasksManager.init(null); // no window — IPC pushes no-op
 });
 
@@ -51,7 +56,7 @@ test('corrupt tasks.json with .bak: restores and keeps CRUD alive', () => {
   assert.ok(Array.isArray(data.tasks), 'recovered data is usable');
   assert.ok(data.tasks.some((t) => t.id === 't1'), 'pre-corruption task survives');
   assert.ok(!data.corrupt);
-  const corrupt = fs.readdirSync(projectDir).filter((f) => f.includes('.corrupt-'));
+  const corrupt = fs.readdirSync(metaDir).filter((f) => f.includes('.corrupt-'));
   assert.equal(corrupt.length, 1, 'corrupt copy preserved');
 });
 
@@ -66,11 +71,34 @@ test('corrupt tasks.json without .bak: flagged empty set, mutation cannot clobbe
   const added = tasksManager.addTask(projectDir, { title: 'new task' });
   assert.ok(added);
   // ...and the corrupt original is still recoverable on disk.
-  const corrupt = fs.readdirSync(projectDir).filter((f) => f.includes('.corrupt-'));
+  const corrupt = fs.readdirSync(metaDir).filter((f) => f.includes('.corrupt-'));
   assert.equal(corrupt.length, 1);
 
   // the corrupt flag is never persisted
   const onDisk = JSON.parse(fs.readFileSync(tasksPath, 'utf8'));
   assert.ok(!('corrupt' in onDisk));
   assert.equal(onDisk.tasks.length, 1);
+});
+
+test('an unmigrated project keeps reading and writing its root tasks.json', () => {
+  // Frame's pre-overlay signature: the config.files record plus the file at
+  // the project root. CRUD must stay on that file until the user migrates.
+  fs.writeFileSync(
+    path.join(metaDir, FRAME_CONFIG_FILE),
+    JSON.stringify({ version: '1.0', files: { tasks: FRAME_FILES.TASKS } }, null, 2),
+    'utf8'
+  );
+  const rootTasksPath = path.join(projectDir, FRAME_FILES.TASKS);
+  fs.writeFileSync(
+    rootTasksPath,
+    JSON.stringify({ version: '2.0', tasks: [{ id: 't1', title: 'A', status: 'pending' }] }, null, 2),
+    'utf8'
+  );
+
+  assert.equal(tasksManager.loadTasks(projectDir).tasks.length, 1);
+  assert.ok(tasksManager.addTask(projectDir, { title: 'B' }));
+
+  const onDisk = JSON.parse(fs.readFileSync(rootTasksPath, 'utf8'));
+  assert.equal(onDisk.tasks.length, 2, 'the root file is the one that changed');
+  assert.ok(!fs.existsSync(tasksPath), 'no second copy appears under .frame/');
 });

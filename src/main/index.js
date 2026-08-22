@@ -20,6 +20,7 @@ const fileTree = require('./fileTree');
 const promptLogger = require('./promptLogger');
 const workspace = require('./workspace');
 const frameProject = require('./frameProject');
+const frameStore = require('./frameStore');
 const fileEditor = require('./fileEditor');
 const tasksManager = require('./tasksManager');
 const pluginsManager = require('./pluginsManager');
@@ -190,6 +191,7 @@ function setupAllIPC() {
   promptLogger.setupIPC(ipcMain);
   workspace.setupIPC(ipcMain);
   frameProject.setupIPC(ipcMain);
+  frameStore.setupIPC(ipcMain);
   fileEditor.setupIPC(ipcMain);
   tasksManager.setupIPC(ipcMain);
   pluginsManager.setupIPC(ipcMain);

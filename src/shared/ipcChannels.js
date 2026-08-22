@@ -187,6 +187,9 @@ const IPC = {
   ORCH_REMOVE_WORKER: 'orch-remove-worker',          // renderer → main: cleanup a worker (worktree + branch)
   ORCH_RESUME_WORKER: 'orch-resume-worker',          // renderer → main: relaunch a recovered worker's lane in its existing worktree
 
+  // Meta-file store (frameStore owns where .frame/ files live)
+  LOAD_STRUCTURE_MAP: 'load-structure-map',          // renderer → main (invoke): parsed STRUCTURE.json, or { error }
+
   // Activity record (the work Frame does on its own — local only, never sent)
   GET_ACTIVITY: 'get-activity',                      // renderer → main: backlog (ring + what landed while closed)
   ACTIVITY_DATA: 'activity-data'                     // main → renderer: coalesced batch of new entries

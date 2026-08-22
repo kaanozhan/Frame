@@ -21,3 +21,29 @@ corruption UX distinguishes "restored from `.bak`" from "nothing to restore", an
 _Captured: 2026-08-22 · 4 file change(s)_
 
 ---
+
+## T02 — Route every meta-file caller through the seam
+
+Pointed every meta-file caller at `frameStore`: `tasksManager` (path via
+`resolvePath`, read via `getTasks`, write via `saveTasks`, watcher on
+`metaDir(projectPath)` keeping the `filename === 'tasks.json'` check, plus a new
+`restartWatching(projectPath)` for T09 to call after a migration),
+`overviewManager`'s `loadStructure`/`loadTasks`/`loadDecisions`, `frameProject`'s
+spec-driven AGENTS.md reads and writes, and `specManager`'s tasks.json watcher
+path. Added the `LOAD_STRUCTURE_MAP` channel with `frameStore.setupIPC` wired in
+`src/main/index.js`, so `src/renderer/structureMap.js` invokes for the parsed map
+and no longer requires `fs`/`path`. Beyond plan.md: `specManager`'s watcher path
+was routed too (S6 counts it as a meta-path join even though the module is
+exempt for specs), and `test/specTasksSync.test.js` needed its fixture under
+`.frame/` for the same reason as `test/tasksManager.test.js`, which also gained a
+legacy-layout case. The S6 grep now leaves only `frameProject`'s
+`checkExistingFrameFiles` list plus the "Created:" line (T05) and
+`structureBootstrap`'s hook snippets (T03).
+Followup for T08: `frameStore`'s atomic writes leave `<name>.bak` beside a
+legacy artifact at the project root (as `tasks.json.bak` already does today), so
+migration must treat a `.bak` sibling of a legacy artifact as Frame's — move it
+into `.frame/migration-backup/`, never leave it at the root.
+
+_Captured: 2026-08-22 · 10 file change(s)_
+
+---

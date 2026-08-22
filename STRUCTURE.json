@@ -740,6 +740,7 @@
         "shared/ipcChannels",
         "shared/frameConstants",
         "shared/frameTemplates",
+        "frameStore",
         "workspace",
         "structureBootstrap",
         "commandStaging",
@@ -753,28 +754,28 @@
       ],
       "functions": {
         "init": {
-          "line": 30,
+          "line": 31,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 37,
+          "line": 38,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 45,
+          "line": 46,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 58,
+          "line": 59,
           "params": [
             "filePath",
             "content"
@@ -782,7 +783,7 @@
           "purpose": "Create file if it doesn't exist"
         },
         "createSymlinkSafe": {
-          "line": 75,
+          "line": 76,
           "params": [
             "target",
             "linkPath"
@@ -790,61 +791,61 @@
           "purpose": "Create a symlink safely with Windows fallback"
         },
         "checkExistingFrameFiles": {
-          "line": 116,
+          "line": 117,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 140,
+          "line": 141,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 192,
+          "line": 193,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "doInitializeFrameProject": {
-          "line": 200,
+          "line": 201,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "runProjectInit": {
-          "line": 212,
+          "line": 213,
           "params": [
             "projectPath",
             "projectName"
           ]
         },
         "installSpecHintHook": {
-          "line": 438,
+          "line": 439,
           "params": [
             "projectPath"
           ],
           "purpose": "Register the spec-hint hooks in the project's .claude/settings.json."
         },
         "isSpecDrivenEnabled": {
-          "line": 495,
+          "line": 496,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 500,
+          "line": 501,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 527,
+          "line": 528,
           "params": [
             "projectPath"
           ],
@@ -879,13 +880,13 @@
           ]
         },
         "upgradeSpecDocs": {
-          "line": 658,
+          "line": 655,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 699,
+          "line": 696,
           "params": [
             "ipcMain"
           ],
@@ -914,6 +915,7 @@
       "description": "frameStore — the one module that knows where a project's meta files live.",
       "exports": [
         "resolvePath",
+        "setupIPC",
         "metaDir",
         "isLegacyLayout",
         "getTasks",
@@ -935,24 +937,25 @@
         "path",
         "crypto",
         "fsSafe",
+        "shared/ipcChannels",
         "shared/frameConstants"
       ],
       "functions": {
         "configPath": {
-          "line": 40,
+          "line": 41,
           "params": [
             "projectPath"
           ]
         },
         "readConfig": {
-          "line": 48,
+          "line": 49,
           "params": [
             "projectPath"
           ],
           "purpose": "Read `.frame/config.json`. Returns null when it is missing or unreadable —"
         },
         "writeConfig": {
-          "line": 57,
+          "line": 58,
           "params": [
             "projectPath",
             "config"
@@ -960,14 +963,14 @@
           "purpose": "Write `.frame/config.json` atomically. Throws on failure, like fsSafe."
         },
         "legacyFileNames": {
-          "line": 67,
+          "line": 68,
           "params": [
             "projectPath"
           ],
           "purpose": "The names a legacy project recorded at init. Empty for a project written"
         },
         "resolvePath": {
-          "line": 80,
+          "line": 81,
           "params": [
             "projectPath",
             "name"
@@ -975,28 +978,28 @@
           "purpose": "Absolute path Frame should use for meta file `name` in this project."
         },
         "isLegacyLayout": {
-          "line": 95,
+          "line": 96,
           "params": [
             "projectPath"
           ],
           "purpose": "True while the project still carries Frame's pre-overlay layout: the"
         },
         "metaDir": {
-          "line": 104,
+          "line": 105,
           "params": [
             "projectPath"
           ],
           "purpose": "Directory to watch for tasks.json — the root for an unmigrated project,"
         },
         "readText": {
-          "line": 110,
+          "line": 111,
           "params": [
             "projectPath",
             "name"
           ]
         },
         "writeText": {
-          "line": 118,
+          "line": 119,
           "params": [
             "projectPath",
             "name",
@@ -1004,41 +1007,41 @@
           ]
         },
         "getTasks": {
-          "line": 131,
+          "line": 132,
           "params": [
             "projectPath"
           ],
           "purpose": "tasks.json, with fsSafe's corruption recovery. Returns the recovery record"
         },
         "saveTasks": {
-          "line": 135,
+          "line": 136,
           "params": [
             "projectPath",
             "data"
           ]
         },
         "getStructure": {
-          "line": 140,
+          "line": 141,
           "params": [
             "projectPath"
           ],
           "purpose": "STRUCTURE.json parsed, or null when it is missing or unparseable."
         },
         "saveStructure": {
-          "line": 150,
+          "line": 151,
           "params": [
             "projectPath",
             "structure"
           ]
         },
         "readNotes": {
-          "line": 154,
+          "line": 155,
           "params": [
             "projectPath"
           ]
         },
         "appendNote": {
-          "line": 162,
+          "line": 163,
           "params": [
             "projectPath",
             "text"
@@ -1046,38 +1049,51 @@
           "purpose": "Append an entry to PROJECT_NOTES.md, keeping one blank line between it and"
         },
         "readQuickstart": {
-          "line": 171,
+          "line": 172,
           "params": [
             "projectPath"
           ]
         },
         "readAgents": {
-          "line": 175,
+          "line": 176,
           "params": [
             "projectPath"
           ]
         },
         "writeAgents": {
-          "line": 179,
+          "line": 180,
           "params": [
             "projectPath",
             "text"
           ]
         },
         "getProjectId": {
-          "line": 186,
+          "line": 187,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's stable id, or null if it has none yet."
         },
         "ensureProjectId": {
-          "line": 198,
+          "line": 199,
           "params": [
             "projectPath"
           ],
           "purpose": "Stamp a UUID into `.frame/config.json` once and return it; a project that"
+        },
+        "setupIPC": {
+          "line": 216,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "The renderer used to read STRUCTURE.json off disk itself, which meant a"
         }
+      },
+      "ipc": {
+        "listens": [
+          "LOAD_STRUCTURE_MAP"
+        ],
+        "emits": []
       }
     },
     "main/fsSafe": {
@@ -1571,6 +1587,7 @@
         "promptLogger",
         "workspace",
         "frameProject",
+        "frameStore",
         "fileEditor",
         "tasksManager",
         "pluginsManager",
@@ -1591,26 +1608,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 48,
+          "line": 49,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 66,
+          "line": 67,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 158
+          "line": 159
         },
         "setupAllIPC": {
-          "line": 184,
+          "line": 185,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 261,
+          "line": 263,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 296,
+          "line": 298,
           "params": [
             "window"
           ],
@@ -2078,74 +2095,75 @@
         "fs",
         "path",
         "child_process",
+        "frameStore",
         "shared/ipcChannels"
       ],
       "functions": {
         "init": {
-          "line": 16,
+          "line": 17,
           "params": [
             "window"
           ],
           "purpose": "Initialize overview manager"
         },
         "loadOverview": {
-          "line": 23,
+          "line": 24,
           "params": [
             "projectPath"
           ],
           "purpose": "Load overview data for a project"
         },
         "loadStructure": {
-          "line": 55,
+          "line": 56,
           "params": [
             "projectPath"
           ],
           "purpose": "Load structure from STRUCTURE.json"
         },
         "loadTasks": {
-          "line": 95,
+          "line": 94,
           "params": [
             "projectPath"
           ],
           "purpose": "Load tasks from tasks.json"
         },
         "loadDecisions": {
-          "line": 148,
+          "line": 144,
           "params": [
             "projectPath"
           ],
           "purpose": "Load decisions from PROJECT_NOTES.md"
         },
         "loadStats": {
-          "line": 187,
+          "line": 180,
           "params": [
             "projectPath"
           ],
           "purpose": "Load project stats (lines of code, files, git info)"
         },
         "countLinesOfCode": {
-          "line": 209,
+          "line": 202,
           "params": [
             "projectPath"
           ],
           "purpose": "Count lines of code in src directory"
         },
         "countFiles": {
-          "line": 233,
+          "line": 226,
           "params": [
             "projectPath"
           ],
           "purpose": "Count files in src directory"
         },
         "getGitInfo": {
-          "line": 256,
+          "line": 249,
           "params": [
             "projectPath"
           ],
           "purpose": "Get git information"
         },
         "getFileGitHistory": {
-          "line": 286,
+          "line": 279,
           "params": [
             "projectPath",
             "filePath"
@@ -2153,7 +2171,7 @@
           "purpose": "Get file git history (contributors, commits, blame)"
         },
         "getFileCommits": {
-          "line": 323,
+          "line": 316,
           "params": [
             "projectPath",
             "filePath"
@@ -2161,7 +2179,7 @@
           "purpose": "Get recent commits for a file"
         },
         "getFileContributors": {
-          "line": 354,
+          "line": 347,
           "params": [
             "projectPath",
             "filePath"
@@ -2169,7 +2187,7 @@
           "purpose": "Get contributors for a file"
         },
         "getFileBlame": {
-          "line": 387,
+          "line": 380,
           "params": [
             "projectPath",
             "filePath"
@@ -2177,7 +2195,7 @@
           "purpose": "Get blame summary for a file (who wrote how many lines)"
         },
         "setupIPC": {
-          "line": 419,
+          "line": 412,
           "params": [
             "ipcMain"
           ],
@@ -2770,6 +2788,7 @@
         "fsSafe",
         "shared/ipcChannels",
         "shared/frameConstants",
+        "frameStore",
         "tasksManager",
         "commandStaging",
         "frameProject",
@@ -2779,52 +2798,52 @@
       ],
       "functions": {
         "getSpecsRoot": {
-          "line": 61,
+          "line": 62,
           "params": [
             "projectPath"
           ]
         },
         "getSpecDir": {
-          "line": 65,
+          "line": 66,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "generateSlug": {
-          "line": 74,
+          "line": 75,
           "params": [
             "title"
           ]
         },
         "uniqueSlug": {
-          "line": 87,
+          "line": 88,
           "params": [
             "projectPath",
             "baseSlug"
           ]
         },
         "validateSpecStatus": {
-          "line": 100,
+          "line": 101,
           "params": [
             "obj"
           ]
         },
         "readFileSafe": {
-          "line": 119,
+          "line": 120,
           "params": [
             "p"
           ]
         },
         "readStatus": {
-          "line": 128,
+          "line": 129,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 139,
+          "line": 140,
           "params": [
             "projectPath",
             "slug",
@@ -2832,33 +2851,33 @@
           ]
         },
         "indexStamp": {
-          "line": 169,
+          "line": 170,
           "params": [
             "projectPath"
           ],
           "purpose": "mtime of the derived index, or 0 — used to tell a rebuild from a no-op."
         },
         "scheduleIndexRefresh": {
-          "line": 178,
+          "line": 179,
           "params": [
             "projectPath"
           ]
         },
         "buildSpecCatalog": {
-          "line": 206,
+          "line": 207,
           "params": [
             "projectPath"
           ],
           "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
         },
         "listSpecs": {
-          "line": 226,
+          "line": 227,
           "params": [
             "projectPath"
           ]
         },
         "fileExists": {
-          "line": 281,
+          "line": 282,
           "params": [
             "projectPath",
             "slug",
@@ -2866,7 +2885,7 @@
           ]
         },
         "derivePhase": {
-          "line": 285,
+          "line": 286,
           "params": [
             "projectPath",
             "slug",
@@ -2875,14 +2894,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 311,
+          "line": 312,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "reconcilePhase": {
-          "line": 317,
+          "line": 318,
           "params": [
             "projectPath",
             "slug",
@@ -2890,14 +2909,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 346,
+          "line": 347,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 350,
+          "line": 351,
           "params": [
             "projectPath",
             "aiTool",
@@ -2905,7 +2924,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 354,
+          "line": 355,
           "params": [
             "projectPath",
             "aiTool",
@@ -2913,14 +2932,14 @@
           ]
         },
         "interpolate": {
-          "line": 360,
+          "line": 361,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 367,
+          "line": 368,
           "params": [
             "projectPath",
             "slug",
@@ -2929,7 +2948,7 @@
           ]
         },
         "stageCommandAsset": {
-          "line": 416,
+          "line": 417,
           "params": [
             "projectPath",
             "aiTool",
@@ -2938,7 +2957,7 @@
           "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
         },
         "stageCommandAssets": {
-          "line": 437,
+          "line": 438,
           "params": [
             "projectPath",
             "command",
@@ -2946,34 +2965,34 @@
           ]
         },
         "resolveVerificationCommand": {
-          "line": 501,
+          "line": 502,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 516,
+          "line": 517,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 534,
+          "line": 535,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 558,
+          "line": 559,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 574,
+          "line": 575,
           "params": [
             "projectPath",
             "slug"
@@ -2981,7 +3000,7 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "buildSpecCommandFile": {
-          "line": 581,
+          "line": 582,
           "params": [
             "projectPath",
             "slug",
@@ -2990,53 +3009,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 617,
+          "line": 618,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 643,
+          "line": 644,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 662,
+          "line": 663,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 667,
+          "line": 668,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 747,
+          "line": 748,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 754,
+          "line": 755,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 771,
+          "line": 772,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 801,
+          "line": 802,
           "params": [
             "projectPath",
             "query"
@@ -3044,14 +3063,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 822,
+          "line": 823,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 865,
+          "line": 866,
           "params": [
             "projectPath",
             "slug",
@@ -3059,14 +3078,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 884,
+          "line": 885,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 901,
+          "line": 902,
           "params": [
             "projectPath",
             "oldSlug",
@@ -3075,28 +3094,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1013,
+          "line": 1014,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1096
+          "line": 1097
         },
         "pushSpecData": {
-          "line": 1117,
+          "line": 1118,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1137,
+          "line": 1138,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1141,
+          "line": 1142,
           "params": [
             "ipcMain"
           ]
@@ -3209,12 +3228,13 @@
         "reorderTasks",
         "setupIPC",
         "stopWatching",
+        "restartWatching",
         "getLastSelfWriteAt"
       ],
       "depends": [
         "fs",
-        "path",
         "fsSafe",
+        "frameStore",
         "activityLog",
         "shared/ipcChannels",
         "shared/frameConstants"
@@ -3239,40 +3259,41 @@
           ]
         },
         "getTasksFilePath": {
-          "line": 54,
+          "line": 57,
           "params": [
             "projectPath"
-          ]
+          ],
+          "purpose": "Where tasks.json lives is frameStore's answer, not ours: `.frame/tasks.json`"
         },
         "flattenLegacyTasks": {
-          "line": 65,
+          "line": 68,
           "params": [
             "legacy"
           ],
           "purpose": "Migrate the old nested shape ({ pending, inProgress, completed }) into a"
         },
         "dedupById": {
-          "line": 78,
+          "line": 81,
           "params": [
             "tasks"
           ]
         },
         "loadTasks": {
-          "line": 99,
+          "line": 102,
           "params": [
             "projectPath"
           ],
           "purpose": "Read tasks.json from disk, migrate/normalize, and return the canonical"
         },
         "saveTasks": {
-          "line": 165,
+          "line": 168,
           "params": [
             "projectPath",
             "tasksData"
           ]
         },
         "sendTasksFileError": {
-          "line": 185,
+          "line": 187,
           "params": [
             "projectPath",
             "info"
@@ -3280,17 +3301,17 @@
           "purpose": "Tell the renderer tasks.json is corrupt (or was auto-recovered from .bak)"
         },
         "generateTaskId": {
-          "line": 193
+          "line": 195
         },
         "addTask": {
-          "line": 197,
+          "line": 199,
           "params": [
             "projectPath",
             "task"
           ]
         },
         "updateTask": {
-          "line": 221,
+          "line": 223,
           "params": [
             "projectPath",
             "taskId",
@@ -3298,14 +3319,14 @@
           ]
         },
         "deleteTask": {
-          "line": 243,
+          "line": 245,
           "params": [
             "projectPath",
             "taskId"
           ]
         },
         "reorderTasks": {
-          "line": 262,
+          "line": 264,
           "params": [
             "projectPath",
             "order"
@@ -3313,22 +3334,29 @@
           "purpose": "Reorder tasks (used by the Kanban dashboard for drag-and-drop). The renderer"
         },
         "startWatching": {
-          "line": 316,
+          "line": 322,
           "params": [
             "projectPath"
           ]
         },
+        "restartWatching": {
+          "line": 367,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Re-arm the watcher on the project's current meta directory. Migration moves"
+        },
         "stopWatching": {
-          "line": 353
+          "line": 372
         },
         "setupIPC": {
-          "line": 363,
+          "line": 382,
           "params": [
             "ipcMain"
           ]
         },
         "getLastSelfWriteAt": {
-          "line": 423,
+          "line": 442,
           "purpose": "Timestamp of this module's last tasks.json write — exported so other"
         }
       },
@@ -7369,17 +7397,15 @@
       ],
       "depends": [
         "electron",
-        "fs",
-        "path",
         "shared/ipcChannels",
         "htmlUtils"
       ],
       "functions": {
         "stopSimulationLoop": {
-          "line": 23
+          "line": 21
         },
         "capGraphByDegree": {
-          "line": 32,
+          "line": 30,
           "params": [
             "graph",
             "cap"
@@ -7387,76 +7413,76 @@
           "purpose": "Bound a graph to its `cap` highest-degree nodes (links pruned to the kept"
         },
         "init": {
-          "line": 66,
+          "line": 64,
           "purpose": "Initialize structure map"
         },
         "createOverlay": {
-          "line": 73,
+          "line": 71,
           "purpose": "Create overlay element"
         },
         "setupViewToggle": {
-          "line": 156,
+          "line": 154,
           "purpose": "Setup view toggle buttons"
         },
         "setupInfoPanelResize": {
-          "line": 184,
+          "line": 182,
           "purpose": "Setup info panel resize functionality"
         },
         "show": {
-          "line": 239,
+          "line": 237,
           "params": [
             "projectPath"
           ],
           "purpose": "Show structure map"
         },
         "hide": {
-          "line": 261,
+          "line": 259,
           "purpose": "Hide structure map"
         },
         "loadStructure": {
-          "line": 275,
+          "line": 273,
           "params": [
             "projectPath"
           ],
           "purpose": "Load structure data"
         },
         "showError": {
-          "line": 296,
+          "line": 294,
           "params": [
             "message"
           ],
           "purpose": "Show error in info panel"
         },
         "structureToGraph": {
-          "line": 304,
+          "line": 302,
           "params": [
             "data"
           ],
           "purpose": "Convert structure data to graph format"
         },
         "renderGraph": {
-          "line": 378,
+          "line": 376,
           "params": [
             "structureData"
           ],
           "purpose": "Render force-directed graph"
         },
         "renderTreeView": {
-          "line": 586,
+          "line": 584,
           "params": [
             "structureData"
           ],
           "purpose": "Render tree/hierarchy view using D3.js"
         },
         "buildHierarchy": {
-          "line": 897,
+          "line": 895,
           "params": [
             "structureData"
           ],
           "purpose": "Build hierarchy data for D3 tree"
         },
         "showModuleInfo": {
-          "line": 963,
+          "line": 961,
           "params": [
             "module",
             "showGitButton = true"
@@ -7464,7 +7490,7 @@
           "purpose": "Show module info in panel (1x3 grid layout)"
         },
         "selectNode": {
-          "line": 1125,
+          "line": 1123,
           "params": [
             "d",
             "nodeSelection"
@@ -7472,32 +7498,32 @@
           "purpose": "Select a node (visual indicator)"
         },
         "loadAndShowGitHistory": {
-          "line": 1133,
+          "line": 1131,
           "params": [
             "module"
           ],
           "purpose": "Load and show git history for a module"
         },
         "renderGitHistory": {
-          "line": 1216,
+          "line": 1214,
           "params": [
             "history"
           ],
           "purpose": "Render git history HTML (compact card format)"
         },
         "getInitials": {
-          "line": 1280,
+          "line": 1278,
           "params": [
             "name"
           ],
           "purpose": "Get initials from name"
         },
         "showPlaceholder": {
-          "line": 1290,
+          "line": 1288,
           "purpose": "Show placeholder in info panel"
         },
         "highlightConnections": {
-          "line": 1308,
+          "line": 1306,
           "params": [
             "d",
             "links",
@@ -7507,7 +7533,7 @@
           "purpose": "Highlight connections for a node"
         },
         "resetHighlight": {
-          "line": 1326,
+          "line": 1324,
           "params": [
             "nodeSelection",
             "linkSelection"
@@ -7515,7 +7541,7 @@
           "purpose": "Reset highlight"
         },
         "isMapVisible": {
-          "line": 1334,
+          "line": 1332,
           "purpose": "Check if visible"
         }
       }
@@ -9830,6 +9856,13 @@
       },
       "ACTIVITY_DATA": {
         "name": "activity-data",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "structure": {
+      "LOAD_STRUCTURE_MAP": {
+        "name": "load-structure-map",
         "direction": "",
         "description": ""
       }

@@ -9,6 +9,7 @@ const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('../shared/frameConstants');
 const templates = require('../shared/frameTemplates');
+const frameStore = require('./frameStore');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
@@ -538,12 +539,11 @@ function disableSpecDriven(projectPath) {
   // AGENTS.md is user-owned: only remove the section when it is provably
   // Frame's (well-formed managed block). A hand-written or customized
   // section is left alone — same contract as the upgrade path.
-  const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
   try {
-    const existing = fs.readFileSync(agentsPath, 'utf8');
-    const stripped = stripManagedSpecSection(existing);
+    const existing = frameStore.readAgents(projectPath);
+    const stripped = existing === null ? null : stripManagedSpecSection(existing);
     if (stripped !== null && stripped !== existing) {
-      fs.writeFileSync(agentsPath, stripped, 'utf8');
+      frameStore.writeAgents(projectPath, stripped);
     }
   } catch (err) {
     // Missing or unreadable AGENTS.md — the flag flip is what matters.
@@ -616,15 +616,12 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
   //   2. AGENTS.md exists, no spec section → APPEND the section just before
   //      the trailing footer marker (or at the very end if no footer).
   //   3. AGENTS.md already has the section → no-op.
-  const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
-  let existing = '';
-  try {
-    existing = fs.readFileSync(agentsPath, 'utf8');
-  } catch (err) {
-    existing = '';
-  }
+  const existing = frameStore.readAgents(projectPath) || '';
   if (!existing) {
-    fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true, project: (config && config.project) || null }), 'utf8');
+    frameStore.writeAgents(
+      projectPath,
+      templates.getAgentsTemplate(name, { specDriven: true, project: (config && config.project) || null })
+    );
   } else if (!existing.includes('Spec-Driven Development')) {
     // Append the short core section (marker-wrapped, stamped current) — the
     // full workflow lives in .frame/docs/REFERENCE.md, guaranteed above
@@ -641,7 +638,7 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
     } else {
       updated = existing.replace(/\n*$/, '') + sectionBlock;
     }
-    fs.writeFileSync(agentsPath, updated, 'utf8');
+    frameStore.writeAgents(projectPath, updated);
   }
   // else: section already present, leave file alone
 }
@@ -665,7 +662,7 @@ function upgradeSpecDocs(projectPath) {
       legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS
     },
     {
-      file: path.join(projectPath, FRAME_FILES.AGENTS),
+      file: frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS),
       body: templates.SPEC_DRIVEN_CORE_SECTION,
       legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
     }
