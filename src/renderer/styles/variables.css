@@ -1,33 +1,39 @@
 /* ==================== DESIGN SYSTEM - FRAME ==================== */
 :root,
 [data-theme="dark"] {
-  /* Color Palette - Warm Neutrals with Amber Accent */
-  --bg-deep: #0f0f10;
-  --bg-primary: #151516;
-  --bg-secondary: #1a1a1c;
-  --bg-tertiary: #222225;
-  --bg-elevated: #28282c;
-  --bg-hover: #2e2e33;
+  /* Color Palette - Warm Charcoal with Green Accent (prototype palette) */
+  --bg-deep: #0c0b09;
+  --bg-primary: #14120e;
+  --bg-secondary: #1c1915;
+  --bg-tertiary: #242019;
+  --bg-elevated: #2a2620;
+  --bg-hover: #332e25;
 
   /* Text Colors */
-  --text-primary: #e8e6e3;
-  --text-secondary: #a09b94;
-  --text-tertiary: #6b6660;
-  --text-muted: #4a4642;
+  --text-primary: #f2eee4;
+  --text-secondary: #c4bcac;
+  --text-tertiary: #948c7c;
+  --text-muted: #5c564a;
 
   /* Accent Colors */
-  --accent-primary: #d4a574;
-  --accent-secondary: #c9956a;
-  --accent-subtle: rgba(212, 165, 116, 0.15);
-  --accent-glow: rgba(212, 165, 116, 0.08);
+  --accent-primary: #8ff0ae;
+  --accent-secondary: #6fd693;
+  --accent-subtle: rgba(143, 240, 174, 0.15);
+  --accent-glow: rgba(143, 240, 174, 0.08);
 
   /* Semantic Colors */
-  --success: #7cb382;
-  --success-subtle: rgba(124, 179, 130, 0.15);
-  --warning: #e0a458;
-  --error: #d47878;
-  --error-subtle: rgba(212, 120, 120, 0.15);
-  --info: #78a5d4;
+  --success: #9bdca8;
+  --success-subtle: rgba(155, 220, 168, 0.15);
+  --warning: #e5cd8e;
+  --error: #e8938a;
+  --error-subtle: rgba(232, 147, 138, 0.15);
+  --info: #a6c0f0;
+
+  /* Document-type Colors (spec rail) */
+  --doc-spec: #e5cd8e;
+  --doc-plan: #a6c0f0;
+  --doc-task: #efbe93;
+  --doc-outcome: #9bdca8;
 
   /* Diff colors (GitHub-style, dark) */
   --diff-ins-bg: rgba(63, 185, 80, 0.15);
@@ -40,9 +46,9 @@
   --diff-del-mark-fg: #ffebe9;
 
   /* Borders */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-subtle: #221e18;
+  --border-default: #2a2620;
+  --border-strong: #3a342b;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -52,16 +58,16 @@
 
   /* Spacing */
   --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
+  --space-sm: 6px;
+  --space-md: 10px;
+  --space-lg: 14px;
+  --space-xl: 20px;
 
   /* Border Radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 4px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
 
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -69,7 +75,7 @@
   --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Typography */
-  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
 }
 
@@ -87,10 +93,16 @@
   --text-tertiary: #8a8480;
   --text-muted: #b0aba5;
 
-  --accent-primary: #b5722a;
-  --accent-secondary: #a06020;
-  --accent-subtle: rgba(181, 114, 42, 0.12);
-  --accent-glow: rgba(181, 114, 42, 0.08);
+  --accent-primary: #2f7d4f;
+  --accent-secondary: #256b41;
+  --accent-subtle: rgba(47, 125, 79, 0.12);
+  --accent-glow: rgba(47, 125, 79, 0.08);
+
+  /* Document-type Colors (spec rail) */
+  --doc-spec: #8f7326;
+  --doc-plan: #4a6cb3;
+  --doc-task: #b0722e;
+  --doc-outcome: #3e7d4c;
 
   --success: #4a7c50;
   --success-subtle: rgba(74, 124, 80, 0.12);

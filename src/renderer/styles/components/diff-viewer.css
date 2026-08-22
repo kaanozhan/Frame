@@ -75,7 +75,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -96,8 +96,8 @@
 }
 
 .diff-section-pill[data-pill="staged"] {
-  color: var(--success, #7cb382);
-  background: color-mix(in srgb, var(--success, #7cb382) 16%, transparent);
+  color: var(--success, #9bdca8);
+  background: color-mix(in srgb, var(--success, #9bdca8) 16%, transparent);
 }
 
 .diff-section-pos {
@@ -120,7 +120,7 @@
   border: none;
   background: var(--bg-tertiary);
   color: var(--text-secondary);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -199,7 +199,7 @@
   align-items: center;
   gap: var(--space-sm);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   min-width: 0;
 }

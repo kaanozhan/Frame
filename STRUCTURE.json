@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-28",
+  "lastUpdated": "2026-08-20",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -3746,72 +3746,6 @@
         ]
       }
     },
-    "renderer/agentPanel": {
-      "file": "src/renderer/agentPanel.js",
-      "description": "Agent Panel",
-      "exports": [
-        "init",
-        "recompute"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "laneStatus",
-        "state",
-        "projectListUI"
-      ],
-      "functions": {
-        "init": {
-          "line": 35,
-          "params": [
-            "ui"
-          ]
-        },
-        "schedule": {
-          "line": 47
-        },
-        "recompute": {
-          "line": 60,
-          "purpose": "Rebuild the running-agents list from the live terminal + status state,"
-        },
-        "_buildRow": {
-          "line": 124,
-          "params": [
-            "a"
-          ],
-          "purpose": "One running-agent row. The project is already the group heading, so the"
-        },
-        "_projectNames": {
-          "line": 146,
-          "purpose": "path -> the workspace's display name for that project (fallback: basename)."
-        },
-        "_focus": {
-          "line": 157,
-          "params": [
-            "a"
-          ],
-          "purpose": "Focus the agent's Frame. When it lives in another project, switch to that"
-        },
-        "_label": {
-          "line": 165,
-          "params": [
-            "agentName"
-          ]
-        },
-        "_basename": {
-          "line": 169,
-          "params": [
-            "p"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TERMINAL_DESTROYED"
-        ],
-        "emits": []
-      }
-    },
     "renderer/aiToolSelector": {
       "file": "src/renderer/aiToolSelector.js",
       "description": "AI Tool Selector Module",
@@ -4004,6 +3938,7 @@
       "exports": [
         "register",
         "unregister",
+        "registerProvider",
         "getById",
         "getAll",
         "runById",
@@ -4014,43 +3949,53 @@
         "platform"
       ],
       "functions": {
+        "registerProvider": {
+          "line": 26,
+          "params": [
+            "fn"
+          ],
+          "purpose": "Register a dynamic item provider. Returns an unregister function."
+        },
+        "collectProviderItems": {
+          "line": 32
+        },
         "register": {
-          "line": 27,
+          "line": 70,
           "params": [
             "cmd"
           ],
           "purpose": "Register a command."
         },
         "unregister": {
-          "line": 41,
+          "line": 84,
           "params": [
             "id"
           ]
         },
         "getById": {
-          "line": 45,
+          "line": 88,
           "params": [
             "id"
           ]
         },
         "getAll": {
-          "line": 49
+          "line": 92
         },
         "runById": {
-          "line": 53,
+          "line": 98,
           "params": [
             "id"
           ]
         },
         "search": {
-          "line": 69,
+          "line": 114,
           "params": [
             "query"
           ],
           "purpose": "Search commands. Empty query → recents first, then alphabetical by category/title."
         },
         "fuzzyScore": {
-          "line": 100,
+          "line": 145,
           "params": [
             "query",
             "cmd"
@@ -4058,16 +4003,16 @@
           "purpose": "Fuzzy score: subsequence match with bonuses for word boundaries and"
         },
         "pushRecent": {
-          "line": 127,
+          "line": 172,
           "params": [
             "id"
           ]
         },
         "getRecent": {
-          "line": 136
+          "line": 181
         },
         "bindKeyboard": {
-          "line": 149,
+          "line": 194,
           "purpose": "Bind a single global keydown handler that dispatches to the first matching"
         }
       }
@@ -4862,7 +4807,6 @@
         "githubPanel",
         "promptsPanel",
         "activityPanel",
-        "instrumentRail",
         "specPanel",
         "specPanelResize",
         "specsDashboard",
@@ -4871,7 +4815,7 @@
         "openProjectModal",
         "projectSection",
         "projectStatusBadges",
-        "agentPanel",
+        "presenceBar",
         "orchestrator",
         "editor",
         "sidebarResize",
@@ -4886,39 +4830,41 @@
         "healthNotice",
         "specDrivenHint",
         "sampleBanner",
+        "ipcWatchdog",
         "../package.json",
+        "paletteSources",
         "agentDispatch"
       ],
       "functions": {
         "init": {
-          "line": 50,
+          "line": 49,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 247,
+          "line": 244,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 312,
+          "line": 321,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 401,
+          "line": 432,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 432,
+          "line": 463,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 458,
+          "line": 486,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 730,
+          "line": 758,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -4930,72 +4876,6 @@
         "emits": [
           "REFRESH_GIT_STATUS"
         ]
-      }
-    },
-    "renderer/instrumentRail": {
-      "file": "src/renderer/instrumentRail.js",
-      "description": "Instrument Rail",
-      "exports": [
-        "init",
-        "render"
-      ],
-      "depends": [
-        "lucide",
-        "activityPanel",
-        "specsDashboard",
-        "tasksDashboard",
-        "pluginsPanel",
-        "githubPanel",
-        "promptsPanel"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 55,
-          "params": [
-            "data",
-            "size = 18"
-          ]
-        },
-        "readExpanded": {
-          "line": 67
-        },
-        "writeExpanded": {
-          "line": 75,
-          "params": [
-            "value"
-          ]
-        },
-        "safeCall": {
-          "line": 83,
-          "params": [
-            "fn"
-          ]
-        },
-        "itemHtml": {
-          "line": 139,
-          "params": [
-            "item"
-          ]
-        },
-        "currentTheme": {
-          "line": 152
-        },
-        "toggleTheme": {
-          "line": 156
-        },
-        "footerHtml": {
-          "line": 167,
-          "purpose": "The rail's bottom cluster: settings-ish controls, not destinations."
-        },
-        "render": {
-          "line": 180
-        },
-        "init": {
-          "line": 189,
-          "params": [
-            "options"
-          ]
-        }
       }
     },
     "renderer/laneBoard": {
@@ -5387,9 +5267,12 @@
         "MultiTerminalUI"
       ],
       "depends": [
+        "electron",
+        "shared/ipcChannels",
         "terminalManager",
         "terminalTabBar",
         "terminalGrid",
+        "terminalsView",
         "laneBoard",
         "laneStatus",
         "agentDispatch",
@@ -5398,7 +5281,15 @@
         "taskSection",
         "specSection",
         "diffSection",
-        "notify"
+        "notify",
+        "githubPanel",
+        "pluginsPanel",
+        "promptsPanel",
+        "activityPanel",
+        "historyPanel",
+        "specsDashboard",
+        "tasksDashboard",
+        "projectListUI"
       ],
       "functions": {}
     },
@@ -5927,137 +5818,87 @@
     },
     "renderer/projectListUI": {
       "file": "src/renderer/projectListUI.js",
-      "description": "Project List UI Module",
+      "description": "Project List UI Module — headless controller (project-dropdown spec).",
       "exports": [
         "init",
+        "setSwitcherHooks",
         "loadProjects",
         "renderProjects",
         "selectProject",
         "setActiveProject",
         "getActiveProject",
         "getProjects",
+        "getAgentStatus",
         "addProject",
         "removeProject",
+        "confirmRemoveProject",
         "selectNextProject",
         "selectPrevProject",
         "focus",
         "blur",
-        "applyAgentStatuses"
+        "applyAgentStatuses",
+        "updateWorkspaceNav"
       ],
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "lucide",
-        "terminal"
+        "terminal",
+        "laneStatus"
       ],
       "functions": {
-        "lucideIcon": {
-          "line": 21,
-          "params": [
-            "data",
-            "size = 12"
-          ]
-        },
         "init": {
-          "line": 32,
+          "line": 31,
           "params": [
-            "containerId",
+            "_containerId",
             "onSelectCallback"
           ],
-          "purpose": "Initialize project list UI"
+          "purpose": "Initialize. The old list container id is accepted and ignored so callers"
         },
-        "ensureStatusTooltip": {
-          "line": 44
-        },
-        "showStatusTooltip": {
-          "line": 53,
+        "setSwitcherHooks": {
+          "line": 37,
           "params": [
-            "badge"
-          ]
-        },
-        "hideStatusTooltip": {
-          "line": 71
-        },
-        "setupStatusTooltip": {
-          "line": 75
+            "hooks"
+          ],
+          "purpose": "index.js's switcher registers itself here."
         },
         "loadProjects": {
-          "line": 92,
+          "line": 44,
           "purpose": "Load projects from workspace"
         },
         "renderProjects": {
-          "line": 99,
+          "line": 51,
           "params": [
             "projectsList"
           ],
-          "purpose": "Render project list"
-        },
-        "createProjectItem": {
-          "line": 140,
-          "params": [
-            "project",
-            "index"
-          ],
-          "purpose": "Create a project item element"
-        },
-        "renderItemStatus": {
-          "line": 205,
-          "params": [
-            "container",
-            "counts"
-          ],
-          "purpose": "Render the agent status badges for one project into its status container."
-        },
-        "applyAgentStatuses": {
-          "line": 226,
-          "params": [
-            "map"
-          ],
-          "purpose": "Apply per-project agent status counts (from projectStatusBadges) to the"
-        },
-        "attachDragHandlers": {
-          "line": 240,
-          "params": [
-            "item"
-          ],
-          "purpose": "Wire HTML5 drag-and-drop reordering onto a project item. Dragging an item"
-        },
-        "persistOrder": {
-          "line": 271,
-          "purpose": "Read the current DOM order, sync the in-memory list, and persist it."
-        },
-        "scrollActiveIntoView": {
-          "line": 292,
-          "purpose": "Scroll the active project item into view within the (max-3-row) list."
+          "purpose": "Workspace data arrived — refresh state (no rows to render anymore)."
         },
         "confirmRemoveProject": {
-          "line": 303,
+          "line": 69,
           "params": [
             "projectPath",
             "projectName"
           ],
-          "purpose": "Show confirmation dialog and remove project"
+          "purpose": "Confirmation + removal (also offered as the × in the switcher menu)."
         },
         "selectProject": {
-          "line": 329,
+          "line": 95,
           "params": [
             "projectPath"
           ],
           "purpose": "Select a project"
         },
         "setActiveProject": {
-          "line": 340,
+          "line": 106,
           "params": [
             "projectPath"
           ],
-          "purpose": "Set active project (visual only)"
+          "purpose": "Set active project (visual state lives in the switcher + workspace nav)"
         },
         "getActiveProject": {
-          "line": 361,
-          "purpose": "Get active project path"
+          "line": 112
         },
         "addProject": {
-          "line": 368,
+          "line": 119,
           "params": [
             "projectPath",
             "projectName",
@@ -6066,52 +5907,73 @@
           "purpose": "Add project to workspace"
         },
         "removeProject": {
-          "line": 379,
+          "line": 130,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove project from workspace"
         },
         "setupIPC": {
-          "line": 395,
+          "line": 146,
           "purpose": "Setup IPC listeners"
         },
+        "applyAgentStatuses": {
+          "line": 177,
+          "params": [
+            "map"
+          ],
+          "purpose": "Per-project agent status counts (from projectStatusBadges). Stored for the"
+        },
+        "getAgentStatus": {
+          "line": 183,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "{ approval, input } counts for one project, or undefined."
+        },
         "selectNextProject": {
-          "line": 408,
+          "line": 190,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 419,
+          "line": 201,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 430,
-          "purpose": "Focus project list for keyboard navigation"
-        },
-        "handleKeydown": {
-          "line": 453,
-          "params": [
-            "e"
-          ],
-          "purpose": "Handle keyboard navigation in project list"
+          "line": 212,
+          "purpose": "\"Focus Project List\" now means: open the switcher dropdown."
         },
         "blur": {
-          "line": 488,
-          "purpose": "Blur/unfocus project list"
+          "line": 217,
+          "purpose": "No list rows to blur anymore — kept for callers."
         },
         "getProjects": {
-          "line": 497,
-          "purpose": "Snapshot of the workspace projects (used by the current-project dropdown in"
+          "line": 223,
+          "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
+        },
+        "buildWorkspaceNav": {
+          "line": 249
+        },
+        "placeWorkspaceNav": {
+          "line": 274
+        },
+        "refreshWorkspaceNav": {
+          "line": 286
+        },
+        "updateWorkspaceNav": {
+          "line": 322,
+          "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
       "ipc": {
         "listens": [
           "WORKSPACE_DATA",
-          "WORKSPACE_UPDATED"
+          "WORKSPACE_UPDATED",
+          "SPEC_DATA",
+          "TASKS_DATA"
         ],
         "emits": [
           "LOAD_WORKSPACE",
-          "REORDER_WORKSPACE_PROJECTS",
           "ADD_PROJECT_TO_WORKSPACE",
           "REMOVE_PROJECT_FROM_WORKSPACE"
         ]
@@ -6267,7 +6129,8 @@
         "state",
         "tasksPanel",
         "specPanel",
-        "htmlUtils"
+        "htmlUtils",
+        "terminal"
       ],
       "functions": {
         "detectionSummary": {
@@ -6287,7 +6150,7 @@
           "line": 49
         },
         "setVisible": {
-          "line": 102,
+          "line": 103,
           "params": [
             "visible"
           ]
@@ -6978,7 +6841,11 @@
         "init",
         "show",
         "hide",
-        "toggle"
+        "toggle",
+        "setInlineHost",
+        "mountInline",
+        "notifyDetached",
+        "isInlineMounted"
       ],
       "depends": [
         "electron",
@@ -6998,68 +6865,88 @@
         "setupIPCListeners": {
           "line": 92
         },
+        "setInlineHost": {
+          "line": 143,
+          "params": [
+            "host"
+          ]
+        },
+        "mountInline": {
+          "line": 148,
+          "params": [
+            "container"
+          ],
+          "purpose": "Mount into the center content area and load data. Called by the host."
+        },
+        "notifyDetached": {
+          "line": 158,
+          "purpose": "The host swapped the center to another view — reset without routing."
+        },
+        "_load": {
+          "line": 169
+        },
         "show": {
-          "line": 133
+          "line": 199
         },
         "hide": {
-          "line": 165
+          "line": 209
         },
         "toggle": {
-          "line": 172
+          "line": 220
         },
         "renderFilters": {
-          "line": 178
+          "line": 230
         },
         "applyFilter": {
-          "line": 192,
+          "line": 244,
           "params": [
             "specsList"
           ]
         },
         "setupSearch": {
-          "line": 208
+          "line": 260
         },
         "runSearch": {
-          "line": 222,
+          "line": 274,
           "params": [
             "rawQuery"
           ]
         },
         "clearSearch": {
-          "line": 245
+          "line": 297
         },
         "renderGrid": {
-          "line": 256
+          "line": 308
         },
         "renderCard": {
-          "line": 286,
+          "line": 338,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 318,
+          "line": 370,
           "params": [
             "slug"
           ]
         },
         "clearSelection": {
-          "line": 326
+          "line": 378
         },
         "reloadDetail": {
-          "line": 334
+          "line": 386
         },
         "renderDetailHeader": {
-          "line": 350
+          "line": 402
         },
         "runSpecCommand": {
-          "line": 431,
+          "line": 483,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 442,
+          "line": 494,
           "params": [
             "tab",
             "label",
@@ -7067,50 +6954,50 @@
           ]
         },
         "renderDetailBody": {
-          "line": 448
+          "line": 500
         },
         "renderTasksTabBody": {
-          "line": 489
+          "line": 541
         },
         "renderSpecTaskRow": {
-          "line": 526,
+          "line": 578,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 575
+          "line": 627
         },
         "handleSpecTaskAction": {
-          "line": 588,
+          "line": 640,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 599
+          "line": 651
         },
         "tasksTabLabel": {
-          "line": 605,
+          "line": 657,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 614,
+          "line": 666,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 619,
+          "line": 671,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 630,
+          "line": 682,
           "params": [
             "projectPath"
           ]
@@ -7659,7 +7546,11 @@
         "show",
         "hide",
         "toggle",
-        "isVisible"
+        "isVisible",
+        "setInlineHost",
+        "mountInline",
+        "notifyDetached",
+        "isInlineMounted"
       ],
       "depends": [
         "electron",
@@ -7679,39 +7570,57 @@
             "data"
           ]
         },
-        "show": {
-          "line": 145
+        "setInlineHost": {
+          "line": 154,
+          "params": [
+            "host"
+          ]
         },
-        "hide": {
+        "mountInline": {
+          "line": 158,
+          "params": [
+            "container"
+          ]
+        },
+        "notifyDetached": {
           "line": 167
         },
-        "toggle": {
-          "line": 176
-        },
-        "render": {
+        "_load": {
           "line": 180
         },
+        "show": {
+          "line": 200
+        },
+        "hide": {
+          "line": 210
+        },
+        "toggle": {
+          "line": 223
+        },
+        "render": {
+          "line": 231
+        },
         "renderCard": {
-          "line": 247,
+          "line": 298,
           "params": [
             "task"
           ]
         },
         "setupDropTargets": {
-          "line": 298
+          "line": 349
         },
         "onDragStart": {
-          "line": 337,
+          "line": 388,
           "params": [
             "e",
             "task"
           ]
         },
         "onDragEnd": {
-          "line": 349
+          "line": 400
         },
         "getCardAfterY": {
-          "line": 363,
+          "line": 414,
           "params": [
             "container",
             "y"
@@ -7719,44 +7628,44 @@
           "purpose": "Find the card the dragged item should be inserted *before*, based on"
         },
         "commitOrder": {
-          "line": 379,
+          "line": 430,
           "purpose": "Read the current DOM order across all three columns and send the new order"
         },
         "selectTask": {
-          "line": 395,
+          "line": 446,
           "params": [
             "taskId"
           ]
         },
         "clearSelection": {
-          "line": 409
+          "line": 460
         },
         "isFormOpen": {
-          "line": 421
+          "line": 472
         },
         "setupForm": {
-          "line": 425
+          "line": 476
         },
         "showForm": {
-          "line": 439
+          "line": 490
         },
         "hideForm": {
-          "line": 454
+          "line": 505
         },
         "requestDeleteSelected": {
-          "line": 470
+          "line": 521
         },
         "submitForm": {
-          "line": 488
+          "line": 539
         },
         "renderDetail": {
-          "line": 506,
+          "line": 557,
           "params": [
             "task"
           ]
         },
         "appendMetaPill": {
-          "line": 558,
+          "line": 609,
           "params": [
             "container",
             "text",
@@ -7764,7 +7673,7 @@
           ]
         },
         "setSection": {
-          "line": 565,
+          "line": 616,
           "params": [
             "textEl",
             "sectionEl",
@@ -7772,71 +7681,71 @@
           ]
         },
         "formatDate": {
-          "line": 576,
+          "line": 627,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 590
+          "line": 641
         },
         "filterMatches": {
-          "line": 594,
+          "line": 645,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 600
+          "line": 651
         },
         "isFilterPopoverOpen": {
-          "line": 638
+          "line": 689
         },
         "toggleFilterPopover": {
-          "line": 642
+          "line": 693
         },
         "openFilterPopover": {
-          "line": 648
+          "line": 699
         },
         "closeFilterPopover": {
-          "line": 654
+          "line": 705
         },
         "clearFilters": {
-          "line": 660
+          "line": 711
         },
         "updateFilterUI": {
-          "line": 672
+          "line": 723
         },
         "compareTasks": {
-          "line": 689,
+          "line": 740,
           "params": [
             "a",
             "b"
           ]
         },
         "setupSort": {
-          "line": 705
+          "line": 756
         },
         "isSortPopoverOpen": {
-          "line": 750
+          "line": 801
         },
         "toggleSortPopover": {
-          "line": 754
+          "line": 805
         },
         "openSortPopover": {
-          "line": 760
+          "line": 811
         },
         "closeSortPopover": {
-          "line": 766
+          "line": 817
         },
         "resetSort": {
-          "line": 772
+          "line": 823
         },
         "updateSortUI": {
-          "line": 785
+          "line": 836
         },
         "commitSortToFile": {
-          "line": 810,
+          "line": 861,
           "purpose": "Commit the current sorted view to tasks.json. Per-column sorted order is"
         }
       },
@@ -10002,11 +9911,6 @@
         "description": "Agent Dispatch Module"
       },
       {
-        "module": "renderer/agentPanel",
-        "file": "src/renderer/agentPanel.js",
-        "description": "Agent Panel"
-      },
-      {
         "module": "renderer/laneBoard",
         "file": "src/renderer/laneBoard.js",
         "description": "Lane Board Module"
@@ -10090,18 +9994,6 @@
         "description": "Project Status Badges"
       }
     ],
-    "rail": [
-      {
-        "module": "renderer/instrumentRail",
-        "file": "src/renderer/instrumentRail.js",
-        "description": "Instrument Rail"
-      },
-      {
-        "module": "renderer/sectionRail",
-        "file": "src/renderer/sectionRail.js",
-        "description": "Section Rail Module"
-      }
-    ],
     "section": [
       {
         "module": "renderer/projectSection",
@@ -10130,7 +10022,7 @@
       {
         "module": "renderer/projectListUI",
         "file": "src/renderer/projectListUI.js",
-        "description": "Project List UI Module"
+        "description": "Project List UI Module — headless controller (project-dropdown spec)."
       },
       {
         "module": "renderer/sidebarResize",

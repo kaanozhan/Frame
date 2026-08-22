@@ -54,12 +54,12 @@
   border-radius: 12px;
   background: var(--accent-subtle);
   color: var(--accent-primary);
-  font-size: 22px;
+  font-size: 18px;
   margin-bottom: 14px;
 }
 
 .welcome-title {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 8px;
@@ -67,7 +67,7 @@
 }
 
 .welcome-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.55;
   color: var(--text-secondary);
   margin: 0;
@@ -104,7 +104,7 @@
   border: 1px solid var(--border-default);
   border-radius: 8px;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
@@ -143,7 +143,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--accent-primary);
   flex-shrink: 0;
 }
@@ -262,7 +262,7 @@
   border-radius: 7px;
   padding: 8px 24px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s, transform 0.08s;
@@ -285,7 +285,7 @@
   border-radius: 7px;
   padding: 8px 18px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }

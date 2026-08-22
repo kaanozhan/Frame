@@ -104,7 +104,7 @@
 }
 
 .task-section-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -175,7 +175,7 @@
 }
 
 .task-section-text {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -183,7 +183,7 @@
 }
 
 .task-section-quote {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -202,7 +202,7 @@
 }
 
 .task-section-list li {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.5;
 }
@@ -210,5 +210,5 @@
 .task-section-missing {
   align-items: center;
   color: var(--text-tertiary);
-  font-size: 13px;
+  font-size: 12px;
 }

@@ -3,15 +3,27 @@
  * Orchestrates the lane board (home), the detail view and the terminal manager.
  *
  * View modes:
- *   'board'  — Lane Orchestrator home screen (lane cards, default on launch)
- *   'detail' — entered by clicking a lane card; has its own layout:
- *              1x1 = one mounted terminal, larger layouts (1x2, 2x2, ...) =
- *              assignable grid cells with New Lane placeholders
+ *   'terminals' — default on project selection (terminals-view spec): every
+ *                 terminal of the project live in an N-column pane grid
+ *   'board'     — Lane Orchestrator home screen (lane cards, via Home)
+ *   'detail'    — entered by clicking a lane card; has its own layout:
+ *                 1x1 = one mounted terminal, larger layouts (1x2, 2x2, ...) =
+ *                 assignable grid cells with New Lane placeholders
+ *   'specs'     — specs card-grid dashboard mounted inline in the center
+ *   'tasks'     — tasks kanban dashboard mounted inline in the center
+ *                 (both: center-specs-tasks-views spec)
+ *   'panel'     — a legacy side panel (GitHub/Claude/Prompts/Activity/
+ *                 History) mounted inline in the center; which one is in
+ *                 _activePanelKey (retire-rail-and-panels spec)
  */
+
+const { ipcRenderer } = require('electron');
+const { IPC } = require('../shared/ipcChannels');
 
 const { TerminalManager } = require('./terminalManager');
 const { TerminalTabBar } = require('./terminalTabBar');
 const { TerminalGrid } = require('./terminalGrid');
+const { TerminalsView } = require('./terminalsView');
 const { LaneBoard } = require('./laneBoard');
 const laneStatus = require('./laneStatus');
 const agentDispatch = require('./agentDispatch');
@@ -21,6 +33,23 @@ const taskSection = require('./taskSection');
 const specSection = require('./specSection');
 const diffSection = require('./diffSection');
 const notify = require('./notify');
+
+// Legacy side panels hosted inline in the center (retire-rail-and-panels
+// spec). Each entry keeps the module's own show()/hide() as the data/close
+// contract — the host only re-parents the element and watches for closes.
+const PANEL_REGISTRY = {
+  github:   { elementId: 'github-panel',   module: () => require('./githubPanel') },
+  claude:   { elementId: 'plugins-panel',  module: () => require('./pluginsPanel') },
+  prompts:  { elementId: 'prompts-panel',  module: () => require('./promptsPanel') },
+  activity: { elementId: 'activity-panel', module: () => require('./activityPanel') },
+  history:  {
+    elementId: 'history-panel',
+    module: () => {
+      const m = require('./historyPanel');
+      return { show: m.showHistoryPanel, hide: m.hideHistoryPanel };
+    }
+  }
+};
 
 class MultiTerminalUI {
   constructor(containerId) {
@@ -37,6 +66,10 @@ class MultiTerminalUI {
     this.isSectionVisible = false;  // A section tab is currently the on-screen surface
     this._mountedTerminalId = null; // Track which terminal is currently mounted to avoid unnecessary remounts
     this._lastViewMode = null;
+    this._activePanelKey = null;    // Which PANEL_REGISTRY entry the 'panel' view shows
+    this._mountedPanelKey = null;   // Which panel element currently lives in the center
+    this._panelHome = new Map();    // panel key -> original DOM parent
+    this._panelObserver = null;     // watches the mounted panel's own close
 
     this._setup();
   }
@@ -79,6 +112,9 @@ class MultiTerminalUI {
     this.board = new LaneBoard(this.manager, {
       onEnterLane: (terminalId) => this.enterLane(terminalId)
     });
+    this.terminalsView = new TerminalsView(this.manager, {
+      onNewTerminal: () => this._createLaneOrNotify()
+    });
 
     // Initialize overview panel (creates structure map overlay)
     overviewPanel.init();
@@ -97,6 +133,17 @@ class MultiTerminalUI {
     taskSection.setHost(this);
     specSection.setHost(this);
     diffSection.setHost(this);
+
+    // Dashboards render inline in the center; every legacy entry point
+    // (show/toggle, deep links, palette) routes through these hosts.
+    require('./specsDashboard').setInlineHost({
+      open: () => this.showSpecsGrid(),
+      close: () => this.showTerminals()
+    });
+    require('./tasksDashboard').setInlineHost({
+      open: () => this.showTasksBoard(),
+      close: () => this.showTerminals()
+    });
 
     // Listen for state changes
     this.manager.onStateChange = (state) => this._onStateChange(state);
@@ -154,11 +201,11 @@ class MultiTerminalUI {
     try {
       id = await this.createTerminalForCurrentProject();
     } catch (err) {
-      notify.error(`Could not create a new Frame: ${err.message || 'terminal creation failed'}`);
+      notify.error(`Could not create a new terminal: ${err.message || 'terminal creation failed'}`);
       return null;
     }
     if (!id) {
-      notify.error(`Could not create a new Frame — maximum (${this.manager.maxTerminals}) reached for this project`);
+      notify.error(`Could not create a new terminal — maximum (${this.manager.maxTerminals}) reached for this project`);
       return null;
     }
     return id;
@@ -300,11 +347,25 @@ class MultiTerminalUI {
    * Handle state changes
    */
   _onStateChange(state) {
-    // Closing the last lane while inside detail/grid lands the user back on the board
-    if (state.viewMode !== 'board' && state.terminals.length === 0) {
-      this.manager.setViewMode('board');
+    // Closing the last lane while inside detail/grid lands the user back on
+    // the terminals view (it has its own empty state)
+    if (state.viewMode === 'detail' && state.terminals.length === 0) {
+      this.manager.setViewMode('terminals');
       return;
     }
+
+    // Keep the sidebar's workspace nav (Terminals count / active state) fresh
+    try {
+      require('./projectListUI').updateWorkspaceNav(state);
+    } catch (_) { /* sidebar not initialized yet */ }
+
+    // The inline dashboards live inside contentContainer — whenever the
+    // center is about to show anything else, hand their elements back to the
+    // overlay parent before the render below wipes the container.
+    const surface = (this.isSectionVisible && this._activeSection()) ? 'section' : state.viewMode;
+    if (surface !== 'specs') require('./specsDashboard').notifyDetached();
+    if (surface !== 'tasks') require('./tasksDashboard').notifyDetached();
+    if (surface !== 'panel') this._detachPanel();
 
     // Top bar needs the open section tabs (chips) + which one is active
     const active = this.isSectionVisible ? this._activeSection() : null;
@@ -323,9 +384,207 @@ class MultiTerminalUI {
     // Render based on view mode
     if (state.viewMode === 'board') {
       this._renderBoardView(state);
+    } else if (state.viewMode === 'terminals') {
+      this._renderTerminalsView(state);
+    } else if (state.viewMode === 'specs') {
+      this._renderDashView('specs', require('./specsDashboard'));
+    } else if (state.viewMode === 'tasks') {
+      this._renderDashView('tasks', require('./tasksDashboard'));
+    } else if (state.viewMode === 'panel') {
+      this._renderPanelView(state);
     } else {
       this._renderDetailView(state);
     }
+  }
+
+  // ─── Inline panel hosting (retire-rail-and-panels spec) ───
+
+  /** Show a legacy side panel as the center view. */
+  showPanel(key) {
+    if (!PANEL_REGISTRY[key]) return;
+    if (this.isOverviewVisible) this.hideOverview();
+    this.isSectionVisible = false;
+    this._activePanelKey = key;
+    if (this.manager.viewMode === 'panel') {
+      this._onStateChange(this._currentState());
+    } else {
+      this.manager.setViewMode('panel');
+    }
+  }
+
+  /** Toggle a panel: showing it again returns to the terminals view. */
+  togglePanel(key) {
+    const onIt = this.manager.viewMode === 'panel'
+      && this._activePanelKey === key
+      && !this.isSectionVisible
+      && !this.isOverviewVisible;
+    if (onIt) this.showTerminals();
+    else this.showPanel(key);
+  }
+
+  _renderPanelView() {
+    const key = this._activePanelKey;
+    const entry = PANEL_REGISTRY[key];
+    const el = entry && document.getElementById(entry.elementId);
+    if (!el) {
+      this.showTerminals();
+      return;
+    }
+    if (this._mountedPanelKey && this._mountedPanelKey !== key) this._detachPanel();
+
+    this._lastViewMode = 'panel';
+    this._mountedTerminalId = null;
+
+    // Same idempotence as _renderDashView: an already-mounted panel keeps
+    // itself fresh; remounting would re-run its show() (data reload) on
+    // every state change.
+    if (this._mountedPanelKey === key && this.contentContainer.contains(el)) return;
+    this.contentContainer.className = 'terminal-content panel-view';
+    this._clearGridInlineStyles();
+    this.contentContainer.innerHTML = '';
+
+    if (!this._panelHome.has(key)) this._panelHome.set(key, el.parentNode);
+    el.classList.add('panel-inline');
+    this.contentContainer.appendChild(el);
+    this._mountedPanelKey = key;
+
+    // The module's own show() keeps owning data loading and the .visible flag
+    try {
+      entry.module().show();
+    } catch (err) {
+      console.error(`Failed to open panel '${key}':`, err);
+    }
+
+    // The panel's own close paths (× button, internal hide calls) only drop
+    // its .visible class — watch for that and route back to the terminals
+    // view, so no per-module host awareness is needed.
+    if (this._panelObserver) this._panelObserver.disconnect();
+    this._panelObserver = new MutationObserver(() => {
+      if (this._mountedPanelKey === key
+        && this.manager.viewMode === 'panel'
+        && !el.classList.contains('visible')) {
+        this.showTerminals();
+      }
+    });
+    this._panelObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  /** Return the mounted panel element to its original DOM slot. */
+  _detachPanel() {
+    if (this._panelObserver) {
+      this._panelObserver.disconnect();
+      this._panelObserver = null;
+    }
+    const key = this._mountedPanelKey;
+    if (!key) return;
+    this._mountedPanelKey = null;
+    const entry = PANEL_REGISTRY[key];
+    const el = entry && document.getElementById(entry.elementId);
+    if (!el) return;
+    try { entry.module().hide(); } catch (_) { /* already hidden */ }
+    el.classList.remove('panel-inline');
+    const home = this._panelHome.get(key);
+    if (home && el.parentNode !== home) home.appendChild(el);
+  }
+
+  /**
+   * Mount an inline dashboard (specs grid / tasks kanban) as the center view.
+   */
+  _renderDashView(mode, dashboard) {
+    this._lastViewMode = mode;
+    this._mountedTerminalId = null;
+    // Already mounted → its own IPC listeners keep it fresh. Remounting here
+    // would re-run the load (WATCH_SPECS/LOAD_TASKS) on every state change;
+    // with a spec/task section chip open, those pushes feed back through
+    // notifySectionChanged into this render — an IPC storm that pegged the
+    // CPU. The guard breaks that cycle.
+    if (dashboard.isInlineMounted() && this.contentContainer.contains(document.querySelector(`.${mode}-dashboard.inline`))) {
+      return;
+    }
+    this.contentContainer.className = `terminal-content ${mode}-dash-view`;
+    this._clearGridInlineStyles();
+    this.contentContainer.innerHTML = '';
+    dashboard.mountInline(this.contentContainer);
+  }
+
+  /**
+   * Specs entry point (sidebar nav): lifecycle-first. Opens the most relevant
+   * active spec in the linear detail surface (specSection, with its list
+   * rail); a project with no specs lands on the inline grid, which owns the
+   * New Spec flow.
+   */
+  async showSpecs() {
+    const projectPath = this.manager.getCurrentProject();
+    if (!projectPath) {
+      this.showSpecsGrid(); // surfaces the "no project" notice
+      return;
+    }
+    let specs = [];
+    try {
+      specs = await ipcRenderer.invoke(IPC.LIST_SPECS, projectPath) || [];
+    } catch (_) { /* fall through to the grid */ }
+    const order = ['implementing', 'tasks_generated', 'planned', 'specified', 'draft'];
+    const top = specs
+      .filter(s => s.phase !== 'done')
+      .sort((a, b) => order.indexOf(a.phase) - order.indexOf(b.phase))[0] || specs[0];
+    if (top) {
+      require('./specSection').open(top.slug);
+    } else {
+      this.showSpecsGrid();
+    }
+  }
+
+  /** Show the specs card grid inline (dashboard's own switch also lands here). */
+  showSpecsGrid() {
+    if (this.isOverviewVisible) this.hideOverview();
+    this.isSectionVisible = false;
+    this.manager.setViewMode('specs');
+  }
+
+  /** Show the tasks kanban inline as the center view. */
+  showTasksBoard() {
+    if (this.isOverviewVisible) this.hideOverview();
+    this.isSectionVisible = false;
+    this.manager.setViewMode('tasks');
+  }
+
+  /**
+   * What the center currently shows: 'terminals' | 'board' | 'detail' |
+   * 'specs' | 'tasks' | 'overview' | 'section:<type>'. Drives the sidebar
+   * nav's active states.
+   */
+  getActiveSurface() {
+    if (this.isOverviewVisible) return 'overview';
+    if (this.isSectionVisible) {
+      const s = this._activeSection();
+      return s ? `section:${s.type}` : 'section';
+    }
+    if (this.manager.viewMode === 'panel') {
+      return `panel:${this._activePanelKey || ''}`;
+    }
+    return this.manager.viewMode;
+  }
+
+  /**
+   * Render the terminals view (default): all of the project's terminals as
+   * live panes (terminalsView owns layout, reorder, maximize, persistence).
+   */
+  _renderTerminalsView(state) {
+    this._lastViewMode = 'terminals';
+    this._mountedTerminalId = null;
+    this.contentContainer.className = 'terminal-content terminals-view-mode';
+    this._clearGridInlineStyles();
+    this.terminalsView.render(this.contentContainer);
+    setTimeout(() => this.manager.fitAll(), 100);
+  }
+
+  /**
+   * Show the terminals view (sidebar workspace nav entry point).
+   */
+  showTerminals() {
+    if (this.isOverviewVisible) this.hideOverview();
+    this.isSectionVisible = false;
+    this.manager.setViewMode('terminals');
   }
 
   /**
@@ -574,6 +833,12 @@ class MultiTerminalUI {
    * Show overview panel
    */
   showOverview() {
+    // Rendering bypasses _onStateChange — park inline surfaces first so the
+    // container wipe below can't destroy their elements.
+    require('./specsDashboard').notifyDetached();
+    require('./tasksDashboard').notifyDetached();
+    this._detachPanel();
+
     this.isOverviewVisible = true;
     this._mountedTerminalId = null;
     this._lastViewMode = 'overview';
@@ -586,6 +851,11 @@ class MultiTerminalUI {
 
     // Update tab bar to show overview as active
     this.tabBar.setOverviewActive(true);
+
+    // Rendering bypassed _onStateChange — refresh the sidebar nav ourselves
+    try {
+      require('./projectListUI').updateWorkspaceNav();
+    } catch (_) { /* sidebar not initialized yet */ }
   }
 
   /**

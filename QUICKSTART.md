@@ -1,7 +1,7 @@
 <!-- FRAME AUTO-GENERATED FILE -->
 <!-- Purpose: Quick onboarding guide for developers and AI assistants -->
 <!-- For Claude: Read this FIRST to quickly understand how to work with this project. Contains setup instructions, common commands, and key files to know. -->
-<!-- Last Updated: 2026-01-26 -->
+<!-- Last Updated: 2026-07-02 -->
 
 # Frame - Quick Start Guide
 
@@ -65,9 +65,15 @@ Frame/
 
 ## Quick Context
 
-Frame is a project management IDE for Claude Code. It provides:
-- Visual task management
-- Context preservation between sessions
-- Plugins panel for Claude Code plugins
-- Multi-terminal support
-- File explorer and editor
+Frame is a platform for agentic development, built on Claude Code. Its core idea:
+spec-driven development produces durable markdown (spec → plan → tasks → outcome)
+that becomes **structural context for future agents** — so an agent months later
+arrives knowing *what* was done, *why*, and *what resulted*, instead of scanning
+code and guessing. Everything happens in one place (no Jira, no separate spec
+tool):
+- Spec-driven development (spec → plan → tasks → outcome) as the core workflow
+- Agent orchestration — parallel specs in isolated git worktrees, human-approved
+- Persistent, structural context across sessions (AGENTS.md, STRUCTURE.json,
+  PROJECT_NOTES.md, tasks.json)
+- Multi-AI support (Claude Code, Codex, Gemini), with Claude Code as the foundation
+- Multi-terminal workbench, task management, GitHub & git panels, file editor

@@ -1,182 +1,10 @@
-/* ==================== PROJECTS SECTION ==================== */
+/* ==================== PROJECTS (project-dropdown spec) ==================== */
 /*
- * The workspace project list shown in the Projects rail view: a "Projects"
- * header above the drag-reorderable list, with an "Add new Project" button
- * pinned below (see .sidebar-view-projects in layout.css). The Open Project
- * modal styles live at the bottom of this file.
+ * Project selection lives in the sidebar's current-project switcher (styles
+ * in layout.css); this file keeps the Open Project modal and the Projects
+ * tab's workspace panel. The old list/rail row styles retired with their
+ * markup (sidebar-project-section → project-rail → project-dropdown).
  */
-
-.project-section {
-  /* No left/right inset so the header + items align to the sidebar's own
-     padding edge. */
-  padding: var(--space-xs) 0 var(--space-sm);
-}
-
-/* ---- Header: "Projects" + add ---- */
-.project-section-header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: var(--space-xs);
-}
-
-.project-section-title {
-  /* Same heading colour/weight as the Home/Frames right-panel section titles
-     (.lane-rail-section-title) — readable in dark mode. */
-  color: var(--text-secondary);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-
-/* Header help (i) — same colour as the title, with a hover tooltip. */
-.project-section-help {
-  display: inline-flex;
-  align-items: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: help;
-  transition: color var(--transition-fast);
-}
-
-.project-section-help:hover {
-  color: var(--text-primary);
-}
-
-.project-section-help-tip {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 60;
-  padding: 7px 10px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 1.45;
-  text-transform: none;
-  letter-spacing: 0;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity var(--transition-fast);
-  pointer-events: none;
-}
-
-.project-section-help:hover ~ .project-section-help-tip {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* ---- Workspace list ----
-   Lives in the Projects rail view; .sidebar-view-projects lets it grow to fill
-   and scroll, so no max-height cap here. */
-.project-section-list {
-  padding: var(--space-xs) 0;
-  overflow-y: auto;
-}
-
-/* Drag-to-reorder: the item being dragged dims to read as "in flight". */
-.project-item.dragging {
-  opacity: 0.45;
-  background: var(--bg-elevated);
-}
-
-/* Agent status badges — right side of a project row. Flag projects whose
-   background agents need attention (red = needs approval, amber = waiting). */
-.project-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  flex: 0 0 auto;
-  margin-left: var(--space-xs);
-}
-
-.project-status:empty {
-  margin-left: 0;
-}
-
-/* Filled pills (matching the app-wide agent badge shape) so the status reads
-   clearly against the warm sidebar background instead of getting lost as a
-   bare tinted icon. The agent (Bot) logo signals these are agent statuses;
-   colour carries the meaning — red = needs approval, amber = waiting. */
-.project-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 0 6px;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 17px;
-  border-radius: 99px;
-  font-variant-numeric: tabular-nums;
-}
-
-.project-status-badge.approval {
-  color: #fff;
-  background: var(--error, #d45555);
-}
-
-.project-status-badge.input {
-  color: var(--bg-deep, #1a1410);
-  background: var(--warning, #e5a50a);
-}
-
-/* Gentle pulse for the urgent (needs-approval) badge. */
-.project-status-badge.approval {
-  animation: project-status-pulse 1.8s ease-in-out infinite;
-}
-
-/* Custom hover tooltip for the status badges — replaces the faint native
-   `title`. Fixed position (set in JS) so it escapes the list's scroll clip. */
-.project-status-tooltip {
-  position: fixed;
-  z-index: 1000;
-  max-width: 240px;
-  padding: 5px 9px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--text-primary);
-  background: var(--bg-elevated, #2a2018);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-  pointer-events: none;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.project-status-tooltip.visible {
-  opacity: 1;
-}
-
-@keyframes project-status-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
-}
-
-/* Leading FRAME tag — replaces the box icon for Frame-initialized projects. */
-.project-item .project-frame-tag {
-  flex: 0 0 auto;
-  margin-right: var(--space-sm);
-  padding: 2px 6px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  color: var(--bg-deep);
-  background: var(--accent-primary);
-  border-radius: 4px;
-}
 
 /* ==================== OPEN PROJECT MODAL ==================== */
 
@@ -208,7 +36,7 @@
 
 .open-project-option-icon {
   flex: 0 0 auto;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1;
 }
 
@@ -220,7 +48,7 @@
 }
 
 .open-project-option-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -244,7 +72,7 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   outline: none;
   transition: border-color var(--transition-fast);
 }
@@ -257,4 +85,57 @@
   font-size: 12px;
   color: var(--danger, #f85149);
   white-space: pre-wrap;
+}
+
+/* ==================== WORKSPACE PANEL (project-dropdown spec) ==================== */
+/* The Projects tab: workspace nav for the selected project; project
+   selection lives in the current-project switcher above; Add new Project is
+   pinned at the bottom. */
+
+.sidebar-view-projects {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workspace-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.workspace-panel .workspace-nav-item {
+  padding-left: 10px;
+}
+
+.sidebar-view-projects .project-add-btn {
+  margin-top: auto;
+}
+
+/* Switcher menu extras: agent-attention dot + per-row remove */
+.sidebar-project-menu-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 6px;
+}
+.sidebar-project-menu-dot.approval { background: var(--error); }
+.sidebar-project-menu-dot.input { background: var(--warning); }
+
+.sidebar-project-menu-remove {
+  flex: none;
+  margin-left: 6px;
+  width: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  border-radius: 3px;
+  visibility: hidden;
+}
+.sidebar-project-menu-item:hover .sidebar-project-menu-remove {
+  visibility: visible;
+}
+.sidebar-project-menu-remove:hover {
+  color: var(--error);
+  background: var(--bg-hover);
 }

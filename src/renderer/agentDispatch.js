@@ -107,11 +107,11 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     }
     if (!targetId) {
       const max = multiTerminalUI.getManager().maxTerminals;
-      return _fail(null, `Could not create a new Frame — maximum (${max}) may be reached for this project`);
+      return _fail(null, `Could not create a new terminal — maximum (${max}) may be reached for this project`);
     }
   } else {
     if (!targetId || !multiTerminalUI.getManager().getTerminal(targetId)) {
-      return _fail(null, 'Target Frame is no longer open');
+      return _fail(null, 'Target terminal is no longer open');
     }
   }
 
@@ -295,7 +295,7 @@ async function _startAgentInNewFrame() {
   }
   if (!id) {
     const max = multiTerminalUI.getManager().maxTerminals;
-    notify.error(`Could not create a new Frame — maximum (${max}) may be reached for this project`);
+    notify.error(`Could not create a new terminal — maximum (${max}) may be reached for this project`);
     return;
   }
   _startAgentIn(id, { fresh: true });
@@ -311,11 +311,11 @@ function _askNewOrRestart(frameName, hasAgent) {
     overlay.className = 'spec-modal-overlay';
     overlay.innerHTML = `
       <div class="spec-modal" role="dialog" aria-modal="true" aria-labelledby="launch-lane-title">
-        <h3 id="launch-lane-title">This Frame is busy</h3>
+        <h3 id="launch-lane-title">This terminal is busy</h3>
         <p><strong>${escapeHtml(frameName)}</strong> already has ${what}. Where should the agent start?</p>
         <div class="spec-modal-actions">
           <button type="button" class="btn btn-secondary launch-restart">Kill &amp; restart here</button>
-          <button type="button" class="btn btn-primary launch-new-frame">Open a new Frame</button>
+          <button type="button" class="btn btn-primary launch-new-frame">Open a new terminal</button>
         </div>
       </div>
     `;
@@ -674,7 +674,7 @@ function _askContinueOrNew(frameName, specName) {
         <h3 id="dispatch-lane-title">Where should this run?</h3>
         <p><strong>${escapeHtml(specName)}</strong> is already working in <strong>${escapeHtml(frameName)}</strong>.</p>
         <div class="spec-modal-actions">
-          <button type="button" class="btn btn-secondary dispatch-new-frame">Open a new Frame</button>
+          <button type="button" class="btn btn-secondary dispatch-new-frame">Open a new terminal</button>
           <button type="button" class="btn btn-primary dispatch-continue">Continue in ${escapeHtml(frameName)}</button>
         </div>
       </div>

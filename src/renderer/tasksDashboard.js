@@ -142,8 +142,42 @@ function flatten(data) {
   ];
 }
 
-function show() {
-  if (!dashboardEl) return;
+// ─── Inline hosting (center-specs-tasks-views spec) ────────
+// Same contract as specsDashboard: with an inline host registered, the board
+// renders inside the center content area and all legacy entry points route
+// through the host — the full-window overlay path goes dormant.
+
+let inlineHost = null;     // { open(), close() } — set by multiTerminalUI
+let inlineMounted = false;
+let overlayParent = null;
+
+function setInlineHost(host) {
+  inlineHost = host;
+}
+
+function mountInline(container) {
+  if (!dashboardEl || !container) return;
+  if (!overlayParent) overlayParent = dashboardEl.parentNode;
+  dashboardEl.classList.add('visible', 'inline');
+  container.appendChild(dashboardEl);
+  inlineMounted = true;
+  _load();
+}
+
+function notifyDetached() {
+  if (!inlineMounted) return;
+  inlineMounted = false;
+  isVisible = false;
+  clearSelection();
+  closeFilterPopover();
+  closeSortPopover();
+  dashboardEl.classList.remove('visible', 'inline');
+  if (overlayParent && dashboardEl.parentNode !== overlayParent) {
+    overlayParent.appendChild(dashboardEl);
+  }
+}
+
+function _load() {
   const projectPath = state.getProjectPath();
   // No project = nothing to show. Surface the same info modal the side panel
   // uses so the user gets one consistent message no matter where they enter.
@@ -155,7 +189,6 @@ function show() {
     return;
   }
   isVisible = true;
-  dashboardEl.classList.add('visible');
   if (projectLabelEl) {
     projectLabelEl.textContent =
       projectPath.split('/').pop() || projectPath.split('\\').pop() || '';
@@ -164,8 +197,22 @@ function show() {
   render();
 }
 
+function show() {
+  if (!dashboardEl) return;
+  if (inlineHost) {
+    inlineHost.open();
+    return;
+  }
+  dashboardEl.classList.add('visible');
+  _load();
+}
+
 function hide() {
   if (!dashboardEl) return;
+  if (inlineMounted && inlineHost) {
+    inlineHost.close(); // view switch triggers notifyDetached()
+    return;
+  }
   isVisible = false;
   dashboardEl.classList.remove('visible');
   clearSelection();
@@ -174,6 +221,10 @@ function hide() {
 }
 
 function toggle() {
+  if (inlineHost) {
+    inlineMounted ? inlineHost.close() : inlineHost.open();
+    return;
+  }
   if (isVisible) hide(); else show();
 }
 
@@ -835,5 +886,9 @@ module.exports = {
   show,
   hide,
   toggle,
-  isVisible: () => isVisible
+  isVisible: () => isVisible,
+  setInlineHost,
+  mountInline,
+  notifyDetached,
+  isInlineMounted: () => inlineMounted
 };

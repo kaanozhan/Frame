@@ -54,10 +54,10 @@ let currentStructureData = null;
 
 // Module type colors
 const MODULE_COLORS = {
-  main: '#d4a574',      // Accent - main process
-  renderer: '#78a5d4',  // Info blue - renderer process
-  shared: '#7cb382',    // Success green - shared modules
-  external: '#6b6660'   // Muted - external deps
+  main: '#8ff0ae',      // Accent - main process
+  renderer: '#a6c0f0',  // Info blue - renderer process
+  shared: '#9bdca8',    // Success green - shared modules
+  external: '#948c7c'   // Muted - external deps
 };
 
 /**

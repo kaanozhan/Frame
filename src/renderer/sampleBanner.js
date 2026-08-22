@@ -82,12 +82,13 @@ function init() {
   state.onSampleChange((isSample) => {
     if (isSample) {
       dismissedForCurrentSession = false;
-      // Auto-open the side panels so the user immediately sees the
-      // populated tasks + specs the sample exists to demonstrate.
-      // Wrapped in try/catch because if the modules failed to init for
-      // any reason, we still want the banner to show.
-      try { tasksPanel.show(); } catch (err) { console.error('sampleMode: tasksPanel.show failed', err); }
-      try { specPanel.show(); } catch (err) { console.error('sampleMode: specPanel.show failed', err); }
+      // Auto-open the center Tasks view so the user immediately sees the
+      // populated tasks the sample exists to demonstrate (side panels are
+      // retired — retire-rail-and-panels spec). Wrapped in try/catch because
+      // if the modules failed to init, we still want the banner to show.
+      try {
+        require('./terminal').getMultiTerminalUI().showTasksBoard();
+      } catch (err) { console.error('sampleMode: opening tasks view failed', err); }
     }
     setVisible(isSample && !dismissedForCurrentSession);
   });

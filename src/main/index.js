@@ -73,7 +73,7 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false
     },
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#0c0b09',
     title: 'Frame'
   });
 

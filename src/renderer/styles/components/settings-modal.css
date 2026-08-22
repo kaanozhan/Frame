@@ -51,7 +51,7 @@
 
 .settings-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -61,7 +61,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   padding: 4px 8px;
   border-radius: 4px;
   transition: color 0.12s, background 0.12s;
@@ -114,7 +114,7 @@
 
 .settings-row-label {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary);
   margin-bottom: 4px;
 }
@@ -198,7 +198,7 @@
 }
 
 .settings-about-version {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 

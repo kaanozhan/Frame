@@ -9,11 +9,11 @@
  * Rendered by MultiTerminalUI into its content container when
  * viewMode === 'board' — a view mode, not an overlay.
  *
- * Naming convention (deliberate, decided 2026-06-11, reaffirmed in the
- * audit-q3-ux-error-feedback spec): code, module names, and DOM ids say
+ * Naming convention (revised by the terminals-view spec, 2026-08-20;
+ * overturns the 2026-06-11 rule): code, module names, and DOM ids still say
  * "lane" (laneBoard, btn-lane-home, _createLane); user-facing vocabulary
- * says "Frame" for a work stream and "Home" for this board. Keep new code
- * on the same rule — don't half-rename in either direction.
+ * says "Terminal" for a work stream and "Home" for this board. Keep new
+ * code on the same rule — don't half-rename in either direction.
  */
 
 const { ipcRenderer } = require('electron');
@@ -182,8 +182,8 @@ class LaneBoard {
       <div class="lane-card-header">
         <span class="lane-status-dot ${status}"></span>
         <span class="lane-card-name">${escapeHtml(t.customName || t.name)}</span>
-        <button class="lane-card-action lane-card-rename" title="Rename frame">${lucideIcon(Pencil, 13)}</button>
-        <button class="lane-card-action lane-card-close" title="Close frame">${lucideIcon(X, 14)}</button>
+        <button class="lane-card-action lane-card-rename" title="Rename terminal">${lucideIcon(Pencil, 13)}</button>
+        <button class="lane-card-action lane-card-close" title="Close terminal">${lucideIcon(X, 14)}</button>
       </div>
       <div class="lane-card-meta">
         <span class="lane-card-branch" style="${branch ? '' : 'display:none'}">${lucideIcon(GitBranch, 11)}<span class="lane-card-branch-name">${escapeHtml(branch || '')}</span></span>
@@ -226,7 +226,7 @@ class LaneBoard {
       card.classList.add('disabled');
       card.title = `Maximum frames (${this.manager.maxTerminals}) reached for this project`;
     } else {
-      card.title = 'New Frame — click to select shell, right-click for default';
+      card.title = 'New Terminal — click to select shell, right-click for default';
     }
     card.innerHTML = `
       <div class="lane-card-new-inner">
@@ -297,9 +297,9 @@ class LaneBoard {
     const orchActive = orchestrator.isActive && orchestrator.isActive();
     empty.innerHTML = `
       <div class="lane-board-empty-icon">${lucideIcon(Plus, 28)}</div>
-      <p class="lane-board-empty-title">No frames yet</p>
-      <p class="lane-board-empty-hint">A frame is a terminal where you run your shell or an AI session.</p>
-      <button class="lane-board-empty-cta">Create your first frame</button>
+      <p class="lane-board-empty-title">No terminals yet</p>
+      <p class="lane-board-empty-hint">A terminal is where you run your shell or an AI session.</p>
+      <button class="lane-board-empty-cta">Create your first terminal</button>
       <button class="lane-board-empty-secondary">${lucideIcon(Bot, 14)}<span>${orchActive ? 'Open Orchestrator' : 'Start Orchestrator'}</span></button>
     `;
     empty.querySelector('.lane-board-empty-cta').addEventListener('click', () => {
@@ -320,11 +320,11 @@ class LaneBoard {
         projectPath: this.manager.getCurrentProject()
       });
     } catch (err) {
-      notify.error(`Could not create a new Frame: ${err.message || 'terminal creation failed'}`);
+      notify.error(`Could not create a new terminal: ${err.message || 'terminal creation failed'}`);
       return;
     }
     if (!id) {
-      notify.error(`Could not create a new Frame — maximum (${this.manager.maxTerminals}) reached for this project`);
+      notify.error(`Could not create a new terminal — maximum (${this.manager.maxTerminals}) reached for this project`);
       return;
     }
     this.onEnterLane(id);

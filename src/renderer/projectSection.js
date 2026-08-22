@@ -21,11 +21,19 @@ function focusList() {
 }
 
 function init() {
-  section = document.getElementById('project-section');
-  if (!section) return;
-
+  // The old #project-section wrapper is gone (project-dropdown spec); only
+  // the bottom-pinned Add button remains to wire.
+  //
+  // The `else` is not defensive noise: during the project-rail spec this
+  // init early-returned on a container that had been removed, silently
+  // leaving Add new Project dead until a user found it. A control that
+  // fails to bind must say so (audit-q3-ux-error-feedback discipline).
   const addBtn = document.getElementById('project-add-btn');
-  if (addBtn) addBtn.addEventListener('click', () => openProjectModal.open());
+  if (addBtn) {
+    addBtn.addEventListener('click', () => openProjectModal.open());
+  } else {
+    console.error('projectSection: #project-add-btn not found — Add new Project will not work');
+  }
 }
 
 module.exports = {

@@ -1405,3 +1405,256 @@ are never touched. Projects initialized before this keep their existing flag;
 nothing force-enables on open, since that would rewrite an AGENTS.md the user
 never asked us to change. Rejected: auto-enabling when specs already exist on
 disk — it would silently undo an explicit "off" on every panel open.
+
+### [2026-08-19] UI redesign starts incrementally — step 1: JetBrains Mono as the primary UI font
+Kaan brought an interactive HTML prototype (`~/Downloads/frame-ui-prototype.html`)
+proposing a new information architecture (spec "rails" with SPEC→PLAN→TASKS→OUTCOME
+stations, footprint guard as a first-class UI element, a Context Ledger panel).
+Decision: the redesign will proceed in small independent steps, explicitly NOT as
+one big spec. First step shipped now: typography. The prototype's look comes from
+JetBrains Mono being the *primary* UI font (not just code font), with Inter for
+prose. Changes: `index.html` Google Fonts link swapped DM Sans → Inter + extra
+JetBrains Mono weights (600/700/800); `--font-sans` in `variables.css` now Inter;
+`body` in `ui.css` switched to `var(--font-mono)`; all chrome elements (buttons,
+selects, inputs, sidebar items, search fields) that hardcoded `--font-sans` were
+flipped to `--font-mono`; prose stays sans (#editor-preview, .file-desc,
+.spec-driven-hint, structure-map .node text); xterm `fontFamily` in
+`terminalManager.js` now leads with JetBrains Mono. Verified with a live app
+screenshot. Deferred (candidate next small steps): vendor the fonts locally
+instead of Google Fonts CDN (aligns with audit-q3-performance-resources' offline
+principle), and update the report templates (`plan-report-template.html`,
+`build-implement-report.mjs`) which still use DM Sans.
+
+### [2026-08-20] Fonts vendored locally — Google Fonts CDN removed
+Follow-up to the 2026-08-19 typography step: `@fontsource/inter` (400/500/600)
+and `@fontsource/jetbrains-mono` (400/500/600/700/800) added as npm deps;
+`index.html` now links their per-weight CSS from `node_modules/` — same
+vendoring pattern as xterm.css and D3, and consistent with
+audit-q3-performance-resources' offline principle. electron-builder already
+packages `node_modules/**/*`, so no build-config change was needed. Verified
+live: zero external requests, JetBrains Mono faces active from local woff2.
+Still open: report templates (`plan-report-template.html`,
+`build-implement-report.mjs`) reference DM Sans — they are standalone
+browser-opened reports, untouched for now.
+
+### [2026-08-20] Density pass — UI compacted to match the prototype's feel
+Step 2 of the incremental redesign (after the JetBrains Mono switch). Kaan
+noted the prototype reads far more compact than the app; diagnosis: not
+resolution but typographic scale + spacing (and mono looking larger than sans
+at equal px). Changes: body 13→12px and line-height 1.5→1.45 (`ui.css`);
+hardcoded font sizes shifted one step down across all of `src/renderer/styles/`
+(13→12, 14→13, 16→14, 18→15, 20→16, 22→18; 12px-and-below untouched);
+`--radius-*` 6/8/12/16 → 4/5/6/8 and `--space-*` 4/8/12/16/24 → 4/6/10/14/20
+in `variables.css`; xterm fontSize 14→13 in `terminalManager.js`. Verified
+with live screenshot (sidebar project names no longer truncate; task rail fits
+more cards) and the full test suite (222 pass). Rationale recorded: the
+prototype's compact feel = 12px mono base + 5–14px padding band + 3–6px radii;
+these values approximate that within the existing variable system.
+
+### [2026-08-20] Prototype color palette adopted — green accent on warm charcoal
+Step 3 of the incremental redesign. The prototype's palette replaced the amber
+design system in `variables.css` (dark theme): backgrounds #0c0b09/#14120e/
+#1c1915/#242019 (+#2a2620/#332e25 extrapolated for elevated/hover), text
+#f2eee4/#c4bcac/#948c7c, accent green #8ff0ae (secondary #6fd693), semantic
+success #9bdca8 / warning #e5cd8e / error #e8938a / info #a6c0f0, borders now
+solid warm tones #221e18/#2a2620/#3a342b (was rgba white). New `--doc-*`
+variables added for the prototype's document-type colors (spec gold, plan blue,
+task orange, outcome green) — unused yet, reserved for the spec-rail step.
+Light theme kept but accent shifted to deep green #2f7d4f for coherence.
+All hardcoded old-palette rgba/hex swept from styles and JS: panels/lane-board
+accent rgba, success/info/warning rgba, structureMap node colors, btn-success
+gradient (text now #07130b on green), window backgroundColor #1e1e1e→#0c0b09
+in `src/main/index.js` (also fixes the boot flash mismatch), xterm dark theme
+bg #0a0908 / fg #c4bcac / cursor green per the prototype's darker term panes.
+Verified: live screenshot + 222 tests pass.
+
+### [2026-08-20] Terminals view shipped — prototype navigation model, "Frame"→"Terminal"
+Step 4 of the incremental redesign, run as spec `terminals-view` (see its
+chain for full detail). Kaan's direction: they dislike the current UX; the
+prototype's model is the target — pick a project on the left, its workspace
+items appear under it, content lives in the center, not in right-side panels.
+Memory/Team/Rails explicitly out of scope for now; start with terminals, and
+drop the "Frame" naming for work streams ("terminal-terminals olarak geri
+dönebiliriz"). Shipped: viewMode 'terminals' as the default landing view on
+project selection (terminalsView.js — live pane grid, 1/2/3 columns, drag
+reorder, maximize, per-project prefs), sidebar `Terminals (n)` workspace nav,
+and the user-facing naming sweep. Explicitly overturned lane-orchestrator's
+decisions (user-facing "Frame" naming; board as landing view — board remains
+reachable via Home). Verified with a live driven run (create/layout/maximize/
+typing) and 222 passing tests.
+
+### [2026-08-20] Workspace nav grew Specs + Tasks; running-agent indicator on Terminals
+Follow-up to terminals-view. The sidebar workspace nav under the selected
+project now has three entries: Terminals (count + a green "◆ N" indicator
+when agents are running in the project's terminals, fed by laneStatus),
+Specs (active specs, phase !== done — same semantics as the old lane rail
+count), Tasks (non-completed). Counts ride the existing SPEC_DATA/TASKS_DATA
+pushes; zero new IPC. Specs/Tasks clicks open the existing dashboards
+(specsDashboard/tasksDashboard) — converting those into true center
+viewModes is a later step. Decision on "active agents": the per-project
+answer is the ◆ indicator + pane status dots in the terminals view; the
+left-rail Agent tab stays untouched for now because its unique value is
+cross-project attention — its fate belongs to the panels-consolidation step
+(prototype's model would move it to top-bar presence).
+
+### [2026-08-20] Specs & Tasks became center views (spec: center-specs-tasks-views)
+Dashboards no longer cover the window: they mount inline into the center via
+an inline-host contract in multiTerminalUI (viewModes 'specs'/'tasks'), and
+every legacy entry point delegates there. Sidebar Specs is lifecycle-first —
+opens specSection (linear stepper) on the top active spec, with the section
+rail's ↗ as the in-center switch to the card grid; Tasks opens the kanban
+inline. Kaan's design question ("büyütme ile dashboard'a mı, merkezde switch
+mü?") resolved as: stay in center, switch in place. Escape/× → terminals view.
+
+### [2026-08-20] Instrument rail + slide-in panels retired (spec: retire-rail-and-panels)
+One navigation system remains: sidebar workspace nav (nine entries) → center
+views. Generic inline panel host re-parents legacy panel elements into the
+center (MutationObserver routes their own closes back); rail deleted, theme
+toggle moved next to Settings. Also: Kaan caught that the two prior
+hand-made specs never mirrored their tasks into tasks.json — no good reason,
+it was an omission; backfilled (terminals-view 7, center-specs-tasks-views
+5) and this spec created its 6 task rows properly at spec time.
+
+### [2026-08-20] Agent tab → topbar presence (spec: topbar-presence) + card hover jitter fix
+Running agents are now prototype-style ◆ chips in the top bar (presenceBar.js,
+cross-project, status-flavored, click-to-focus with project switch); the
+Default Agent launcher moved to the top bar with IDs intact; the sidebar
+Agent tab and agentPanel.js are gone. Separately, Kaan reported hover jitter
+on task cards and the specs grid: cause was translateY(-1px) on :hover
+(card slips from under the cursor at edges → hover oscillates); transforms
+removed from .tasks-dashboard-card:hover and .specs-card:hover.
+
+### [2026-08-20] CPU runaway in Specs/Tasks center views — IPC feedback loop fixed
+Kaan reported terrible CPU when opening tasks/specs. Measured with an
+instrumented run: the specs grid idled at ~100 IPC round-trips/second
+(1039 watch-specs/load-tasks/list-specs calls in 10s, 163% CPU). Cycle: an
+open spec/task section chip listens to SPEC_DATA/TASKS_DATA and calls
+notifySectionChanged → _onStateChange re-rendered the inline dashboard →
+mountInline re-ran _load() → WATCH_SPECS/LOAD_TASKS → new pushes → repeat.
+WATCH_SPECS additionally runs stageCommandFiles + upgradeSpecDocs in main on
+every call — the actual CPU burner. Fix: _renderDashView/_renderPanelView
+are now idempotent (already-mounted surfaces are never remounted on state
+changes; their own IPC listeners keep them fresh). After: 0 IPC calls, 0%
+CPU at idle in both views. Lesson recorded: any inline-mounted surface whose
+mount triggers a data load MUST be mount-idempotent, because section chips
+rebroadcast every data push through _onStateChange.
+
+### [2026-08-20] IPC watchdog added; post-storm audit came back clean
+Kaan's concern after the storm: IPC is critical, and a storm with no terminal
+open was unsettling — is the redesign flow safe? Audit findings: (1) the
+storm ran only over three read-only data channels (watch-specs/load-tasks/
+list-specs) — no PTY/terminal channel was ever involved, and no IPC contract
+changed anywhere in the redesign (ipcChannels.js zero diff throughout);
+(2) disk side effects: none — WATCH_SPECS's repeated stageCommandFiles/
+upgradeSpecDocs writes are idempotent, AGENTS.md diff-clean, managed section
+single; (3) a full-channel idle sweep across every surface combo (specs grid
++ open chip, tasks board, live shell, cross combos) is quiet — 0 events/10s,
+0% CPU (terminals+shell baseline 2.6% = pre-existing process polling).
+Guard added: src/renderer/ipcWatchdog.js — wraps ipcRenderer send/invoke/emit,
+rolling 5s windows, warns via console + notify toast when >300 msgs sustained
+(~60/s), max one toast/min; initialized first in index.js init(). Verified:
+silent through boot and view switching, fires correctly on a synthetic
+500-message burst. Process change of record: view-layer work is now verified
+with resource measurement (IPC counters + CPU sampling), not just behavior.
+
+### [2026-08-20] Projects moved to a far-left expanding rail (spec: project-rail)
+Kaan disliked the sidebar project list; the prototype's leftmost column is
+now real: 56px initials-avatar rail (FRAME = accent ring, agent attention =
+corner dot), expanding to a 240px flyout over the sidebar on hover/focus
+(class-driven for keyboard parity and testability; no layout shift). The
+sidebar Projects tab became the workspace panel (project header + nav).
+projectListUI logic untouched — presentation-only move; all behaviors
+(reorder, remove, auto-select, keyboard, Cmd+Shift+[/]) re-verified live.
+
+### [2026-08-20] ⌘K palette jump shipped (spec: palette-jump)
+The palette now mixes dynamic jump targets with commands via registry
+providers: projects, terminals across projects (presence-flow focus), the
+current project's specs (opens lifecycle view; push-fed cache), and nine
+"Go to" view entries. Transient items never enter recents. Implementation
+incident worth remembering: forgetting to export registerProvider made
+paletteSources.init throw during boot, silently aborting the rest of
+index.js init() — palette and every keyboard shortcut died with no visual
+symptom. Caught by pageerror capture in the driven verification run;
+boot-error capture is now part of the live-verification recipe.
+
+### [2026-08-20] Context Ledger postponed; two topbar/rail polish fixes
+Ledger decision: postponed by Kaan — feeding it from the activity monitor
+would surface too much irrelevant noise ("aktivity monitorden çekersek çok
+ilgisiz şeyler de görünür, şimdilik bekletelim"). Revisit when
+orchestration-grade events (guards, decisions) exist as a distinct stream.
+Polish shipped instead: (1) the top bar's agent launcher (Claude + Start)
+was cramped against the SESSION usage bars — now separated by a divider +
+14px gaps; (2) the project rail's first avatar started at the window edge —
+the list now carries a 60px top inset so it aligns with the sidebar's
+project header line.
+
+### [2026-08-20] Project selection moved to the top dropdown; rail removed (spec: project-dropdown)
+Kaan's call, hours after the rail shipped: drop the far-left bar, select
+projects from the existing current-project switcher (as Files/Changes
+already did), Add new Project pinned at the sidebar bottom. Same-day
+overturn of project-rail recorded explicitly. projectListUI is now a
+headless controller; switcher menu rows gained attention dots + remove ×.
+Accepted regression: drag-reorder UI is gone (IPC kept). ~500 lines of
+orphaned row/rail code and CSS deleted.
+
+### [2026-08-20] Bug: "Add new Project" was dead through the project-rail build
+Kaan reported the button not working. Root cause: the project-rail spec
+removed the `#project-section` wrapper from index.html, but
+`projectSection.init()` still began with
+`section = getElementById('project-section'); if (!section) return;` — the
+early return skipped the Add-button binding, so the control was silently
+dead for the whole rail period. Today's project-dropdown rewrite replaced
+that init and incidentally fixed it (verified live: button → modal → Select
+folder → select-project-folder IPC). Added an explicit console.error when
+the button is missing so a failed binding can never be silent again.
+Process lesson: live verification covered what each spec *built* but not
+controls it *moved* — moved controls now need their own click-through.
+
+### [2026-08-22] PR #116 (overlay architecture) declined; non-invasive-overlay spec rewritten — delivery stays file-based
+Kaan asked why PR #116 (BerkayYilmaz11, "Frame no longer writes outside
+.frame/") was 40k lines. Breakdown: ~21.6k generated spec HTML reports,
+~5k spec docs, ~6k src, ~4.6k tests, the rest this repo's own meta files
+relocating. Four parallel audits (migration safety, context/terminal
+delivery, store/git/orchestration, renderer/IPC) on a worktree of the PR
+found: migration fingerprint accepts a bare `CLAUDE.md → AGENTS.md`
+symlink (a public convention) so the silent startup sweep moves/deletes
+root files in repos Frame never touched; worker lanes cannot launch
+(relative `./.frame/bin/claude` with worktree cwd; local-mode worktrees
+have no `.frame/` at all); `.frame/bin` first on PATH with only three
+names sanitised = repo-to-shell code execution; shipped
+`update-structure.js` misresolves ROOT_DIR and erases STRUCTURE.json;
+CI red on ubuntu/windows; `alias claude=` users lose everything; context
+becomes an advisory pointer that never reaches subagents. Review posted:
+https://github.com/kaanozhan/Frame/pull/116#issuecomment-5381170295 (not
+closed; left to Kaan).
+
+Important realisation: the PR implemented *our own* June spec
+(non-invasive-overlay, goal 4: "native prompt injection at launch time —
+not by planting files"). Kaan's position ("hooklarımızın, injectionlarımızın
+çalışma biçimi değişmemeli … şu anki yazılım geliştirme deneyimimiz çok
+iyi"): determinism of context + hooks is non-negotiable. Decision: keep
+the data move, explicitly overturn launch-time injection. Verified with
+`claude -p` in a scratch repo that (a) root `CLAUDE.md = @.frame/AGENTS.md`,
+(b) user CLAUDE.md + `.claude/CLAUDE.md = @../.frame/AGENTS.md`, and
+(c) user CLAUDE.md + `.claude/rules/frame.md = @../../.frame/AGENTS.md`
+all load natively. Chosen: (c) — one mechanism, never collides with
+user files, Frame-named, no symlink (Windows OK).
+
+Spec rewritten in place (same slug, phase still specified) with D1–D10:
+meta files → `.frame/`; `.claude/rules/frame.md` pointer; hooks stay in
+`.claude/settings.json` (guarded command, Frame-marked entries);
+gitSharing local|repo via `.git/info/exclude` + `settings.local.json`;
+data-centric `frameStore` seam (files remain source of truth, reads from
+disk — required for determinism); file classes instruction/data/derived/
+runtime driving `.frame/.gitignore` and future sync; `projectId` UUID
+stamped at init/migration; consented (modal) migration with strict
+`config.json.files` fingerprint, fsSafe, backup, AGENTS.md upgrade;
+"Remove Frame" enumerable; husky/lefthook snippet-only. Out of scope:
+cloud backend, agent CLI instead of file edits, local-mode orchestration,
+Gemini (being removed — Kaan: "gemini'yi zaten kaldıracağım").
+
+Scenario comparison (15 user scenarios × main / PR #116 / proposal):
+https://claude.ai/code/artifact/2c4d436b-5f95-4f72-8736-aa92d9f766a5
+Pieces of PR #116 worth reusing as reference when planning: gitExclude.js,
+gitSharing.js (clean in audit), migration happy path, Project Settings modal,
+the tree-walk "nothing outside .frame/" test.
