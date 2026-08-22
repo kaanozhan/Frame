@@ -163,3 +163,20 @@ was silently dropped.
 _Captured: 2026-08-23 · 3 file change(s)_
 
 ---
+
+## T09 — Migration consent wired end to end
+
+Handled `GET_LAYOUT_MIGRATION_PLAN`/`RUN_LAYOUT_MIGRATION` in
+`frameProject.setupIPC` (progress streamed to `event.sender`, then
+`tasksManager.restartWatching` once the run succeeds), inited `layoutMigration`
+with the activity log, and added `src/renderer/migrationModal.js` — one modal
+with four states (plan, progress, receipt, dirty-tree deferral) — opened from
+`state.js` when `IS_FRAME_PROJECT_RESULT` reports `layout: 'legacy'`. The Later
+choice is remembered per project for the session only: the offer should return
+next launch, since the layout is still what it was, but never twice while the
+user is working. `run()` re-plans in main rather than trusting the renderer's
+copy, so a stale plan can never be executed.
+
+_Captured: 2026-08-23 · 7 file change(s)_
+
+---

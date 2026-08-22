@@ -11,6 +11,7 @@ const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PA
 const templates = require('../shared/frameTemplates');
 const frameStore = require('./frameStore');
 const gitSharing = require('./gitSharing');
+const layoutMigration = require('./layoutMigration');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
@@ -732,6 +733,33 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.SET_GIT_SHARING, (event, { projectPath, mode }) => {
     if (!projectPath || !isFrameProject(projectPath)) return { error: 'not a Frame project' };
     return gitSharing.setMode(projectPath, mode);
+  });
+
+  // ─── Layout migration ──────────────────────────────────────
+  ipcMain.handle(IPC.GET_LAYOUT_MIGRATION_PLAN, (event, projectPath) => {
+    if (!projectPath || !isFrameProject(projectPath)) return null;
+    return layoutMigration.plan(projectPath);
+  });
+
+  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, (event, { projectPath }) => {
+    if (!projectPath || !isFrameProject(projectPath)) {
+      return { ran: false, reason: 'not a Frame project', moved: [], backedUp: [], review: [] };
+    }
+    const receipt = layoutMigration.run(projectPath, null, (progress) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);
+      }
+    });
+    // tasks.json just moved from the root into .frame/ — the watcher is
+    // pointed at the directory it left.
+    if (receipt.ran) {
+      try {
+        require('./tasksManager').restartWatching(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not re-arm the tasks watcher after migration:', err.message);
+      }
+    }
+    return receipt;
   });
 }
 

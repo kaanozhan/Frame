@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">8 tasks</span>
-    <span class="pill good">8 verified</span>
+    <span class="pill">9 tasks</span>
+    <span class="pill good">9 verified</span>
     
     <span class="chip">2026-08-22</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">8 of 12 tasks done · next: <span class="rs-task">T09 — Wire migration consent end to end: `CHECK_IS_FRAME_PROJECT` answering…</span></span>
+  <span class="rs-count">9 of 12 tasks done · next: <span class="rs-task">T10 — Add `frameProject.removeFrame` (delete `.frame/`…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -5516,6 +5516,484 @@
 <span class="dl-add">+  const receipt = layoutMigration.run(projectDir, p);</span>
 <span class="dl-add">+  assert.equal(receipt.sharingMode, &#39;local&#39;);</span>
 <span class="dl-add">+  assert.equal(frameStore.readConfig(projectDir).settings.gitSharing, &#39;local&#39;);</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T09</span>
+    <h2>Migration consent wired end to end</h2>
+    <span class="card-meta"><span class="chip">57c9fb5</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">283 pass, 0 fail (3 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>GET_LAYOUT_MIGRATION_PLAN and RUN_LAYOUT_MIGRATION are handled in frameProject.setupIPC, streaming LAYOUT_MIGRATION_PROGRESS to the sender and calling tasksManager.restartWatching after a successful run; index.js inits layoutMigration with the activity log. New src/renderer/migrationModal.js renders four states from one modal (plan, progress, receipt, dirty-tree deferral) with markup in index.html and styles in ui.css, and state.js offers it when IS_FRAME_PROJECT_RESULT carries layout: &#39;legacy&#39;. Three more tests cover the plan payload shape, the none/legacy/overlay answer, and that Later leaves the project untouched and working.</p></div>
+    <div class="field"><span class="label">Why</span><p>The modal remembers a Later per project for the session rather than persisting it: the offer should come back next launch (the layout is still wrong) but never twice while the user is working. Progress goes to event.sender rather than the main window so the reply lands in the window that asked, and the run is driven from main&#39;s own fresh plan() so a stale renderer plan can never be executed.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/index.html b/index.html</span>
+<span class="dl-meta">index 1c27220..916c2d8 100644</span>
+<span class="dl-file">--- a/index.html</span>
+<span class="dl-file">+++ b/index.html</span>
+<span class="dl-hunk">@@ -652,6 +652,38 @@</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">     &lt;/div&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+    &lt;!-- Frame Layout Migration Modal (pre-overlay project → .frame/) --&gt;</span>
+<span class="dl-add">+    &lt;div id=&quot;migration-modal&quot; class=&quot;modal-overlay&quot;&gt;</span>
+<span class="dl-add">+      &lt;div class=&quot;modal-container modal-container-wide&quot;&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;modal-header&quot;&gt;</span>
+<span class="dl-add">+          &lt;h3&gt;Move Frame&#39;s files into &lt;code&gt;.frame/&lt;/code&gt;?&lt;/h3&gt;</span>
+<span class="dl-add">+          &lt;button class=&quot;modal-close&quot; id=&quot;migration-modal-close&quot;&gt;&amp;#x2715;&lt;/button&gt;</span>
+<span class="dl-add">+        &lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;modal-body&quot;&gt;</span>
+<span class="dl-add">+          &lt;p class=&quot;init-modal-lead&quot; id=&quot;migration-lead&quot;&gt;</span>
+<span class="dl-add">+            This project keeps Frame&#39;s files at its root. Frame can move them into</span>
+<span class="dl-add">+            &lt;code&gt;.frame/&lt;/code&gt; so your project root is yours again. Nothing is deleted:</span>
+<span class="dl-add">+            every file is copied to a backup first.</span>
+<span class="dl-add">+          &lt;/p&gt;</span>
+<span class="dl-add">+          &lt;ul class=&quot;init-modal-file-list&quot; id=&quot;migration-file-list&quot;&gt;&lt;/ul&gt;</span>
+<span class="dl-add">+          &lt;p class=&quot;init-modal-note&quot; id=&quot;migration-backup-note&quot;&gt;&lt;/p&gt;</span>
+<span class="dl-add">+          &lt;div class=&quot;init-modal-warning&quot; id=&quot;migration-dirty-warning&quot; style=&quot;display:none;&quot;&gt;</span>
+<span class="dl-add">+            &lt;p&gt;These files have uncommitted changes, so migration is paused:&lt;/p&gt;</span>
+<span class="dl-add">+            &lt;ul id=&quot;migration-dirty-list&quot;&gt;&lt;/ul&gt;</span>
+<span class="dl-add">+            &lt;p&gt;Commit or stash them, then reopen this project.&lt;/p&gt;</span>
+<span class="dl-add">+          &lt;/div&gt;</span>
+<span class="dl-add">+          &lt;div id=&quot;migration-progress&quot; class=&quot;migration-progress&quot; style=&quot;display:none;&quot;&gt;</span>
+<span class="dl-add">+            &lt;p id=&quot;migration-progress-step&quot;&gt;Working…&lt;/p&gt;</span>
+<span class="dl-add">+          &lt;/div&gt;</span>
+<span class="dl-add">+          &lt;div id=&quot;migration-receipt&quot; class=&quot;migration-receipt&quot; style=&quot;display:none;&quot;&gt;&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;modal-footer&quot;&gt;</span>
+<span class="dl-add">+          &lt;button class=&quot;modal-btn modal-btn-cancel&quot; id=&quot;migration-later&quot;&gt;Later&lt;/button&gt;</span>
+<span class="dl-add">+          &lt;button class=&quot;modal-btn modal-btn-primary&quot; id=&quot;migration-run&quot;&gt;Migrate&lt;/button&gt;</span>
+<span class="dl-add">+        &lt;/div&gt;</span>
+<span class="dl-add">+      &lt;/div&gt;</span>
+<span class="dl-add">+    &lt;/div&gt;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">     &lt;!-- Open Project Modal --&gt;</span>
+<span class="dl-ctx">     &lt;div id=&quot;open-project-modal&quot; class=&quot;modal-overlay&quot;&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;modal-container&quot;&gt;</span>
+<span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index c6948fa..951f59f 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -11,6 +11,7 @@ const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PA</span>
+<span class="dl-ctx"> const templates = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-ctx"> const frameStore = require(&#39;./frameStore&#39;);</span>
+<span class="dl-ctx"> const gitSharing = require(&#39;./gitSharing&#39;);</span>
+<span class="dl-add">+const layoutMigration = require(&#39;./layoutMigration&#39;);</span>
+<span class="dl-ctx"> const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-ctx"> const structureBootstrap = require(&#39;./structureBootstrap&#39;);</span>
+<span class="dl-ctx"> const commandStaging = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-hunk">@@ -733,6 +734,33 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">     if (!projectPath || !isFrameProject(projectPath)) return { error: &#39;not a Frame project&#39; };</span>
+<span class="dl-ctx">     return gitSharing.setMode(projectPath, mode);</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // ─── Layout migration ──────────────────────────────────────</span>
+<span class="dl-add">+  ipcMain.handle(IPC.GET_LAYOUT_MIGRATION_PLAN, (event, projectPath) =&gt; {</span>
+<span class="dl-add">+    if (!projectPath || !isFrameProject(projectPath)) return null;</span>
+<span class="dl-add">+    return layoutMigration.plan(projectPath);</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, (event, { projectPath }) =&gt; {</span>
+<span class="dl-add">+    if (!projectPath || !isFrameProject(projectPath)) {</span>
+<span class="dl-add">+      return { ran: false, reason: &#39;not a Frame project&#39;, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    const receipt = layoutMigration.run(projectPath, null, (progress) =&gt; {</span>
+<span class="dl-add">+      if (!event.sender.isDestroyed()) {</span>
+<span class="dl-add">+        event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    // tasks.json just moved from the root into .frame/ — the watcher is</span>
+<span class="dl-add">+    // pointed at the directory it left.</span>
+<span class="dl-add">+    if (receipt.ran) {</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        require(&#39;./tasksManager&#39;).restartWatching(projectPath);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        console.warn(&#39;[frame] could not re-arm the tasks watcher after migration:&#39;, err.message);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    return receipt;</span>
+<span class="dl-add">+  });</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> module.exports = {</span>
+<span class="dl-meta">diff --git a/src/main/index.js b/src/main/index.js</span>
+<span class="dl-meta">index bac3d49..01b319c 100644</span>
+<span class="dl-file">--- a/src/main/index.js</span>
+<span class="dl-file">+++ b/src/main/index.js</span>
+<span class="dl-hunk">@@ -22,6 +22,7 @@ const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-ctx"> const frameProject = require(&#39;./frameProject&#39;);</span>
+<span class="dl-ctx"> const frameStore = require(&#39;./frameStore&#39;);</span>
+<span class="dl-ctx"> const gitSharing = require(&#39;./gitSharing&#39;);</span>
+<span class="dl-add">+const layoutMigration = require(&#39;./layoutMigration&#39;);</span>
+<span class="dl-ctx"> const fileEditor = require(&#39;./fileEditor&#39;);</span>
+<span class="dl-ctx"> const tasksManager = require(&#39;./tasksManager&#39;);</span>
+<span class="dl-ctx"> const pluginsManager = require(&#39;./pluginsManager&#39;);</span>
+<span class="dl-hunk">@@ -276,6 +277,7 @@ function init() {</span>
+<span class="dl-ctx">   // Sharing mode + layout migration record what they do (mode changes,</span>
+<span class="dl-ctx">   // migration steps) into the activity ring.</span>
+<span class="dl-ctx">   gitSharing.init({ activityLog });</span>
+<span class="dl-add">+  layoutMigration.init({ activityLog });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Initialize prompt logger with app paths</span>
+<span class="dl-ctx">   promptLogger.init(app);</span>
+<span class="dl-meta">diff --git a/src/renderer/index.js b/src/renderer/index.js</span>
+<span class="dl-meta">index e3fafdb..382d336 100644</span>
+<span class="dl-file">--- a/src/renderer/index.js</span>
+<span class="dl-file">+++ b/src/renderer/index.js</span>
+<span class="dl-hunk">@@ -41,6 +41,7 @@ const settingsModal = require(&#39;./settingsModal&#39;);</span>
+<span class="dl-ctx"> const telemetryNotice = require(&#39;./telemetryNotice&#39;);</span>
+<span class="dl-ctx"> const healthNotice = require(&#39;./healthNotice&#39;);</span>
+<span class="dl-ctx"> const specDrivenHint = require(&#39;./specDrivenHint&#39;);</span>
+<span class="dl-add">+const migrationModal = require(&#39;./migrationModal&#39;);</span>
+<span class="dl-ctx"> const sampleBanner = require(&#39;./sampleBanner&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-hunk">@@ -228,6 +229,7 @@ function init() {</span>
+<span class="dl-ctx">   healthNotice.init();</span>
+<span class="dl-ctx">   sampleBanner.init();</span>
+<span class="dl-ctx">   specDrivenHint.init();</span>
+<span class="dl-add">+  migrationModal.init();</span>
+<span class="dl-ctx">   setupUpdateDot();</span>
+<span class="dl-ctx">   registerCommands();</span>
+<span class="dl-ctx">   commandRegistry.bindKeyboard();</span>
+<span class="dl-meta">diff --git a/src/renderer/migrationModal.js b/src/renderer/migrationModal.js</span>
+<span class="dl-meta">new file mode 100644</span>
+<span class="dl-meta">index 0000000..7dd5421</span>
+<span class="dl-file">--- /dev/null</span>
+<span class="dl-file">+++ b/src/renderer/migrationModal.js</span>
+<span class="dl-hunk">@@ -0,0 +1,195 @@</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Migration Modal</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Asks before Frame moves a project&#39;s meta files into `.frame/`. Opened from</span>
+<span class="dl-add">+ * state.js when CHECK_IS_FRAME_PROJECT answers `layout: &#39;legacy&#39;`, and never</span>
+<span class="dl-add">+ * otherwise — a project that has already migrated, or that Frame never</span>
+<span class="dl-add">+ * initialized, never sees it.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Four states in one modal: the plan (what moves, where the backup goes),</span>
+<span class="dl-add">+ * progress while it runs, the receipt (what moved, what needs a look), and</span>
+<span class="dl-add">+ * the deferred state when the tree is dirty. &quot;Later&quot; writes nothing at all;</span>
+<span class="dl-add">+ * the project keeps working on its root files through frameStore&#39;s fallback.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const { ipcRenderer } = require(&#39;electron&#39;);</span>
+<span class="dl-add">+const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-add">+const { escapeHtml } = require(&#39;./htmlUtils&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let modalEl = null;</span>
+<span class="dl-add">+let fileListEl = null;</span>
+<span class="dl-add">+let leadEl = null;</span>
+<span class="dl-add">+let backupNoteEl = null;</span>
+<span class="dl-add">+let dirtyWarningEl = null;</span>
+<span class="dl-add">+let dirtyListEl = null;</span>
+<span class="dl-add">+let progressEl = null;</span>
+<span class="dl-add">+let progressStepEl = null;</span>
+<span class="dl-add">+let receiptEl = null;</span>
+<span class="dl-add">+let laterBtn = null;</span>
+<span class="dl-add">+let runBtn = null;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+let currentProjectPath = null;</span>
+<span class="dl-add">+let currentPlan = null;</span>
+<span class="dl-add">+// One offer per project per session: a user who clicks Later is not asked</span>
+<span class="dl-add">+// again until they reopen the app.</span>
+<span class="dl-add">+const deferred = new Set();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+const DISPOSITION_TEXT = {</span>
+<span class="dl-add">+  move: &#39;moves into .frame/&#39;,</span>
+<span class="dl-add">+  &#39;delete-identical&#39;: &#39;already in .frame/ — the root copy is backed up and removed&#39;,</span>
+<span class="dl-add">+  &#39;backup-conflict&#39;: &#39;differs from the copy in .frame/ — kept in the backup for you to compare&#39;,</span>
+<span class="dl-add">+  &#39;backup-only&#39;: &quot;Frame&#39;s own backup file — moves into the backup folder&quot;</span>
+<span class="dl-add">+};</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function init() {</span>
+<span class="dl-add">+  modalEl = document.getElementById(&#39;migration-modal&#39;);</span>
+<span class="dl-add">+  if (!modalEl) return;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  fileListEl = document.getElementById(&#39;migration-file-list&#39;);</span>
+<span class="dl-add">+  leadEl = document.getElementById(&#39;migration-lead&#39;);</span>
+<span class="dl-add">+  backupNoteEl = document.getElementById(&#39;migration-backup-note&#39;);</span>
+<span class="dl-add">+  dirtyWarningEl = document.getElementById(&#39;migration-dirty-warning&#39;);</span>
+<span class="dl-add">+  dirtyListEl = document.getElementById(&#39;migration-dirty-list&#39;);</span>
+<span class="dl-add">+  progressEl = document.getElementById(&#39;migration-progress&#39;);</span>
+<span class="dl-add">+  progressStepEl = document.getElementById(&#39;migration-progress-step&#39;);</span>
+<span class="dl-add">+  receiptEl = document.getElementById(&#39;migration-receipt&#39;);</span>
+<span class="dl-add">+  laterBtn = document.getElementById(&#39;migration-later&#39;);</span>
+<span class="dl-add">+  runBtn = document.getElementById(&#39;migration-run&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  laterBtn.addEventListener(&#39;click&#39;, close);</span>
+<span class="dl-add">+  document.getElementById(&#39;migration-modal-close&#39;).addEventListener(&#39;click&#39;, close);</span>
+<span class="dl-add">+  runBtn.addEventListener(&#39;click&#39;, runMigration);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  ipcRenderer.on(IPC.LAYOUT_MIGRATION_PROGRESS, (event, { step, detail }) =&gt; {</span>
+<span class="dl-add">+    if (!progressStepEl) return;</span>
+<span class="dl-add">+    progressStepEl.textContent = `${stepLabel(step)}${detail ? `: ${detail}` : &#39;&#39;}`;</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function stepLabel(step) {</span>
+<span class="dl-add">+  switch (step) {</span>
+<span class="dl-add">+    case &#39;move&#39;: return &#39;Moving&#39;;</span>
+<span class="dl-add">+    case &#39;symlink&#39;: return &#39;Removing symlink&#39;;</span>
+<span class="dl-add">+    case &#39;restore&#39;: return &#39;Restoring&#39;;</span>
+<span class="dl-add">+    case &#39;pointer&#39;: return &#39;Writing&#39;;</span>
+<span class="dl-add">+    case &#39;hooks&#39;: return &#39;Updating hooks in&#39;;</span>
+<span class="dl-add">+    case &#39;sharing&#39;: return &#39;Applying sharing mode&#39;;</span>
+<span class="dl-add">+    default: return &#39;Working&#39;;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Offer the migration for this project. Silent when there is nothing to</span>
+<span class="dl-add">+ * migrate, when the user already said Later this session, or when main</span>
+<span class="dl-add">+ * answers with no plan.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+async function offer(projectPath) {</span>
+<span class="dl-add">+  if (!modalEl || !projectPath || deferred.has(projectPath)) return;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  let plan;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    plan = await ipcRenderer.invoke(IPC.GET_LAYOUT_MIGRATION_PLAN, projectPath);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    return; // never block opening a project over this</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (!plan || !plan.artifacts || plan.artifacts.length === 0) return;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  currentProjectPath = projectPath;</span>
+<span class="dl-add">+  currentPlan = plan;</span>
+<span class="dl-add">+  render(plan);</span>
+<span class="dl-add">+  modalEl.classList.add(&#39;visible&#39;);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function render(plan) {</span>
+<span class="dl-add">+  receiptEl.style.display = &#39;none&#39;;</span>
+<span class="dl-add">+  progressEl.style.display = &#39;none&#39;;</span>
+<span class="dl-add">+  fileListEl.style.display = &#39;&#39;;</span>
+<span class="dl-add">+  leadEl.style.display = &#39;&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  fileListEl.innerHTML = plan.artifacts</span>
+<span class="dl-add">+    .map((a) =&gt; `&lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; ${escapeHtml(a.name)}` +</span>
+<span class="dl-add">+      `&lt;span class=&quot;file-desc&quot;&gt;${escapeHtml(DISPOSITION_TEXT[a.disposition] || a.disposition)}&lt;/span&gt;&lt;/li&gt;`)</span>
+<span class="dl-add">+    .join(&#39;&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const symlinkNote = plan.symlinks.length &gt; 0</span>
+<span class="dl-add">+    ? ` Frame&#39;s ${plan.symlinks.map(escapeHtml).join(&#39; and &#39;)} symlink${plan.symlinks.length &gt; 1 ? &#39;s are&#39; : &#39; is&#39;} removed` +</span>
+<span class="dl-add">+      (plan.restorableClaudeMd ? &#39;, and your original CLAUDE.md is restored.&#39; : &#39;.&#39;)</span>
+<span class="dl-add">+    : &#39;&#39;;</span>
+<span class="dl-add">+  backupNoteEl.innerHTML =</span>
+<span class="dl-add">+    `A copy of every file goes to &lt;code&gt;${escapeHtml(plan.backupDir)}&lt;/code&gt; first.${symlinkNote}`;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (plan.canRun) {</span>
+<span class="dl-add">+    dirtyWarningEl.style.display = &#39;none&#39;;</span>
+<span class="dl-add">+    runBtn.style.display = &#39;&#39;;</span>
+<span class="dl-add">+    runBtn.disabled = false;</span>
+<span class="dl-add">+    laterBtn.textContent = &#39;Later&#39;;</span>
+<span class="dl-add">+  } else {</span>
+<span class="dl-add">+    dirtyListEl.innerHTML = plan.dirty.map((f) =&gt; `&lt;li&gt;${escapeHtml(f)}&lt;/li&gt;`).join(&#39;&#39;);</span>
+<span class="dl-add">+    dirtyWarningEl.style.display = &#39;&#39;;</span>
+<span class="dl-add">+    runBtn.style.display = &#39;none&#39;;</span>
+<span class="dl-add">+    laterBtn.textContent = &#39;Close&#39;;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+async function runMigration() {</span>
+<span class="dl-add">+  if (!currentProjectPath || !currentPlan) return;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  runBtn.disabled = true;</span>
+<span class="dl-add">+  laterBtn.disabled = true;</span>
+<span class="dl-add">+  fileListEl.style.display = &#39;none&#39;;</span>
+<span class="dl-add">+  leadEl.style.display = &#39;none&#39;;</span>
+<span class="dl-add">+  progressEl.style.display = &#39;&#39;;</span>
+<span class="dl-add">+  progressStepEl.textContent = &#39;Working…&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  let receipt;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    receipt = await ipcRenderer.invoke(IPC.RUN_LAYOUT_MIGRATION, { projectPath: currentProjectPath });</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    receipt = { ran: false, error: err.message };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  progressEl.style.display = &#39;none&#39;;</span>
+<span class="dl-add">+  laterBtn.disabled = false;</span>
+<span class="dl-add">+  laterBtn.textContent = &#39;Close&#39;;</span>
+<span class="dl-add">+  runBtn.style.display = &#39;none&#39;;</span>
+<span class="dl-add">+  renderReceipt(receipt);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function renderReceipt(receipt) {</span>
+<span class="dl-add">+  receiptEl.style.display = &#39;&#39;;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  if (!receipt || !receipt.ran) {</span>
+<span class="dl-add">+    const reason = receipt &amp;&amp; receipt.error</span>
+<span class="dl-add">+      ? escapeHtml(receipt.error)</span>
+<span class="dl-add">+      : &#39;nothing was moved — the project may already use the .frame/ layout.&#39;;</span>
+<span class="dl-add">+    receiptEl.innerHTML = `&lt;p&gt;Migration did not run: ${reason}&lt;/p&gt;`;</span>
+<span class="dl-add">+    return;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const lines = [</span>
+<span class="dl-add">+    `&lt;p&gt;&lt;strong&gt;${receipt.moved.length}&lt;/strong&gt; file${receipt.moved.length === 1 ? &#39;&#39; : &#39;s&#39;} moved into &lt;code&gt;.frame/&lt;/code&gt;, ` +</span>
+<span class="dl-add">+    `&lt;strong&gt;${receipt.backedUp.length}&lt;/strong&gt; backed up in &lt;code&gt;${escapeHtml(receipt.backupDir)}&lt;/code&gt;.&lt;/p&gt;`</span>
+<span class="dl-add">+  ];</span>
+<span class="dl-add">+  if (receipt.symlinksRemoved &amp;&amp; receipt.symlinksRemoved.length &gt; 0) {</span>
+<span class="dl-add">+    lines.push(`&lt;p&gt;Removed Frame&#39;s ${receipt.symlinksRemoved.map(escapeHtml).join(&#39; and &#39;)} symlink${receipt.symlinksRemoved.length &gt; 1 ? &#39;s&#39; : &#39;&#39;}.&lt;/p&gt;`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (receipt.claudeMdRestored) {</span>
+<span class="dl-add">+    lines.push(&#39;&lt;p&gt;Your original &lt;code&gt;CLAUDE.md&lt;/code&gt; is back at the project root, exactly as it was.&lt;/p&gt;&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  lines.push(`&lt;p&gt;Sharing mode: &lt;strong&gt;${escapeHtml(receipt.sharingMode)}&lt;/strong&gt;.&lt;/p&gt;`);</span>
+<span class="dl-add">+  if (receipt.review &amp;&amp; receipt.review.length &gt; 0) {</span>
+<span class="dl-add">+    lines.push(&#39;&lt;p&gt;Worth a look:&lt;/p&gt;&lt;ul&gt;&#39; +</span>
+<span class="dl-add">+      receipt.review.map((r) =&gt; `&lt;li&gt;${escapeHtml(r)}&lt;/li&gt;`).join(&#39;&#39;) + &#39;&lt;/ul&gt;&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  receiptEl.innerHTML = lines.join(&#39;&#39;);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+function close() {</span>
+<span class="dl-add">+  if (!modalEl) return;</span>
+<span class="dl-add">+  if (currentProjectPath) deferred.add(currentProjectPath);</span>
+<span class="dl-add">+  modalEl.classList.remove(&#39;visible&#39;);</span>
+<span class="dl-add">+  currentPlan = null;</span>
+<span class="dl-add">+  currentProjectPath = null;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+module.exports = { init, offer, close };</span>
+<span class="dl-meta">diff --git a/src/renderer/state.js b/src/renderer/state.js</span>
+<span class="dl-meta">index 826d14b..51d30f0 100644</span>
+<span class="dl-file">--- a/src/renderer/state.js</span>
+<span class="dl-file">+++ b/src/renderer/state.js</span>
+<span class="dl-hunk">@@ -426,9 +426,15 @@ function setupIPC() {</span>
+<span class="dl-ctx">     // Terminal session switching is now handled by setProjectPath via multiTerminalUI</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame }) =&gt; {</span>
+<span class="dl-add">+  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame, layout }) =&gt; {</span>
+<span class="dl-ctx">     if (projectPath === currentProjectPath) {</span>
+<span class="dl-ctx">       setIsFrameProject(isFrame);</span>
+<span class="dl-add">+      // A project still carrying Frame&#39;s old root layout gets the offer to</span>
+<span class="dl-add">+      // move it into .frame/ — once per session, and only for the project</span>
+<span class="dl-add">+      // the user is actually looking at.</span>
+<span class="dl-add">+      if (layout === &#39;legacy&#39;) {</span>
+<span class="dl-add">+        require(&#39;./migrationModal&#39;).offer(projectPath);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/renderer/styles/components/ui.css b/src/renderer/styles/components/ui.css</span>
+<span class="dl-meta">index 9b522ce..8eed289 100644</span>
+<span class="dl-file">--- a/src/renderer/styles/components/ui.css</span>
+<span class="dl-file">+++ b/src/renderer/styles/components/ui.css</span>
+<span class="dl-hunk">@@ -721,3 +721,50 @@ select:focus-visible {</span>
+<span class="dl-ctx">   color: var(--text-primary);</span>
+<span class="dl-ctx">   padding: var(--space-sm);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* ─── Layout migration modal ─────────────────────────────────</span>
+<span class="dl-add">+   Same family as the init modal (it reuses .init-modal-file-list and</span>
+<span class="dl-add">+   .init-modal-warning); these are the two states the init modal has no</span>
+<span class="dl-add">+   equivalent for. */</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.migration-progress {</span>
+<span class="dl-add">+  padding: var(--space-md);</span>
+<span class="dl-add">+  background: var(--bg-tertiary);</span>
+<span class="dl-add">+  border-radius: var(--radius-sm);</span>
+<span class="dl-add">+  font-size: 12px;</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+  font-family: var(--font-mono);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.migration-progress p {</span>
+<span class="dl-add">+  margin: 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.migration-receipt {</span>
+<span class="dl-add">+  padding: var(--space-md);</span>
+<span class="dl-add">+  background: var(--bg-tertiary);</span>
+<span class="dl-add">+  border-radius: var(--radius-sm);</span>
+<span class="dl-add">+  font-size: 12px;</span>
+<span class="dl-add">+  line-height: 1.6;</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.migration-receipt p {</span>
+<span class="dl-add">+  margin: 0 0 var(--space-sm) 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.migration-receipt p:last-child,</span>
+<span class="dl-add">+.migration-receipt ul:last-child {</span>
+<span class="dl-add">+  margin-bottom: 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.migration-receipt ul {</span>
+<span class="dl-add">+  margin: 0;</span>
+<span class="dl-add">+  padding-left: var(--space-lg);</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.migration-receipt code {</span>
+<span class="dl-add">+  font-family: var(--font-mono);</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+}</span>
+<span class="dl-meta">diff --git a/test/layoutMigration.test.js b/test/layoutMigration.test.js</span>
+<span class="dl-meta">index b2fad88..71bb05e 100644</span>
+<span class="dl-file">--- a/test/layoutMigration.test.js</span>
+<span class="dl-file">+++ b/test/layoutMigration.test.js</span>
+<span class="dl-hunk">@@ -335,3 +335,52 @@ test(&#39;an untracked legacy project migrates to local sharing&#39;, () =&gt; {</span>
+<span class="dl-ctx">   assert.equal(receipt.sharingMode, &#39;local&#39;);</span>
+<span class="dl-ctx">   assert.equal(frameStore.readConfig(projectDir).settings.gitSharing, &#39;local&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the plan payload has the shape the modal renders from&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  const p = layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.deepEqual(Object.keys(p).sort(), [</span>
+<span class="dl-add">+    &#39;artifacts&#39;, &#39;backupDir&#39;, &#39;canRun&#39;, &#39;dirty&#39;, &#39;projectPath&#39;,</span>
+<span class="dl-add">+    &#39;restorableClaudeMd&#39;, &#39;sharingMode&#39;, &#39;symlinks&#39;, &#39;tracked&#39;</span>
+<span class="dl-add">+  ]);</span>
+<span class="dl-add">+  for (const artifact of p.artifacts) {</span>
+<span class="dl-add">+    assert.deepEqual(Object.keys(artifact).sort(), [&#39;disposition&#39;, &#39;name&#39;]);</span>
+<span class="dl-add">+    assert.ok([&#39;move&#39;, &#39;delete-identical&#39;, &#39;backup-conflict&#39;, &#39;backup-only&#39;].includes(artifact.disposition));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;the layout answer distinguishes none, legacy and overlay&#39;, () =&gt; {</span>
+<span class="dl-add">+  // What CHECK_IS_FRAME_PROJECT computes, and what opens the modal.</span>
+<span class="dl-add">+  const layoutOf = (dir) =&gt; {</span>
+<span class="dl-add">+    if (!fs.existsSync(path.join(dir, FRAME_DIR, &#39;config.json&#39;))) return &#39;none&#39;;</span>
+<span class="dl-add">+    return frameStore.isLegacyLayout(dir) ? &#39;legacy&#39; : &#39;overlay&#39;;</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-plain-&#39;));</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    assert.equal(layoutOf(plainDir), &#39;none&#39;);</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    fs.rmSync(plainDir, { recursive: true, force: true });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  assert.equal(layoutOf(projectDir), &#39;legacy&#39;, &#39;the modal is offered&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+  assert.equal(layoutOf(projectDir), &#39;overlay&#39;, &#39;and never again after migrating&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;&quot;Later&quot; leaves the project untouched and still working&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  const before = fs.readdirSync(projectDir).sort();</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Later = the renderer closes the modal. Nothing in main runs, so the only</span>
+<span class="dl-add">+  // thing that must hold is that the project keeps reading its root files.</span>
+<span class="dl-add">+  layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.deepEqual(fs.readdirSync(projectDir).sort(), before);</span>
+<span class="dl-add">+  assert.equal(frameStore.getTasks(projectDir).data.version, &#39;2.0&#39;, &#39;tasks still load from the root&#39;);</span>
+<span class="dl-add">+  assert.ok(frameStore.readAgents(projectDir).includes(&#39;AI Instructions&#39;));</span>
+<span class="dl-add">+  assert.equal(frameStore.isLegacyLayout(projectDir), true);</span>
 <span class="dl-add">+});</span></pre>
     </details>
   </div>

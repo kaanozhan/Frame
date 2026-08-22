@@ -426,9 +426,15 @@ function setupIPC() {
     // Terminal session switching is now handled by setProjectPath via multiTerminalUI
   });
 
-  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame }) => {
+  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame, layout }) => {
     if (projectPath === currentProjectPath) {
       setIsFrameProject(isFrame);
+      // A project still carrying Frame's old root layout gets the offer to
+      // move it into .frame/ — once per session, and only for the project
+      // the user is actually looking at.
+      if (layout === 'legacy') {
+        require('./migrationModal').offer(projectPath);
+      }
     }
   });
 

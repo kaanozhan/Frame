@@ -335,3 +335,52 @@ test('an untracked legacy project migrates to local sharing', () => {
   assert.equal(receipt.sharingMode, 'local');
   assert.equal(frameStore.readConfig(projectDir).settings.gitSharing, 'local');
 });
+
+test('the plan payload has the shape the modal renders from', () => {
+  projectDir = makeLegacyProject({ commit: true });
+  const p = layoutMigration.plan(projectDir);
+
+  assert.deepEqual(Object.keys(p).sort(), [
+    'artifacts', 'backupDir', 'canRun', 'dirty', 'projectPath',
+    'restorableClaudeMd', 'sharingMode', 'symlinks', 'tracked'
+  ]);
+  for (const artifact of p.artifacts) {
+    assert.deepEqual(Object.keys(artifact).sort(), ['disposition', 'name']);
+    assert.ok(['move', 'delete-identical', 'backup-conflict', 'backup-only'].includes(artifact.disposition));
+  }
+});
+
+test('the layout answer distinguishes none, legacy and overlay', () => {
+  // What CHECK_IS_FRAME_PROJECT computes, and what opens the modal.
+  const layoutOf = (dir) => {
+    if (!fs.existsSync(path.join(dir, FRAME_DIR, 'config.json'))) return 'none';
+    return frameStore.isLegacyLayout(dir) ? 'legacy' : 'overlay';
+  };
+
+  const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-plain-'));
+  try {
+    assert.equal(layoutOf(plainDir), 'none');
+  } finally {
+    fs.rmSync(plainDir, { recursive: true, force: true });
+  }
+
+  projectDir = makeLegacyProject({ commit: true });
+  assert.equal(layoutOf(projectDir), 'legacy', 'the modal is offered');
+
+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
+  assert.equal(layoutOf(projectDir), 'overlay', 'and never again after migrating');
+});
+
+test('"Later" leaves the project untouched and still working', () => {
+  projectDir = makeLegacyProject({ commit: true });
+  const before = fs.readdirSync(projectDir).sort();
+
+  // Later = the renderer closes the modal. Nothing in main runs, so the only
+  // thing that must hold is that the project keeps reading its root files.
+  layoutMigration.plan(projectDir);
+
+  assert.deepEqual(fs.readdirSync(projectDir).sort(), before);
+  assert.equal(frameStore.getTasks(projectDir).data.version, '2.0', 'tasks still load from the root');
+  assert.ok(frameStore.readAgents(projectDir).includes('AI Instructions'));
+  assert.equal(frameStore.isLegacyLayout(projectDir), true);
+});

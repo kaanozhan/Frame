@@ -22,6 +22,7 @@ const workspace = require('./workspace');
 const frameProject = require('./frameProject');
 const frameStore = require('./frameStore');
 const gitSharing = require('./gitSharing');
+const layoutMigration = require('./layoutMigration');
 const fileEditor = require('./fileEditor');
 const tasksManager = require('./tasksManager');
 const pluginsManager = require('./pluginsManager');
@@ -276,6 +277,7 @@ function init() {
   // Sharing mode + layout migration record what they do (mode changes,
   // migration steps) into the activity ring.
   gitSharing.init({ activityLog });
+  layoutMigration.init({ activityLog });
 
   // Initialize prompt logger with app paths
   promptLogger.init(app);

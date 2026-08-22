@@ -746,6 +746,7 @@
         "shared/frameTemplates",
         "frameStore",
         "gitSharing",
+        "layoutMigration",
         "workspace",
         "structureBootstrap",
         "commandStaging",
@@ -755,32 +756,33 @@
         "../scripts/detect-project",
         "electron",
         "aiToolManager",
-        "telemetry"
+        "telemetry",
+        "tasksManager"
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 28,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 34,
+          "line": 35,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 42,
+          "line": 43,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 55,
+          "line": 56,
           "params": [
             "filePath",
             "content"
@@ -788,21 +790,21 @@
           "purpose": "Create file if it doesn't exist"
         },
         "checkExistingFrameFiles": {
-          "line": 69,
+          "line": 70,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 96,
+          "line": 97,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 141,
+          "line": 142,
           "params": [
             "projectPath",
             "projectName",
@@ -810,7 +812,7 @@
           ]
         },
         "doInitializeFrameProject": {
-          "line": 149,
+          "line": 150,
           "params": [
             "projectPath",
             "projectName",
@@ -818,7 +820,7 @@
           ]
         },
         "runProjectInit": {
-          "line": 161,
+          "line": 162,
           "params": [
             "projectPath",
             "projectName",
@@ -826,14 +828,14 @@
           ]
         },
         "ensureClaudePointer": {
-          "line": 326,
+          "line": 327,
           "params": [
             "projectPath"
           ],
           "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start"
         },
         "installSpecHintHook": {
-          "line": 354,
+          "line": 355,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -841,7 +843,7 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "removeSpecHintHook": {
-          "line": 406,
+          "line": 407,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -849,60 +851,60 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 460,
+          "line": 461,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 465,
+          "line": 466,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 492,
+          "line": 493,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 519,
+          "line": 520,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 523,
+          "line": 524,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 537,
+          "line": 538,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 547,
+          "line": 548,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 619,
+          "line": 620,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 660,
+          "line": 661,
           "params": [
             "ipcMain"
           ],
@@ -918,13 +920,16 @@
           "ENABLE_SPEC_DRIVEN",
           "SET_SPEC_DRIVEN",
           "GET_GIT_SHARING_STATE",
-          "SET_GIT_SHARING"
+          "SET_GIT_SHARING",
+          "GET_LAYOUT_MIGRATION_PLAN",
+          "RUN_LAYOUT_MIGRATION"
         ],
         "emits": [
           "IS_FRAME_PROJECT_RESULT",
           "WORKSPACE_UPDATED",
           "FRAME_PROJECT_INITIALIZED",
-          "FRAME_CONFIG_DATA"
+          "FRAME_CONFIG_DATA",
+          "LAYOUT_MIGRATION_PROGRESS"
         ]
       }
     },
@@ -1795,6 +1800,7 @@
         "frameProject",
         "frameStore",
         "gitSharing",
+        "layoutMigration",
         "fileEditor",
         "tasksManager",
         "pluginsManager",
@@ -1815,26 +1821,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 50,
+          "line": 51,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 68,
+          "line": 69,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 160
+          "line": 161
         },
         "setupAllIPC": {
-          "line": 186,
+          "line": 187,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 264,
+          "line": 265,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 303,
+          "line": 305,
           "params": [
             "window"
           ],
@@ -5355,6 +5361,7 @@
         "telemetryNotice",
         "healthNotice",
         "specDrivenHint",
+        "migrationModal",
         "sampleBanner",
         "ipcWatchdog",
         "../package.json",
@@ -5363,34 +5370,34 @@
       ],
       "functions": {
         "init": {
-          "line": 49,
+          "line": 50,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 244,
+          "line": 246,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 321,
+          "line": 323,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 432,
+          "line": 434,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 463,
+          "line": 465,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 486,
+          "line": 488,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 758,
+          "line": 760,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -5782,6 +5789,62 @@
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_PROCESS_DATA",
           "TERMINAL_DESTROYED"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/migrationModal": {
+      "file": "src/renderer/migrationModal.js",
+      "description": "Migration Modal",
+      "exports": [
+        "init",
+        "offer",
+        "close"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "htmlUtils"
+      ],
+      "functions": {
+        "init": {
+          "line": 44
+        },
+        "stepLabel": {
+          "line": 69,
+          "params": [
+            "step"
+          ]
+        },
+        "offer": {
+          "line": 86,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Offer the migration for this project. Silent when there is nothing to"
+        },
+        "render": {
+          "line": 103,
+          "params": [
+            "plan"
+          ]
+        },
+        "runMigration": {
+          "line": 134
+        },
+        "renderReceipt": {
+          "line": 158,
+          "params": [
+            "receipt"
+          ]
+        },
+        "close": {
+          "line": 187
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LAYOUT_MIGRATION_PROGRESS"
         ],
         "emits": []
       }
@@ -7582,7 +7645,8 @@
       ],
       "depends": [
         "electron",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "migrationModal"
       ],
       "functions": {
         "init": {
@@ -10500,11 +10564,28 @@
         "description": "Plugins Manager Module"
       }
     ],
+    "migration": [
+      {
+        "module": "main/layoutMigration",
+        "file": "src/main/layoutMigration.js",
+        "description": "layoutMigration — move a pre-overlay project's meta files into `.frame/`"
+      },
+      {
+        "module": "renderer/migrationModal",
+        "file": "src/renderer/migrationModal.js",
+        "description": "Migration Modal"
+      }
+    ],
     "modal": [
       {
         "module": "renderer/implementModeModal",
         "file": "src/renderer/implementModeModal.js",
         "description": "Implement Mode Modal"
+      },
+      {
+        "module": "renderer/migrationModal",
+        "file": "src/renderer/migrationModal.js",
+        "description": "Migration Modal"
       },
       {
         "module": "renderer/openProjectModal",

@@ -4876,13 +4876,13 @@
       "title": "Wire migration consent end to end: `CHECK_IS_FRAME_PROJECT` answering `layout: 'overlay' | 'legacy' | 'none'`, `GET_LAYOUT_MIGRATION_PLAN`/`RUN_LAYOUT_MIGRATION`/`LAYOUT_MIGRATION_PROGRESS` in `src/shared/ipcChannels.js` and `src/main/frameProject.js`, `layoutMigration` init with `activityLog` in `src/main/index.js`, the new `src/renderer/migrationModal.js` (plan summary → Migrate/Later → progress → receipt, deferred state for a dirty tree) with markup in `index.html` and styles in `src/renderer/styles/components/ui.css`, opened from `src/renderer/state.js` on `layout: 'legacy'`; cover the `layout` answer and plan payload shape in `test/layoutMigration.test.js`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T11:45:00.000Z",
+      "completedAt": "2026-08-23T11:45:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T10",

@@ -99,6 +99,18 @@
         "status": "pass",
         "detail": "280 pass, 0 fail (13 new)"
       }
+    },
+    {
+      "id": "T09",
+      "title": "Migration consent wired end to end",
+      "commit": "57c9fb5",
+      "whatChanged": "GET_LAYOUT_MIGRATION_PLAN and RUN_LAYOUT_MIGRATION are handled in frameProject.setupIPC, streaming LAYOUT_MIGRATION_PROGRESS to the sender and calling tasksManager.restartWatching after a successful run; index.js inits layoutMigration with the activity log. New src/renderer/migrationModal.js renders four states from one modal (plan, progress, receipt, dirty-tree deferral) with markup in index.html and styles in ui.css, and state.js offers it when IS_FRAME_PROJECT_RESULT carries layout: 'legacy'. Three more tests cover the plan payload shape, the none/legacy/overlay answer, and that Later leaves the project untouched and working.",
+      "whyChanged": "The modal remembers a Later per project for the session rather than persisting it: the offer should come back next launch (the layout is still wrong) but never twice while the user is working. Progress goes to event.sender rather than the main window so the reply lands in the window that asked, and the run is driven from main's own fresh plan() so a stale renderer plan can never be executed.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "283 pass, 0 fail (3 new)"
+      }
     }
   ]
 }

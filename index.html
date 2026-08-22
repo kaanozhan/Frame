@@ -652,6 +652,38 @@
       </div>
     </div>
 
+    <!-- Frame Layout Migration Modal (pre-overlay project → .frame/) -->
+    <div id="migration-modal" class="modal-overlay">
+      <div class="modal-container modal-container-wide">
+        <div class="modal-header">
+          <h3>Move Frame's files into <code>.frame/</code>?</h3>
+          <button class="modal-close" id="migration-modal-close">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <p class="init-modal-lead" id="migration-lead">
+            This project keeps Frame's files at its root. Frame can move them into
+            <code>.frame/</code> so your project root is yours again. Nothing is deleted:
+            every file is copied to a backup first.
+          </p>
+          <ul class="init-modal-file-list" id="migration-file-list"></ul>
+          <p class="init-modal-note" id="migration-backup-note"></p>
+          <div class="init-modal-warning" id="migration-dirty-warning" style="display:none;">
+            <p>These files have uncommitted changes, so migration is paused:</p>
+            <ul id="migration-dirty-list"></ul>
+            <p>Commit or stash them, then reopen this project.</p>
+          </div>
+          <div id="migration-progress" class="migration-progress" style="display:none;">
+            <p id="migration-progress-step">Working…</p>
+          </div>
+          <div id="migration-receipt" class="migration-receipt" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" id="migration-later">Later</button>
+          <button class="modal-btn modal-btn-primary" id="migration-run">Migrate</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Open Project Modal -->
     <div id="open-project-modal" class="modal-overlay">
       <div class="modal-container">
