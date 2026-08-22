@@ -123,6 +123,18 @@
         "status": "pass",
         "detail": "285 pass, 0 fail (2 new)"
       }
+    },
+    {
+      "id": "T11",
+      "title": "Prose follows the layout",
+      "commit": "f05a1b0",
+      "whatChanged": "Pointed the orchestration templates (CONDUCTOR.md, WORKER.md), the spec command templates (spec.implement/tasks/plan.md) and orchestrationManager's merge-reconcile message at .frame/ paths, and rewrote the layout sections of README.md, docs/index.html and docs/capabilities/index.html around the .frame/ directory, the .claude/rules/frame.md pointer, the sharing modes and the Claude Code minimum version. Removed the last public claims that Frame symlinks CLAUDE.md/GEMINI.md.",
+      "whyChanged": "Prose only, no behaviour. The docs' Gemini entries described a symlink Frame no longer creates, so they now describe what is actually true — plain files under .frame/ that any CLI can be pointed at — rather than naming a tool Frame has stopped integrating with.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "285 pass, 0 fail"
+      }
     }
   ]
 }

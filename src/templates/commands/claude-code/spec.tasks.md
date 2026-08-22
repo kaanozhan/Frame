@@ -136,7 +136,7 @@ Then update `.frame/specs/{slug}/status.json`:
 - `updated_at` → current ISO timestamp
 - `last_phase_at` → current ISO timestamp
 
-Frame's watcher will auto-import these tasks into `tasks.json` with the marker `source: "spec:{slug}:T<n>"`. Don't duplicate them into `tasks.json` yourself.
+Frame's watcher will auto-import these tasks into `.frame/tasks.json` with the marker `source: "spec:{slug}:T<n>"`. Don't duplicate them into `.frame/tasks.json` yourself.
 
 ## Style
 

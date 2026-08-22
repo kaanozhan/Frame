@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">10 tasks</span>
-    <span class="pill good">10 verified</span>
+    <span class="pill">11 tasks</span>
+    <span class="pill good">11 verified</span>
     
     <span class="chip">2026-08-22</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">10 of 12 tasks done · next: <span class="rs-task">T11 — Follow the layout through prose: `src/templates/orchestration/CONDUCTOR…</span></span>
+  <span class="rs-count">11 of 12 tasks done · next: <span class="rs-task">T12 — Dogfood on this repository: open it in the built app, accept the…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -6295,6 +6295,429 @@
 <span class="dl-add">+  assert.equal(settings.hooks.UserPromptSubmit[0].hooks[0].command, &#39;node my-own-hook.js&#39;);</span>
 <span class="dl-add">+  assert.equal(fs.readFileSync(path.join(hookDir, &#39;pre-commit&#39;), &#39;utf8&#39;), &#39;#!/bin/sh\nnpm run lint\n&#39;);</span>
 <span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T11</span>
+    <h2>Prose follows the layout</h2>
+    <span class="card-meta"><span class="chip">f05a1b0</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">285 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Pointed the orchestration templates (CONDUCTOR.md, WORKER.md), the spec command templates (spec.implement/tasks/plan.md) and orchestrationManager&#39;s merge-reconcile message at .frame/ paths, and rewrote the layout sections of README.md, docs/index.html and docs/capabilities/index.html around the .frame/ directory, the .claude/rules/frame.md pointer, the sharing modes and the Claude Code minimum version. Removed the last public claims that Frame symlinks CLAUDE.md/GEMINI.md.</p></div>
+    <div class="field"><span class="label">Why</span><p>Prose only, no behaviour. The docs&#39; Gemini entries described a symlink Frame no longer creates, so they now describe what is actually true — plain files under .frame/ that any CLI can be pointed at — rather than naming a tool Frame has stopped integrating with.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/README.md b/README.md</span>
+<span class="dl-meta">index 4286b41..0fbd020 100644</span>
+<span class="dl-file">--- a/README.md</span>
+<span class="dl-file">+++ b/README.md</span>
+<span class="dl-hunk">@@ -58,14 +58,23 @@ Frame brings a consistent structure to every project you work on. When you initi</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> | File | Purpose |</span>
+<span class="dl-ctx"> |------|---------|</span>
+<span class="dl-del">-| `AGENTS.md` | Project rules and instructions — AI reads this automatically |</span>
+<span class="dl-del">-| `STRUCTURE.json` | Module map with intentIndex for fast file lookup |</span>
+<span class="dl-del">-| `PROJECT_NOTES.md` | Architectural decisions and context that persist across sessions |</span>
+<span class="dl-del">-| `tasks.json` | Task tracking with status, context, and acceptance criteria |</span>
+<span class="dl-add">+| `.frame/AGENTS.md` | Project rules and instructions — AI reads this automatically |</span>
+<span class="dl-add">+| `.frame/STRUCTURE.json` | Module map with intentIndex for fast file lookup |</span>
+<span class="dl-add">+| `.frame/PROJECT_NOTES.md` | Architectural decisions and context that persist across sessions |</span>
+<span class="dl-add">+| `.frame/tasks.json` | Task tracking with status, context, and acceptance criteria |</span>
+<span class="dl-add">+| `.claude/rules/frame.md` | Two lines pointing Claude Code at `.frame/AGENTS.md` |</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+Everything Frame writes lives under `.frame/`, plus that one pointer file. Your</span>
+<span class="dl-add">+project root stays yours: an existing `CLAUDE.md`, `AGENTS.md` or `.cursorrules`</span>
+<span class="dl-add">+is never read, moved or replaced, and &quot;Remove Frame&quot; leaves no Frame-authored</span>
+<span class="dl-add">+bytes behind. Requires Claude Code new enough to load `.claude/rules/` (the</span>
+<span class="dl-add">+2.1.x line); run `/context` in a session to confirm the rule loaded.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Every project gets its own isolated session — its own context, its own task list, its own notes. Switching projects in Frame means switching to a completely fresh, project-specific AI context. No bleed-over, no confusion.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-This standard works with any AI tool. Claude Code and Gemini CLI read these files natively. For Codex CLI, Frame injects them automatically via a wrapper script — no manual setup needed.</span>
+<span class="dl-add">+This standard works with any AI tool. Claude Code loads `.claude/rules/frame.md`</span>
+<span class="dl-add">+natively at session start, which imports `.frame/AGENTS.md` — no launch flags, no</span>
+<span class="dl-add">+wrapper. For Codex CLI, Frame injects the same file via a wrapper script.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> The result: any developer (or AI agent) who opens a Frame project immediately knows where everything is and what&#39;s been decided. Onboarding a new AI session to a large project takes seconds, not minutes.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -77,9 +86,9 @@ Frame&#39;s approach: **use git commits as the single reliable boundary.**</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> When you commit, something real happened. It&#39;s intentional, it&#39;s deterministic, and it&#39;s a natural checkpoint you&#39;re already making. Frame builds its entire context system around this moment:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-- **STRUCTURE.json** — auto-updated via pre-commit hook, always reflects the current architecture</span>
+<span class="dl-del">-- **tasks.json** — task state syncs at commit time</span>
+<span class="dl-del">-- **PROJECT_NOTES.md** — the right moment to capture what changed and why</span>
+<span class="dl-add">+- **`.frame/STRUCTURE.json`** — auto-updated via pre-commit hook, always reflects the current architecture</span>
+<span class="dl-add">+- **`.frame/tasks.json`** — task state syncs at commit time</span>
+<span class="dl-add">+- **`.frame/PROJECT_NOTES.md`** — the right moment to capture what changed and why</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> When the next session starts, these files are read automatically. The agent picks up exactly where things left off — not from a vague session transcript, but from structured, up-to-date context written at the one moment you can be certain something real was completed.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -129,7 +138,7 @@ Every worker carries a live **state** you watch on the pipeline rail: `queued </span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> You stay in control of what lands:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-- Workers commit only to their own branch — they never push, never merge, never touch shared files (`tasks.json`, `STRUCTURE.json`, …).</span>
+<span class="dl-add">+- Workers commit only to their own branch — they never push, never merge, never touch shared files (`.frame/tasks.json`, `.frame/STRUCTURE.json`, …).</span>
+<span class="dl-ctx"> - When a worker finishes, the conductor reviews it and tells you it&#39;s ready — it does **not** merge on its own.</span>
+<span class="dl-ctx"> - You review (you can test right in the worktree), then **Approve**. Frame runs a **drift check** — what the agent *actually* changed vs. what it *declared* — and merges locally into a per-spec integration branch. `main` is never touched; promoting it or opening a PR stays your call.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -153,9 +162,9 @@ This means AI agents spend zero time searching — they go directly to the right</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Switch between AI tools without leaving Frame:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-- **Claude Code** — reads `CLAUDE.md` natively (symlink to AGENTS.md)</span>
+<span class="dl-del">-- **Codex CLI** — wrapper script at `.frame/bin/codex` injects AGENTS.md as initial prompt</span>
+<span class="dl-del">-- **Gemini CLI** — reads `GEMINI.md` natively</span>
+<span class="dl-add">+- **Claude Code** — loads `.claude/rules/frame.md` natively, which imports `.frame/AGENTS.md`</span>
+<span class="dl-add">+- **Codex CLI** — wrapper script at `.frame/bin/codex` injects `.frame/AGENTS.md` as initial prompt</span>
+<span class="dl-add">+- **Other CLIs** — read `.frame/AGENTS.md` when pointed at it; the files are plain markdown and JSON</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Multi-AI is a principle here, not a race: Frame goes deep on Claude Code, and</span>
+<span class="dl-ctx"> keeps your specs, plans, outcomes, and notes in plain markdown and JSON — so</span>
+<span class="dl-hunk">@@ -185,7 +194,7 @@ the context your work produces outlives any single tool, including Frame.</span>
+<span class="dl-ctx"> - **You approve** — the conductor reviews and reports; nothing merges without your review</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ### Context &amp; Architecture</span>
+<span class="dl-del">-- **STRUCTURE.json** — auto-updated on every commit via pre-commit hooks</span>
+<span class="dl-add">+- **`.frame/STRUCTURE.json`** — auto-updated on every commit via pre-commit hooks</span>
+<span class="dl-ctx"> - **Overview Panel** — visual structure map of your project&#39;s modules</span>
+<span class="dl-ctx"> - **Session Notes** — automatic prompts to save important decisions to PROJECT_NOTES.md</span>
+<span class="dl-ctx"> - **Prompt History** — all terminal input logged with timestamps</span>
+<span class="dl-hunk">@@ -201,7 +210,7 @@ the context your work produces outlives any single tool, including Frame.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> - **120+ IPC channels** powering real-time bidirectional communication between renderer and main process</span>
+<span class="dl-ctx"> - **40+ modules** across main and renderer processes</span>
+<span class="dl-del">-- **Pre-commit hooks** for automatic STRUCTURE.json updates</span>
+<span class="dl-add">+- **Pre-commit hooks** for automatic `.frame/STRUCTURE.json` updates</span>
+<span class="dl-ctx"> - **Transport layer abstraction** — architecture designed for Electron IPC → WebSocket migration (web platform coming)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-hunk">@@ -245,7 +254,7 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan</span>
+<span class="dl-ctx"> ### Basic Workflow</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> 1. **Select a project** — click &quot;Select Project Folder&quot; or choose from recent projects</span>
+<span class="dl-del">-2. **Initialize Frame** — click &quot;Initialize Frame Project&quot; to create AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, and tasks.json</span>
+<span class="dl-add">+2. **Initialize Frame** — click &quot;Initialize Frame Project&quot; to create `.frame/` (AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, tasks.json) and the `.claude/rules/frame.md` pointer, and choose whether Frame&#39;s files are shared with the repo or kept local to you</span>
+<span class="dl-ctx"> 3. **Start an AI session** — click &quot;Start Claude Code&quot; (or your chosen tool) — it launches in your project directory with full context</span>
+<span class="dl-ctx"> 4. **Work** — tasks are tracked, decisions are saved, context persists</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -289,13 +298,13 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ### Done</span>
+<span class="dl-ctx"> - [x] Terminal-first IDE with multi-terminal grid (up to 9)</span>
+<span class="dl-del">-- [x] Frame project structure (AGENTS.md, STRUCTURE.json, tasks.json, PROJECT_NOTES.md)</span>
+<span class="dl-add">+- [x] Frame project structure (`.frame/`: AGENTS.md, STRUCTURE.json, tasks.json, PROJECT_NOTES.md)</span>
+<span class="dl-ctx"> - [x] Multi-AI support — Claude Code, Codex CLI, Gemini CLI</span>
+<span class="dl-ctx"> - [x] Automatic context injection via wrapper scripts</span>
+<span class="dl-ctx"> - [x] Task panel with AI integration</span>
+<span class="dl-ctx"> - [x] GitHub panel — issues, PRs, branches</span>
+<span class="dl-ctx"> - [x] Git branches and worktrees panel</span>
+<span class="dl-del">-- [x] STRUCTURE.json intentIndex for fast file lookup</span>
+<span class="dl-add">+- [x] `.frame/STRUCTURE.json` intentIndex for fast file lookup</span>
+<span class="dl-ctx"> - [x] Plugins panel</span>
+<span class="dl-ctx"> - [x] Overview / structure map panel</span>
+<span class="dl-ctx"> - [x] Pre-commit hooks for automatic structure updates</span>
+<span class="dl-meta">diff --git a/docs/capabilities/index.html b/docs/capabilities/index.html</span>
+<span class="dl-meta">index 2443622..499e018 100644</span>
+<span class="dl-file">--- a/docs/capabilities/index.html</span>
+<span class="dl-file">+++ b/docs/capabilities/index.html</span>
+<span class="dl-hunk">@@ -583,7 +583,7 @@</span>
+<span class="dl-ctx">     &lt;div class=&quot;pillar&quot;&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;pillar-num&quot;&gt;— Principle I&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;h3 class=&quot;pillar-title&quot;&gt;Git commit as the &lt;i&gt;context anchor&lt;/i&gt;&lt;/h3&gt;</span>
+<span class="dl-del">-      &lt;p class=&quot;pillar-body&quot;&gt;Sessions are fuzzy. Commits are real. Frame&#39;s entire context system hangs off the pre-commit moment — STRUCTURE.json refreshes, tasks reconcile, notes get the right boundary. Commit often, stay oriented.&lt;/p&gt;</span>
+<span class="dl-add">+      &lt;p class=&quot;pillar-body&quot;&gt;Sessions are fuzzy. Commits are real. Frame&#39;s entire context system hangs off the pre-commit moment — .frame/STRUCTURE.json refreshes, tasks reconcile, notes get the right boundary. Commit often, stay oriented.&lt;/p&gt;</span>
+<span class="dl-ctx">     &lt;/div&gt;</span>
+<span class="dl-ctx">     &lt;div class=&quot;pillar&quot;&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;pillar-num&quot;&gt;— Principle II&lt;/div&gt;</span>
+<span class="dl-hunk">@@ -609,13 +609,13 @@</span>
+<span class="dl-ctx">     &lt;div class=&quot;rows&quot;&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;01.01&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;name&quot;&gt;AGENTS.md&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Single source of truth for project rules. Auto-symlinked as CLAUDE.md and GEMINI.md so every AI tool reads identical instructions.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;name&quot;&gt;.frame/AGENTS.md&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Single source of truth for project rules. Claude Code reaches it through the two-line .claude/rules/frame.md pointer — no symlink, nothing at your project root.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Core &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;01.02&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;name&quot;&gt;STRUCTURE.json&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;name&quot;&gt;.frame/STRUCTURE.json&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;desc&quot;&gt;Module map regenerated on every commit. Tracks exports, dependencies, IPC channels, and a queryable intentIndex of features.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Core &lt;b class=&quot;hot&quot;&gt;AUTO&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-hunk">@@ -640,13 +640,13 @@</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;01.06&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;Initialize on &lt;i&gt;existing&lt;/i&gt; code&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Detects existing CLAUDE.md / GEMINI.md / AGENTS.md, merges their content forward. Never overwrites — appends and asks.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Leaves your CLAUDE.md, AGENTS.md and .cursorrules exactly as they are. Frame writes only .frame/ and one pointer file, and reads nothing at your root.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Safety &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;01.07&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;First-fill scan&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;After init, STRUCTURE.json is populated in one shot — modules, exports, IPC channels, and intent index ready before you type a thing.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;After init, .frame/STRUCTURE.json is populated in one shot — modules, exports, IPC channels, and intent index ready before you type a thing.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Quality &lt;b class=&quot;new&quot;&gt;NEW&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">     &lt;/div&gt;</span>
+<span class="dl-hunk">@@ -663,19 +663,19 @@</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;02.01&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;&lt;i&gt;Claude Code&lt;/i&gt; integration&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Launches with CLAUDE.md context already wired. Usage tracking, session history, and Plugins panel built natively into the IDE.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Launches with .frame/AGENTS.md already loaded through .claude/rules/frame.md — no flags, no wrapper. Usage tracking, session history, and Plugins panel built natively into the IDE.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Multi-AI &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;02.02&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;&lt;i&gt;Codex CLI&lt;/i&gt; wrapper&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Wrapper script injects AGENTS.md as initial prompt. Codex behaves as if it natively understood Frame&#39;s standard.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Wrapper script injects .frame/AGENTS.md as initial prompt. Codex behaves as if it natively understood Frame&#39;s standard.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Multi-AI &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;02.03&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;&lt;i&gt;Gemini CLI&lt;/i&gt; integration&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;GEMINI.md symlinked to AGENTS.md so Gemini reads your project rules without configuration.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Plain markdown and JSON under .frame/ — point any CLI at .frame/AGENTS.md and it reads the same project rules.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Multi-AI &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-hunk">@@ -804,7 +804,7 @@</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;05.01&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;Pre-commit STRUCTURE sync&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Hook regenerates STRUCTURE.json against staged changes and folds it into the same commit. Map is always exactly one commit fresh.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Hook regenerates .frame/STRUCTURE.json against staged changes and folds it into the same commit. Map is always exactly one commit fresh.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Auto &lt;b class=&quot;hot&quot;&gt;FLAGSHIP&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-hunk">@@ -851,7 +851,7 @@</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;06.01&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;intentIndex&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Concept-to-file mapping in STRUCTURE.json. Type a feature name, get the exact files instantly. No grep, no scan.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Concept-to-file mapping in .frame/STRUCTURE.json. Type a feature name, get the exact files instantly. No grep, no scan.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Speed &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-hunk">@@ -863,7 +863,7 @@</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;06.03&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;Overview panel&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Visual map of modules and their relationships drawn from STRUCTURE.json. See architecture at a glance, click a node to open the file.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Visual map of modules and their relationships drawn from .frame/STRUCTURE.json. See architecture at a glance, click a node to open the file.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;UI &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-hunk">@@ -957,8 +957,8 @@</span>
+<span class="dl-ctx">       &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-ctx">       &lt;span class=&quot;c-mute&quot;&gt;▼&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;┌─ PROJECT  FILESYSTEM ────────────────────────────────────────────────────┐&lt;/span&gt;</span>
+<span class="dl-del">-   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;AGENTS.md&lt;/span&gt;            project rules · single source · symlinked          &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-del">-   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;STRUCTURE.json&lt;/span&gt;       module map · intentIndex · auto-updated on commit  &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-add">+   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/AGENTS.md&lt;/span&gt;     project rules · single source · via .claude/rules  &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-add">+   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/STRUCTURE.json&lt;/span&gt; module map · intentIndex · updated on commit  &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;tasks.json&lt;/span&gt;           kanban state · with provenance + acceptance fields  &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;PROJECT_NOTES.md&lt;/span&gt;     decision journal · agent-prompted, human-curated    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/specs/&amp;lt;slug&amp;gt;/&lt;/span&gt; spec · plan · tasks · outcome (markdown only)       &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-hunk">@@ -1005,7 +1005,7 @@</span>
+<span class="dl-ctx">       &lt;div class=&quot;ritem&quot;&gt;&lt;span class=&quot;box done&quot;&gt;&lt;/span&gt;&lt;span&gt;Plugins panel for Claude Code&lt;/span&gt;&lt;span class=&quot;stat-l-small&quot;&gt;Shipped&lt;/span&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;ritem&quot;&gt;&lt;span class=&quot;box done&quot;&gt;&lt;/span&gt;&lt;span&gt;Multi-AI: Claude Code, Codex, Gemini&lt;/span&gt;&lt;span class=&quot;stat-l-small&quot;&gt;Shipped&lt;/span&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;ritem&quot;&gt;&lt;span class=&quot;box done&quot;&gt;&lt;/span&gt;&lt;span&gt;Overview / visual structure map&lt;/span&gt;&lt;span class=&quot;stat-l-small&quot;&gt;Shipped&lt;/span&gt;&lt;/div&gt;</span>
+<span class="dl-del">-      &lt;div class=&quot;ritem&quot;&gt;&lt;span class=&quot;box done&quot;&gt;&lt;/span&gt;&lt;span&gt;STRUCTURE.json bootstrap for user projects&lt;/span&gt;&lt;span class=&quot;stat-l-small&quot;&gt;Shipped&lt;/span&gt;&lt;/div&gt;</span>
+<span class="dl-add">+      &lt;div class=&quot;ritem&quot;&gt;&lt;span class=&quot;box done&quot;&gt;&lt;/span&gt;&lt;span&gt;.frame/STRUCTURE.json bootstrap for user projects&lt;/span&gt;&lt;span class=&quot;stat-l-small&quot;&gt;Shipped&lt;/span&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;ritem&quot;&gt;&lt;span class=&quot;box done&quot;&gt;&lt;/span&gt;&lt;span&gt;GitHub panel — issues, PRs, branches&lt;/span&gt;&lt;span class=&quot;stat-l-small&quot;&gt;Shipped&lt;/span&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;ritem&quot;&gt;&lt;span class=&quot;box&quot;&gt;&lt;/span&gt;&lt;span&gt;In-app auto-update via electron-updater&lt;/span&gt;&lt;span class=&quot;stat-l-small due&quot;&gt;Spec&#39;d&lt;/span&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;ritem&quot;&gt;&lt;span class=&quot;box&quot;&gt;&lt;/span&gt;&lt;span&gt;Non-standard layouts (monorepo, TS, Python)&lt;/span&gt;&lt;span class=&quot;stat-l-small due&quot;&gt;Spec&#39;d&lt;/span&gt;&lt;/div&gt;</span>
+<span class="dl-meta">diff --git a/docs/index.html b/docs/index.html</span>
+<span class="dl-meta">index ab94a60..a3aa0de 100644</span>
+<span class="dl-file">--- a/docs/index.html</span>
+<span class="dl-file">+++ b/docs/index.html</span>
+<span class="dl-hunk">@@ -1309,7 +1309,7 @@</span>
+<span class="dl-ctx">             &lt;/div&gt;</span>
+<span class="dl-ctx">             &lt;div class=&quot;terminal-line terminal-output&quot;&gt;</span>
+<span class="dl-ctx">               ✓ Created project structure&lt;br&gt;</span>
+<span class="dl-del">-              ✓ Initialized STRUCTURE.json&lt;br&gt;</span>
+<span class="dl-add">+              ✓ Initialized .frame/STRUCTURE.json&lt;br&gt;</span>
+<span class="dl-ctx">               ✓ Ready to code with Claude</span>
+<span class="dl-ctx">             &lt;/div&gt;</span>
+<span class="dl-ctx">             &lt;div class=&quot;terminal-line&quot;&gt;</span>
+<span class="dl-hunk">@@ -1553,7 +1553,7 @@</span>
+<span class="dl-ctx">             &lt;svg class=&quot;faq-chevron&quot; width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;polyline points=&quot;6 9 12 15 18 9&quot;/&gt;&lt;/svg&gt;</span>
+<span class="dl-ctx">           &lt;/button&gt;</span>
+<span class="dl-ctx">           &lt;div class=&quot;faq-answer&quot;&gt;</span>
+<span class="dl-del">-            &lt;p&gt;Frame is a terminal-first development environment built for AI coding tools. It&#39;s not a code editor like VS Code or Cursor — the center is the terminal, not a text editor. Frame standardizes your projects with AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, and tasks.json so you never lose context between sessions.&lt;/p&gt;</span>
+<span class="dl-add">+            &lt;p&gt;Frame is a terminal-first development environment built for AI coding tools. It&#39;s not a code editor like VS Code or Cursor — the center is the terminal, not a text editor. Frame standardizes your projects with a single &lt;code&gt;.frame/&lt;/code&gt; directory — AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md and tasks.json — so you never lose context between sessions, while your project root stays yours.&lt;/p&gt;</span>
+<span class="dl-ctx">           &lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;/div&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -1573,7 +1573,7 @@</span>
+<span class="dl-ctx">             &lt;svg class=&quot;faq-chevron&quot; width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;polyline points=&quot;6 9 12 15 18 9&quot;/&gt;&lt;/svg&gt;</span>
+<span class="dl-ctx">           &lt;/button&gt;</span>
+<span class="dl-ctx">           &lt;div class=&quot;faq-answer&quot;&gt;</span>
+<span class="dl-del">-            &lt;p&gt;Frame supports &lt;strong&gt;Claude Code&lt;/strong&gt;, &lt;strong&gt;Codex CLI&lt;/strong&gt;, and &lt;strong&gt;Gemini CLI&lt;/strong&gt;. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code reads CLAUDE.md natively, Gemini CLI reads GEMINI.md natively, and Codex CLI uses a wrapper script that injects AGENTS.md automatically.&lt;/p&gt;</span>
+<span class="dl-add">+            &lt;p&gt;Frame supports &lt;strong&gt;Claude Code&lt;/strong&gt;, &lt;strong&gt;Codex CLI&lt;/strong&gt;, and &lt;strong&gt;Gemini CLI&lt;/strong&gt;. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code loads &lt;code&gt;.claude/rules/frame.md&lt;/code&gt; natively, which imports &lt;code&gt;.frame/AGENTS.md&lt;/code&gt; (needs the Claude Code 2.1.x line or newer; run &lt;code&gt;/context&lt;/code&gt; to confirm), and Codex CLI uses a wrapper script that injects the same file automatically.&lt;/p&gt;</span>
+<span class="dl-ctx">           &lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;/div&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -1583,7 +1583,7 @@</span>
+<span class="dl-ctx">             &lt;svg class=&quot;faq-chevron&quot; width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;polyline points=&quot;6 9 12 15 18 9&quot;/&gt;&lt;/svg&gt;</span>
+<span class="dl-ctx">           &lt;/button&gt;</span>
+<span class="dl-ctx">           &lt;div class=&quot;faq-answer&quot;&gt;</span>
+<span class="dl-del">-            &lt;p&gt;As projects grow, context gets lost between AI sessions — decisions are forgotten, tasks slip through the cracks. Frame solves this with a standardized structure: PROJECT_NOTES.md captures decisions as they happen, tasks.json tracks work, and STRUCTURE.json maps your codebase. The AI reads these at the start of each session, so it always knows the full context.&lt;/p&gt;</span>
+<span class="dl-add">+            &lt;p&gt;As projects grow, context gets lost between AI sessions — decisions are forgotten, tasks slip through the cracks. Frame solves this with a standardized structure under &lt;code&gt;.frame/&lt;/code&gt;: PROJECT_NOTES.md captures decisions as they happen, tasks.json tracks work, and STRUCTURE.json maps your codebase. The AI reads these at the start of each session, so it always knows the full context.&lt;/p&gt;</span>
+<span class="dl-ctx">           &lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;/div&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/main/orchestrationManager.js b/src/main/orchestrationManager.js</span>
+<span class="dl-meta">index de2d142..c3e4af4 100644</span>
+<span class="dl-file">--- a/src/main/orchestrationManager.js</span>
+<span class="dl-file">+++ b/src/main/orchestrationManager.js</span>
+<span class="dl-hunk">@@ -479,7 +479,7 @@ async function handleMerge(session, slug, args = []) {</span>
+<span class="dl-ctx">   w.merged = true;</span>
+<span class="dl-ctx">   w.lastActivityAt = Date.now();</span>
+<span class="dl-ctx">   relayToConductor(session,</span>
+<span class="dl-del">-    `MERGED: &quot;${slug}&quot; → ${res.branch}. Reconcile meta now (npm run structure; mark ${slug} tasks done in tasks.json; append PROJECT_NOTES if useful), then advance to the next spec.`</span>
+<span class="dl-add">+    `MERGED: &quot;${slug}&quot; → ${res.branch}. Reconcile meta now (npm run structure; mark ${slug} tasks done in .frame/tasks.json; append .frame/PROJECT_NOTES.md if useful), then advance to the next spec.`</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx">   publishState(session);</span>
+<span class="dl-ctx">   return { status: &#39;merged&#39;, branch: res.branch };</span>
+<span class="dl-meta">diff --git a/src/templates/commands/claude-code/spec.implement.md b/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-meta">index 3446f55..bb94bc1 100644</span>
+<span class="dl-file">--- a/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-file">+++ b/src/templates/commands/claude-code/spec.implement.md</span>
+<span class="dl-hunk">@@ -15,7 +15,7 @@ back to the user, or the whole spec unattended.</span>
+<span class="dl-ctx">   - `.frame/specs/{slug}/plan.md` — the architecture and approach</span>
+<span class="dl-ctx">   - `.frame/specs/{slug}/tasks.md` — the canonical task list</span>
+<span class="dl-ctx">   - `.frame/specs/{slug}/outcome.md` — what previous tasks actually shipped (read this if it exists; it tells you why the codebase may differ from the plan)</span>
+<span class="dl-del">-  - `tasks.json` — find the next task where `source` starts with `spec:{slug}:` AND `status === &quot;pending&quot;` (lowest T-number first)</span>
+<span class="dl-add">+  - `.frame/tasks.json` — find the next task where `source` starts with `spec:{slug}:` AND `status === &quot;pending&quot;` (lowest T-number first)</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ## Which mode is in force — resolve it, don&#39;t ask for it</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -87,7 +87,7 @@ classify what&#39;s there before asking, so the question you ask is the right one:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> - **Plan-phase artifacts** — changes confined to `.frame/specs/{slug}/`</span>
+<span class="dl-ctx">   (spec.md, plan.md, tasks.md, status.json) and this spec&#39;s entries in the</span>
+<span class="dl-del">-  root `tasks.json`. That is the planning session&#39;s output that never got</span>
+<span class="dl-add">+  `.frame/tasks.json`. That is the planning session&#39;s output that never got</span>
+<span class="dl-ctx">   committed. Offer the natural move: *commit these as a plan commit before</span>
+<span class="dl-ctx">   implementation starts* (a `docs`/`plan`-style commit naming the spec), with</span>
+<span class="dl-ctx">   &quot;leave them, start anyway&quot; as the alternative.</span>
+<span class="dl-hunk">@@ -129,7 +129,7 @@ may change the loop, the commit policy, the verification and the reporting. It</span>
+<span class="dl-ctx"> may not drop the accounting below — that is what separates describing a flow</span>
+<span class="dl-ctx"> from replacing this file wholesale.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-**Which task.** The lowest-numbered task in `tasks.json` whose `source` is</span>
+<span class="dl-add">+**Which task.** The lowest-numbered task in `.frame/tasks.json` whose `source` is</span>
+<span class="dl-ctx"> `spec:{slug}:T&lt;n&gt;` and whose `status` is `pending`. One task at a time, in</span>
+<span class="dl-ctx"> order; never bundle two into one unit of work.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -141,7 +141,7 @@ whether they stop for an answer.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **Task state.** `status: &quot;in_progress&quot;` when you start it, `status:</span>
+<span class="dl-ctx"> &quot;completed&quot;` plus `completedAt` and `updatedAt` (ISO 8601) when it is done.</span>
+<span class="dl-del">-Edit `tasks.json` directly.</span>
+<span class="dl-add">+Edit `.frame/tasks.json` directly.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **Spec phase.** `.frame/specs/{slug}/status.json` goes to `&quot;implementing&quot;` when</span>
+<span class="dl-ctx"> work starts, and to `&quot;done&quot;` once no pending task remains. Merge into the</span>
+<span class="dl-meta">diff --git a/src/templates/commands/claude-code/spec.plan.md b/src/templates/commands/claude-code/spec.plan.md</span>
+<span class="dl-meta">index 13b6b39..654f2e3 100644</span>
+<span class="dl-file">--- a/src/templates/commands/claude-code/spec.plan.md</span>
+<span class="dl-file">+++ b/src/templates/commands/claude-code/spec.plan.md</span>
+<span class="dl-hunk">@@ -47,7 +47,7 @@ Whether this spec&#39;s work should ship with tests depends on what the project</span>
+<span class="dl-ctx"> can actually run. That is a fact about the project, not about this spec, so it</span>
+<span class="dl-ctx"> is established once and recorded rather than re-derived on every planning run.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-The record is a standing `## Testing` section in `PROJECT_NOTES.md`, sitting</span>
+<span class="dl-add">+The record is a standing `## Testing` section in `.frame/PROJECT_NOTES.md`, sitting</span>
+<span class="dl-ctx"> with the other topical sections (beside `## Tech Stack`) — never in</span>
+<span class="dl-ctx"> `## Session Notes`, which is an append-only log of dated events. It looks like</span>
+<span class="dl-ctx"> this:</span>
+<span class="dl-hunk">@@ -129,7 +129,7 @@ This is a fallback for genuine ambiguity, not a substitute for looking, and it</span>
+<span class="dl-ctx"> happens once — the answer becomes part of the record, so no later planning run</span>
+<span class="dl-ctx"> has to ask again.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-**Write what you established back to `PROJECT_NOTES.md`.** Whenever you had to</span>
+<span class="dl-add">+**Write what you established back to `.frame/PROJECT_NOTES.md`.** Whenever you had to</span>
+<span class="dl-ctx"> look — because the section was missing, or because re-verifying an area the</span>
+<span class="dl-ctx"> record called uncovered turned up something new — write the section in the</span>
+<span class="dl-ctx"> place described above, stamped with today&#39;s date. Rewrite it in full rather</span>
+<span class="dl-hunk">@@ -142,10 +142,10 @@ learns to click through. Say what you recorded in **one line** of your closing</span>
+<span class="dl-ctx"> message — enough that a change to a shared file is never silent, short enough</span>
+<span class="dl-ctx"> that it does not compete with the plan itself.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-**A project without `PROJECT_NOTES.md` still gets planned.** The record is a</span>
+<span class="dl-add">+**A project without `.frame/PROJECT_NOTES.md` still gets planned.** The record is a</span>
+<span class="dl-ctx"> convenience, not a prerequisite. When the file is absent, establish the testing</span>
+<span class="dl-ctx"> facts the same way, use them for this run, and skip the write — do not create</span>
+<span class="dl-del">-the file. Frame creates `PROJECT_NOTES.md` when a project is initialised, so</span>
+<span class="dl-add">+the file. Frame creates `.frame/PROJECT_NOTES.md` when a project is initialised, so</span>
+<span class="dl-ctx"> its absence means this project was never set up that way, and a planning run is</span>
+<span class="dl-ctx"> the wrong moment to decide otherwise on the user&#39;s behalf. Note in your closing</span>
+<span class="dl-ctx"> message that the facts could not be recorded, so the next run will look again.</span>
+<span class="dl-hunk">@@ -244,7 +244,7 @@ Section guidance:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> - **Architecture** — Design decisions. Data shapes. Key components and how they fit together. Stay narrow — describe only what this spec needs, not the whole system. Open with a `### Resolved plan-time decisions` subsection: one bullet per gate decision (business and technical, asked or silent) — the fork, the chosen option, and its recorded rationale.</span>
+<span class="dl-ctx"> - **Files** — Concrete file paths. Mark each as **New**, **Modified**, or **Deleted**. One-line purpose per file. Use the project&#39;s existing structure — don&#39;t invent directories that don&#39;t exist.</span>
+<span class="dl-del">-- **Footprint** — A flat, machine-readable list of the source files this spec will create or modify, **one path per line as a plain `- ` bullet, nothing else on the line** (a path or a glob, e.g. `- src/main/foo.js` or `- src/renderer/styles/**`). This is parsed by the orchestrator to detect collisions between specs running in parallel, so keep it literal and accurate — it should mirror the New/Modified entries in **Files**. **Exclude Frame meta files** (`tasks.json`, `STRUCTURE.json`, `PROJECT_NOTES.md`, `AGENTS.md`/`CLAUDE.md`): they are reconciled separately and would otherwise mark every spec as conflicting.</span>
+<span class="dl-add">+- **Footprint** — A flat, machine-readable list of the source files this spec will create or modify, **one path per line as a plain `- ` bullet, nothing else on the line** (a path or a glob, e.g. `- src/main/foo.js` or `- src/renderer/styles/**`). This is parsed by the orchestrator to detect collisions between specs running in parallel, so keep it literal and accurate — it should mirror the New/Modified entries in **Files**. **Exclude Frame meta files** (everything under `.frame/`: `tasks.json`, `STRUCTURE.json`, `PROJECT_NOTES.md`, `AGENTS.md`): they are reconciled separately and would otherwise mark every spec as conflicting.</span>
+<span class="dl-ctx"> - **Dependencies** — Packages or services to add (with one-line rationale each), or `None`. If a dep already exists in `package.json`, don&#39;t re-list it.</span>
+<span class="dl-ctx"> - **Sequencing** — Numbered steps in implementation order. Each step is small, end-to-end shippable. Do not bundle unrelated work into one step.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/templates/commands/claude-code/spec.tasks.md b/src/templates/commands/claude-code/spec.tasks.md</span>
+<span class="dl-meta">index 23c3070..df4e0f2 100644</span>
+<span class="dl-file">--- a/src/templates/commands/claude-code/spec.tasks.md</span>
+<span class="dl-file">+++ b/src/templates/commands/claude-code/spec.tasks.md</span>
+<span class="dl-hunk">@@ -136,7 +136,7 @@ Then update `.frame/specs/{slug}/status.json`:</span>
+<span class="dl-ctx"> - `updated_at` → current ISO timestamp</span>
+<span class="dl-ctx"> - `last_phase_at` → current ISO timestamp</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-Frame&#39;s watcher will auto-import these tasks into `tasks.json` with the marker `source: &quot;spec:{slug}:T&lt;n&gt;&quot;`. Don&#39;t duplicate them into `tasks.json` yourself.</span>
+<span class="dl-add">+Frame&#39;s watcher will auto-import these tasks into `.frame/tasks.json` with the marker `source: &quot;spec:{slug}:T&lt;n&gt;&quot;`. Don&#39;t duplicate them into `.frame/tasks.json` yourself.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ## Style</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/templates/orchestration/CONDUCTOR.md b/src/templates/orchestration/CONDUCTOR.md</span>
+<span class="dl-meta">index 01f3d5b..71e09aa 100644</span>
+<span class="dl-file">--- a/src/templates/orchestration/CONDUCTOR.md</span>
+<span class="dl-file">+++ b/src/templates/orchestration/CONDUCTOR.md</span>
+<span class="dl-hunk">@@ -97,8 +97,8 @@ Once a spec is merged (the user clicked Approve, or you merged on their explicit</span>
+<span class="dl-ctx"> request — you&#39;ll see a `MERGED: &lt;slug&gt;` confirmation), bring shared meta files up</span>
+<span class="dl-ctx"> to date (workers were forbidden from touching them):</span>
+<span class="dl-ctx"> - Regenerate the structure map: `npm run structure` (if present).</span>
+<span class="dl-del">-- Mark that spec&#39;s tasks completed in `tasks.json` as appropriate.</span>
+<span class="dl-del">-- Append a short note to `PROJECT_NOTES.md` if the work warrants it.</span>
+<span class="dl-add">+- Mark that spec&#39;s tasks completed in `.frame/tasks.json` as appropriate.</span>
+<span class="dl-add">+- Append a short note to `.frame/PROJECT_NOTES.md` if the work warrants it.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ### 8. Advance</span>
+<span class="dl-ctx"> Keep dispatching ready/queued specs as slots free up. When a serialized spec&#39;s</span>
+<span class="dl-meta">diff --git a/src/templates/orchestration/WORKER.md b/src/templates/orchestration/WORKER.md</span>
+<span class="dl-meta">index 5d7adef..b54d4b4 100644</span>
+<span class="dl-file">--- a/src/templates/orchestration/WORKER.md</span>
+<span class="dl-file">+++ b/src/templates/orchestration/WORKER.md</span>
+<span class="dl-hunk">@@ -33,8 +33,9 @@ before doing anything.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> - **Stay on your branch.** Never `git checkout`/`switch` to another branch,</span>
+<span class="dl-ctx">   never `git push`, never `git merge`. The conductor owns integration.</span>
+<span class="dl-del">-- **Do not touch Frame meta files:** `tasks.json`, `STRUCTURE.json`,</span>
+<span class="dl-del">-  `PROJECT_NOTES.md`, `AGENTS.md`/`CLAUDE.md`. The conductor reconciles those</span>
+<span class="dl-add">+- **Do not touch Frame meta files:** `.frame/tasks.json`,</span>
+<span class="dl-add">+  `.frame/STRUCTURE.json`, `.frame/PROJECT_NOTES.md`, `.frame/AGENTS.md`. The</span>
+<span class="dl-add">+  conductor reconciles those</span>
+<span class="dl-ctx">   after merge. Editing them causes cross-spec conflicts.</span>
+<span class="dl-ctx"> - **Only this spec.** Don&#39;t pick up work from other specs, even if you notice it.</span>
+<span class="dl-ctx"> - Don&#39;t modify anything under `.frame/worktrees/` or other specs&#39; folders.</span></pre>
     </details>
   </div>
 </section>

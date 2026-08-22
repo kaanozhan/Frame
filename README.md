@@ -58,14 +58,23 @@ Frame brings a consistent structure to every project you work on. When you initi
 
 | File | Purpose |
 |------|---------|
-| `AGENTS.md` | Project rules and instructions — AI reads this automatically |
-| `STRUCTURE.json` | Module map with intentIndex for fast file lookup |
-| `PROJECT_NOTES.md` | Architectural decisions and context that persist across sessions |
-| `tasks.json` | Task tracking with status, context, and acceptance criteria |
+| `.frame/AGENTS.md` | Project rules and instructions — AI reads this automatically |
+| `.frame/STRUCTURE.json` | Module map with intentIndex for fast file lookup |
+| `.frame/PROJECT_NOTES.md` | Architectural decisions and context that persist across sessions |
+| `.frame/tasks.json` | Task tracking with status, context, and acceptance criteria |
+| `.claude/rules/frame.md` | Two lines pointing Claude Code at `.frame/AGENTS.md` |
+
+Everything Frame writes lives under `.frame/`, plus that one pointer file. Your
+project root stays yours: an existing `CLAUDE.md`, `AGENTS.md` or `.cursorrules`
+is never read, moved or replaced, and "Remove Frame" leaves no Frame-authored
+bytes behind. Requires Claude Code new enough to load `.claude/rules/` (the
+2.1.x line); run `/context` in a session to confirm the rule loaded.
 
 Every project gets its own isolated session — its own context, its own task list, its own notes. Switching projects in Frame means switching to a completely fresh, project-specific AI context. No bleed-over, no confusion.
 
-This standard works with any AI tool. Claude Code and Gemini CLI read these files natively. For Codex CLI, Frame injects them automatically via a wrapper script — no manual setup needed.
+This standard works with any AI tool. Claude Code loads `.claude/rules/frame.md`
+natively at session start, which imports `.frame/AGENTS.md` — no launch flags, no
+wrapper. For Codex CLI, Frame injects the same file via a wrapper script.
 
 The result: any developer (or AI agent) who opens a Frame project immediately knows where everything is and what's been decided. Onboarding a new AI session to a large project takes seconds, not minutes.
 
@@ -77,9 +86,9 @@ Frame's approach: **use git commits as the single reliable boundary.**
 
 When you commit, something real happened. It's intentional, it's deterministic, and it's a natural checkpoint you're already making. Frame builds its entire context system around this moment:
 
-- **STRUCTURE.json** — auto-updated via pre-commit hook, always reflects the current architecture
-- **tasks.json** — task state syncs at commit time
-- **PROJECT_NOTES.md** — the right moment to capture what changed and why
+- **`.frame/STRUCTURE.json`** — auto-updated via pre-commit hook, always reflects the current architecture
+- **`.frame/tasks.json`** — task state syncs at commit time
+- **`.frame/PROJECT_NOTES.md`** — the right moment to capture what changed and why
 
 When the next session starts, these files are read automatically. The agent picks up exactly where things left off — not from a vague session transcript, but from structured, up-to-date context written at the one moment you can be certain something real was completed.
 
@@ -129,7 +138,7 @@ Every worker carries a live **state** you watch on the pipeline rail: `queued �
 
 You stay in control of what lands:
 
-- Workers commit only to their own branch — they never push, never merge, never touch shared files (`tasks.json`, `STRUCTURE.json`, …).
+- Workers commit only to their own branch — they never push, never merge, never touch shared files (`.frame/tasks.json`, `.frame/STRUCTURE.json`, …).
 - When a worker finishes, the conductor reviews it and tells you it's ready — it does **not** merge on its own.
 - You review (you can test right in the worktree), then **Approve**. Frame runs a **drift check** — what the agent *actually* changed vs. what it *declared* — and merges locally into a per-spec integration branch. `main` is never touched; promoting it or opening a PR stays your call.
 
@@ -153,9 +162,9 @@ This means AI agents spend zero time searching — they go directly to the right
 
 Switch between AI tools without leaving Frame:
 
-- **Claude Code** — reads `CLAUDE.md` natively (symlink to AGENTS.md)
-- **Codex CLI** — wrapper script at `.frame/bin/codex` injects AGENTS.md as initial prompt
-- **Gemini CLI** — reads `GEMINI.md` natively
+- **Claude Code** — loads `.claude/rules/frame.md` natively, which imports `.frame/AGENTS.md`
+- **Codex CLI** — wrapper script at `.frame/bin/codex` injects `.frame/AGENTS.md` as initial prompt
+- **Other CLIs** — read `.frame/AGENTS.md` when pointed at it; the files are plain markdown and JSON
 
 Multi-AI is a principle here, not a race: Frame goes deep on Claude Code, and
 keeps your specs, plans, outcomes, and notes in plain markdown and JSON — so
@@ -185,7 +194,7 @@ the context your work produces outlives any single tool, including Frame.
 - **You approve** — the conductor reviews and reports; nothing merges without your review
 
 ### Context & Architecture
-- **STRUCTURE.json** — auto-updated on every commit via pre-commit hooks
+- **`.frame/STRUCTURE.json`** — auto-updated on every commit via pre-commit hooks
 - **Overview Panel** — visual structure map of your project's modules
 - **Session Notes** — automatic prompts to save important decisions to PROJECT_NOTES.md
 - **Prompt History** — all terminal input logged with timestamps
@@ -201,7 +210,7 @@ the context your work produces outlives any single tool, including Frame.
 
 - **120+ IPC channels** powering real-time bidirectional communication between renderer and main process
 - **40+ modules** across main and renderer processes
-- **Pre-commit hooks** for automatic STRUCTURE.json updates
+- **Pre-commit hooks** for automatic `.frame/STRUCTURE.json` updates
 - **Transport layer abstraction** — architecture designed for Electron IPC → WebSocket migration (web platform coming)
 
 ---
@@ -245,7 +254,7 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan
 ### Basic Workflow
 
 1. **Select a project** — click "Select Project Folder" or choose from recent projects
-2. **Initialize Frame** — click "Initialize Frame Project" to create AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, and tasks.json
+2. **Initialize Frame** — click "Initialize Frame Project" to create `.frame/` (AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, tasks.json) and the `.claude/rules/frame.md` pointer, and choose whether Frame's files are shared with the repo or kept local to you
 3. **Start an AI session** — click "Start Claude Code" (or your chosen tool) — it launches in your project directory with full context
 4. **Work** — tasks are tracked, decisions are saved, context persists
 
@@ -289,13 +298,13 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan
 
 ### Done
 - [x] Terminal-first IDE with multi-terminal grid (up to 9)
-- [x] Frame project structure (AGENTS.md, STRUCTURE.json, tasks.json, PROJECT_NOTES.md)
+- [x] Frame project structure (`.frame/`: AGENTS.md, STRUCTURE.json, tasks.json, PROJECT_NOTES.md)
 - [x] Multi-AI support — Claude Code, Codex CLI, Gemini CLI
 - [x] Automatic context injection via wrapper scripts
 - [x] Task panel with AI integration
 - [x] GitHub panel — issues, PRs, branches
 - [x] Git branches and worktrees panel
-- [x] STRUCTURE.json intentIndex for fast file lookup
+- [x] `.frame/STRUCTURE.json` intentIndex for fast file lookup
 - [x] Plugins panel
 - [x] Overview / structure map panel
 - [x] Pre-commit hooks for automatic structure updates

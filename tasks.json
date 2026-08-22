@@ -4902,13 +4902,13 @@
       "title": "Follow the layout through prose: `src/templates/orchestration/CONDUCTOR.md`, `src/templates/orchestration/WORKER.md`, `src/templates/commands/claude-code/spec.{implement,tasks,plan}.md`, the merge-reconcile messages in `src/main/orchestrationManager.js`, and `README.md`, `docs/capabilities/index.html`, `docs/index.html` (new layout, `.claude/rules/frame.md` pointer, sharing modes, Claude Code minimum version).",
       "description": "",
       "source": "spec:non-invasive-overlay:T11",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T12:35:00.000Z",
+      "completedAt": "2026-08-23T12:35:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T12",

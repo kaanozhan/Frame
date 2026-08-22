@@ -197,3 +197,18 @@ it is removed rather than left as a stub.
 _Captured: 2026-08-23 · 4 file change(s)_
 
 ---
+
+## T11 — Prose follows the layout
+
+Repointed the orchestration and spec-command templates plus
+`orchestrationManager`'s merge-reconcile message at `.frame/` paths, and
+rewrote the layout sections of `README.md`, `docs/index.html` and
+`docs/capabilities/index.html` around the `.frame/` directory, the
+`.claude/rules/frame.md` pointer, the two sharing modes and the Claude Code
+minimum version. Prose only, no behaviour. The docs' Gemini entries described a
+symlink Frame no longer creates, so they now describe what is true — plain
+markdown and JSON under `.frame/` that any CLI can be pointed at.
+
+_Captured: 2026-08-23 · 9 file change(s)_
+
+---

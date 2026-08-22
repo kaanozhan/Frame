@@ -33,8 +33,9 @@ before doing anything.
 
 - **Stay on your branch.** Never `git checkout`/`switch` to another branch,
   never `git push`, never `git merge`. The conductor owns integration.
-- **Do not touch Frame meta files:** `tasks.json`, `STRUCTURE.json`,
-  `PROJECT_NOTES.md`, `AGENTS.md`/`CLAUDE.md`. The conductor reconciles those
+- **Do not touch Frame meta files:** `.frame/tasks.json`,
+  `.frame/STRUCTURE.json`, `.frame/PROJECT_NOTES.md`, `.frame/AGENTS.md`. The
+  conductor reconciles those
   after merge. Editing them causes cross-spec conflicts.
 - **Only this spec.** Don't pick up work from other specs, even if you notice it.
 - Don't modify anything under `.frame/worktrees/` or other specs' folders.
