@@ -51,6 +51,18 @@
         "status": "pass",
         "detail": "253 pass, 0 fail (11 new)"
       }
+    },
+    {
+      "id": "T05",
+      "title": "User-facing layout surfaces follow the new layout",
+      "commit": "7668e16",
+      "whatChanged": "index.html's init modal lists the .frame/ files and the pointer, states that nothing is added to the project root and that Claude Code must be new enough to load .claude/rules/ (2.1.x; /context confirms), and carries the repo-pre-selected sharing radios for T07 to wire; panels.css styles the note, requirement and sharing rows. frameProject.checkExistingFrameFiles now lists only Frame's own paths and the confirmation text lost the CLAUDE.md-consumption paragraph. The renderer's \"Created:\" line, sampleBanner's strings and the static src/templates/CLAUDE.md name .frame/ paths; both spotlight cards list the .frame/ files.",
+      "whyChanged": "checkExistingFrameFiles no longer reports a root CLAUDE.md/AGENTS.md as a conflict, because init neither reads nor replaces them — listing them would describe a collision that cannot happen any more. The minimum-version note names the 2.1.x line and tells the user to run /context rather than asserting an exact build number that cannot be verified from here.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "253 pass, 0 fail"
+      }
     }
   ]
 }

@@ -2299,6 +2299,64 @@
   font-family: var(--font-sans, sans-serif);
 }
 
+/* Footprint promise + Claude Code requirement, under the file list. */
+.init-modal-note {
+  margin: 0 0 var(--space-md) 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.init-modal-note code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.init-modal-requirement {
+  margin-bottom: 0;
+}
+
+/* Sharing mode: two radios, `repo` pre-selected. Same visual family as the
+   file list above so the modal reads as one block. */
+.init-modal-sharing {
+  border: 1px solid var(--border-secondary, var(--border-primary));
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.init-modal-sharing legend {
+  padding: 0 var(--space-xs);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.init-modal-sharing label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--space-sm);
+  align-items: baseline;
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+}
+
+.init-modal-sharing input {
+  grid-row: span 2;
+  cursor: pointer;
+}
+
+.init-sharing-title {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.init-sharing-desc {
+  grid-column: 2;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .init-modal-warning {
   background: rgba(200, 160, 60, 0.1);
   border: 1px solid rgba(200, 160, 60, 0.3);

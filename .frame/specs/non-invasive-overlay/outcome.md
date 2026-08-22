@@ -90,3 +90,20 @@ criterion 3.
 _Captured: 2026-08-23 · 12 file change(s)_
 
 ---
+
+## T05 — User-facing layout surfaces follow the new layout
+
+Rewrote the init modal's file list around `.frame/` and the pointer, added the
+"nothing is added to your project root" promise, the Claude Code requirement
+note (2.1.x line, `/context` to confirm) and the `repo`-pre-selected sharing
+radios T07 will wire, with matching styles in `panels.css`. Narrowed
+`checkExistingFrameFiles` to Frame's own paths and dropped the
+CLAUDE.md-consumption paragraph from the confirmation dialog, since init no
+longer reads or replaces a root file. The renderer's "Created:" line,
+`sampleBanner`'s two strings, both spotlight cards and the static
+`src/templates/CLAUDE.md` now name `.frame/` paths; the sample-project
+conversion this task nominally owned shipped in T04.
+
+_Captured: 2026-08-23 · 6 file change(s)_
+
+---

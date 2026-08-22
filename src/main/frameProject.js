@@ -67,14 +67,17 @@ async function createFileIfNotExists(filePath, content) {
  */
 function checkExistingFrameFiles(projectPath) {
   const existingFiles = [];
+  // Only Frame's own paths: a CLAUDE.md or AGENTS.md at the project root is
+  // the user's file, and init neither reads nor replaces it, so listing it as
+  // "already exists" would describe a conflict that no longer happens.
   const filesToCheck = [
-    { name: 'AGENTS.md', path: path.join(projectPath, FRAME_FILES.AGENTS) },
-    { name: 'CLAUDE.md', path: path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK) },
-    { name: 'STRUCTURE.json', path: path.join(projectPath, FRAME_FILES.STRUCTURE) },
-    { name: 'PROJECT_NOTES.md', path: path.join(projectPath, FRAME_FILES.NOTES) },
-    { name: 'tasks.json', path: path.join(projectPath, FRAME_FILES.TASKS) },
-    { name: 'QUICKSTART.md', path: path.join(projectPath, FRAME_FILES.QUICKSTART) },
-    { name: '.frame/', path: path.join(projectPath, FRAME_DIR) }
+    { name: '.frame/', path: path.join(projectPath, FRAME_DIR) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.AGENTS}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.AGENTS) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.STRUCTURE}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.STRUCTURE) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.NOTES}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.NOTES) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.TASKS}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.TASKS) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.QUICKSTART}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.QUICKSTART) },
+    { name: CLAUDE_RULE_PATH, path: path.join(projectPath, ...CLAUDE_RULE_PATH.split('/')) }
   ];
 
   for (const file of filesToCheck) {
@@ -92,23 +95,16 @@ function checkExistingFrameFiles(projectPath) {
 async function showInitializeConfirmation(projectPath) {
   const existingFiles = checkExistingFrameFiles(projectPath);
 
-  // Check if CLAUDE.md exists as a real file (not symlink) — existing project scenario
-  const claudeMdPath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);
-  const hasExistingClaudeMd = fs.existsSync(claudeMdPath) && !fs.lstatSync(claudeMdPath).isSymbolicLink();
-
   let message = 'This will create the following files in your project:\n\n';
-  message += '  • .frame/ (config directory)\n';
-  message += '  • .frame/bin/ (AI tool wrappers)\n';
-  message += '  • AGENTS.md (AI instructions)\n';
-  message += '  • CLAUDE.md (symlink to AGENTS.md)\n';
-  message += '  • STRUCTURE.json (module map)\n';
-  message += '  • PROJECT_NOTES.md (session notes)\n';
-  message += '  • tasks.json (task tracking)\n';
-  message += '  • QUICKSTART.md (getting started)\n';
-
-  if (hasExistingClaudeMd) {
-    message += '\n📎 An existing CLAUDE.md was found. Its content will be preserved and appended to AGENTS.md. CLAUDE.md will then become a symlink to AGENTS.md.\n';
-  }
+  message += '  • .frame/ (everything Frame writes lives here)\n';
+  message += '  • .frame/AGENTS.md (AI instructions)\n';
+  message += '  • .frame/STRUCTURE.json (module map)\n';
+  message += '  • .frame/PROJECT_NOTES.md (session notes)\n';
+  message += '  • .frame/tasks.json (task tracking)\n';
+  message += '  • .frame/QUICKSTART.md (getting started)\n';
+  message += '  • .frame/bin/ (parsers and AI tool wrappers)\n';
+  message += '  • .claude/rules/frame.md (points Claude Code at .frame/AGENTS.md)\n';
+  message += '\nNothing is added to your project root, and no existing file is read, moved or replaced.\n';
 
   if (existingFiles.length > 0) {
     message += '\n⚠️ These files already exist and will NOT be overwritten:\n';

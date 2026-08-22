@@ -4824,13 +4824,13 @@
       "title": "Update the user-facing layout surfaces to the new layout: init modal file list and Claude Code minimum-version note in `index.html`, `checkExistingFrameFiles`/confirmation text in `src/main/frameProject.js`, the \"Created:\" line in `src/renderer/index.js`, `src/renderer/sampleBanner.js` strings (`.frame/QUICKSTART.md`, `.frame/AGENTS.md`), the static `src/templates/CLAUDE.md`, and convert `src/templates/sample-project/**` to `.frame/` meta plus `.claude/rules/frame.md` with no root `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`; extend `test/frameProjectInit.test.js` with a case asserting the sample carries no legacy fingerprint.",
       "description": "",
       "source": "spec:non-invasive-overlay:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T09:30:00.000Z",
+      "completedAt": "2026-08-23T09:30:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T06",

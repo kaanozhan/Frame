@@ -81,10 +81,10 @@
         and track decisions.
       </p>
       <div class="spotlight-card-files">
-        <span>AGENTS.md</span>
-        <span>STRUCTURE.json</span>
-        <span>PROJECT_NOTES.md</span>
-        <span>tasks.json</span>
+        <span>.frame/AGENTS.md</span>
+        <span>.frame/STRUCTURE.json</span>
+        <span>.frame/PROJECT_NOTES.md</span>
+        <span>.frame/tasks.json</span>
         <span>+ more</span>
       </div>
     </div>
@@ -589,10 +589,10 @@
           and track decisions.
         </p>
         <div class="spotlight-card-files">
-          <span>AGENTS.md</span>
-          <span>STRUCTURE.json</span>
-          <span>PROJECT_NOTES.md</span>
-          <span>tasks.json</span>
+          <span>.frame/AGENTS.md</span>
+          <span>.frame/STRUCTURE.json</span>
+          <span>.frame/PROJECT_NOTES.md</span>
+          <span>.frame/tasks.json</span>
           <span>+ more</span>
         </div>
         <button id="spotlight-dismiss" class="spotlight-card-btn">Got it</button>
@@ -610,16 +610,33 @@
           <p class="init-modal-lead">This project isn't set up with Frame yet. Initialize it to enable AI context, task tracking, and session notes.</p>
           <p class="init-modal-description">This will create the following files in your project:</p>
           <ul class="init-modal-file-list">
-            <li><span class="file-icon">&#128193;</span> .frame/ <span class="file-desc">config directory</span></li>
-            <li><span class="file-icon">&#128193;</span> .frame/bin/ <span class="file-desc">AI tool wrappers</span></li>
-            <li><span class="file-icon">&#128196;</span> AGENTS.md <span class="file-desc">AI instructions</span></li>
-            <li><span class="file-icon">&#128279;</span> CLAUDE.md <span class="file-desc">symlink to AGENTS.md</span></li>
-            <li><span class="file-icon">&#128279;</span> GEMINI.md <span class="file-desc">symlink to AGENTS.md</span></li>
-            <li><span class="file-icon">&#128196;</span> STRUCTURE.json <span class="file-desc">module map</span></li>
-            <li><span class="file-icon">&#128196;</span> PROJECT_NOTES.md <span class="file-desc">session notes</span></li>
-            <li><span class="file-icon">&#128196;</span> tasks.json <span class="file-desc">task tracking</span></li>
-            <li><span class="file-icon">&#128196;</span> QUICKSTART.md <span class="file-desc">getting started</span></li>
+            <li><span class="file-icon">&#128193;</span> .frame/ <span class="file-desc">everything Frame writes lives here</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/AGENTS.md <span class="file-desc">AI instructions</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/STRUCTURE.json <span class="file-desc">module map</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/PROJECT_NOTES.md <span class="file-desc">session notes</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/tasks.json <span class="file-desc">task tracking</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/QUICKSTART.md <span class="file-desc">getting started</span></li>
+            <li><span class="file-icon">&#128193;</span> .frame/bin/ <span class="file-desc">parsers and AI tool wrappers</span></li>
+            <li><span class="file-icon">&#128279;</span> .claude/rules/frame.md <span class="file-desc">two lines pointing Claude Code at .frame/AGENTS.md</span></li>
           </ul>
+          <p class="init-modal-note">Nothing is added to your project root, and no existing file is
+            read, moved or replaced &mdash; your CLAUDE.md and AGENTS.md stay yours.</p>
+          <fieldset class="init-modal-sharing">
+            <legend>How should Frame's files relate to git?</legend>
+            <label>
+              <input type="radio" name="init-frame-sharing" value="repo" checked>
+              <span class="init-sharing-title">Share with the repo</span>
+              <span class="init-sharing-desc">Commit <code>.frame/</code> so teammates get the same context. Machine-local files are ignored by <code>.frame/.gitignore</code>.</span>
+            </label>
+            <label>
+              <input type="radio" name="init-frame-sharing" value="local">
+              <span class="init-sharing-title">Keep it local to me</span>
+              <span class="init-sharing-desc">Excluded through <code>.git/info/exclude</code>, so <code>git status</code> shows nothing Frame made. Nothing is added to the tracked <code>.gitignore</code>.</span>
+            </label>
+          </fieldset>
+          <p class="init-modal-note init-modal-requirement">Requires Claude Code new enough to load
+            <code>.claude/rules/</code> (2.1.x or later). Run <code>/context</code> in a session to confirm
+            the rule file loaded.</p>
           <div id="init-frame-existing-warning" class="init-modal-warning" style="display: none;">
             <p>These files already exist and will NOT be overwritten:</p>
             <ul id="init-frame-existing-list"></ul>

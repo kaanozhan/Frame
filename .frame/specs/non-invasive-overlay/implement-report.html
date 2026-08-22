@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">4 tasks</span>
-    <span class="pill good">4 verified</span>
+    <span class="pill">5 tasks</span>
+    <span class="pill good">5 verified</span>
     
     <span class="chip">2026-08-22</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">4 of 12 tasks done · next: <span class="rs-task">T05 — Update the user-facing layout surfaces to the new layout: init modal…</span></span>
+  <span class="rs-count">5 of 12 tasks done · next: <span class="rs-task">T06 — Add `src/main/gitExclude.js` (marker block in the file from `git…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -3321,6 +3321,313 @@
 <span class="dl-ctx"> }</span>
 <span class="dl-ctx"> </span>
 <span class="dl-ctx"> test(&#39;new projects get Spec-Driven Development on by default&#39;, () =&gt; {</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T05</span>
+    <h2>User-facing layout surfaces follow the new layout</h2>
+    <span class="card-meta"><span class="chip">7668e16</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">253 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>index.html&#39;s init modal lists the .frame/ files and the pointer, states that nothing is added to the project root and that Claude Code must be new enough to load .claude/rules/ (2.1.x; /context confirms), and carries the repo-pre-selected sharing radios for T07 to wire; panels.css styles the note, requirement and sharing rows. frameProject.checkExistingFrameFiles now lists only Frame&#39;s own paths and the confirmation text lost the CLAUDE.md-consumption paragraph. The renderer&#39;s &quot;Created:&quot; line, sampleBanner&#39;s strings and the static src/templates/CLAUDE.md name .frame/ paths; both spotlight cards list the .frame/ files.</p></div>
+    <div class="field"><span class="label">Why</span><p>checkExistingFrameFiles no longer reports a root CLAUDE.md/AGENTS.md as a conflict, because init neither reads nor replaces them — listing them would describe a collision that cannot happen any more. The minimum-version note names the 2.1.x line and tells the user to run /context rather than asserting an exact build number that cannot be verified from here.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/index.html b/index.html</span>
+<span class="dl-meta">index d235564..5f9aefc 100644</span>
+<span class="dl-file">--- a/index.html</span>
+<span class="dl-file">+++ b/index.html</span>
+<span class="dl-hunk">@@ -81,10 +81,10 @@</span>
+<span class="dl-ctx">         and track decisions.</span>
+<span class="dl-ctx">       &lt;/p&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;spotlight-card-files&quot;&gt;</span>
+<span class="dl-del">-        &lt;span&gt;AGENTS.md&lt;/span&gt;</span>
+<span class="dl-del">-        &lt;span&gt;STRUCTURE.json&lt;/span&gt;</span>
+<span class="dl-del">-        &lt;span&gt;PROJECT_NOTES.md&lt;/span&gt;</span>
+<span class="dl-del">-        &lt;span&gt;tasks.json&lt;/span&gt;</span>
+<span class="dl-add">+        &lt;span&gt;.frame/AGENTS.md&lt;/span&gt;</span>
+<span class="dl-add">+        &lt;span&gt;.frame/STRUCTURE.json&lt;/span&gt;</span>
+<span class="dl-add">+        &lt;span&gt;.frame/PROJECT_NOTES.md&lt;/span&gt;</span>
+<span class="dl-add">+        &lt;span&gt;.frame/tasks.json&lt;/span&gt;</span>
+<span class="dl-ctx">         &lt;span&gt;+ more&lt;/span&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">     &lt;/div&gt;</span>
+<span class="dl-hunk">@@ -589,10 +589,10 @@</span>
+<span class="dl-ctx">           and track decisions.</span>
+<span class="dl-ctx">         &lt;/p&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;spotlight-card-files&quot;&gt;</span>
+<span class="dl-del">-          &lt;span&gt;AGENTS.md&lt;/span&gt;</span>
+<span class="dl-del">-          &lt;span&gt;STRUCTURE.json&lt;/span&gt;</span>
+<span class="dl-del">-          &lt;span&gt;PROJECT_NOTES.md&lt;/span&gt;</span>
+<span class="dl-del">-          &lt;span&gt;tasks.json&lt;/span&gt;</span>
+<span class="dl-add">+          &lt;span&gt;.frame/AGENTS.md&lt;/span&gt;</span>
+<span class="dl-add">+          &lt;span&gt;.frame/STRUCTURE.json&lt;/span&gt;</span>
+<span class="dl-add">+          &lt;span&gt;.frame/PROJECT_NOTES.md&lt;/span&gt;</span>
+<span class="dl-add">+          &lt;span&gt;.frame/tasks.json&lt;/span&gt;</span>
+<span class="dl-ctx">           &lt;span&gt;+ more&lt;/span&gt;</span>
+<span class="dl-ctx">         &lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;button id=&quot;spotlight-dismiss&quot; class=&quot;spotlight-card-btn&quot;&gt;Got it&lt;/button&gt;</span>
+<span class="dl-hunk">@@ -610,16 +610,33 @@</span>
+<span class="dl-ctx">           &lt;p class=&quot;init-modal-lead&quot;&gt;This project isn&#39;t set up with Frame yet. Initialize it to enable AI context, task tracking, and session notes.&lt;/p&gt;</span>
+<span class="dl-ctx">           &lt;p class=&quot;init-modal-description&quot;&gt;This will create the following files in your project:&lt;/p&gt;</span>
+<span class="dl-ctx">           &lt;ul class=&quot;init-modal-file-list&quot;&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128193;&lt;/span&gt; .frame/ &lt;span class=&quot;file-desc&quot;&gt;config directory&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128193;&lt;/span&gt; .frame/bin/ &lt;span class=&quot;file-desc&quot;&gt;AI tool wrappers&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; AGENTS.md &lt;span class=&quot;file-desc&quot;&gt;AI instructions&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128279;&lt;/span&gt; CLAUDE.md &lt;span class=&quot;file-desc&quot;&gt;symlink to AGENTS.md&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128279;&lt;/span&gt; GEMINI.md &lt;span class=&quot;file-desc&quot;&gt;symlink to AGENTS.md&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; STRUCTURE.json &lt;span class=&quot;file-desc&quot;&gt;module map&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; PROJECT_NOTES.md &lt;span class=&quot;file-desc&quot;&gt;session notes&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; tasks.json &lt;span class=&quot;file-desc&quot;&gt;task tracking&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; QUICKSTART.md &lt;span class=&quot;file-desc&quot;&gt;getting started&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128193;&lt;/span&gt; .frame/ &lt;span class=&quot;file-desc&quot;&gt;everything Frame writes lives here&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; .frame/AGENTS.md &lt;span class=&quot;file-desc&quot;&gt;AI instructions&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; .frame/STRUCTURE.json &lt;span class=&quot;file-desc&quot;&gt;module map&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; .frame/PROJECT_NOTES.md &lt;span class=&quot;file-desc&quot;&gt;session notes&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; .frame/tasks.json &lt;span class=&quot;file-desc&quot;&gt;task tracking&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; .frame/QUICKSTART.md &lt;span class=&quot;file-desc&quot;&gt;getting started&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128193;&lt;/span&gt; .frame/bin/ &lt;span class=&quot;file-desc&quot;&gt;parsers and AI tool wrappers&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128279;&lt;/span&gt; .claude/rules/frame.md &lt;span class=&quot;file-desc&quot;&gt;two lines pointing Claude Code at .frame/AGENTS.md&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-ctx">           &lt;/ul&gt;</span>
+<span class="dl-add">+          &lt;p class=&quot;init-modal-note&quot;&gt;Nothing is added to your project root, and no existing file is</span>
+<span class="dl-add">+            read, moved or replaced &amp;mdash; your CLAUDE.md and AGENTS.md stay yours.&lt;/p&gt;</span>
+<span class="dl-add">+          &lt;fieldset class=&quot;init-modal-sharing&quot;&gt;</span>
+<span class="dl-add">+            &lt;legend&gt;How should Frame&#39;s files relate to git?&lt;/legend&gt;</span>
+<span class="dl-add">+            &lt;label&gt;</span>
+<span class="dl-add">+              &lt;input type=&quot;radio&quot; name=&quot;init-frame-sharing&quot; value=&quot;repo&quot; checked&gt;</span>
+<span class="dl-add">+              &lt;span class=&quot;init-sharing-title&quot;&gt;Share with the repo&lt;/span&gt;</span>
+<span class="dl-add">+              &lt;span class=&quot;init-sharing-desc&quot;&gt;Commit &lt;code&gt;.frame/&lt;/code&gt; so teammates get the same context. Machine-local files are ignored by &lt;code&gt;.frame/.gitignore&lt;/code&gt;.&lt;/span&gt;</span>
+<span class="dl-add">+            &lt;/label&gt;</span>
+<span class="dl-add">+            &lt;label&gt;</span>
+<span class="dl-add">+              &lt;input type=&quot;radio&quot; name=&quot;init-frame-sharing&quot; value=&quot;local&quot;&gt;</span>
+<span class="dl-add">+              &lt;span class=&quot;init-sharing-title&quot;&gt;Keep it local to me&lt;/span&gt;</span>
+<span class="dl-add">+              &lt;span class=&quot;init-sharing-desc&quot;&gt;Excluded through &lt;code&gt;.git/info/exclude&lt;/code&gt;, so &lt;code&gt;git status&lt;/code&gt; shows nothing Frame made. Nothing is added to the tracked &lt;code&gt;.gitignore&lt;/code&gt;.&lt;/span&gt;</span>
+<span class="dl-add">+            &lt;/label&gt;</span>
+<span class="dl-add">+          &lt;/fieldset&gt;</span>
+<span class="dl-add">+          &lt;p class=&quot;init-modal-note init-modal-requirement&quot;&gt;Requires Claude Code new enough to load</span>
+<span class="dl-add">+            &lt;code&gt;.claude/rules/&lt;/code&gt; (2.1.x or later). Run &lt;code&gt;/context&lt;/code&gt; in a session to confirm</span>
+<span class="dl-add">+            the rule file loaded.&lt;/p&gt;</span>
+<span class="dl-ctx">           &lt;div id=&quot;init-frame-existing-warning&quot; class=&quot;init-modal-warning&quot; style=&quot;display: none;&quot;&gt;</span>
+<span class="dl-ctx">             &lt;p&gt;These files already exist and will NOT be overwritten:&lt;/p&gt;</span>
+<span class="dl-ctx">             &lt;ul id=&quot;init-frame-existing-list&quot;&gt;&lt;/ul&gt;</span>
+<span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 3a1d173..39654b8 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -67,14 +67,17 @@ async function createFileIfNotExists(filePath, content) {</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function checkExistingFrameFiles(projectPath) {</span>
+<span class="dl-ctx">   const existingFiles = [];</span>
+<span class="dl-add">+  // Only Frame&#39;s own paths: a CLAUDE.md or AGENTS.md at the project root is</span>
+<span class="dl-add">+  // the user&#39;s file, and init neither reads nor replaces it, so listing it as</span>
+<span class="dl-add">+  // &quot;already exists&quot; would describe a conflict that no longer happens.</span>
+<span class="dl-ctx">   const filesToCheck = [</span>
+<span class="dl-del">-    { name: &#39;AGENTS.md&#39;, path: path.join(projectPath, FRAME_FILES.AGENTS) },</span>
+<span class="dl-del">-    { name: &#39;CLAUDE.md&#39;, path: path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK) },</span>
+<span class="dl-del">-    { name: &#39;STRUCTURE.json&#39;, path: path.join(projectPath, FRAME_FILES.STRUCTURE) },</span>
+<span class="dl-del">-    { name: &#39;PROJECT_NOTES.md&#39;, path: path.join(projectPath, FRAME_FILES.NOTES) },</span>
+<span class="dl-del">-    { name: &#39;tasks.json&#39;, path: path.join(projectPath, FRAME_FILES.TASKS) },</span>
+<span class="dl-del">-    { name: &#39;QUICKSTART.md&#39;, path: path.join(projectPath, FRAME_FILES.QUICKSTART) },</span>
+<span class="dl-del">-    { name: &#39;.frame/&#39;, path: path.join(projectPath, FRAME_DIR) }</span>
+<span class="dl-add">+    { name: &#39;.frame/&#39;, path: path.join(projectPath, FRAME_DIR) },</span>
+<span class="dl-add">+    { name: `${FRAME_DIR}/${FRAME_FILES.AGENTS}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.AGENTS) },</span>
+<span class="dl-add">+    { name: `${FRAME_DIR}/${FRAME_FILES.STRUCTURE}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.STRUCTURE) },</span>
+<span class="dl-add">+    { name: `${FRAME_DIR}/${FRAME_FILES.NOTES}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.NOTES) },</span>
+<span class="dl-add">+    { name: `${FRAME_DIR}/${FRAME_FILES.TASKS}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.TASKS) },</span>
+<span class="dl-add">+    { name: `${FRAME_DIR}/${FRAME_FILES.QUICKSTART}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.QUICKSTART) },</span>
+<span class="dl-add">+    { name: CLAUDE_RULE_PATH, path: path.join(projectPath, ...CLAUDE_RULE_PATH.split(&#39;/&#39;)) }</span>
+<span class="dl-ctx">   ];</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   for (const file of filesToCheck) {</span>
+<span class="dl-hunk">@@ -92,23 +95,16 @@ function checkExistingFrameFiles(projectPath) {</span>
+<span class="dl-ctx"> async function showInitializeConfirmation(projectPath) {</span>
+<span class="dl-ctx">   const existingFiles = checkExistingFrameFiles(projectPath);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  // Check if CLAUDE.md exists as a real file (not symlink) — existing project scenario</span>
+<span class="dl-del">-  const claudeMdPath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);</span>
+<span class="dl-del">-  const hasExistingClaudeMd = fs.existsSync(claudeMdPath) &amp;&amp; !fs.lstatSync(claudeMdPath).isSymbolicLink();</span>
+<span class="dl-del">-</span>
+<span class="dl-ctx">   let message = &#39;This will create the following files in your project:\n\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • .frame/ (config directory)\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • .frame/bin/ (AI tool wrappers)\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • AGENTS.md (AI instructions)\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • CLAUDE.md (symlink to AGENTS.md)\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • STRUCTURE.json (module map)\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • PROJECT_NOTES.md (session notes)\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • tasks.json (task tracking)\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • QUICKSTART.md (getting started)\n&#39;;</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  if (hasExistingClaudeMd) {</span>
+<span class="dl-del">-    message += &#39;\n📎 An existing CLAUDE.md was found. Its content will be preserved and appended to AGENTS.md. CLAUDE.md will then become a symlink to AGENTS.md.\n&#39;;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-add">+  message += &#39;  • .frame/ (everything Frame writes lives here)\n&#39;;</span>
+<span class="dl-add">+  message += &#39;  • .frame/AGENTS.md (AI instructions)\n&#39;;</span>
+<span class="dl-add">+  message += &#39;  • .frame/STRUCTURE.json (module map)\n&#39;;</span>
+<span class="dl-add">+  message += &#39;  • .frame/PROJECT_NOTES.md (session notes)\n&#39;;</span>
+<span class="dl-add">+  message += &#39;  • .frame/tasks.json (task tracking)\n&#39;;</span>
+<span class="dl-add">+  message += &#39;  • .frame/QUICKSTART.md (getting started)\n&#39;;</span>
+<span class="dl-add">+  message += &#39;  • .frame/bin/ (parsers and AI tool wrappers)\n&#39;;</span>
+<span class="dl-add">+  message += &#39;  • .claude/rules/frame.md (points Claude Code at .frame/AGENTS.md)\n&#39;;</span>
+<span class="dl-add">+  message += &#39;\nNothing is added to your project root, and no existing file is read, moved or replaced.\n&#39;;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   if (existingFiles.length &gt; 0) {</span>
+<span class="dl-ctx">     message += &#39;\n⚠️ These files already exist and will NOT be overwritten:\n&#39;;</span>
+<span class="dl-meta">diff --git a/src/renderer/index.js b/src/renderer/index.js</span>
+<span class="dl-meta">index b66df33..e3fafdb 100644</span>
+<span class="dl-file">--- a/src/renderer/index.js</span>
+<span class="dl-file">+++ b/src/renderer/index.js</span>
+<span class="dl-hunk">@@ -198,7 +198,7 @@ function init() {</span>
+<span class="dl-ctx">   // Setup Frame initialized listener</span>
+<span class="dl-ctx">   state.onFrameInitialized((projectPath) =&gt; {</span>
+<span class="dl-ctx">     terminal.writelnToTerminal(`\x1b[1;32m✓ Frame project initialized!\x1b[0m`);</span>
+<span class="dl-del">-    terminal.writelnToTerminal(`  Created: .frame/, AGENTS.md, CLAUDE.md (symlink), STRUCTURE.json, PROJECT_NOTES.md, tasks.json, QUICKSTART.md`);</span>
+<span class="dl-add">+    terminal.writelnToTerminal(`  Created: .frame/ (AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, tasks.json, QUICKSTART.md, bin/) and .claude/rules/frame.md`);</span>
+<span class="dl-ctx">     // Refresh file tree to show new files</span>
+<span class="dl-ctx">     fileTreeUI.refreshFileTree();</span>
+<span class="dl-ctx">     // Load tasks for the new project</span>
+<span class="dl-meta">diff --git a/src/renderer/sampleBanner.js b/src/renderer/sampleBanner.js</span>
+<span class="dl-meta">index e972016..3ebd000 100644</span>
+<span class="dl-file">--- a/src/renderer/sampleBanner.js</span>
+<span class="dl-file">+++ b/src/renderer/sampleBanner.js</span>
+<span class="dl-hunk">@@ -31,14 +31,14 @@ let dismissedForCurrentSession = false;</span>
+<span class="dl-ctx"> /** One-line summary of the detected stack for the post-init banner */</span>
+<span class="dl-ctx"> function detectionSummary(project) {</span>
+<span class="dl-ctx">   if (!project || !project.languages || project.languages.length === 0) {</span>
+<span class="dl-del">-    return &quot;Frame is set up, but couldn&#39;t detect this project&#39;s stack — review &lt;strong&gt;.frame/config.json&lt;/strong&gt; and &lt;strong&gt;QUICKSTART.md&lt;/strong&gt;. Your AI agent starts from &lt;strong&gt;AGENTS.md&lt;/strong&gt;.&quot;;</span>
+<span class="dl-add">+    return &quot;Frame is set up, but couldn&#39;t detect this project&#39;s stack — review &lt;strong&gt;.frame/config.json&lt;/strong&gt; and &lt;strong&gt;.frame/QUICKSTART.md&lt;/strong&gt;. Your AI agent starts from &lt;strong&gt;.frame/AGENTS.md&lt;/strong&gt;.&quot;;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx">   const bits = [</span>
+<span class="dl-ctx">     project.languages.join(&#39;, &#39;),</span>
+<span class="dl-ctx">     project.packageManager,</span>
+<span class="dl-ctx">     (project.sourceRoots || []).filter(r =&gt; r !== &#39;.&#39;).map(r =&gt; `${r}/`).join(&#39;, &#39;)</span>
+<span class="dl-ctx">   ].filter(Boolean);</span>
+<span class="dl-del">-  return `Frame set up for &lt;strong&gt;${escapeHtml(bits.join(&#39; · &#39;))}&lt;/strong&gt; — review &lt;strong&gt;QUICKSTART.md&lt;/strong&gt;, correct anything in &lt;strong&gt;.frame/config.json&lt;/strong&gt;. Your AI agent starts from &lt;strong&gt;AGENTS.md&lt;/strong&gt;.`;</span>
+<span class="dl-add">+  return `Frame set up for &lt;strong&gt;${escapeHtml(bits.join(&#39; · &#39;))}&lt;/strong&gt; — review &lt;strong&gt;.frame/QUICKSTART.md&lt;/strong&gt;, correct anything in &lt;strong&gt;.frame/config.json&lt;/strong&gt;. Your AI agent starts from &lt;strong&gt;.frame/AGENTS.md&lt;/strong&gt;.`;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> function setDetectionVisible(visible) {</span>
+<span class="dl-meta">diff --git a/src/renderer/styles/components/panels.css b/src/renderer/styles/components/panels.css</span>
+<span class="dl-meta">index a2d402d..9f6c1c4 100644</span>
+<span class="dl-file">--- a/src/renderer/styles/components/panels.css</span>
+<span class="dl-file">+++ b/src/renderer/styles/components/panels.css</span>
+<span class="dl-hunk">@@ -2299,6 +2299,64 @@</span>
+<span class="dl-ctx">   font-family: var(--font-sans, sans-serif);</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/* Footprint promise + Claude Code requirement, under the file list. */</span>
+<span class="dl-add">+.init-modal-note {</span>
+<span class="dl-add">+  margin: 0 0 var(--space-md) 0;</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  line-height: 1.5;</span>
+<span class="dl-add">+  color: var(--text-muted);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.init-modal-note code {</span>
+<span class="dl-add">+  font-family: var(--font-mono);</span>
+<span class="dl-add">+  font-size: 10px;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.init-modal-requirement {</span>
+<span class="dl-add">+  margin-bottom: 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/* Sharing mode: two radios, `repo` pre-selected. Same visual family as the</span>
+<span class="dl-add">+   file list above so the modal reads as one block. */</span>
+<span class="dl-add">+.init-modal-sharing {</span>
+<span class="dl-add">+  border: 1px solid var(--border-secondary, var(--border-primary));</span>
+<span class="dl-add">+  border-radius: var(--radius-sm);</span>
+<span class="dl-add">+  padding: var(--space-md);</span>
+<span class="dl-add">+  margin: 0 0 var(--space-md) 0;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.init-modal-sharing legend {</span>
+<span class="dl-add">+  padding: 0 var(--space-xs);</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  color: var(--text-secondary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.init-modal-sharing label {</span>
+<span class="dl-add">+  display: grid;</span>
+<span class="dl-add">+  grid-template-columns: auto 1fr;</span>
+<span class="dl-add">+  gap: 2px var(--space-sm);</span>
+<span class="dl-add">+  align-items: baseline;</span>
+<span class="dl-add">+  padding: var(--space-xs) 0;</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.init-modal-sharing input {</span>
+<span class="dl-add">+  grid-row: span 2;</span>
+<span class="dl-add">+  cursor: pointer;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.init-sharing-title {</span>
+<span class="dl-add">+  font-size: 12px;</span>
+<span class="dl-add">+  color: var(--text-primary);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+.init-sharing-desc {</span>
+<span class="dl-add">+  grid-column: 2;</span>
+<span class="dl-add">+  font-size: 11px;</span>
+<span class="dl-add">+  line-height: 1.45;</span>
+<span class="dl-add">+  color: var(--text-muted);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> .init-modal-warning {</span>
+<span class="dl-ctx">   background: rgba(200, 160, 60, 0.1);</span>
+<span class="dl-ctx">   border: 1px solid rgba(200, 160, 60, 0.3);</span>
+<span class="dl-meta">diff --git a/src/templates/CLAUDE.md b/src/templates/CLAUDE.md</span>
+<span class="dl-meta">index d8e71c4..d59bbd5 100644</span>
+<span class="dl-file">--- a/src/templates/CLAUDE.md</span>
+<span class="dl-file">+++ b/src/templates/CLAUDE.md</span>
+<span class="dl-hunk">@@ -19,9 +19,9 @@ implemented without approval.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **Read these at the start of each session:**</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-1. **STRUCTURE.json** — module map, which file is where</span>
+<span class="dl-del">-2. **PROJECT_NOTES.md** — project vision, past decisions, session notes</span>
+<span class="dl-del">-3. **tasks.json** — pending tasks</span>
+<span class="dl-add">+1. **`.frame/STRUCTURE.json`** — module map, which file is where</span>
+<span class="dl-add">+2. **`.frame/PROJECT_NOTES.md`** — project vision, past decisions, session notes</span>
+<span class="dl-add">+3. **`.frame/tasks.json`** — pending tasks</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> **Fast file lookup** — before manual grep/glob, run:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -63,17 +63,17 @@ Full workflow (file layout, lifecycle, slash commands): see</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ## Writing Frame meta files — read the reference first</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-| Before writing…  | Read in `.frame/docs/REFERENCE.md` |</span>
+<span class="dl-del">-| ---------------- | ------------------------------------ |</span>
+<span class="dl-del">-| tasks.json       | &quot;Task Management&quot; (schema + rules)   |</span>
+<span class="dl-del">-| PROJECT_NOTES.md | &quot;PROJECT_NOTES.md Rules&quot;             |</span>
+<span class="dl-del">-| STRUCTURE.json   | &quot;STRUCTURE.json Rules&quot;               |</span>
+<span class="dl-del">-| QUICKSTART.md    | &quot;QUICKSTART.md Rules&quot;                |</span>
+<span class="dl-add">+| Before writing…              | Read in `.frame/docs/REFERENCE.md` |</span>
+<span class="dl-add">+| ---------------------------- | ------------------------------------ |</span>
+<span class="dl-add">+| `.frame/tasks.json`          | &quot;Task Management&quot; (schema + rules)   |</span>
+<span class="dl-add">+| `.frame/PROJECT_NOTES.md`    | &quot;PROJECT_NOTES.md Rules&quot;             |</span>
+<span class="dl-add">+| `.frame/STRUCTURE.json`      | &quot;STRUCTURE.json Rules&quot;               |</span>
+<span class="dl-add">+| `.frame/QUICKSTART.md`       | &quot;QUICKSTART.md Rules&quot;                |</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> Quick reminders that always apply:</span>
+<span class="dl-ctx"> - Task work: `status: &quot;in_progress&quot;` when starting, `&quot;completed&quot;` +</span>
+<span class="dl-ctx">   `completedAt` when done; re-check statuses after commits.</span>
+<span class="dl-del">-- Important decisions: append to PROJECT_NOTES.md as</span>
+<span class="dl-add">+- Important decisions: append to `.frame/PROJECT_NOTES.md` as</span>
+<span class="dl-ctx">   `### [YYYY-MM-DD] Title` with the conversation&#39;s context (not a summary).</span>
+<span class="dl-ctx"> - Documentation in English; dates in ISO 8601.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -83,4 +83,6 @@ Quick reminders that always apply:</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-**Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A `CLAUDE.md` symlink is provided for Claude Code compatibility.</span>
+<span class="dl-add">+**Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be</span>
+<span class="dl-add">+AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,</span>
+<span class="dl-add">+which imports this file; delete that pointer to detach.</span></pre>
     </details>
   </div>
 </section>

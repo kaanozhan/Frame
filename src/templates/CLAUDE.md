@@ -19,9 +19,9 @@ implemented without approval.
 
 **Read these at the start of each session:**
 
-1. **STRUCTURE.json** — module map, which file is where
-2. **PROJECT_NOTES.md** — project vision, past decisions, session notes
-3. **tasks.json** — pending tasks
+1. **`.frame/STRUCTURE.json`** — module map, which file is where
+2. **`.frame/PROJECT_NOTES.md`** — project vision, past decisions, session notes
+3. **`.frame/tasks.json`** — pending tasks
 
 **Fast file lookup** — before manual grep/glob, run:
 
@@ -63,17 +63,17 @@ Full workflow (file layout, lifecycle, slash commands): see
 
 ## Writing Frame meta files — read the reference first
 
-| Before writing…  | Read in `.frame/docs/REFERENCE.md` |
-| ---------------- | ------------------------------------ |
-| tasks.json       | "Task Management" (schema + rules)   |
-| PROJECT_NOTES.md | "PROJECT_NOTES.md Rules"             |
-| STRUCTURE.json   | "STRUCTURE.json Rules"               |
-| QUICKSTART.md    | "QUICKSTART.md Rules"                |
+| Before writing…              | Read in `.frame/docs/REFERENCE.md` |
+| ---------------------------- | ------------------------------------ |
+| `.frame/tasks.json`          | "Task Management" (schema + rules)   |
+| `.frame/PROJECT_NOTES.md`    | "PROJECT_NOTES.md Rules"             |
+| `.frame/STRUCTURE.json`      | "STRUCTURE.json Rules"               |
+| `.frame/QUICKSTART.md`       | "QUICKSTART.md Rules"                |
 
 Quick reminders that always apply:
 - Task work: `status: "in_progress"` when starting, `"completed"` +
   `completedAt` when done; re-check statuses after commits.
-- Important decisions: append to PROJECT_NOTES.md as
+- Important decisions: append to `.frame/PROJECT_NOTES.md` as
   `### [YYYY-MM-DD] Title` with the conversation's context (not a summary).
 - Documentation in English; dates in ISO 8601.
 
@@ -83,4 +83,6 @@ Quick reminders that always apply:
 
 ---
 
-**Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A `CLAUDE.md` symlink is provided for Claude Code compatibility.
+**Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be
+AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,
+which imports this file; delete that pointer to detach.
