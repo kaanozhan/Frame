@@ -731,6 +731,7 @@
         "ensureClaudePointer",
         "installSpecHintHook",
         "removeSpecHintHook",
+        "removeFrame",
         "isSpecDrivenEnabled",
         "enableSpecDriven",
         "disableSpecDriven",
@@ -745,6 +746,7 @@
         "shared/frameConstants",
         "shared/frameTemplates",
         "frameStore",
+        "gitExclude",
         "gitSharing",
         "layoutMigration",
         "workspace",
@@ -761,28 +763,28 @@
       ],
       "functions": {
         "init": {
-          "line": 28,
+          "line": 29,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 35,
+          "line": 36,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 43,
+          "line": 44,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 56,
+          "line": 57,
           "params": [
             "filePath",
             "content"
@@ -790,21 +792,21 @@
           "purpose": "Create file if it doesn't exist"
         },
         "checkExistingFrameFiles": {
-          "line": 70,
+          "line": 71,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 97,
+          "line": 98,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 142,
+          "line": 143,
           "params": [
             "projectPath",
             "projectName",
@@ -812,7 +814,7 @@
           ]
         },
         "doInitializeFrameProject": {
-          "line": 150,
+          "line": 151,
           "params": [
             "projectPath",
             "projectName",
@@ -820,7 +822,7 @@
           ]
         },
         "runProjectInit": {
-          "line": 162,
+          "line": 163,
           "params": [
             "projectPath",
             "projectName",
@@ -828,14 +830,14 @@
           ]
         },
         "ensureClaudePointer": {
-          "line": 327,
+          "line": 328,
           "params": [
             "projectPath"
           ],
           "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start"
         },
         "installSpecHintHook": {
-          "line": 355,
+          "line": 356,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -843,7 +845,7 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "removeSpecHintHook": {
-          "line": 407,
+          "line": 408,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -851,60 +853,74 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 461,
+          "line": 462,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 466,
+          "line": 467,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 493,
+          "line": 494,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 520,
+          "line": 521,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 524,
+          "line": 525,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 538,
+          "line": 539,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 548,
+          "line": 549,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 620,
+          "line": 621,
           "params": [
             "projectPath"
           ]
         },
+        "removeFrame": {
+          "line": 670,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Delete everything Frame authored in this project and forget it:"
+        },
+        "removeHookSnippet": {
+          "line": 721,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
+        },
         "setupIPC": {
-          "line": 661,
+          "line": 761,
           "params": [
             "ipcMain"
           ],
@@ -921,6 +937,7 @@
           "SET_SPEC_DRIVEN",
           "GET_GIT_SHARING_STATE",
           "SET_GIT_SHARING",
+          "REMOVE_FRAME_FROM_PROJECT",
           "GET_LAYOUT_MIGRATION_PLAN",
           "RUN_LAYOUT_MIGRATION"
         ],
@@ -6818,19 +6835,19 @@
       ],
       "functions": {
         "init": {
-          "line": 38
+          "line": 40
         },
         "initAboutSection": {
-          "line": 165
+          "line": 205
         },
         "runCheck": {
-          "line": 250,
+          "line": 290,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 289,
+          "line": 329,
           "params": [
             "{ checked",
             "found",
@@ -6842,60 +6859,66 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 313,
+          "line": 353,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 324
+          "line": 364
         },
         "hideSidebarDot": {
-          "line": 328
+          "line": 368
         },
         "formatRelative": {
-          "line": 335,
+          "line": 375,
           "params": [
             "date"
           ]
         },
         "syncToggleFromSettings": {
-          "line": 346
+          "line": 386
         },
         "syncSpecDrivenToggle": {
-          "line": 367,
+          "line": 407,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "renderGitSharing": {
-          "line": 392,
+          "line": 432,
           "params": [
             "stateObj"
           ],
           "purpose": "Paint the sharing row from main's state object. `error` means the project"
         },
         "syncGitSharing": {
-          "line": 408
+          "line": 448
+        },
+        "setRemoveFrameNote": {
+          "line": 462,
+          "params": [
+            "message"
+          ]
         },
         "setGitSharingWarning": {
-          "line": 422,
+          "line": 468,
           "params": [
             "message"
           ]
         },
         "setSpecDrivenNote": {
-          "line": 428,
+          "line": 474,
           "params": [
             "message"
           ]
         },
         "open": {
-          "line": 434
+          "line": 480
         },
         "close": {
-          "line": 441
+          "line": 487
         },
         "toggle": {
-          "line": 448
+          "line": 494
         }
       },
       "ipc": {

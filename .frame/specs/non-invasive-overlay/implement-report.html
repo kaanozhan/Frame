@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">9 tasks</span>
-    <span class="pill good">9 verified</span>
+    <span class="pill">10 tasks</span>
+    <span class="pill good">10 verified</span>
     
     <span class="chip">2026-08-22</span>
   </div>
@@ -165,7 +165,7 @@
 <div class="wrap">
 <div class="run-status live">
   <span class="rs-badge">In progress</span>
-  <span class="rs-count">9 of 12 tasks done · next: <span class="rs-task">T10 — Add `frameProject.removeFrame` (delete `.frame/`…</span></span>
+  <span class="rs-count">10 of 12 tasks done · next: <span class="rs-task">T11 — Follow the layout through prose: `src/templates/orchestration/CONDUCTOR…</span></span>
   <span class="rs-note"><svg class="rs-info" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.7" r="1" fill="currentColor"/><rect x="7.15" y="6.9" width="1.7" height="5.2" rx="0.85" fill="currentColor"/></svg>Regenerated after each task. Reload for the latest.</span>
 </div>
 <section class="report-head">
@@ -5994,6 +5994,306 @@
 <span class="dl-add">+  assert.equal(frameStore.getTasks(projectDir).data.version, &#39;2.0&#39;, &#39;tasks still load from the root&#39;);</span>
 <span class="dl-add">+  assert.ok(frameStore.readAgents(projectDir).includes(&#39;AI Instructions&#39;));</span>
 <span class="dl-add">+  assert.equal(frameStore.isLegacyLayout(projectDir), true);</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T10</span>
+    <h2>Remove Frame from a project</h2>
+    <span class="card-meta"><span class="chip">03b9e89</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">285 pass, 0 fail (2 new)</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>frameProject.removeFrame deletes .frame/, .claude/rules/frame.md (and the rules/ directory when Frame&#39;s file was the only thing in it), Frame&#39;s hook entries from both Claude settings files via removeSpecHintHook, the marker block in .git/hooks/pre-commit or .husky/pre-commit, and the exclude block, then calls workspace.removeProject; REMOVE_FRAME_FROM_PROJECT is handled in setupIPC and pushes a fresh workspace list. The Settings → Workflow button confirms first, naming exactly what is deleted, then reports the returned list. Two tests: no Frame bytes remain and every user file is checksum-equal, and hooks/pre-commit content the user wrote survives.</p></div>
+    <div class="field"><span class="label">Why</span><p>The exclude block is removed before .frame/ because it names that directory. Stripping the pre-commit block also takes back the blank-line separator Frame&#39;s appender inserted — without that the user&#39;s .husky/pre-commit came back one byte different, which the checksum test caught; and a hook file left with nothing but a shebang was Frame&#39;s own creation, so it is deleted rather than left as a stub.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 951f59f..5608a36 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -10,6 +10,7 @@ const { IPC } = require(&#39;../shared/ipcChannels&#39;);</span>
+<span class="dl-ctx"> const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PATH } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const templates = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-ctx"> const frameStore = require(&#39;./frameStore&#39;);</span>
+<span class="dl-add">+const gitExclude = require(&#39;./gitExclude&#39;);</span>
+<span class="dl-ctx"> const gitSharing = require(&#39;./gitSharing&#39;);</span>
+<span class="dl-ctx"> const layoutMigration = require(&#39;./layoutMigration&#39;);</span>
+<span class="dl-ctx"> const workspace = require(&#39;./workspace&#39;);</span>
+<span class="dl-hunk">@@ -655,6 +656,105 @@ function upgradeSpecDocs(projectPath) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// ─── Remove Frame from a project ──────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Delete everything Frame authored in this project and forget it:</span>
+<span class="dl-add">+ * `.frame/`, the pointer file, Frame&#39;s hook entries in both Claude settings</span>
+<span class="dl-add">+ * files, the managed block in the pre-commit hook, and the exclude block.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * User files are never touched — not the CLAUDE.md a migration restored, not</span>
+<span class="dl-add">+ * an AGENTS.md they wrote, not their own hooks. What Frame did not write, it</span>
+<span class="dl-add">+ * does not remove.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function removeFrame(projectPath) {</span>
+<span class="dl-add">+  const removed = [];</span>
+<span class="dl-add">+  const errors = [];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const drop = (label, fn) =&gt; {</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      if (fn() !== false) removed.push(label);</span>
+<span class="dl-add">+    } catch (err) {</span>
+<span class="dl-add">+      errors.push(`${label}: ${err.message}`);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // The exclude block first: it names .frame/, so it has to go while the</span>
+<span class="dl-add">+  // directory (and the git repo&#39;s view of it) is still intact.</span>
+<span class="dl-add">+  drop(&#39;.git/info/exclude block&#39;, () =&gt; gitExclude.removeExcluded(projectPath).removed);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  drop(FRAME_DIR, () =&gt; {</span>
+<span class="dl-add">+    const dir = path.join(projectPath, FRAME_DIR);</span>
+<span class="dl-add">+    if (!fs.existsSync(dir)) return false;</span>
+<span class="dl-add">+    fs.rmSync(dir, { recursive: true, force: true });</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  drop(CLAUDE_RULE_PATH, () =&gt; {</span>
+<span class="dl-add">+    const rule = path.join(projectPath, ...CLAUDE_RULE_PATH.split(&#39;/&#39;));</span>
+<span class="dl-add">+    if (!fs.existsSync(rule)) return false;</span>
+<span class="dl-add">+    fs.unlinkSync(rule);</span>
+<span class="dl-add">+    // Take the rules/ directory with it when Frame&#39;s file was the only thing</span>
+<span class="dl-add">+    // in it; a directory with someone else&#39;s rules stays.</span>
+<span class="dl-add">+    const rulesDir = path.dirname(rule);</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      if (fs.readdirSync(rulesDir).length === 0) fs.rmdirSync(rulesDir);</span>
+<span class="dl-add">+    } catch (err) { /* leave it */ }</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const file of [&#39;settings.json&#39;, &#39;settings.local.json&#39;]) {</span>
+<span class="dl-add">+    drop(`.claude/${file} hooks`, () =&gt; removeSpecHintHook(projectPath, { file }).removed &gt; 0);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  drop(&#39;pre-commit hook block&#39;, () =&gt; removeHookSnippet(projectPath));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  workspace.removeProject(projectPath);</span>
+<span class="dl-add">+  return { removed, errors, projectPath };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Strip Frame&#39;s marker-wrapped block from whichever pre-commit hook carries</span>
+<span class="dl-add">+ * it. A hook file that becomes nothing but a shebang is deleted; anything the</span>
+<span class="dl-add">+ * user wrote around the block is left exactly as it was.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function removeHookSnippet(projectPath) {</span>
+<span class="dl-add">+  const candidates = [</span>
+<span class="dl-add">+    path.join(projectPath, &#39;.git&#39;, &#39;hooks&#39;, &#39;pre-commit&#39;),</span>
+<span class="dl-add">+    path.join(projectPath, &#39;.husky&#39;, &#39;pre-commit&#39;)</span>
+<span class="dl-add">+  ];</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  let changed = false;</span>
+<span class="dl-add">+  for (const hookPath of candidates) {</span>
+<span class="dl-add">+    let text;</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      text = fs.readFileSync(hookPath, &#39;utf8&#39;);</span>
+<span class="dl-add">+    } catch (err) {</span>
+<span class="dl-add">+      continue;</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+    const start = text.indexOf(templates.FRAME_HOOK_MARKER_START);</span>
+<span class="dl-add">+    if (start === -1) continue;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const endIdx = text.indexOf(templates.FRAME_HOOK_MARKER_END, start);</span>
+<span class="dl-add">+    const end = endIdx === -1</span>
+<span class="dl-add">+      ? text.length</span>
+<span class="dl-add">+      : endIdx + templates.FRAME_HOOK_MARKER_END.length + 1; // include the newline</span>
+<span class="dl-add">+    const head = text.slice(0, start);</span>
+<span class="dl-add">+    const tail = text.slice(end);</span>
+<span class="dl-add">+    // Appending the snippet to someone&#39;s existing hook inserted a blank-line</span>
+<span class="dl-add">+    // separator; removal has to take that back too, or &quot;no Frame bytes left&quot;</span>
+<span class="dl-add">+    // is a byte off from what the user actually wrote.</span>
+<span class="dl-add">+    const next = tail === &#39;&#39; ? head.replace(/\n{2,}$/, &#39;\n&#39;) : head + tail;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // Frame wrote the whole file at init when there was no hook; if nothing</span>
+<span class="dl-add">+    // but the shebang and `exit 0` is left, the file is ours to remove.</span>
+<span class="dl-add">+    if (/^\s*(#![^\n]*\n)?\s*(exit 0\s*)?$/.test(next)) fs.unlinkSync(hookPath);</span>
+<span class="dl-add">+    else fs.writeFileSync(hookPath, next, &#39;utf8&#39;);</span>
+<span class="dl-add">+    changed = true;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return changed;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Setup IPC handlers</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -735,6 +835,13 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">     return gitSharing.setMode(projectPath, mode);</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  ipcMain.handle(IPC.REMOVE_FRAME_FROM_PROJECT, (event, projectPath) =&gt; {</span>
+<span class="dl-add">+    if (!projectPath) return { removed: [], errors: [&#39;no project&#39;] };</span>
+<span class="dl-add">+    const result = removeFrame(projectPath);</span>
+<span class="dl-add">+    event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());</span>
+<span class="dl-add">+    return result;</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // ─── Layout migration ──────────────────────────────────────</span>
+<span class="dl-ctx">   ipcMain.handle(IPC.GET_LAYOUT_MIGRATION_PLAN, (event, projectPath) =&gt; {</span>
+<span class="dl-ctx">     if (!projectPath || !isFrameProject(projectPath)) return null;</span>
+<span class="dl-hunk">@@ -772,6 +879,7 @@ module.exports = {</span>
+<span class="dl-ctx">   ensureClaudePointer,</span>
+<span class="dl-ctx">   installSpecHintHook,</span>
+<span class="dl-ctx">   removeSpecHintHook,</span>
+<span class="dl-add">+  removeFrame,</span>
+<span class="dl-ctx">   isSpecDrivenEnabled,</span>
+<span class="dl-ctx">   enableSpecDriven,</span>
+<span class="dl-ctx">   disableSpecDriven,</span>
+<span class="dl-meta">diff --git a/src/renderer/settingsModal.js b/src/renderer/settingsModal.js</span>
+<span class="dl-meta">index c4d7479..d1d7fe3 100644</span>
+<span class="dl-file">--- a/src/renderer/settingsModal.js</span>
+<span class="dl-file">+++ b/src/renderer/settingsModal.js</span>
+<span class="dl-hunk">@@ -21,6 +21,8 @@ let crashDumpsToggleEl = null;</span>
+<span class="dl-ctx"> let specDrivenToggleEl = null;</span>
+<span class="dl-ctx"> let gitSharingSelectEl = null;</span>
+<span class="dl-ctx"> let gitSharingWarningEl = null;</span>
+<span class="dl-add">+let removeFrameBtnEl = null;</span>
+<span class="dl-add">+let removeFrameNoteEl = null;</span>
+<span class="dl-ctx"> let specDrivenNoteEl = null;</span>
+<span class="dl-ctx"> let isOpen = false;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -43,6 +45,8 @@ function init() {</span>
+<span class="dl-ctx">   specDrivenNoteEl = document.getElementById(&#39;settings-spec-driven-note&#39;);</span>
+<span class="dl-ctx">   gitSharingSelectEl = document.getElementById(&#39;settings-git-sharing&#39;);</span>
+<span class="dl-ctx">   gitSharingWarningEl = document.getElementById(&#39;settings-git-sharing-warning&#39;);</span>
+<span class="dl-add">+  removeFrameBtnEl = document.getElementById(&#39;settings-remove-frame&#39;);</span>
+<span class="dl-add">+  removeFrameNoteEl = document.getElementById(&#39;settings-remove-frame-note&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // About section</span>
+<span class="dl-ctx">   aboutVersionEl = document.getElementById(&#39;settings-version&#39;);</span>
+<span class="dl-hunk">@@ -137,6 +141,42 @@ function init() {</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // Remove Frame: destructive and irreversible, so it confirms first and</span>
+<span class="dl-add">+  // says exactly what will be deleted. Main does the work and answers with a</span>
+<span class="dl-add">+  // list; the note reports it rather than a bare &quot;done&quot;.</span>
+<span class="dl-add">+  if (removeFrameBtnEl) {</span>
+<span class="dl-add">+    removeFrameBtnEl.addEventListener(&#39;click&#39;, async () =&gt; {</span>
+<span class="dl-add">+      const projectPath = state.getProjectPath();</span>
+<span class="dl-add">+      if (!projectPath) {</span>
+<span class="dl-add">+        setRemoveFrameNote(&#39;Open a project first.&#39;);</span>
+<span class="dl-add">+        return;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+      const confirmed = window.confirm(</span>
+<span class="dl-add">+        &#39;Remove Frame from this project?\n\n&#39; +</span>
+<span class="dl-add">+        &#39;This deletes .frame/ (including your specs, notes and tasks), &#39; +</span>
+<span class="dl-add">+        &#39;.claude/rules/frame.md and Frame\&#39;s hook entries. Your own files are not touched.\n\n&#39; +</span>
+<span class="dl-add">+        &#39;This cannot be undone.&#39;</span>
+<span class="dl-add">+      );</span>
+<span class="dl-add">+      if (!confirmed) return;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+      removeFrameBtnEl.disabled = true;</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        const result = await ipcRenderer.invoke(IPC.REMOVE_FRAME_FROM_PROJECT, projectPath);</span>
+<span class="dl-add">+        if (result &amp;&amp; result.errors &amp;&amp; result.errors.length &gt; 0) {</span>
+<span class="dl-add">+          setRemoveFrameNote(&#39;Removed, with problems: &#39; + result.errors.join(&#39;; &#39;));</span>
+<span class="dl-add">+        } else {</span>
+<span class="dl-add">+          setRemoveFrameNote(&#39;Removed: &#39; + ((result &amp;&amp; result.removed) || []).join(&#39;, &#39;));</span>
+<span class="dl-add">+        }</span>
+<span class="dl-add">+        await syncGitSharing();</span>
+<span class="dl-add">+        await syncSpecDrivenToggle();</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        setRemoveFrameNote(&#39;Could not remove Frame: &#39; + err.message);</span>
+<span class="dl-add">+      } finally {</span>
+<span class="dl-add">+        removeFrameBtnEl.disabled = false;</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   overlayEl.addEventListener(&#39;mousedown&#39;, (e) =&gt; {</span>
+<span class="dl-ctx">     if (e.target === overlayEl) close();</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-hunk">@@ -419,6 +459,12 @@ async function syncGitSharing() {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+function setRemoveFrameNote(message) {</span>
+<span class="dl-add">+  if (!removeFrameNoteEl) return;</span>
+<span class="dl-add">+  removeFrameNoteEl.textContent = message || &#39;&#39;;</span>
+<span class="dl-add">+  removeFrameNoteEl.style.display = message ? &#39;&#39; : &#39;none&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> function setGitSharingWarning(message) {</span>
+<span class="dl-ctx">   if (!gitSharingWarningEl) return;</span>
+<span class="dl-ctx">   gitSharingWarningEl.textContent = message || &#39;&#39;;</span>
+<span class="dl-meta">diff --git a/test/frameProjectInit.test.js b/test/frameProjectInit.test.js</span>
+<span class="dl-meta">index 5310011..6a4f63f 100644</span>
+<span class="dl-file">--- a/test/frameProjectInit.test.js</span>
+<span class="dl-file">+++ b/test/frameProjectInit.test.js</span>
+<span class="dl-hunk">@@ -227,3 +227,62 @@ test(&#39;the sample project ships the new layout with no legacy fingerprint&#39;, () =&gt;</span>
+<span class="dl-ctx">   assert.ok(!fs.existsSync(path.join(sampleDir, &#39;CLAUDE.md&#39;)), &#39;no CLAUDE.md&#39;);</span>
+<span class="dl-ctx">   assert.ok(!fs.existsSync(path.join(sampleDir, &#39;GEMINI.md&#39;)), &#39;no GEMINI.md&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Remove Frame leaves no Frame-authored bytes and no user file changed&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const { execFileSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+  execFileSync(&#39;git&#39;, [&#39;init&#39;, &#39;-q&#39;], { cwd: projectDir });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const before = {};</span>
+<span class="dl-add">+  for (const rel of Object.keys(USER_FILES)) {</span>
+<span class="dl-add">+    before[rel] = hashFile(path.join(projectDir, ...rel.split(&#39;/&#39;)));</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;, { gitSharing: &#39;local&#39; });</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR)), &#39;init wrote .frame/&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const result = frameProject.removeFrame(projectDir);</span>
+<span class="dl-add">+  assert.deepEqual(result.errors, []);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_DIR)), &#39;.frame/ is gone&#39;);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, ...CLAUDE_RULE_PATH.split(&#39;/&#39;))), &#39;pointer is gone&#39;);</span>
+<span class="dl-add">+  for (const file of [&#39;settings.json&#39;, &#39;settings.local.json&#39;]) {</span>
+<span class="dl-add">+    const settingsPath = path.join(projectDir, &#39;.claude&#39;, file);</span>
+<span class="dl-add">+    if (!fs.existsSync(settingsPath)) continue;</span>
+<span class="dl-add">+    const text = fs.readFileSync(settingsPath, &#39;utf8&#39;);</span>
+<span class="dl-add">+    assert.ok(!text.includes(&#39;spec-hint.js&#39;), `${file} carries no Frame hook`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  const excludePath = path.join(projectDir, &#39;.git&#39;, &#39;info&#39;, &#39;exclude&#39;);</span>
+<span class="dl-add">+  if (fs.existsSync(excludePath)) {</span>
+<span class="dl-add">+    assert.ok(!fs.readFileSync(excludePath, &#39;utf8&#39;).includes(&#39;.frame&#39;), &#39;exclude block removed&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  const hookPath = path.join(projectDir, &#39;.git&#39;, &#39;hooks&#39;, &#39;pre-commit&#39;);</span>
+<span class="dl-add">+  if (fs.existsSync(hookPath)) {</span>
+<span class="dl-add">+    assert.ok(!fs.readFileSync(hookPath, &#39;utf8&#39;).includes(&#39;frame:structure&#39;), &#39;hook block removed&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const rel of Object.keys(USER_FILES)) {</span>
+<span class="dl-add">+    const file = path.join(projectDir, ...rel.split(&#39;/&#39;));</span>
+<span class="dl-add">+    assert.equal(hashFile(file), before[rel], `${rel} is untouched`);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Remove Frame keeps hooks and pre-commit content the user wrote&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const settingsDir = path.join(projectDir, &#39;.claude&#39;);</span>
+<span class="dl-add">+  fs.mkdirSync(settingsDir, { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(settingsDir, &#39;settings.json&#39;), JSON.stringify({</span>
+<span class="dl-add">+    permissions: { allow: [&#39;Bash(npm test)&#39;] },</span>
+<span class="dl-add">+    hooks: { UserPromptSubmit: [{ hooks: [{ type: &#39;command&#39;, command: &#39;node my-own-hook.js&#39; }] }] }</span>
+<span class="dl-add">+  }, null, 2), &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const hookDir = path.join(projectDir, &#39;.git&#39;, &#39;hooks&#39;);</span>
+<span class="dl-add">+  fs.mkdirSync(hookDir, { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(hookDir, &#39;pre-commit&#39;), &#39;#!/bin/sh\nnpm run lint\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+  frameProject.removeFrame(projectDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const settings = JSON.parse(fs.readFileSync(path.join(settingsDir, &#39;settings.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+  assert.deepEqual(settings.permissions.allow, [&#39;Bash(npm test)&#39;]);</span>
+<span class="dl-add">+  assert.equal(settings.hooks.UserPromptSubmit[0].hooks[0].command, &#39;node my-own-hook.js&#39;);</span>
+<span class="dl-add">+  assert.equal(fs.readFileSync(path.join(hookDir, &#39;pre-commit&#39;), &#39;utf8&#39;), &#39;#!/bin/sh\nnpm run lint\n&#39;);</span>
 <span class="dl-add">+});</span></pre>
     </details>
   </div>

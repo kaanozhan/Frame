@@ -4889,13 +4889,13 @@
       "title": "Add `frameProject.removeFrame` (delete `.frame/`, `.claude/rules/frame.md`, Frame hook entries from both settings files via `removeSpecHintHook`, the pre-commit marker block, the exclude block, then `workspace.removeProject`) with `REMOVE_FRAME_FROM_PROJECT` in `src/shared/ipcChannels.js` and the confirming \"Remove Frame from this project\" button in Settings → Workflow (`index.html`, `src/renderer/settingsModal.js`, `settings-modal.css`); ships with removal cases in `test/frameProjectInit.test.js` asserting no Frame-authored bytes remain and user files stay checksum-equal.",
       "description": "",
       "source": "spec:non-invasive-overlay:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-22T17:14:33.531Z",
-      "updatedAt": "2026-08-22T17:14:33.531Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T12:10:00.000Z",
+      "completedAt": "2026-08-23T12:10:00.000Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T11",

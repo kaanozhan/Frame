@@ -21,6 +21,8 @@ let crashDumpsToggleEl = null;
 let specDrivenToggleEl = null;
 let gitSharingSelectEl = null;
 let gitSharingWarningEl = null;
+let removeFrameBtnEl = null;
+let removeFrameNoteEl = null;
 let specDrivenNoteEl = null;
 let isOpen = false;
 
@@ -43,6 +45,8 @@ function init() {
   specDrivenNoteEl = document.getElementById('settings-spec-driven-note');
   gitSharingSelectEl = document.getElementById('settings-git-sharing');
   gitSharingWarningEl = document.getElementById('settings-git-sharing-warning');
+  removeFrameBtnEl = document.getElementById('settings-remove-frame');
+  removeFrameNoteEl = document.getElementById('settings-remove-frame-note');
 
   // About section
   aboutVersionEl = document.getElementById('settings-version');
@@ -133,6 +137,42 @@ function init() {
         setGitSharingWarning('Could not change this setting: ' + err.message);
       } finally {
         gitSharingSelectEl.disabled = false;
+      }
+    });
+  }
+
+  // Remove Frame: destructive and irreversible, so it confirms first and
+  // says exactly what will be deleted. Main does the work and answers with a
+  // list; the note reports it rather than a bare "done".
+  if (removeFrameBtnEl) {
+    removeFrameBtnEl.addEventListener('click', async () => {
+      const projectPath = state.getProjectPath();
+      if (!projectPath) {
+        setRemoveFrameNote('Open a project first.');
+        return;
+      }
+      const confirmed = window.confirm(
+        'Remove Frame from this project?\n\n' +
+        'This deletes .frame/ (including your specs, notes and tasks), ' +
+        '.claude/rules/frame.md and Frame\'s hook entries. Your own files are not touched.\n\n' +
+        'This cannot be undone.'
+      );
+      if (!confirmed) return;
+
+      removeFrameBtnEl.disabled = true;
+      try {
+        const result = await ipcRenderer.invoke(IPC.REMOVE_FRAME_FROM_PROJECT, projectPath);
+        if (result && result.errors && result.errors.length > 0) {
+          setRemoveFrameNote('Removed, with problems: ' + result.errors.join('; '));
+        } else {
+          setRemoveFrameNote('Removed: ' + ((result && result.removed) || []).join(', '));
+        }
+        await syncGitSharing();
+        await syncSpecDrivenToggle();
+      } catch (err) {
+        setRemoveFrameNote('Could not remove Frame: ' + err.message);
+      } finally {
+        removeFrameBtnEl.disabled = false;
       }
     });
   }
@@ -417,6 +457,12 @@ async function syncGitSharing() {
   } catch (err) {
     renderGitSharing({ error: err.message });
   }
+}
+
+function setRemoveFrameNote(message) {
+  if (!removeFrameNoteEl) return;
+  removeFrameNoteEl.textContent = message || '';
+  removeFrameNoteEl.style.display = message ? '' : 'none';
 }
 
 function setGitSharingWarning(message) {

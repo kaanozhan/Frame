@@ -10,6 +10,7 @@ const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PATH } = require('../shared/frameConstants');
 const templates = require('../shared/frameTemplates');
 const frameStore = require('./frameStore');
+const gitExclude = require('./gitExclude');
 const gitSharing = require('./gitSharing');
 const layoutMigration = require('./layoutMigration');
 const workspace = require('./workspace');
@@ -655,6 +656,105 @@ function upgradeSpecDocs(projectPath) {
   }
 }
 
+// ─── Remove Frame from a project ──────────────────────────
+
+/**
+ * Delete everything Frame authored in this project and forget it:
+ * `.frame/`, the pointer file, Frame's hook entries in both Claude settings
+ * files, the managed block in the pre-commit hook, and the exclude block.
+ *
+ * User files are never touched — not the CLAUDE.md a migration restored, not
+ * an AGENTS.md they wrote, not their own hooks. What Frame did not write, it
+ * does not remove.
+ */
+function removeFrame(projectPath) {
+  const removed = [];
+  const errors = [];
+
+  const drop = (label, fn) => {
+    try {
+      if (fn() !== false) removed.push(label);
+    } catch (err) {
+      errors.push(`${label}: ${err.message}`);
+    }
+  };
+
+  // The exclude block first: it names .frame/, so it has to go while the
+  // directory (and the git repo's view of it) is still intact.
+  drop('.git/info/exclude block', () => gitExclude.removeExcluded(projectPath).removed);
+
+  drop(FRAME_DIR, () => {
+    const dir = path.join(projectPath, FRAME_DIR);
+    if (!fs.existsSync(dir)) return false;
+    fs.rmSync(dir, { recursive: true, force: true });
+    return true;
+  });
+
+  drop(CLAUDE_RULE_PATH, () => {
+    const rule = path.join(projectPath, ...CLAUDE_RULE_PATH.split('/'));
+    if (!fs.existsSync(rule)) return false;
+    fs.unlinkSync(rule);
+    // Take the rules/ directory with it when Frame's file was the only thing
+    // in it; a directory with someone else's rules stays.
+    const rulesDir = path.dirname(rule);
+    try {
+      if (fs.readdirSync(rulesDir).length === 0) fs.rmdirSync(rulesDir);
+    } catch (err) { /* leave it */ }
+    return true;
+  });
+
+  for (const file of ['settings.json', 'settings.local.json']) {
+    drop(`.claude/${file} hooks`, () => removeSpecHintHook(projectPath, { file }).removed > 0);
+  }
+
+  drop('pre-commit hook block', () => removeHookSnippet(projectPath));
+
+  workspace.removeProject(projectPath);
+  return { removed, errors, projectPath };
+}
+
+/**
+ * Strip Frame's marker-wrapped block from whichever pre-commit hook carries
+ * it. A hook file that becomes nothing but a shebang is deleted; anything the
+ * user wrote around the block is left exactly as it was.
+ */
+function removeHookSnippet(projectPath) {
+  const candidates = [
+    path.join(projectPath, '.git', 'hooks', 'pre-commit'),
+    path.join(projectPath, '.husky', 'pre-commit')
+  ];
+
+  let changed = false;
+  for (const hookPath of candidates) {
+    let text;
+    try {
+      text = fs.readFileSync(hookPath, 'utf8');
+    } catch (err) {
+      continue;
+    }
+    const start = text.indexOf(templates.FRAME_HOOK_MARKER_START);
+    if (start === -1) continue;
+
+    const endIdx = text.indexOf(templates.FRAME_HOOK_MARKER_END, start);
+    const end = endIdx === -1
+      ? text.length
+      : endIdx + templates.FRAME_HOOK_MARKER_END.length + 1; // include the newline
+    const head = text.slice(0, start);
+    const tail = text.slice(end);
+    // Appending the snippet to someone's existing hook inserted a blank-line
+    // separator; removal has to take that back too, or "no Frame bytes left"
+    // is a byte off from what the user actually wrote.
+    const next = tail === '' ? head.replace(/\n{2,}$/, '\n') : head + tail;
+
+    // Frame wrote the whole file at init when there was no hook; if nothing
+    // but the shebang and `exit 0` is left, the file is ours to remove.
+    if (/^\s*(#![^\n]*\n)?\s*(exit 0\s*)?$/.test(next)) fs.unlinkSync(hookPath);
+    else fs.writeFileSync(hookPath, next, 'utf8');
+    changed = true;
+  }
+  return changed;
+}
+
 /**
  * Setup IPC handlers
  */
@@ -735,6 +835,13 @@ function setupIPC(ipcMain) {
     return gitSharing.setMode(projectPath, mode);
   });
 
+  ipcMain.handle(IPC.REMOVE_FRAME_FROM_PROJECT, (event, projectPath) => {
+    if (!projectPath) return { removed: [], errors: ['no project'] };
+    const result = removeFrame(projectPath);
+    event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
+    return result;
+  });
+
   // ─── Layout migration ──────────────────────────────────────
   ipcMain.handle(IPC.GET_LAYOUT_MIGRATION_PLAN, (event, projectPath) => {
     if (!projectPath || !isFrameProject(projectPath)) return null;
@@ -772,6 +879,7 @@ module.exports = {
   ensureClaudePointer,
   installSpecHintHook,
   removeSpecHintHook,
+  removeFrame,
   isSpecDrivenEnabled,
   enableSpecDriven,
   disableSpecDriven,

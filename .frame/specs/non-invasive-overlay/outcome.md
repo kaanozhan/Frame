@@ -180,3 +180,20 @@ copy, so a stale plan can never be executed.
 _Captured: 2026-08-23 · 7 file change(s)_
 
 ---
+
+## T10 — Remove Frame from a project
+
+Added `frameProject.removeFrame` (`.frame/`, the pointer and an emptied
+`rules/`, Frame's hook entries in both settings files, the pre-commit marker
+block, the exclude block, then `workspace.removeProject`) behind
+`REMOVE_FRAME_FROM_PROJECT` and a confirming button in Settings → Workflow that
+names what will be deleted. The exclude block goes first because it names the
+directory being deleted. Stripping the pre-commit block also takes back the
+blank-line separator Frame's appender had inserted — without that the user's
+`.husky/pre-commit` came back one byte different, which the checksum test
+caught — and a hook file left with only a shebang was Frame's own creation, so
+it is removed rather than left as a stub.
+
+_Captured: 2026-08-23 · 4 file change(s)_
+
+---

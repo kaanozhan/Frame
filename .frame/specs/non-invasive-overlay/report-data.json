@@ -111,6 +111,18 @@
         "status": "pass",
         "detail": "283 pass, 0 fail (3 new)"
       }
+    },
+    {
+      "id": "T10",
+      "title": "Remove Frame from a project",
+      "commit": "03b9e89",
+      "whatChanged": "frameProject.removeFrame deletes .frame/, .claude/rules/frame.md (and the rules/ directory when Frame's file was the only thing in it), Frame's hook entries from both Claude settings files via removeSpecHintHook, the marker block in .git/hooks/pre-commit or .husky/pre-commit, and the exclude block, then calls workspace.removeProject; REMOVE_FRAME_FROM_PROJECT is handled in setupIPC and pushes a fresh workspace list. The Settings → Workflow button confirms first, naming exactly what is deleted, then reports the returned list. Two tests: no Frame bytes remain and every user file is checksum-equal, and hooks/pre-commit content the user wrote survives.",
+      "whyChanged": "The exclude block is removed before .frame/ because it names that directory. Stripping the pre-commit block also takes back the blank-line separator Frame's appender inserted — without that the user's .husky/pre-commit came back one byte different, which the checksum test caught; and a hook file left with nothing but a shebang was Frame's own creation, so it is deleted rather than left as a stub.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "285 pass, 0 fail (2 new)"
+      }
     }
   ]
 }

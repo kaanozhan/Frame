@@ -227,3 +227,62 @@ test('the sample project ships the new layout with no legacy fingerprint', () =>
   assert.ok(!fs.existsSync(path.join(sampleDir, 'CLAUDE.md')), 'no CLAUDE.md');
   assert.ok(!fs.existsSync(path.join(sampleDir, 'GEMINI.md')), 'no GEMINI.md');
 });
+
+test('Remove Frame leaves no Frame-authored bytes and no user file changed', async () => {
+  const { execFileSync } = require('child_process');
+  execFileSync('git', ['init', '-q'], { cwd: projectDir });
+
+  const before = {};
+  for (const rel of Object.keys(USER_FILES)) {
+    before[rel] = hashFile(path.join(projectDir, ...rel.split('/')));
+  }
+
+  await frameProject.runProjectInit(projectDir, 'demo', { gitSharing: 'local' });
+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR)), 'init wrote .frame/');
+
+  const result = frameProject.removeFrame(projectDir);
+  assert.deepEqual(result.errors, []);
+
+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_DIR)), '.frame/ is gone');
+  assert.ok(!fs.existsSync(path.join(projectDir, ...CLAUDE_RULE_PATH.split('/'))), 'pointer is gone');
+  for (const file of ['settings.json', 'settings.local.json']) {
+    const settingsPath = path.join(projectDir, '.claude', file);
+    if (!fs.existsSync(settingsPath)) continue;
+    const text = fs.readFileSync(settingsPath, 'utf8');
+    assert.ok(!text.includes('spec-hint.js'), `${file} carries no Frame hook`);
+  }
+  const excludePath = path.join(projectDir, '.git', 'info', 'exclude');
+  if (fs.existsSync(excludePath)) {
+    assert.ok(!fs.readFileSync(excludePath, 'utf8').includes('.frame'), 'exclude block removed');
+  }
+  const hookPath = path.join(projectDir, '.git', 'hooks', 'pre-commit');
+  if (fs.existsSync(hookPath)) {
+    assert.ok(!fs.readFileSync(hookPath, 'utf8').includes('frame:structure'), 'hook block removed');
+  }
+
+  for (const rel of Object.keys(USER_FILES)) {
+    const file = path.join(projectDir, ...rel.split('/'));
+    assert.equal(hashFile(file), before[rel], `${rel} is untouched`);
+  }
+});
+
+test('Remove Frame keeps hooks and pre-commit content the user wrote', async () => {
+  const settingsDir = path.join(projectDir, '.claude');
+  fs.mkdirSync(settingsDir, { recursive: true });
+  fs.writeFileSync(path.join(settingsDir, 'settings.json'), JSON.stringify({
+    permissions: { allow: ['Bash(npm test)'] },
+    hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'node my-own-hook.js' }] }] }
+  }, null, 2), 'utf8');
+
+  const hookDir = path.join(projectDir, '.git', 'hooks');
+  fs.mkdirSync(hookDir, { recursive: true });
+  fs.writeFileSync(path.join(hookDir, 'pre-commit'), '#!/bin/sh\nnpm run lint\n', 'utf8');
+
+  await frameProject.runProjectInit(projectDir, 'demo');
+  frameProject.removeFrame(projectDir);
+
+  const settings = JSON.parse(fs.readFileSync(path.join(settingsDir, 'settings.json'), 'utf8'));
+  assert.deepEqual(settings.permissions.allow, ['Bash(npm test)']);
+  assert.equal(settings.hooks.UserPromptSubmit[0].hooks[0].command, 'node my-own-hook.js');
+  assert.equal(fs.readFileSync(path.join(hookDir, 'pre-commit'), 'utf8'), '#!/bin/sh\nnpm run lint\n');
+});
