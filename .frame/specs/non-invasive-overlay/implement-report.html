@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">13 tasks</span>
-    <span class="pill good">13 verified</span>
+    <span class="pill">14 tasks</span>
+    <span class="pill good">14 verified</span>
     
     <span class="chip">2026-08-23</span>
   </div>
@@ -9074,6 +9074,299 @@
 <span class="dl-ctx"> test(&#39;a linked worktree writes to the repository\&#39;s shared exclude file&#39;, () =&gt; {</span>
 <span class="dl-ctx">   fs.writeFileSync(path.join(repoDir, &#39;file.txt&#39;), &#39;x&#39;, &#39;utf8&#39;);</span>
 <span class="dl-ctx">   git(repoDir, [&#39;add&#39;, &#39;file.txt&#39;]); // not `-A`: .frame/ must stay untracked here</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T14</span>
+    <h2>Make the hook guard exit 0 and preserve user formatting</h2>
+    <span class="card-meta"><span class="chip">42e9702</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">293 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>The hook command is now `sh -c &#39;[ ! -f .frame/bin/spec-hint.js ] || exec node …&#39;`; the old `&amp;&amp;` forms joined LEGACY_SPEC_HINT_COMMANDS so removal still recognises them. `installSpecHintHook`/`removeSpecHintHook` detect the settings file&#39;s own indentation and write it back, and install now declines when a hook already runs spec-hint.js by any route Frame does not currently install.</p></div>
+    <div class="field"><span class="label">Why</span><p>With `&amp;&amp;` a missing spec-hint.js made the whole `sh -c` exit 1, so a clone without .frame/bin reported a failing hook on every prompt — the test now actually runs both commands in an empty directory. Treating Frame&#39;s own older command as &#39;already wired&#39; is what stops the mixed-entry state the dogfood hit by hand: migration removes the known forms first, so anything left really is the user&#39;s.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index df51f78..5dca0c5 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -341,6 +341,45 @@ function ensureClaudePointer(projectPath) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // ─── Spec-knowledge hook install ──────────────────────────</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The indentation an existing settings file uses, so rewriting it preserves</span>
+<span class="dl-add">+ * the user&#39;s formatting instead of reflowing the whole file to Frame&#39;s two</span>
+<span class="dl-add">+ * spaces (a diff nobody asked for). Falls back to two spaces for a new file.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function detectJsonIndent(text, fallback = 2) {</span>
+<span class="dl-add">+  const match = /\n([ \t]+)&quot;/.exec(text || &#39;&#39;);</span>
+<span class="dl-add">+  if (!match) return fallback;</span>
+<span class="dl-add">+  return match[1].includes(&#39;\t&#39;) ? &#39;\t&#39; : match[1];</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** Every hook command in a settings object, whatever shape the file is in. */</span>
+<span class="dl-add">+function hookCommandsIn(settings) {</span>
+<span class="dl-add">+  const commands = [];</span>
+<span class="dl-add">+  const hooks = settings &amp;&amp; settings.hooks;</span>
+<span class="dl-add">+  if (!hooks || typeof hooks !== &#39;object&#39;) return commands;</span>
+<span class="dl-add">+  for (const list of Object.values(hooks)) {</span>
+<span class="dl-add">+    if (!Array.isArray(list)) continue;</span>
+<span class="dl-add">+    for (const entry of list) {</span>
+<span class="dl-add">+      if (!entry || !Array.isArray(entry.hooks)) continue;</span>
+<span class="dl-add">+      for (const hook of entry.hooks) {</span>
+<span class="dl-add">+        if (hook &amp;&amp; typeof hook.command === &#39;string&#39;) commands.push(hook.command);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return commands;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/** The command strings Frame installs today. */</span>
+<span class="dl-add">+function frameHookCommands() {</span>
+<span class="dl-add">+  const commands = new Set();</span>
+<span class="dl-add">+  for (const entries of Object.values(templates.SPEC_HINT_HOOKS)) {</span>
+<span class="dl-add">+    for (const entry of entries) {</span>
+<span class="dl-add">+      for (const hook of entry.hooks) commands.add(hook.command);</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return commands;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Register the spec-hint hooks in the project&#39;s Claude settings file.</span>
+<span class="dl-ctx">  * Gated on the active AI tool being Claude Code — other CLIs have no hook</span>
+<span class="dl-hunk">@@ -367,9 +406,11 @@ function installSpecHintHook(projectPath, { file = &#39;settings.json&#39; } = {}) {</span>
+<span class="dl-ctx">   const settingsPath = path.join(settingsDir, file);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   let settings = {};</span>
+<span class="dl-add">+  let indent = 2;</span>
+<span class="dl-ctx">   if (fs.existsSync(settingsPath)) {</span>
+<span class="dl-add">+    const raw = fs.readFileSync(settingsPath, &#39;utf8&#39;);</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-del">-      settings = JSON.parse(fs.readFileSync(settingsPath, &#39;utf8&#39;));</span>
+<span class="dl-add">+      settings = JSON.parse(raw);</span>
+<span class="dl-ctx">     } catch (err) {</span>
+<span class="dl-ctx">       return {</span>
+<span class="dl-ctx">         installed: false,</span>
+<span class="dl-hunk">@@ -377,6 +418,18 @@ function installSpecHintHook(projectPath, { file = &#39;settings.json&#39; } = {}) {</span>
+<span class="dl-ctx">         reason: `.claude/${file} is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md &quot;Spec Knowledge Layer&quot;`</span>
+<span class="dl-ctx">       };</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-add">+    indent = detectJsonIndent(raw);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // A hook that already calls spec-hint.js by some other route — a project</span>
+<span class="dl-add">+  // wired by hand, or Frame&#39;s own older command form — is the layer this</span>
+<span class="dl-add">+  // install would provide. Adding Frame&#39;s entries beside it runs the hint</span>
+<span class="dl-add">+  // twice and leaves two commands to keep in step, so the file is left alone.</span>
+<span class="dl-add">+  const ours = frameHookCommands();</span>
+<span class="dl-add">+  const existing = hookCommandsIn(settings)</span>
+<span class="dl-add">+    .find((command) =&gt; command.includes(&#39;spec-hint.js&#39;) &amp;&amp; !ours.has(command));</span>
+<span class="dl-add">+  if (existing) {</span>
+<span class="dl-add">+    return { installed: false, existing: true, file, reason: `a hook already runs spec-hint.js (${existing})` };</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   settings.hooks = settings.hooks || {};</span>
+<span class="dl-hunk">@@ -395,14 +448,14 @@ function installSpecHintHook(projectPath, { file = &#39;settings.json&#39; } = {}) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   if (added &gt; 0) {</span>
+<span class="dl-ctx">     fs.mkdirSync(settingsDir, { recursive: true });</span>
+<span class="dl-del">-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + &#39;\n&#39;);</span>
+<span class="dl-add">+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + &#39;\n&#39;);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx">   return { installed: true, added, file };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Take Frame&#39;s hook entries back out of a Claude settings file. Exact-match on</span>
+<span class="dl-del">- * the command string (the current guarded form and the older unguarded one) —</span>
+<span class="dl-add">+ * the command string (today&#39;s guard, plus every form Frame shipped before) —</span>
+<span class="dl-ctx">  * a hook the user wrote, even one that calls spec-hint.js differently, is not</span>
+<span class="dl-ctx">  * ours to remove. Empty event arrays and an empty `hooks` object are cleaned</span>
+<span class="dl-ctx">  * up so removal leaves no Frame-shaped residue; every other key survives.</span>
+<span class="dl-hunk">@@ -412,8 +465,10 @@ function removeSpecHintHook(projectPath, { file = &#39;settings.json&#39; } = {}) {</span>
+<span class="dl-ctx">   if (!fs.existsSync(settingsPath)) return { removed: 0 };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   let settings;</span>
+<span class="dl-add">+  const raw = fs.readFileSync(settingsPath, &#39;utf8&#39;);</span>
+<span class="dl-add">+  const indent = detectJsonIndent(raw);</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-del">-    settings = JSON.parse(fs.readFileSync(settingsPath, &#39;utf8&#39;));</span>
+<span class="dl-add">+    settings = JSON.parse(raw);</span>
+<span class="dl-ctx">   } catch (err) {</span>
+<span class="dl-ctx">     return { removed: 0, manual: true, reason: `.claude/${file} is not valid JSON` };</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-hunk">@@ -445,7 +500,7 @@ function removeSpecHintHook(projectPath, { file = &#39;settings.json&#39; } = {}) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   if (removed === 0) return { removed: 0 };</span>
+<span class="dl-ctx">   if (Object.keys(settings.hooks).length === 0) delete settings.hooks;</span>
+<span class="dl-del">-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + &#39;\n&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + &#39;\n&#39;);</span>
+<span class="dl-ctx">   return { removed, file };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 7fb0a8a..db067cc 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -861,9 +861,11 @@ function getFrameGitignoreBlock() {</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Spec-knowledge hook entries for a user project. The command is guarded so a</span>
+<span class="dl-ctx">  * clone without `.frame/bin/` (sharing mode `local`, or a teammate who hasn&#39;t</span>
+<span class="dl-del">- * run Frame) produces no hook error — the `[ -f ... ]` test simply fails and</span>
+<span class="dl-del">- * the hook exits 0. The literal command string is Frame&#39;s marker: entries are</span>
+<span class="dl-del">- * added and removed by exact match, never by fuzzy matching.</span>
+<span class="dl-add">+ * run Frame) produces no hook error. The guard is written as `[ ! -f … ] || …`</span>
+<span class="dl-add">+ * rather than `[ -f … ] &amp;&amp; …`: with `&amp;&amp;`, a missing file makes the whole `sh -c`</span>
+<span class="dl-add">+ * exit 1 and Claude Code reports a failing hook on every prompt. With `||` the</span>
+<span class="dl-add">+ * absent file is the success case. The literal command string is Frame&#39;s</span>
+<span class="dl-add">+ * marker: entries are added and removed by exact match, never fuzzily.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> const SPEC_HINT_HOOKS = {</span>
+<span class="dl-ctx">   PreToolUse: [</span>
+<span class="dl-hunk">@@ -871,7 +873,7 @@ const SPEC_HINT_HOOKS = {</span>
+<span class="dl-ctx">       matcher: &#39;Edit|Write&#39;,</span>
+<span class="dl-ctx">       hooks: [{</span>
+<span class="dl-ctx">         type: &#39;command&#39;,</span>
+<span class="dl-del">-        command: &quot;sh -c &#39;[ -f .frame/bin/spec-hint.js ] &amp;&amp; exec node .frame/bin/spec-hint.js pre-edit&#39;&quot;</span>
+<span class="dl-add">+        command: &quot;sh -c &#39;[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js pre-edit&#39;&quot;</span>
+<span class="dl-ctx">       }]</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   ],</span>
+<span class="dl-hunk">@@ -879,17 +881,21 @@ const SPEC_HINT_HOOKS = {</span>
+<span class="dl-ctx">     {</span>
+<span class="dl-ctx">       hooks: [{</span>
+<span class="dl-ctx">         type: &#39;command&#39;,</span>
+<span class="dl-del">-        command: &quot;sh -c &#39;[ -f .frame/bin/spec-hint.js ] &amp;&amp; exec node .frame/bin/spec-hint.js prompt&#39;&quot;</span>
+<span class="dl-add">+        command: &quot;sh -c &#39;[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js prompt&#39;&quot;</span>
+<span class="dl-ctx">       }]</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   ]</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-// The unguarded form Frame installed before the overlay layout. Migration</span>
+<span class="dl-del">-// replaces these with the guarded entries above; nothing else matches them.</span>
+<span class="dl-add">+// Forms Frame installed before: the unguarded pre-overlay commands, and the</span>
+<span class="dl-add">+// `&amp;&amp;` guard that exited 1 when the file was missing. Removal matches these</span>
+<span class="dl-add">+// too, so an upgrade takes Frame&#39;s older entries out cleanly; nothing else</span>
+<span class="dl-add">+// matches them.</span>
+<span class="dl-ctx"> const LEGACY_SPEC_HINT_COMMANDS = [</span>
+<span class="dl-ctx">   &#39;node .frame/bin/spec-hint.js pre-edit&#39;,</span>
+<span class="dl-del">-  &#39;node .frame/bin/spec-hint.js prompt&#39;</span>
+<span class="dl-add">+  &#39;node .frame/bin/spec-hint.js prompt&#39;,</span>
+<span class="dl-add">+  &quot;sh -c &#39;[ -f .frame/bin/spec-hint.js ] &amp;&amp; exec node .frame/bin/spec-hint.js pre-edit&#39;&quot;,</span>
+<span class="dl-add">+  &quot;sh -c &#39;[ -f .frame/bin/spec-hint.js ] &amp;&amp; exec node .frame/bin/spec-hint.js prompt&#39;&quot;</span>
+<span class="dl-ctx"> ];</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-meta">diff --git a/test/frameProjectInit.test.js b/test/frameProjectInit.test.js</span>
+<span class="dl-meta">index fd0fd3d..7f4f480 100644</span>
+<span class="dl-file">--- a/test/frameProjectInit.test.js</span>
+<span class="dl-file">+++ b/test/frameProjectInit.test.js</span>
+<span class="dl-hunk">@@ -152,11 +152,63 @@ test(&#39;hook entries are guarded and land in settings.json under repo sharing&#39;, as</span>
+<span class="dl-ctx">   const commands = Object.values(settings.hooks).flat().flatMap((e) =&gt; e.hooks.map((h) =&gt; h.command));</span>
+<span class="dl-ctx">   assert.equal(commands.length, 2);</span>
+<span class="dl-ctx">   for (const command of commands) {</span>
+<span class="dl-del">-    assert.match(command, /^sh -c &#39;\[ -f \.frame\/bin\/spec-hint\.js \] &amp;&amp; exec node \.frame\/bin\/spec-hint\.js (pre-edit|prompt)&#39;$/);</span>
+<span class="dl-add">+    assert.match(command, /^sh -c &#39;\[ ! -f \.frame\/bin\/spec-hint\.js \] \|\| exec node \.frame\/bin\/spec-hint\.js (pre-edit|prompt)&#39;$/);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx">   assert.ok(!fs.existsSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.local.json&#39;)));</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+test(&#39;the hook guard exits 0 when .frame/bin/spec-hint.js is absent&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const { execFileSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const settings = JSON.parse(fs.readFileSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-add">+  const commands = Object.values(settings.hooks).flat().flatMap((e) =&gt; e.hooks.map((h) =&gt; h.command));</span>
+<span class="dl-add">+  // A project whose .frame/bin was never staged (sharing mode local on a</span>
+<span class="dl-add">+  // teammate&#39;s clone) must not report a failing hook on every prompt.</span>
+<span class="dl-add">+  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-nohint-&#39;));</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    for (const command of commands) {</span>
+<span class="dl-add">+      execFileSync(&#39;sh&#39;, [&#39;-c&#39;, command], { cwd: emptyDir, stdio: &#39;ignore&#39; });</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    fs.rmSync(emptyDir, { recursive: true, force: true });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a settings file Frame writes into keeps its own indentation&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const settingsDir = path.join(projectDir, &#39;.claude&#39;);</span>
+<span class="dl-add">+  fs.mkdirSync(settingsDir, { recursive: true });</span>
+<span class="dl-add">+  const settingsPath = path.join(settingsDir, &#39;settings.json&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(settingsPath, JSON.stringify({ permissions: { allow: [&#39;Bash(npm test)&#39;] } }, null, 4) + &#39;\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const text = fs.readFileSync(settingsPath, &#39;utf8&#39;);</span>
+<span class="dl-add">+  assert.match(text, /^ {4}&quot;permissions&quot;: \{$/m, &#39;four-space indentation preserved&#39;);</span>
+<span class="dl-add">+  assert.ok(!/^ {2}&quot;permissions&quot;/m.test(text), &#39;not reflowed to Frame\&#39;s two spaces&#39;);</span>
+<span class="dl-add">+  assert.equal(Object.values(JSON.parse(text).hooks).flat().length, 2, &#39;and the hooks did land&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a project already wired to spec-hint.js by hand keeps its own hooks&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const settingsDir = path.join(projectDir, &#39;.claude&#39;);</span>
+<span class="dl-add">+  fs.mkdirSync(settingsDir, { recursive: true });</span>
+<span class="dl-add">+  const settingsPath = path.join(settingsDir, &#39;settings.json&#39;);</span>
+<span class="dl-add">+  const own = {</span>
+<span class="dl-add">+    hooks: { UserPromptSubmit: [{ hooks: [{ type: &#39;command&#39;, command: &#39;node scripts/spec-hint.js prompt&#39; }] }] }</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+  fs.writeFileSync(settingsPath, JSON.stringify(own, null, 2) + &#39;\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const summary = frameProject.installSpecHintHook(projectDir, { file: &#39;settings.json&#39; });</span>
+<span class="dl-add">+  assert.equal(summary.installed, false);</span>
+<span class="dl-add">+  assert.equal(summary.existing, true);</span>
+<span class="dl-add">+  assert.equal(fs.readFileSync(settingsPath, &#39;utf8&#39;), JSON.stringify(own, null, 2) + &#39;\n&#39;, &#39;file untouched&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // And a full init makes the same call, so nothing is added there either.</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+  const after = JSON.parse(fs.readFileSync(settingsPath, &#39;utf8&#39;));</span>
+<span class="dl-add">+  assert.equal(Object.values(after.hooks).flat().length, 1, &#39;still just the user\&#39;s entry&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> test(&#39;local sharing puts the hook entries in settings.local.json instead&#39;, async () =&gt; {</span>
+<span class="dl-ctx">   await frameProject.runProjectInit(projectDir, &#39;demo&#39;, { gitSharing: &#39;local&#39; });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/test/layoutMigration.test.js b/test/layoutMigration.test.js</span>
+<span class="dl-meta">index 2108028..7f7d93d 100644</span>
+<span class="dl-file">--- a/test/layoutMigration.test.js</span>
+<span class="dl-file">+++ b/test/layoutMigration.test.js</span>
+<span class="dl-hunk">@@ -281,10 +281,29 @@ test(&#39;hook entries are replaced with the guarded form&#39;, () =&gt; {</span>
+<span class="dl-ctx">   const settings = JSON.parse(fs.readFileSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-ctx">   const commands = Object.values(settings.hooks).flat().flatMap((e) =&gt; e.hooks.map((h) =&gt; h.command));</span>
+<span class="dl-ctx">   assert.equal(commands.length, 2);</span>
+<span class="dl-del">-  assert.ok(commands.every((c) =&gt; c.startsWith(&quot;sh -c &#39;[ -f .frame/bin/spec-hint.js ]&quot;)), &#39;guarded form&#39;);</span>
+<span class="dl-add">+  assert.ok(commands.every((c) =&gt; c.startsWith(&quot;sh -c &#39;[ ! -f .frame/bin/spec-hint.js ] ||&quot;)), &#39;guard exits 0&#39;);</span>
+<span class="dl-ctx">   assert.deepEqual(settings.permissions.allow, [&#39;Bash(npm test)&#39;], &#39;the rest of the file survives&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+test(&#39;a hand-wired spec-hint hook is left alone, not doubled up&#39;, () =&gt; {</span>
+<span class="dl-add">+  // Frame&#39;s own repository runs `node scripts/spec-hint.js`. Migration must</span>
+<span class="dl-add">+  // not add its .frame/bin entries beside it: the hint would run twice.</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  fs.mkdirSync(path.join(projectDir, &#39;.claude&#39;), { recursive: true });</span>
+<span class="dl-add">+  const settingsPath = path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;);</span>
+<span class="dl-add">+  const own = {</span>
+<span class="dl-add">+    hooks: {</span>
+<span class="dl-add">+      UserPromptSubmit: [{ hooks: [{ type: &#39;command&#39;, command: &#39;node scripts/spec-hint.js prompt&#39; }] }]</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+  fs.writeFileSync(settingsPath, JSON.stringify(own, null, 4) + &#39;\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const after = fs.readFileSync(settingsPath, &#39;utf8&#39;);</span>
+<span class="dl-add">+  assert.equal(after, JSON.stringify(own, null, 4) + &#39;\n&#39;, &#39;byte-identical: no entries, no reflow&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> test(&#39;a second run is a no-op, and an interrupted one reconciles&#39;, () =&gt; {</span>
+<span class="dl-ctx">   projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-ctx">   layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span></pre>
     </details>
   </div>
 </section>

@@ -281,8 +281,27 @@ test('hook entries are replaced with the guarded form', () => {
   const settings = JSON.parse(fs.readFileSync(path.join(projectDir, '.claude', 'settings.json'), 'utf8'));
   const commands = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command));
   assert.equal(commands.length, 2);
-  assert.ok(commands.every((c) => c.startsWith("sh -c '[ -f .frame/bin/spec-hint.js ]")), 'guarded form');
+  assert.ok(commands.every((c) => c.startsWith("sh -c '[ ! -f .frame/bin/spec-hint.js ] ||")), 'guard exits 0');
   assert.deepEqual(settings.permissions.allow, ['Bash(npm test)'], 'the rest of the file survives');
+});
+
+test('a hand-wired spec-hint hook is left alone, not doubled up', () => {
+  // Frame's own repository runs `node scripts/spec-hint.js`. Migration must
+  // not add its .frame/bin entries beside it: the hint would run twice.
+  projectDir = makeLegacyProject({ commit: true });
+  fs.mkdirSync(path.join(projectDir, '.claude'), { recursive: true });
+  const settingsPath = path.join(projectDir, '.claude', 'settings.json');
+  const own = {
+    hooks: {
+      UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'node scripts/spec-hint.js prompt' }] }]
+    }
+  };
+  fs.writeFileSync(settingsPath, JSON.stringify(own, null, 4) + '\n', 'utf8');
+
+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
+
+  const after = fs.readFileSync(settingsPath, 'utf8');
+  assert.equal(after, JSON.stringify(own, null, 4) + '\n', 'byte-identical: no entries, no reflow');
 });
 
 test('a second run is a no-op, and an interrupted one reconciles', () => {

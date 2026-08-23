@@ -836,8 +836,27 @@
           ],
           "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start"
         },
+        "detectJsonIndent": {
+          "line": 349,
+          "params": [
+            "text",
+            "fallback = 2"
+          ],
+          "purpose": "The indentation an existing settings file uses, so rewriting it preserves"
+        },
+        "hookCommandsIn": {
+          "line": 356,
+          "params": [
+            "settings"
+          ],
+          "purpose": "Every hook command in a settings object, whatever shape the file is in."
+        },
+        "frameHookCommands": {
+          "line": 373,
+          "purpose": "The command strings Frame installs today."
+        },
         "installSpecHintHook": {
-          "line": 358,
+          "line": 397,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -845,7 +864,7 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "removeSpecHintHook": {
-          "line": 410,
+          "line": 463,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -853,74 +872,74 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 464,
+          "line": 519,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 469,
+          "line": 524,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 496,
+          "line": 551,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 523,
+          "line": 578,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 527,
+          "line": 582,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 541,
+          "line": 596,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 551,
+          "line": 606,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 623,
+          "line": 678,
           "params": [
             "projectPath"
           ]
         },
         "removeFrame": {
-          "line": 672,
+          "line": 727,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "removeHookSnippet": {
-          "line": 723,
+          "line": 778,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "setupIPC": {
-          "line": 763,
+          "line": 818,
           "params": [
             "ipcMain"
           ],
@@ -9289,11 +9308,11 @@
           "line": 853
         },
         "getCodexWrapperTemplate": {
-          "line": 904,
+          "line": 910,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 941,
+          "line": 947,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -9301,27 +9320,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 987
+          "line": 993
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1012,
+          "line": 1018,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1035,
+          "line": 1041,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1047,
+          "line": 1053,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1067
+          "line": 1073
         },
         "getOrchBinScripts": {
-          "line": 1085,
+          "line": 1091,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

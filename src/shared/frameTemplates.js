@@ -861,9 +861,11 @@ function getFrameGitignoreBlock() {
 /**
  * Spec-knowledge hook entries for a user project. The command is guarded so a
  * clone without `.frame/bin/` (sharing mode `local`, or a teammate who hasn't
- * run Frame) produces no hook error — the `[ -f ... ]` test simply fails and
- * the hook exits 0. The literal command string is Frame's marker: entries are
- * added and removed by exact match, never by fuzzy matching.
+ * run Frame) produces no hook error. The guard is written as `[ ! -f … ] || …`
+ * rather than `[ -f … ] && …`: with `&&`, a missing file makes the whole `sh -c`
+ * exit 1 and Claude Code reports a failing hook on every prompt. With `||` the
+ * absent file is the success case. The literal command string is Frame's
+ * marker: entries are added and removed by exact match, never fuzzily.
  */
 const SPEC_HINT_HOOKS = {
   PreToolUse: [
@@ -871,7 +873,7 @@ const SPEC_HINT_HOOKS = {
       matcher: 'Edit|Write',
       hooks: [{
         type: 'command',
-        command: "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js pre-edit'"
+        command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js pre-edit'"
       }]
     }
   ],
@@ -879,17 +881,21 @@ const SPEC_HINT_HOOKS = {
     {
       hooks: [{
         type: 'command',
-        command: "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js prompt'"
+        command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js prompt'"
       }]
     }
   ]
 };
 
-// The unguarded form Frame installed before the overlay layout. Migration
-// replaces these with the guarded entries above; nothing else matches them.
+// Forms Frame installed before: the unguarded pre-overlay commands, and the
+// `&&` guard that exited 1 when the file was missing. Removal matches these
+// too, so an upgrade takes Frame's older entries out cleanly; nothing else
+// matches them.
 const LEGACY_SPEC_HINT_COMMANDS = [
   'node .frame/bin/spec-hint.js pre-edit',
-  'node .frame/bin/spec-hint.js prompt'
+  'node .frame/bin/spec-hint.js prompt',
+  "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js pre-edit'",
+  "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js prompt'"
 ];
 
 /**

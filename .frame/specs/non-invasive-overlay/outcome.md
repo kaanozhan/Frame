@@ -255,3 +255,21 @@ open now), and returns `installSpecHintHook`'s result as `hooks`.
 _Captured: 2026-08-23 · 5 file change(s)_
 
 ---
+
+## T14 — Make the hook guard exit 0 and preserve user formatting
+
+Replaced the hook command's `[ -f … ] && exec …` guard with `[ ! -f … ] || exec …`
+(the `&&` form made the whole `sh -c` exit 1 when `.frame/bin/spec-hint.js` was
+absent, so a clone without it reported a failing hook on every prompt) and put
+both older forms into `LEGACY_SPEC_HINT_COMMANDS` so removal still matches them.
+`installSpecHintHook`/`removeSpecHintHook` now detect the settings file's own
+indentation and write it back instead of reflowing a four-space file to two,
+and install declines outright when a hook already runs `spec-hint.js` by a
+route Frame does not currently install — a hand-wired project (this repository
+runs `node scripts/spec-hint.js`) or Frame's own earlier command form. That one
+guard covers both call sites the audit named, init and migration's step 5, so
+no separate matcher was needed there.
+
+_Captured: 2026-08-23 · 4 file change(s)_
+
+---

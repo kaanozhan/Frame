@@ -342,6 +342,45 @@ function ensureClaudePointer(projectPath) {
 // ─── Spec-knowledge hook install ──────────────────────────
 
 /**
+ * The indentation an existing settings file uses, so rewriting it preserves
+ * the user's formatting instead of reflowing the whole file to Frame's two
+ * spaces (a diff nobody asked for). Falls back to two spaces for a new file.
+ */
+function detectJsonIndent(text, fallback = 2) {
+  const match = /\n([ \t]+)"/.exec(text || '');
+  if (!match) return fallback;
+  return match[1].includes('\t') ? '\t' : match[1];
+}
+
+/** Every hook command in a settings object, whatever shape the file is in. */
+function hookCommandsIn(settings) {
+  const commands = [];
+  const hooks = settings && settings.hooks;
+  if (!hooks || typeof hooks !== 'object') return commands;
+  for (const list of Object.values(hooks)) {
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) {
+      if (!entry || !Array.isArray(entry.hooks)) continue;
+      for (const hook of entry.hooks) {
+        if (hook && typeof hook.command === 'string') commands.push(hook.command);
+      }
+    }
+  }
+  return commands;
+}
+
+/** The command strings Frame installs today. */
+function frameHookCommands() {
+  const commands = new Set();
+  for (const entries of Object.values(templates.SPEC_HINT_HOOKS)) {
+    for (const entry of entries) {
+      for (const hook of entry.hooks) commands.add(hook.command);
+    }
+  }
+  return commands;
+}
+
+/**
  * Register the spec-hint hooks in the project's Claude settings file.
  * Gated on the active AI tool being Claude Code — other CLIs have no hook
  * system, they keep the AGENTS.md advisory layer.
@@ -367,9 +406,11 @@ function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
   const settingsPath = path.join(settingsDir, file);
 
   let settings = {};
+  let indent = 2;
   if (fs.existsSync(settingsPath)) {
+    const raw = fs.readFileSync(settingsPath, 'utf8');
     try {
-      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      settings = JSON.parse(raw);
     } catch (err) {
       return {
         installed: false,
@@ -377,6 +418,18 @@ function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
         reason: `.claude/${file} is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md "Spec Knowledge Layer"`
       };
     }
+    indent = detectJsonIndent(raw);
+  }
+
+  // A hook that already calls spec-hint.js by some other route — a project
+  // wired by hand, or Frame's own older command form — is the layer this
+  // install would provide. Adding Frame's entries beside it runs the hint
+  // twice and leaves two commands to keep in step, so the file is left alone.
+  const ours = frameHookCommands();
+  const existing = hookCommandsIn(settings)
+    .find((command) => command.includes('spec-hint.js') && !ours.has(command));
+  if (existing) {
+    return { installed: false, existing: true, file, reason: `a hook already runs spec-hint.js (${existing})` };
   }
 
   settings.hooks = settings.hooks || {};
@@ -395,14 +448,14 @@ function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
 
   if (added > 0) {
     fs.mkdirSync(settingsDir, { recursive: true });
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + '\n');
   }
   return { installed: true, added, file };
 }
 
 /**
  * Take Frame's hook entries back out of a Claude settings file. Exact-match on
- * the command string (the current guarded form and the older unguarded one) —
+ * the command string (today's guard, plus every form Frame shipped before) —
  * a hook the user wrote, even one that calls spec-hint.js differently, is not
  * ours to remove. Empty event arrays and an empty `hooks` object are cleaned
  * up so removal leaves no Frame-shaped residue; every other key survives.
@@ -412,8 +465,10 @@ function removeSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
   if (!fs.existsSync(settingsPath)) return { removed: 0 };
 
   let settings;
+  const raw = fs.readFileSync(settingsPath, 'utf8');
+  const indent = detectJsonIndent(raw);
   try {
-    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    settings = JSON.parse(raw);
   } catch (err) {
     return { removed: 0, manual: true, reason: `.claude/${file} is not valid JSON` };
   }
@@ -445,7 +500,7 @@ function removeSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
 
   if (removed === 0) return { removed: 0 };
   if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + '\n');
   return { removed, file };
 }
 

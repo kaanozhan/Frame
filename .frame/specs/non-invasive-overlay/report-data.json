@@ -159,6 +159,18 @@
         "status": "pass",
         "detail": "289 pass, 0 fail"
       }
+    },
+    {
+      "id": "T14",
+      "title": "Make the hook guard exit 0 and preserve user formatting",
+      "commit": "42e9702",
+      "whatChanged": "The hook command is now `sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node …'`; the old `&&` forms joined LEGACY_SPEC_HINT_COMMANDS so removal still recognises them. `installSpecHintHook`/`removeSpecHintHook` detect the settings file's own indentation and write it back, and install now declines when a hook already runs spec-hint.js by any route Frame does not currently install.",
+      "whyChanged": "With `&&` a missing spec-hint.js made the whole `sh -c` exit 1, so a clone without .frame/bin reported a failing hook on every prompt — the test now actually runs both commands in an empty directory. Treating Frame's own older command as 'already wired' is what stops the mixed-entry state the dogfood hit by hand: migration removes the known forms first, so anything left really is the user's.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "293 pass, 0 fail"
+      }
     }
   ]
 }

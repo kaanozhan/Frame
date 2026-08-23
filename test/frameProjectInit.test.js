@@ -152,9 +152,61 @@ test('hook entries are guarded and land in settings.json under repo sharing', as
   const commands = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command));
   assert.equal(commands.length, 2);
   for (const command of commands) {
-    assert.match(command, /^sh -c '\[ -f \.frame\/bin\/spec-hint\.js \] && exec node \.frame\/bin\/spec-hint\.js (pre-edit|prompt)'$/);
+    assert.match(command, /^sh -c '\[ ! -f \.frame\/bin\/spec-hint\.js \] \|\| exec node \.frame\/bin\/spec-hint\.js (pre-edit|prompt)'$/);
   }
   assert.ok(!fs.existsSync(path.join(projectDir, '.claude', 'settings.local.json')));
+});
+
+test('the hook guard exits 0 when .frame/bin/spec-hint.js is absent', async () => {
+  const { execFileSync } = require('child_process');
+  await frameProject.runProjectInit(projectDir, 'demo');
+
+  const settings = JSON.parse(fs.readFileSync(path.join(projectDir, '.claude', 'settings.json'), 'utf8'));
+  const commands = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command));
+  // A project whose .frame/bin was never staged (sharing mode local on a
+  // teammate's clone) must not report a failing hook on every prompt.
+  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-nohint-'));
+  try {
+    for (const command of commands) {
+      execFileSync('sh', ['-c', command], { cwd: emptyDir, stdio: 'ignore' });
+    }
+  } finally {
+    fs.rmSync(emptyDir, { recursive: true, force: true });
+  }
+});
+
+test('a settings file Frame writes into keeps its own indentation', async () => {
+  const settingsDir = path.join(projectDir, '.claude');
+  fs.mkdirSync(settingsDir, { recursive: true });
+  const settingsPath = path.join(settingsDir, 'settings.json');
+  fs.writeFileSync(settingsPath, JSON.stringify({ permissions: { allow: ['Bash(npm test)'] } }, null, 4) + '\n', 'utf8');
+
+  await frameProject.runProjectInit(projectDir, 'demo');
+
+  const text = fs.readFileSync(settingsPath, 'utf8');
+  assert.match(text, /^ {4}"permissions": \{$/m, 'four-space indentation preserved');
+  assert.ok(!/^ {2}"permissions"/m.test(text), 'not reflowed to Frame\'s two spaces');
+  assert.equal(Object.values(JSON.parse(text).hooks).flat().length, 2, 'and the hooks did land');
+});
+
+test('a project already wired to spec-hint.js by hand keeps its own hooks', async () => {
+  const settingsDir = path.join(projectDir, '.claude');
+  fs.mkdirSync(settingsDir, { recursive: true });
+  const settingsPath = path.join(settingsDir, 'settings.json');
+  const own = {
+    hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'node scripts/spec-hint.js prompt' }] }] }
+  };
+  fs.writeFileSync(settingsPath, JSON.stringify(own, null, 2) + '\n', 'utf8');
+
+  const summary = frameProject.installSpecHintHook(projectDir, { file: 'settings.json' });
+  assert.equal(summary.installed, false);
+  assert.equal(summary.existing, true);
+  assert.equal(fs.readFileSync(settingsPath, 'utf8'), JSON.stringify(own, null, 2) + '\n', 'file untouched');
+
+  // And a full init makes the same call, so nothing is added there either.
+  await frameProject.runProjectInit(projectDir, 'demo');
+  const after = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  assert.equal(Object.values(after.hooks).flat().length, 1, 'still just the user\'s entry');
 });
 
 test('local sharing puts the hook entries in settings.local.json instead', async () => {
