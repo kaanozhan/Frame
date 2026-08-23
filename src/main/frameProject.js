@@ -166,7 +166,9 @@ async function runProjectInit(projectPath, projectName, options = {}) {
   // sharing mode are carried over unless the caller explicitly picks one.
   const existingConfig = frameStore.readConfig(projectPath);
   const previousSharing = existingConfig && existingConfig.settings && existingConfig.settings.gitSharing;
-  const gitSharing = (options.gitSharing || previousSharing) === 'local' ? 'local' : 'repo';
+  // Never name this `gitSharing`: the module of that name is required at the
+  // top of this file and a local would shadow it for the whole function.
+  const sharingMode = (options.gitSharing || previousSharing) === 'local' ? 'local' : 'repo';
   const frameDirPath = path.join(projectPath, FRAME_DIR);
 
   // Create .frame directory
@@ -184,7 +186,7 @@ async function runProjectInit(projectPath, projectName, options = {}) {
 
   // Create .frame/config.json (carrying the detected project block)
   const config = templates.getFrameConfigTemplate(name);
-  config.settings.gitSharing = gitSharing;
+  config.settings.gitSharing = sharingMode;
   if (existingConfig && existingConfig.projectId) {
     config.projectId = existingConfig.projectId;
   }
@@ -292,7 +294,7 @@ async function runProjectInit(projectPath, projectName, options = {}) {
   let specHintSummary = null;
   try {
     specHintSummary = installSpecHintHook(projectPath, {
-      file: gitSharing === 'local' ? 'settings.local.json' : 'settings.json'
+      file: sharingMode === 'local' ? 'settings.local.json' : 'settings.json'
     });
     if (specHintSummary.manual) {
       console.warn('[frame] spec-hint hook needs manual install:', specHintSummary.reason);
@@ -765,6 +767,16 @@ function setupIPC(ipcMain) {
     // `layout` tells the renderer whether this project still carries the
     // pre-overlay layout, which is what opens the migration modal.
     const layout = !isFrame ? 'none' : (frameStore.isLegacyLayout(projectPath) ? 'legacy' : 'overlay');
+    if (isFrame) {
+      // Tracked state changes behind Frame's back (a teammate commits .frame/,
+      // the user runs `git rm --cached`), so the sharing mode's side effects
+      // are re-applied every time the project is opened. Non-fatal.
+      try {
+        gitSharing.reconcile(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not reconcile the sharing mode (non-fatal):', err.message);
+      }
+    }
     event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout });
     event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
   });

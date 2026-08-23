@@ -147,6 +147,18 @@
         "status": "pass",
         "detail": "286 pass, 0 fail"
       }
+    },
+    {
+      "id": "T13",
+      "title": "Fix the sharing-mode engine at init and on open",
+      "commit": "4e0e493",
+      "whatChanged": "Renamed runProjectInit's `gitSharing` local to `sharingMode` — it shadowed the module of the same name, so `gitSharing.reconcile()` threw into a swallowing catch and no init ever wrote `.frame/.gitignore` or the exclude block. CHECK_IS_FRAME_PROJECT now reconciles the stored mode on every project open. gitExclude gained per-project markers (a sub-directory project qualifies them with its `show-prefix`), a whole-line/CRLF/EOF-safe `splitBlock` that gitSharing reuses for `.frame/.gitignore`, and `/.claude/settings.local.json` among the excluded entries. `gitSharing.setMode` refuses a non-object config, writes config.json only when the mode actually changes, and returns the `installSpecHintHook` result as `hooks`.",
+      "whyChanged": "The marker block is per repository but Frame is per project, so two projects in one monorepo were rewriting each other's block; qualifying the markers with the prefix (root keeps the historical plain form, so existing blocks are still recognised) was the smallest fix that keeps both. Config is written conditionally because reconcile now runs on every open and had no business rewriting config.json and its .bak each time.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "289 pass, 0 fail"
+      }
     }
   ]
 }

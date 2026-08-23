@@ -57,6 +57,7 @@ test('adds an anchored block and is idempotent', () => {
   const content = readExclude(repoDir);
   assert.match(content, /^\/\.frame\/$/m, 'entry is anchored, not a bare .frame/');
   assert.match(content, /^\/\.claude\/rules\/frame\.md$/m);
+  assert.match(content, /^\/\.claude\/settings\.local\.json$/m, 'local-mode hook file is excluded too');
   assert.ok(gitExclude.hasBlock(repoDir));
 
   const second = gitExclude.ensureExcluded(repoDir);
@@ -91,6 +92,51 @@ test('a sub-directory project excludes its own path, not the repo root\'s', () =
   assert.match(content, /^\/apps\/web\/\.frame\/$/m);
   assert.match(content, /^\/apps\/web\/\.claude\/rules\/frame\.md$/m);
   assert.ok(!/^\/\.frame\/$/m.test(content), 'the repo root\'s .frame/ is untouched');
+});
+
+test('two Frame projects in one repository keep their own blocks', () => {
+  const web = path.join(repoDir, 'apps', 'web');
+  const api = path.join(repoDir, 'apps', 'api');
+  for (const dir of [web, api]) {
+    fs.mkdirSync(dir, { recursive: true });
+    writeFrame(dir);
+  }
+
+  gitExclude.ensureExcluded(web);
+  gitExclude.ensureExcluded(api);
+  gitExclude.ensureExcluded(repoDir);
+
+  const content = readExclude(repoDir);
+  assert.match(content, /^\/apps\/web\/\.frame\/$/m);
+  assert.match(content, /^\/apps\/api\/\.frame\/$/m);
+  assert.match(content, /^\/\.frame\/$/m);
+  assert.ok(gitExclude.hasBlock(web) && gitExclude.hasBlock(api) && gitExclude.hasBlock(repoDir));
+
+  // Removing one project's block leaves the other two exactly as they were.
+  gitExclude.removeExcluded(api);
+  const after = readExclude(repoDir);
+  assert.equal(gitExclude.hasBlock(api), false);
+  assert.ok(!/^\/apps\/api\/\.frame\/$/m.test(after), 'api entries gone');
+  assert.match(after, /^\/apps\/web\/\.frame\/$/m, 'web block survives');
+  assert.match(after, /^\/\.frame\/$/m, 'the root project\'s block survives');
+});
+
+test('a CRLF exclude file with no trailing newline is rewritten in place', () => {
+  const file = gitExclude.excludeFilePath(repoDir);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, '# mine\r\nscratch/', 'utf8'); // no final newline
+
+  gitExclude.ensureExcluded(repoDir);
+  let content = readExclude(repoDir);
+  assert.match(content, /^# mine\r$/m, 'the user\'s CRLF line is untouched');
+  assert.match(content, /^\/\.frame\/$/m);
+  assert.equal(content.split(gitExclude.MARKER_START).length - 1, 1, 'exactly one block');
+
+  gitExclude.ensureExcluded(repoDir); // idempotent on the rewritten file
+  assert.equal(readExclude(repoDir), content);
+
+  gitExclude.removeExcluded(repoDir);
+  assert.equal(readExclude(repoDir), '# mine\r\nscratch/\n', 'only the missing newline was added');
 });
 
 test('a linked worktree writes to the repository\'s shared exclude file', () => {

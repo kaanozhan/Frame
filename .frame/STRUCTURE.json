@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-22",
+  "lastUpdated": "2026-08-23",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -830,14 +830,14 @@
           ]
         },
         "ensureClaudePointer": {
-          "line": 328,
+          "line": 330,
           "params": [
             "projectPath"
           ],
           "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start"
         },
         "installSpecHintHook": {
-          "line": 356,
+          "line": 358,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -845,7 +845,7 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "removeSpecHintHook": {
-          "line": 408,
+          "line": 410,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -853,74 +853,74 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 462,
+          "line": 464,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 467,
+          "line": 469,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 494,
+          "line": 496,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 521,
+          "line": 523,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 525,
+          "line": 527,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 539,
+          "line": 541,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 549,
+          "line": 551,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 621,
+          "line": 623,
           "params": [
             "projectPath"
           ]
         },
         "removeFrame": {
-          "line": 670,
+          "line": 672,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "removeHookSnippet": {
-          "line": 721,
+          "line": 723,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "setupIPC": {
-          "line": 761,
+          "line": 763,
           "params": [
             "ipcMain"
           ],
@@ -1442,6 +1442,8 @@
         "isGitRepo",
         "excludeFilePath",
         "entriesFor",
+        "splitBlock",
+        "markersFor",
         "MARKER_START",
         "MARKER_END"
       ],
@@ -1452,8 +1454,15 @@
         "shared/frameConstants"
       ],
       "functions": {
+        "markersFor": {
+          "line": 43,
+          "params": [
+            "prefix"
+          ],
+          "purpose": "The marker pair for a project. A project at the repository root keeps the"
+        },
         "git": {
-          "line": 36,
+          "line": 53,
           "params": [
             "projectPath",
             "args"
@@ -1461,72 +1470,74 @@
           "purpose": "Run a git command in the project, returning trimmed stdout or null."
         },
         "isGitRepo": {
-          "line": 48,
+          "line": 65,
           "params": [
             "projectPath"
           ]
         },
         "excludeFilePath": {
-          "line": 57,
+          "line": 74,
           "params": [
             "projectPath"
           ],
           "purpose": "Absolute path of the exclude file for this project's repository. `git-path`"
         },
         "repoPrefix": {
-          "line": 68,
+          "line": 85,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's path relative to the repository root, with a trailing slash"
         },
         "entriesFor": {
-          "line": 74,
+          "line": 96,
           "params": [
             "projectPath"
           ],
-          "purpose": "The anchored entries Frame excludes, in block order."
+          "purpose": "The anchored entries Frame excludes, in block order. `settings.local.json`"
         },
         "isFrameTracked": {
-          "line": 80,
+          "line": 106,
           "params": [
             "projectPath"
           ],
           "purpose": "True when any `.frame/` path in this project is tracked by git."
         },
         "splitBlock": {
-          "line": 89,
+          "line": 118,
           "params": [
-            "text"
+            "text",
+            "markers = { start",
+            "end"
           ],
-          "purpose": "Split a file's text into { head, tail } around Frame's block. Returns the"
+          "purpose": "Split a file's text into { head, tail } around a marker block, matching each"
         },
         "readExclude": {
-          "line": 99,
+          "line": 142,
           "params": [
             "file"
           ]
         },
         "ensureExcluded": {
-          "line": 112,
+          "line": 155,
           "params": [
             "projectPath"
           ],
           "purpose": "Put Frame's block in the exclude file (idempotent). Refuses — and removes"
         },
         "removeExcluded": {
-          "line": 142,
+          "line": 186,
           "params": [
             "projectPath"
           ],
           "purpose": "Take Frame's block back out, leaving every user line untouched."
         },
         "hasBlock": {
-          "line": 157,
+          "line": 201,
           "params": [
             "projectPath"
           ],
-          "purpose": "Whether Frame's block is currently in the exclude file."
+          "purpose": "Whether this project's block is currently in the exclude file."
         }
       }
     },
@@ -1596,14 +1607,14 @@
           "purpose": "Write (or refresh) the managed block in `.frame/.gitignore`. Lines the user"
         },
         "getState": {
-          "line": 103,
+          "line": 98,
           "params": [
             "projectPath"
           ],
           "purpose": "What the UI needs to render the control: the current mode, whether `.frame/`"
         },
         "setMode": {
-          "line": 123,
+          "line": 118,
           "params": [
             "projectPath",
             "requestedMode"
@@ -1611,7 +1622,7 @@
           "purpose": "Apply a mode: store it, move Frame's hook entries to the file that mode"
         },
         "reconcile": {
-          "line": 160,
+          "line": 166,
           "params": [
             "projectPath"
           ],

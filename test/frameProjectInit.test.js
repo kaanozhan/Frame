@@ -165,6 +165,29 @@ test('local sharing puts the hook entries in settings.local.json instead', async
   assert.equal(frameStore.readConfig(projectDir).settings.gitSharing, 'local');
 });
 
+test('init applies the sharing mode: .frame/.gitignore always, the exclude block only under local', async () => {
+  const { execFileSync } = require('child_process');
+  execFileSync('git', ['init', '-q'], { cwd: projectDir });
+  const gitExclude = require('../src/main/gitExclude');
+
+  await frameProject.runProjectInit(projectDir, 'demo');
+
+  const ignoreFile = path.join(projectDir, FRAME_DIR, '.gitignore');
+  assert.ok(fs.existsSync(ignoreFile), 'repo mode still writes the managed .frame/.gitignore');
+  const ignored = fs.readFileSync(ignoreFile, 'utf8');
+  assert.match(ignored, /^runtime\/$/m);
+  assert.equal(gitExclude.hasBlock(projectDir), false, 'nothing is excluded under repo sharing');
+
+  await frameProject.runProjectInit(projectDir, 'demo', { gitSharing: 'local' });
+
+  assert.ok(fs.existsSync(ignoreFile), 'and under local sharing');
+  assert.ok(gitExclude.hasBlock(projectDir), 'local sharing excludes Frame\'s paths');
+  const exclude = fs.readFileSync(gitExclude.excludeFilePath(projectDir), 'utf8');
+  assert.match(exclude, /^\/\.frame\/$/m);
+  assert.match(exclude, /^\/\.claude\/rules\/frame\.md$/m);
+  assert.match(exclude, /^\/\.claude\/settings\.local\.json$/m);
+});
+
 test('config carries a projectId and no files record', async () => {
   await frameProject.runProjectInit(projectDir, 'demo');
 

@@ -15,7 +15,9 @@
  *     committing `.frame/` is the whole opt-in to sharing.
  *   • **Anchored and prefixed.** Entries are `/.frame/`, not `.frame/`, so a
  *     monorepo's other `.frame/` directories are unaffected; in a project that
- *     is a sub-directory of its repo, the entry carries `show-prefix`.
+ *     is a sub-directory of its repo, the entry carries `show-prefix`. The
+ *     markers carry it too, so two Frame projects in one repository keep two
+ *     blocks instead of overwriting each other's.
  *   • **Ours only.** Everything outside the markers is the user's and is
  *     rewritten byte-for-byte.
  *
@@ -31,6 +33,21 @@ const { FRAME_DIR, CLAUDE_RULE_PATH } = require('../shared/frameConstants');
 
 const MARKER_START = '# >>> frame (managed) >>>';
 const MARKER_END = '# <<< frame (managed) <<<';
+
+/**
+ * The marker pair for a project. A project at the repository root keeps the
+ * plain markers (the form every existing block already uses); a project in a
+ * sub-directory qualifies them with its prefix, so `apps/web` and `apps/api`
+ * each own a block in the one shared exclude file.
+ */
+function markersFor(prefix) {
+  const scope = String(prefix || '').replace(/\/+$/, '');
+  if (!scope) return { start: MARKER_START, end: MARKER_END };
+  return {
+    start: `# >>> frame (managed: ${scope}) >>>`,
+    end: `# <<< frame (managed: ${scope}) <<<`
+  };
+}
 
 /** Run a git command in the project, returning trimmed stdout or null. */
 function git(projectPath, args) {
@@ -70,10 +87,19 @@ function repoPrefix(projectPath) {
   return prefix || '';
 }
 
-/** The anchored entries Frame excludes, in block order. */
+/**
+ * The anchored entries Frame excludes, in block order. `settings.local.json`
+ * is in the list because sharing mode `local` puts Frame's hook entries there:
+ * excluding `.frame/` but leaving that file visible would still show Frame in
+ * `git status`.
+ */
 function entriesFor(projectPath) {
   const prefix = repoPrefix(projectPath);
-  return [`/${prefix}${FRAME_DIR}/`, `/${prefix}${CLAUDE_RULE_PATH}`];
+  return [
+    `/${prefix}${FRAME_DIR}/`,
+    `/${prefix}${CLAUDE_RULE_PATH}`,
+    `/${prefix}.claude/settings.local.json`
+  ];
 }
 
 /** True when any `.frame/` path in this project is tracked by git. */
@@ -83,17 +109,34 @@ function isFrameTracked(projectPath) {
 }
 
 /**
- * Split a file's text into { head, tail } around Frame's block. Returns the
- * whole text as `head` when no block is present.
+ * Split a file's text into { head, tail } around a marker block, matching each
+ * marker as a whole line (so a marker quoted inside a comment is not mistaken
+ * for the real one) and tolerating CRLF endings and a missing final newline.
+ * Returns the whole text as `head` when no block is present. Exported because
+ * `.frame/.gitignore` carries a managed block of exactly the same shape.
  */
-function splitBlock(text) {
-  const start = text.indexOf(MARKER_START);
+function splitBlock(text, markers = { start: MARKER_START, end: MARKER_END }) {
+  const lines = text.split('\n');
+  const isMarker = (line, marker) => line.replace(/\r$/, '').trim() === marker;
+
+  const start = lines.findIndex((line) => isMarker(line, markers.start));
   if (start === -1) return { head: text, tail: '', found: false };
-  const endMarker = text.indexOf(MARKER_END, start);
-  const end = endMarker === -1 ? text.length : endMarker + MARKER_END.length;
-  let tail = text.slice(end);
-  if (tail.startsWith('\n')) tail = tail.slice(1);
-  return { head: text.slice(0, start), tail, found: true };
+
+  // An unterminated block runs to the end of the file rather than swallowing
+  // the next block's end marker.
+  let end = lines.length - 1;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (isMarker(lines[i], markers.end)) {
+      end = i;
+      break;
+    }
+  }
+
+  return {
+    head: start === 0 ? '' : lines.slice(0, start).join('\n') + '\n',
+    tail: lines.slice(end + 1).join('\n'),
+    found: true
+  };
 }
 
 function readExclude(file) {
@@ -125,9 +168,10 @@ function ensureExcluded(projectPath) {
   const file = excludeFilePath(projectPath);
   if (!file) return { applied: false, reason: 'could not resolve info/exclude' };
 
+  const markers = markersFor(repoPrefix(projectPath));
   const existing = readExclude(file);
-  const { head, tail } = splitBlock(existing);
-  const block = `${MARKER_START}\n${entriesFor(projectPath).join('\n')}\n${MARKER_END}\n`;
+  const { head, tail } = splitBlock(existing, markers);
+  const block = `${markers.start}\n${entriesFor(projectPath).join('\n')}\n${markers.end}\n`;
   const headText = head.length > 0 && !head.endsWith('\n') ? head + '\n' : head;
   const next = headText + block + tail;
 
@@ -146,18 +190,18 @@ function removeExcluded(projectPath) {
   if (!file) return { removed: false, reason: 'could not resolve info/exclude' };
 
   const existing = readExclude(file);
-  const { head, tail, found } = splitBlock(existing);
+  const { head, tail, found } = splitBlock(existing, markersFor(repoPrefix(projectPath)));
   if (!found) return { removed: false, file };
 
   fs.writeFileSync(file, head + tail, 'utf8');
   return { removed: true, file };
 }
 
-/** Whether Frame's block is currently in the exclude file. */
+/** Whether this project's block is currently in the exclude file. */
 function hasBlock(projectPath) {
   const file = excludeFilePath(projectPath);
   if (!file) return false;
-  return readExclude(file).includes(MARKER_START);
+  return splitBlock(readExclude(file), markersFor(repoPrefix(projectPath))).found;
 }
 
 module.exports = {
@@ -168,6 +212,8 @@ module.exports = {
   isGitRepo,
   excludeFilePath,
   entriesFor,
+  splitBlock,
+  markersFor,
   MARKER_START,
   MARKER_END
 };

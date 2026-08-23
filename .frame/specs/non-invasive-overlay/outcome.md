@@ -235,3 +235,23 @@ keep this repo's wiring exactly as it was.
 _Captured: 2026-08-23 · migrated in place_
 
 ---
+
+## T13 — Fix the sharing-mode engine at init and on open
+
+`runProjectInit` declared a local named `gitSharing`, shadowing the module
+required at the top of the file, so `gitSharing.reconcile(projectPath)` threw
+into a swallowing catch: no init had ever written `.frame/.gitignore` or the
+exclude block. Renamed the local to `sharingMode`, and `CHECK_IS_FRAME_PROJECT`
+now reconciles the stored mode on every project open (tracked state changes
+behind Frame's back). `gitExclude` grew per-project markers — a sub-directory
+project qualifies them with its `show-prefix` while a root project keeps the
+historical plain form, so two Frame projects in one repository no longer
+clobber each other's block — plus a whole-line, CRLF- and EOF-safe `splitBlock`
+that `gitSharing` reuses for `.frame/.gitignore`, and `/.claude/settings.local.json`
+among the excluded entries. `setMode` refuses a non-object config, writes
+`config.json` only when the mode actually changes (reconcile runs on every
+open now), and returns `installSpecHintHook`'s result as `hooks`.
+
+_Captured: 2026-08-23 · 5 file change(s)_
+
+---

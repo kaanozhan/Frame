@@ -155,10 +155,10 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">12 tasks</span>
-    <span class="pill good">12 verified</span>
+    <span class="pill">13 tasks</span>
+    <span class="pill good">13 verified</span>
     
-    <span class="chip">2026-08-22</span>
+    <span class="chip">2026-08-23</span>
   </div>
 </header>
 
@@ -8687,6 +8687,393 @@
 <span class="dl-add">+  assert.ok(!flat.text.includes(&#39;symlink is provided&#39;));</span>
 <span class="dl-add">+  assert.match(flat.text, /\n## After/);</span>
 <span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T13</span>
+    <h2>Fix the sharing-mode engine at init and on open</h2>
+    <span class="card-meta"><span class="chip">4e0e493</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">289 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Renamed runProjectInit&#39;s `gitSharing` local to `sharingMode` — it shadowed the module of the same name, so `gitSharing.reconcile()` threw into a swallowing catch and no init ever wrote `.frame/.gitignore` or the exclude block. CHECK_IS_FRAME_PROJECT now reconciles the stored mode on every project open. gitExclude gained per-project markers (a sub-directory project qualifies them with its `show-prefix`), a whole-line/CRLF/EOF-safe `splitBlock` that gitSharing reuses for `.frame/.gitignore`, and `/.claude/settings.local.json` among the excluded entries. `gitSharing.setMode` refuses a non-object config, writes config.json only when the mode actually changes, and returns the `installSpecHintHook` result as `hooks`.</p></div>
+    <div class="field"><span class="label">Why</span><p>The marker block is per repository but Frame is per project, so two projects in one monorepo were rewriting each other&#39;s block; qualifying the markers with the prefix (root keeps the historical plain form, so existing blocks are still recognised) was the smallest fix that keeps both. Config is written conditionally because reconcile now runs on every open and had no business rewriting config.json and its .bak each time.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 5608a36..df51f78 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -166,7 +166,9 @@ async function runProjectInit(projectPath, projectName, options = {}) {</span>
+<span class="dl-ctx">   // sharing mode are carried over unless the caller explicitly picks one.</span>
+<span class="dl-ctx">   const existingConfig = frameStore.readConfig(projectPath);</span>
+<span class="dl-ctx">   const previousSharing = existingConfig &amp;&amp; existingConfig.settings &amp;&amp; existingConfig.settings.gitSharing;</span>
+<span class="dl-del">-  const gitSharing = (options.gitSharing || previousSharing) === &#39;local&#39; ? &#39;local&#39; : &#39;repo&#39;;</span>
+<span class="dl-add">+  // Never name this `gitSharing`: the module of that name is required at the</span>
+<span class="dl-add">+  // top of this file and a local would shadow it for the whole function.</span>
+<span class="dl-add">+  const sharingMode = (options.gitSharing || previousSharing) === &#39;local&#39; ? &#39;local&#39; : &#39;repo&#39;;</span>
+<span class="dl-ctx">   const frameDirPath = path.join(projectPath, FRAME_DIR);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Create .frame directory</span>
+<span class="dl-hunk">@@ -184,7 +186,7 @@ async function runProjectInit(projectPath, projectName, options = {}) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // Create .frame/config.json (carrying the detected project block)</span>
+<span class="dl-ctx">   const config = templates.getFrameConfigTemplate(name);</span>
+<span class="dl-del">-  config.settings.gitSharing = gitSharing;</span>
+<span class="dl-add">+  config.settings.gitSharing = sharingMode;</span>
+<span class="dl-ctx">   if (existingConfig &amp;&amp; existingConfig.projectId) {</span>
+<span class="dl-ctx">     config.projectId = existingConfig.projectId;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-hunk">@@ -292,7 +294,7 @@ async function runProjectInit(projectPath, projectName, options = {}) {</span>
+<span class="dl-ctx">   let specHintSummary = null;</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-ctx">     specHintSummary = installSpecHintHook(projectPath, {</span>
+<span class="dl-del">-      file: gitSharing === &#39;local&#39; ? &#39;settings.local.json&#39; : &#39;settings.json&#39;</span>
+<span class="dl-add">+      file: sharingMode === &#39;local&#39; ? &#39;settings.local.json&#39; : &#39;settings.json&#39;</span>
+<span class="dl-ctx">     });</span>
+<span class="dl-ctx">     if (specHintSummary.manual) {</span>
+<span class="dl-ctx">       console.warn(&#39;[frame] spec-hint hook needs manual install:&#39;, specHintSummary.reason);</span>
+<span class="dl-hunk">@@ -765,6 +767,16 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">     // `layout` tells the renderer whether this project still carries the</span>
+<span class="dl-ctx">     // pre-overlay layout, which is what opens the migration modal.</span>
+<span class="dl-ctx">     const layout = !isFrame ? &#39;none&#39; : (frameStore.isLegacyLayout(projectPath) ? &#39;legacy&#39; : &#39;overlay&#39;);</span>
+<span class="dl-add">+    if (isFrame) {</span>
+<span class="dl-add">+      // Tracked state changes behind Frame&#39;s back (a teammate commits .frame/,</span>
+<span class="dl-add">+      // the user runs `git rm --cached`), so the sharing mode&#39;s side effects</span>
+<span class="dl-add">+      // are re-applied every time the project is opened. Non-fatal.</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        gitSharing.reconcile(projectPath);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        console.warn(&#39;[frame] could not reconcile the sharing mode (non-fatal):&#39;, err.message);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+    }</span>
+<span class="dl-ctx">     event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout });</span>
+<span class="dl-ctx">     event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-meta">diff --git a/src/main/gitExclude.js b/src/main/gitExclude.js</span>
+<span class="dl-meta">index ce9631f..6f94c4e 100644</span>
+<span class="dl-file">--- a/src/main/gitExclude.js</span>
+<span class="dl-file">+++ b/src/main/gitExclude.js</span>
+<span class="dl-hunk">@@ -15,7 +15,9 @@</span>
+<span class="dl-ctx">  *     committing `.frame/` is the whole opt-in to sharing.</span>
+<span class="dl-ctx">  *   • **Anchored and prefixed.** Entries are `/.frame/`, not `.frame/`, so a</span>
+<span class="dl-ctx">  *     monorepo&#39;s other `.frame/` directories are unaffected; in a project that</span>
+<span class="dl-del">- *     is a sub-directory of its repo, the entry carries `show-prefix`.</span>
+<span class="dl-add">+ *     is a sub-directory of its repo, the entry carries `show-prefix`. The</span>
+<span class="dl-add">+ *     markers carry it too, so two Frame projects in one repository keep two</span>
+<span class="dl-add">+ *     blocks instead of overwriting each other&#39;s.</span>
+<span class="dl-ctx">  *   • **Ours only.** Everything outside the markers is the user&#39;s and is</span>
+<span class="dl-ctx">  *     rewritten byte-for-byte.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-hunk">@@ -32,6 +34,21 @@ const { FRAME_DIR, CLAUDE_RULE_PATH } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const MARKER_START = &#39;# &gt;&gt;&gt; frame (managed) &gt;&gt;&gt;&#39;;</span>
+<span class="dl-ctx"> const MARKER_END = &#39;# &lt;&lt;&lt; frame (managed) &lt;&lt;&lt;&#39;;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The marker pair for a project. A project at the repository root keeps the</span>
+<span class="dl-add">+ * plain markers (the form every existing block already uses); a project in a</span>
+<span class="dl-add">+ * sub-directory qualifies them with its prefix, so `apps/web` and `apps/api`</span>
+<span class="dl-add">+ * each own a block in the one shared exclude file.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function markersFor(prefix) {</span>
+<span class="dl-add">+  const scope = String(prefix || &#39;&#39;).replace(/\/+$/, &#39;&#39;);</span>
+<span class="dl-add">+  if (!scope) return { start: MARKER_START, end: MARKER_END };</span>
+<span class="dl-add">+  return {</span>
+<span class="dl-add">+    start: `# &gt;&gt;&gt; frame (managed: ${scope}) &gt;&gt;&gt;`,</span>
+<span class="dl-add">+    end: `# &lt;&lt;&lt; frame (managed: ${scope}) &lt;&lt;&lt;`</span>
+<span class="dl-add">+  };</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /** Run a git command in the project, returning trimmed stdout or null. */</span>
+<span class="dl-ctx"> function git(projectPath, args) {</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-hunk">@@ -70,10 +87,19 @@ function repoPrefix(projectPath) {</span>
+<span class="dl-ctx">   return prefix || &#39;&#39;;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-/** The anchored entries Frame excludes, in block order. */</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The anchored entries Frame excludes, in block order. `settings.local.json`</span>
+<span class="dl-add">+ * is in the list because sharing mode `local` puts Frame&#39;s hook entries there:</span>
+<span class="dl-add">+ * excluding `.frame/` but leaving that file visible would still show Frame in</span>
+<span class="dl-add">+ * `git status`.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-ctx"> function entriesFor(projectPath) {</span>
+<span class="dl-ctx">   const prefix = repoPrefix(projectPath);</span>
+<span class="dl-del">-  return [`/${prefix}${FRAME_DIR}/`, `/${prefix}${CLAUDE_RULE_PATH}`];</span>
+<span class="dl-add">+  return [</span>
+<span class="dl-add">+    `/${prefix}${FRAME_DIR}/`,</span>
+<span class="dl-add">+    `/${prefix}${CLAUDE_RULE_PATH}`,</span>
+<span class="dl-add">+    `/${prefix}.claude/settings.local.json`</span>
+<span class="dl-add">+  ];</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /** True when any `.frame/` path in this project is tracked by git. */</span>
+<span class="dl-hunk">@@ -83,17 +109,34 @@ function isFrameTracked(projectPath) {</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-del">- * Split a file&#39;s text into { head, tail } around Frame&#39;s block. Returns the</span>
+<span class="dl-del">- * whole text as `head` when no block is present.</span>
+<span class="dl-add">+ * Split a file&#39;s text into { head, tail } around a marker block, matching each</span>
+<span class="dl-add">+ * marker as a whole line (so a marker quoted inside a comment is not mistaken</span>
+<span class="dl-add">+ * for the real one) and tolerating CRLF endings and a missing final newline.</span>
+<span class="dl-add">+ * Returns the whole text as `head` when no block is present. Exported because</span>
+<span class="dl-add">+ * `.frame/.gitignore` carries a managed block of exactly the same shape.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-del">-function splitBlock(text) {</span>
+<span class="dl-del">-  const start = text.indexOf(MARKER_START);</span>
+<span class="dl-add">+function splitBlock(text, markers = { start: MARKER_START, end: MARKER_END }) {</span>
+<span class="dl-add">+  const lines = text.split(&#39;\n&#39;);</span>
+<span class="dl-add">+  const isMarker = (line, marker) =&gt; line.replace(/\r$/, &#39;&#39;).trim() === marker;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const start = lines.findIndex((line) =&gt; isMarker(line, markers.start));</span>
+<span class="dl-ctx">   if (start === -1) return { head: text, tail: &#39;&#39;, found: false };</span>
+<span class="dl-del">-  const endMarker = text.indexOf(MARKER_END, start);</span>
+<span class="dl-del">-  const end = endMarker === -1 ? text.length : endMarker + MARKER_END.length;</span>
+<span class="dl-del">-  let tail = text.slice(end);</span>
+<span class="dl-del">-  if (tail.startsWith(&#39;\n&#39;)) tail = tail.slice(1);</span>
+<span class="dl-del">-  return { head: text.slice(0, start), tail, found: true };</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // An unterminated block runs to the end of the file rather than swallowing</span>
+<span class="dl-add">+  // the next block&#39;s end marker.</span>
+<span class="dl-add">+  let end = lines.length - 1;</span>
+<span class="dl-add">+  for (let i = start + 1; i &lt; lines.length; i++) {</span>
+<span class="dl-add">+    if (isMarker(lines[i], markers.end)) {</span>
+<span class="dl-add">+      end = i;</span>
+<span class="dl-add">+      break;</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return {</span>
+<span class="dl-add">+    head: start === 0 ? &#39;&#39; : lines.slice(0, start).join(&#39;\n&#39;) + &#39;\n&#39;,</span>
+<span class="dl-add">+    tail: lines.slice(end + 1).join(&#39;\n&#39;),</span>
+<span class="dl-add">+    found: true</span>
+<span class="dl-add">+  };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> function readExclude(file) {</span>
+<span class="dl-hunk">@@ -125,9 +168,10 @@ function ensureExcluded(projectPath) {</span>
+<span class="dl-ctx">   const file = excludeFilePath(projectPath);</span>
+<span class="dl-ctx">   if (!file) return { applied: false, reason: &#39;could not resolve info/exclude&#39; };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  const markers = markersFor(repoPrefix(projectPath));</span>
+<span class="dl-ctx">   const existing = readExclude(file);</span>
+<span class="dl-del">-  const { head, tail } = splitBlock(existing);</span>
+<span class="dl-del">-  const block = `${MARKER_START}\n${entriesFor(projectPath).join(&#39;\n&#39;)}\n${MARKER_END}\n`;</span>
+<span class="dl-add">+  const { head, tail } = splitBlock(existing, markers);</span>
+<span class="dl-add">+  const block = `${markers.start}\n${entriesFor(projectPath).join(&#39;\n&#39;)}\n${markers.end}\n`;</span>
+<span class="dl-ctx">   const headText = head.length &gt; 0 &amp;&amp; !head.endsWith(&#39;\n&#39;) ? head + &#39;\n&#39; : head;</span>
+<span class="dl-ctx">   const next = headText + block + tail;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -146,18 +190,18 @@ function removeExcluded(projectPath) {</span>
+<span class="dl-ctx">   if (!file) return { removed: false, reason: &#39;could not resolve info/exclude&#39; };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const existing = readExclude(file);</span>
+<span class="dl-del">-  const { head, tail, found } = splitBlock(existing);</span>
+<span class="dl-add">+  const { head, tail, found } = splitBlock(existing, markersFor(repoPrefix(projectPath)));</span>
+<span class="dl-ctx">   if (!found) return { removed: false, file };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   fs.writeFileSync(file, head + tail, &#39;utf8&#39;);</span>
+<span class="dl-ctx">   return { removed: true, file };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-/** Whether Frame&#39;s block is currently in the exclude file. */</span>
+<span class="dl-add">+/** Whether this project&#39;s block is currently in the exclude file. */</span>
+<span class="dl-ctx"> function hasBlock(projectPath) {</span>
+<span class="dl-ctx">   const file = excludeFilePath(projectPath);</span>
+<span class="dl-ctx">   if (!file) return false;</span>
+<span class="dl-del">-  return readExclude(file).includes(MARKER_START);</span>
+<span class="dl-add">+  return splitBlock(readExclude(file), markersFor(repoPrefix(projectPath))).found;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> module.exports = {</span>
+<span class="dl-hunk">@@ -168,6 +212,8 @@ module.exports = {</span>
+<span class="dl-ctx">   isGitRepo,</span>
+<span class="dl-ctx">   excludeFilePath,</span>
+<span class="dl-ctx">   entriesFor,</span>
+<span class="dl-add">+  splitBlock,</span>
+<span class="dl-add">+  markersFor,</span>
+<span class="dl-ctx">   MARKER_START,</span>
+<span class="dl-ctx">   MARKER_END</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-meta">diff --git a/src/main/gitSharing.js b/src/main/gitSharing.js</span>
+<span class="dl-meta">index b632e55..5fb7a6b 100644</span>
+<span class="dl-file">--- a/src/main/gitSharing.js</span>
+<span class="dl-file">+++ b/src/main/gitSharing.js</span>
+<span class="dl-hunk">@@ -76,19 +76,14 @@ function ensureFrameGitignore(projectPath) {</span>
+<span class="dl-ctx">     /* first write */</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const start = existing.indexOf(templates.FRAME_GITIGNORE_MARKER_START);</span>
+<span class="dl-del">-  let next;</span>
+<span class="dl-del">-  if (start === -1) {</span>
+<span class="dl-del">-    next = existing.length &gt; 0 &amp;&amp; !existing.endsWith(&#39;\n&#39;)</span>
+<span class="dl-del">-      ? `${existing}\n${block}`</span>
+<span class="dl-del">-      : `${existing}${block}`;</span>
+<span class="dl-del">-  } else {</span>
+<span class="dl-del">-    const endMarker = existing.indexOf(templates.FRAME_GITIGNORE_MARKER_END, start);</span>
+<span class="dl-del">-    const end = endMarker === -1</span>
+<span class="dl-del">-      ? existing.length</span>
+<span class="dl-del">-      : endMarker + templates.FRAME_GITIGNORE_MARKER_END.length + 1; // include the newline</span>
+<span class="dl-del">-    next = existing.slice(0, start) + block + existing.slice(end);</span>
+<span class="dl-del">-  }</span>
+<span class="dl-add">+  // Same marker-block surgery as the exclude file: whole-line marker match,</span>
+<span class="dl-add">+  // CRLF tolerated, a file that does not end in a newline gets one.</span>
+<span class="dl-add">+  const { head, tail } = gitExclude.splitBlock(existing, {</span>
+<span class="dl-add">+    start: templates.FRAME_GITIGNORE_MARKER_START,</span>
+<span class="dl-add">+    end: templates.FRAME_GITIGNORE_MARKER_END</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+  const headText = head.length &gt; 0 &amp;&amp; !head.endsWith(&#39;\n&#39;) ? `${head}\n` : head;</span>
+<span class="dl-add">+  const next = headText + block + tail;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   if (next === existing) return { changed: false, file };</span>
+<span class="dl-ctx">   fs.mkdirSync(path.dirname(file), { recursive: true });</span>
+<span class="dl-hunk">@@ -124,11 +119,20 @@ function setMode(projectPath, requestedMode) {</span>
+<span class="dl-ctx">   const mode = normalizeMode(requestedMode);</span>
+<span class="dl-ctx">   const previous = getMode(projectPath);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+  // A config that is not an object (an array, a bare string, `null`) is a</span>
+<span class="dl-add">+  // broken file, not a project to reconfigure — writing `settings` onto it</span>
+<span class="dl-add">+  // would throw or corrupt it further.</span>
+<span class="dl-ctx">   const config = frameStore.readConfig(projectPath);</span>
+<span class="dl-del">-  if (!config) return { ...getState(projectPath), error: &#39;not a Frame project&#39; };</span>
+<span class="dl-del">-  config.settings = config.settings || {};</span>
+<span class="dl-del">-  config.settings.gitSharing = mode;</span>
+<span class="dl-del">-  frameStore.writeConfig(projectPath, config);</span>
+<span class="dl-add">+  if (!config || typeof config !== &#39;object&#39; || Array.isArray(config)) {</span>
+<span class="dl-add">+    return { ...getState(projectPath), error: &#39;not a Frame project&#39; };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  // Written only on a real change: reconcile() runs on every project open and</span>
+<span class="dl-add">+  // has no business rewriting config.json (and its .bak) each time.</span>
+<span class="dl-add">+  if (!config.settings || typeof config.settings !== &#39;object&#39; || config.settings.gitSharing !== mode) {</span>
+<span class="dl-add">+    config.settings = (config.settings &amp;&amp; typeof config.settings === &#39;object&#39;) ? config.settings : {};</span>
+<span class="dl-add">+    config.settings.gitSharing = mode;</span>
+<span class="dl-add">+    frameStore.writeConfig(projectPath, config);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   ensureFrameGitignore(projectPath);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -138,7 +142,9 @@ function setMode(projectPath, requestedMode) {</span>
+<span class="dl-ctx">   const frameProject = require(&#39;./frameProject&#39;);</span>
+<span class="dl-ctx">   const target = hookFileFor(mode);</span>
+<span class="dl-ctx">   const other = hookFileFor(mode === &#39;local&#39; ? &#39;repo&#39; : &#39;local&#39;);</span>
+<span class="dl-del">-  frameProject.installSpecHintHook(projectPath, { file: target });</span>
+<span class="dl-add">+  // The install can decline (another tool is active, unparseable settings) and</span>
+<span class="dl-add">+  // the caller needs to know — it is how the UI reports &quot;hooks need a hand&quot;.</span>
+<span class="dl-add">+  const hooks = frameProject.installSpecHintHook(projectPath, { file: target });</span>
+<span class="dl-ctx">   frameProject.removeSpecHintHook(projectPath, { file: other });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const exclude = mode === &#39;local&#39;</span>
+<span class="dl-hunk">@@ -149,7 +155,7 @@ function setMode(projectPath, requestedMode) {</span>
+<span class="dl-ctx">     record(&#39;sharing.mode_changed&#39;, { from: previous, to: mode });</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  return { ...getState(projectPath), applied: exclude };</span>
+<span class="dl-add">+  return { ...getState(projectPath), applied: exclude, hooks };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-meta">diff --git a/test/frameProjectInit.test.js b/test/frameProjectInit.test.js</span>
+<span class="dl-meta">index 6a4f63f..fd0fd3d 100644</span>
+<span class="dl-file">--- a/test/frameProjectInit.test.js</span>
+<span class="dl-file">+++ b/test/frameProjectInit.test.js</span>
+<span class="dl-hunk">@@ -165,6 +165,29 @@ test(&#39;local sharing puts the hook entries in settings.local.json instead&#39;, async</span>
+<span class="dl-ctx">   assert.equal(frameStore.readConfig(projectDir).settings.gitSharing, &#39;local&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+test(&#39;init applies the sharing mode: .frame/.gitignore always, the exclude block only under local&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const { execFileSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+  execFileSync(&#39;git&#39;, [&#39;init&#39;, &#39;-q&#39;], { cwd: projectDir });</span>
+<span class="dl-add">+  const gitExclude = require(&#39;../src/main/gitExclude&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const ignoreFile = path.join(projectDir, FRAME_DIR, &#39;.gitignore&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(ignoreFile), &#39;repo mode still writes the managed .frame/.gitignore&#39;);</span>
+<span class="dl-add">+  const ignored = fs.readFileSync(ignoreFile, &#39;utf8&#39;);</span>
+<span class="dl-add">+  assert.match(ignored, /^runtime\/$/m);</span>
+<span class="dl-add">+  assert.equal(gitExclude.hasBlock(projectDir), false, &#39;nothing is excluded under repo sharing&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;, { gitSharing: &#39;local&#39; });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(ignoreFile), &#39;and under local sharing&#39;);</span>
+<span class="dl-add">+  assert.ok(gitExclude.hasBlock(projectDir), &#39;local sharing excludes Frame\&#39;s paths&#39;);</span>
+<span class="dl-add">+  const exclude = fs.readFileSync(gitExclude.excludeFilePath(projectDir), &#39;utf8&#39;);</span>
+<span class="dl-add">+  assert.match(exclude, /^\/\.frame\/$/m);</span>
+<span class="dl-add">+  assert.match(exclude, /^\/\.claude\/rules\/frame\.md$/m);</span>
+<span class="dl-add">+  assert.match(exclude, /^\/\.claude\/settings\.local\.json$/m);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> test(&#39;config carries a projectId and no files record&#39;, async () =&gt; {</span>
+<span class="dl-ctx">   await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/test/gitExclude.test.js b/test/gitExclude.test.js</span>
+<span class="dl-meta">index 6843dfd..171e0a1 100644</span>
+<span class="dl-file">--- a/test/gitExclude.test.js</span>
+<span class="dl-file">+++ b/test/gitExclude.test.js</span>
+<span class="dl-hunk">@@ -57,6 +57,7 @@ test(&#39;adds an anchored block and is idempotent&#39;, () =&gt; {</span>
+<span class="dl-ctx">   const content = readExclude(repoDir);</span>
+<span class="dl-ctx">   assert.match(content, /^\/\.frame\/$/m, &#39;entry is anchored, not a bare .frame/&#39;);</span>
+<span class="dl-ctx">   assert.match(content, /^\/\.claude\/rules\/frame\.md$/m);</span>
+<span class="dl-add">+  assert.match(content, /^\/\.claude\/settings\.local\.json$/m, &#39;local-mode hook file is excluded too&#39;);</span>
+<span class="dl-ctx">   assert.ok(gitExclude.hasBlock(repoDir));</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const second = gitExclude.ensureExcluded(repoDir);</span>
+<span class="dl-hunk">@@ -93,6 +94,51 @@ test(&#39;a sub-directory project excludes its own path, not the repo root\&#39;s&#39;, () =</span>
+<span class="dl-ctx">   assert.ok(!/^\/\.frame\/$/m.test(content), &#39;the repo root\&#39;s .frame/ is untouched&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+test(&#39;two Frame projects in one repository keep their own blocks&#39;, () =&gt; {</span>
+<span class="dl-add">+  const web = path.join(repoDir, &#39;apps&#39;, &#39;web&#39;);</span>
+<span class="dl-add">+  const api = path.join(repoDir, &#39;apps&#39;, &#39;api&#39;);</span>
+<span class="dl-add">+  for (const dir of [web, api]) {</span>
+<span class="dl-add">+    fs.mkdirSync(dir, { recursive: true });</span>
+<span class="dl-add">+    writeFrame(dir);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  gitExclude.ensureExcluded(web);</span>
+<span class="dl-add">+  gitExclude.ensureExcluded(api);</span>
+<span class="dl-add">+  gitExclude.ensureExcluded(repoDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const content = readExclude(repoDir);</span>
+<span class="dl-add">+  assert.match(content, /^\/apps\/web\/\.frame\/$/m);</span>
+<span class="dl-add">+  assert.match(content, /^\/apps\/api\/\.frame\/$/m);</span>
+<span class="dl-add">+  assert.match(content, /^\/\.frame\/$/m);</span>
+<span class="dl-add">+  assert.ok(gitExclude.hasBlock(web) &amp;&amp; gitExclude.hasBlock(api) &amp;&amp; gitExclude.hasBlock(repoDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Removing one project&#39;s block leaves the other two exactly as they were.</span>
+<span class="dl-add">+  gitExclude.removeExcluded(api);</span>
+<span class="dl-add">+  const after = readExclude(repoDir);</span>
+<span class="dl-add">+  assert.equal(gitExclude.hasBlock(api), false);</span>
+<span class="dl-add">+  assert.ok(!/^\/apps\/api\/\.frame\/$/m.test(after), &#39;api entries gone&#39;);</span>
+<span class="dl-add">+  assert.match(after, /^\/apps\/web\/\.frame\/$/m, &#39;web block survives&#39;);</span>
+<span class="dl-add">+  assert.match(after, /^\/\.frame\/$/m, &#39;the root project\&#39;s block survives&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a CRLF exclude file with no trailing newline is rewritten in place&#39;, () =&gt; {</span>
+<span class="dl-add">+  const file = gitExclude.excludeFilePath(repoDir);</span>
+<span class="dl-add">+  fs.mkdirSync(path.dirname(file), { recursive: true });</span>
+<span class="dl-add">+  fs.writeFileSync(file, &#39;# mine\r\nscratch/&#39;, &#39;utf8&#39;); // no final newline</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  gitExclude.ensureExcluded(repoDir);</span>
+<span class="dl-add">+  let content = readExclude(repoDir);</span>
+<span class="dl-add">+  assert.match(content, /^# mine\r$/m, &#39;the user\&#39;s CRLF line is untouched&#39;);</span>
+<span class="dl-add">+  assert.match(content, /^\/\.frame\/$/m);</span>
+<span class="dl-add">+  assert.equal(content.split(gitExclude.MARKER_START).length - 1, 1, &#39;exactly one block&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  gitExclude.ensureExcluded(repoDir); // idempotent on the rewritten file</span>
+<span class="dl-add">+  assert.equal(readExclude(repoDir), content);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  gitExclude.removeExcluded(repoDir);</span>
+<span class="dl-add">+  assert.equal(readExclude(repoDir), &#39;# mine\r\nscratch/\n&#39;, &#39;only the missing newline was added&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> test(&#39;a linked worktree writes to the repository\&#39;s shared exclude file&#39;, () =&gt; {</span>
+<span class="dl-ctx">   fs.writeFileSync(path.join(repoDir, &#39;file.txt&#39;), &#39;x&#39;, &#39;utf8&#39;);</span>
+<span class="dl-ctx">   git(repoDir, [&#39;add&#39;, &#39;file.txt&#39;]); // not `-A`: .frame/ must stay untracked here</span></pre>
     </details>
   </div>
 </section>

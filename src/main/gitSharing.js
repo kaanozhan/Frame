@@ -76,19 +76,14 @@ function ensureFrameGitignore(projectPath) {
     /* first write */
   }
 
-  const start = existing.indexOf(templates.FRAME_GITIGNORE_MARKER_START);
-  let next;
-  if (start === -1) {
-    next = existing.length > 0 && !existing.endsWith('\n')
-      ? `${existing}\n${block}`
-      : `${existing}${block}`;
-  } else {
-    const endMarker = existing.indexOf(templates.FRAME_GITIGNORE_MARKER_END, start);
-    const end = endMarker === -1
-      ? existing.length
-      : endMarker + templates.FRAME_GITIGNORE_MARKER_END.length + 1; // include the newline
-    next = existing.slice(0, start) + block + existing.slice(end);
-  }
+  // Same marker-block surgery as the exclude file: whole-line marker match,
+  // CRLF tolerated, a file that does not end in a newline gets one.
+  const { head, tail } = gitExclude.splitBlock(existing, {
+    start: templates.FRAME_GITIGNORE_MARKER_START,
+    end: templates.FRAME_GITIGNORE_MARKER_END
+  });
+  const headText = head.length > 0 && !head.endsWith('\n') ? `${head}\n` : head;
+  const next = headText + block + tail;
 
   if (next === existing) return { changed: false, file };
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -124,11 +119,20 @@ function setMode(projectPath, requestedMode) {
   const mode = normalizeMode(requestedMode);
   const previous = getMode(projectPath);
 
+  // A config that is not an object (an array, a bare string, `null`) is a
+  // broken file, not a project to reconfigure — writing `settings` onto it
+  // would throw or corrupt it further.
   const config = frameStore.readConfig(projectPath);
-  if (!config) return { ...getState(projectPath), error: 'not a Frame project' };
-  config.settings = config.settings || {};
-  config.settings.gitSharing = mode;
-  frameStore.writeConfig(projectPath, config);
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return { ...getState(projectPath), error: 'not a Frame project' };
+  }
+  // Written only on a real change: reconcile() runs on every project open and
+  // has no business rewriting config.json (and its .bak) each time.
+  if (!config.settings || typeof config.settings !== 'object' || config.settings.gitSharing !== mode) {
+    config.settings = (config.settings && typeof config.settings === 'object') ? config.settings : {};
+    config.settings.gitSharing = mode;
+    frameStore.writeConfig(projectPath, config);
+  }
 
   ensureFrameGitignore(projectPath);
 
@@ -138,7 +142,9 @@ function setMode(projectPath, requestedMode) {
   const frameProject = require('./frameProject');
   const target = hookFileFor(mode);
   const other = hookFileFor(mode === 'local' ? 'repo' : 'local');
-  frameProject.installSpecHintHook(projectPath, { file: target });
+  // The install can decline (another tool is active, unparseable settings) and
+  // the caller needs to know — it is how the UI reports "hooks need a hand".
+  const hooks = frameProject.installSpecHintHook(projectPath, { file: target });
   frameProject.removeSpecHintHook(projectPath, { file: other });
 
   const exclude = mode === 'local'
@@ -149,7 +155,7 @@ function setMode(projectPath, requestedMode) {
     record('sharing.mode_changed', { from: previous, to: mode });
   }
 
-  return { ...getState(projectPath), applied: exclude };
+  return { ...getState(projectPath), applied: exclude, hooks };
 }
 
 /**
