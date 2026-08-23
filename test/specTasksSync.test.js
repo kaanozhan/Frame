@@ -186,3 +186,31 @@ test('appending new work leaves existing tasks untouched', () => {
     'the completed task still describes the work it was completed for'
   );
 });
+
+test('a spec is never walked back when the task data cannot be read', () => {
+  // An older Frame opening a migrated repository reads the pre-`.frame/`
+  // tasks.json, finds nothing, and used to derive the phase from files alone —
+  // which walked every finished spec in this repository from `done` back to
+  // `tasks_generated`, rewriting 21 status.json files nobody asked it to touch.
+  writeStatus();
+  writeTasksMd(NON_ASCENDING);
+  fs.writeFileSync(path.join(specDir(), 'spec.md'), '# Sample spec\n', 'utf8');
+  fs.writeFileSync(path.join(specDir(), 'plan.md'), '# Plan\n', 'utf8');
+
+  for (const phase of ['done', 'implementing']) {
+    const statusPath = path.join(specDir(), 'status.json');
+    const status = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+    fs.writeFileSync(statusPath, JSON.stringify({ ...status, phase }, null, 2), 'utf8');
+
+    assert.equal(specManager.derivePhase(projectDir, SLUG, phase, null), phase, `${phase} survives null`);
+    assert.equal(specManager.derivePhase(projectDir, SLUG, phase, undefined), phase, `${phase} survives undefined`);
+
+    specManager.reconcilePhase(projectDir, SLUG, null);
+    assert.equal(JSON.parse(fs.readFileSync(statusPath, 'utf8')).phase, phase, 'status.json untouched');
+  }
+
+  // Real task data still drives the transition it is there to drive.
+  specManager.syncTasksFromMarkdown(projectDir, SLUG);
+  const data = tasksManager.loadTasks(projectDir);
+  assert.equal(specManager.derivePhase(projectDir, SLUG, 'done', data), 'tasks_generated', 'pending tasks still rewind');
+});

@@ -70,6 +70,11 @@ is never read, moved or replaced, and "Remove Frame" leaves no Frame-authored
 bytes behind. Requires Claude Code new enough to load `.claude/rules/` (the
 2.1.x line); run `/context` in a session to confirm the rule loaded.
 
+> **Upgrading:** update Frame before pulling a repository that has been
+> migrated to `.frame/`. An older Frame looks for the meta files at the project
+> root, finds none, and reports the project as empty — and its spec phases as
+> unstarted.
+
 Every project gets its own isolated session — its own context, its own task list, its own notes. Switching projects in Frame means switching to a completely fresh, project-specific AI context. No bleed-over, no confusion.
 
 This standard works with any AI tool. Claude Code loads `.claude/rules/frame.md`

@@ -284,6 +284,12 @@ function fileExists(projectPath, slug, name) {
 }
 
 function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
+  // No task data at all — the file could not be read, or an older Frame is
+  // looking in the pre-`.frame/` place. "I don't know" is not "no tasks":
+  // deriving from files alone here walked every finished spec in this
+  // repository back from `done` to `tasks_generated`. Keep what is recorded.
+  if (!tasksDataOrNull) return currentPhase;
+
   // Once spec-derived tasks exist, their statuses drive the implementing →
   // done transition. This overrides the file-based check so flipping a task
   // back to pending automatically rewinds the phase too.
@@ -1206,6 +1212,7 @@ module.exports = {
   renameSpec,
   deleteSpec,
   derivePhase,
+  reconcilePhase,
   getCommandPrompt,
   buildSpecCommandFile,
   buildImplementPermissions,

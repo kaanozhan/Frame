@@ -24,6 +24,10 @@ never runs `git rm`, it warns with the command.
 Rules for future work: never join a meta path outside `frameStore.js`
 (`specManager.js` excepted, for specs); anything Frame writes belongs under
 `.frame/` or the one pointer file; a user's root file is never read, moved or
-replaced; `STRUCTURE.json` is classified derived but stays tracked.
+replaced; `STRUCTURE.json` and `bin/` are classified derived but stay tracked;
+derived state is never *rewritten* from an unreadable source (an old Frame
+reading the root `tasks.json` of a migrated repo walked 21 specs back from
+`done` — absence of data is not data). Upgrade Frame before pulling a migrated
+repository.
 
 Chain: spec.md → plan.md → tasks.md → outcome.md

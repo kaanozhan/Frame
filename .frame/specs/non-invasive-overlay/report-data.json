@@ -183,6 +183,18 @@
         "status": "pass",
         "detail": "294 pass, 0 fail"
       }
+    },
+    {
+      "id": "T16",
+      "title": "Stop spec-phase regression when task data is unavailable",
+      "commit": "f17db3a",
+      "whatChanged": "`derivePhase` returns `currentPhase` unchanged when `tasksDataOrNull` is null or undefined, so `reconcilePhase` cannot rewrite a status.json on the strength of task data it never read. Exported `reconcilePhase` for the regression test in test/specTasksSync.test.js, restored the 19 status.json files this repository's working tree had already been walked back in, and added the upgrade note to README plus a rule to the spec digest.",
+      "whyChanged": "Absence of data is not data: an old Frame build reading the pre-migration root tasks.json found nothing, fell through to the file-based check and walked 21 finished specs from `done` to `tasks_generated`. Keeping the recorded phase is the conservative answer — real task data still rewinds a phase when a task really is pending, which the test pins alongside the null case.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "295 pass, 0 fail"
+      }
     }
   ]
 }

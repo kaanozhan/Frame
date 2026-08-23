@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">15 tasks</span>
-    <span class="pill good">15 verified</span>
+    <span class="pill">16 tasks</span>
+    <span class="pill good">16 verified</span>
     
     <span class="chip">2026-08-23</span>
   </div>
@@ -9662,6 +9662,98 @@
 <span class="dl-ctx"> test(&#39;FRAME_PROJECT_ROOT still wins over the script location&#39;, () =&gt; {</span>
 <span class="dl-ctx">   const otherDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-scripts-other-&#39;));</span>
 <span class="dl-ctx">   fs.mkdirSync(path.join(otherDir, &#39;src&#39;), { recursive: true });</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T16</span>
+    <h2>Stop spec-phase regression when task data is unavailable</h2>
+    <span class="card-meta"><span class="chip">f17db3a</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">295 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>`derivePhase` returns `currentPhase` unchanged when `tasksDataOrNull` is null or undefined, so `reconcilePhase` cannot rewrite a status.json on the strength of task data it never read. Exported `reconcilePhase` for the regression test in test/specTasksSync.test.js, restored the 19 status.json files this repository&#39;s working tree had already been walked back in, and added the upgrade note to README plus a rule to the spec digest.</p></div>
+    <div class="field"><span class="label">Why</span><p>Absence of data is not data: an old Frame build reading the pre-migration root tasks.json found nothing, fell through to the file-based check and walked 21 finished specs from `done` to `tasks_generated`. Keeping the recorded phase is the conservative answer — real task data still rewinds a phase when a task really is pending, which the test pins alongside the null case.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/README.md b/README.md</span>
+<span class="dl-meta">index 0fbd020..4f8d226 100644</span>
+<span class="dl-file">--- a/README.md</span>
+<span class="dl-file">+++ b/README.md</span>
+<span class="dl-hunk">@@ -70,6 +70,11 @@ is never read, moved or replaced, and &quot;Remove Frame&quot; leaves no Frame-authored</span>
+<span class="dl-ctx"> bytes behind. Requires Claude Code new enough to load `.claude/rules/` (the</span>
+<span class="dl-ctx"> 2.1.x line); run `/context` in a session to confirm the rule loaded.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+&gt; **Upgrading:** update Frame before pulling a repository that has been</span>
+<span class="dl-add">+&gt; migrated to `.frame/`. An older Frame looks for the meta files at the project</span>
+<span class="dl-add">+&gt; root, finds none, and reports the project as empty — and its spec phases as</span>
+<span class="dl-add">+&gt; unstarted.</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> Every project gets its own isolated session — its own context, its own task list, its own notes. Switching projects in Frame means switching to a completely fresh, project-specific AI context. No bleed-over, no confusion.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> This standard works with any AI tool. Claude Code loads `.claude/rules/frame.md`</span>
+<span class="dl-meta">diff --git a/src/main/specManager.js b/src/main/specManager.js</span>
+<span class="dl-meta">index eeead1c..6138c22 100644</span>
+<span class="dl-file">--- a/src/main/specManager.js</span>
+<span class="dl-file">+++ b/src/main/specManager.js</span>
+<span class="dl-hunk">@@ -284,6 +284,12 @@ function fileExists(projectPath, slug, name) {</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {</span>
+<span class="dl-add">+  // No task data at all — the file could not be read, or an older Frame is</span>
+<span class="dl-add">+  // looking in the pre-`.frame/` place. &quot;I don&#39;t know&quot; is not &quot;no tasks&quot;:</span>
+<span class="dl-add">+  // deriving from files alone here walked every finished spec in this</span>
+<span class="dl-add">+  // repository back from `done` to `tasks_generated`. Keep what is recorded.</span>
+<span class="dl-add">+  if (!tasksDataOrNull) return currentPhase;</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">   // Once spec-derived tasks exist, their statuses drive the implementing →</span>
+<span class="dl-ctx">   // done transition. This overrides the file-based check so flipping a task</span>
+<span class="dl-ctx">   // back to pending automatically rewinds the phase too.</span>
+<span class="dl-hunk">@@ -1206,6 +1212,7 @@ module.exports = {</span>
+<span class="dl-ctx">   renameSpec,</span>
+<span class="dl-ctx">   deleteSpec,</span>
+<span class="dl-ctx">   derivePhase,</span>
+<span class="dl-add">+  reconcilePhase,</span>
+<span class="dl-ctx">   getCommandPrompt,</span>
+<span class="dl-ctx">   buildSpecCommandFile,</span>
+<span class="dl-ctx">   buildImplementPermissions,</span>
+<span class="dl-meta">diff --git a/test/specTasksSync.test.js b/test/specTasksSync.test.js</span>
+<span class="dl-meta">index 59dc185..0377088 100644</span>
+<span class="dl-file">--- a/test/specTasksSync.test.js</span>
+<span class="dl-file">+++ b/test/specTasksSync.test.js</span>
+<span class="dl-hunk">@@ -186,3 +186,31 @@ test(&#39;appending new work leaves existing tasks untouched&#39;, () =&gt; {</span>
+<span class="dl-ctx">     &#39;the completed task still describes the work it was completed for&#39;</span>
+<span class="dl-ctx">   );</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a spec is never walked back when the task data cannot be read&#39;, () =&gt; {</span>
+<span class="dl-add">+  // An older Frame opening a migrated repository reads the pre-`.frame/`</span>
+<span class="dl-add">+  // tasks.json, finds nothing, and used to derive the phase from files alone —</span>
+<span class="dl-add">+  // which walked every finished spec in this repository from `done` back to</span>
+<span class="dl-add">+  // `tasks_generated`, rewriting 21 status.json files nobody asked it to touch.</span>
+<span class="dl-add">+  writeStatus();</span>
+<span class="dl-add">+  writeTasksMd(NON_ASCENDING);</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(specDir(), &#39;spec.md&#39;), &#39;# Sample spec\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(path.join(specDir(), &#39;plan.md&#39;), &#39;# Plan\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  for (const phase of [&#39;done&#39;, &#39;implementing&#39;]) {</span>
+<span class="dl-add">+    const statusPath = path.join(specDir(), &#39;status.json&#39;);</span>
+<span class="dl-add">+    const status = JSON.parse(fs.readFileSync(statusPath, &#39;utf8&#39;));</span>
+<span class="dl-add">+    fs.writeFileSync(statusPath, JSON.stringify({ ...status, phase }, null, 2), &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    assert.equal(specManager.derivePhase(projectDir, SLUG, phase, null), phase, `${phase} survives null`);</span>
+<span class="dl-add">+    assert.equal(specManager.derivePhase(projectDir, SLUG, phase, undefined), phase, `${phase} survives undefined`);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    specManager.reconcilePhase(projectDir, SLUG, null);</span>
+<span class="dl-add">+    assert.equal(JSON.parse(fs.readFileSync(statusPath, &#39;utf8&#39;)).phase, phase, &#39;status.json untouched&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Real task data still drives the transition it is there to drive.</span>
+<span class="dl-add">+  specManager.syncTasksFromMarkdown(projectDir, SLUG);</span>
+<span class="dl-add">+  const data = tasksManager.loadTasks(projectDir);</span>
+<span class="dl-add">+  assert.equal(specManager.derivePhase(projectDir, SLUG, &#39;done&#39;, data), &#39;tasks_generated&#39;, &#39;pending tasks still rewind&#39;);</span>
+<span class="dl-add">+});</span></pre>
     </details>
   </div>
 </section>

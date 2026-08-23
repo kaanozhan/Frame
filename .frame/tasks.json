@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-23T11:53:10.601Z",
+  "lastUpdated": "2026-08-23T11:58:53.268Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4967,13 +4967,13 @@
       "title": "Stop spec-phase regression when task data is unavailable: in `specManager.derivePhase`/`reconcilePhase`, when `tasksDataOrNull === null` keep `currentPhase` (never walk a spec back because `tasks.json` could not be read); regression test in `test/specTasksSync.test.js` or a new `test/specPhaseGuard.test.js`; add an upgrade note to README (\"update Frame before pulling a repository migrated to `.frame/`\") and the spec digest.",
       "description": "",
       "source": "spec:non-invasive-overlay:T16",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-23T13:30:00.000Z",
-      "updatedAt": "2026-08-23T13:30:00.000Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T11:58:53.268Z",
+      "completedAt": "2026-08-23T11:58:53.268Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T17",
@@ -5030,7 +5030,7 @@
   ],
   "metadata": {
     "totalCreated": 314,
-    "totalCompleted": 23
+    "totalCompleted": 24
   },
   "categories": {
     "feature": "New features",

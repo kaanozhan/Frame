@@ -291,3 +291,24 @@ root `.gitignore` line that hid it (`.frame/bin/*.js`) is gone.
 _Captured: 2026-08-23 · 8 file change(s)_
 
 ---
+
+## T16 — Stop spec-phase regression when task data is unavailable
+
+`derivePhase` now returns `currentPhase` untouched when it is handed no task
+data, so `reconcilePhase` can no longer rewrite a `status.json` on the strength
+of a file it never read — the failure that walked 21 finished specs in this
+repository from `done` back to `tasks_generated` when an older Frame (still
+reading the root `tasks.json`) opened the migrated repo. Exported
+`reconcilePhase` so the regression test in `test/specTasksSync.test.js` can
+drive it, and pinned that real task data still rewinds a phase when a task
+really is pending. Also restored the 19 `status.json` files the working tree
+had already been damaged in, and added the upgrade note to README ("update
+Frame before pulling a repository migrated to `.frame/`") and a matching rule
+to the spec digest.
+
+Followup: the same "absence is not data" audit is worth running over the other
+derived-state writers (`tasksManager` sync, `overviewManager`).
+
+_Captured: 2026-08-23 · 5 file change(s) + 19 restored_
+
+---
