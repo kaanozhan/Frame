@@ -29,6 +29,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec, spawn } = require('child_process');
 const { FRAME_DIR, FRAME_BIN_DIR } = require('../shared/frameConstants');
+const { copyIfChanged } = require('./commandStaging');
 const {
   getStructureHookSnippet,
   getStructurePreCommitHookTemplate,
@@ -45,7 +46,9 @@ const PARSER_FILES = ['update-structure.js', 'find-module.js', 'check-freshness.
 /**
  * Copy parser scripts from Frame's bundled scripts/ into the project's
  * .frame/bin/ folder. Overwrites prior copies (so updates to Frame ship the
- * latest parser to all projects on their next init).
+ * latest parser to all projects on their next init) — but only the ones that
+ * actually differ: this also runs on every project open, and rewriting
+ * identical files would churn mtimes, watchers and `git status`.
  */
 function copyParserScripts(projectPath) {
   const binDir = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR);
@@ -79,7 +82,7 @@ function copyParserScripts(projectPath) {
       continue;
     }
     try {
-      fs.copyFileSync(src, dst);
+      if (!copyIfChanged(src, dst)) continue;
       if (file.endsWith('.js')) {
         // Make executable so `./` invocation works, though we always call via `node`.
         fs.chmodSync(dst, 0o755);
@@ -100,8 +103,9 @@ function copyParserScripts(projectPath) {
     }
     for (const file of fs.readdirSync(langSrcDir).filter((f) => f.endsWith('.js'))) {
       try {
-        fs.copyFileSync(path.join(langSrcDir, file), path.join(langDstDir, file));
-        copied.push(`lang/${file}`);
+        if (copyIfChanged(path.join(langSrcDir, file), path.join(langDstDir, file))) {
+          copied.push(`lang/${file}`);
+        }
       } catch (err) {
         console.warn(`[frame] failed to copy lang/${file}: ${err.message}`);
       }

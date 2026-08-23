@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">14 tasks</span>
-    <span class="pill good">14 verified</span>
+    <span class="pill">15 tasks</span>
+    <span class="pill good">15 verified</span>
     
     <span class="chip">2026-08-23</span>
   </div>
@@ -9367,6 +9367,301 @@
 <span class="dl-ctx"> test(&#39;a second run is a no-op, and an interrupted one reconciles&#39;, () =&gt; {</span>
 <span class="dl-ctx">   projectDir = makeLegacyProject({ commit: true });</span>
 <span class="dl-ctx">   layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T15</span>
+    <h2>Ship .frame/bin with the project</h2>
+    <span class="card-meta"><span class="chip">16bb12b</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">294 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>Moved `bin/` from the runtime class into `derived`, and added FRAME_TRACKED_DERIVED (STRUCTURE.json, bin/) as the list the managed `.frame/.gitignore` block leaves out. `copyParserScripts` is copy-if-changed (commandStaging.copyIfChanged) and, together with `stageCommandFiles`, now runs from the CHECK_IS_FRAME_PROJECT handler so an older checkout heals on open. The pre-commit snippet falls back to the main worktree&#39;s parser via `git rev-parse --git-common-dir` while still writing the current checkout&#39;s STRUCTURE.json. This repository&#39;s `.frame/bin` is staged and the root `.gitignore` line that hid it is gone.</p></div>
+    <div class="field"><span class="label">Why</span><p>A linked worktree — every orchestration worker — has no `.frame/bin` of its own, so the hook resolved a parser that was not there and silently did nothing; committing `bin/` fixes the common case and the common-dir fallback covers checkouts that predate it. Staging on open had to become copy-if-changed first: rewriting ten identical files on every project selection would churn watchers and mtimes.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/.gitignore b/.gitignore</span>
+<span class="dl-meta">index 54170ed..3375545 100644</span>
+<span class="dl-file">--- a/.gitignore</span>
+<span class="dl-file">+++ b/.gitignore</span>
+<span class="dl-hunk">@@ -51,7 +51,6 @@ release/</span>
+<span class="dl-ctx"> .frame/index/</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> # Frame orchestration artifacts (materialized on every orchestration start — regenerated)</span>
+<span class="dl-del">-.frame/bin/*.js</span>
+<span class="dl-ctx"> .frame/orchestration/</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> # Frame durable-write artifacts (src/main/fsSafe.js) — the .bak of the last good</span>
+<span class="dl-hunk">@@ -73,3 +72,6 @@ pitch-assets/pdf/</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> # Orientation eval transcripts/diffs — bulky, local-only (summary lives in scripts/eval/README.md)</span>
+<span class="dl-ctx"> scripts/eval/results/</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+# Local UI prototypes — exploratory artifacts, never committed</span>
+<span class="dl-add">+docs/prototypes/</span>
+<span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 5dca0c5..2991b98 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -823,9 +823,23 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">     // pre-overlay layout, which is what opens the migration modal.</span>
+<span class="dl-ctx">     const layout = !isFrame ? &#39;none&#39; : (frameStore.isLegacyLayout(projectPath) ? &#39;legacy&#39; : &#39;overlay&#39;);</span>
+<span class="dl-ctx">     if (isFrame) {</span>
+<span class="dl-add">+      // `.frame/bin` is committed, so a checkout can carry scripts older than</span>
+<span class="dl-add">+      // the running Frame — a clone, a linked worktree, a teammate&#39;s commit.</span>
+<span class="dl-add">+      // Both stagers are copy-if-changed, so an up-to-date project is read,</span>
+<span class="dl-add">+      // compared and left alone. Non-fatal, all of it.</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        structureBootstrap.copyParserScripts(projectPath);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        console.warn(&#39;[frame] could not refresh .frame/bin (non-fatal):&#39;, err.message);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        commandStaging.stageCommandFiles(projectPath);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        console.warn(&#39;[frame] could not refresh the staged commands (non-fatal):&#39;, err.message);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-ctx">       // Tracked state changes behind Frame&#39;s back (a teammate commits .frame/,</span>
+<span class="dl-ctx">       // the user runs `git rm --cached`), so the sharing mode&#39;s side effects</span>
+<span class="dl-del">-      // are re-applied every time the project is opened. Non-fatal.</span>
+<span class="dl-add">+      // are re-applied every time the project is opened.</span>
+<span class="dl-ctx">       try {</span>
+<span class="dl-ctx">         gitSharing.reconcile(projectPath);</span>
+<span class="dl-ctx">       } catch (err) {</span>
+<span class="dl-meta">diff --git a/src/main/structureBootstrap.js b/src/main/structureBootstrap.js</span>
+<span class="dl-meta">index b09cccc..9123f98 100644</span>
+<span class="dl-file">--- a/src/main/structureBootstrap.js</span>
+<span class="dl-file">+++ b/src/main/structureBootstrap.js</span>
+<span class="dl-hunk">@@ -29,6 +29,7 @@ const fs = require(&#39;fs&#39;);</span>
+<span class="dl-ctx"> const path = require(&#39;path&#39;);</span>
+<span class="dl-ctx"> const { exec, spawn } = require(&#39;child_process&#39;);</span>
+<span class="dl-ctx"> const { FRAME_DIR, FRAME_BIN_DIR } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-add">+const { copyIfChanged } = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-ctx"> const {</span>
+<span class="dl-ctx">   getStructureHookSnippet,</span>
+<span class="dl-ctx">   getStructurePreCommitHookTemplate,</span>
+<span class="dl-hunk">@@ -45,7 +46,9 @@ const PARSER_FILES = [&#39;update-structure.js&#39;, &#39;find-module.js&#39;, &#39;check-freshness.</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Copy parser scripts from Frame&#39;s bundled scripts/ into the project&#39;s</span>
+<span class="dl-ctx">  * .frame/bin/ folder. Overwrites prior copies (so updates to Frame ship the</span>
+<span class="dl-del">- * latest parser to all projects on their next init).</span>
+<span class="dl-add">+ * latest parser to all projects on their next init) — but only the ones that</span>
+<span class="dl-add">+ * actually differ: this also runs on every project open, and rewriting</span>
+<span class="dl-add">+ * identical files would churn mtimes, watchers and `git status`.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function copyParserScripts(projectPath) {</span>
+<span class="dl-ctx">   const binDir = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR);</span>
+<span class="dl-hunk">@@ -79,7 +82,7 @@ function copyParserScripts(projectPath) {</span>
+<span class="dl-ctx">       continue;</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-del">-      fs.copyFileSync(src, dst);</span>
+<span class="dl-add">+      if (!copyIfChanged(src, dst)) continue;</span>
+<span class="dl-ctx">       if (file.endsWith(&#39;.js&#39;)) {</span>
+<span class="dl-ctx">         // Make executable so `./` invocation works, though we always call via `node`.</span>
+<span class="dl-ctx">         fs.chmodSync(dst, 0o755);</span>
+<span class="dl-hunk">@@ -100,8 +103,9 @@ function copyParserScripts(projectPath) {</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">     for (const file of fs.readdirSync(langSrcDir).filter((f) =&gt; f.endsWith(&#39;.js&#39;))) {</span>
+<span class="dl-ctx">       try {</span>
+<span class="dl-del">-        fs.copyFileSync(path.join(langSrcDir, file), path.join(langDstDir, file));</span>
+<span class="dl-del">-        copied.push(`lang/${file}`);</span>
+<span class="dl-add">+        if (copyIfChanged(path.join(langSrcDir, file), path.join(langDstDir, file))) {</span>
+<span class="dl-add">+          copied.push(`lang/${file}`);</span>
+<span class="dl-add">+        }</span>
+<span class="dl-ctx">       } catch (err) {</span>
+<span class="dl-ctx">         console.warn(`[frame] failed to copy lang/${file}: ${err.message}`);</span>
+<span class="dl-ctx">       }</span>
+<span class="dl-meta">diff --git a/src/shared/frameConstants.js b/src/shared/frameConstants.js</span>
+<span class="dl-meta">index 55c7aaa..6db7bfe 100644</span>
+<span class="dl-file">--- a/src/shared/frameConstants.js</span>
+<span class="dl-file">+++ b/src/shared/frameConstants.js</span>
+<span class="dl-hunk">@@ -47,14 +47,15 @@ const LEGACY_SYMLINKS = [&#39;CLAUDE.md&#39;, &#39;GEMINI.md&#39;];</span>
+<span class="dl-ctx"> const MIGRATION_BACKUP_DIR = &#39;migration-backup&#39;;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // What each .frame/ entry *is*, which decides how git and (later) sync treat</span>
+<span class="dl-del">-// it. Paths are relative to .frame/. Class is not the same as tracking:</span>
+<span class="dl-del">-// STRUCTURE.json is derived but stays tracked for now, so the managed</span>
+<span class="dl-del">-// .frame/.gitignore block is built from these lists minus that one file.</span>
+<span class="dl-add">+// it. Paths are relative to .frame/. Class is not the same as tracking: some</span>
+<span class="dl-add">+// derived entries stay tracked (below), so the managed .frame/.gitignore block</span>
+<span class="dl-add">+// is built from these lists minus those.</span>
+<span class="dl-ctx"> const FRAME_FILE_CLASSES = {</span>
+<span class="dl-ctx">   instruction: [&#39;AGENTS.md&#39;, &#39;docs/&#39;],</span>
+<span class="dl-ctx">   data: [&#39;tasks.json&#39;, &#39;PROJECT_NOTES.md&#39;, &#39;QUICKSTART.md&#39;, &#39;specs/&#39;],</span>
+<span class="dl-ctx">   derived: [</span>
+<span class="dl-ctx">     &#39;STRUCTURE.json&#39;,</span>
+<span class="dl-add">+    &#39;bin/&#39;,</span>
+<span class="dl-ctx">     &#39;index/&#39;,</span>
+<span class="dl-ctx">     &#39;specs/*/implement-report.html&#39;,</span>
+<span class="dl-ctx">     &#39;specs/*/plan-report.html&#39;,</span>
+<span class="dl-hunk">@@ -64,7 +65,6 @@ const FRAME_FILE_CLASSES = {</span>
+<span class="dl-ctx">     &#39;runtime/&#39;,</span>
+<span class="dl-ctx">     &#39;worktrees/&#39;,</span>
+<span class="dl-ctx">     &#39;orchestration/&#39;,</span>
+<span class="dl-del">-    &#39;bin/&#39;,</span>
+<span class="dl-ctx">     &#39;migration-backup/&#39;,</span>
+<span class="dl-ctx">     &#39;implement-permissions.json&#39;,</span>
+<span class="dl-ctx">     &#39;*.bak&#39;,</span>
+<span class="dl-hunk">@@ -73,6 +73,13 @@ const FRAME_FILE_CLASSES = {</span>
+<span class="dl-ctx">   ]</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+// Derived, but committed anyway. STRUCTURE.json because teammates and</span>
+<span class="dl-add">+// worktrees read it; bin/ because the hooks, the CLI commands and a linked</span>
+<span class="dl-add">+// worktree all need the scripts to be *in the checkout*, not just on the</span>
+<span class="dl-add">+// machine that ran Frame. Both are refreshed from the shipped copies on every</span>
+<span class="dl-add">+// project open, so a stale committed copy heals itself.</span>
+<span class="dl-add">+const FRAME_TRACKED_DERIVED = [&#39;STRUCTURE.json&#39;, &#39;bin/&#39;];</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> // ─── Orchestration (conductor / parallel spec execution) ──</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Worker worktrees live under .frame/worktrees/&lt;slug&gt;</span>
+<span class="dl-hunk">@@ -109,6 +116,7 @@ module.exports = {</span>
+<span class="dl-ctx">   LEGACY_SYMLINKS,</span>
+<span class="dl-ctx">   MIGRATION_BACKUP_DIR,</span>
+<span class="dl-ctx">   FRAME_FILE_CLASSES,</span>
+<span class="dl-add">+  FRAME_TRACKED_DERIVED,</span>
+<span class="dl-ctx">   ORCH_WORKTREES_DIR,</span>
+<span class="dl-ctx">   ORCH_BUS_DIR,</span>
+<span class="dl-ctx">   ORCH_BUS_ENV,</span>
+<span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index db067cc..26139fd 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -6,7 +6,7 @@</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> const crypto = require(&#39;crypto&#39;);</span>
+<span class="dl-ctx"> const managedBlock = require(&#39;./docsManagedBlock&#39;);</span>
+<span class="dl-del">-const { FRAME_FILE_CLASSES } = require(&#39;./frameConstants&#39;);</span>
+<span class="dl-add">+const { FRAME_FILE_CLASSES, FRAME_TRACKED_DERIVED } = require(&#39;./frameConstants&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Get current date in YYYY-MM-DD format</span>
+<span class="dl-hunk">@@ -843,9 +843,9 @@ function getClaudeRuleTemplate() {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * The managed block of `.frame/.gitignore`, generated from the file classes:</span>
+<span class="dl-del">- * derived and runtime entries are machine-local. STRUCTURE.json is derived but</span>
+<span class="dl-del">- * deliberately stays tracked — teammates and worktrees rely on it being in the</span>
+<span class="dl-del">- * repo. Lines outside the markers are the user&#39;s and are never touched.</span>
+<span class="dl-add">+ * derived and runtime entries are machine-local, except the ones listed in</span>
+<span class="dl-add">+ * FRAME_TRACKED_DERIVED (STRUCTURE.json and bin/) which the repository is</span>
+<span class="dl-add">+ * meant to carry. Lines outside the markers are the user&#39;s and never touched.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> const FRAME_GITIGNORE_MARKER_START = &#39;# managed by Frame — machine-local; edit outside this block&#39;;</span>
+<span class="dl-ctx"> const FRAME_GITIGNORE_MARKER_END = &#39;# end managed by Frame&#39;;</span>
+<span class="dl-hunk">@@ -853,7 +853,7 @@ const FRAME_GITIGNORE_MARKER_END = &#39;# end managed by Frame&#39;;</span>
+<span class="dl-ctx"> function getFrameGitignoreBlock() {</span>
+<span class="dl-ctx">   const entries = [</span>
+<span class="dl-ctx">     ...FRAME_FILE_CLASSES.runtime,</span>
+<span class="dl-del">-    ...FRAME_FILE_CLASSES.derived.filter((entry) =&gt; entry !== &#39;STRUCTURE.json&#39;)</span>
+<span class="dl-add">+    ...FRAME_FILE_CLASSES.derived.filter((entry) =&gt; !FRAME_TRACKED_DERIVED.includes(entry))</span>
+<span class="dl-ctx">   ];</span>
+<span class="dl-ctx">   return `${FRAME_GITIGNORE_MARKER_START}\n${entries.join(&#39;\n&#39;)}\n${FRAME_GITIGNORE_MARKER_END}\n`;</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-hunk">@@ -996,8 +996,21 @@ function getStructureHookSnippet() {</span>
+<span class="dl-ctx"> # don&#39;t want Frame to manage your STRUCTURE.json file.</span>
+<span class="dl-ctx"> if command -v node &gt;/dev/null 2&gt;&amp;1; then</span>
+<span class="dl-ctx">   FRAME_ROOT=&quot;$(git rev-parse --show-toplevel 2&gt;/dev/null)&quot;</span>
+<span class="dl-del">-  if [ -n &quot;$FRAME_ROOT&quot; ] &amp;&amp; [ -f &quot;$FRAME_ROOT/.frame/bin/update-structure.js&quot; ]; then</span>
+<span class="dl-del">-    FRAME_PROJECT_ROOT=&quot;$FRAME_ROOT&quot; node &quot;$FRAME_ROOT/.frame/bin/update-structure.js&quot; --changed || true</span>
+<span class="dl-add">+  FRAME_PARSER=&quot;$FRAME_ROOT/.frame/bin/update-structure.js&quot;</span>
+<span class="dl-add">+  if [ -n &quot;$FRAME_ROOT&quot; ] &amp;&amp; [ ! -f &quot;$FRAME_PARSER&quot; ]; then</span>
+<span class="dl-add">+    # Linked worktree (or any checkout without its own .frame/bin): borrow the</span>
+<span class="dl-add">+    # main worktree&#39;s parser, still writing this checkout&#39;s STRUCTURE.json.</span>
+<span class="dl-add">+    FRAME_COMMON=&quot;$(git rev-parse --git-common-dir 2&gt;/dev/null)&quot;</span>
+<span class="dl-add">+    case &quot;$FRAME_COMMON&quot; in</span>
+<span class="dl-add">+      /*) ;;</span>
+<span class="dl-add">+      *) FRAME_COMMON=&quot;$FRAME_ROOT/$FRAME_COMMON&quot; ;;</span>
+<span class="dl-add">+    esac</span>
+<span class="dl-add">+    if [ -n &quot;$FRAME_COMMON&quot; ] &amp;&amp; [ -f &quot;$(dirname &quot;$FRAME_COMMON&quot;)/.frame/bin/update-structure.js&quot; ]; then</span>
+<span class="dl-add">+      FRAME_PARSER=&quot;$(dirname &quot;$FRAME_COMMON&quot;)/.frame/bin/update-structure.js&quot;</span>
+<span class="dl-add">+    fi</span>
+<span class="dl-add">+  fi</span>
+<span class="dl-add">+  if [ -n &quot;$FRAME_ROOT&quot; ] &amp;&amp; [ -f &quot;$FRAME_PARSER&quot; ]; then</span>
+<span class="dl-add">+    FRAME_PROJECT_ROOT=&quot;$FRAME_ROOT&quot; node &quot;$FRAME_PARSER&quot; --changed || true</span>
+<span class="dl-ctx">     # .frame/STRUCTURE.json is where the parser writes; the root copy only</span>
+<span class="dl-ctx">     # exists in a project that has not migrated yet.</span>
+<span class="dl-ctx">     if [ -f &quot;$FRAME_ROOT/.frame/STRUCTURE.json&quot; ]; then</span>
+<span class="dl-meta">diff --git a/test/gitSharing.test.js b/test/gitSharing.test.js</span>
+<span class="dl-meta">index d01cd81..9a7a9ea 100644</span>
+<span class="dl-file">--- a/test/gitSharing.test.js</span>
+<span class="dl-file">+++ b/test/gitSharing.test.js</span>
+<span class="dl-hunk">@@ -88,15 +88,16 @@ test(&#39;switching to local excludes, moves the hooks, and back again&#39;, () =&gt; {</span>
+<span class="dl-ctx">   assert.equal(hookCommands(localFile).length, 0, &#39;and left the local file&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-test(&#39;the managed .gitignore block lists runtime classes but not STRUCTURE.json&#39;, () =&gt; {</span>
+<span class="dl-add">+test(&#39;the managed .gitignore block lists runtime classes but not STRUCTURE.json or bin/&#39;, () =&gt; {</span>
+<span class="dl-ctx">   gitSharing.setMode(projectDir, &#39;repo&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const ignoreFile = path.join(projectDir, &#39;.frame&#39;, &#39;.gitignore&#39;);</span>
+<span class="dl-ctx">   const content = fs.readFileSync(ignoreFile, &#39;utf8&#39;);</span>
+<span class="dl-del">-  for (const entry of [&#39;runtime/&#39;, &#39;worktrees/&#39;, &#39;orchestration/&#39;, &#39;bin/&#39;, &#39;migration-backup/&#39;, &#39;*.bak&#39;, &#39;specs/*/report-data.json&#39;]) {</span>
+<span class="dl-add">+  for (const entry of [&#39;runtime/&#39;, &#39;worktrees/&#39;, &#39;orchestration/&#39;, &#39;migration-backup/&#39;, &#39;*.bak&#39;, &#39;specs/*/report-data.json&#39;]) {</span>
+<span class="dl-ctx">     assert.ok(content.includes(entry), `${entry} is ignored`);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx">   assert.ok(!/^STRUCTURE\.json$/m.test(content), &#39;STRUCTURE.json stays tracked&#39;);</span>
+<span class="dl-add">+  assert.ok(!/^bin\/$/m.test(content), &#39;bin/ ships with the project — hooks and worktrees need it in the checkout&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> test(&#39;user lines outside the managed block survive a rewrite&#39;, () =&gt; {</span>
+<span class="dl-meta">diff --git a/test/scriptsProjectRoot.test.js b/test/scriptsProjectRoot.test.js</span>
+<span class="dl-meta">index 80f7b7a..330b420 100644</span>
+<span class="dl-file">--- a/test/scriptsProjectRoot.test.js</span>
+<span class="dl-file">+++ b/test/scriptsProjectRoot.test.js</span>
+<span class="dl-hunk">@@ -135,6 +135,48 @@ test(&#39;an existing root STRUCTURE.json keeps being updated in place&#39;, () =&gt; {</span>
+<span class="dl-ctx">   fs.rmSync(legacyDir, { recursive: true, force: true });</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+test(&#39;the pre-commit snippet updates a linked worktree\&#39;s own STRUCTURE.json&#39;, () =&gt; {</span>
+<span class="dl-add">+  // Worker worktrees (.frame/worktrees/&lt;slug&gt;) are linked checkouts. Resolving</span>
+<span class="dl-add">+  // the parser from `--show-toplevel` alone finds nothing there when the</span>
+<span class="dl-add">+  // checkout has no .frame/bin of its own, and the hook silently did nothing.</span>
+<span class="dl-add">+  const { getStructureHookSnippet } = require(&#39;../src/shared/frameTemplates&#39;);</span>
+<span class="dl-add">+  const git = (cwd, args) =&gt; spawnSync(&#39;git&#39;, args, { cwd, encoding: &#39;utf8&#39; });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const mainDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-hook-main-&#39;));</span>
+<span class="dl-add">+  const worktreeDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-hook-wt-&#39;));</span>
+<span class="dl-add">+  fs.rmSync(worktreeDir, { recursive: true, force: true });</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    git(mainDir, [&#39;init&#39;, &#39;-q&#39;]);</span>
+<span class="dl-add">+    git(mainDir, [&#39;config&#39;, &#39;user.email&#39;, &#39;test@example.com&#39;]);</span>
+<span class="dl-add">+    git(mainDir, [&#39;config&#39;, &#39;user.name&#39;, &#39;Test&#39;]);</span>
+<span class="dl-add">+    fs.mkdirSync(path.join(mainDir, &#39;src&#39;), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(path.join(mainDir, &#39;src&#39;, &#39;widgetManager.js&#39;), &#39;/** Widget Manager — one export. */\nmodule.exports = {};\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+    git(mainDir, [&#39;add&#39;, &#39;src&#39;]);</span>
+<span class="dl-add">+    git(mainDir, [&#39;commit&#39;, &#39;-q&#39;, &#39;-m&#39;, &#39;init&#39;]);</span>
+<span class="dl-add">+    structureBootstrap.copyParserScripts(mainDir); // only the main checkout has .frame/bin</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    git(mainDir, [&#39;worktree&#39;, &#39;add&#39;, &#39;-q&#39;, &#39;-b&#39;, &#39;wt&#39;, worktreeDir]);</span>
+<span class="dl-add">+    assert.ok(!fs.existsSync(path.join(worktreeDir, &#39;.frame&#39;, &#39;bin&#39;)), &#39;the worktree has no parser of its own&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    fs.writeFileSync(path.join(worktreeDir, &#39;src&#39;, &#39;gadgetManager.js&#39;), &#39;/** Gadget Manager — one export. */\nmodule.exports = {};\n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+    git(worktreeDir, [&#39;add&#39;, &#39;src/gadgetManager.js&#39;]);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const hookFile = path.join(worktreeDir, &#39;run-hook.sh&#39;);</span>
+<span class="dl-add">+    fs.writeFileSync(hookFile, `#!/bin/sh\n${getStructureHookSnippet()}\nexit 0\n`, { mode: 0o755 });</span>
+<span class="dl-add">+    const result = spawnSync(&#39;sh&#39;, [hookFile], { cwd: worktreeDir, encoding: &#39;utf8&#39;, timeout: 30000 });</span>
+<span class="dl-add">+    assert.equal(result.status, 0, result.stderr);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    const written = path.join(worktreeDir, &#39;.frame&#39;, &#39;STRUCTURE.json&#39;);</span>
+<span class="dl-add">+    assert.ok(fs.existsSync(written), &#39;the worktree got its own STRUCTURE.json&#39;);</span>
+<span class="dl-add">+    const structure = JSON.parse(fs.readFileSync(written, &#39;utf8&#39;));</span>
+<span class="dl-add">+    assert.ok(Object.keys(structure.modules).some((k) =&gt; k.includes(&#39;gadgetManager&#39;)), &#39;and it describes the worktree&#39;);</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    spawnSync(&#39;git&#39;, [&#39;worktree&#39;, &#39;remove&#39;, &#39;--force&#39;, worktreeDir], { cwd: mainDir });</span>
+<span class="dl-add">+    fs.rmSync(worktreeDir, { recursive: true, force: true });</span>
+<span class="dl-add">+    fs.rmSync(mainDir, { recursive: true, force: true });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> test(&#39;FRAME_PROJECT_ROOT still wins over the script location&#39;, () =&gt; {</span>
+<span class="dl-ctx">   const otherDir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-scripts-other-&#39;));</span>
+<span class="dl-ctx">   fs.mkdirSync(path.join(otherDir, &#39;src&#39;), { recursive: true });</span></pre>
     </details>
   </div>
 </section>

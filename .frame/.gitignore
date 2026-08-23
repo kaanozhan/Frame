@@ -2,7 +2,6 @@
 runtime/
 worktrees/
 orchestration/
-bin/
 migration-backup/
 implement-permissions.json
 *.bak

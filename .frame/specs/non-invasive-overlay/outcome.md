@@ -273,3 +273,21 @@ no separate matcher was needed there.
 _Captured: 2026-08-23 · 4 file change(s)_
 
 ---
+
+## T15 — Ship `.frame/bin` with the project
+
+Moved `bin/` out of the ignored runtime class into `derived`, with a new
+`FRAME_TRACKED_DERIVED` list (`STRUCTURE.json`, `bin/`) naming what the managed
+`.frame/.gitignore` block leaves out. `copyParserScripts` became copy-if-changed
+(reusing `commandStaging.copyIfChanged`) and now runs — with
+`commandStaging.stageCommandFiles` — from the `CHECK_IS_FRAME_PROJECT` handler,
+so a checkout carrying older scripts heals on open without churning an
+up-to-date one. `getStructureHookSnippet` falls back to the main worktree's
+parser through `git rev-parse --git-common-dir` while keeping
+`FRAME_PROJECT_ROOT` on the current checkout, which is what makes the hook work
+in `.frame/worktrees/<slug>`. This repository's `.frame/bin` is staged and the
+root `.gitignore` line that hid it (`.frame/bin/*.js`) is gone.
+
+_Captured: 2026-08-23 · 8 file change(s)_
+
+---

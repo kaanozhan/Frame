@@ -135,6 +135,48 @@ test('an existing root STRUCTURE.json keeps being updated in place', () => {
   fs.rmSync(legacyDir, { recursive: true, force: true });
 });
 
+test('the pre-commit snippet updates a linked worktree\'s own STRUCTURE.json', () => {
+  // Worker worktrees (.frame/worktrees/<slug>) are linked checkouts. Resolving
+  // the parser from `--show-toplevel` alone finds nothing there when the
+  // checkout has no .frame/bin of its own, and the hook silently did nothing.
+  const { getStructureHookSnippet } = require('../src/shared/frameTemplates');
+  const git = (cwd, args) => spawnSync('git', args, { cwd, encoding: 'utf8' });
+
+  const mainDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-hook-main-'));
+  const worktreeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-hook-wt-'));
+  fs.rmSync(worktreeDir, { recursive: true, force: true });
+  try {
+    git(mainDir, ['init', '-q']);
+    git(mainDir, ['config', 'user.email', 'test@example.com']);
+    git(mainDir, ['config', 'user.name', 'Test']);
+    fs.mkdirSync(path.join(mainDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(mainDir, 'src', 'widgetManager.js'), '/** Widget Manager — one export. */\nmodule.exports = {};\n', 'utf8');
+    git(mainDir, ['add', 'src']);
+    git(mainDir, ['commit', '-q', '-m', 'init']);
+    structureBootstrap.copyParserScripts(mainDir); // only the main checkout has .frame/bin
+
+    git(mainDir, ['worktree', 'add', '-q', '-b', 'wt', worktreeDir]);
+    assert.ok(!fs.existsSync(path.join(worktreeDir, '.frame', 'bin')), 'the worktree has no parser of its own');
+
+    fs.writeFileSync(path.join(worktreeDir, 'src', 'gadgetManager.js'), '/** Gadget Manager — one export. */\nmodule.exports = {};\n', 'utf8');
+    git(worktreeDir, ['add', 'src/gadgetManager.js']);
+
+    const hookFile = path.join(worktreeDir, 'run-hook.sh');
+    fs.writeFileSync(hookFile, `#!/bin/sh\n${getStructureHookSnippet()}\nexit 0\n`, { mode: 0o755 });
+    const result = spawnSync('sh', [hookFile], { cwd: worktreeDir, encoding: 'utf8', timeout: 30000 });
+    assert.equal(result.status, 0, result.stderr);
+
+    const written = path.join(worktreeDir, '.frame', 'STRUCTURE.json');
+    assert.ok(fs.existsSync(written), 'the worktree got its own STRUCTURE.json');
+    const structure = JSON.parse(fs.readFileSync(written, 'utf8'));
+    assert.ok(Object.keys(structure.modules).some((k) => k.includes('gadgetManager')), 'and it describes the worktree');
+  } finally {
+    spawnSync('git', ['worktree', 'remove', '--force', worktreeDir], { cwd: mainDir });
+    fs.rmSync(worktreeDir, { recursive: true, force: true });
+    fs.rmSync(mainDir, { recursive: true, force: true });
+  }
+});
+
 test('FRAME_PROJECT_ROOT still wins over the script location', () => {
   const otherDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-scripts-other-'));
   fs.mkdirSync(path.join(otherDir, 'src'), { recursive: true });

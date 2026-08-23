@@ -823,9 +823,23 @@ function setupIPC(ipcMain) {
     // pre-overlay layout, which is what opens the migration modal.
     const layout = !isFrame ? 'none' : (frameStore.isLegacyLayout(projectPath) ? 'legacy' : 'overlay');
     if (isFrame) {
+      // `.frame/bin` is committed, so a checkout can carry scripts older than
+      // the running Frame — a clone, a linked worktree, a teammate's commit.
+      // Both stagers are copy-if-changed, so an up-to-date project is read,
+      // compared and left alone. Non-fatal, all of it.
+      try {
+        structureBootstrap.copyParserScripts(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not refresh .frame/bin (non-fatal):', err.message);
+      }
+      try {
+        commandStaging.stageCommandFiles(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not refresh the staged commands (non-fatal):', err.message);
+      }
       // Tracked state changes behind Frame's back (a teammate commits .frame/,
       // the user runs `git rm --cached`), so the sharing mode's side effects
-      // are re-applied every time the project is opened. Non-fatal.
+      // are re-applied every time the project is opened.
       try {
         gitSharing.reconcile(projectPath);
       } catch (err) {

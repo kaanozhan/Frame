@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-23T11:47:18.224Z",
+  "lastUpdated": "2026-08-23T11:53:10.601Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4954,13 +4954,13 @@
       "title": "Ship `.frame/bin` with the project: move `bin/` out of the ignored runtime class (`FRAME_FILE_CLASSES`, `getFrameGitignoreBlock`), re-stage the parser scripts and command files on project open when the shipped copy differs (`structureBootstrap.copyParserScripts` + `commandStaging.stageCommandFiles` from the `CHECK_IS_FRAME_PROJECT` handler, copy-if-changed only), give `getStructureHookSnippet` a linked-worktree fallback (`git rev-parse --git-common-dir`) so worker worktrees still update `.frame/STRUCTURE.json`, and stage this repository's `.frame/bin` scripts; tests in `test/scriptsProjectRoot.test.js` (worktree hook) and `test/gitSharing.test.js` (block no longer lists `bin/`).",
       "description": "",
       "source": "spec:non-invasive-overlay:T15",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-23T13:30:00.000Z",
-      "updatedAt": "2026-08-23T13:30:00.000Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T11:53:10.601Z",
+      "completedAt": "2026-08-23T11:53:10.601Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T16",
@@ -5030,7 +5030,7 @@
   ],
   "metadata": {
     "totalCreated": 314,
-    "totalCompleted": 22
+    "totalCompleted": 23
   },
   "categories": {
     "feature": "New features",

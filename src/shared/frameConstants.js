@@ -47,14 +47,15 @@ const LEGACY_SYMLINKS = ['CLAUDE.md', 'GEMINI.md'];
 const MIGRATION_BACKUP_DIR = 'migration-backup';
 
 // What each .frame/ entry *is*, which decides how git and (later) sync treat
-// it. Paths are relative to .frame/. Class is not the same as tracking:
-// STRUCTURE.json is derived but stays tracked for now, so the managed
-// .frame/.gitignore block is built from these lists minus that one file.
+// it. Paths are relative to .frame/. Class is not the same as tracking: some
+// derived entries stay tracked (below), so the managed .frame/.gitignore block
+// is built from these lists minus those.
 const FRAME_FILE_CLASSES = {
   instruction: ['AGENTS.md', 'docs/'],
   data: ['tasks.json', 'PROJECT_NOTES.md', 'QUICKSTART.md', 'specs/'],
   derived: [
     'STRUCTURE.json',
+    'bin/',
     'index/',
     'specs/*/implement-report.html',
     'specs/*/plan-report.html',
@@ -64,7 +65,6 @@ const FRAME_FILE_CLASSES = {
     'runtime/',
     'worktrees/',
     'orchestration/',
-    'bin/',
     'migration-backup/',
     'implement-permissions.json',
     '*.bak',
@@ -72,6 +72,13 @@ const FRAME_FILE_CLASSES = {
     '*.corrupt-*'
   ]
 };
+
+// Derived, but committed anyway. STRUCTURE.json because teammates and
+// worktrees read it; bin/ because the hooks, the CLI commands and a linked
+// worktree all need the scripts to be *in the checkout*, not just on the
+// machine that ran Frame. Both are refreshed from the shipped copies on every
+// project open, so a stale committed copy heals itself.
+const FRAME_TRACKED_DERIVED = ['STRUCTURE.json', 'bin/'];
 
 // ─── Orchestration (conductor / parallel spec execution) ──
 
@@ -109,6 +116,7 @@ module.exports = {
   LEGACY_SYMLINKS,
   MIGRATION_BACKUP_DIR,
   FRAME_FILE_CLASSES,
+  FRAME_TRACKED_DERIVED,
   ORCH_WORKTREES_DIR,
   ORCH_BUS_DIR,
   ORCH_BUS_ENV,

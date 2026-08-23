@@ -6,7 +6,7 @@
 
 const crypto = require('crypto');
 const managedBlock = require('./docsManagedBlock');
-const { FRAME_FILE_CLASSES } = require('./frameConstants');
+const { FRAME_FILE_CLASSES, FRAME_TRACKED_DERIVED } = require('./frameConstants');
 
 /**
  * Get current date in YYYY-MM-DD format
@@ -843,9 +843,9 @@ function getClaudeRuleTemplate() {
 
 /**
  * The managed block of `.frame/.gitignore`, generated from the file classes:
- * derived and runtime entries are machine-local. STRUCTURE.json is derived but
- * deliberately stays tracked — teammates and worktrees rely on it being in the
- * repo. Lines outside the markers are the user's and are never touched.
+ * derived and runtime entries are machine-local, except the ones listed in
+ * FRAME_TRACKED_DERIVED (STRUCTURE.json and bin/) which the repository is
+ * meant to carry. Lines outside the markers are the user's and never touched.
  */
 const FRAME_GITIGNORE_MARKER_START = '# managed by Frame — machine-local; edit outside this block';
 const FRAME_GITIGNORE_MARKER_END = '# end managed by Frame';
@@ -853,7 +853,7 @@ const FRAME_GITIGNORE_MARKER_END = '# end managed by Frame';
 function getFrameGitignoreBlock() {
   const entries = [
     ...FRAME_FILE_CLASSES.runtime,
-    ...FRAME_FILE_CLASSES.derived.filter((entry) => entry !== 'STRUCTURE.json')
+    ...FRAME_FILE_CLASSES.derived.filter((entry) => !FRAME_TRACKED_DERIVED.includes(entry))
   ];
   return `${FRAME_GITIGNORE_MARKER_START}\n${entries.join('\n')}\n${FRAME_GITIGNORE_MARKER_END}\n`;
 }
@@ -996,8 +996,21 @@ function getStructureHookSnippet() {
 # don't want Frame to manage your STRUCTURE.json file.
 if command -v node >/dev/null 2>&1; then
   FRAME_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-  if [ -n "$FRAME_ROOT" ] && [ -f "$FRAME_ROOT/.frame/bin/update-structure.js" ]; then
-    FRAME_PROJECT_ROOT="$FRAME_ROOT" node "$FRAME_ROOT/.frame/bin/update-structure.js" --changed || true
+  FRAME_PARSER="$FRAME_ROOT/.frame/bin/update-structure.js"
+  if [ -n "$FRAME_ROOT" ] && [ ! -f "$FRAME_PARSER" ]; then
+    # Linked worktree (or any checkout without its own .frame/bin): borrow the
+    # main worktree's parser, still writing this checkout's STRUCTURE.json.
+    FRAME_COMMON="$(git rev-parse --git-common-dir 2>/dev/null)"
+    case "$FRAME_COMMON" in
+      /*) ;;
+      *) FRAME_COMMON="$FRAME_ROOT/$FRAME_COMMON" ;;
+    esac
+    if [ -n "$FRAME_COMMON" ] && [ -f "$(dirname "$FRAME_COMMON")/.frame/bin/update-structure.js" ]; then
+      FRAME_PARSER="$(dirname "$FRAME_COMMON")/.frame/bin/update-structure.js"
+    fi
+  fi
+  if [ -n "$FRAME_ROOT" ] && [ -f "$FRAME_PARSER" ]; then
+    FRAME_PROJECT_ROOT="$FRAME_ROOT" node "$FRAME_PARSER" --changed || true
     # .frame/STRUCTURE.json is where the parser writes; the root copy only
     # exists in a project that has not migrated yet.
     if [ -f "$FRAME_ROOT/.frame/STRUCTURE.json" ]; then

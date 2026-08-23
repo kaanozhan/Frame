@@ -171,6 +171,18 @@
         "status": "pass",
         "detail": "293 pass, 0 fail"
       }
+    },
+    {
+      "id": "T15",
+      "title": "Ship .frame/bin with the project",
+      "commit": "16bb12b",
+      "whatChanged": "Moved `bin/` from the runtime class into `derived`, and added FRAME_TRACKED_DERIVED (STRUCTURE.json, bin/) as the list the managed `.frame/.gitignore` block leaves out. `copyParserScripts` is copy-if-changed (commandStaging.copyIfChanged) and, together with `stageCommandFiles`, now runs from the CHECK_IS_FRAME_PROJECT handler so an older checkout heals on open. The pre-commit snippet falls back to the main worktree's parser via `git rev-parse --git-common-dir` while still writing the current checkout's STRUCTURE.json. This repository's `.frame/bin` is staged and the root `.gitignore` line that hid it is gone.",
+      "whyChanged": "A linked worktree — every orchestration worker — has no `.frame/bin` of its own, so the hook resolved a parser that was not there and silently did nothing; committing `bin/` fixes the common case and the common-dir fallback covers checkouts that predate it. Staging on open had to become copy-if-changed first: rewriting ten identical files on every project selection would churn watchers and mtimes.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "294 pass, 0 fail"
+      }
     }
   ]
 }

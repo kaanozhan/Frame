@@ -1,0 +1,3 @@
+{
+  "_comment": "Curated concept → modules map for STRUCTURE.json's intentIndex. Agent-editable: add a concept when a feature spans files whose names don't say what they do, and synonyms for the words people actually search. Format: { \"<concept>\": { \"modules\": [\"main/fooManager\", ...], \"synonyms\": [\"bar\", ...] } }. Module keys must match STRUCTURE.json (missing ones are skipped at generation)."
+}
