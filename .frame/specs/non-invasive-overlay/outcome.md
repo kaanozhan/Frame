@@ -312,3 +312,25 @@ derived-state writers (`tasksManager` sync, `overviewManager`).
 _Captured: 2026-08-23 · 5 file change(s) + 19 restored_
 
 ---
+
+## T17 — Harden the migration engine
+
+`plan()` now reads the consumed `CLAUDE.md` block from the root `AGENTS.md`
+directly — `frameStore.readAgents` is overlay-first by design, which is exactly
+wrong for reading what the *legacy* init wrote — and the receipt speaks up in
+both previously silent cases (no block found, a `CLAUDE.md` already in the
+way). An empty or unparseable `.frame/` counterpart gets a third disposition,
+`replace-invalid`: the bad overlay goes to `migration-backup/<name>.unusable`
+and the root file takes its place, so a half-written `tasks.json` can no longer
+win a conflict. The steps moved into `execute()` so `run()` can return a
+truthful partial receipt (`ran: true`, `failedAt`, what got through) with a
+`migration.failed` event instead of a modal reading "migration did not run"
+over a half-moved tree; the handler catches around it, re-arms
+`specManager.startWatching` and pushes a fresh file tree. The modal defers only
+a project the user actually decided about (a dirty tree is re-offered on the
+next selection) and renders the partial receipt, and `dialogs.js` replaces a
+legacy-layout `sample-project` copy rather than offering to migrate a demo.
+
+_Captured: 2026-08-23 · 5 file change(s)_
+
+---

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-23T11:58:53.268Z",
+  "lastUpdated": "2026-08-23T12:04:10.351Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4980,13 +4980,13 @@
       "title": "Harden the migration engine: `plan()` reads the consumed `CLAUDE.md` block from the root `AGENTS.md` directly (not `frameStore.readAgents`) and the receipt says when a block existed but could not be restored; an empty or unparseable-JSON `.frame/` counterpart never wins a conflict (root moves in, the bad overlay goes to `migration-backup/`); `run()` and the `RUN_LAYOUT_MIGRATION` handler catch mid-run errors and return a truthful partial receipt (`ran: true, failedAt, moved so far`) with a `migration.failed` activity event; after a successful run re-arm `specManager.startWatching(projectPath)` and push a file-tree refresh; the dirty-tree path does not add the project to the modal's `deferred` set (re-offered on next selection); refresh the installed `userData/sample-project` copy in `dialogs.js` when it still has the legacy layout; tests in `test/layoutMigration.test.js`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T17",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-23T13:30:00.000Z",
-      "updatedAt": "2026-08-23T13:30:00.000Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T12:04:10.351Z",
+      "completedAt": "2026-08-23T12:04:10.351Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T18",
@@ -5030,7 +5030,7 @@
   ],
   "metadata": {
     "totalCreated": 314,
-    "totalCompleted": 24
+    "totalCompleted": 25
   },
   "categories": {
     "feature": "New features",

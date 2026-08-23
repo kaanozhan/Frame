@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">16 tasks</span>
-    <span class="pill good">16 verified</span>
+    <span class="pill">17 tasks</span>
+    <span class="pill good">17 verified</span>
     
     <span class="chip">2026-08-23</span>
   </div>
@@ -9753,6 +9753,531 @@
 <span class="dl-add">+  specManager.syncTasksFromMarkdown(projectDir, SLUG);</span>
 <span class="dl-add">+  const data = tasksManager.loadTasks(projectDir);</span>
 <span class="dl-add">+  assert.equal(specManager.derivePhase(projectDir, SLUG, &#39;done&#39;, data), &#39;tasks_generated&#39;, &#39;pending tasks still rewind&#39;);</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T17</span>
+    <h2>Harden the migration engine</h2>
+    <span class="card-meta"><span class="chip">e7a978f</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">299 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>plan() reads the consumed CLAUDE.md block from the root AGENTS.md directly, and an empty or unparseable .frame/ counterpart gets the new `replace-invalid` disposition (bad overlay to migration-backup/&lt;name&gt;.unusable, root file takes its place). run()&#39;s steps moved into execute() so a throw returns a truthful partial receipt (ran: true, failedAt, what got through) plus a migration.failed event, and the RUN_LAYOUT_MIGRATION handler catches around it, re-arms specManager.startWatching and pushes a fresh file tree. The modal only defers a project the user actually decided about, renders the partial receipt, and dialogs.js replaces a legacy-layout sample-project copy instead of offering to migrate it.</p></div>
+    <div class="field"><span class="label">Why</span><p>frameStore.readAgents is overlay-first by design, which is exactly wrong for reading what the *legacy* init wrote — a stray .frame/AGENTS.md meant the user&#39;s CLAUDE.md quietly did not come back. The receipt now speaks up in both silent cases (no block found, target already exists). `replace-invalid` is a third disposition rather than a flag so the plan artifact keeps its two-key shape.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/dialogs.js b/src/main/dialogs.js</span>
+<span class="dl-meta">index 4aaa03a..27f5933 100644</span>
+<span class="dl-file">--- a/src/main/dialogs.js</span>
+<span class="dl-file">+++ b/src/main/dialogs.js</span>
+<span class="dl-hunk">@@ -149,8 +149,13 @@ async function openSampleProject(event) {</span>
+<span class="dl-ctx">     return null;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  if (!fs.existsSync(targetDir)) {</span>
+<span class="dl-add">+  // An installed copy from before the `.frame/` layout would greet the user</span>
+<span class="dl-add">+  // with a migration modal on a demo project. Nothing here is their work, so</span>
+<span class="dl-add">+  // it is replaced rather than migrated.</span>
+<span class="dl-add">+  const stale = fs.existsSync(targetDir) &amp;&amp; require(&#39;./frameStore&#39;).isLegacyLayout(targetDir);</span>
+<span class="dl-add">+  if (!fs.existsSync(targetDir) || stale) {</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-add">+      if (stale) fs.rmSync(targetDir, { recursive: true, force: true });</span>
+<span class="dl-ctx">       copyDirRecursive(sourceDir, targetDir);</span>
+<span class="dl-ctx">     } catch (err) {</span>
+<span class="dl-ctx">       console.error(&#39;Failed to copy sample project:&#39;, err);</span>
+<span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 2991b98..48da891 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -929,23 +929,45 @@ function setupIPC(ipcMain) {</span>
+<span class="dl-ctx">     return layoutMigration.plan(projectPath);</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, (event, { projectPath }) =&gt; {</span>
+<span class="dl-add">+  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, async (event, { projectPath }) =&gt; {</span>
+<span class="dl-ctx">     if (!projectPath || !isFrameProject(projectPath)) {</span>
+<span class="dl-ctx">       return { ran: false, reason: &#39;not a Frame project&#39;, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-del">-    const receipt = layoutMigration.run(projectPath, null, (progress) =&gt; {</span>
+<span class="dl-del">-      if (!event.sender.isDestroyed()) {</span>
+<span class="dl-del">-        event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);</span>
+<span class="dl-del">-      }</span>
+<span class="dl-del">-    });</span>
+<span class="dl-del">-    // tasks.json just moved from the root into .frame/ — the watcher is</span>
+<span class="dl-del">-    // pointed at the directory it left.</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    let receipt;</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      receipt = layoutMigration.run(projectPath, null, (progress) =&gt; {</span>
+<span class="dl-add">+        if (!event.sender.isDestroyed()) {</span>
+<span class="dl-add">+          event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);</span>
+<span class="dl-add">+        }</span>
+<span class="dl-add">+      });</span>
+<span class="dl-add">+    } catch (err) {</span>
+<span class="dl-add">+      // run() contains its own failures; anything reaching here happened</span>
+<span class="dl-add">+      // around them (planning, the activity log). Say so instead of letting</span>
+<span class="dl-add">+      // the invoke reject into a modal that reads &quot;migration did not run&quot;.</span>
+<span class="dl-add">+      console.error(&#39;[frame] layout migration failed:&#39;, err);</span>
+<span class="dl-add">+      return { ran: false, reason: &#39;error&#39;, error: err.message, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx">     if (receipt.ran) {</span>
+<span class="dl-add">+      // Every meta file just changed address. The watchers are pointed at the</span>
+<span class="dl-add">+      // directory they left, and the renderer is showing the old tree.</span>
+<span class="dl-ctx">       try {</span>
+<span class="dl-ctx">         require(&#39;./tasksManager&#39;).restartWatching(projectPath);</span>
+<span class="dl-ctx">       } catch (err) {</span>
+<span class="dl-ctx">         console.warn(&#39;[frame] could not re-arm the tasks watcher after migration:&#39;, err.message);</span>
+<span class="dl-ctx">       }</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        require(&#39;./specManager&#39;).startWatching(projectPath);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        console.warn(&#39;[frame] could not re-arm the spec watcher after migration:&#39;, err.message);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-add">+      try {</span>
+<span class="dl-add">+        const files = await require(&#39;./fileTree&#39;).getFileTree(projectPath);</span>
+<span class="dl-add">+        if (!event.sender.isDestroyed()) event.sender.send(IPC.FILE_TREE_DATA, files);</span>
+<span class="dl-add">+      } catch (err) {</span>
+<span class="dl-add">+        console.warn(&#39;[frame] could not refresh the file tree after migration:&#39;, err.message);</span>
+<span class="dl-add">+      }</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">     return receipt;</span>
+<span class="dl-ctx">   });</span>
+<span class="dl-meta">diff --git a/src/main/layoutMigration.js b/src/main/layoutMigration.js</span>
+<span class="dl-meta">index f46bbb9..f19352b 100644</span>
+<span class="dl-file">--- a/src/main/layoutMigration.js</span>
+<span class="dl-file">+++ b/src/main/layoutMigration.js</span>
+<span class="dl-hunk">@@ -82,6 +82,45 @@ function sameBytes(a, b) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * The AGENTS.md a *legacy* init wrote, which is the one at the project root —</span>
+<span class="dl-add">+ * read directly, never through frameStore&#39;s overlay-first resolution. A</span>
+<span class="dl-add">+ * project that also carries a `.frame/AGENTS.md` (a half-finished migration, a</span>
+<span class="dl-add">+ * teammate&#39;s copy) would otherwise hand back the wrong file, and the user&#39;s</span>
+<span class="dl-add">+ * consumed CLAUDE.md would silently fail to come back.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function readRootAgents(projectPath) {</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    return fs.readFileSync(path.join(projectPath, FRAME_FILES.AGENTS), &#39;utf8&#39;);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    return frameStore.readAgents(projectPath);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * A `.frame/` counterpart that cannot be what the project meant to keep: an</span>
+<span class="dl-add">+ * empty file, or a `.json` that does not parse. Frame&#39;s own interrupted writes</span>
+<span class="dl-add">+ * look exactly like this, and letting one win a conflict would leave the user</span>
+<span class="dl-add">+ * with an empty tasks.json and their real one in a backup folder.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function isUnusableCopy(file) {</span>
+<span class="dl-add">+  let text;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    text = fs.readFileSync(file, &#39;utf8&#39;);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    return true;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (text.trim() === &#39;&#39;) return true;</span>
+<span class="dl-add">+  if (file.endsWith(&#39;.json&#39;)) {</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      JSON.parse(text);</span>
+<span class="dl-add">+    } catch (err) {</span>
+<span class="dl-add">+      return true;</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  return false;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Is this a Frame-planted symlink? Only when it is a symlink whose target&#39;s</span>
+<span class="dl-ctx">  * basename is AGENTS.md. A real file with content is the user&#39;s, always.</span>
+<span class="dl-hunk">@@ -170,6 +209,8 @@ function trackedAmong(projectPath, relPaths) {</span>
+<span class="dl-ctx">  *                      copy is redundant and is backed up, then removed</span>
+<span class="dl-ctx">  *   backup-conflict  — .frame/ has a *different* copy; the root file is</span>
+<span class="dl-ctx">  *                      backed up and reported, and nothing is overwritten</span>
+<span class="dl-add">+ *   replace-invalid  — the .frame/ copy is empty or unparseable; it goes to</span>
+<span class="dl-add">+ *                      the backup and the root file takes its place</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-ctx"> function plan(projectPath) {</span>
+<span class="dl-ctx">   const config = frameStore.readConfig(projectPath);</span>
+<span class="dl-hunk">@@ -185,7 +226,9 @@ function plan(projectPath) {</span>
+<span class="dl-ctx">     const overlayPath = path.join(projectPath, FRAME_DIR, name);</span>
+<span class="dl-ctx">     let disposition = &#39;move&#39;;</span>
+<span class="dl-ctx">     if (fs.existsSync(overlayPath)) {</span>
+<span class="dl-del">-      disposition = sameBytes(rootPath, overlayPath) ? &#39;delete-identical&#39; : &#39;backup-conflict&#39;;</span>
+<span class="dl-add">+      if (sameBytes(rootPath, overlayPath)) disposition = &#39;delete-identical&#39;;</span>
+<span class="dl-add">+      else if (isUnusableCopy(overlayPath)) disposition = &#39;replace-invalid&#39;;</span>
+<span class="dl-add">+      else disposition = &#39;backup-conflict&#39;;</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">     artifacts.push({ name, disposition });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -201,9 +244,8 @@ function plan(projectPath) {</span>
+<span class="dl-ctx">   const symlinks = LEGACY_SYMLINKS</span>
+<span class="dl-ctx">     .filter((name) =&gt; isFramePlantedSymlink(path.join(projectPath, name)));</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const agentsText = frameStore.readAgents(projectPath);</span>
+<span class="dl-ctx">   const restorableClaudeMd = symlinks.includes(FRAME_FILES.CLAUDE_SYMLINK)</span>
+<span class="dl-del">-    ? extractClaudeBlock(agentsText)</span>
+<span class="dl-add">+    ? extractClaudeBlock(readRootAgents(projectPath))</span>
+<span class="dl-ctx">     : null;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   const rels = artifacts.map((a) =&gt; a.name);</span>
+<span class="dl-hunk">@@ -285,35 +327,24 @@ function upgradeAgentsText(text) {</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-del">- * Execute a plan. Reports progress through `onProgress({ step, detail })` and</span>
+<span class="dl-del">- * returns a receipt: what moved, what was backed up, what needs a human look.</span>
+<span class="dl-add">+ * The steps themselves, in order, writing what happened into `state`. Split</span>
+<span class="dl-add">+ * out of run() so a throw anywhere in here still leaves run() holding the</span>
+<span class="dl-add">+ * truth about how far the migration got.</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-del">-function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-del">-  const started = Date.now();</span>
+<span class="dl-del">-  const activePlan = migrationPlan || plan(projectPath);</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-  if (!activePlan) {</span>
+<span class="dl-del">-    record(&#39;migration.skipped&#39;, { reason: &#39;no-fingerprint&#39; });</span>
+<span class="dl-del">-    return { ran: false, reason: &#39;no-fingerprint&#39;, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-  if (!activePlan.canRun) {</span>
+<span class="dl-del">-    record(&#39;migration.skipped&#39;, { reason: &#39;dirty-tree&#39; });</span>
+<span class="dl-del">-    return { ran: false, reason: &#39;dirty-tree&#39;, dirty: activePlan.dirty, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-</span>
+<span class="dl-add">+function execute(projectPath, activePlan, onProgress, state) {</span>
+<span class="dl-ctx">   const frameDir = path.join(projectPath, FRAME_DIR);</span>
+<span class="dl-ctx">   const backupDir = path.join(frameDir, MIGRATION_BACKUP_DIR);</span>
+<span class="dl-del">-  fs.mkdirSync(backupDir, { recursive: true });</span>
+<span class="dl-add">+  const { moved, backedUp, review } = state;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const moved = [];</span>
+<span class="dl-del">-  const backedUp = [];</span>
+<span class="dl-del">-  const review = [];</span>
+<span class="dl-add">+  state.step = &#39;backup&#39;;</span>
+<span class="dl-add">+  fs.mkdirSync(backupDir, { recursive: true });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // 1. The files themselves. Backup first, always — even for the copies that</span>
+<span class="dl-ctx">   //    only get deleted, so an interrupted run can always be reconstructed.</span>
+<span class="dl-ctx">   for (const artifact of activePlan.artifacts) {</span>
+<span class="dl-ctx">     const rootPath = path.join(projectPath, artifact.name);</span>
+<span class="dl-ctx">     if (!fs.existsSync(rootPath)) continue;</span>
+<span class="dl-add">+    state.step = `move:${artifact.name}`;</span>
+<span class="dl-ctx">     onProgress({ step: &#39;move&#39;, detail: artifact.name });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">     copyVerified(rootPath, path.join(backupDir, artifact.name));</span>
+<span class="dl-hunk">@@ -322,6 +353,16 @@ function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-ctx">     if (artifact.disposition === &#39;move&#39;) {</span>
+<span class="dl-ctx">       copyVerified(rootPath, path.join(frameDir, artifact.name));</span>
+<span class="dl-ctx">       moved.push(artifact.name);</span>
+<span class="dl-add">+    } else if (artifact.disposition === &#39;replace-invalid&#39;) {</span>
+<span class="dl-add">+      // The .frame/ copy is empty or unparseable — park it under a name of</span>
+<span class="dl-add">+      // its own and let the root file take its place.</span>
+<span class="dl-add">+      const overlayPath = path.join(frameDir, artifact.name);</span>
+<span class="dl-add">+      copyVerified(overlayPath, path.join(backupDir, `${artifact.name}.unusable`));</span>
+<span class="dl-add">+      backedUp.push(`${artifact.name}.unusable`);</span>
+<span class="dl-add">+      copyVerified(rootPath, overlayPath);</span>
+<span class="dl-add">+      moved.push(artifact.name);</span>
+<span class="dl-add">+      review.push(`the copy already in .frame/${artifact.name} was empty or unparseable — it is in ${activePlan.backupDir}/${artifact.name}.unusable and the root version took its place`);</span>
+<span class="dl-add">+      record(&#39;migration.conflict&#39;, { path: artifact.name, reason: &#39;unusable-overlay&#39; });</span>
+<span class="dl-ctx">     } else if (artifact.disposition === &#39;backup-conflict&#39;) {</span>
+<span class="dl-ctx">       review.push(`${artifact.name} differs from the copy already in .frame/ — the root version is in ${activePlan.backupDir}/`);</span>
+<span class="dl-ctx">       record(&#39;migration.conflict&#39;, { path: artifact.name });</span>
+<span class="dl-hunk">@@ -332,6 +373,7 @@ function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-ctx">   // 2. Frame-planted symlinks come out; a real CLAUDE.md is restored from the</span>
+<span class="dl-ctx">   //    block old inits folded into AGENTS.md, verbatim.</span>
+<span class="dl-ctx">   for (const name of activePlan.symlinks) {</span>
+<span class="dl-add">+    state.step = `symlink:${name}`;</span>
+<span class="dl-ctx">     onProgress({ step: &#39;symlink&#39;, detail: name });</span>
+<span class="dl-ctx">     try {</span>
+<span class="dl-ctx">       fs.unlinkSync(path.join(projectPath, name));</span>
+<span class="dl-hunk">@@ -339,15 +381,22 @@ function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-ctx">       review.push(`could not remove the ${name} symlink: ${err.message}`);</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-del">-  if (activePlan.restorableClaudeMd) {</span>
+<span class="dl-add">+  if (activePlan.symlinks.includes(FRAME_FILES.CLAUDE_SYMLINK)) {</span>
+<span class="dl-add">+    state.step = &#39;restore&#39;;</span>
+<span class="dl-ctx">     const claudePath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);</span>
+<span class="dl-del">-    if (!fs.existsSync(claudePath)) {</span>
+<span class="dl-add">+    if (!activePlan.restorableClaudeMd) {</span>
+<span class="dl-add">+      review.push(`${FRAME_FILES.CLAUDE_SYMLINK} was a Frame symlink, but AGENTS.md carries no &quot;Existing Instructions (from CLAUDE.md)&quot; block — there was nothing to restore`);</span>
+<span class="dl-add">+    } else if (fs.existsSync(claudePath)) {</span>
+<span class="dl-add">+      review.push(`${FRAME_FILES.CLAUDE_SYMLINK} already exists, so the block AGENTS.md consumed was not written back — compare it yourself`);</span>
+<span class="dl-add">+    } else {</span>
+<span class="dl-ctx">       fs.writeFileSync(claudePath, activePlan.restorableClaudeMd, &#39;utf8&#39;);</span>
+<span class="dl-add">+      state.claudeMdRestored = true;</span>
+<span class="dl-ctx">       onProgress({ step: &#39;restore&#39;, detail: FRAME_FILES.CLAUDE_SYMLINK });</span>
+<span class="dl-ctx">     }</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // 3. AGENTS.md now resolves to .frame/ — point its own prose there too.</span>
+<span class="dl-add">+  state.step = &#39;agents&#39;;</span>
+<span class="dl-ctx">   const agentsText = frameStore.readAgents(projectPath);</span>
+<span class="dl-ctx">   const upgraded = upgradeAgentsText(agentsText);</span>
+<span class="dl-ctx">   if (upgraded.text &amp;&amp; upgraded.text !== agentsText) {</span>
+<span class="dl-hunk">@@ -358,6 +407,7 @@ function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // 4. The pointer, the identity, and the end of the fingerprint.</span>
+<span class="dl-add">+  state.step = &#39;pointer&#39;;</span>
+<span class="dl-ctx">   onProgress({ step: &#39;pointer&#39;, detail: CLAUDE_RULE_PATH });</span>
+<span class="dl-ctx">   require(&#39;./frameProject&#39;).ensureClaudePointer(projectPath);</span>
+<span class="dl-ctx">   frameStore.ensureProjectId(projectPath);</span>
+<span class="dl-hunk">@@ -370,6 +420,7 @@ function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // 5. Hook entries: replace the old unguarded commands with the guarded ones</span>
+<span class="dl-ctx">   //    in the file this sharing mode uses.</span>
+<span class="dl-add">+  state.step = &#39;hooks&#39;;</span>
+<span class="dl-ctx">   onProgress({ step: &#39;hooks&#39;, detail: gitSharing.hookFileFor(activePlan.sharingMode) });</span>
+<span class="dl-ctx">   const frameProject = require(&#39;./frameProject&#39;);</span>
+<span class="dl-ctx">   for (const file of [&#39;settings.json&#39;, &#39;settings.local.json&#39;]) {</span>
+<span class="dl-hunk">@@ -379,6 +430,7 @@ function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   // 6. Sharing posture + a refreshed set of staged scripts (the old copies</span>
+<span class="dl-ctx">   //    resolve their project as `.frame/`, which is the bug T03 fixed).</span>
+<span class="dl-add">+  state.step = &#39;sharing&#39;;</span>
+<span class="dl-ctx">   onProgress({ step: &#39;sharing&#39;, detail: activePlan.sharingMode });</span>
+<span class="dl-ctx">   gitSharing.setMode(projectPath, activePlan.sharingMode);</span>
+<span class="dl-ctx">   try {</span>
+<span class="dl-hunk">@@ -386,24 +438,63 @@ function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-ctx">   } catch (err) {</span>
+<span class="dl-ctx">     review.push(`could not refresh .frame/bin scripts: ${err.message}`);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-add">+  state.step = &#39;done&#39;;</span>
+<span class="dl-add">+}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  record(&#39;migration.completed&#39;, {</span>
+<span class="dl-del">-    moved: moved.length,</span>
+<span class="dl-del">-    backedUp: backedUp.length,</span>
+<span class="dl-del">-    review: review.length,</span>
+<span class="dl-del">-    ms: Date.now() - started</span>
+<span class="dl-del">-  });</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Execute a plan. Reports progress through `onProgress({ step, detail })` and</span>
+<span class="dl-add">+ * returns a receipt: what moved, what was backed up, what needs a human look.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * A throw mid-run is not a failure to migrate — files have already moved by</span>
+<span class="dl-add">+ * then. The receipt stays truthful (`ran: true` with `failedAt` and what got</span>
+<span class="dl-add">+ * as far as it did) rather than reporting &quot;migration did not run&quot; over a</span>
+<span class="dl-add">+ * half-moved tree.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function run(projectPath, migrationPlan, onProgress = () =&gt; {}) {</span>
+<span class="dl-add">+  const started = Date.now();</span>
+<span class="dl-add">+  const activePlan = migrationPlan || plan(projectPath);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  return {</span>
+<span class="dl-add">+  if (!activePlan) {</span>
+<span class="dl-add">+    record(&#39;migration.skipped&#39;, { reason: &#39;no-fingerprint&#39; });</span>
+<span class="dl-add">+    return { ran: false, reason: &#39;no-fingerprint&#39;, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (!activePlan.canRun) {</span>
+<span class="dl-add">+    record(&#39;migration.skipped&#39;, { reason: &#39;dirty-tree&#39; });</span>
+<span class="dl-add">+    return { ran: false, reason: &#39;dirty-tree&#39;, dirty: activePlan.dirty, moved: [], backedUp: [], review: [] };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const state = { step: &#39;start&#39;, moved: [], backedUp: [], review: [], claudeMdRestored: false };</span>
+<span class="dl-add">+  const receipt = () =&gt; ({</span>
+<span class="dl-ctx">     ran: true,</span>
+<span class="dl-del">-    moved,</span>
+<span class="dl-del">-    backedUp,</span>
+<span class="dl-del">-    review,</span>
+<span class="dl-add">+    moved: state.moved,</span>
+<span class="dl-add">+    backedUp: state.backedUp,</span>
+<span class="dl-add">+    review: state.review,</span>
+<span class="dl-ctx">     backupDir: activePlan.backupDir,</span>
+<span class="dl-ctx">     sharingMode: activePlan.sharingMode,</span>
+<span class="dl-del">-    claudeMdRestored: Boolean(activePlan.restorableClaudeMd),</span>
+<span class="dl-add">+    claudeMdRestored: state.claudeMdRestored,</span>
+<span class="dl-ctx">     symlinksRemoved: activePlan.symlinks</span>
+<span class="dl-del">-  };</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    execute(projectPath, activePlan, onProgress, state);</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    record(&#39;migration.failed&#39;, {</span>
+<span class="dl-add">+      failedAt: state.step,</span>
+<span class="dl-add">+      error: err.message,</span>
+<span class="dl-add">+      moved: state.moved.length,</span>
+<span class="dl-add">+      backedUp: state.backedUp.length</span>
+<span class="dl-add">+    });</span>
+<span class="dl-add">+    return { ...receipt(), failedAt: state.step, error: err.message };</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  record(&#39;migration.completed&#39;, {</span>
+<span class="dl-add">+    moved: state.moved.length,</span>
+<span class="dl-add">+    backedUp: state.backedUp.length,</span>
+<span class="dl-add">+    review: state.review.length,</span>
+<span class="dl-add">+    ms: Date.now() - started</span>
+<span class="dl-add">+  });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  return receipt();</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> module.exports = {</span>
+<span class="dl-hunk">@@ -414,5 +505,6 @@ module.exports = {</span>
+<span class="dl-ctx">   extractClaudeBlock,</span>
+<span class="dl-ctx">   upgradeAgentsText,</span>
+<span class="dl-ctx">   isFramePlantedSymlink,</span>
+<span class="dl-add">+  isUnusableCopy,</span>
+<span class="dl-ctx">   AGENTS_LINE_EDITS</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-meta">diff --git a/src/main/specManager.js b/src/main/specManager.js</span>
+<span class="dl-meta">index 6138c22..12ad114 100644</span>
+<span class="dl-file">--- a/src/main/specManager.js</span>
+<span class="dl-file">+++ b/src/main/specManager.js</span>
+<span class="dl-hunk">@@ -1213,6 +1213,7 @@ module.exports = {</span>
+<span class="dl-ctx">   deleteSpec,</span>
+<span class="dl-ctx">   derivePhase,</span>
+<span class="dl-ctx">   reconcilePhase,</span>
+<span class="dl-add">+  startWatching,</span>
+<span class="dl-ctx">   getCommandPrompt,</span>
+<span class="dl-ctx">   buildSpecCommandFile,</span>
+<span class="dl-ctx">   buildImplementPermissions,</span>
+<span class="dl-meta">diff --git a/src/renderer/migrationModal.js b/src/renderer/migrationModal.js</span>
+<span class="dl-meta">index 7dd5421..11ad509 100644</span>
+<span class="dl-file">--- a/src/renderer/migrationModal.js</span>
+<span class="dl-file">+++ b/src/renderer/migrationModal.js</span>
+<span class="dl-hunk">@@ -38,6 +38,7 @@ const DISPOSITION_TEXT = {</span>
+<span class="dl-ctx">   move: &#39;moves into .frame/&#39;,</span>
+<span class="dl-ctx">   &#39;delete-identical&#39;: &#39;already in .frame/ — the root copy is backed up and removed&#39;,</span>
+<span class="dl-ctx">   &#39;backup-conflict&#39;: &#39;differs from the copy in .frame/ — kept in the backup for you to compare&#39;,</span>
+<span class="dl-add">+  &#39;replace-invalid&#39;: &#39;the copy in .frame/ is empty or unreadable — this one replaces it&#39;,</span>
+<span class="dl-ctx">   &#39;backup-only&#39;: &quot;Frame&#39;s own backup file — moves into the backup folder&quot;</span>
+<span class="dl-ctx"> };</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -166,10 +167,18 @@ function renderReceipt(receipt) {</span>
+<span class="dl-ctx">     return;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  const lines = [</span>
+<span class="dl-add">+  const lines = [];</span>
+<span class="dl-add">+  if (receipt.failedAt) {</span>
+<span class="dl-add">+    // Files moved before it broke; saying &quot;did not run&quot; here would be a lie</span>
+<span class="dl-add">+    // the user cannot check without reading their own tree.</span>
+<span class="dl-add">+    lines.push(&#39;&lt;p&gt;&lt;strong&gt;The migration stopped partway&lt;/strong&gt; &#39; +</span>
+<span class="dl-add">+      `(at &lt;code&gt;${escapeHtml(receipt.failedAt)}&lt;/code&gt;): ${escapeHtml(receipt.error || &#39;unknown error&#39;)}. ` +</span>
+<span class="dl-add">+      &#39;What follows is what did happen — every file has a copy in the backup folder.&lt;/p&gt;&#39;);</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  lines.push(</span>
+<span class="dl-ctx">     `&lt;p&gt;&lt;strong&gt;${receipt.moved.length}&lt;/strong&gt; file${receipt.moved.length === 1 ? &#39;&#39; : &#39;s&#39;} moved into &lt;code&gt;.frame/&lt;/code&gt;, ` +</span>
+<span class="dl-ctx">     `&lt;strong&gt;${receipt.backedUp.length}&lt;/strong&gt; backed up in &lt;code&gt;${escapeHtml(receipt.backupDir)}&lt;/code&gt;.&lt;/p&gt;`</span>
+<span class="dl-del">-  ];</span>
+<span class="dl-add">+  );</span>
+<span class="dl-ctx">   if (receipt.symlinksRemoved &amp;&amp; receipt.symlinksRemoved.length &gt; 0) {</span>
+<span class="dl-ctx">     lines.push(`&lt;p&gt;Removed Frame&#39;s ${receipt.symlinksRemoved.map(escapeHtml).join(&#39; and &#39;)} symlink${receipt.symlinksRemoved.length &gt; 1 ? &#39;s&#39; : &#39;&#39;}.&lt;/p&gt;`);</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-hunk">@@ -186,7 +195,11 @@ function renderReceipt(receipt) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> function close() {</span>
+<span class="dl-ctx">   if (!modalEl) return;</span>
+<span class="dl-del">-  if (currentProjectPath) deferred.add(currentProjectPath);</span>
+<span class="dl-add">+  // Only a decision defers the offer. A dirty tree gave the user nothing to</span>
+<span class="dl-add">+  // decide — the modal showed a wall and a Close button — so that project is</span>
+<span class="dl-add">+  // asked again next time it is selected, by which point the tree may be</span>
+<span class="dl-add">+  // clean.</span>
+<span class="dl-add">+  if (currentProjectPath &amp;&amp; currentPlan &amp;&amp; currentPlan.canRun) deferred.add(currentProjectPath);</span>
+<span class="dl-ctx">   modalEl.classList.remove(&#39;visible&#39;);</span>
+<span class="dl-ctx">   currentPlan = null;</span>
+<span class="dl-ctx">   currentProjectPath = null;</span>
+<span class="dl-meta">diff --git a/test/layoutMigration.test.js b/test/layoutMigration.test.js</span>
+<span class="dl-meta">index 7f7d93d..224a32c 100644</span>
+<span class="dl-file">--- a/test/layoutMigration.test.js</span>
+<span class="dl-file">+++ b/test/layoutMigration.test.js</span>
+<span class="dl-hunk">@@ -365,7 +365,7 @@ test(&#39;the plan payload has the shape the modal renders from&#39;, () =&gt; {</span>
+<span class="dl-ctx">   ]);</span>
+<span class="dl-ctx">   for (const artifact of p.artifacts) {</span>
+<span class="dl-ctx">     assert.deepEqual(Object.keys(artifact).sort(), [&#39;disposition&#39;, &#39;name&#39;]);</span>
+<span class="dl-del">-    assert.ok([&#39;move&#39;, &#39;delete-identical&#39;, &#39;backup-conflict&#39;, &#39;backup-only&#39;].includes(artifact.disposition));</span>
+<span class="dl-add">+    assert.ok([&#39;move&#39;, &#39;delete-identical&#39;, &#39;backup-conflict&#39;, &#39;replace-invalid&#39;, &#39;backup-only&#39;].includes(artifact.disposition));</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -429,3 +429,79 @@ test(&#39;the symlink note is replaced whole, however it was wrapped&#39;, () =&gt; {</span>
+<span class="dl-ctx">   assert.ok(!flat.text.includes(&#39;symlink is provided&#39;));</span>
+<span class="dl-ctx">   assert.match(flat.text, /\n## After/);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a differing .frame/AGENTS.md does not cost the user their CLAUDE.md&#39;, () =&gt; {</span>
+<span class="dl-add">+  // plan() used to read the consumed block through frameStore, which is</span>
+<span class="dl-add">+  // overlay-first: a .frame/AGENTS.md from a teammate or a half-finished run</span>
+<span class="dl-add">+  // won, the block was never found, and the CLAUDE.md the symlink stood for</span>
+<span class="dl-add">+  // was silently gone.</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  fs.writeFileSync(</span>
+<span class="dl-add">+    path.join(projectDir, FRAME_DIR, &#39;AGENTS.md&#39;),</span>
+<span class="dl-add">+    &#39;# Someone else\&#39;s AGENTS.md\n\nNo consumed block in here.\n&#39;,</span>
+<span class="dl-add">+    &#39;utf8&#39;</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const p = layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+  assert.equal(p.restorableClaudeMd, USER_CLAUDE_MD, &#39;the block is read from the root file&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, p);</span>
+<span class="dl-add">+  assert.equal(receipt.claudeMdRestored, true);</span>
+<span class="dl-add">+  assert.equal(fs.readFileSync(path.join(projectDir, &#39;CLAUDE.md&#39;), &#39;utf8&#39;), USER_CLAUDE_MD);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a symlink with nothing to restore says so on the receipt&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ withClaudeBlock: false, commit: true });</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, layoutMigration.plan(projectDir));</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(receipt.claudeMdRestored, false);</span>
+<span class="dl-add">+  assert.ok(</span>
+<span class="dl-add">+    receipt.review.some((r) =&gt; r.includes(&#39;CLAUDE.md&#39;) &amp;&amp; r.includes(&#39;nothing to restore&#39;)),</span>
+<span class="dl-add">+    `the receipt is not silent: ${JSON.stringify(receipt.review)}`</span>
+<span class="dl-add">+  );</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;an empty or unparseable .frame/ copy never wins the conflict&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  const emptyNotes = path.join(projectDir, FRAME_DIR, &#39;PROJECT_NOTES.md&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(emptyNotes, &#39;   \n&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+  const brokenTasks = path.join(projectDir, FRAME_DIR, &#39;tasks.json&#39;);</span>
+<span class="dl-add">+  fs.writeFileSync(brokenTasks, &#39;{&quot;version&quot;: &quot;2.0&quot;, &quot;tasks&quot;: [&#39;, &#39;utf8&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const p = layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+  const byName = Object.fromEntries(p.artifacts.map((a) =&gt; [a.name, a.disposition]));</span>
+<span class="dl-add">+  assert.equal(byName[&#39;PROJECT_NOTES.md&#39;], &#39;replace-invalid&#39;);</span>
+<span class="dl-add">+  assert.equal(byName[&#39;tasks.json&#39;], &#39;replace-invalid&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const receipt = layoutMigration.run(projectDir, p);</span>
+<span class="dl-add">+  assert.ok(receipt.moved.includes(&#39;tasks.json&#39;), &#39;the root copy took its place&#39;);</span>
+<span class="dl-add">+  assert.equal(frameStore.getTasks(projectDir).data.version, &#39;2.0&#39;, &#39;and it is the real one&#39;);</span>
+<span class="dl-add">+  assert.match(fs.readFileSync(emptyNotes, &#39;utf8&#39;), /### \[2026-01-01\] Started/);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const backup = path.join(projectDir, FRAME_DIR, &#39;migration-backup&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(backup, &#39;tasks.json.unusable&#39;)), &#39;the bad overlay is kept&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(backup, &#39;tasks.json&#39;)), &#39;and so is the root copy&#39;);</span>
+<span class="dl-add">+  assert.ok(receipt.review.some((r) =&gt; r.includes(&#39;tasks.json&#39;)), &#39;both are on the receipt&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a mid-run failure returns a truthful partial receipt&#39;, () =&gt; {</span>
+<span class="dl-add">+  projectDir = makeLegacyProject({ commit: true });</span>
+<span class="dl-add">+  const p = layoutMigration.plan(projectDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  // Break step 4 (the pointer write) the way a permission problem would.</span>
+<span class="dl-add">+  const frameProject = require(&#39;../src/main/frameProject&#39;);</span>
+<span class="dl-add">+  const original = frameProject.ensureClaudePointer;</span>
+<span class="dl-add">+  frameProject.ensureClaudePointer = () =&gt; { throw new Error(&#39;disk on fire&#39;); };</span>
+<span class="dl-add">+  let receipt;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    receipt = layoutMigration.run(projectDir, p);</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    frameProject.ensureClaudePointer = original;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(receipt.ran, true, &#39;files did move — &quot;did not run&quot; would be a lie&#39;);</span>
+<span class="dl-add">+  assert.equal(receipt.failedAt, &#39;pointer&#39;);</span>
+<span class="dl-add">+  assert.match(receipt.error, /disk on fire/);</span>
+<span class="dl-add">+  assert.equal(receipt.moved.length, 5, &#39;and the receipt names what got through&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, &#39;tasks.json&#39;)));</span>
 <span class="dl-add">+});</span></pre>
     </details>
   </div>

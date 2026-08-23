@@ -543,7 +543,8 @@
         "child_process",
         "fs",
         "path",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "frameStore"
       ],
       "functions": {
         "init": {
@@ -592,11 +593,11 @@
           "purpose": "Open the bundled sample project, copying it into the user's app-data"
         },
         "getSampleProjectPath": {
-          "line": 172,
+          "line": 177,
           "purpose": "Path used by the renderer to detect \"this is the sample project\" so"
         },
         "setupIPC": {
-          "line": 179,
+          "line": 184,
           "params": [
             "ipcMain"
           ],
@@ -759,7 +760,9 @@
         "electron",
         "aiToolManager",
         "telemetry",
-        "tasksManager"
+        "tasksManager",
+        "specManager",
+        "fileTree"
       ],
       "functions": {
         "init": {
@@ -965,7 +968,8 @@
           "WORKSPACE_UPDATED",
           "FRAME_PROJECT_INITIALIZED",
           "FRAME_CONFIG_DATA",
-          "LAYOUT_MIGRATION_PROGRESS"
+          "LAYOUT_MIGRATION_PROGRESS",
+          "FILE_TREE_DATA"
         ]
       }
     },
@@ -1918,6 +1922,7 @@
         "run",
         "upgradeAgentsText",
         "isFramePlantedSymlink",
+        "isUnusableCopy",
         "AGENTS_LINE_EDITS"
       ],
       "depends": [
@@ -1968,22 +1973,36 @@
             "b"
           ]
         },
+        "readRootAgents": {
+          "line": 92,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The AGENTS.md a *legacy* init wrote, which is the one at the project root —"
+        },
+        "isUnusableCopy": {
+          "line": 106,
+          "params": [
+            "file"
+          ],
+          "purpose": "A `.frame/` counterpart that cannot be what the project meant to keep: an"
+        },
         "isFramePlantedSymlink": {
-          "line": 89,
+          "line": 128,
           "params": [
             "file"
           ],
           "purpose": "Is this a Frame-planted symlink? Only when it is a symlink whose target's"
         },
         "extractClaudeBlock": {
-          "line": 103,
+          "line": 142,
           "params": [
             "agentsText"
           ],
           "purpose": "The `## Existing Instructions (from CLAUDE.md)` block old inits appended to"
         },
         "dirtyAmong": {
-          "line": 127,
+          "line": 166,
           "params": [
             "projectPath",
             "relPaths"
@@ -1991,7 +2010,7 @@
           "purpose": "Files with uncommitted changes, compared repo-root-relative so a project in"
         },
         "trackedAmong": {
-          "line": 152,
+          "line": 191,
           "params": [
             "projectPath",
             "relPaths"
@@ -1999,27 +2018,37 @@
           "purpose": "Which of these paths git already tracks (decides the sharing posture)."
         },
         "plan": {
-          "line": 174,
+          "line": 215,
           "params": [
             "projectPath"
           ],
           "purpose": "Describe what migrating this project would do. Pure: no writes, no git"
         },
         "copyVerified": {
-          "line": 230,
+          "line": 272,
           "params": [
             "from",
             "to"
           ]
         },
         "upgradeAgentsText": {
-          "line": 263,
+          "line": 305,
           "params": [
             "text"
           ]
         },
+        "execute": {
+          "line": 334,
+          "params": [
+            "projectPath",
+            "activePlan",
+            "onProgress",
+            "state"
+          ],
+          "purpose": "The steps themselves, in order, writing what happened into `state`. Split"
+        },
         "run": {
-          "line": 291,
+          "line": 453,
           "params": [
             "projectPath",
             "migrationPlan",
@@ -3151,6 +3180,7 @@
         "deleteSpec",
         "derivePhase",
         "reconcilePhase",
+        "startWatching",
         "getCommandPrompt",
         "buildSpecCommandFile",
         "buildImplementPermissions",
@@ -5880,38 +5910,38 @@
       ],
       "functions": {
         "init": {
-          "line": 44
+          "line": 45
         },
         "stepLabel": {
-          "line": 69,
+          "line": 70,
           "params": [
             "step"
           ]
         },
         "offer": {
-          "line": 86,
+          "line": 87,
           "params": [
             "projectPath"
           ],
           "purpose": "Offer the migration for this project. Silent when there is nothing to"
         },
         "render": {
-          "line": 103,
+          "line": 104,
           "params": [
             "plan"
           ]
         },
         "runMigration": {
-          "line": 134
+          "line": 135
         },
         "renderReceipt": {
-          "line": 158,
+          "line": 159,
           "params": [
             "receipt"
           ]
         },
         "close": {
-          "line": 187
+          "line": 196
         }
       },
       "ipc": {

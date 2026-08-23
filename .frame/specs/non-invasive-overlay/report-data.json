@@ -195,6 +195,18 @@
         "status": "pass",
         "detail": "295 pass, 0 fail"
       }
+    },
+    {
+      "id": "T17",
+      "title": "Harden the migration engine",
+      "commit": "e7a978f",
+      "whatChanged": "plan() reads the consumed CLAUDE.md block from the root AGENTS.md directly, and an empty or unparseable .frame/ counterpart gets the new `replace-invalid` disposition (bad overlay to migration-backup/<name>.unusable, root file takes its place). run()'s steps moved into execute() so a throw returns a truthful partial receipt (ran: true, failedAt, what got through) plus a migration.failed event, and the RUN_LAYOUT_MIGRATION handler catches around it, re-arms specManager.startWatching and pushes a fresh file tree. The modal only defers a project the user actually decided about, renders the partial receipt, and dialogs.js replaces a legacy-layout sample-project copy instead of offering to migrate it.",
+      "whyChanged": "frameStore.readAgents is overlay-first by design, which is exactly wrong for reading what the *legacy* init wrote — a stray .frame/AGENTS.md meant the user's CLAUDE.md quietly did not come back. The receipt now speaks up in both silent cases (no block found, target already exists). `replace-invalid` is a third disposition rather than a flag so the plan artifact keeps its two-key shape.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "299 pass, 0 fail"
+      }
     }
   ]
 }

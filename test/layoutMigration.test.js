@@ -365,7 +365,7 @@ test('the plan payload has the shape the modal renders from', () => {
   ]);
   for (const artifact of p.artifacts) {
     assert.deepEqual(Object.keys(artifact).sort(), ['disposition', 'name']);
-    assert.ok(['move', 'delete-identical', 'backup-conflict', 'backup-only'].includes(artifact.disposition));
+    assert.ok(['move', 'delete-identical', 'backup-conflict', 'replace-invalid', 'backup-only'].includes(artifact.disposition));
   }
 });
 
@@ -428,4 +428,80 @@ test('the symlink note is replaced whole, however it was wrapped', () => {
   const flat = layoutMigration.upgradeAgentsText(oneLine);
   assert.ok(!flat.text.includes('symlink is provided'));
   assert.match(flat.text, /\n## After/);
+});
+
+test('a differing .frame/AGENTS.md does not cost the user their CLAUDE.md', () => {
+  // plan() used to read the consumed block through frameStore, which is
+  // overlay-first: a .frame/AGENTS.md from a teammate or a half-finished run
+  // won, the block was never found, and the CLAUDE.md the symlink stood for
+  // was silently gone.
+  projectDir = makeLegacyProject({ commit: true });
+  fs.writeFileSync(
+    path.join(projectDir, FRAME_DIR, 'AGENTS.md'),
+    '# Someone else\'s AGENTS.md\n\nNo consumed block in here.\n',
+    'utf8'
+  );
+
+  const p = layoutMigration.plan(projectDir);
+  assert.equal(p.restorableClaudeMd, USER_CLAUDE_MD, 'the block is read from the root file');
+
+  const receipt = layoutMigration.run(projectDir, p);
+  assert.equal(receipt.claudeMdRestored, true);
+  assert.equal(fs.readFileSync(path.join(projectDir, 'CLAUDE.md'), 'utf8'), USER_CLAUDE_MD);
+});
+
+test('a symlink with nothing to restore says so on the receipt', () => {
+  projectDir = makeLegacyProject({ withClaudeBlock: false, commit: true });
+  const receipt = layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
+
+  assert.equal(receipt.claudeMdRestored, false);
+  assert.ok(
+    receipt.review.some((r) => r.includes('CLAUDE.md') && r.includes('nothing to restore')),
+    `the receipt is not silent: ${JSON.stringify(receipt.review)}`
+  );
+});
+
+test('an empty or unparseable .frame/ copy never wins the conflict', () => {
+  projectDir = makeLegacyProject({ commit: true });
+  const emptyNotes = path.join(projectDir, FRAME_DIR, 'PROJECT_NOTES.md');
+  fs.writeFileSync(emptyNotes, '   \n', 'utf8');
+  const brokenTasks = path.join(projectDir, FRAME_DIR, 'tasks.json');
+  fs.writeFileSync(brokenTasks, '{"version": "2.0", "tasks": [', 'utf8');
+
+  const p = layoutMigration.plan(projectDir);
+  const byName = Object.fromEntries(p.artifacts.map((a) => [a.name, a.disposition]));
+  assert.equal(byName['PROJECT_NOTES.md'], 'replace-invalid');
+  assert.equal(byName['tasks.json'], 'replace-invalid');
+
+  const receipt = layoutMigration.run(projectDir, p);
+  assert.ok(receipt.moved.includes('tasks.json'), 'the root copy took its place');
+  assert.equal(frameStore.getTasks(projectDir).data.version, '2.0', 'and it is the real one');
+  assert.match(fs.readFileSync(emptyNotes, 'utf8'), /### \[2026-01-01\] Started/);
+
+  const backup = path.join(projectDir, FRAME_DIR, 'migration-backup');
+  assert.ok(fs.existsSync(path.join(backup, 'tasks.json.unusable')), 'the bad overlay is kept');
+  assert.ok(fs.existsSync(path.join(backup, 'tasks.json')), 'and so is the root copy');
+  assert.ok(receipt.review.some((r) => r.includes('tasks.json')), 'both are on the receipt');
+});
+
+test('a mid-run failure returns a truthful partial receipt', () => {
+  projectDir = makeLegacyProject({ commit: true });
+  const p = layoutMigration.plan(projectDir);
+
+  // Break step 4 (the pointer write) the way a permission problem would.
+  const frameProject = require('../src/main/frameProject');
+  const original = frameProject.ensureClaudePointer;
+  frameProject.ensureClaudePointer = () => { throw new Error('disk on fire'); };
+  let receipt;
+  try {
+    receipt = layoutMigration.run(projectDir, p);
+  } finally {
+    frameProject.ensureClaudePointer = original;
+  }
+
+  assert.equal(receipt.ran, true, 'files did move — "did not run" would be a lie');
+  assert.equal(receipt.failedAt, 'pointer');
+  assert.match(receipt.error, /disk on fire/);
+  assert.equal(receipt.moved.length, 5, 'and the receipt names what got through');
+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, 'tasks.json')));
 });

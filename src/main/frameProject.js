@@ -929,22 +929,44 @@ function setupIPC(ipcMain) {
     return layoutMigration.plan(projectPath);
   });
 
-  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, (event, { projectPath }) => {
+  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, async (event, { projectPath }) => {
     if (!projectPath || !isFrameProject(projectPath)) {
       return { ran: false, reason: 'not a Frame project', moved: [], backedUp: [], review: [] };
     }
-    const receipt = layoutMigration.run(projectPath, null, (progress) => {
-      if (!event.sender.isDestroyed()) {
-        event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);
-      }
-    });
-    // tasks.json just moved from the root into .frame/ — the watcher is
-    // pointed at the directory it left.
+
+    let receipt;
+    try {
+      receipt = layoutMigration.run(projectPath, null, (progress) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);
+        }
+      });
+    } catch (err) {
+      // run() contains its own failures; anything reaching here happened
+      // around them (planning, the activity log). Say so instead of letting
+      // the invoke reject into a modal that reads "migration did not run".
+      console.error('[frame] layout migration failed:', err);
+      return { ran: false, reason: 'error', error: err.message, moved: [], backedUp: [], review: [] };
+    }
+
     if (receipt.ran) {
+      // Every meta file just changed address. The watchers are pointed at the
+      // directory they left, and the renderer is showing the old tree.
       try {
         require('./tasksManager').restartWatching(projectPath);
       } catch (err) {
         console.warn('[frame] could not re-arm the tasks watcher after migration:', err.message);
+      }
+      try {
+        require('./specManager').startWatching(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not re-arm the spec watcher after migration:', err.message);
+      }
+      try {
+        const files = await require('./fileTree').getFileTree(projectPath);
+        if (!event.sender.isDestroyed()) event.sender.send(IPC.FILE_TREE_DATA, files);
+      } catch (err) {
+        console.warn('[frame] could not refresh the file tree after migration:', err.message);
       }
     }
     return receipt;

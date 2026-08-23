@@ -83,6 +83,45 @@ function sameBytes(a, b) {
 }
 
 /**
+ * The AGENTS.md a *legacy* init wrote, which is the one at the project root —
+ * read directly, never through frameStore's overlay-first resolution. A
+ * project that also carries a `.frame/AGENTS.md` (a half-finished migration, a
+ * teammate's copy) would otherwise hand back the wrong file, and the user's
+ * consumed CLAUDE.md would silently fail to come back.
+ */
+function readRootAgents(projectPath) {
+  try {
+    return fs.readFileSync(path.join(projectPath, FRAME_FILES.AGENTS), 'utf8');
+  } catch (err) {
+    return frameStore.readAgents(projectPath);
+  }
+}
+
+/**
+ * A `.frame/` counterpart that cannot be what the project meant to keep: an
+ * empty file, or a `.json` that does not parse. Frame's own interrupted writes
+ * look exactly like this, and letting one win a conflict would leave the user
+ * with an empty tasks.json and their real one in a backup folder.
+ */
+function isUnusableCopy(file) {
+  let text;
+  try {
+    text = fs.readFileSync(file, 'utf8');
+  } catch (err) {
+    return true;
+  }
+  if (text.trim() === '') return true;
+  if (file.endsWith('.json')) {
+    try {
+      JSON.parse(text);
+    } catch (err) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Is this a Frame-planted symlink? Only when it is a symlink whose target's
  * basename is AGENTS.md. A real file with content is the user's, always.
  */
@@ -170,6 +209,8 @@ function trackedAmong(projectPath, relPaths) {
  *                      copy is redundant and is backed up, then removed
  *   backup-conflict  — .frame/ has a *different* copy; the root file is
  *                      backed up and reported, and nothing is overwritten
+ *   replace-invalid  — the .frame/ copy is empty or unparseable; it goes to
+ *                      the backup and the root file takes its place
  */
 function plan(projectPath) {
   const config = frameStore.readConfig(projectPath);
@@ -185,7 +226,9 @@ function plan(projectPath) {
     const overlayPath = path.join(projectPath, FRAME_DIR, name);
     let disposition = 'move';
     if (fs.existsSync(overlayPath)) {
-      disposition = sameBytes(rootPath, overlayPath) ? 'delete-identical' : 'backup-conflict';
+      if (sameBytes(rootPath, overlayPath)) disposition = 'delete-identical';
+      else if (isUnusableCopy(overlayPath)) disposition = 'replace-invalid';
+      else disposition = 'backup-conflict';
     }
     artifacts.push({ name, disposition });
 
@@ -201,9 +244,8 @@ function plan(projectPath) {
   const symlinks = LEGACY_SYMLINKS
     .filter((name) => isFramePlantedSymlink(path.join(projectPath, name)));
 
-  const agentsText = frameStore.readAgents(projectPath);
   const restorableClaudeMd = symlinks.includes(FRAME_FILES.CLAUDE_SYMLINK)
-    ? extractClaudeBlock(agentsText)
+    ? extractClaudeBlock(readRootAgents(projectPath))
     : null;
 
   const rels = artifacts.map((a) => a.name);
@@ -285,8 +327,128 @@ function upgradeAgentsText(text) {
 }
 
 /**
+ * The steps themselves, in order, writing what happened into `state`. Split
+ * out of run() so a throw anywhere in here still leaves run() holding the
+ * truth about how far the migration got.
+ */
+function execute(projectPath, activePlan, onProgress, state) {
+  const frameDir = path.join(projectPath, FRAME_DIR);
+  const backupDir = path.join(frameDir, MIGRATION_BACKUP_DIR);
+  const { moved, backedUp, review } = state;
+
+  state.step = 'backup';
+  fs.mkdirSync(backupDir, { recursive: true });
+
+  // 1. The files themselves. Backup first, always — even for the copies that
+  //    only get deleted, so an interrupted run can always be reconstructed.
+  for (const artifact of activePlan.artifacts) {
+    const rootPath = path.join(projectPath, artifact.name);
+    if (!fs.existsSync(rootPath)) continue;
+    state.step = `move:${artifact.name}`;
+    onProgress({ step: 'move', detail: artifact.name });
+
+    copyVerified(rootPath, path.join(backupDir, artifact.name));
+    backedUp.push(artifact.name);
+
+    if (artifact.disposition === 'move') {
+      copyVerified(rootPath, path.join(frameDir, artifact.name));
+      moved.push(artifact.name);
+    } else if (artifact.disposition === 'replace-invalid') {
+      // The .frame/ copy is empty or unparseable — park it under a name of
+      // its own and let the root file take its place.
+      const overlayPath = path.join(frameDir, artifact.name);
+      copyVerified(overlayPath, path.join(backupDir, `${artifact.name}.unusable`));
+      backedUp.push(`${artifact.name}.unusable`);
+      copyVerified(rootPath, overlayPath);
+      moved.push(artifact.name);
+      review.push(`the copy already in .frame/${artifact.name} was empty or unparseable — it is in ${activePlan.backupDir}/${artifact.name}.unusable and the root version took its place`);
+      record('migration.conflict', { path: artifact.name, reason: 'unusable-overlay' });
+    } else if (artifact.disposition === 'backup-conflict') {
+      review.push(`${artifact.name} differs from the copy already in .frame/ — the root version is in ${activePlan.backupDir}/`);
+      record('migration.conflict', { path: artifact.name });
+    }
+    fs.unlinkSync(rootPath);
+  }
+
+  // 2. Frame-planted symlinks come out; a real CLAUDE.md is restored from the
+  //    block old inits folded into AGENTS.md, verbatim.
+  for (const name of activePlan.symlinks) {
+    state.step = `symlink:${name}`;
+    onProgress({ step: 'symlink', detail: name });
+    try {
+      fs.unlinkSync(path.join(projectPath, name));
+    } catch (err) {
+      review.push(`could not remove the ${name} symlink: ${err.message}`);
+    }
+  }
+  if (activePlan.symlinks.includes(FRAME_FILES.CLAUDE_SYMLINK)) {
+    state.step = 'restore';
+    const claudePath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);
+    if (!activePlan.restorableClaudeMd) {
+      review.push(`${FRAME_FILES.CLAUDE_SYMLINK} was a Frame symlink, but AGENTS.md carries no "Existing Instructions (from CLAUDE.md)" block — there was nothing to restore`);
+    } else if (fs.existsSync(claudePath)) {
+      review.push(`${FRAME_FILES.CLAUDE_SYMLINK} already exists, so the block AGENTS.md consumed was not written back — compare it yourself`);
+    } else {
+      fs.writeFileSync(claudePath, activePlan.restorableClaudeMd, 'utf8');
+      state.claudeMdRestored = true;
+      onProgress({ step: 'restore', detail: FRAME_FILES.CLAUDE_SYMLINK });
+    }
+  }
+
+  // 3. AGENTS.md now resolves to .frame/ — point its own prose there too.
+  state.step = 'agents';
+  const agentsText = frameStore.readAgents(projectPath);
+  const upgraded = upgradeAgentsText(agentsText);
+  if (upgraded.text && upgraded.text !== agentsText) {
+    frameStore.writeAgents(projectPath, upgraded.text);
+  }
+  for (const item of upgraded.review) {
+    review.push(`AGENTS.md: could not find ${item} — check it by hand`);
+  }
+
+  // 4. The pointer, the identity, and the end of the fingerprint.
+  state.step = 'pointer';
+  onProgress({ step: 'pointer', detail: CLAUDE_RULE_PATH });
+  require('./frameProject').ensureClaudePointer(projectPath);
+  frameStore.ensureProjectId(projectPath);
+
+  const config = frameStore.readConfig(projectPath) || {};
+  delete config.files; // the fingerprint: gone, so a second plan() finds nothing
+  config.settings = config.settings || {};
+  config.settings.gitSharing = activePlan.sharingMode;
+  frameStore.writeConfig(projectPath, config);
+
+  // 5. Hook entries: replace the old unguarded commands with the guarded ones
+  //    in the file this sharing mode uses.
+  state.step = 'hooks';
+  onProgress({ step: 'hooks', detail: gitSharing.hookFileFor(activePlan.sharingMode) });
+  const frameProject = require('./frameProject');
+  for (const file of ['settings.json', 'settings.local.json']) {
+    frameProject.removeSpecHintHook(projectPath, { file });
+  }
+  frameProject.installSpecHintHook(projectPath, { file: gitSharing.hookFileFor(activePlan.sharingMode) });
+
+  // 6. Sharing posture + a refreshed set of staged scripts (the old copies
+  //    resolve their project as `.frame/`, which is the bug T03 fixed).
+  state.step = 'sharing';
+  onProgress({ step: 'sharing', detail: activePlan.sharingMode });
+  gitSharing.setMode(projectPath, activePlan.sharingMode);
+  try {
+    structureBootstrap.copyParserScripts(projectPath);
+  } catch (err) {
+    review.push(`could not refresh .frame/bin scripts: ${err.message}`);
+  }
+  state.step = 'done';
+}
+
+/**
  * Execute a plan. Reports progress through `onProgress({ step, detail })` and
  * returns a receipt: what moved, what was backed up, what needs a human look.
+ *
+ * A throw mid-run is not a failure to migrate — files have already moved by
+ * then. The receipt stays truthful (`ran: true` with `failedAt` and what got
+ * as far as it did) rather than reporting "migration did not run" over a
+ * half-moved tree.
  */
 function run(projectPath, migrationPlan, onProgress = () => {}) {
   const started = Date.now();
@@ -301,109 +463,38 @@ function run(projectPath, migrationPlan, onProgress = () => {}) {
     return { ran: false, reason: 'dirty-tree', dirty: activePlan.dirty, moved: [], backedUp: [], review: [] };
   }
 
-  const frameDir = path.join(projectPath, FRAME_DIR);
-  const backupDir = path.join(frameDir, MIGRATION_BACKUP_DIR);
-  fs.mkdirSync(backupDir, { recursive: true });
+  const state = { step: 'start', moved: [], backedUp: [], review: [], claudeMdRestored: false };
+  const receipt = () => ({
+    ran: true,
+    moved: state.moved,
+    backedUp: state.backedUp,
+    review: state.review,
+    backupDir: activePlan.backupDir,
+    sharingMode: activePlan.sharingMode,
+    claudeMdRestored: state.claudeMdRestored,
+    symlinksRemoved: activePlan.symlinks
+  });
 
-  const moved = [];
-  const backedUp = [];
-  const review = [];
-
-  // 1. The files themselves. Backup first, always — even for the copies that
-  //    only get deleted, so an interrupted run can always be reconstructed.
-  for (const artifact of activePlan.artifacts) {
-    const rootPath = path.join(projectPath, artifact.name);
-    if (!fs.existsSync(rootPath)) continue;
-    onProgress({ step: 'move', detail: artifact.name });
-
-    copyVerified(rootPath, path.join(backupDir, artifact.name));
-    backedUp.push(artifact.name);
-
-    if (artifact.disposition === 'move') {
-      copyVerified(rootPath, path.join(frameDir, artifact.name));
-      moved.push(artifact.name);
-    } else if (artifact.disposition === 'backup-conflict') {
-      review.push(`${artifact.name} differs from the copy already in .frame/ — the root version is in ${activePlan.backupDir}/`);
-      record('migration.conflict', { path: artifact.name });
-    }
-    fs.unlinkSync(rootPath);
-  }
-
-  // 2. Frame-planted symlinks come out; a real CLAUDE.md is restored from the
-  //    block old inits folded into AGENTS.md, verbatim.
-  for (const name of activePlan.symlinks) {
-    onProgress({ step: 'symlink', detail: name });
-    try {
-      fs.unlinkSync(path.join(projectPath, name));
-    } catch (err) {
-      review.push(`could not remove the ${name} symlink: ${err.message}`);
-    }
-  }
-  if (activePlan.restorableClaudeMd) {
-    const claudePath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);
-    if (!fs.existsSync(claudePath)) {
-      fs.writeFileSync(claudePath, activePlan.restorableClaudeMd, 'utf8');
-      onProgress({ step: 'restore', detail: FRAME_FILES.CLAUDE_SYMLINK });
-    }
-  }
-
-  // 3. AGENTS.md now resolves to .frame/ — point its own prose there too.
-  const agentsText = frameStore.readAgents(projectPath);
-  const upgraded = upgradeAgentsText(agentsText);
-  if (upgraded.text && upgraded.text !== agentsText) {
-    frameStore.writeAgents(projectPath, upgraded.text);
-  }
-  for (const item of upgraded.review) {
-    review.push(`AGENTS.md: could not find ${item} — check it by hand`);
-  }
-
-  // 4. The pointer, the identity, and the end of the fingerprint.
-  onProgress({ step: 'pointer', detail: CLAUDE_RULE_PATH });
-  require('./frameProject').ensureClaudePointer(projectPath);
-  frameStore.ensureProjectId(projectPath);
-
-  const config = frameStore.readConfig(projectPath) || {};
-  delete config.files; // the fingerprint: gone, so a second plan() finds nothing
-  config.settings = config.settings || {};
-  config.settings.gitSharing = activePlan.sharingMode;
-  frameStore.writeConfig(projectPath, config);
-
-  // 5. Hook entries: replace the old unguarded commands with the guarded ones
-  //    in the file this sharing mode uses.
-  onProgress({ step: 'hooks', detail: gitSharing.hookFileFor(activePlan.sharingMode) });
-  const frameProject = require('./frameProject');
-  for (const file of ['settings.json', 'settings.local.json']) {
-    frameProject.removeSpecHintHook(projectPath, { file });
-  }
-  frameProject.installSpecHintHook(projectPath, { file: gitSharing.hookFileFor(activePlan.sharingMode) });
-
-  // 6. Sharing posture + a refreshed set of staged scripts (the old copies
-  //    resolve their project as `.frame/`, which is the bug T03 fixed).
-  onProgress({ step: 'sharing', detail: activePlan.sharingMode });
-  gitSharing.setMode(projectPath, activePlan.sharingMode);
   try {
-    structureBootstrap.copyParserScripts(projectPath);
+    execute(projectPath, activePlan, onProgress, state);
   } catch (err) {
-    review.push(`could not refresh .frame/bin scripts: ${err.message}`);
+    record('migration.failed', {
+      failedAt: state.step,
+      error: err.message,
+      moved: state.moved.length,
+      backedUp: state.backedUp.length
+    });
+    return { ...receipt(), failedAt: state.step, error: err.message };
   }
 
   record('migration.completed', {
-    moved: moved.length,
-    backedUp: backedUp.length,
-    review: review.length,
+    moved: state.moved.length,
+    backedUp: state.backedUp.length,
+    review: state.review.length,
     ms: Date.now() - started
   });
 
-  return {
-    ran: true,
-    moved,
-    backedUp,
-    review,
-    backupDir: activePlan.backupDir,
-    sharingMode: activePlan.sharingMode,
-    claudeMdRestored: Boolean(activePlan.restorableClaudeMd),
-    symlinksRemoved: activePlan.symlinks
-  };
+  return receipt();
 }
 
 module.exports = {
@@ -414,5 +505,6 @@ module.exports = {
   extractClaudeBlock,
   upgradeAgentsText,
   isFramePlantedSymlink,
+  isUnusableCopy,
   AGENTS_LINE_EDITS
 };

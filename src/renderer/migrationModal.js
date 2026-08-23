@@ -38,6 +38,7 @@ const DISPOSITION_TEXT = {
   move: 'moves into .frame/',
   'delete-identical': 'already in .frame/ — the root copy is backed up and removed',
   'backup-conflict': 'differs from the copy in .frame/ — kept in the backup for you to compare',
+  'replace-invalid': 'the copy in .frame/ is empty or unreadable — this one replaces it',
   'backup-only': "Frame's own backup file — moves into the backup folder"
 };
 
@@ -166,10 +167,18 @@ function renderReceipt(receipt) {
     return;
   }
 
-  const lines = [
+  const lines = [];
+  if (receipt.failedAt) {
+    // Files moved before it broke; saying "did not run" here would be a lie
+    // the user cannot check without reading their own tree.
+    lines.push('<p><strong>The migration stopped partway</strong> ' +
+      `(at <code>${escapeHtml(receipt.failedAt)}</code>): ${escapeHtml(receipt.error || 'unknown error')}. ` +
+      'What follows is what did happen — every file has a copy in the backup folder.</p>');
+  }
+  lines.push(
     `<p><strong>${receipt.moved.length}</strong> file${receipt.moved.length === 1 ? '' : 's'} moved into <code>.frame/</code>, ` +
     `<strong>${receipt.backedUp.length}</strong> backed up in <code>${escapeHtml(receipt.backupDir)}</code>.</p>`
-  ];
+  );
   if (receipt.symlinksRemoved && receipt.symlinksRemoved.length > 0) {
     lines.push(`<p>Removed Frame's ${receipt.symlinksRemoved.map(escapeHtml).join(' and ')} symlink${receipt.symlinksRemoved.length > 1 ? 's' : ''}.</p>`);
   }
@@ -186,7 +195,11 @@ function renderReceipt(receipt) {
 
 function close() {
   if (!modalEl) return;
-  if (currentProjectPath) deferred.add(currentProjectPath);
+  // Only a decision defers the offer. A dirty tree gave the user nothing to
+  // decide — the modal showed a wall and a Close button — so that project is
+  // asked again next time it is selected, by which point the tree may be
+  // clean.
+  if (currentProjectPath && currentPlan && currentPlan.canRun) deferred.add(currentProjectPath);
   modalEl.classList.remove('visible');
   currentPlan = null;
   currentProjectPath = null;

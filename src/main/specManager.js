@@ -1213,6 +1213,7 @@ module.exports = {
   deleteSpec,
   derivePhase,
   reconcilePhase,
+  startWatching,
   getCommandPrompt,
   buildSpecCommandFile,
   buildImplementPermissions,
