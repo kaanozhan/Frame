@@ -167,6 +167,9 @@ function init() {
         } else {
           setRemoveFrameNote('Removed: ' + ((result && result.removed) || []).join(', '));
         }
+        // The project is no longer a Frame project: say so, or the spec
+        // panel keeps offering to write into a .frame/ that is gone.
+        state.noteFrameRemoved(projectPath);
         await syncGitSharing();
         await syncSpecDrivenToggle();
       } catch (err) {

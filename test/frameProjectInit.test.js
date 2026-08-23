@@ -361,3 +361,42 @@ test('Remove Frame keeps hooks and pre-commit content the user wrote', async () 
   assert.equal(settings.hooks.UserPromptSubmit[0].hooks[0].command, 'node my-own-hook.js');
   assert.equal(fs.readFileSync(path.join(hookDir, 'pre-commit'), 'utf8'), '#!/bin/sh\nnpm run lint\n');
 });
+
+test('a husky project keeps its own pre-commit file byte-for-byte', async () => {
+  // Spec D10: Frame writes one hook file, and only where there is none.
+  // `.husky/pre-commit` is the user's, usually committed, often generated.
+  const { execFileSync } = require('child_process');
+  execFileSync('git', ['init', '-q'], { cwd: projectDir });
+  execFileSync('git', ['config', 'core.hooksPath', '.husky'], { cwd: projectDir });
+
+  const huskyHook = path.join(projectDir, '.husky', 'pre-commit');
+  const before = hashFile(huskyHook);
+
+  const config = await frameProject.runProjectInit(projectDir, 'demo');
+
+  assert.equal(hashFile(huskyHook), before, '.husky/pre-commit is untouched');
+  assert.equal(fs.readFileSync(huskyHook, 'utf8'), USER_FILES['.husky/pre-commit']);
+  assert.ok(!fs.existsSync(path.join(projectDir, '.git', 'hooks', 'pre-commit')), 'and no second hook was written');
+
+  const hook = config._structureBootstrap && config._structureBootstrap.hook;
+  assert.equal(hook.status, 'skipped-husky');
+  assert.match(hook.manualInstructions, /frame:structure \(managed\)/, 'the snippet is handed over as text');
+});
+
+test('Remove Frame takes the hook file and an empty settings file with it', async () => {
+  const { execFileSync } = require('child_process');
+  execFileSync('git', ['init', '-q'], { cwd: projectDir });
+  fs.rmSync(path.join(projectDir, '.husky'), { recursive: true, force: true }); // vanilla hook path
+
+  await frameProject.runProjectInit(projectDir, 'demo');
+  const hookPath = path.join(projectDir, '.git', 'hooks', 'pre-commit');
+  assert.ok(fs.existsSync(hookPath), 'init wrote the vanilla hook');
+  assert.ok(fs.existsSync(path.join(projectDir, '.claude', 'settings.json')), 'and the settings file');
+
+  frameProject.removeFrame(projectDir);
+
+  assert.ok(!fs.existsSync(hookPath), 'the hook file Frame created is gone, header and all');
+  assert.ok(!fs.existsSync(path.join(projectDir, '.claude', 'settings.json')), 'no {} settings file left behind');
+  // The user's own .claude/CLAUDE.md is still there, so the directory stays.
+  assert.ok(fs.existsSync(path.join(projectDir, '.claude', 'CLAUDE.md')));
+});

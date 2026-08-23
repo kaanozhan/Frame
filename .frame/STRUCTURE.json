@@ -934,15 +934,30 @@
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
+        "dropEmptySettingsFile": {
+          "line": 781,
+          "params": [
+            "projectPath",
+            "file"
+          ],
+          "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
+        },
+        "isFrameOwnedHookResidue": {
+          "line": 807,
+          "params": [
+            "text"
+          ],
+          "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
+        },
         "removeHookSnippet": {
-          "line": 778,
+          "line": 820,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "setupIPC": {
-          "line": 818,
+          "line": 860,
           "params": [
             "ipcMain"
           ],
@@ -3573,51 +3588,35 @@
       ],
       "functions": {
         "copyParserScripts": {
-          "line": 53,
+          "line": 51,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "detectHookSetup": {
-          "line": 127,
+          "line": 125,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
-        "hasFrameSnippet": {
-          "line": 184,
-          "params": [
-            "hookFilePath"
-          ],
-          "purpose": "Check if our managed snippet is already present in a hook file."
-        },
         "installPreCommitHook": {
-          "line": 201,
+          "line": 192,
           "params": [
             "projectPath"
           ],
-          "purpose": "Install (or append) the pre-commit hook based on detected setup."
-        },
-        "appendToHookFile": {
-          "line": 256,
-          "params": [
-            "hookPath",
-            "createIfMissing",
-            "needsShebang"
-          ],
-          "purpose": "Append the Frame snippet to an existing hook file (husky case)."
+          "purpose": "Install the pre-commit hook, but only where there is no hook to damage."
         },
         "runInitialFullScan": {
-          "line": 294,
+          "line": 259,
           "params": [
             "projectPath"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 332,
+          "line": 297,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -7017,16 +7016,16 @@
           "line": 40
         },
         "initAboutSection": {
-          "line": 205
+          "line": 208
         },
         "runCheck": {
-          "line": 290,
+          "line": 293,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 329,
+          "line": 332,
           "params": [
             "{ checked",
             "found",
@@ -7038,66 +7037,66 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 353,
+          "line": 356,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 364
+          "line": 367
         },
         "hideSidebarDot": {
-          "line": 368
+          "line": 371
         },
         "formatRelative": {
-          "line": 375,
+          "line": 378,
           "params": [
             "date"
           ]
         },
         "syncToggleFromSettings": {
-          "line": 386
+          "line": 389
         },
         "syncSpecDrivenToggle": {
-          "line": 407,
+          "line": 410,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "renderGitSharing": {
-          "line": 432,
+          "line": 435,
           "params": [
             "stateObj"
           ],
           "purpose": "Paint the sharing row from main's state object. `error` means the project"
         },
         "syncGitSharing": {
-          "line": 448
+          "line": 451
         },
         "setRemoveFrameNote": {
-          "line": 462,
+          "line": 465,
           "params": [
             "message"
           ]
         },
         "setGitSharingWarning": {
-          "line": 468,
+          "line": 471,
           "params": [
             "message"
           ]
         },
         "setSpecDrivenNote": {
-          "line": 474,
+          "line": 477,
           "params": [
             "message"
           ]
         },
         "open": {
-          "line": 480
+          "line": 483
         },
         "close": {
-          "line": 487
+          "line": 490
         },
         "toggle": {
-          "line": 494
+          "line": 497
         }
       },
       "ipc": {
@@ -7841,6 +7840,7 @@
         "onSampleChange",
         "getIsFrameProject",
         "setIsFrameProject",
+        "noteFrameRemoved",
         "onFrameStatusChange",
         "onFrameInitialized",
         "initializeAsFrameProject"
@@ -7894,89 +7894,96 @@
           ],
           "purpose": "Set Frame project status"
         },
+        "noteFrameRemoved": {
+          "line": 150,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Frame was removed from this project (Settings → Workflow). Flip the flag so"
+        },
         "onFrameStatusChange": {
-          "line": 145,
+          "line": 161,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame status change"
         },
         "onFrameInitialized": {
-          "line": 152,
+          "line": 168,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame project initialized"
         },
         "updateFrameUI": {
-          "line": 159,
+          "line": 175,
           "purpose": "Update Frame-related UI"
         },
         "initializeAsFrameProject": {
-          "line": 174,
+          "line": 190,
           "purpose": "Initialize current project as Frame project"
         },
         "showInitializeFrameModal": {
-          "line": 183,
+          "line": 199,
           "purpose": "Show custom initialize Frame modal"
         },
         "hideInitializeFrameModal": {
-          "line": 196,
+          "line": 212,
           "purpose": "Hide initialize Frame modal"
         },
         "dismissInitPrompt": {
-          "line": 208,
+          "line": 224,
           "purpose": "Dismiss the prompt without initializing (\"Not Now\" / close / Escape /"
         },
         "handleInitializeFrame": {
-          "line": 219,
+          "line": 235,
           "purpose": "Handle initialize Frame confirmation"
         },
         "setupInitFrameModalListeners": {
-          "line": 240,
+          "line": 256,
           "purpose": "Setup initialize Frame modal listeners"
         },
         "showInitSpotlight": {
-          "line": 266,
+          "line": 282,
           "purpose": "Show spotlight tour for the initialize button (first time only)"
         },
         "dismissSpotlight": {
-          "line": 307,
+          "line": 323,
           "purpose": "Dismiss spotlight and mark as seen"
         },
         "setupSpotlightListeners": {
-          "line": 318,
+          "line": 334,
           "purpose": "Setup spotlight tour listeners"
         },
         "updateProjectUI": {
-          "line": 360,
+          "line": 376,
           "purpose": "Update project UI elements"
         },
         "selectProjectFolder": {
-          "line": 384,
+          "line": 400,
           "purpose": "Request folder selection"
         },
         "createNewProject": {
-          "line": 391,
+          "line": 407,
           "purpose": "Request new project creation"
         },
         "openSampleProject": {
-          "line": 401,
+          "line": 417,
           "purpose": "Open the bundled sample project. Main copies it into the user-data"
         },
         "getIsSampleProject": {
-          "line": 408,
+          "line": 424,
           "purpose": "Check whether the current project is the bundled sample."
         },
         "onSampleChange": {
-          "line": 416,
+          "line": 432,
           "params": [
             "callback"
           ],
           "purpose": "Register a callback fired whenever the current project's"
         },
         "setupIPC": {
-          "line": 423,
+          "line": 439,
           "purpose": "Setup IPC listeners"
         }
       },
@@ -7987,6 +7994,7 @@
           "FRAME_PROJECT_INITIALIZED"
         ],
         "emits": [
+          "CHECK_IS_FRAME_PROJECT",
           "CHECK_IS_FRAME_PROJECT",
           "INITIALIZE_FRAME_PROJECT",
           "SELECT_PROJECT_FOLDER",

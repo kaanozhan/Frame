@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-23T12:04:10.351Z",
+  "lastUpdated": "2026-08-23T12:07:09.164Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -4993,13 +4993,13 @@
       "title": "Honour D10 and tidy removal: `structureBootstrap.installPreCommitHook` never writes `.husky/pre-commit` (returns the snippet like the lefthook branch); `removeFrame` removes a vanilla `.git/hooks/pre-commit` entirely when only Frame's header and marker block remain, deletes an empty `{}` settings file it created, and the renderer re-runs the Frame check afterwards (`state.setIsFrameProject(false)` / `CHECK_IS_FRAME_PROJECT`) so the spec panel and toggles reflect a non-Frame project; tests in `test/frameProjectInit.test.js` with a git fixture that has `.husky/`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T18",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-23T13:30:00.000Z",
-      "updatedAt": "2026-08-23T13:30:00.000Z",
-      "completedAt": null
+      "updatedAt": "2026-08-23T12:07:09.164Z",
+      "completedAt": "2026-08-23T12:07:09.164Z"
     },
     {
       "id": "task-spec-non-invasive-overlay-T19",
@@ -5030,7 +5030,7 @@
   ],
   "metadata": {
     "totalCreated": 314,
-    "totalCompleted": 25
+    "totalCompleted": 26
   },
   "categories": {
     "feature": "New features",

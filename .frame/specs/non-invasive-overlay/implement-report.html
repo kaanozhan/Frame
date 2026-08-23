@@ -155,8 +155,8 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">17 tasks</span>
-    <span class="pill good">17 verified</span>
+    <span class="pill">18 tasks</span>
+    <span class="pill good">18 verified</span>
     
     <span class="chip">2026-08-23</span>
   </div>
@@ -10278,6 +10278,304 @@
 <span class="dl-add">+  assert.match(receipt.error, /disk on fire/);</span>
 <span class="dl-add">+  assert.equal(receipt.moved.length, 5, &#39;and the receipt names what got through&#39;);</span>
 <span class="dl-add">+  assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, &#39;tasks.json&#39;)));</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T18</span>
+    <h2>Honour D10 and tidy removal</h2>
+    <span class="card-meta"><span class="chip">3ddeea9</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">301 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>installPreCommitHook&#39;s husky branch returns the snippet as manual instructions instead of writing .husky/pre-commit, and the now-dead appendToHookFile/hasFrameSnippet went with it — Frame writes exactly one hook file, .git/hooks/pre-commit, and only where none exists. removeFrame deletes that file when nothing but Frame&#39;s own header and marker block are left (matched against the template, not a loose regex), deletes a settings file that now parses to {}, and the renderer calls the new state.noteFrameRemoved() so the spec panel and toggles see a non-Frame project without the init prompt bouncing back.</p></div>
+    <div class="field"><span class="label">Why</span><p>The existing test fixture was not a git repository, so the husky branch never ran in tests and the D10 violation shipped unnoticed; the new fixture sets core.hooksPath and asserts the user&#39;s hook is byte-identical. Residue detection compares against what Frame&#39;s own template leaves behind rather than &#39;only comments&#39;, so a user hook that happens to be all comments is never deleted.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 48da891..4265b06 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -762,6 +762,9 @@ function removeFrame(projectPath) {</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   for (const file of [&#39;settings.json&#39;, &#39;settings.local.json&#39;]) {</span>
+<span class="dl-ctx">     drop(`.claude/${file} hooks`, () =&gt; removeSpecHintHook(projectPath, { file }).removed &gt; 0);</span>
+<span class="dl-add">+    // A settings file whose only content was Frame&#39;s hooks is a file Frame</span>
+<span class="dl-add">+    // created. `{}` left behind is still a Frame-authored byte.</span>
+<span class="dl-add">+    drop(`.claude/${file}`, () =&gt; dropEmptySettingsFile(projectPath, file));</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   drop(&#39;pre-commit hook block&#39;, () =&gt; removeHookSnippet(projectPath));</span>
+<span class="dl-hunk">@@ -770,6 +773,45 @@ function removeFrame(projectPath) {</span>
+<span class="dl-ctx">   return { removed, errors, projectPath };</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Delete a Claude settings file that now parses to `{}` — Frame wrote it to</span>
+<span class="dl-add">+ * hold its hook entries and nothing else ever went in. A file with any key</span>
+<span class="dl-add">+ * left, or one that does not parse, is not ours to remove.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function dropEmptySettingsFile(projectPath, file) {</span>
+<span class="dl-add">+  const settingsPath = path.join(projectPath, &#39;.claude&#39;, file);</span>
+<span class="dl-add">+  if (!fs.existsSync(settingsPath)) return false;</span>
+<span class="dl-add">+  let settings;</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    settings = JSON.parse(fs.readFileSync(settingsPath, &#39;utf8&#39;));</span>
+<span class="dl-add">+  } catch (err) {</span>
+<span class="dl-add">+    return false;</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+  if (!settings || typeof settings !== &#39;object&#39; || Object.keys(settings).length &gt; 0) return false;</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  fs.unlinkSync(settingsPath);</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    if (fs.readdirSync(path.join(projectPath, &#39;.claude&#39;)).length === 0) {</span>
+<span class="dl-add">+      fs.rmdirSync(path.join(projectPath, &#39;.claude&#39;));</span>
+<span class="dl-add">+    }</span>
+<span class="dl-add">+  } catch (err) { /* someone else&#39;s .claude/ stays */ }</span>
+<span class="dl-add">+  return true;</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * What Frame&#39;s own pre-commit file looks like once its managed block is gone:</span>
+<span class="dl-add">+ * the shebang and the two header comment lines it wrote at init. Matching this</span>
+<span class="dl-add">+ * exactly is what separates &quot;a file Frame created&quot; from &quot;a file the user</span>
+<span class="dl-add">+ * happens to have written only comments in&quot;.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function isFrameOwnedHookResidue(text) {</span>
+<span class="dl-add">+  if (/^\s*(#![^\n]*\n)?\s*(exit 0\s*)?$/.test(text)) return true;</span>
+<span class="dl-add">+  const bare = templates.getStructurePreCommitHookTemplate()</span>
+<span class="dl-add">+    .replace(templates.getStructureHookSnippet(), &#39;&#39;);</span>
+<span class="dl-add">+  const normalize = (s) =&gt; s.replace(/\n{2,}/g, &#39;\n&#39;).trim();</span>
+<span class="dl-add">+  return normalize(text) === normalize(bare);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Strip Frame&#39;s marker-wrapped block from whichever pre-commit hook carries</span>
+<span class="dl-ctx">  * it. A hook file that becomes nothing but a shebang is deleted; anything the</span>
+<span class="dl-hunk">@@ -804,8 +846,8 @@ function removeHookSnippet(projectPath) {</span>
+<span class="dl-ctx">     const next = tail === &#39;&#39; ? head.replace(/\n{2,}$/, &#39;\n&#39;) : head + tail;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">     // Frame wrote the whole file at init when there was no hook; if nothing</span>
+<span class="dl-del">-    // but the shebang and `exit 0` is left, the file is ours to remove.</span>
+<span class="dl-del">-    if (/^\s*(#![^\n]*\n)?\s*(exit 0\s*)?$/.test(next)) fs.unlinkSync(hookPath);</span>
+<span class="dl-add">+    // but what Frame itself put there is left, the file is ours to remove.</span>
+<span class="dl-add">+    if (isFrameOwnedHookResidue(next)) fs.unlinkSync(hookPath);</span>
+<span class="dl-ctx">     else fs.writeFileSync(hookPath, next, &#39;utf8&#39;);</span>
+<span class="dl-ctx">     changed = true;</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-meta">diff --git a/src/main/structureBootstrap.js b/src/main/structureBootstrap.js</span>
+<span class="dl-meta">index 9123f98..41a0cb3 100644</span>
+<span class="dl-file">--- a/src/main/structureBootstrap.js</span>
+<span class="dl-file">+++ b/src/main/structureBootstrap.js</span>
+<span class="dl-hunk">@@ -11,10 +11,10 @@</span>
+<span class="dl-ctx">  *      Also re-run by migration, to refresh the scripts of a project that</span>
+<span class="dl-ctx">  *      was initialized before this rule.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-del">- *   2. Install a pre-commit hook that runs the parser on staged changes.</span>
+<span class="dl-del">- *      Detects existing hook setups (husky, lefthook, vanilla custom) and</span>
+<span class="dl-del">- *      either appends to them idempotently or surfaces manual instructions —</span>
+<span class="dl-del">- *      we never overwrite the user&#39;s existing hook content.</span>
+<span class="dl-add">+ *   2. Install a pre-commit hook that runs the parser on staged changes —</span>
+<span class="dl-add">+ *      only into `.git/hooks/pre-commit` where no hook exists at all. Husky,</span>
+<span class="dl-add">+ *      lefthook and custom hooks are the user&#39;s files: they get the snippet</span>
+<span class="dl-add">+ *      as text and decide for themselves.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-ctx">  *   3. Run one full-mode parse so .frame/STRUCTURE.json is populated</span>
+<span class="dl-ctx">  *      immediately after init, not on the next commit. Only runs when</span>
+<span class="dl-hunk">@@ -32,9 +32,7 @@ const { FRAME_DIR, FRAME_BIN_DIR } = require(&#39;../shared/frameConstants&#39;);</span>
+<span class="dl-ctx"> const { copyIfChanged } = require(&#39;./commandStaging&#39;);</span>
+<span class="dl-ctx"> const {</span>
+<span class="dl-ctx">   getStructureHookSnippet,</span>
+<span class="dl-del">-  getStructurePreCommitHookTemplate,</span>
+<span class="dl-del">-  FRAME_HOOK_MARKER_START,</span>
+<span class="dl-del">-  FRAME_HOOK_MARKER_END</span>
+<span class="dl-add">+  getStructurePreCommitHookTemplate</span>
+<span class="dl-ctx"> } = require(&#39;../shared/frameTemplates&#39;);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Resolve the location of Frame&#39;s bundled scripts/ folder. In dev this is</span>
+<span class="dl-hunk">@@ -179,22 +177,15 @@ async function detectHookSetup(projectPath) {</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-del">- * Check if our managed snippet is already present in a hook file.</span>
+<span class="dl-del">- */</span>
+<span class="dl-del">-function hasFrameSnippet(hookFilePath) {</span>
+<span class="dl-del">-  try {</span>
+<span class="dl-del">-    const content = fs.readFileSync(hookFilePath, &#39;utf8&#39;);</span>
+<span class="dl-del">-    return content.includes(FRAME_HOOK_MARKER_START);</span>
+<span class="dl-del">-  } catch (_) {</span>
+<span class="dl-del">-    return false;</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-/**</span>
+<span class="dl-del">- * Install (or append) the pre-commit hook based on detected setup.</span>
+<span class="dl-add">+ * Install the pre-commit hook, but only where there is no hook to damage.</span>
+<span class="dl-add">+ *</span>
+<span class="dl-add">+ * Frame writes exactly one hook file: `.git/hooks/pre-commit` in a repository</span>
+<span class="dl-add">+ * that has none (a file git itself does not track). Husky, lefthook and any</span>
+<span class="dl-add">+ * existing custom hook get the snippet handed back as text — those files are</span>
+<span class="dl-add">+ * the user&#39;s, usually committed, and often generated by their own tooling.</span>
+<span class="dl-ctx">  *</span>
+<span class="dl-ctx">  * Returns: { status, message, manualInstructions? }</span>
+<span class="dl-del">- *   status: &#39;installed&#39; | &#39;appended&#39; | &#39;already-installed&#39; | &#39;skipped-custom&#39;</span>
+<span class="dl-add">+ *   status: &#39;installed&#39; | &#39;skipped-custom&#39; | &#39;skipped-husky&#39;</span>
+<span class="dl-ctx">  *           | &#39;skipped-no-git&#39; | &#39;skipped-lefthook&#39; | &#39;error&#39;</span>
+<span class="dl-ctx">  *   manualInstructions: string shown to user when we can&#39;t auto-install</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -226,8 +217,14 @@ async function installPreCommitHook(projectPath) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   if (setup === &#39;husky&#39;) {</span>
+<span class="dl-del">-    const huskyHook = path.join(projectPath, &#39;.husky&#39;, &#39;pre-commit&#39;);</span>
+<span class="dl-del">-    return appendToHookFile(huskyHook, /* createIfMissing */ true, /* needsShebang */ true);</span>
+<span class="dl-add">+    // Same rule as lefthook: `.husky/pre-commit` is the user&#39;s file, tracked</span>
+<span class="dl-add">+    // in their repo and often generated by their own tooling. Frame writes</span>
+<span class="dl-add">+    // nothing there — it hands over the snippet and lets them paste it.</span>
+<span class="dl-add">+    return {</span>
+<span class="dl-add">+      status: &#39;skipped-husky&#39;,</span>
+<span class="dl-add">+      message: &#39;Husky detected — add this snippet to .husky/pre-commit manually:&#39;,</span>
+<span class="dl-add">+      manualInstructions: getStructureHookSnippet()</span>
+<span class="dl-add">+    };</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">   if (setup === &#39;custom&#39;) {</span>
+<span class="dl-hunk">@@ -250,38 +247,6 @@ async function installPreCommitHook(projectPath) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-/**</span>
+<span class="dl-del">- * Append the Frame snippet to an existing hook file (husky case).</span>
+<span class="dl-del">- */</span>
+<span class="dl-del">-function appendToHookFile(hookPath, createIfMissing, needsShebang) {</span>
+<span class="dl-del">-  try {</span>
+<span class="dl-del">-    if (!fs.existsSync(hookPath)) {</span>
+<span class="dl-del">-      if (!createIfMissing) {</span>
+<span class="dl-del">-        return { status: &#39;error&#39;, message: `Hook file not found: ${hookPath}` };</span>
+<span class="dl-del">-      }</span>
+<span class="dl-del">-      // Create with shebang + snippet</span>
+<span class="dl-del">-      const header = needsShebang ? &#39;#!/bin/sh\n&#39; : &#39;&#39;;</span>
+<span class="dl-del">-      fs.mkdirSync(path.dirname(hookPath), { recursive: true });</span>
+<span class="dl-del">-      fs.writeFileSync(hookPath, header + &#39;\n&#39; + getStructureHookSnippet(), { mode: 0o755 });</span>
+<span class="dl-del">-      return { status: &#39;installed&#39;, message: `Pre-commit hook created at ${path.relative(path.dirname(path.dirname(hookPath)), hookPath)}` };</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-    if (hasFrameSnippet(hookPath)) {</span>
+<span class="dl-del">-      return { status: &#39;already-installed&#39;, message: &#39;Frame structure snippet already present in hook&#39; };</span>
+<span class="dl-del">-    }</span>
+<span class="dl-del">-</span>
+<span class="dl-del">-    // Append snippet to existing content</span>
+<span class="dl-del">-    const existing = fs.readFileSync(hookPath, &#39;utf8&#39;);</span>
+<span class="dl-del">-    const separator = existing.endsWith(&#39;\n&#39;) ? &#39;\n&#39; : &#39;\n\n&#39;;</span>
+<span class="dl-del">-    fs.appendFileSync(hookPath, separator + getStructureHookSnippet());</span>
+<span class="dl-del">-    // Ensure executable bit is set</span>
+<span class="dl-del">-    try { fs.chmodSync(hookPath, 0o755); } catch (_) { /* best effort */ }</span>
+<span class="dl-del">-    return { status: &#39;appended&#39;, message: `Frame snippet appended to ${path.basename(hookPath)}` };</span>
+<span class="dl-del">-  } catch (err) {</span>
+<span class="dl-del">-    return { status: &#39;error&#39;, message: `Failed to append to hook: ${err.message}` };</span>
+<span class="dl-del">-  }</span>
+<span class="dl-del">-}</span>
+<span class="dl-del">-</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Run the parser in full mode once so STRUCTURE.json gets populated with</span>
+<span class="dl-ctx">  * the project&#39;s existing files. Spawns node asynchronously (same 30s kill</span>
+<span class="dl-meta">diff --git a/src/renderer/settingsModal.js b/src/renderer/settingsModal.js</span>
+<span class="dl-meta">index d1d7fe3..5665b00 100644</span>
+<span class="dl-file">--- a/src/renderer/settingsModal.js</span>
+<span class="dl-file">+++ b/src/renderer/settingsModal.js</span>
+<span class="dl-hunk">@@ -167,6 +167,9 @@ function init() {</span>
+<span class="dl-ctx">         } else {</span>
+<span class="dl-ctx">           setRemoveFrameNote(&#39;Removed: &#39; + ((result &amp;&amp; result.removed) || []).join(&#39;, &#39;));</span>
+<span class="dl-ctx">         }</span>
+<span class="dl-add">+        // The project is no longer a Frame project: say so, or the spec</span>
+<span class="dl-add">+        // panel keeps offering to write into a .frame/ that is gone.</span>
+<span class="dl-add">+        state.noteFrameRemoved(projectPath);</span>
+<span class="dl-ctx">         await syncGitSharing();</span>
+<span class="dl-ctx">         await syncSpecDrivenToggle();</span>
+<span class="dl-ctx">       } catch (err) {</span>
+<span class="dl-meta">diff --git a/src/renderer/state.js b/src/renderer/state.js</span>
+<span class="dl-meta">index 51d30f0..2d0c20c 100644</span>
+<span class="dl-file">--- a/src/renderer/state.js</span>
+<span class="dl-file">+++ b/src/renderer/state.js</span>
+<span class="dl-hunk">@@ -139,6 +139,22 @@ function setIsFrameProject(isFrame) {</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-add">+/**</span>
+<span class="dl-add">+ * Frame was removed from this project (Settings → Workflow). Flip the flag so</span>
+<span class="dl-add">+ * the spec panel and the workflow toggles stop acting on a project that has no</span>
+<span class="dl-add">+ * `.frame/` any more, and ask main to re-answer — the workspace record follows</span>
+<span class="dl-add">+ * from that. The init prompt is suppressed first: removing Frame is a</span>
+<span class="dl-add">+ * decision, and offering to initialize it again in the same second is not an</span>
+<span class="dl-add">+ * answer to it.</span>
+<span class="dl-add">+ */</span>
+<span class="dl-add">+function noteFrameRemoved(projectPath) {</span>
+<span class="dl-add">+  if (!projectPath) return;</span>
+<span class="dl-add">+  frameInitPromptSuppressed.add(projectPath);</span>
+<span class="dl-add">+  if (projectPath !== currentProjectPath) return;</span>
+<span class="dl-add">+  setIsFrameProject(false);</span>
+<span class="dl-add">+  ipcRenderer.send(IPC.CHECK_IS_FRAME_PROJECT, projectPath);</span>
+<span class="dl-add">+}</span>
+<span class="dl-add">+</span>
+<span class="dl-ctx"> /**</span>
+<span class="dl-ctx">  * Register callback for Frame status change</span>
+<span class="dl-ctx">  */</span>
+<span class="dl-hunk">@@ -461,6 +477,7 @@ module.exports = {</span>
+<span class="dl-ctx">   onSampleChange,</span>
+<span class="dl-ctx">   getIsFrameProject,</span>
+<span class="dl-ctx">   setIsFrameProject,</span>
+<span class="dl-add">+  noteFrameRemoved,</span>
+<span class="dl-ctx">   onFrameStatusChange,</span>
+<span class="dl-ctx">   onFrameInitialized,</span>
+<span class="dl-ctx">   initializeAsFrameProject</span>
+<span class="dl-meta">diff --git a/test/frameProjectInit.test.js b/test/frameProjectInit.test.js</span>
+<span class="dl-meta">index 7f4f480..44919fa 100644</span>
+<span class="dl-file">--- a/test/frameProjectInit.test.js</span>
+<span class="dl-file">+++ b/test/frameProjectInit.test.js</span>
+<span class="dl-hunk">@@ -361,3 +361,42 @@ test(&#39;Remove Frame keeps hooks and pre-commit content the user wrote&#39;, async ()</span>
+<span class="dl-ctx">   assert.equal(settings.hooks.UserPromptSubmit[0].hooks[0].command, &#39;node my-own-hook.js&#39;);</span>
+<span class="dl-ctx">   assert.equal(fs.readFileSync(path.join(hookDir, &#39;pre-commit&#39;), &#39;utf8&#39;), &#39;#!/bin/sh\nnpm run lint\n&#39;);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;a husky project keeps its own pre-commit file byte-for-byte&#39;, async () =&gt; {</span>
+<span class="dl-add">+  // Spec D10: Frame writes one hook file, and only where there is none.</span>
+<span class="dl-add">+  // `.husky/pre-commit` is the user&#39;s, usually committed, often generated.</span>
+<span class="dl-add">+  const { execFileSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+  execFileSync(&#39;git&#39;, [&#39;init&#39;, &#39;-q&#39;], { cwd: projectDir });</span>
+<span class="dl-add">+  execFileSync(&#39;git&#39;, [&#39;config&#39;, &#39;core.hooksPath&#39;, &#39;.husky&#39;], { cwd: projectDir });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const huskyHook = path.join(projectDir, &#39;.husky&#39;, &#39;pre-commit&#39;);</span>
+<span class="dl-add">+  const before = hashFile(huskyHook);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const config = await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.equal(hashFile(huskyHook), before, &#39;.husky/pre-commit is untouched&#39;);</span>
+<span class="dl-add">+  assert.equal(fs.readFileSync(huskyHook, &#39;utf8&#39;), USER_FILES[&#39;.husky/pre-commit&#39;]);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;.git&#39;, &#39;hooks&#39;, &#39;pre-commit&#39;)), &#39;and no second hook was written&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  const hook = config._structureBootstrap &amp;&amp; config._structureBootstrap.hook;</span>
+<span class="dl-add">+  assert.equal(hook.status, &#39;skipped-husky&#39;);</span>
+<span class="dl-add">+  assert.match(hook.manualInstructions, /frame:structure \(managed\)/, &#39;the snippet is handed over as text&#39;);</span>
+<span class="dl-add">+});</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;Remove Frame takes the hook file and an empty settings file with it&#39;, async () =&gt; {</span>
+<span class="dl-add">+  const { execFileSync } = require(&#39;child_process&#39;);</span>
+<span class="dl-add">+  execFileSync(&#39;git&#39;, [&#39;init&#39;, &#39;-q&#39;], { cwd: projectDir });</span>
+<span class="dl-add">+  fs.rmSync(path.join(projectDir, &#39;.husky&#39;), { recursive: true, force: true }); // vanilla hook path</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  await frameProject.runProjectInit(projectDir, &#39;demo&#39;);</span>
+<span class="dl-add">+  const hookPath = path.join(projectDir, &#39;.git&#39;, &#39;hooks&#39;, &#39;pre-commit&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(hookPath), &#39;init wrote the vanilla hook&#39;);</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;)), &#39;and the settings file&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  frameProject.removeFrame(projectDir);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(hookPath), &#39;the hook file Frame created is gone, header and all&#39;);</span>
+<span class="dl-add">+  assert.ok(!fs.existsSync(path.join(projectDir, &#39;.claude&#39;, &#39;settings.json&#39;)), &#39;no {} settings file left behind&#39;);</span>
+<span class="dl-add">+  // The user&#39;s own .claude/CLAUDE.md is still there, so the directory stays.</span>
+<span class="dl-add">+  assert.ok(fs.existsSync(path.join(projectDir, &#39;.claude&#39;, &#39;CLAUDE.md&#39;)));</span>
 <span class="dl-add">+});</span></pre>
     </details>
   </div>

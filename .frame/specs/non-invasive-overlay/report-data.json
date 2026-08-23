@@ -207,6 +207,18 @@
         "status": "pass",
         "detail": "299 pass, 0 fail"
       }
+    },
+    {
+      "id": "T18",
+      "title": "Honour D10 and tidy removal",
+      "commit": "3ddeea9",
+      "whatChanged": "installPreCommitHook's husky branch returns the snippet as manual instructions instead of writing .husky/pre-commit, and the now-dead appendToHookFile/hasFrameSnippet went with it — Frame writes exactly one hook file, .git/hooks/pre-commit, and only where none exists. removeFrame deletes that file when nothing but Frame's own header and marker block are left (matched against the template, not a loose regex), deletes a settings file that now parses to {}, and the renderer calls the new state.noteFrameRemoved() so the spec panel and toggles see a non-Frame project without the init prompt bouncing back.",
+      "whyChanged": "The existing test fixture was not a git repository, so the husky branch never ran in tests and the D10 violation shipped unnoticed; the new fixture sets core.hooksPath and asserts the user's hook is byte-identical. Residue detection compares against what Frame's own template leaves behind rather than 'only comments', so a user hook that happens to be all comments is never deleted.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "301 pass, 0 fail"
+      }
     }
   ]
 }

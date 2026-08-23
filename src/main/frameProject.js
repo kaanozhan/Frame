@@ -762,12 +762,54 @@ function removeFrame(projectPath) {
 
   for (const file of ['settings.json', 'settings.local.json']) {
     drop(`.claude/${file} hooks`, () => removeSpecHintHook(projectPath, { file }).removed > 0);
+    // A settings file whose only content was Frame's hooks is a file Frame
+    // created. `{}` left behind is still a Frame-authored byte.
+    drop(`.claude/${file}`, () => dropEmptySettingsFile(projectPath, file));
   }
 
   drop('pre-commit hook block', () => removeHookSnippet(projectPath));
 
   workspace.removeProject(projectPath);
   return { removed, errors, projectPath };
+}
+
+/**
+ * Delete a Claude settings file that now parses to `{}` — Frame wrote it to
+ * hold its hook entries and nothing else ever went in. A file with any key
+ * left, or one that does not parse, is not ours to remove.
+ */
+function dropEmptySettingsFile(projectPath, file) {
+  const settingsPath = path.join(projectPath, '.claude', file);
+  if (!fs.existsSync(settingsPath)) return false;
+  let settings;
+  try {
+    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  } catch (err) {
+    return false;
+  }
+  if (!settings || typeof settings !== 'object' || Object.keys(settings).length > 0) return false;
+
+  fs.unlinkSync(settingsPath);
+  try {
+    if (fs.readdirSync(path.join(projectPath, '.claude')).length === 0) {
+      fs.rmdirSync(path.join(projectPath, '.claude'));
+    }
+  } catch (err) { /* someone else's .claude/ stays */ }
+  return true;
+}
+
+/**
+ * What Frame's own pre-commit file looks like once its managed block is gone:
+ * the shebang and the two header comment lines it wrote at init. Matching this
+ * exactly is what separates "a file Frame created" from "a file the user
+ * happens to have written only comments in".
+ */
+function isFrameOwnedHookResidue(text) {
+  if (/^\s*(#![^\n]*\n)?\s*(exit 0\s*)?$/.test(text)) return true;
+  const bare = templates.getStructurePreCommitHookTemplate()
+    .replace(templates.getStructureHookSnippet(), '');
+  const normalize = (s) => s.replace(/\n{2,}/g, '\n').trim();
+  return normalize(text) === normalize(bare);
 }
 
 /**
@@ -804,8 +846,8 @@ function removeHookSnippet(projectPath) {
     const next = tail === '' ? head.replace(/\n{2,}$/, '\n') : head + tail;
 
     // Frame wrote the whole file at init when there was no hook; if nothing
-    // but the shebang and `exit 0` is left, the file is ours to remove.
-    if (/^\s*(#![^\n]*\n)?\s*(exit 0\s*)?$/.test(next)) fs.unlinkSync(hookPath);
+    // but what Frame itself put there is left, the file is ours to remove.
+    if (isFrameOwnedHookResidue(next)) fs.unlinkSync(hookPath);
     else fs.writeFileSync(hookPath, next, 'utf8');
     changed = true;
   }

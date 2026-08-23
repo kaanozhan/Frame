@@ -140,6 +140,22 @@ function setIsFrameProject(isFrame) {
 }
 
 /**
+ * Frame was removed from this project (Settings → Workflow). Flip the flag so
+ * the spec panel and the workflow toggles stop acting on a project that has no
+ * `.frame/` any more, and ask main to re-answer — the workspace record follows
+ * from that. The init prompt is suppressed first: removing Frame is a
+ * decision, and offering to initialize it again in the same second is not an
+ * answer to it.
+ */
+function noteFrameRemoved(projectPath) {
+  if (!projectPath) return;
+  frameInitPromptSuppressed.add(projectPath);
+  if (projectPath !== currentProjectPath) return;
+  setIsFrameProject(false);
+  ipcRenderer.send(IPC.CHECK_IS_FRAME_PROJECT, projectPath);
+}
+
+/**
  * Register callback for Frame status change
  */
 function onFrameStatusChange(callback) {
@@ -461,6 +477,7 @@ module.exports = {
   onSampleChange,
   getIsFrameProject,
   setIsFrameProject,
+  noteFrameRemoved,
   onFrameStatusChange,
   onFrameInitialized,
   initializeAsFrameProject

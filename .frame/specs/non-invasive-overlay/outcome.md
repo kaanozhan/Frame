@@ -334,3 +334,21 @@ legacy-layout `sample-project` copy rather than offering to migrate a demo.
 _Captured: 2026-08-23 · 5 file change(s)_
 
 ---
+
+## T18 — Honour D10 and tidy removal
+
+`installPreCommitHook`'s husky branch now hands the snippet back as manual
+instructions instead of writing `.husky/pre-commit`, which makes
+`.git/hooks/pre-commit` in a repository that has no hook the only file Frame
+writes — `appendToHookFile` and `hasFrameSnippet` went with it. `removeFrame`
+deletes that file when nothing but Frame's own header and marker block remain
+(matched against what the template leaves, not a loose "only comments" regex,
+so a user's comment-only hook is safe), deletes a settings file that now parses
+to `{}` — and its `.claude/` directory when nothing else is in it — and the
+renderer calls the new `state.noteFrameRemoved()` so the spec panel and the
+workflow toggles see a non-Frame project, with the init prompt suppressed
+rather than bouncing straight back.
+
+_Captured: 2026-08-23 · 5 file change(s)_
+
+---
