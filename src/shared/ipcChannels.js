@@ -103,9 +103,8 @@ const IPC = {
   CLAUDE_USAGE_DATA: 'claude-usage-data',
   REFRESH_CLAUDE_USAGE: 'refresh-claude-usage',
 
-  // Overview Panel
-  LOAD_OVERVIEW: 'load-overview',
-  OVERVIEW_DATA: 'overview-data',
+  // Project insights (decisions list, structure-map file history)
+  LOAD_DECISIONS: 'load-decisions',
   GET_FILE_GIT_HISTORY: 'get-file-git-history',
 
   // Git Branches Panel

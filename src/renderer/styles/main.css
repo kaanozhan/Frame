@@ -53,6 +53,9 @@
 /* 13. Tasks Dashboard (Kanban-style overlay) */
 @import 'components/tasks-dashboard.css';
 
+/* 13b. Decisions view (center list of PROJECT_NOTES decisions) */
+@import 'components/decisions-view.css';
+
 /* 14. Git Changes Panel (Changes sidebar tab) */
 @import 'components/git-changes.css';
 

@@ -31,7 +31,6 @@ class TerminalTabBar {
     this.element = null;
     this.shellMenu = null;
     this.availableShells = [];
-    this.onOverviewToggle = null; // Callback for overview toggle
     this.onGoHome = null;         // Callback: return to lane board
     this.onEnterFrames = null;    // Callback: enter the active Frame (detail view)
     this.onEnterLane = null;      // Callback: (terminalId) => enter a specific Frame's detail view
@@ -549,13 +548,6 @@ class TerminalTabBar {
     document.documentElement.setAttribute('data-theme', saved);
   }
 
-  /**
-   * Set overview button active state
-   * @param {boolean} active - Whether overview is active
-   */
-  setOverviewActive(_active) {
-    // Overview is now in the more menu; no persistent button to update
-  }
 }
 
 module.exports = { TerminalTabBar };

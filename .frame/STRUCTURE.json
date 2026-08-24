@@ -1872,7 +1872,7 @@
         "pluginsManager",
         "githubManager",
         "claudeUsageManager",
-        "overviewManager",
+        "projectInsights",
         "gitBranchesManager",
         "aiToolManager",
         "claudeSessionsManager",
@@ -2506,134 +2506,6 @@
         ]
       }
     },
-    "main/overviewManager": {
-      "file": "src/main/overviewManager.js",
-      "description": "Overview Manager Module",
-      "exports": [
-        "init",
-        "loadOverview",
-        "getFileGitHistory",
-        "setupIPC"
-      ],
-      "depends": [
-        "fs",
-        "path",
-        "child_process",
-        "frameStore",
-        "shared/ipcChannels"
-      ],
-      "functions": {
-        "init": {
-          "line": 17,
-          "params": [
-            "window"
-          ],
-          "purpose": "Initialize overview manager"
-        },
-        "loadOverview": {
-          "line": 24,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Load overview data for a project"
-        },
-        "loadStructure": {
-          "line": 56,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Load structure from STRUCTURE.json"
-        },
-        "loadTasks": {
-          "line": 94,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Load tasks from tasks.json"
-        },
-        "loadDecisions": {
-          "line": 144,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Load decisions from PROJECT_NOTES.md"
-        },
-        "loadStats": {
-          "line": 180,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Load project stats (lines of code, files, git info)"
-        },
-        "countLinesOfCode": {
-          "line": 202,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Count lines of code in src directory"
-        },
-        "countFiles": {
-          "line": 226,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Count files in src directory"
-        },
-        "getGitInfo": {
-          "line": 249,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Get git information"
-        },
-        "getFileGitHistory": {
-          "line": 279,
-          "params": [
-            "projectPath",
-            "filePath"
-          ],
-          "purpose": "Get file git history (contributors, commits, blame)"
-        },
-        "getFileCommits": {
-          "line": 316,
-          "params": [
-            "projectPath",
-            "filePath"
-          ],
-          "purpose": "Get recent commits for a file"
-        },
-        "getFileContributors": {
-          "line": 347,
-          "params": [
-            "projectPath",
-            "filePath"
-          ],
-          "purpose": "Get contributors for a file"
-        },
-        "getFileBlame": {
-          "line": 380,
-          "params": [
-            "projectPath",
-            "filePath"
-          ],
-          "purpose": "Get blame summary for a file (who wrote how many lines)"
-        },
-        "setupIPC": {
-          "line": 412,
-          "params": [
-            "ipcMain"
-          ],
-          "purpose": "Setup IPC handlers"
-        }
-      },
-      "ipc": {
-        "listens": [
-          "LOAD_OVERVIEW",
-          "GET_FILE_GIT_HISTORY"
-        ],
-        "emits": []
-      }
-    },
     "main/perfMonitor": {
       "file": "src/main/perfMonitor.js",
       "description": "perfMonitor — lightweight main-process performance instrumentation.",
@@ -2845,6 +2717,83 @@
           ],
           "purpose": "Memoize an async fn's result for ttlMs. Concurrent callers share the"
         }
+      }
+    },
+    "main/projectInsights": {
+      "file": "src/main/projectInsights.js",
+      "description": "Project Insights Module",
+      "exports": [
+        "init",
+        "loadDecisions",
+        "getFileGitHistory",
+        "setupIPC"
+      ],
+      "depends": [
+        "child_process",
+        "frameStore",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 19,
+          "params": [
+            "window"
+          ],
+          "purpose": "Initialize overview manager"
+        },
+        "loadDecisions": {
+          "line": 31,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Load every decision recorded in PROJECT_NOTES.md."
+        },
+        "getFileGitHistory": {
+          "line": 89,
+          "params": [
+            "projectPath",
+            "filePath"
+          ],
+          "purpose": "Get file git history (contributors, commits, blame)"
+        },
+        "getFileCommits": {
+          "line": 126,
+          "params": [
+            "projectPath",
+            "filePath"
+          ],
+          "purpose": "Get recent commits for a file"
+        },
+        "getFileContributors": {
+          "line": 157,
+          "params": [
+            "projectPath",
+            "filePath"
+          ],
+          "purpose": "Get contributors for a file"
+        },
+        "getFileBlame": {
+          "line": 190,
+          "params": [
+            "projectPath",
+            "filePath"
+          ],
+          "purpose": "Get blame summary for a file (who wrote how many lines)"
+        },
+        "setupIPC": {
+          "line": 222,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "Setup IPC handlers"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LOAD_DECISIONS",
+          "GET_FILE_GIT_HISTORY"
+        ],
+        "emits": []
       }
     },
     "main/promptLogger": {
@@ -4668,6 +4617,95 @@
         }
       }
     },
+    "renderer/decisionsView": {
+      "file": "src/renderer/decisionsView.js",
+      "description": "Decisions View Module",
+      "exports": [
+        "render"
+      ],
+      "depends": [
+        "electron",
+        "marked",
+        "shared/ipcChannels",
+        "state",
+        "htmlUtils"
+      ],
+      "functions": {
+        "render": {
+          "line": 25,
+          "params": [
+            "container"
+          ]
+        },
+        "load": {
+          "line": 57,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "projectName": {
+          "line": 66,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "renderShell": {
+          "line": 71,
+          "params": [
+            "body",
+            "name"
+          ],
+          "purpose": "Header + body frame; body is swapped as the view loads / filters."
+        },
+        "matches": {
+          "line": 92,
+          "params": [
+            "decision"
+          ]
+        },
+        "renderList": {
+          "line": 100
+        },
+        "renderRow": {
+          "line": 116,
+          "params": [
+            "decision"
+          ]
+        },
+        "renderEmpty": {
+          "line": 131,
+          "params": [
+            "title",
+            "message"
+          ]
+        },
+        "rowKey": {
+          "line": 141,
+          "params": [
+            "decision"
+          ],
+          "purpose": "date + line is stable across re-renders and unique per entry."
+        },
+        "wire": {
+          "line": 145,
+          "params": [
+            "container"
+          ]
+        },
+        "updateCount": {
+          "line": 178,
+          "params": [
+            "countEl"
+          ]
+        },
+        "renderMarkdown": {
+          "line": 186,
+          "params": [
+            "md"
+          ]
+        }
+      }
+    },
     "renderer/diffSection": {
       "file": "src/renderer/diffSection.js",
       "description": "Diff Section Module",
@@ -6008,7 +6046,7 @@
         "laneStatus",
         "agentDispatch",
         "laneDetailRail",
-        "overviewPanel",
+        "decisionsView",
         "taskSection",
         "specSection",
         "diffSection",
@@ -6018,9 +6056,12 @@
         "promptsPanel",
         "activityPanel",
         "historyPanel",
+        "structureMap",
         "specsDashboard",
         "tasksDashboard",
-        "projectListUI"
+        "projectListUI",
+        "state",
+        "taskInfoModal"
       ],
       "functions": {}
     },
@@ -6261,113 +6302,6 @@
           "TELEMETRY_TRACK",
           "ORCH_WORKER_LANE"
         ]
-      }
-    },
-    "renderer/overviewPanel": {
-      "file": "src/renderer/overviewPanel.js",
-      "description": "Overview Panel Module",
-      "exports": [
-        "init",
-        "render",
-        "refresh",
-        "loadOverview",
-        "isVisible"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "structureMap",
-        "htmlUtils",
-        "state"
-      ],
-      "functions": {
-        "init": {
-          "line": 18,
-          "purpose": "Initialize overview panel"
-        },
-        "loadOverview": {
-          "line": 26,
-          "purpose": "Load overview data"
-        },
-        "render": {
-          "line": 46,
-          "params": [
-            "container"
-          ],
-          "purpose": "Render overview in container"
-        },
-        "renderLoading": {
-          "line": 66,
-          "purpose": "Render loading state"
-        },
-        "renderError": {
-          "line": 78,
-          "params": [
-            "message"
-          ],
-          "purpose": "Render error state"
-        },
-        "renderOverview": {
-          "line": 90,
-          "params": [
-            "data"
-          ],
-          "purpose": "Render overview dashboard"
-        },
-        "renderStructureCard": {
-          "line": 116,
-          "params": [
-            "structure"
-          ],
-          "purpose": "Render structure card"
-        },
-        "renderProgressCard": {
-          "line": 157,
-          "params": [
-            "tasks"
-          ],
-          "purpose": "Render progress card"
-        },
-        "renderDecisionsCard": {
-          "line": 196,
-          "params": [
-            "decisions"
-          ],
-          "purpose": "Render decisions card"
-        },
-        "renderStatsCard": {
-          "line": 236,
-          "params": [
-            "stats"
-          ],
-          "purpose": "Render stats card"
-        },
-        "setupCardInteractions": {
-          "line": 289,
-          "params": [
-            "container",
-            "data"
-          ],
-          "purpose": "Setup card click interactions"
-        },
-        "refresh": {
-          "line": 305,
-          "purpose": "Refresh overview"
-        },
-        "formatTime": {
-          "line": 317,
-          "params": [
-            "isoString"
-          ],
-          "purpose": "Format time for display"
-        },
-        "formatNumber": {
-          "line": 325,
-          "params": [
-            "num"
-          ],
-          "purpose": "Format number with commas"
-        }
       }
     },
     "renderer/paletteSources": {
@@ -6777,16 +6711,16 @@
           "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
         },
         "buildWorkspaceNav": {
-          "line": 249
+          "line": 250
         },
         "placeWorkspaceNav": {
-          "line": 274
+          "line": 275
         },
         "refreshWorkspaceNav": {
-          "line": 286
+          "line": 287
         },
         "updateWorkspaceNav": {
-          "line": 322,
+          "line": 323,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -10470,23 +10404,6 @@
         "description": ""
       }
     },
-    "overview": {
-      "LOAD_OVERVIEW": {
-        "name": "load-overview",
-        "direction": "",
-        "description": ""
-      },
-      "OVERVIEW_DATA": {
-        "name": "overview-data",
-        "direction": "",
-        "description": ""
-      },
-      "GET_FILE_GIT_HISTORY": {
-        "name": "get-file-git-history",
-        "direction": "",
-        "description": ""
-      }
-    },
     "gitBranches": {
       "LOAD_GIT_BRANCHES": {
         "name": "load-git-branches",
@@ -10614,6 +10531,18 @@
       },
       "LAYOUT_MIGRATION_PROGRESS": {
         "name": "layout-migration-progress",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "decisions": {
+      "LOAD_DECISIONS": {
+        "name": "load-decisions",
+        "direction": "",
+        "description": ""
+      },
+      "GET_FILE_GIT_HISTORY": {
+        "name": "get-file-git-history",
         "direction": "",
         "description": ""
       }
@@ -10847,18 +10776,6 @@
         "description": "IPC Channel Constants"
       }
     ],
-    "manager": [
-      {
-        "module": "main/overviewManager",
-        "file": "src/main/overviewManager.js",
-        "description": "Overview Manager Module"
-      },
-      {
-        "module": "main/pluginsManager",
-        "file": "src/main/pluginsManager.js",
-        "description": "Plugins Manager Module"
-      }
-    ],
     "migration": [
       {
         "module": "main/layoutMigration",
@@ -10925,28 +10842,11 @@
         "description": "Orchestrator (renderer) — a section viewport"
       }
     ],
-    "overview": [
-      {
-        "module": "main/overviewManager",
-        "file": "src/main/overviewManager.js",
-        "description": "Overview Manager Module"
-      },
-      {
-        "module": "renderer/overviewPanel",
-        "file": "src/renderer/overviewPanel.js",
-        "description": "Overview Panel Module"
-      }
-    ],
     "panel": [
       {
         "module": "renderer/activityPanel",
         "file": "src/renderer/activityPanel.js",
         "description": "Activity Panel"
-      },
-      {
-        "module": "renderer/overviewPanel",
-        "file": "src/renderer/overviewPanel.js",
-        "description": "Overview Panel Module"
       },
       {
         "module": "renderer/pluginsPanel",
@@ -10967,6 +10867,11 @@
       }
     ],
     "project": [
+      {
+        "module": "main/projectInsights",
+        "file": "src/main/projectInsights.js",
+        "description": "Project Insights Module"
+      },
       {
         "module": "renderer/openProjectModal",
         "file": "src/renderer/openProjectModal.js",
@@ -11142,6 +11047,18 @@
         "module": "renderer/terminalTabBar",
         "file": "src/renderer/terminalTabBar.js",
         "description": "Terminal Top Bar Module (historically the tab bar)"
+      }
+    ],
+    "view": [
+      {
+        "module": "renderer/decisionsView",
+        "file": "src/renderer/decisionsView.js",
+        "description": "Decisions View Module"
+      },
+      {
+        "module": "renderer/terminalsView",
+        "file": "src/renderer/terminalsView.js",
+        "description": "Terminals View Module"
       }
     ]
   },

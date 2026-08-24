@@ -1,0 +1,301 @@
+/* ==================== TERMINALS VIEW (terminals-view spec) ==================== */
+/* Prototype visual language: panes darker than the surrounding chrome,
+   compact layout bar, dashed ghost pane, grab-to-reorder headers. */
+
+.terminal-content.terminals-view-mode {
+  overflow: hidden;
+}
+
+.terminals-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  height: 100%;
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  overflow: hidden;
+}
+
+/* ─── Layout bar ─── */
+
+.tv-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.tv-bar-label {
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.tv-bar-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 4px 9px;
+  cursor: pointer;
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+
+.tv-bar-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.tv-bar-btn.on {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+.tv-bar-hint {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+}
+
+/* ─── Pane grid ─── */
+
+.tv-grid {
+  display: grid;
+  gap: var(--space-md);
+  align-content: start;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: var(--space-sm);
+}
+
+.tv-grid.maximized {
+  grid-template-rows: 1fr;
+  align-content: stretch;
+  overflow: hidden;
+}
+
+.tv-pane {
+  display: flex;
+  flex-direction: column;
+  background: #0a0908;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  height: 300px;
+  min-height: 160px;
+  resize: vertical;
+  overflow: hidden;
+  position: relative;
+}
+
+[data-theme="light"] .tv-pane {
+  background: #f7f5f2;
+}
+
+.tv-pane:hover {
+  border-color: var(--border-strong);
+}
+
+.tv-pane.active {
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+}
+
+.tv-pane.dragging {
+  opacity: 0.4;
+}
+
+.tv-pane.dropover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.tv-pane.maximized {
+  height: auto;
+  resize: none;
+}
+
+.tv-pane-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: grab;
+  user-select: none;
+}
+
+.tv-pane-header:active {
+  cursor: grabbing;
+}
+
+.tv-pane-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-pane-agent {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.tv-pane-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.tv-pane-btn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 19px;
+  background: none;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.tv-pane-btn:hover {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+.tv-pane-content {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 6px 6px;
+}
+
+/* ─── Ghost pane / empty state ─── */
+
+.tv-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 120px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.tv-ghost:hover {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+.tv-empty {
+  max-width: 480px;
+  margin: 60px auto;
+  padding: 34px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.tv-empty-title {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.tv-empty-hint {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.tv-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-primary);
+  color: #07130b;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.tv-empty-cta:hover {
+  background: color-mix(in srgb, var(--accent-primary) 85%, white);
+}
+
+/* ─── Sidebar workspace nav (under the selected project) ─── */
+
+.project-workspace-nav {
+  margin: 2px 0 6px;
+}
+
+.workspace-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 26px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.workspace-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workspace-nav-item.on {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  box-shadow: inset 2px 0 0 var(--accent-primary);
+}
+
+.workspace-nav-icon {
+  width: 14px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.workspace-nav-item.on .workspace-nav-icon {
+  color: var(--accent-primary);
+}
+
+.workspace-nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.workspace-nav-count {
+  color: var(--text-tertiary);
+  font-size: 9px;
+}
+
+.workspace-nav-agents {
+  color: var(--accent-primary);
+  font-size: 9px;
+  font-weight: 700;
+}
