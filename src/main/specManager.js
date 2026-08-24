@@ -348,7 +348,13 @@ function reconcilePhase(projectPath, slug, tasksDataOrNull) {
     updated_at: now,
     last_phase_at: now
   });
-  telemetry.track('spec_phase_advanced', { phase: newPhase });
+  // Deliberately no `spec_phase_advanced` here. That event measures a spec
+  // being carried through the workflow; this path is Frame reconciling on its
+  // own, it fires on regressions as readily as advances, and a bulk reconcile
+  // — opening a repository an older Frame walked backwards — sends one per
+  // spec in a burst and trips the analytics rate limit. The activity record
+  // below is where reconciliation belongs.
+  //
   // Nobody asked for this: reconcile derives the phase from task statuses and
   // rewrites status.json on its own. A conflicted tasks.json once walked 18
   // specs backwards from `done` here with no trace at all.
