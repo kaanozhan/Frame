@@ -283,7 +283,7 @@ function fileExists(projectPath, slug, name) {
   return fs.existsSync(path.join(getSpecDir(projectPath, slug), name));
 }
 
-function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
+function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull, recordedTaskIds) {
   // No task data at all — the file could not be read, or an older Frame is
   // looking in the pre-`.frame/` place. "I don't know" is not "no tasks":
   // deriving from files alone here walked every finished spec in this
@@ -300,6 +300,15 @@ function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
     if (allCompleted) return 'done';
     if (anyStarted) return 'implementing';
     // No started tasks → fall through to file-based check
+  } else if (recordedTaskCount(projectPath, slug, recordedTaskIds) > 0) {
+    // status.json records ids that tasks.json no longer carries. An
+    // unreadable tasks.json is replaced with a fresh empty one, so the next
+    // read looks like "this spec has no tasks" rather than "unreadable" —
+    // and that walks a finished spec back just as a missing file did. Losing
+    // the records is still "I don't know". A regenerate that legitimately
+    // ends with no tasks rewrites `generated_task_ids` to [] and falls
+    // through to the file-based check below.
+    return currentPhase;
   }
 
   // A live agent is mid-turn on this spec: the command templates write
@@ -315,6 +324,12 @@ function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
   return 'draft';
 }
 
+function recordedTaskCount(projectPath, slug, recordedTaskIds) {
+  if (Array.isArray(recordedTaskIds)) return recordedTaskIds.length;
+  const status = readStatus(projectPath, slug);
+  return status && Array.isArray(status.generated_task_ids) ? status.generated_task_ids.length : 0;
+}
+
 function collectSpecTasks(slug, tasksData) {
   if (!tasksData || !Array.isArray(tasksData.tasks)) return [];
   const prefix = `spec:${slug}:`;
@@ -324,7 +339,7 @@ function collectSpecTasks(slug, tasksData) {
 function reconcilePhase(projectPath, slug, tasksDataOrNull) {
   const status = readStatus(projectPath, slug);
   if (!status) return;
-  const newPhase = derivePhase(projectPath, slug, status.phase, tasksDataOrNull);
+  const newPhase = derivePhase(projectPath, slug, status.phase, tasksDataOrNull, status.generated_task_ids);
   if (newPhase === status.phase) return;
   const now = new Date().toISOString();
   writeStatus(projectPath, slug, {

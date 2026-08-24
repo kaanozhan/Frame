@@ -398,3 +398,54 @@ this prose fix exists to serve.
 _Captured: 2026-08-24 · 9 file change(s)_
 
 ---
+
+## Verification round — adversarial re-audit of the fix round
+
+The same four-audit treatment the rejected PR got was turned on this branch's
+own T13–T20. T13, T15, T17 and T19 came back verified end to end; the worry
+that T19 had been left half-finished by an interrupted worker did not hold —
+all seven `AGENTS.md` mutation paths call `syncClaudeRule`, no `@`-import
+remnant survives anywhere, and the generated copy is byte-identical to its
+source. Three fixes were narrower than their own commit messages claimed, and
+each was measured before being closed:
+
+**T14 never reached the projects that needed it.** `installSpecHintHook` bailed
+out on any `spec-hint.js` command that was not today's — which includes Frame's
+own earlier `[ -f … ] && exec …` form. A project initialised between T04 and
+T14 therefore kept the guard that exits 1, reporting a hook failure on every
+prompt whenever `.frame/bin` was absent, and no path other than migration could
+heal it. Frame's own past command forms are now recognised as ours and upgraded
+in place; a hook the user wrote by hand is still left alone.
+
+**T16 guarded the wrong half of "unavailable".** `tasksManager.loadTasks` does
+not return null on unrecoverable corruption — it writes a fresh empty
+`tasks.json` and returns `{ tasks: [], corrupt: true }`, which sails past a
+`!tasksData` check. The finished spec walked back to `tasks_generated` anyway,
+and because the empty replacement is now on disk, the next open regressed it
+again with no `corrupt` flag left to notice. `derivePhase` now also holds the
+recorded phase when `status.json` lists generated task ids that `tasks.json` no
+longer carries; a regenerate that legitimately ends with no tasks clears those
+ids and the file-based fallback applies as before.
+
+**T20's sweep stopped roughly halfway.** The REFERENCE and spec-driven
+templates, the sample project, `.frame/QUICKSTART.md` (untouched until now, and
+still documenting the `CLAUDE.md` symlink this spec deleted), this repository's
+own `.frame/docs/REFERENCE.md` and `.frame/AGENTS.md`, and the init modal's
+"two lines" description all still described the old layout. A fresh init now
+generates docs whose only bare root-level names are the four REFERENCE headings
+the AGENTS.md table cross-references by text.
+
+One asymmetry in T18 was closed alongside: Frame never writes `.husky/pre-commit`
+(D10), so a Frame block there was pasted by the user into a file they usually
+track — removal strips the block but no longer deletes the file. The Remove
+Frame confirmation now names everything the removal actually touches, including
+the settings files it may delete outright and the `.git/info/exclude` block.
+
+Local-mode orchestration remains the recorded non-goal it always was: a worker
+worktree in `local` mode has no `.frame/` and no rule file, because neither is
+tracked. Verified, not fixed — it belongs to the separate spec the Non-goals
+section already names.
+
+_Captured: 2026-08-24 · verification round_
+
+---

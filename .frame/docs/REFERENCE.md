@@ -11,7 +11,7 @@ this file is loaded on demand.
 
 ### Task Recognition Rules
 
-**These ARE TASKS - add to tasks.json:**
+**These ARE TASKS - add to .frame/tasks.json:**
 - When the user requests a feature or change
 - Decisions like "Let's do this", "Let's add this", "Improve this"
 - Deferred work when we say "We'll do this later", "Let's leave it for now"
@@ -28,8 +28,8 @@ this file is loaded on demand.
 ### Task Creation Flow
 
 1. Detect task patterns during conversation
-2. Ask the user at an appropriate moment: "I identified these tasks from our conversation, should I add them to tasks.json?"
-3. If the user approves, add to tasks.json
+2. Ask the user at an appropriate moment: "I identified these tasks from our conversation, should I add them to .frame/tasks.json?"
+3. If the user approves, add to .frame/tasks.json
 
 ### Task Structure
 
@@ -108,13 +108,13 @@ Conversation/decision as is, with its context...
 ### Context Preservation (Automatic Note Taking)
 
 Frame's core purpose is to prevent context loss. Capture important moments
-and ask the user: **"Should I add this conversation to PROJECT_NOTES.md?"**
+and ask the user: **"Should I add this conversation to .frame/PROJECT_NOTES.md?"**
 
 Ask when:
 - A task is successfully completed
 - An important architectural/technical decision is made
 - A bug is fixed and the solution method is noteworthy
-- "Let's do this later" is said (in this case, also add to tasks.json)
+- "Let's do this later" is said (in this case, also add to .frame/tasks.json)
 - A new pattern or best practice is discovered
 
 Completion signals to watch for:
@@ -125,7 +125,7 @@ Completion signals to watch for:
 How to add:
 1. **DON'T write a summary** - Add the conversation as is, with its context
 2. **Add date** - In `### [YYYY-MM-DD] Title` format
-3. **Add to Session Notes section** - At the end of PROJECT_NOTES.md
+3. **Add to Session Notes section** - At the end of .frame/PROJECT_NOTES.md
 
 When NOT to ask:
 - For every small change (it becomes spam)
@@ -237,8 +237,8 @@ one lane); across specs run in parallel.
 - **Worker** — one Claude lane per spec, in `.frame/worktrees/<slug>` on
   branch `frame/<slug>/work`. Implements only that spec's `tasks.md` in
   order, commits to its own branch, **never pushes/merges**, and **never
-  touches meta files** (tasks.json, STRUCTURE.json, PROJECT_NOTES.md,
-  AGENTS.md).
+  touches meta files** (.frame/tasks.json, .frame/STRUCTURE.json, .frame/PROJECT_NOTES.md,
+  .frame/AGENTS.md).
 
 **Command bus** — the conductor/worker talk to Frame via `.frame/bin/`:
 `dispatch.js <slug>`, `report-done.js`, `merge.js <slug>`, `status.js`. Frame
@@ -283,7 +283,7 @@ each + pointer (entries are never dropped); `FRAME_SPEC_HINT_MODE=signal`
 switches to signal-only. Hooks are read-only and never-break: any failure →
 exit 0, silence. `spec.plan`'s evidence pass and worker prompts preload
 footprint history; `spec.new` embeds the full catalog for relatedness
-evaluation. Other CLIs use the advisory commands in AGENTS.md
+evaluation. Other CLIs use the advisory commands in .frame/AGENTS.md
 (`spec-context.js`).
 
 **Rules that always apply.** Respect recorded decisions or overturn them

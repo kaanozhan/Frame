@@ -34,18 +34,19 @@ npm run dist
 
 | File | Purpose |
 |------|---------|
-| `STRUCTURE.json` | Module map and architecture |
-| `PROJECT_NOTES.md` | Decisions and context |
-| `tasks.json` | Task tracking |
-| `AGENTS.md` | Instructions for AI assistants |
-| `CLAUDE.md` | Symlink to AGENTS.md (Claude Code compatibility) |
-| `QUICKSTART.md` | This file |
+| `.frame/STRUCTURE.json` | Module map and architecture |
+| `.frame/PROJECT_NOTES.md` | Decisions and context |
+| `.frame/tasks.json` | Task tracking |
+| `.frame/AGENTS.md` | Instructions for AI assistants |
+| `.claude/rules/frame.md` | Generated copy of `.frame/AGENTS.md` that Claude Code loads |
+| `.frame/QUICKSTART.md` | This file |
 
 ## Project Structure
 
 ```
 Frame/
-├── .frame/           # Frame configuration
+├── .frame/           # Frame's config, meta files, specs and docs
+├── .claude/          # Claude Code settings and the generated rule copy
 ├── src/
 │   ├── main/         # Electron main process
 │   ├── renderer/     # Electron renderer (UI)
@@ -57,9 +58,9 @@ Frame/
 
 ## For AI Assistants (Claude)
 
-1. **First**: Read `STRUCTURE.json` for architecture overview
-2. **Then**: Check `PROJECT_NOTES.md` for current context and decisions
-3. **Check**: `tasks.json` for pending tasks
+1. **First**: Read `.frame/STRUCTURE.json` for architecture overview
+2. **Then**: Check `.frame/PROJECT_NOTES.md` for current context and decisions
+3. **Check**: `.frame/tasks.json` for pending tasks
 4. **Follow**: Existing code patterns and conventions
 5. **Update**: These files as you make changes
 
@@ -73,7 +74,7 @@ code and guessing. Everything happens in one place (no Jira, no separate spec
 tool):
 - Spec-driven development (spec → plan → tasks → outcome) as the core workflow
 - Agent orchestration — parallel specs in isolated git worktrees, human-approved
-- Persistent, structural context across sessions (AGENTS.md, STRUCTURE.json,
-  PROJECT_NOTES.md, tasks.json)
+- Persistent, structural context across sessions (`.frame/AGENTS.md`,
+  `.frame/STRUCTURE.json`, `.frame/PROJECT_NOTES.md`, `.frame/tasks.json`)
 - Multi-AI support (Claude Code, Codex, Gemini), with Claude Code as the foundation
 - Multi-terminal workbench, task management, GitHub & git panels, file editor

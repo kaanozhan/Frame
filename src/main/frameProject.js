@@ -117,7 +117,7 @@ async function showInitializeConfirmation(projectPath) {
   message += '  • .frame/tasks.json (task tracking)\n';
   message += '  • .frame/QUICKSTART.md (getting started)\n';
   message += "  • .frame/bin/ (Frame's parser and helper scripts)\n";
-  message += '  • .claude/rules/frame.md (points Claude Code at .frame/AGENTS.md)\n';
+  message += '  • .claude/rules/frame.md (a synced copy of .frame/AGENTS.md for Claude Code)\n';
   message += '\nNothing is added to your project root, and no existing file is read, moved or replaced.\n';
 
   if (existingFiles.length > 0) {
@@ -450,18 +450,38 @@ function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
     indent = detectJsonIndent(raw);
   }
 
-  // A hook that already calls spec-hint.js by some other route — a project
-  // wired by hand, or Frame's own older command form — is the layer this
-  // install would provide. Adding Frame's entries beside it runs the hint
-  // twice and leaves two commands to keep in step, so the file is left alone.
+  // A hook the user wired by hand is the layer this install would provide.
+  // Adding Frame's entries beside it runs the hint twice and leaves two
+  // commands to keep in step, so the file is left alone. Frame's own older
+  // command forms are not that case — they are ours to replace, below.
   const ours = frameHookCommands();
+  const mine = new Set([...ours, ...templates.LEGACY_SPEC_HINT_COMMANDS]);
   const existing = hookCommandsIn(settings)
-    .find((command) => command.includes('spec-hint.js') && !ours.has(command));
+    .find((command) => command.includes('spec-hint.js') && !mine.has(command));
   if (existing) {
     return { installed: false, existing: true, file, reason: `a hook already runs spec-hint.js (${existing})` };
   }
 
   settings.hooks = settings.hooks || {};
+
+  // Upgrade Frame's older entries in place. Left alongside today's they would
+  // run the hint twice, and the form Frame shipped before the guard was fixed
+  // exits non-zero — reporting a hook failure on every prompt — in any project
+  // whose `.frame/bin` is not there.
+  const isLegacyEntry = (entry) =>
+    entry && Array.isArray(entry.hooks) && entry.hooks.length > 0 &&
+    entry.hooks.every((h) => h && templates.LEGACY_SPEC_HINT_COMMANDS.includes(h.command));
+  let upgraded = 0;
+  for (const eventName of Object.keys(settings.hooks)) {
+    const list = settings.hooks[eventName];
+    if (!Array.isArray(list)) continue;
+    settings.hooks[eventName] = list.filter((entry) => {
+      if (!isLegacyEntry(entry)) return true;
+      upgraded++;
+      return false;
+    });
+  }
+
   let added = 0;
   for (const eventName of Object.keys(templates.SPEC_HINT_HOOKS)) {
     const list = Array.isArray(settings.hooks[eventName]) ? settings.hooks[eventName] : [];
@@ -475,11 +495,11 @@ function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
     settings.hooks[eventName] = list;
   }
 
-  if (added > 0) {
+  if (added > 0 || upgraded > 0) {
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + '\n');
   }
-  return { installed: true, added, file };
+  return { installed: true, added, upgraded, file };
 }
 
 /**
@@ -848,17 +868,20 @@ function isFrameOwnedHookResidue(text) {
 
 /**
  * Strip Frame's marker-wrapped block from whichever pre-commit hook carries
- * it. A hook file that becomes nothing but a shebang is deleted; anything the
- * user wrote around the block is left exactly as it was.
+ * it. Anything the user wrote around the block is left exactly as it was, and
+ * a file that becomes nothing but a shebang is deleted — but only where Frame
+ * is the one that could have written the file. Frame never creates
+ * `.husky/pre-commit` (it only offers the snippet to paste), so a Frame block
+ * there is in a file the user owns and usually tracks: strip it, keep it.
  */
 function removeHookSnippet(projectPath) {
   const candidates = [
-    path.join(projectPath, '.git', 'hooks', 'pre-commit'),
-    path.join(projectPath, '.husky', 'pre-commit')
+    { hookPath: path.join(projectPath, '.git', 'hooks', 'pre-commit'), frameCreates: true },
+    { hookPath: path.join(projectPath, '.husky', 'pre-commit'), frameCreates: false }
   ];
 
   let changed = false;
-  for (const hookPath of candidates) {
+  for (const { hookPath, frameCreates } of candidates) {
     let text;
     try {
       text = fs.readFileSync(hookPath, 'utf8');
@@ -881,7 +904,7 @@ function removeHookSnippet(projectPath) {
 
     // Frame wrote the whole file at init when there was no hook; if nothing
     // but what Frame itself put there is left, the file is ours to remove.
-    if (isFrameOwnedHookResidue(next)) fs.unlinkSync(hookPath);
+    if (frameCreates && isFrameOwnedHookResidue(next)) fs.unlinkSync(hookPath);
     else fs.writeFileSync(hookPath, next, 'utf8');
     changed = true;
   }

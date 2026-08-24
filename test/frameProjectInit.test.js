@@ -222,6 +222,39 @@ test('a project already wired to spec-hint.js by hand keeps its own hooks', asyn
   assert.equal(Object.values(after.hooks).flat().length, 1, 'still just the user\'s entry');
 });
 
+test('Frame\'s own older hook command is upgraded in place, not left behind', async () => {
+  // The guard Frame shipped first was `[ -f … ] && exec …`, which exits 1 when
+  // `.frame/bin` is not there — a reported hook failure on every prompt. The
+  // install used to treat it as somebody else's hook and bail, so a project
+  // wired in that window never got the fix.
+  const { execFileSync } = require('child_process');
+  const templates = require('../src/shared/frameTemplates');
+  const settingsDir = path.join(projectDir, '.claude');
+  fs.mkdirSync(settingsDir, { recursive: true });
+  const settingsPath = path.join(settingsDir, 'settings.json');
+  const legacy = templates.LEGACY_SPEC_HINT_COMMANDS.find((c) => c.includes('&& exec') && c.endsWith("prompt'"));
+  fs.writeFileSync(settingsPath, JSON.stringify({
+    hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: legacy }] }] },
+    permissions: { allow: ['Bash(npm test)'] }
+  }, null, 2) + '\n', 'utf8');
+
+  const summary = frameProject.installSpecHintHook(projectDir, { file: 'settings.json' });
+  assert.equal(summary.installed, true);
+  assert.equal(summary.upgraded, 1, 'the old entry was taken out');
+
+  const after = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  const commands = Object.values(after.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command));
+  assert.equal(commands.length, 2, 'today\'s two entries, and no duplicate of the old one');
+  assert.ok(commands.every((c) => c.includes('! -f')), 'all on the exit-0 guard');
+  assert.deepEqual(after.permissions, { allow: ['Bash(npm test)'] }, 'the rest of the file survives');
+
+  // The upgraded hook is the whole point: it must exit 0 with no .frame/bin.
+  const bare = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-nohook-'));
+  for (const command of commands) {
+    assert.equal(execFileSync('sh', ['-c', `${command}; echo $?`], { cwd: bare }).toString().trim(), '0');
+  }
+});
+
 test('local sharing puts the hook entries in settings.local.json instead', async () => {
   await frameProject.runProjectInit(projectDir, 'demo', { gitSharing: 'local' });
 
@@ -394,6 +427,28 @@ test('a husky project keeps its own pre-commit file byte-for-byte', async () => 
   const hook = config._structureBootstrap && config._structureBootstrap.hook;
   assert.equal(hook.status, 'skipped-husky');
   assert.match(hook.manualInstructions, /frame:structure \(managed\)/, 'the snippet is handed over as text');
+});
+
+test('Remove Frame strips a hand-pasted husky block but keeps the user\'s file', async () => {
+  // The husky snippet is handed over as text for the user to paste into their
+  // own — usually committed — hook. Removing Frame takes its block back out;
+  // deleting the file because only a shebang is left would delete theirs.
+  const { execFileSync } = require('child_process');
+  const templates = require('../src/shared/frameTemplates');
+  execFileSync('git', ['init', '-q'], { cwd: projectDir });
+  execFileSync('git', ['config', 'core.hooksPath', '.husky'], { cwd: projectDir });
+
+  await frameProject.runProjectInit(projectDir, 'demo');
+
+  const huskyHook = path.join(projectDir, '.husky', 'pre-commit');
+  fs.writeFileSync(huskyHook, `#!/usr/bin/env sh\n\n${templates.getStructureHookSnippet()}\n`, 'utf8');
+
+  frameProject.removeFrame(projectDir);
+
+  assert.ok(fs.existsSync(huskyHook), 'the user\'s hook file survives');
+  const left = fs.readFileSync(huskyHook, 'utf8');
+  assert.ok(!left.includes('frame:structure'), 'and Frame\'s block is out of it');
+  assert.match(left, /^#!\/usr\/bin\/env sh/, 'their shebang is still theirs');
 });
 
 test('Remove Frame takes the hook file and an empty settings file with it', async () => {

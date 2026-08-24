@@ -9,7 +9,8 @@ AI agents oriented across sessions. This file is the always-on core.
 
 > **Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be
 > AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,
-> which imports this file; delete that pointer to detach.
+> which Frame keeps as a generated copy of this file — edit this one, never the
+> copy. Delete the copy to detach Claude Code.
 
 ---
 
@@ -86,7 +87,7 @@ see **"Spec-driven development"** in `.frame/docs/REFERENCE.md`.
 Quick reminders that always apply:
 - Task work: set `status: "in_progress"` when starting, `"completed"` +
   `completedAt` when done; re-check statuses after commits.
-- Important decisions: append to PROJECT_NOTES.md as
+- Important decisions: append to `.frame/PROJECT_NOTES.md` as
   `### [YYYY-MM-DD] Title` with the conversation's context (not a summary).
 - Documentation in English; dates in ISO 8601.
 
@@ -99,7 +100,8 @@ own git worktree (`.frame/worktrees/<slug>`, branch `frame/<slug>/work`),
 coordinated by a **conductor** (`.frame/orchestration/CONDUCTOR.md`) that
 schedules by each plan's `## Footprint` and merges. Workers implement only
 their spec's `tasks.md`, never push/merge, and **never touch meta files**
-(tasks.json, STRUCTURE.json, PROJECT_NOTES.md, AGENTS.md). Command bus:
+(everything directly under `.frame/`: `tasks.json`, `STRUCTURE.json`,
+`PROJECT_NOTES.md`, `AGENTS.md`). Command bus:
 `.frame/bin/` (`dispatch.js`, `report-done.js`, `merge.js`, `status.js`).
 `main` is never touched — promotion/PR stays manual.
 

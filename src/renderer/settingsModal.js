@@ -153,8 +153,12 @@ function init() {
       }
       const confirmed = window.confirm(
         'Remove Frame from this project?\n\n' +
-        'This deletes .frame/ (including your specs, notes and tasks), ' +
-        '.claude/rules/frame.md and Frame\'s hook entries. Your own files are not touched.\n\n' +
+        'This deletes .frame/ (including your specs, notes and tasks) and ' +
+        '.claude/rules/frame.md, takes Frame\'s hook entries out of ' +
+        '.claude/settings.json and settings.local.json — deleting either file ' +
+        'if Frame\'s entries were all it held — takes Frame\'s block out of the ' +
+        'pre-commit hook, and removes its block from .git/info/exclude. ' +
+        'Anything you wrote is left where it is.\n\n' +
         'This cannot be undone.'
       );
       if (!confirmed) return;

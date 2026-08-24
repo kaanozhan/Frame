@@ -33,7 +33,7 @@ function getISOTimestamp() {
  * rewritten on next open, docs stamped current are left alone (so user tweaks
  * inside the block survive between identical Frame versions).
  */
-const SPEC_SECTION_VERSION = 1;
+const SPEC_SECTION_VERSION = 2;
 
 /**
  * Previous shipped generations of the spec sections, preserved byte-for-byte
@@ -192,7 +192,7 @@ const AGENTS_SPEC_LEGACY_MATCHERS = [
  */
 const SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)
 
-Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`tasks.json\` in sync.
+Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`.frame/tasks.json\` in sync.
 
 ### File layout
 
@@ -242,9 +242,9 @@ The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spe
 
 **5. Autonomous implement ceiling.** \`spec.implement\`'s autonomous mode needs permission flags that only a fresh, flagged launch can carry — a running session cannot acquire them. If the user picks autonomous conversationally, do what the template says: record the choice in the spec's \`status.json\` and hand off — the user clicks Implement on the spec's page in Frame and picks Autonomous, or runs \`node .frame/bin/implement-launch.js <slug>\` in a fresh terminal. Never run a degraded imitation silently.
 
-### tasks.json linkage
+### .frame/tasks.json linkage
 
-After \`spec.tasks\`, **do not** also write entries to \`tasks.json\` — Frame's watcher imports them automatically with \`source: "spec:<slug>:T<n>"\` markers. Spec-generated tasks carry that \`source\` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.
+After \`spec.tasks\`, **do not** also write entries to \`.frame/tasks.json\` — Frame's watcher imports them automatically with \`source: "spec:<slug>:T<n>"\` markers. Spec-generated tasks carry that \`source\` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.
 
 ### When to suggest a spec (steer the conversation)
 
@@ -261,7 +261,7 @@ make this a reflex on every message.
 
 **Do NOT suggest a spec for:**
 - Typos, one-line fixes, small tweaks, renames → just do it
-- Small, discrete tracked work → that's a task (\`tasks.json\`)
+- Small, discrete tracked work → that's a task (\`.frame/tasks.json\`)
 - Questions, debugging, explanations, experiments
 - Anything the user explicitly says to "just do" / "do directly"
 
@@ -465,7 +465,7 @@ Read the relevant section of this file **before writing a Frame meta file**
 
 ### Task Recognition Rules
 
-**These ARE TASKS - add to tasks.json:**
+**These ARE TASKS - add to .frame/tasks.json:**
 - When the user requests a feature or change
 - Decisions like "Let's do this", "Let's add this", "Improve this"
 - Deferred work when we say "We'll do this later", "Let's leave it for now"
@@ -482,8 +482,8 @@ Read the relevant section of this file **before writing a Frame meta file**
 ### Task Creation Flow
 
 1. Detect task patterns during conversation
-2. Ask the user at an appropriate moment: "I identified these tasks from our conversation, should I add them to tasks.json?"
-3. If the user approves, add to tasks.json
+2. Ask the user at an appropriate moment: "I identified these tasks from our conversation, should I add them to .frame/tasks.json?"
+3. If the user approves, add to .frame/tasks.json
 
 ### Task Structure
 
@@ -541,7 +541,7 @@ Frame's core purpose is to prevent context loss. Therefore, capture important mo
 
 ### When to Ask?
 
-Ask the user when one of the following situations occurs: **"Should I add this conversation to PROJECT_NOTES.md?"**
+Ask the user when one of the following situations occurs: **"Should I add this conversation to .frame/PROJECT_NOTES.md?"**
 
 - When a task is successfully completed
 - When an important architectural/technical decision is made
@@ -560,7 +560,7 @@ Pay attention to these signals:
 
 1. **DON'T write a summary** - Add the conversation as is, with its context
 2. **Add date** - In \`### [YYYY-MM-DD] Title\` format
-3. **Add to Session Notes section** - At the end of PROJECT_NOTES.md
+3. **Add to Session Notes section** - At the end of .frame/PROJECT_NOTES.md
 
 ### When NOT to Ask
 
@@ -1032,7 +1032,8 @@ ${FRAME_HOOK_MARKER_END}
 
 /**
  * Full pre-commit hook file content for the "no existing hook" case.
- * Husky/lefthook get the snippet appended into their own files instead.
+ * Husky/lefthook/existing hooks are the user's files: Frame writes nothing
+ * there, it only hands back the snippet for them to paste.
  */
 function getStructurePreCommitHookTemplate() {
   return `#!/bin/sh

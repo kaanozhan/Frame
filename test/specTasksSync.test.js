@@ -214,3 +214,37 @@ test('a spec is never walked back when the task data cannot be read', () => {
   const data = tasksManager.loadTasks(projectDir);
   assert.equal(specManager.derivePhase(projectDir, SLUG, 'done', data), 'tasks_generated', 'pending tasks still rewind');
 });
+
+test('a spec is never walked back when its recorded tasks are gone from tasks.json', () => {
+  // A corrupt tasks.json is not reported as unreadable: tasksManager replaces
+  // it with a fresh empty one and hands back `{ tasks: [], corrupt: true }`,
+  // and the next open reads that empty file as plain valid data. Both look
+  // like "this spec has no tasks" and used to walk `done` back — permanently,
+  // because the empty replacement is on disk from then on.
+  writeStatus();
+  writeTasksMd(NON_ASCENDING);
+  fs.writeFileSync(path.join(specDir(), 'spec.md'), '# Sample spec\n', 'utf8');
+
+  const statusPath = path.join(specDir(), 'status.json');
+  const recorded = { ...JSON.parse(fs.readFileSync(statusPath, 'utf8')), phase: 'done', generated_task_ids: ['task-a', 'task-b'] };
+  fs.writeFileSync(statusPath, JSON.stringify(recorded, null, 2), 'utf8');
+
+  for (const data of [{ version: '2.0', tasks: [], corrupt: true }, { version: '2.0', tasks: [] }, {}]) {
+    assert.equal(
+      specManager.derivePhase(projectDir, SLUG, 'done', data),
+      'done',
+      `done survives ${JSON.stringify(data)}`
+    );
+    specManager.reconcilePhase(projectDir, SLUG, data);
+    assert.equal(JSON.parse(fs.readFileSync(statusPath, 'utf8')).phase, 'done', 'status.json untouched');
+  }
+
+  // A regenerate that legitimately ends with no tasks clears the record, and
+  // then the file-based fallback is the right answer again.
+  fs.writeFileSync(statusPath, JSON.stringify({ ...recorded, generated_task_ids: [] }, null, 2), 'utf8');
+  assert.equal(
+    specManager.derivePhase(projectDir, SLUG, 'done', { version: '2.0', tasks: [] }),
+    'tasks_generated',
+    'no recorded ids → files decide'
+  );
+});
