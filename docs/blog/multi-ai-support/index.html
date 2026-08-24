@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Supporting Claude, Codex, and Gemini in One App — Frame Blog</title>
-  <meta name="description" content="Each AI coding tool reads project context differently. Here's how Frame provides unified context injection for Claude Code, Codex CLI, and Gemini CLI using symlinks and wrapper scripts.">
+  <meta name="description" content="Each AI coding tool reads project context differently. Here's how Frame provides unified context injection for Claude Code and Codex CLI from one source file.">
   <link rel="canonical" href="https://frame.cool/blog/multi-ai-support">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://frame.cool/blog/multi-ai-support">
@@ -49,31 +49,29 @@
     <div class="post-content">
       <div class="container">
         <h2>The Challenge</h2>
-        <p>Frame's context preservation system is built around <code>AGENTS.md</code> — a single file containing all project instructions, navigation rules, and conventions. But each AI tool reads context differently:</p>
+        <p>Frame's context preservation system is built around <code>.frame/AGENTS.md</code> — a single file containing all project instructions, navigation rules, and conventions. But each AI tool reads context differently:</p>
         <ul>
-          <li><strong>Claude Code</strong> reads <code>CLAUDE.md</code> automatically at session start</li>
-          <li><strong>Gemini CLI</strong> reads <code>GEMINI.md</code> automatically at session start</li>
+          <li><strong>Claude Code</strong> loads every <code>.claude/rules/*.md</code> automatically at session start</li>
           <li><strong>Codex CLI</strong> has no standard for reading project files</li>
         </ul>
-        <p>We needed each tool to get the same project context, without maintaining separate instruction files.</p>
+        <p>We needed each tool to get the same project context, without maintaining separate instruction files — and without Frame planting anything in the project root.</p>
 
-        <h2>Solution: Symlinks + Wrapper Scripts</h2>
+        <h2>Solution: A Generated Rule File + Wrapper Scripts</h2>
 
-        <h3>Claude Code and Gemini CLI — Symlinks</h3>
-        <p>Both Claude Code and Gemini CLI have native support for reading a specific file. The solution is simple: create symlinks that point to the single source of truth.</p>
-        <pre><code>AGENTS.md          ← The actual file (single source of truth)
-CLAUDE.md → AGENTS.md   ← Symlink for Claude Code
-GEMINI.md → AGENTS.md   ← Symlink for Gemini CLI</code></pre>
-        <p>One file to maintain, all tools read the same instructions.</p>
+        <h3>Claude Code — <code>.claude/rules/frame.md</code></h3>
+        <p>Claude Code loads its rule files natively, so Frame writes one and keeps it in step with the single source of truth:</p>
+        <pre><code>.frame/AGENTS.md          ← The actual file (single source of truth)
+.claude/rules/frame.md    ← Generated copy, rewritten whenever AGENTS.md changes</code></pre>
+        <p>One file to maintain, and nothing in the project root: an existing <code>CLAUDE.md</code> is the user's, and Frame never touches it.</p>
 
         <h3>Codex CLI — Wrapper Script</h3>
         <p>Codex CLI doesn't have a native file-reading convention. Our first attempt was to use a <code>--system-prompt</code> flag — but Codex CLI doesn't have that flag.</p>
-        <p>The final solution: a wrapper script in <code>.frame/bin/codex</code> that sends "Read AGENTS.md" as the initial prompt:</p>
+        <p>The final solution: a wrapper script in <code>.frame/bin/codex</code> that sends "Read .frame/AGENTS.md" as the initial prompt:</p>
         <pre><code>#!/bin/bash
 # .frame/bin/codex - Frame wrapper for Codex CLI
-AGENTS_FILE="./AGENTS.md"
+AGENTS_FILE=".frame/AGENTS.md"
 if [ -f "$AGENTS_FILE" ]; then
-  codex "Please read AGENTS.md and follow the project instructions."
+  codex "Please read .frame/AGENTS.md and follow the project instructions."
 else
   codex "$@"
 fi</code></pre>
@@ -81,15 +79,14 @@ fi</code></pre>
 
         <h2>Key Insight</h2>
         <blockquote>
-          <p>Instead of trying to pass system prompts via flags (which vary per tool), simply ask the AI to read the AGENTS.md file. This approach is tool-agnostic and works with any AI coding assistant.</p>
+          <p>Instead of trying to pass system prompts via flags (which vary per tool), simply ask the AI to read the <code>.frame/AGENTS.md</code> file. This approach is tool-agnostic and works with any AI coding assistant.</p>
         </blockquote>
 
         <h2>Switching Between Tools</h2>
         <p>In Frame's UI, switching between AI tools is a single click from the toolbar dropdown. Each tool gets proper context injection automatically:</p>
         <ul>
-          <li>Select <strong>Claude</strong> → runs <code>claude</code> directly (reads CLAUDE.md natively)</li>
-          <li>Select <strong>Gemini</strong> → runs <code>gemini</code> directly (reads GEMINI.md natively)</li>
-          <li>Select <strong>Codex</strong> → runs via <code>.frame/bin/codex</code> wrapper (injects AGENTS.md)</li>
+          <li>Select <strong>Claude</strong> → runs <code>claude</code> directly (loads <code>.claude/rules/frame.md</code> natively)</li>
+          <li>Select <strong>Codex</strong> → runs via the <code>.frame/bin/codex</code> wrapper (injects <code>.frame/AGENTS.md</code>)</li>
         </ul>
         <p>Same project context, different AI engines. Use whichever tool is best for the task at hand.</p>
 

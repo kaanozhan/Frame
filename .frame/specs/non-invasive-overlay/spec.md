@@ -1,185 +1,289 @@
-# Non-Invasive Frame Overlay (.frame-only, zero-touch)
+---
+keywords: footprint, .frame layout, meta files, CLAUDE.md pointer, .claude/rules, storage seam, frameStore, projectId, migration, git exclude, local vs repo, file classes
+related: embedded-migration, project-settings, spec-knowledge-layer, cli-spec-command-parity, agent-orchestration, activity-monitor, audit-q3-reliability-recovery
+supersedes: non-invasive-overlay (2026-06-02 revision)
+---
 
-> **What we're building:** a version of Frame that can be used on *any* codebase
-> — including a company or third-party repository the developer must never alter
-> — while still delivering Frame's full feature set (tasks, specs, notes,
-> structure map, prompt history, multi-terminal, AI-tool launching with context).
-> Frame becomes a **read-only overlay** on top of the project: it owns exactly
-> one directory, `.frame/`, and touches nothing else in the working tree.
+# Frame footprint: meta files move into `.frame/`, delivery stays native
+
+> **Revision note (2026-08-22).** This replaces the 2026-06-02 version of this
+> spec. That version asked for two things: (1) move Frame's root files into
+> `.frame/`, and (2) *"native prompt injection, composed at launch time — not by
+> planting files"*, i.e. no `CLAUDE.md`, no hooks in `.claude/settings.json`,
+> context handed to the CLI by flag/wrapper. PR #116 implemented (2) faithfully
+> and the review showed why it must not ship: launch-time injection turns a
+> guaranteed mechanism (Claude Code loads instruction files and hooks natively,
+> every session, every subagent, every shell) into a best-effort one (wrapper →
+> PATH → shell init → alias conflicts → no subagents → no context outside
+> Frame), and the wrapper/PATH layer is itself a code-execution surface. We keep
+> (1) and **explicitly overturn (2)**: Frame's context and hooks stay
+> file-based. Full comparison across 15 user scenarios: see the review
+> artifact linked from PROJECT_NOTES `### [2026-08-22]`.
 
 ---
 
 ## Problem
 
-Today Frame's identity and data are physically embedded in the project root, and
-initialization actively *mutates* the repository:
+Frame writes its identity into the project root and claims files it does not
+own:
 
-- `initializeFrameProject` writes root-level files: `AGENTS.md`, `STRUCTURE.json`,
-  `PROJECT_NOTES.md`, `tasks.json`, `QUICKSTART.md`.
-- It **destructively** consumes an existing `CLAUDE.md`: reads it, `fs.unlinkSync`
-  deletes it, merges its content into `AGENTS.md`, then replaces it with a
-  `CLAUDE.md → AGENTS.md` symlink. Same pattern for `GEMINI.md`.
-- `structureBootstrap` installs a git **pre-commit hook** and copies parser
-  scripts into the project.
-- `isFrameProject` decides "is this a Frame project?" by looking for
-  `projectPath/.frame/config.json` — so the project's identity lives *inside* the
-  repo as well.
+- `initializeFrameProject` writes `AGENTS.md`, `STRUCTURE.json`,
+  `PROJECT_NOTES.md`, `tasks.json`, `QUICKSTART.md` at the repo root — six
+  unfamiliar files in every teammate's `git status`, and a growing diff in
+  every commit as `tasks.json`/`STRUCTURE.json` evolve.
+- It **consumes** an existing `CLAUDE.md` (and `GEMINI.md`): reads it, deletes
+  it, appends the content into `AGENTS.md`, replaces the file with a
+  `CLAUDE.md → AGENTS.md` symlink. The team's instruction file silently becomes
+  a block inside Frame's file; removing Frame later means knowing that.
+- On Windows the symlink falls back to a *copy*, which drifts from `AGENTS.md`.
+- There is no solo/team distinction: whether Frame's files are shared depends
+  on what happened to get committed.
+- Removing Frame is a manual hunt across root files, a symlink, a consumed
+  block, `.claude/settings.json` entries and a pre-commit hook block.
+- For the coming project-management layer (tasks/specs/notes served from a
+  database / cloud) there is no storage seam: `frameProject.js` joins root
+  paths in 17 places, `tasksManager`/`overviewManager`/`specManager` each read
+  their own files, and there is no stable project identity beyond the path.
 
-Consequences that block the target use case:
-
-1. **You cannot use Frame on a codebase you don't own.** Opening a company repo
-   and initializing pollutes it with 5+ root files, deletes/relinks an existing
-   `CLAUDE.md`, and installs a git hook. None of this is acceptable on a shared,
-   reviewed, or third-party codebase.
-2. **Existing instruction files are clobbered.** Many real projects already ship
-   their own `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Codex config, `.cursorrules`,
-   etc. Frame currently rewrites/relinks them rather than respecting them.
-3. **`git status` is never clean.** Even if a developer wanted Frame's metadata
-   to stay local, today it lands as untracked/modified files across the tree.
-
-The desired workflow — *"use Frame's organizing and context-preservation
-features on top of my real work, without leaving a fingerprint on the repo"* — is
-impossible with the current architecture.
+What is **not** a problem and must not change: Claude Code loads Frame's
+instructions from a file at session start and runs Frame's two spec-hint hooks
+from `.claude/settings.json`. That is deterministic today and is the spine of
+the spec-driven workflow.
 
 ---
 
 ## Goal
 
-Frame supports a single, non-invasive operating model with these properties:
+Frame keeps one data directory, `.frame/`, and touches the repo outside it in
+exactly two small, standard, enumerable places: `.claude/rules/frame.md` and
+the Frame-signed hook entries in `.claude/settings.json` (or
+`settings.local.json` in local mode). Context delivery, hooks, and the
+developer workflow are unchanged.
 
-1. **One footprint only.** Everything Frame creates or maintains for a project
-   lives under `projectPath/.frame/`. Frame **never** creates, modifies, deletes,
-   or symlinks any file outside `.frame/` in the working tree — including the
-   project's `.gitignore`.
+### D1 — Meta files live under `.frame/`
 
-2. **`.frame/` is the home for all Frame artifacts.** The files Frame currently
-   scatters at the root move inside `.frame/`:
-   - `.frame/AGENTS.md` (Frame's own workflow instructions for AI tools)
-   - `.frame/STRUCTURE.json`
-   - `.frame/PROJECT_NOTES.md`
-   - `.frame/tasks.json`
-   - `.frame/QUICKSTART.md`
-   - `.frame/specs/…` (already there today)
-   - `.frame/config.json`, `.frame/bin/…` (already there today)
+`AGENTS.md`, `tasks.json`, `STRUCTURE.json`, `PROJECT_NOTES.md`,
+`QUICKSTART.md` move to `.frame/<name>`. Nothing Frame-authored remains at the
+root. `.frame/config.json`, `.frame/bin/`, `.frame/docs/`, `.frame/specs/`
+stay where they are.
 
-3. **Existing root instruction files are sacred — discovered, never touched.**
-   On opening a project, Frame detects any of: `CLAUDE.md`, `AGENTS.md`,
-   `GEMINI.md`, Codex config (`AGENTS.md` / Codex's own convention),
-   `.claude/CLAUDE.md`, `.cursorrules`, `.cursor/rules/*`,
-   `.github/copilot-instructions.md`. These are read **read-only** and surfaced in
-   the UI. Frame must never rewrite, delete, symlink-over, or append to them.
+### D2 — Context delivery stays file-based and native
 
-4. **Native prompt injection, composed at launch time — not by planting files.**
-   Because Frame no longer drops a root `CLAUDE.md` symlink, the AI tool can no
-   longer auto-discover Frame's conventions from the root. Instead, Frame injects
-   context **when it launches the AI tool**, via the start command it already
-   controls (`aiToolManager.getStartCommand`). Injection composes two layers
-   without merging or duplicating them:
+- Frame writes **`.claude/rules/frame.md`** containing a generated **copy** of
+  `.frame/AGENTS.md`, under a one-line comment naming Frame as the owner and
+  `.frame/AGENTS.md` as the file to edit. Frame rewrites the copy whenever
+  `AGENTS.md` changes (init, project open, migration, spec-driven toggles, and
+  the meta-directory watcher). Claude Code loads `.claude/rules/*.md` at launch
+  from any working directory (verified 2026-08-22/23 with `claude -p` against a
+  scratch repo: the rule alone, the rule alongside a user-owned root
+  `CLAUDE.md`, and a session started in a sub-directory, all loaded).
+  **An `@`-import is not usable here**: the first revision of this spec used
+  `@../../.frame/AGENTS.md`, and a session started in a sub-directory loads the
+  rule file but does *not* expand an import that resolves above its working
+  directory — the session got an empty rule. The copy costs a few KB of
+  duplication; `.frame/AGENTS.md` remains canonical.
+- Frame **never** creates, deletes, symlinks, appends to or rewrites
+  `CLAUDE.md`, `.claude/CLAUDE.md`, `AGENTS.md` at the root, or any other
+  instruction file it did not author. The consume-and-symlink code path is
+  removed.
+- `.frame/AGENTS.md` opens with the precedence sentence: *the repository's own
+  instruction files own code conventions; Frame owns its workflow.*
+- `GEMINI.md` handling is removed entirely (Gemini support is being dropped).
+  Codex keeps its existing `.frame/bin/codex` wrapper, updated to point at
+  `.frame/AGENTS.md`.
 
-   | AI tool | Repo's own root instruction file | Frame's behavior |
-   |---------|----------------------------------|------------------|
-   | Claude Code | `CLAUDE.md` present | Leave it alone (Claude reads it natively). Append a pointer to `.frame/AGENTS.md`. |
-   | Gemini CLI | `GEMINI.md` present | Same — leave it, point to `.frame/AGENTS.md`. |
-   | Codex / no native convention | any/none | Wrapper injects: "read the repo's instruction file if present **and** `.frame/AGENTS.md`". |
-   | any | none present | `.frame/AGENTS.md` is the sole injected source. |
+### D3 — Hooks stay where they are
 
-   The repo's instruction file remains authoritative for code conventions; Frame's
-   `.frame/AGENTS.md` adds only the Frame meta-layer (task recognition, note
-   capture, spec workflow, structure upkeep). No content is copied out of the
-   repo's files and no duplicate context is injected.
+The two spec-hint hooks (`PreToolUse Edit|Write`, `UserPromptSubmit`) are
+merged into `.claude/settings.json` exactly as today (merge-safe, idempotent,
+no write on invalid JSON). Two refinements:
 
-5. **Committing `.frame/` is opt-in, never imposed.**
-   - **Default (zero-touch):** Frame keeps `.frame/` out of git locally using
-     `.git/info/exclude` (a per-clone, untracked file). The tracked tree —
-     including `.gitignore` — is never modified, so `git status` stays clean.
-   - **Team opt-in:** a developer/team that *wants* to share tasks and specs can
-     choose to commit `.frame/`. Frame surfaces this as an explicit choice; it
-     does not edit the tracked `.gitignore` on the user's behalf.
+- The hook command guards its own presence:
+  `[ -f .frame/bin/spec-hint.js ] && node .frame/bin/spec-hint.js <mode>` —
+  so a clone that received `.claude/` but not `.frame/bin` does not error on
+  every prompt.
+- Entries carry a Frame marker (a stable, recognisable command string is
+  enough) so "Remove Frame" can delete exactly its own entries.
 
-6. **All other features keep working unchanged.** Multi-terminal, file tree,
-   file editor (which only writes when the user explicitly saves a real source
-   file — intended), git status/branches panels, overview, prompt history, AI
-   tool switching — these already read the repo or write to user-scoped storage
-   and need no behavioral change beyond path resolution.
+### D4 — Solo vs. team is an explicit setting
+
+`settings.gitSharing: "local" | "repo"` in `.frame/config.json`, chosen at
+init (default: ask; pre-select `repo` when the repo already tracks `.frame/`)
+and changeable in Project Settings.
+
+- **local:** `.frame/` and `.claude/rules/frame.md` are added to
+  `.git/info/exclude` (never the tracked `.gitignore`); hooks go to
+  `.claude/settings.local.json`. `git status` shows nothing Frame-made.
+- **repo:** nothing is excluded; `.frame/.gitignore` (managed block) keeps
+  machine-local classes out (see D6); hooks go to `.claude/settings.json`.
+- The exclude entry is conditional as PR #116 designed it: present only while
+  `.frame/` is untracked, removed once any `.frame/` path is tracked, so
+  committing `.frame/` is the whole opt-in and files never go invisible on a
+  teammate's clone. Entries are anchored (`/.frame/`) so a monorepo's other
+  `.frame/` dirs are unaffected. Frame never runs `git rm`; if `.frame/` is
+  tracked while `local` is set, it warns and shows the command.
+
+### D5 — Storage seam is data-centric
+
+One module (`src/main/frameStore.js`) owns every read and write of the meta
+files: `getTasks / saveTasks`, `getNotes / appendNote`, `getStructure /
+saveStructure`, `getQuickstart`, `getAgentsInstructions`, plus `specs` access
+delegated to `specManager`. Callers never join `.frame/<name>` themselves.
+
+- Files remain the source of truth; reads go to disk (no write-behind cache),
+  because agents edit these files directly with their own tools and Frame
+  must see the result immediately — this is what keeps today's behaviour
+  deterministic.
+- The interface is keyed by project (see D7), not by path, so a later
+  database/cloud backend replaces the implementation without touching callers.
+- The `.frame/bin/` scripts (`find-module.js`, `check-freshness.js`,
+  `update-structure.js`, `spec-*.js`, `detect-project.js`) resolve the project
+  root from their own location (`<project>/.frame/bin` → `<project>`) or
+  `FRAME_PROJECT_ROOT`, never from `__dirname/..`; running them by hand from a
+  user project must never erase `STRUCTURE.json` (PR #116 finding).
+
+### D6 — Files are classified, and the class decides git and sync
+
+| Class | Files | Git (repo mode) | Future cloud |
+| --- | --- | --- | --- |
+| instruction | `.frame/AGENTS.md`, `.claude/rules/frame.md`, hook entries | tracked | stays a file (Claude reads files) |
+| data | `tasks.json`, `specs/*` (spec/plan/tasks/outcome/digest/status), `PROJECT_NOTES.md` | tracked | source in DB; file is projection or synced copy — decided later |
+| derived | `STRUCTURE.json`, `index/`, `specs/*/{implement,plan}-report.html`, `report-data.json` | **ignored** | regenerated locally |
+| runtime | `runtime/`, `worktrees/`, `orchestration/`, `bin/`, `migration-backup/`, `*.bak`, `*.tmp`, `*.corrupt-*`, `implement-permissions.json` | **ignored** | never |
+
+`.frame/.gitignore`'s managed block is generated from this table. Users may add
+lines outside the block; Frame preserves them.
+
+> Open point for planning: `STRUCTURE.json` is derived but today it is
+> committed and teammates rely on it being present. Decide in plan.md whether
+> it stays tracked for now (with regeneration on open) or moves to ignored.
+
+### D7 — Stable project identity
+
+`.frame/config.json` gains `projectId` (UUID v4), written at init and, for
+existing projects, during migration (D8). All `frameStore` calls take the id;
+the path↔id map lives in the app's workspace registry. This is the anchor the
+cloud layer will need and is cheapest to add while every project is being
+touched once anyway.
+
+### D8 — Existing projects migrate with consent
+
+On opening a project that has the pre-overlay layout **and** a
+`config.json.files` record (Frame's own init signature — the only fingerprint
+accepted; a `CLAUDE.md → AGENTS.md` symlink alone is *not* proof, it is a
+public convention), Frame shows a modal: which files move where, where the
+backup goes, **[Migrate] [Later]**. Nothing happens without the click.
+
+The migration:
+1. defers if any listed file is dirty in git (paths compared repo-root-relative
+   so sub-directory projects are covered);
+2. copies each file to `.frame/migration-backup/` and to `.frame/<name>` with
+   `fsSafe` (fsync), verifies bytes, then removes the root copy; a `.frame/`
+   counterpart that already exists and differs is never silently overwritten —
+   the root file goes to the backup and the user is told;
+3. removes the `CLAUDE.md`/`GEMINI.md` symlinks Frame planted; if `AGENTS.md`
+   contains a consumed block, restores the original `CLAUDE.md` from it
+   verbatim (`GEMINI.md` is not restored as a file — the block is kept in the
+   backup);
+4. writes `.claude/rules/frame.md`, updates hook entries to the guarded form,
+   stamps `projectId`, drops the `files` record, upgrades `.frame/AGENTS.md`
+   to the current template (the migrated instruction text must describe the
+   new layout, or agents recreate root `tasks.json`);
+5. is idempotent, logs every step to the activity log, and ends with a receipt
+   listing moved / restored / backed-up files and the suggested commit.
+
+### D9 — Removing Frame is one enumerable action
+
+Project Settings → "Remove Frame from this project": deletes `.frame/`,
+`.claude/rules/frame.md`, Frame's hook entries, the pre-commit hook block and
+the exclude entries, then removes the project from the registry. Because Frame
+never modified user-owned files, nothing has to be restored.
+
+### D10 — Pre-commit hook
+
+Vanilla `.git/hooks/pre-commit` is written/appended as today (local-only).
+Husky and lefthook: show the snippet, never write the tracked file.
 
 ---
 
 ## Constraints
 
-- **Absolute no-write rule:** outside `projectPath/.frame/`, the only writes Frame
-  may perform are to **untracked, local-only git internals**: `.git/info/exclude`
-  and `.git/hooks/*`. Nothing in the tracked working tree, ever — not even
-  `.gitignore`.
-- **Non-destructive discovery:** reading existing instruction files must never
-  open them for write, rename, or relink. `fs.unlinkSync` / `symlinkSync` against
-  root instruction files is removed entirely.
-- **Single model, not a toggle.** This replaces the embedded behavior; there is no
-  "embedded vs external" switch to maintain. (Migration of already-embedded Frame
-  projects is handled separately — see Out of Scope.)
-- **Path resolution must be centralized.** Every place that currently hardcodes a
-  root path (`tasksManager.getTasksFilePath`, `overviewManager.loadStructure /
-  loadTasks / loadDecisions`, `frameProject`, `structureBootstrap` output, etc.)
-  resolves through one helper that returns `projectPath/.frame/<file>`.
-  `specManager` already lives under `.frame/specs/` and is the reference pattern.
-- **Tool-agnostic injection.** The composition logic must work for Claude Code,
-  Gemini CLI, and Codex CLI today, and be extensible to future tools via
-  `aiToolManager` without per-tool special cases leaking across modules.
-- **Freshness without ownership.** If a discovered root instruction file changes
-  on disk, Frame re-reads it for subsequent injections (the debounced `fs.watch`
-  pattern from `specManager` is the model). Frame caches/references; it never
-  writes back.
-- **Cross-platform:** `.git/info/exclude` and `.git/hooks` handling, plus any path
-  encoding, must behave on macOS, Linux, and Windows (including the
-  symlink-unsupported Windows fallback already handled elsewhere).
+- **No behaviour change in delivery.** After this spec, a Claude session
+  started from a Frame lane, from a hand-typed `claude` in a Frame terminal,
+  from VS Code, as a subagent, or with `-p` sees Frame's instructions and runs
+  Frame's hooks exactly as before. No wrapper, no `PATH` manipulation, no
+  shell init, no `--append-system-prompt`.
+- **Write surface outside `.frame/` is exactly:** `.claude/rules/frame.md`,
+  Frame's own entries in `.claude/settings.json` or `settings.local.json`,
+  `.git/info/exclude`, `.git/hooks/pre-commit`. Nothing else, ever — not
+  `.gitignore`, not `CLAUDE.md`, not `.husky/`.
+- **Non-initialized projects stay untouched.** Starting an agent in a project
+  that is not a Frame project writes nothing (PR #116 regressed this).
+- **Agents edit files; Frame must see it.** `frameStore` reads from disk;
+  watchers stay as they are.
+- **Orchestration keeps today's contract:** worker worktrees contain whatever
+  is committed; `.frame/` and `.claude/rules/frame.md` must be tracked for
+  workers to have their spec and context. Local-mode orchestration (copying
+  `.frame/` into worktrees) is a separate spec.
+- **Claude Code version.** `.claude/rules/` requires a recent Claude Code;
+  record the minimum in the init modal and `docs`. No root `CLAUDE.md`
+  fallback is written (one mechanism).
+- **Cross-platform.** No symlinks anywhere. `@import` is Claude Code's own
+  Windows recommendation.
+- **This repository migrates too** (it is a pre-overlay Frame project); after
+  migration its root `CLAUDE.md` symlink and `AGENTS.md` are gone and plain
+  `claude` sessions load `.claude/rules/frame.md`. The repo's own
+  `.claude/settings.json` hooks (`scripts/spec-hint.js`) are unaffected.
 
 ---
 
 ## Success Criteria
 
-The work is complete when all of the following hold:
-
-1. **Clean tree.** Open an arbitrary repository, initialize Frame, use it for a
-   full session (create tasks, a spec, notes; launch an AI tool), then run
-   `git status`: the only thing git could possibly see is `.frame/`, and in the
-   default (zero-touch) setup `git status` reports **no changes at all** because
-   `.frame/` is excluded via `.git/info/exclude`. The tracked `.gitignore` is
-   byte-identical to before.
-2. **Existing instruction files untouched.** A repo that ships its own
-   `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.cursorrules` has those files
-   **byte-identical** (checksum-equal) before and after a full Frame session. No
-   symlink replaces them; none is deleted.
-3. **Context reaches the AI both ways.** When Frame launches the AI tool in a repo
-   that has its own `CLAUDE.md`, the tool ends up aware of *both* the repo's
-   conventions and Frame's `.frame/AGENTS.md` meta-layer — verifiable by the tool
-   acting on Frame conventions (e.g. offering to capture a note / recognizing a
-   task) without the repo's `CLAUDE.md` having been modified.
-4. **No root artifacts.** After init and use, there are **zero** Frame-created
-   files in the project root or anywhere outside `.frame/`. All of
-   `AGENTS.md`, `STRUCTURE.json`, `PROJECT_NOTES.md`, `tasks.json`,
-   `QUICKSTART.md` are found only under `.frame/`.
-5. **Opt-in commit works.** A team that chooses to track `.frame/` can commit it
-   and a teammate cloning the repo sees the shared tasks/specs — without any
-   change to how Frame reads them.
-6. **Feature parity.** Tasks, specs, notes, structure map, overview, prompt
-   history, and AI-tool launching all function as before, now reading from
-   `.frame/`.
+1. **Clean root.** Fresh repo → init → full session (tasks, a spec, notes,
+   agent launch) → `git status` shows only `.frame/` and `.claude/` (repo mode)
+   or nothing (local mode). No file Frame made at the root. Asserted by a test
+   that walks the tree, hidden files included.
+2. **User files byte-identical.** A repo with its own `CLAUDE.md`,
+   `.claude/CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.husky/pre-commit`: all
+   checksum-equal before and after init, a session, and "Remove Frame".
+3. **Context both ways, natively.** In a repo with its own `CLAUDE.md`, a
+   `claude -p` run without any Frame launch flags reports both the repo's rule
+   and Frame's (the scratch-repo test from 2026-08-22, automated). The same
+   holds for a subagent.
+4. **Hooks fire as before.** `spec-hint.js` emits on `UserPromptSubmit` and on
+   `Edit|Write` in a migrated project and in a fresh one; a clone without
+   `.frame/bin` produces no hook error.
+5. **Migration is consented, lossless, idempotent.** On a copy of this
+   repository: modal → Migrate → every moved file byte-equal to its backup and
+   its new location; second run is a no-op; a dirty tree defers with zero
+   writes; a repo with a `CLAUDE.md → AGENTS.md` symlink but no Frame `files`
+   record is left exactly as it was.
+6. **Seam.** No module outside `frameStore.js` (and `specManager.js` for
+   specs) joins a meta-file path; `grep -rn "tasks.json\|STRUCTURE.json\|PROJECT_NOTES.md\|QUICKSTART.md" src/` outside those two files hits only
+   constants and UI strings.
+7. **Scripts safe by hand.** `node .frame/bin/update-structure.js` run from a
+   user project root without env vars updates `.frame/STRUCTURE.json`
+   correctly; `find-module.js`/`check-freshness.js` report real modules.
+8. **Feature parity.** Tasks, specs, notes, structure map, overview, spec
+   dashboard, implement modes, orchestration (repo mode) all function as
+   before.
+9. **Removal.** "Remove Frame" leaves the repo with no Frame-authored bytes
+   and the user's files untouched (criterion 2 applies).
 
 ---
 
 ## Out of Scope
 
-The following are explicitly **not** part of this effort (may become separate
-specs later):
-
-- **Migration tooling for already-embedded Frame projects.** Existing projects
-  that have root `AGENTS.md`/`tasks.json`/etc. need a separate migration story
-  (move-into-`.frame/`, leave-in-place, or dual-read). Not decided here.
-- **Editing the user's tracked `.gitignore`.** Default stays `.git/info/exclude`;
-  any future "write to `.gitignore`" convenience is a separate decision.
-- **Auto-committing `.frame/`** or any git write beyond local excludes/hooks.
-- **Frame Server / browser mode**, multi-user, and remote-host concerns.
-- **Parsing existing instruction files into Frame's own structure** (e.g.
-  auto-seeding `PROJECT_NOTES.md` from a discovered `CLAUDE.md`). Discovery +
-  launch-time composition is in scope; transformation/import is not.
-- **Deep semantic validation** of discovered instruction files. Frame detects and
-  references them; it does not lint or interpret their content.
+- Launch-time injection of any kind (wrappers, `PATH`, shell init,
+  `--append-system-prompt`, Windows `.cmd`/`.ps1`) — rejected, see revision
+  note.
+- Cloud/database backend for the data class — separate spec; this spec only
+  guarantees the seam (D5), the classification (D6) and the identity (D7) it
+  will need.
+- Agent-facing CLI/API replacing direct file edits (`frame task start …`) —
+  separate decision, taken with the cloud spec.
+- Local-mode orchestration (materialising `.frame/` into worktrees) — separate
+  spec.
+- Gemini CLI support — being removed; only the symlink cleanup in D8 touches it.
+- Editing the user's tracked `.gitignore`; auto-committing anything.
+- Parsing or importing existing instruction files into Frame's structure.

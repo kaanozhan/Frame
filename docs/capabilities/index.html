@@ -583,7 +583,7 @@
     <div class="pillar">
       <div class="pillar-num">— Principle I</div>
       <h3 class="pillar-title">Git commit as the <i>context anchor</i></h3>
-      <p class="pillar-body">Sessions are fuzzy. Commits are real. Frame's entire context system hangs off the pre-commit moment — STRUCTURE.json refreshes, tasks reconcile, notes get the right boundary. Commit often, stay oriented.</p>
+      <p class="pillar-body">Sessions are fuzzy. Commits are real. Frame's entire context system hangs off the pre-commit moment — .frame/STRUCTURE.json refreshes, tasks reconcile, notes get the right boundary. Commit often, stay oriented.</p>
     </div>
     <div class="pillar">
       <div class="pillar-num">— Principle II</div>
@@ -609,13 +609,13 @@
     <div class="rows">
       <div class="row">
         <div class="id">01.01</div>
-        <div class="name">AGENTS.md</div>
-        <div class="desc">Single source of truth for project rules. Auto-symlinked as CLAUDE.md and GEMINI.md so every AI tool reads identical instructions.</div>
+        <div class="name">.frame/AGENTS.md</div>
+        <div class="desc">Single source of truth for project rules. Claude Code reads the generated copy at .claude/rules/frame.md, which Frame keeps in step — nothing at your project root.</div>
         <div class="tag">Core <b>—</b></div>
       </div>
       <div class="row">
         <div class="id">01.02</div>
-        <div class="name">STRUCTURE.json</div>
+        <div class="name">.frame/STRUCTURE.json</div>
         <div class="desc">Module map regenerated on every commit. Tracks exports, dependencies, IPC channels, and a queryable intentIndex of features.</div>
         <div class="tag">Core <b class="hot">AUTO</b></div>
       </div>
@@ -634,19 +634,19 @@
       <div class="row">
         <div class="id">01.05</div>
         <div class="name">.frame/bin/</div>
-        <div class="desc">Per-project tooling shipped at init: parser scripts, AI wrappers, and the fast-lookup binary. Lives inside the project, travels with it.</div>
+        <div class="desc">Per-project tooling shipped at init: Frame's parser and helper scripts, and the fast-lookup binary. Lives inside the project, travels with it.</div>
         <div class="tag">Infra <b>—</b></div>
       </div>
       <div class="row">
         <div class="id">01.06</div>
         <div class="name">Initialize on <i>existing</i> code</div>
-        <div class="desc">Detects existing CLAUDE.md / GEMINI.md / AGENTS.md, merges their content forward. Never overwrites — appends and asks.</div>
+        <div class="desc">Leaves your CLAUDE.md, AGENTS.md and .cursorrules exactly as they are. Frame writes only .frame/ and one pointer file, and reads nothing at your root.</div>
         <div class="tag">Safety <b>—</b></div>
       </div>
       <div class="row">
         <div class="id">01.07</div>
         <div class="name">First-fill scan</div>
-        <div class="desc">After init, STRUCTURE.json is populated in one shot — modules, exports, IPC channels, and intent index ready before you type a thing.</div>
+        <div class="desc">After init, .frame/STRUCTURE.json is populated in one shot — modules, exports, IPC channels, and intent index ready before you type a thing.</div>
         <div class="tag">Quality <b class="new">NEW</b></div>
       </div>
     </div>
@@ -663,19 +663,19 @@
       <div class="row">
         <div class="id">02.01</div>
         <div class="name"><i>Claude Code</i> integration</div>
-        <div class="desc">Launches with CLAUDE.md context already wired. Usage tracking, session history, and Plugins panel built natively into the IDE.</div>
+        <div class="desc">Launches with .frame/AGENTS.md already loaded through .claude/rules/frame.md — no flags, no wrapper. Usage tracking, session history, and Plugins panel built natively into the IDE.</div>
         <div class="tag">Multi-AI <b>—</b></div>
       </div>
       <div class="row">
         <div class="id">02.02</div>
         <div class="name"><i>Codex CLI</i> wrapper</div>
-        <div class="desc">Wrapper script injects AGENTS.md as initial prompt. Codex behaves as if it natively understood Frame's standard.</div>
+        <div class="desc">Wrapper script injects .frame/AGENTS.md as initial prompt. Codex behaves as if it natively understood Frame's standard.</div>
         <div class="tag">Multi-AI <b>—</b></div>
       </div>
       <div class="row">
         <div class="id">02.03</div>
         <div class="name"><i>Gemini CLI</i> integration</div>
-        <div class="desc">GEMINI.md symlinked to AGENTS.md so Gemini reads your project rules without configuration.</div>
+        <div class="desc">Plain markdown and JSON under .frame/ — point any CLI at .frame/AGENTS.md and it reads the same project rules.</div>
         <div class="tag">Multi-AI <b>—</b></div>
       </div>
       <div class="row">
@@ -804,7 +804,7 @@
       <div class="row">
         <div class="id">05.01</div>
         <div class="name">Pre-commit STRUCTURE sync</div>
-        <div class="desc">Hook regenerates STRUCTURE.json against staged changes and folds it into the same commit. Map is always exactly one commit fresh.</div>
+        <div class="desc">Hook regenerates .frame/STRUCTURE.json against staged changes and folds it into the same commit. Map is always exactly one commit fresh.</div>
         <div class="tag">Auto <b class="hot">FLAGSHIP</b></div>
       </div>
       <div class="row">
@@ -851,7 +851,7 @@
       <div class="row">
         <div class="id">06.01</div>
         <div class="name">intentIndex</div>
-        <div class="desc">Concept-to-file mapping in STRUCTURE.json. Type a feature name, get the exact files instantly. No grep, no scan.</div>
+        <div class="desc">Concept-to-file mapping in .frame/STRUCTURE.json. Type a feature name, get the exact files instantly. No grep, no scan.</div>
         <div class="tag">Speed <b>—</b></div>
       </div>
       <div class="row">
@@ -863,7 +863,7 @@
       <div class="row">
         <div class="id">06.03</div>
         <div class="name">Overview panel</div>
-        <div class="desc">Visual map of modules and their relationships drawn from STRUCTURE.json. See architecture at a glance, click a node to open the file.</div>
+        <div class="desc">Visual map of modules and their relationships drawn from .frame/STRUCTURE.json. See architecture at a glance, click a node to open the file.</div>
         <div class="tag">UI <b>—</b></div>
       </div>
       <div class="row">
@@ -957,12 +957,12 @@
       <span class="c-mute">│</span>
       <span class="c-mute">▼</span>
    <span class="c-mute">┌─ PROJECT  FILESYSTEM ────────────────────────────────────────────────────┐</span>
-   <span class="c-mute">│</span>   <span class="c-rust">AGENTS.md</span>            project rules · single source · symlinked          <span class="c-mute">│</span>
-   <span class="c-mute">│</span>   <span class="c-rust">STRUCTURE.json</span>       module map · intentIndex · auto-updated on commit  <span class="c-mute">│</span>
-   <span class="c-mute">│</span>   <span class="c-rust">tasks.json</span>           kanban state · with provenance + acceptance fields  <span class="c-mute">│</span>
-   <span class="c-mute">│</span>   <span class="c-rust">PROJECT_NOTES.md</span>     decision journal · agent-prompted, human-curated    <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">.frame/AGENTS.md</span>     project rules · single source · via .claude/rules  <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">.frame/STRUCTURE.json</span> module map · intentIndex · updated on commit  <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">.frame/tasks.json</span>    kanban state · provenance + acceptance fields       <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">.frame/PROJECT_NOTES.md</span> decision journal · agent-prompted, human-curated <span class="c-mute">│</span>
    <span class="c-mute">│</span>   <span class="c-rust">.frame/specs/&lt;slug&gt;/</span> spec · plan · tasks · outcome (markdown only)       <span class="c-mute">│</span>
-   <span class="c-mute">│</span>   <span class="c-rust">.frame/bin/</span>          parser scripts · find-module · ai wrappers          <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">.frame/bin/</span>          parser + helper scripts · find-module · spec-hint    <span class="c-mute">│</span>
    <span class="c-mute">│</span>   <span class="c-rust">.git/hooks/</span>          pre-commit · safe append-mode for husky/lefthook    <span class="c-mute">│</span>
    <span class="c-mute">└──────────────────────────────────────────────────────────────────────────┘</span>
 </pre>
@@ -1005,7 +1005,7 @@
       <div class="ritem"><span class="box done"></span><span>Plugins panel for Claude Code</span><span class="stat-l-small">Shipped</span></div>
       <div class="ritem"><span class="box done"></span><span>Multi-AI: Claude Code, Codex, Gemini</span><span class="stat-l-small">Shipped</span></div>
       <div class="ritem"><span class="box done"></span><span>Overview / visual structure map</span><span class="stat-l-small">Shipped</span></div>
-      <div class="ritem"><span class="box done"></span><span>STRUCTURE.json bootstrap for user projects</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box done"></span><span>.frame/STRUCTURE.json bootstrap for user projects</span><span class="stat-l-small">Shipped</span></div>
       <div class="ritem"><span class="box done"></span><span>GitHub panel — issues, PRs, branches</span><span class="stat-l-small">Shipped</span></div>
       <div class="ritem"><span class="box"></span><span>In-app auto-update via electron-updater</span><span class="stat-l-small due">Spec'd</span></div>
       <div class="ritem"><span class="box"></span><span>Non-standard layouts (monorepo, TS, Python)</span><span class="stat-l-small due">Spec'd</span></div>

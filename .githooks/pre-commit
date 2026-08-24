@@ -12,8 +12,13 @@ if [ -n "$STAGED_JS" ]; then
     # Run the structure update script
     npm run structure:changed --silent
 
-    # Stage the updated STRUCTURE.json
-    git add STRUCTURE.json
+    # Stage the updated STRUCTURE.json — .frame/ once this repo has migrated,
+    # the root copy until then
+    if [ -f .frame/STRUCTURE.json ]; then
+        git add .frame/STRUCTURE.json
+    else
+        git add STRUCTURE.json
+    fi
 
     echo "STRUCTURE.json updated and staged."
 fi

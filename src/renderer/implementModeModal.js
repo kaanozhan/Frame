@@ -140,7 +140,7 @@ function open({ slug, title = null, hint = null, lane = null } = {}) {
             ${blocked ? `<span class="impl-dest-reason">${escapeHtml(AUTONOMOUS_CONTINUE_REASON)}</span>` : ''}
           </button>
           <button type="button" class="impl-dest-option${destination === 'new' ? ' selected' : ''}" data-dest="new">
-            <span class="impl-dest-name">Open a new Frame</span>
+            <span class="impl-dest-name">Open a new terminal</span>
           </button>
         </div>`;
       destEl.querySelectorAll('.impl-dest-option').forEach((btn) => {

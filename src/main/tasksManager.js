@@ -9,8 +9,8 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 const fsSafe = require('./fsSafe');
+const frameStore = require('./frameStore');
 const activityLog = require('./activityLog');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_FILES } = require('../shared/frameConstants');
@@ -51,8 +51,11 @@ function setProjectPath(projectPath) {
   currentProjectPath = projectPath;
 }
 
+// Where tasks.json lives is frameStore's answer, not ours: `.frame/tasks.json`
+// for a migrated project, the root for one that has not migrated yet. Still a
+// path here because the parse-once cache keys on the file's mtime+size.
 function getTasksFilePath(projectPath) {
-  return path.join(projectPath || currentProjectPath, FRAME_FILES.TASKS);
+  return frameStore.resolvePath(projectPath || currentProjectPath, FRAME_FILES.TASKS);
 }
 
 /**
@@ -104,7 +107,7 @@ function loadTasks(projectPath) {
     return loadCache.data;
   }
 
-  const { data, source, error } = fsSafe.readJsonWithRecovery(tasksPath);
+  const { data, source, error } = frameStore.getTasks(projectPath || currentProjectPath);
   if (!data && !error) return null; // no tasks.json — not a Frame project yet
 
   if (source === 'bak') {
@@ -163,13 +166,12 @@ function loadTasks(projectPath) {
 }
 
 function saveTasks(projectPath, tasksData) {
-  const tasksPath = getTasksFilePath(projectPath);
   try {
     tasksData.lastUpdated = new Date().toISOString();
     delete tasksData.corrupt; // in-memory flag only — never persisted
     lastSelfWriteAt = Date.now();
-    fsSafe.writeFileAtomic(tasksPath, JSON.stringify(tasksData, null, 2));
-    loadCache = { key: cacheKeyFor(tasksPath), data: tasksData };
+    frameStore.saveTasks(projectPath || currentProjectPath, tasksData);
+    loadCache = { key: cacheKeyFor(getTasksFilePath(projectPath)), data: tasksData };
     return true;
   } catch (err) {
     console.error('Error saving tasks:', err);
@@ -299,9 +301,13 @@ function reorderTasks(projectPath, order) {
 }
 
 /**
- * Watch the active project's directory for tasks.json changes. External
- * edits (CLI / manual edit) trigger a re-read and a TASKS_DATA push to the
- * renderer so the UI stays in sync without requiring the panel to be reopened.
+ * Watch the directory that holds tasks.json for changes. External edits
+ * (CLI / manual edit) trigger a re-read and a TASKS_DATA push to the renderer
+ * so the UI stays in sync without requiring the panel to be reopened.
+ *
+ * The directory is frameStore.metaDir() — `.frame/` for a migrated project,
+ * the project root for one that has not migrated yet — so a layout change
+ * moves the watcher with the file (call restartWatching() after migrating).
  *
  * We watch the directory (not the file) because tools that write atomically
  * via rename — Claude Code, vim, prettier — replace the inode that a
@@ -314,14 +320,19 @@ function reorderTasks(projectPath, order) {
 let tasksFires = 0;
 
 function startWatching(projectPath) {
-  if (watcher && watchedPath === projectPath) return;
-  stopWatching();
-
   if (!projectPath || !fs.existsSync(projectPath)) return;
 
+  const dir = frameStore.metaDir(projectPath);
+  if (watcher && watchedPath === dir) return;
+  stopWatching();
+
+  if (!fs.existsSync(dir)) return;
+
   try {
-    watcher = fsSafe.safeWatch(projectPath, { persistent: false }, (eventType, filename) => {
-      if (!filename || filename !== FRAME_FILES.TASKS) return;
+    watcher = fsSafe.safeWatch(dir, { persistent: false }, (eventType, filename) => {
+      if (!filename) return;
+      notifyMetaChange(projectPath, filename);
+      if (filename !== FRAME_FILES.TASKS) return;
       if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
         activityLog.record('watch.suppressed', { watcher: 'tasks-root', reason: 'self-write' });
         return;
@@ -342,12 +353,43 @@ function startWatching(projectPath) {
         mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks });
       }, 50);
     });
-    watchedPath = projectPath;
+    watchedPath = dir;
   } catch (err) {
     console.error('Error watching project dir:', err);
     watcher = null;
     watchedPath = null;
   }
+}
+
+/**
+ * Other modules care about the meta directory too — frameProject keeps the
+ * generated `.claude/rules/frame.md` in step with `AGENTS.md`. They register
+ * here rather than opening a second watcher on the same directory.
+ */
+const metaChangeListeners = [];
+
+function onMetaFileChange(listener) {
+  if (typeof listener === 'function') metaChangeListeners.push(listener);
+}
+
+function notifyMetaChange(projectPath, filename) {
+  for (const listener of metaChangeListeners) {
+    try {
+      listener(projectPath, filename);
+    } catch (err) {
+      console.error('tasksManager: meta-change listener failed', err);
+    }
+  }
+}
+
+/**
+ * Re-arm the watcher on the project's current meta directory. Migration moves
+ * tasks.json from the root into `.frame/`, which leaves the old directory
+ * watcher pointing at a file that no longer changes.
+ */
+function restartWatching(projectPath) {
+  stopWatching();
+  startWatching(projectPath);
 }
 
 function stopWatching() {
@@ -435,5 +477,7 @@ module.exports = {
   reorderTasks,
   setupIPC,
   stopWatching,
+  restartWatching,
+  onMetaFileChange,
   getLastSelfWriteAt
 };

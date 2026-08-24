@@ -149,8 +149,13 @@ async function openSampleProject(event) {
     return null;
   }
 
-  if (!fs.existsSync(targetDir)) {
+  // An installed copy from before the `.frame/` layout would greet the user
+  // with a migration modal on a demo project. Nothing here is their work, so
+  // it is replaced rather than migrated.
+  const stale = fs.existsSync(targetDir) && require('./frameStore').isLegacyLayout(targetDir);
+  if (!fs.existsSync(targetDir) || stale) {
     try {
+      if (stale) fs.rmSync(targetDir, { recursive: true, force: true });
       copyDirRecursive(sourceDir, targetDir);
     } catch (err) {
       console.error('Failed to copy sample project:', err);

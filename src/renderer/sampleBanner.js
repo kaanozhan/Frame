@@ -31,14 +31,14 @@ let dismissedForCurrentSession = false;
 /** One-line summary of the detected stack for the post-init banner */
 function detectionSummary(project) {
   if (!project || !project.languages || project.languages.length === 0) {
-    return "Frame is set up, but couldn't detect this project's stack — review <strong>.frame/config.json</strong> and <strong>QUICKSTART.md</strong>. Your AI agent starts from <strong>AGENTS.md</strong>.";
+    return "Frame is set up, but couldn't detect this project's stack — review <strong>.frame/config.json</strong> and <strong>.frame/QUICKSTART.md</strong>. Your AI agent starts from <strong>.frame/AGENTS.md</strong>.";
   }
   const bits = [
     project.languages.join(', '),
     project.packageManager,
     (project.sourceRoots || []).filter(r => r !== '.').map(r => `${r}/`).join(', ')
   ].filter(Boolean);
-  return `Frame set up for <strong>${escapeHtml(bits.join(' · '))}</strong> — review <strong>QUICKSTART.md</strong>, correct anything in <strong>.frame/config.json</strong>. Your AI agent starts from <strong>AGENTS.md</strong>.`;
+  return `Frame set up for <strong>${escapeHtml(bits.join(' · '))}</strong> — review <strong>.frame/QUICKSTART.md</strong>, correct anything in <strong>.frame/config.json</strong>. Your AI agent starts from <strong>.frame/AGENTS.md</strong>.`;
 }
 
 function setDetectionVisible(visible) {
@@ -82,12 +82,13 @@ function init() {
   state.onSampleChange((isSample) => {
     if (isSample) {
       dismissedForCurrentSession = false;
-      // Auto-open the side panels so the user immediately sees the
-      // populated tasks + specs the sample exists to demonstrate.
-      // Wrapped in try/catch because if the modules failed to init for
-      // any reason, we still want the banner to show.
-      try { tasksPanel.show(); } catch (err) { console.error('sampleMode: tasksPanel.show failed', err); }
-      try { specPanel.show(); } catch (err) { console.error('sampleMode: specPanel.show failed', err); }
+      // Auto-open the center Tasks view so the user immediately sees the
+      // populated tasks the sample exists to demonstrate (side panels are
+      // retired — retire-rail-and-panels spec). Wrapped in try/catch because
+      // if the modules failed to init, we still want the banner to show.
+      try {
+        require('./terminal').getMultiTerminalUI().showTasksBoard();
+      } catch (err) { console.error('sampleMode: opening tasks view failed', err); }
     }
     setVisible(isSample && !dismissedForCurrentSession);
   });

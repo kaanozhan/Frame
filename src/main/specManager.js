@@ -15,7 +15,8 @@ const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
 const { IPC } = require('../shared/ipcChannels');
-const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, ORCH_META_FILES } = require('../shared/frameConstants');
+const { FRAME_DIR, FRAME_BIN_DIR, FRAME_CONFIG_FILE, FRAME_FILES, ORCH_META_FILES } = require('../shared/frameConstants');
+const frameStore = require('./frameStore');
 const tasksManager = require('./tasksManager');
 const commandStaging = require('./commandStaging');
 const frameProject = require('./frameProject');
@@ -282,7 +283,13 @@ function fileExists(projectPath, slug, name) {
   return fs.existsSync(path.join(getSpecDir(projectPath, slug), name));
 }
 
-function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
+function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull, recordedTaskIds) {
+  // No task data at all — the file could not be read, or an older Frame is
+  // looking in the pre-`.frame/` place. "I don't know" is not "no tasks":
+  // deriving from files alone here walked every finished spec in this
+  // repository back from `done` to `tasks_generated`. Keep what is recorded.
+  if (!tasksDataOrNull) return currentPhase;
+
   // Once spec-derived tasks exist, their statuses drive the implementing →
   // done transition. This overrides the file-based check so flipping a task
   // back to pending automatically rewinds the phase too.
@@ -293,6 +300,15 @@ function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
     if (allCompleted) return 'done';
     if (anyStarted) return 'implementing';
     // No started tasks → fall through to file-based check
+  } else if (recordedTaskCount(projectPath, slug, recordedTaskIds) > 0) {
+    // status.json records ids that tasks.json no longer carries. An
+    // unreadable tasks.json is replaced with a fresh empty one, so the next
+    // read looks like "this spec has no tasks" rather than "unreadable" —
+    // and that walks a finished spec back just as a missing file did. Losing
+    // the records is still "I don't know". A regenerate that legitimately
+    // ends with no tasks rewrites `generated_task_ids` to [] and falls
+    // through to the file-based check below.
+    return currentPhase;
   }
 
   // A live agent is mid-turn on this spec: the command templates write
@@ -308,17 +324,58 @@ function derivePhase(projectPath, slug, currentPhase, tasksDataOrNull) {
   return 'draft';
 }
 
+function recordedTaskCount(projectPath, slug, recordedTaskIds) {
+  if (Array.isArray(recordedTaskIds)) return recordedTaskIds.length;
+  const status = readStatus(projectPath, slug);
+  return status && Array.isArray(status.generated_task_ids) ? status.generated_task_ids.length : 0;
+}
+
 function collectSpecTasks(slug, tasksData) {
   if (!tasksData || !Array.isArray(tasksData.tasks)) return [];
   const prefix = `spec:${slug}:`;
   return tasksData.tasks.filter(t => t && typeof t.source === 'string' && t.source.startsWith(prefix));
 }
 
+// A second Frame open on the same project — an older build that reads the
+// pre-`.frame/` layout and derives phases differently — rewrites status.json
+// the moment this one corrects it, and the two watchers answer each other
+// indefinitely: disk writes, git churn and a phase that never settles.
+//
+// The signature is returning to the same phase over and over in a short
+// space of time. A spec's own lifecycle climbs draft → … → done without
+// repeating itself, and someone iterating — flipping a task back to pending,
+// finishing it again — revisits a phase a few times across a working session.
+// Two Frames answering each other do it within seconds, so the window is what
+// separates them; a session-long tally would eventually punish real work.
+const MAX_WRITES_PER_PHASE = 3;
+const PHASE_WRITE_WINDOW_MS = 60 * 1000;
+const phaseWrites = new Map();
+
+function countPhaseWrite(projectPath, slug, phase, now) {
+  const key = `${projectPath}::${slug}::${phase}`;
+  const times = (phaseWrites.get(key) || []).filter((t) => now - t < PHASE_WRITE_WINDOW_MS);
+  times.push(now);
+  phaseWrites.set(key, times);
+  return times.length;
+}
+
 function reconcilePhase(projectPath, slug, tasksDataOrNull) {
   const status = readStatus(projectPath, slug);
   if (!status) return;
-  const newPhase = derivePhase(projectPath, slug, status.phase, tasksDataOrNull);
+  const newPhase = derivePhase(projectPath, slug, status.phase, tasksDataOrNull, status.generated_task_ids);
   if (newPhase === status.phase) return;
+
+  const writes = countPhaseWrite(projectPath, slug, newPhase, Date.now());
+  if (writes > MAX_WRITES_PER_PHASE) {
+    if (writes === MAX_WRITES_PER_PHASE + 1) {
+      console.warn(
+        `specManager: "${slug}" keeps returning to "${newPhase}" — leaving it alone. ` +
+        'Another Frame is probably open on this project; close the older one.'
+      );
+    }
+    return;
+  }
+
   const now = new Date().toISOString();
   writeStatus(projectPath, slug, {
     ...status,
@@ -326,7 +383,13 @@ function reconcilePhase(projectPath, slug, tasksDataOrNull) {
     updated_at: now,
     last_phase_at: now
   });
-  telemetry.track('spec_phase_advanced', { phase: newPhase });
+  // Deliberately no `spec_phase_advanced` here. That event measures a spec
+  // being carried through the workflow; this path is Frame reconciling on its
+  // own, it fires on regressions as readily as advances, and a bulk reconcile
+  // — opening a repository an older Frame walked backwards — sends one per
+  // spec in a burst and trips the analytics rate limit. The activity record
+  // below is where reconciliation belongs.
+  //
   // Nobody asked for this: reconcile derives the phase from task statuses and
   // rewrites status.json on its own. A conflicted tasks.json once walked 18
   // specs backwards from `done` here with no trace at all.
@@ -1060,7 +1123,7 @@ function startWatching(projectPath) {
   // "done" are driven by spec-derived task statuses, so a status flip in
   // the Tasks panel needs to refresh SPEC_DATA too. Independent watcher
   // so we don't depend on tasksManager's internal pub/sub.
-  const tasksJsonPath = path.join(projectPath, 'tasks.json');
+  const tasksJsonPath = frameStore.resolvePath(projectPath, FRAME_FILES.TASKS);
   if (fs.existsSync(tasksJsonPath)) {
     try {
       activeTasksWatcher = fsSafe.safeWatch(tasksJsonPath, null, () => {
@@ -1205,6 +1268,8 @@ module.exports = {
   renameSpec,
   deleteSpec,
   derivePhase,
+  reconcilePhase,
+  startWatching,
   getCommandPrompt,
   buildSpecCommandFile,
   buildImplementPermissions,

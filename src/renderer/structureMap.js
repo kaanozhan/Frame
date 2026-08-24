@@ -4,8 +4,6 @@
  */
 
 const { ipcRenderer } = require('electron');
-const fs = require('fs');
-const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 const { escapeHtml } = require('./htmlUtils');
 
@@ -54,10 +52,10 @@ let currentStructureData = null;
 
 // Module type colors
 const MODULE_COLORS = {
-  main: '#d4a574',      // Accent - main process
-  renderer: '#78a5d4',  // Info blue - renderer process
-  shared: '#7cb382',    // Success green - shared modules
-  external: '#6b6660'   // Muted - external deps
+  main: '#8ff0ae',      // Accent - main process
+  renderer: '#a6c0f0',  // Info blue - renderer process
+  shared: '#9bdca8',    // Success green - shared modules
+  external: '#948c7c'   // Muted - external deps
 };
 
 /**
@@ -273,15 +271,15 @@ function hide() {
  * Load structure data
  */
 async function loadStructure(projectPath) {
-  const structurePath = path.join(projectPath, 'STRUCTURE.json');
-
+  // Main answers with the parsed map: where STRUCTURE.json lives (root or
+  // .frame/) is frameStore's business, and no renderer module joins a
+  // meta-file path.
   try {
-    if (!fs.existsSync(structurePath)) {
-      showError('STRUCTURE.json not found');
+    const data = await ipcRenderer.invoke(IPC.LOAD_STRUCTURE_MAP, projectPath);
+    if (!data || data.error) {
+      showError((data && data.error) || 'STRUCTURE.json not found');
       return null;
     }
-
-    const data = JSON.parse(fs.readFileSync(structurePath, 'utf8'));
     return data;
   } catch (err) {
     console.error('Error loading structure:', err);

@@ -1309,7 +1309,7 @@
             </div>
             <div class="terminal-line terminal-output">
               ✓ Created project structure<br>
-              ✓ Initialized STRUCTURE.json<br>
+              ✓ Initialized .frame/STRUCTURE.json<br>
               ✓ Ready to code with Claude
             </div>
             <div class="terminal-line">
@@ -1553,7 +1553,7 @@
             <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="faq-answer">
-            <p>Frame is a terminal-first development environment built for AI coding tools. It's not a code editor like VS Code or Cursor — the center is the terminal, not a text editor. Frame standardizes your projects with AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, and tasks.json so you never lose context between sessions.</p>
+            <p>Frame is a terminal-first development environment built for AI coding tools. It's not a code editor like VS Code or Cursor — the center is the terminal, not a text editor. Frame standardizes your projects with a single <code>.frame/</code> directory — AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md and tasks.json — so you never lose context between sessions, while your project root stays yours.</p>
           </div>
         </div>
 
@@ -1573,7 +1573,7 @@
             <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="faq-answer">
-            <p>Frame supports <strong>Claude Code</strong>, <strong>Codex CLI</strong>, and <strong>Gemini CLI</strong>. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code reads CLAUDE.md natively, Gemini CLI reads GEMINI.md natively, and Codex CLI uses a wrapper script that injects AGENTS.md automatically.</p>
+            <p>Frame supports <strong>Claude Code</strong>, <strong>Codex CLI</strong>, and <strong>Gemini CLI</strong>. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code loads <code>.claude/rules/frame.md</code> natively, a copy of <code>.frame/AGENTS.md</code> that Frame keeps in step (verified with Claude Code 2.1.x; run <code>/context</code> to confirm <code>.claude/rules/frame.md</code> loaded), and Codex CLI uses a wrapper script that injects the same file automatically.</p>
           </div>
         </div>
 
@@ -1583,7 +1583,7 @@
             <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="faq-answer">
-            <p>As projects grow, context gets lost between AI sessions — decisions are forgotten, tasks slip through the cracks. Frame solves this with a standardized structure: PROJECT_NOTES.md captures decisions as they happen, tasks.json tracks work, and STRUCTURE.json maps your codebase. The AI reads these at the start of each session, so it always knows the full context.</p>
+            <p>As projects grow, context gets lost between AI sessions — decisions are forgotten, tasks slip through the cracks. Frame solves this with a standardized structure under <code>.frame/</code>: PROJECT_NOTES.md captures decisions as they happen, tasks.json tracks work, and STRUCTURE.json maps your codebase. The AI reads these at the start of each session, so it always knows the full context.</p>
           </div>
         </div>
 

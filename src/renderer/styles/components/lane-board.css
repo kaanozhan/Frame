@@ -84,7 +84,7 @@
 }
 
 .lane-card-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -97,7 +97,7 @@
 .lane-rename-input {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -205,7 +205,7 @@
   font-weight: 500;
   color: var(--accent-primary);
   background: var(--accent-subtle);
-  border: 1px solid var(--accent-border, rgba(212, 165, 116, 0.25));
+  border: 1px solid var(--accent-border, rgba(143, 240, 174, 0.25));
   border-radius: 99px;
   padding: 2px 9px;
   transition: opacity 0.25s ease;
@@ -363,7 +363,7 @@
 }
 
 .lane-board-empty-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -837,7 +837,7 @@
 .task-status-chip.in-progress {
   color: var(--accent-primary);
   background: var(--accent-subtle);
-  border: 1px solid var(--accent-border, rgba(212, 165, 116, 0.25));
+  border: 1px solid var(--accent-border, rgba(143, 240, 174, 0.25));
 }
 
 /* Tasks section filter/sort controls — the dashboard's toolbar buttons +
@@ -972,7 +972,7 @@
   border: 1px solid var(--accent-primary);
   border-radius: var(--radius-md);
   color: var(--bg-deep);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;

@@ -34,7 +34,7 @@
 
 #history-header h3 {
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.2px;
@@ -45,7 +45,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   padding: 0;
   width: 28px;
   height: 28px;
@@ -163,7 +163,7 @@
 
 #tasks-header h3 {
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.2px;
@@ -268,7 +268,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   padding: 0;
   width: 28px;
   height: 28px;
@@ -391,7 +391,7 @@
 }
 
 .task-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
@@ -437,7 +437,7 @@
 }
 
 .task-priority.priority-medium {
-  background: rgba(224, 164, 88, 0.15);
+  background: rgba(229, 205, 142, 0.15);
   color: var(--warning);
 }
 
@@ -458,7 +458,7 @@
   font-size: 10px;
   color: var(--accent-primary);
   background: var(--accent-subtle);
-  border: 1px solid var(--accent-border, rgba(212, 165, 116, 0.25));
+  border: 1px solid var(--accent-border, rgba(143, 240, 174, 0.25));
   padding: 1px 6px;
   border-radius: 4px;
   font-family: var(--font-mono);
@@ -590,12 +590,12 @@
 }
 
 .task-action-btn.task-pause:hover {
-  background: rgba(224, 164, 88, 0.15);
+  background: rgba(229, 205, 142, 0.15);
   color: var(--warning);
 }
 
 .task-action-btn.task-reopen:hover {
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
   color: var(--info);
 }
 
@@ -639,7 +639,7 @@
 }
 
 .app-toast .toast-message {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1.4;
@@ -668,7 +668,7 @@
 }
 
 .app-toast-error .toast-message {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--error);
 }
@@ -691,7 +691,7 @@
 
 .tasks-empty p {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   margin-bottom: var(--space-xs);
 }
@@ -720,7 +720,7 @@
   left: 0;
   bottom: 0;
   width: 1px;
-  background: linear-gradient(180deg, rgba(120, 165, 212, 0.2) 0%, transparent 50%, rgba(120, 165, 212, 0.2) 100%);
+  background: linear-gradient(180deg, rgba(166, 192, 240, 0.2) 0%, transparent 50%, rgba(166, 192, 240, 0.2) 100%);
   pointer-events: none;
 }
 
@@ -746,7 +746,7 @@
 
 #plugins-header h3 {
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.2px;
@@ -779,7 +779,7 @@
 
 #plugins-collapse-btn:hover {
   color: var(--info);
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
 }
 
 .plugins-header-actions {
@@ -805,7 +805,7 @@
 
 #plugins-refresh-btn:hover {
   color: var(--info);
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
 }
 
 #plugins-refresh-btn.spinning svg {
@@ -822,7 +822,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   padding: 0;
   width: 28px;
   height: 28px;
@@ -896,7 +896,7 @@
 
 .plugins-filter-btn.active {
   color: var(--info);
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
 }
 
 /* Plugins Tab Content */
@@ -959,7 +959,7 @@
 }
 
 .plugin-item.installed .plugin-icon {
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
   color: var(--info);
 }
 
@@ -977,7 +977,7 @@
 }
 
 .plugin-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -997,7 +997,7 @@
 }
 
 .plugin-status.status-installed {
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
   color: var(--info);
 }
 
@@ -1039,7 +1039,7 @@
 .plugin-install-btn {
   font-size: 11px;
   padding: var(--space-xs) var(--space-sm);
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
   border: 1px solid var(--info);
   color: var(--info);
   border-radius: var(--radius-sm);
@@ -1127,7 +1127,7 @@
 
 .plugins-empty p {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   margin-bottom: var(--space-xs);
 }
@@ -1152,7 +1152,7 @@
 }
 
 .btn-plugins-toggle:hover {
-  background: rgba(120, 165, 212, 0.15) !important;
+  background: rgba(166, 192, 240, 0.15) !important;
   border-color: var(--info) !important;
   color: var(--info) !important;
 }
@@ -1198,7 +1198,7 @@
 
 #sessions-refresh-btn:hover {
   color: var(--info);
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
 }
 
 #sessions-refresh-btn.spinning svg {
@@ -1256,7 +1256,7 @@
 }
 
 .session-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
@@ -1301,7 +1301,7 @@
 
 .sessions-empty p {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   margin-bottom: var(--space-xs);
 }
@@ -1330,7 +1330,7 @@
   left: 0;
   bottom: 0;
   width: 1px;
-  background: linear-gradient(180deg, rgba(212, 165, 116, 0.2) 0%, transparent 50%, rgba(212, 165, 116, 0.2) 100%);
+  background: linear-gradient(180deg, rgba(143, 240, 174, 0.2) 0%, transparent 50%, rgba(143, 240, 174, 0.2) 100%);
   pointer-events: none;
 }
 
@@ -1356,7 +1356,7 @@
 
 #github-header h3 {
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.2px;
@@ -1427,7 +1427,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   padding: 0;
   width: 28px;
   height: 28px;
@@ -1577,7 +1577,7 @@
 }
 
 .github-issue-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1.4;
@@ -1628,7 +1628,7 @@
 .github-error p,
 .github-coming-soon p {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   margin-bottom: var(--space-xs);
 }
@@ -1700,7 +1700,7 @@
   left: 0;
   bottom: 0;
   width: 1px;
-  background: linear-gradient(180deg, rgba(124, 179, 130, 0.3) 0%, transparent 50%, rgba(124, 179, 130, 0.3) 100%);
+  background: linear-gradient(180deg, rgba(155, 220, 168, 0.3) 0%, transparent 50%, rgba(155, 220, 168, 0.3) 100%);
   pointer-events: none;
 }
 
@@ -1726,7 +1726,7 @@
 
 #git-branches-header h3 {
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.2px;
@@ -1759,7 +1759,7 @@
 
 #git-branches-collapse-btn:hover {
   color: var(--success);
-  background: rgba(124, 179, 130, 0.1);
+  background: rgba(155, 220, 168, 0.1);
 }
 
 .git-branches-header-actions {
@@ -1785,7 +1785,7 @@
 #git-branches-create-btn:hover,
 #git-branches-refresh-btn:hover {
   color: var(--success);
-  background: rgba(124, 179, 130, 0.1);
+  background: rgba(155, 220, 168, 0.1);
 }
 
 #git-branches-refresh-btn.spinning svg {
@@ -1797,7 +1797,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   padding: var(--space-xs);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
@@ -1878,8 +1878,8 @@
 }
 
 .git-branch-item.current {
-  background: rgba(124, 179, 130, 0.1);
-  border-color: rgba(124, 179, 130, 0.3);
+  background: rgba(155, 220, 168, 0.1);
+  border-color: rgba(155, 220, 168, 0.3);
 }
 
 .git-branch-indicator {
@@ -1950,7 +1950,7 @@
 
 .git-branch-action-btn.checkout:hover {
   color: var(--success);
-  background: rgba(124, 179, 130, 0.1);
+  background: rgba(155, 220, 168, 0.1);
 }
 
 .git-branch-action-btn.delete:hover {
@@ -1981,7 +1981,7 @@
 }
 
 .git-worktree-item.main {
-  border-color: rgba(124, 179, 130, 0.3);
+  border-color: rgba(155, 220, 168, 0.3);
 }
 
 .git-worktree-icon {
@@ -2016,7 +2016,7 @@
 .git-worktree-badge {
   font-size: 9px;
   padding: 1px 6px;
-  background: rgba(124, 179, 130, 0.2);
+  background: rgba(155, 220, 168, 0.2);
   color: var(--success);
   border-radius: 10px;
   font-weight: 500;
@@ -2080,7 +2080,7 @@
 .git-add-worktree-btn:hover {
   border-color: var(--success);
   color: var(--success);
-  background: rgba(124, 179, 130, 0.05);
+  background: rgba(155, 220, 168, 0.05);
 }
 
 /* Loading, Error, Empty States */
@@ -2122,7 +2122,7 @@
 .git-branches-error p,
 .git-branches-empty p {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   margin: 0;
 }
 
@@ -2156,7 +2156,7 @@
 }
 
 .git-branches-toast-success {
-  border-color: rgba(124, 179, 130, 0.5);
+  border-color: rgba(155, 220, 168, 0.5);
 }
 
 .git-branches-toast-error {
@@ -2239,14 +2239,14 @@
 /* Initialize Frame Modal */
 .init-modal-lead {
   margin: 0 0 var(--space-md) 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--text-primary);
 }
 
 .init-modal-description {
   margin: 0 0 var(--space-md) 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -2277,7 +2277,7 @@
 
 .init-modal-file-list li {
   padding: var(--space-xs) 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary);
   font-family: var(--font-mono);
   display: flex;
@@ -2286,7 +2286,7 @@
 }
 
 .init-modal-file-list .file-icon {
-  font-size: 14px;
+  font-size: 13px;
   width: 20px;
   text-align: center;
   flex-shrink: 0;
@@ -2297,6 +2297,64 @@
   font-size: 11px;
   margin-left: auto;
   font-family: var(--font-sans, sans-serif);
+}
+
+/* Footprint promise + Claude Code requirement, under the file list. */
+.init-modal-note {
+  margin: 0 0 var(--space-md) 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.init-modal-note code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.init-modal-requirement {
+  margin-bottom: 0;
+}
+
+/* Sharing mode: two radios, `repo` pre-selected. Same visual family as the
+   file list above so the modal reads as one block. */
+.init-modal-sharing {
+  border: 1px solid var(--border-secondary, var(--border-primary));
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.init-modal-sharing legend {
+  padding: 0 var(--space-xs);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.init-modal-sharing label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--space-sm);
+  align-items: baseline;
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+}
+
+.init-modal-sharing input {
+  grid-row: span 2;
+  cursor: pointer;
+}
+
+.init-sharing-title {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.init-sharing-desc {
+  grid-column: 2;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 
 .init-modal-warning {
@@ -2336,7 +2394,7 @@
 
 .modal-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -2345,7 +2403,7 @@
   background: transparent;
   border: none;
   color: var(--text-tertiary);
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   padding: var(--space-xs);
   border-radius: var(--radius-sm);
@@ -2375,7 +2433,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-family: var(--font-mono);
   outline: none;
   transition: all var(--transition-fast);
@@ -2383,7 +2441,7 @@
 
 .modal-body input:focus {
   border-color: var(--success);
-  box-shadow: 0 0 0 2px rgba(124, 179, 130, 0.2);
+  box-shadow: 0 0 0 2px rgba(155, 220, 168, 0.2);
 }
 
 .modal-body input::placeholder {
@@ -2405,7 +2463,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-family: var(--font-mono);
   outline: none;
   cursor: pointer;
@@ -2419,7 +2477,7 @@
 
 .modal-body select:focus {
   border-color: var(--success);
-  box-shadow: 0 0 0 2px rgba(124, 179, 130, 0.2);
+  box-shadow: 0 0 0 2px rgba(155, 220, 168, 0.2);
 }
 
 .modal-body select option {
@@ -2592,7 +2650,7 @@
 }
 
 .overview-header h2 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
@@ -2643,11 +2701,11 @@
 }
 
 .card-icon {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.2px;
@@ -2818,7 +2876,7 @@
 }
 
 .stat-value {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
@@ -2934,7 +2992,7 @@
 }
 
 .structure-map-title h2 {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -2949,7 +3007,7 @@
   background: var(--accent-subtle);
   color: var(--accent-primary);
   border-radius: 12px;
-  border: 1px solid rgba(212, 165, 116, 0.2);
+  border: 1px solid rgba(143, 240, 174, 0.2);
 }
 
 .structure-map-controls {
@@ -3004,8 +3062,8 @@
   border-radius: var(--radius-md);
   padding: 0 var(--space-md) 0 36px;
   color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 12px;
   transition: all var(--transition-fast);
 }
 
@@ -3098,7 +3156,7 @@
 }
 
 .map-sidebar-header h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 var(--space-xs) 0;
@@ -3187,7 +3245,7 @@
 }
 
 .node-stat-value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -3228,7 +3286,7 @@
 
 .relationship-icon {
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .btn-open-file {
@@ -3241,7 +3299,7 @@
   padding: var(--space-md);
   background: var(--accent-subtle);
   color: var(--accent-primary);
-  border: 1px solid rgba(212, 165, 116, 0.3);
+  border: 1px solid rgba(143, 240, 174, 0.3);
   border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
@@ -3270,7 +3328,7 @@
 }
 
 .empty-selection p {
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
 }
 
@@ -3339,7 +3397,7 @@
 
 .node.highlighted text {
   font-weight: 700;
-  font-size: 14px !important;
+  font-size: 13px !important;
   fill: var(--accent-primary) !important;
 }
 
@@ -3393,7 +3451,7 @@
 
 #map-loading p {
   color: var(--text-tertiary);
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0.5px;
   animation: pulse 1.5s infinite ease-in-out;
 }
@@ -3516,7 +3574,7 @@
   gap: var(--space-md);
   height: 100%;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .info-error {
@@ -3525,7 +3583,7 @@
   justify-content: center;
   height: 100%;
   color: var(--error);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* Structure Map Close Button */
@@ -3630,7 +3688,7 @@
 }
 
 .info-module-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -3699,7 +3757,7 @@
 .stat-value {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .info-divider {
@@ -4084,12 +4142,12 @@
 
 .spotlight-icon {
   color: var(--accent-primary);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .spotlight-card-header h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.2px;
@@ -4125,7 +4183,7 @@
   color: var(--bg-deep);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: opacity var(--transition-fast);
@@ -4197,7 +4255,7 @@
 #prompts-header h3 {
   flex: 1;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.2px;
@@ -4229,7 +4287,7 @@
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
   flex-shrink: 0;
-  font-size: 14px;
+  font-size: 13px;
   padding: 0;
 }
 
@@ -4260,7 +4318,7 @@
   outline: none;
   color: var(--text-primary);
   font-size: 12px;
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
 }
 
 #prompts-search::placeholder {
@@ -4339,7 +4397,7 @@
   border: none;
   color: var(--accent-primary);
   font-size: 11px;
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   cursor: pointer;
   padding: 0;
   opacity: 0.8;
@@ -4456,7 +4514,7 @@
 
 #specs-header h3 {
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.2px;
@@ -4598,7 +4656,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
@@ -4633,7 +4691,7 @@
 }
 
 .spec-row-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
@@ -4682,12 +4740,12 @@
 
 .spec-phase-badge.phase-specified,
 .spec-phase-badge.phase-planned {
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
   color: var(--info);
 }
 
 .spec-phase-badge.phase-tasks_generated {
-  background: rgba(224, 164, 88, 0.15);
+  background: rgba(229, 205, 142, 0.15);
   color: var(--warning);
 }
 
@@ -4697,7 +4755,7 @@
 }
 
 .spec-phase-badge.phase-done {
-  background: rgba(124, 179, 130, 0.15);
+  background: rgba(155, 220, 168, 0.15);
   color: var(--success);
 }
 
@@ -4717,7 +4775,7 @@
 }
 
 .specs-empty h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   margin: 0 0 var(--space-xs) 0;
@@ -4909,7 +4967,7 @@
 }
 
 .spec-tab-empty-dot {
-  font-size: 14px;
+  font-size: 13px;
   vertical-align: middle;
   opacity: 0.6;
 }
@@ -4962,9 +5020,9 @@
   margin-bottom: var(--space-sm);
 }
 
-.spec-detail-body h1 { font-size: 16px; }
-.spec-detail-body h2 { font-size: 14px; }
-.spec-detail-body h3 { font-size: 13px; }
+.spec-detail-body h1 { font-size: 14px; }
+.spec-detail-body h2 { font-size: 13px; }
+.spec-detail-body h3 { font-size: 12px; }
 
 .spec-detail-body code {
   font-family: var(--font-mono);
@@ -5322,7 +5380,7 @@
 }
 
 .spec-modal h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -5342,7 +5400,7 @@
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-md);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-family: inherit;
   outline: none;
   transition: border-color var(--transition-fast);
@@ -5376,7 +5434,7 @@
   border-radius: var(--radius-md);
   padding: var(--space-md);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-family: inherit;
   line-height: 1.55;
   outline: none;
@@ -5475,11 +5533,11 @@
 
 .impl-mode-option.selected {
   border-color: var(--accent-primary);
-  background: var(--accent-subtle, rgba(212, 165, 116, 0.12));
+  background: var(--accent-subtle, rgba(143, 240, 174, 0.12));
 }
 
 .impl-mode-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -5529,7 +5587,7 @@
 
 .impl-dest-option.selected {
   border-color: var(--accent-primary);
-  background: var(--accent-subtle, rgba(212, 165, 116, 0.12));
+  background: var(--accent-subtle, rgba(143, 240, 174, 0.12));
 }
 
 .impl-dest-option.disabled {
@@ -5635,6 +5693,33 @@
   display: flex;
 }
 
+/* Inline panel hosting (retire-rail-and-panels spec): a legacy side panel
+   mounted into the center content area. Overrides the slide-in geometry —
+   fixed width, hidden-by-default display, transforms — with a centered
+   reading column. */
+.panel-inline {
+  display: flex !important;
+  width: min(900px, 100%) !important;
+  max-width: none;
+  height: 100%;
+  margin: 0 auto;
+  border-left: 1px solid var(--border-subtle) !important;
+  border-right: 1px solid var(--border-subtle);
+  transform: none !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+/* Inline mode (center-specs-tasks-views spec): rendered inside the center
+   content area instead of the full-window overlay. */
+.specs-dashboard.inline {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  height: 100%;
+  min-height: 0;
+}
+
 .specs-dashboard-header {
   display: flex;
   align-items: center;
@@ -5651,12 +5736,12 @@
 }
 
 .specs-dashboard-mark {
-  font-size: 18px;
+  font-size: 15px;
   color: var(--accent-primary);
 }
 
 .specs-dashboard-title h2 {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -5687,7 +5772,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 15px;
   width: 32px;
   height: 32px;
   border-radius: var(--radius-sm);
@@ -5740,7 +5825,7 @@
   border-radius: var(--radius-md);
   padding: 0 28px 0 32px;
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 12px;
   transition: all var(--transition-fast);
 }
@@ -5843,10 +5928,10 @@
   transition: all var(--transition-fast);
 }
 
+/* No hover transform — same jitter reasoning as .tasks-dashboard-card. */
 .specs-card:hover {
   border-color: var(--accent-primary);
   background: var(--bg-elevated);
-  transform: translateY(-1px);
 }
 
 .specs-card.selected {
@@ -5872,7 +5957,7 @@
 }
 
 .specs-card-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.35;
@@ -5951,13 +6036,13 @@
 }
 
 .specs-dashboard-empty h3 {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text-secondary);
   margin: 0 0 var(--space-sm);
 }
 
 .specs-dashboard-empty p {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-tertiary);
   margin: 0 0 var(--space-lg);
   max-width: 400px;
@@ -5994,7 +6079,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   width: 26px;
   height: 26px;
   border-radius: var(--radius-sm);
@@ -6059,7 +6144,7 @@
 }
 
 .specs-dashboard-detail-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -6087,9 +6172,9 @@
   margin-bottom: var(--space-sm);
 }
 
-.specs-dashboard-detail-body h1 { font-size: 16px; }
-.specs-dashboard-detail-body h2 { font-size: 14px; }
-.specs-dashboard-detail-body h3 { font-size: 13px; }
+.specs-dashboard-detail-body h1 { font-size: 14px; }
+.specs-dashboard-detail-body h2 { font-size: 13px; }
+.specs-dashboard-detail-body h3 { font-size: 12px; }
 
 .specs-dashboard-detail-body code {
   font-family: var(--font-mono);

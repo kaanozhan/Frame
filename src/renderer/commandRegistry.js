@@ -14,6 +14,49 @@ const RECENT_LIMIT = 20;
 const commands = new Map();
 let keyboardBound = false;
 
+// Dynamic providers (palette-jump spec): functions returning ephemeral
+// command-shaped items ({id, title, category, run, when?, shortcut?}) —
+// projects, terminals, specs, views. Recomputed on every getAll() so the
+// palette never shows a stale target; executed via transientById since they
+// never enter the static `commands` map (and never pollute recents).
+const providers = new Set();
+let transientById = new Map();
+
+/** Register a dynamic item provider. Returns an unregister function. */
+function registerProvider(fn) {
+  if (typeof fn !== 'function') throw new Error('Provider must be a function');
+  providers.add(fn);
+  return () => providers.delete(fn);
+}
+
+function collectProviderItems() {
+  const items = [];
+  transientById = new Map();
+  for (const fn of providers) {
+    let produced = [];
+    try {
+      produced = fn() || [];
+    } catch (err) {
+      console.error('Palette provider failed:', err);
+    }
+    for (const item of produced) {
+      if (!item || !item.id || !item.title || typeof item.run !== 'function') continue;
+      const cmd = {
+        id: item.id,
+        title: item.title,
+        category: item.category || '',
+        shortcut: item.shortcut || '',
+        when: typeof item.when === 'function' ? item.when : () => true,
+        run: item.run
+      };
+      if (!cmd.when()) continue;
+      transientById.set(cmd.id, cmd);
+      items.push(cmd);
+    }
+  }
+  return items;
+}
+
 /**
  * Register a command.
  * @param {Object} cmd
@@ -47,13 +90,15 @@ function getById(id) {
 }
 
 function getAll() {
-  return Array.from(commands.values()).filter((c) => c.when());
+  return Array.from(commands.values())
+    .filter((c) => c.when())
+    .concat(collectProviderItems());
 }
 
 function runById(id) {
-  const cmd = commands.get(id);
+  const cmd = commands.get(id) || transientById.get(id);
   if (!cmd || !cmd.when()) return false;
-  pushRecent(id);
+  if (commands.has(id)) pushRecent(id); // transient targets stay out of recents
   try {
     cmd.run();
     return true;
@@ -182,6 +227,7 @@ function bindKeyboard() {
 module.exports = {
   register,
   unregister,
+  registerProvider,
   getById,
   getAll,
   runById,

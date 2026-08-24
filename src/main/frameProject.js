@@ -7,8 +7,12 @@ const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
-const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('../shared/frameConstants');
+const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PATH } = require('../shared/frameConstants');
 const templates = require('../shared/frameTemplates');
+const frameStore = require('./frameStore');
+const gitExclude = require('./gitExclude');
+const gitSharing = require('./gitSharing');
+const layoutMigration = require('./layoutMigration');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
@@ -24,6 +28,17 @@ let mainWindow = null;
  */
 function init(window) {
   mainWindow = window;
+
+  // .claude/rules/frame.md is a copy of .frame/AGENTS.md, so it goes stale the
+  // moment an agent edits AGENTS.md mid-session. tasksManager already watches
+  // the meta directory; this rides along rather than opening a second watcher.
+  try {
+    require('./tasksManager').onMetaFileChange((projectPath, filename) => {
+      if (filename === FRAME_FILES.AGENTS) syncClaudeRule(projectPath);
+    });
+  } catch (err) {
+    console.warn('[frame] could not watch AGENTS.md for rule sync (non-fatal):', err.message);
+  }
 }
 
 /**
@@ -62,62 +77,21 @@ async function createFileIfNotExists(filePath, content) {
 }
 
 /**
- * Create a symlink safely with Windows fallback
- * @param {string} target - The target file name (relative)
- * @param {string} linkPath - The full path for the symlink
- * @returns {boolean} - Whether the operation succeeded
- */
-async function createSymlinkSafe(target, linkPath) {
-  try {
-    // Check if symlink/file already exists
-    if (fs.existsSync(linkPath)) {
-      const stats = fs.lstatSync(linkPath);
-      if (stats.isSymbolicLink()) {
-        // Remove existing symlink to recreate it
-        await fsp.unlink(linkPath);
-      } else {
-        // Regular file exists - don't overwrite, skip
-        console.warn(`${linkPath} exists and is not a symlink, skipping`);
-        return false;
-      }
-    }
-
-    // Create relative symlink
-    await fsp.symlink(target, linkPath);
-    return true;
-  } catch (error) {
-    // Windows without admin/Developer Mode - copy file as fallback
-    if (error.code === 'EPERM' || error.code === 'EPROTO') {
-      try {
-        const targetPath = path.resolve(path.dirname(linkPath), target);
-        if (fs.existsSync(targetPath)) {
-          await fsp.copyFile(targetPath, linkPath);
-          console.warn(`Symlink not supported, copied ${target} to ${linkPath}`);
-          return true;
-        }
-      } catch (copyError) {
-        console.error('Failed to create symlink or copy file:', copyError);
-      }
-    } else {
-      console.error('Failed to create symlink:', error);
-    }
-    return false;
-  }
-}
-
-/**
  * Check which Frame files already exist in the project
  */
 function checkExistingFrameFiles(projectPath) {
   const existingFiles = [];
+  // Only Frame's own paths: a CLAUDE.md or AGENTS.md at the project root is
+  // the user's file, and init neither reads nor replaces it, so listing it as
+  // "already exists" would describe a conflict that no longer happens.
   const filesToCheck = [
-    { name: 'AGENTS.md', path: path.join(projectPath, FRAME_FILES.AGENTS) },
-    { name: 'CLAUDE.md', path: path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK) },
-    { name: 'STRUCTURE.json', path: path.join(projectPath, FRAME_FILES.STRUCTURE) },
-    { name: 'PROJECT_NOTES.md', path: path.join(projectPath, FRAME_FILES.NOTES) },
-    { name: 'tasks.json', path: path.join(projectPath, FRAME_FILES.TASKS) },
-    { name: 'QUICKSTART.md', path: path.join(projectPath, FRAME_FILES.QUICKSTART) },
-    { name: '.frame/', path: path.join(projectPath, FRAME_DIR) }
+    { name: '.frame/', path: path.join(projectPath, FRAME_DIR) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.AGENTS}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.AGENTS) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.STRUCTURE}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.STRUCTURE) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.NOTES}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.NOTES) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.TASKS}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.TASKS) },
+    { name: `${FRAME_DIR}/${FRAME_FILES.QUICKSTART}`, path: path.join(projectPath, FRAME_DIR, FRAME_FILES.QUICKSTART) },
+    { name: CLAUDE_RULE_PATH, path: path.join(projectPath, ...CLAUDE_RULE_PATH.split('/')) }
   ];
 
   for (const file of filesToCheck) {
@@ -135,23 +109,16 @@ function checkExistingFrameFiles(projectPath) {
 async function showInitializeConfirmation(projectPath) {
   const existingFiles = checkExistingFrameFiles(projectPath);
 
-  // Check if CLAUDE.md exists as a real file (not symlink) — existing project scenario
-  const claudeMdPath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);
-  const hasExistingClaudeMd = fs.existsSync(claudeMdPath) && !fs.lstatSync(claudeMdPath).isSymbolicLink();
-
   let message = 'This will create the following files in your project:\n\n';
-  message += '  • .frame/ (config directory)\n';
-  message += '  • .frame/bin/ (AI tool wrappers)\n';
-  message += '  • AGENTS.md (AI instructions)\n';
-  message += '  • CLAUDE.md (symlink to AGENTS.md)\n';
-  message += '  • STRUCTURE.json (module map)\n';
-  message += '  • PROJECT_NOTES.md (session notes)\n';
-  message += '  • tasks.json (task tracking)\n';
-  message += '  • QUICKSTART.md (getting started)\n';
-
-  if (hasExistingClaudeMd) {
-    message += '\n📎 An existing CLAUDE.md was found. Its content will be preserved and appended to AGENTS.md. CLAUDE.md will then become a symlink to AGENTS.md.\n';
-  }
+  message += '  • .frame/ (everything Frame writes lives here)\n';
+  message += '  • .frame/AGENTS.md (AI instructions)\n';
+  message += '  • .frame/STRUCTURE.json (module map)\n';
+  message += '  • .frame/PROJECT_NOTES.md (session notes)\n';
+  message += '  • .frame/tasks.json (task tracking)\n';
+  message += '  • .frame/QUICKSTART.md (getting started)\n';
+  message += "  • .frame/bin/ (Frame's parser and helper scripts)\n";
+  message += '  • .claude/rules/frame.md (a synced copy of .frame/AGENTS.md for Claude Code)\n';
+  message += '\nNothing is added to your project root, and no existing file is read, moved or replaced.\n';
 
   if (existingFiles.length > 0) {
     message += '\n⚠️ These files already exist and will NOT be overwritten:\n';
@@ -184,28 +151,35 @@ async function showInitializeConfirmation(projectPath) {
  */
 const inFlightInits = new Map();
 
-function initializeFrameProject(projectPath, projectName) {
+function initializeFrameProject(projectPath, projectName, options = {}) {
   if (inFlightInits.has(projectPath)) return inFlightInits.get(projectPath);
-  const run = doInitializeFrameProject(projectPath, projectName)
+  const run = doInitializeFrameProject(projectPath, projectName, options)
     .finally(() => inFlightInits.delete(projectPath));
   inFlightInits.set(projectPath, run);
   return run;
 }
 
-async function doInitializeFrameProject(projectPath, projectName) {
+async function doInitializeFrameProject(projectPath, projectName, options = {}) {
   // Point the activity record at this project before init starts, so the
   // work init itself does lands in the right bucket rather than in `app`.
   activityLog.setProject(projectPath);
   perfMonitor.opStart('project-init');
   try {
-    return await runProjectInit(projectPath, projectName);
+    return await runProjectInit(projectPath, projectName, options);
   } finally {
     perfMonitor.opEnd('project-init');
   }
 }
 
-async function runProjectInit(projectPath, projectName) {
+async function runProjectInit(projectPath, projectName, options = {}) {
   const name = projectName || path.basename(projectPath);
+  // Re-init must not reset what the project already decided: identity and
+  // sharing mode are carried over unless the caller explicitly picks one.
+  const existingConfig = frameStore.readConfig(projectPath);
+  const previousSharing = existingConfig && existingConfig.settings && existingConfig.settings.gitSharing;
+  // Never name this `gitSharing`: the module of that name is required at the
+  // top of this file and a local would shadow it for the whole function.
+  const sharingMode = (options.gitSharing || previousSharing) === 'local' ? 'local' : 'repo';
   const frameDirPath = path.join(projectPath, FRAME_DIR);
 
   // Create .frame directory
@@ -223,6 +197,10 @@ async function runProjectInit(projectPath, projectName) {
 
   // Create .frame/config.json (carrying the detected project block)
   const config = templates.getFrameConfigTemplate(name);
+  config.settings.gitSharing = sharingMode;
+  if (existingConfig && existingConfig.projectId) {
+    config.projectId = existingConfig.projectId;
+  }
   if (detectedProject) {
     config.project = detectedProject;
   }
@@ -231,66 +209,20 @@ async function runProjectInit(projectPath, projectName) {
     JSON.stringify(config, null, 2),
     'utf8'
   );
+  // Re-init of a project written before projectId existed: stamp it now, so
+  // every Frame project has a stable identity from here on.
+  frameStore.ensureProjectId(projectPath);
 
-  // Create root-level Frame files (only if they don't exist)
+  // Everything Frame writes lives under .frame/ (plus the one pointer file
+  // below). Nothing at the project root is read, consumed or replaced: an
+  // existing CLAUDE.md / AGENTS.md / .cursorrules is the user's, and Frame
+  // reaching an AI session no longer depends on owning a root file.
 
-  // Detect if this was already a Frame project before this init
-  // .frame/config.json presence is the canonical indicator
-  const wasAlreadyFrameProject = isFrameProject(projectPath);
-
-  // Collect existing MD content to merge into AGENTS.md
-  // Only for files that Frame will convert to symlinks (CLAUDE.md, GEMINI.md)
-  // or for AGENTS.md if the project was never a Frame project
-  let existingInstructions = [];
-
-  // Check CLAUDE.md — real file means existing project directives
-  const claudeMdPath = path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK);
-  if (fs.existsSync(claudeMdPath)) {
-    const stats = fs.lstatSync(claudeMdPath);
-    if (!stats.isSymbolicLink()) {
-      existingInstructions.push({ label: 'CLAUDE.md', content: await fsp.readFile(claudeMdPath, 'utf8') });
-      await fsp.unlink(claudeMdPath);
-    }
-  }
-
-  // Check .claude/CLAUDE.md and .claude/claude.md — Claude Code's subfolder convention
-  const claudeDirCandidates = [
-    path.join(projectPath, '.claude', 'CLAUDE.md'),
-    path.join(projectPath, '.claude', 'claude.md')
-  ];
-  for (const candidate of claudeDirCandidates) {
-    if (fs.existsSync(candidate)) {
-      existingInstructions.push({ label: '.claude/CLAUDE.md', content: await fsp.readFile(candidate, 'utf8') });
-      break; // Only read one
-    }
-  }
-
-  // Check AGENTS.md — if project was not previously a Frame project, merge its content
-  const agentsMdPath = path.join(projectPath, FRAME_FILES.AGENTS);
-  let existingAgentsContent = null;
-  if (!wasAlreadyFrameProject && fs.existsSync(agentsMdPath)) {
-    existingAgentsContent = await fsp.readFile(agentsMdPath, 'utf8');
-    existingInstructions.push({ label: 'AGENTS.md', content: existingAgentsContent });
-    await fsp.unlink(agentsMdPath);
-  }
-
-  // Build AGENTS.md content: Frame template + any existing instructions appended.
-  // Spec-Driven Development is ON for new projects (config template sets
-  // features.specDriven), so the section ships with the file — the spec
-  // commands are staged at init anyway, and hiding the panel only meant the
-  // user couldn't see specs their AI session had already written. Opting out
-  // happens in Settings → Workflow (disableSpecDriven).
-  let agentsContent = templates.getAgentsTemplate(name, { specDriven: true, project: detectedProject });
-  if (existingInstructions.length > 0) {
-    const merged = existingInstructions
-      .map(({ label, content }) => `## Existing Instructions (from ${label})\n\n${content}`)
-      .join('\n\n---\n\n');
-    agentsContent += '\n\n---\n\n' + merged;
-  }
-
+  // .frame/AGENTS.md — Spec-Driven Development is ON for new projects (config
+  // template sets features.specDriven), so the section ships with the file.
   await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.AGENTS),
-    agentsContent
+    frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS),
+    templates.getAgentsTemplate(name, { specDriven: true, project: detectedProject })
   );
 
   // .frame/docs/REFERENCE.md — the reference-on-demand companion to the lean
@@ -309,51 +241,32 @@ async function runProjectInit(projectPath, projectName) {
   await fsp.mkdir(specsDirPath, { recursive: true });
   await createFileIfNotExists(path.join(specsDirPath, '.gitkeep'), '');
 
-  // CLAUDE.md - Symlink to AGENTS.md for Claude Code compatibility
-  await createSymlinkSafe(
-    FRAME_FILES.AGENTS,
-    path.join(projectPath, FRAME_FILES.CLAUDE_SYMLINK)
-  );
-
-  // GEMINI.md - Symlink to AGENTS.md for Gemini CLI compatibility
-  // If it exists as a real file, append its content to AGENTS.md then remove it so the symlink can be created
-  const geminiMdPath = path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK);
-  if (fs.existsSync(geminiMdPath)) {
-    const geminiStats = fs.lstatSync(geminiMdPath);
-    if (!geminiStats.isSymbolicLink()) {
-      const geminiContent = await fsp.readFile(geminiMdPath, 'utf8');
-      const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
-      const current = await fsp.readFile(agentsPath, 'utf8');
-      await fsp.writeFile(agentsPath, current + '\n\n---\n\n## Existing Instructions (from GEMINI.md)\n\n' + geminiContent, 'utf8');
-      await fsp.unlink(geminiMdPath);
-    }
-  }
-  await createSymlinkSafe(
-    FRAME_FILES.AGENTS,
-    path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK)
-  );
-
   const structureWasCreated = await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.STRUCTURE),
+    frameStore.resolvePath(projectPath, FRAME_FILES.STRUCTURE),
     templates.getStructureTemplate(name, detectedProject)
   );
 
   await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.NOTES),
+    frameStore.resolvePath(projectPath, FRAME_FILES.NOTES),
     templates.getNotesTemplate(name)
   );
 
   await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.TASKS),
+    frameStore.resolvePath(projectPath, FRAME_FILES.TASKS),
     templates.getTasksTemplate(name)
   );
 
   await createFileIfNotExists(
-    path.join(projectPath, FRAME_FILES.QUICKSTART),
+    frameStore.resolvePath(projectPath, FRAME_FILES.QUICKSTART),
     templates.getQuickstartTemplate(name, detectedProject)
   );
 
-  // Create .frame/bin directory for AI tool wrappers
+  // .claude/rules/frame.md — what Claude Code loads at session start. The
+  // whole native-delivery mechanism: a generated copy of .frame/AGENTS.md,
+  // replacing the CLAUDE.md symlink Frame used to plant.
+  syncClaudeRule(projectPath);
+
+  // Create .frame/bin for Frame's parser and helper scripts
   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);
   await fsp.mkdir(binDirPath, { recursive: true });
 
@@ -391,12 +304,23 @@ async function runProjectInit(projectPath, projectName) {
   // .claude/settings.json, non-fatal like the bootstrap above.
   let specHintSummary = null;
   try {
-    specHintSummary = installSpecHintHook(projectPath);
+    specHintSummary = installSpecHintHook(projectPath, {
+      file: sharingMode === 'local' ? 'settings.local.json' : 'settings.json'
+    });
     if (specHintSummary.manual) {
       console.warn('[frame] spec-hint hook needs manual install:', specHintSummary.reason);
     }
   } catch (err) {
     console.warn('[frame] spec-hint hook install failed (non-fatal):', err.message);
+  }
+
+  // Apply the sharing mode's side effects: the managed .frame/.gitignore
+  // block, and (mode `local`) the anchored exclude entries. Non-fatal — a
+  // project without git still initializes fine.
+  try {
+    gitSharing.reconcile(projectPath);
+  } catch (err) {
+    console.warn('[frame] applying sharing mode failed (non-fatal):', err.message);
   }
 
   // Update workspace to mark as Frame project
@@ -405,32 +329,101 @@ async function runProjectInit(projectPath, projectName) {
   return { ...config, _structureBootstrap: structureBootstrapSummary, _specHintHook: specHintSummary };
 }
 
-// ─── Spec-knowledge hook install ──────────────────────────
-
-// Hook entries for a user project (scripts live in .frame/bin/ there).
-const SPEC_HINT_HOOKS = {
-  PreToolUse: [
-    {
-      matcher: 'Edit|Write',
-      hooks: [{ type: 'command', command: 'node .frame/bin/spec-hint.js pre-edit' }]
-    }
-  ],
-  UserPromptSubmit: [
-    { hooks: [{ type: 'command', command: 'node .frame/bin/spec-hint.js prompt' }] }
-  ]
-};
+// ─── Claude Code pointer file ─────────────────────────────
 
 /**
- * Register the spec-hint hooks in the project's .claude/settings.json.
+ * Write `.claude/rules/frame.md` — the only thing Frame puts outside
+ * `.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start,
+ * which is how Frame reaches a session without a launch wrapper or a root
+ * file.
+ *
+ * It holds a *copy* of `.frame/AGENTS.md`, not an `@` import of it: Claude
+ * Code does not expand an import that resolves above the session's working
+ * directory, so a session started in a sub-directory loaded this file and got
+ * nothing from it (verified against the real CLI). `.frame/AGENTS.md` stays
+ * canonical and this copy is rewritten whenever it changes — at init, on
+ * project open, after migration, on every spec-driven toggle, and from the
+ * meta-directory watcher while Frame runs.
+ *
+ * Writes only when the content differs: this runs on every project open, and
+ * a needless rewrite is a file-watcher event in someone else's editor.
+ */
+function syncClaudeRule(projectPath) {
+  const agentsText = frameStore.readAgents(projectPath);
+  if (agentsText === null) return false; // nothing to copy — never write an empty rule
+
+  const rulePath = path.join(projectPath, ...CLAUDE_RULE_PATH.split('/'));
+  const next = templates.getClaudeRuleTemplate(agentsText);
+  try {
+    let existing = null;
+    try { existing = fs.readFileSync(rulePath, 'utf8'); } catch (_) { /* first write */ }
+    if (existing === next) return false;
+
+    fs.mkdirSync(path.dirname(rulePath), { recursive: true });
+    fs.writeFileSync(rulePath, next, 'utf8');
+    return true;
+  } catch (err) {
+    console.warn('[frame] could not write .claude/rules/frame.md (non-fatal):', err.message);
+    return false;
+  }
+}
+
+// ─── Spec-knowledge hook install ──────────────────────────
+
+/**
+ * The indentation an existing settings file uses, so rewriting it preserves
+ * the user's formatting instead of reflowing the whole file to Frame's two
+ * spaces (a diff nobody asked for). Falls back to two spaces for a new file.
+ */
+function detectJsonIndent(text, fallback = 2) {
+  const match = /\n([ \t]+)"/.exec(text || '');
+  if (!match) return fallback;
+  return match[1].includes('\t') ? '\t' : match[1];
+}
+
+/** Every hook command in a settings object, whatever shape the file is in. */
+function hookCommandsIn(settings) {
+  const commands = [];
+  const hooks = settings && settings.hooks;
+  if (!hooks || typeof hooks !== 'object') return commands;
+  for (const list of Object.values(hooks)) {
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) {
+      if (!entry || !Array.isArray(entry.hooks)) continue;
+      for (const hook of entry.hooks) {
+        if (hook && typeof hook.command === 'string') commands.push(hook.command);
+      }
+    }
+  }
+  return commands;
+}
+
+/** The command strings Frame installs today. */
+function frameHookCommands() {
+  const commands = new Set();
+  for (const entries of Object.values(templates.SPEC_HINT_HOOKS)) {
+    for (const entry of entries) {
+      for (const hook of entry.hooks) commands.add(hook.command);
+    }
+  }
+  return commands;
+}
+
+/**
+ * Register the spec-hint hooks in the project's Claude settings file.
  * Gated on the active AI tool being Claude Code — other CLIs have no hook
  * system, they keep the AGENTS.md advisory layer.
+ *
+ * `file` selects the settings file: `settings.json` (sharing mode `repo`, the
+ * default) or `settings.local.json` (mode `local`, so nothing Frame writes
+ * shows up in git status).
  *
  * Merge-safe write: read-modify-write preserving every existing key; a hook
  * entry is appended only when an identical one isn't already present, so
  * re-init is idempotent. Unparseable JSON → no write, manual instructions
  * surfaced via the returned summary.
  */
-function installSpecHintHook(projectPath) {
+function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
   // Lazy require — aiToolManager pulls telemetry; keep init's module graph flat.
   const aiToolManager = require('./aiToolManager');
   const active = aiToolManager.getActiveTool();
@@ -439,26 +432,60 @@ function installSpecHintHook(projectPath) {
   }
 
   const settingsDir = path.join(projectPath, '.claude');
-  const settingsPath = path.join(settingsDir, 'settings.json');
+  const settingsPath = path.join(settingsDir, file);
 
   let settings = {};
+  let indent = 2;
   if (fs.existsSync(settingsPath)) {
+    const raw = fs.readFileSync(settingsPath, 'utf8');
     try {
-      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      settings = JSON.parse(raw);
     } catch (err) {
       return {
         installed: false,
         manual: true,
-        reason: `.claude/settings.json is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md "Spec Knowledge Layer"`
+        reason: `.claude/${file} is not valid JSON (${err.message}); add the spec-hint hooks by hand — see .frame/docs/REFERENCE.md "Spec Knowledge Layer"`
       };
     }
+    indent = detectJsonIndent(raw);
+  }
+
+  // A hook the user wired by hand is the layer this install would provide.
+  // Adding Frame's entries beside it runs the hint twice and leaves two
+  // commands to keep in step, so the file is left alone. Frame's own older
+  // command forms are not that case — they are ours to replace, below.
+  const ours = frameHookCommands();
+  const mine = new Set([...ours, ...templates.LEGACY_SPEC_HINT_COMMANDS]);
+  const existing = hookCommandsIn(settings)
+    .find((command) => command.includes('spec-hint.js') && !mine.has(command));
+  if (existing) {
+    return { installed: false, existing: true, file, reason: `a hook already runs spec-hint.js (${existing})` };
   }
 
   settings.hooks = settings.hooks || {};
+
+  // Upgrade Frame's older entries in place. Left alongside today's they would
+  // run the hint twice, and the form Frame shipped before the guard was fixed
+  // exits non-zero — reporting a hook failure on every prompt — in any project
+  // whose `.frame/bin` is not there.
+  const isLegacyEntry = (entry) =>
+    entry && Array.isArray(entry.hooks) && entry.hooks.length > 0 &&
+    entry.hooks.every((h) => h && templates.LEGACY_SPEC_HINT_COMMANDS.includes(h.command));
+  let upgraded = 0;
+  for (const eventName of Object.keys(settings.hooks)) {
+    const list = settings.hooks[eventName];
+    if (!Array.isArray(list)) continue;
+    settings.hooks[eventName] = list.filter((entry) => {
+      if (!isLegacyEntry(entry)) return true;
+      upgraded++;
+      return false;
+    });
+  }
+
   let added = 0;
-  for (const eventName of Object.keys(SPEC_HINT_HOOKS)) {
+  for (const eventName of Object.keys(templates.SPEC_HINT_HOOKS)) {
     const list = Array.isArray(settings.hooks[eventName]) ? settings.hooks[eventName] : [];
-    for (const entry of SPEC_HINT_HOOKS[eventName]) {
+    for (const entry of templates.SPEC_HINT_HOOKS[eventName]) {
       const sig = JSON.stringify(entry);
       if (!list.some((x) => JSON.stringify(x) === sig)) {
         list.push(entry);
@@ -468,11 +495,62 @@ function installSpecHintHook(projectPath) {
     settings.hooks[eventName] = list;
   }
 
-  if (added > 0) {
+  if (added > 0 || upgraded > 0) {
     fs.mkdirSync(settingsDir, { recursive: true });
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + '\n');
   }
-  return { installed: true, added };
+  return { installed: true, added, upgraded, file };
+}
+
+/**
+ * Take Frame's hook entries back out of a Claude settings file. Exact-match on
+ * the command string (today's guard, plus every form Frame shipped before) —
+ * a hook the user wrote, even one that calls spec-hint.js differently, is not
+ * ours to remove. Empty event arrays and an empty `hooks` object are cleaned
+ * up so removal leaves no Frame-shaped residue; every other key survives.
+ */
+function removeSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
+  const settingsPath = path.join(projectPath, '.claude', file);
+  if (!fs.existsSync(settingsPath)) return { removed: 0 };
+
+  let settings;
+  const raw = fs.readFileSync(settingsPath, 'utf8');
+  const indent = detectJsonIndent(raw);
+  try {
+    settings = JSON.parse(raw);
+  } catch (err) {
+    return { removed: 0, manual: true, reason: `.claude/${file} is not valid JSON` };
+  }
+  if (!settings.hooks || typeof settings.hooks !== 'object') return { removed: 0 };
+
+  const frameCommands = new Set(templates.LEGACY_SPEC_HINT_COMMANDS);
+  for (const entries of Object.values(templates.SPEC_HINT_HOOKS)) {
+    for (const entry of entries) {
+      for (const hook of entry.hooks) frameCommands.add(hook.command);
+    }
+  }
+  const isFrameEntry = (entry) =>
+    entry && Array.isArray(entry.hooks) &&
+    entry.hooks.length > 0 &&
+    entry.hooks.every((h) => h && frameCommands.has(h.command));
+
+  let removed = 0;
+  for (const eventName of Object.keys(settings.hooks)) {
+    const list = settings.hooks[eventName];
+    if (!Array.isArray(list)) continue;
+    const kept = list.filter((entry) => {
+      if (!isFrameEntry(entry)) return true;
+      removed++;
+      return false;
+    });
+    if (kept.length > 0) settings.hooks[eventName] = kept;
+    else delete settings.hooks[eventName];
+  }
+
+  if (removed === 0) return { removed: 0 };
+  if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + '\n');
+  return { removed, file };
 }
 
 // ─── Spec-Driven Development toggle ──────────────────────────
@@ -503,6 +581,7 @@ function enableSpecDriven(projectPath) {
     // Already enabled — make sure the artifacts exist anyway (handles the
     // case where someone deleted .frame/specs/ manually) and short-circuit.
     ensureSpecDrivenArtifacts(projectPath, config);
+    syncClaudeRule(projectPath);
     return { success: true, alreadyEnabled: true };
   }
 
@@ -510,6 +589,7 @@ function enableSpecDriven(projectPath) {
   writeFrameConfig(projectPath, config);
 
   ensureSpecDrivenArtifacts(projectPath, config);
+  syncClaudeRule(projectPath); // AGENTS.md gained the spec section
   return { success: true };
 }
 
@@ -533,16 +613,16 @@ function disableSpecDriven(projectPath) {
   // AGENTS.md is user-owned: only remove the section when it is provably
   // Frame's (well-formed managed block). A hand-written or customized
   // section is left alone — same contract as the upgrade path.
-  const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
   try {
-    const existing = fs.readFileSync(agentsPath, 'utf8');
-    const stripped = stripManagedSpecSection(existing);
+    const existing = frameStore.readAgents(projectPath);
+    const stripped = existing === null ? null : stripManagedSpecSection(existing);
     if (stripped !== null && stripped !== existing) {
-      fs.writeFileSync(agentsPath, stripped, 'utf8');
+      frameStore.writeAgents(projectPath, stripped);
     }
   } catch (err) {
     // Missing or unreadable AGENTS.md — the flag flip is what matters.
   }
+  syncClaudeRule(projectPath); // AGENTS.md lost the spec section
 
   return { success: true, alreadyDisabled: !wasEnabled };
 }
@@ -611,15 +691,12 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
   //   2. AGENTS.md exists, no spec section → APPEND the section just before
   //      the trailing footer marker (or at the very end if no footer).
   //   3. AGENTS.md already has the section → no-op.
-  const agentsPath = path.join(projectPath, FRAME_FILES.AGENTS);
-  let existing = '';
-  try {
-    existing = fs.readFileSync(agentsPath, 'utf8');
-  } catch (err) {
-    existing = '';
-  }
+  const existing = frameStore.readAgents(projectPath) || '';
   if (!existing) {
-    fs.writeFileSync(agentsPath, templates.getAgentsTemplate(name, { specDriven: true, project: (config && config.project) || null }), 'utf8');
+    frameStore.writeAgents(
+      projectPath,
+      templates.getAgentsTemplate(name, { specDriven: true, project: (config && config.project) || null })
+    );
   } else if (!existing.includes('Spec-Driven Development')) {
     // Append the short core section (marker-wrapped, stamped current) — the
     // full workflow lives in .frame/docs/REFERENCE.md, guaranteed above
@@ -636,7 +713,7 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
     } else {
       updated = existing.replace(/\n*$/, '') + sectionBlock;
     }
-    fs.writeFileSync(agentsPath, updated, 'utf8');
+    frameStore.writeAgents(projectPath, updated);
   }
   // else: section already present, leave file alone
 }
@@ -660,7 +737,7 @@ function upgradeSpecDocs(projectPath) {
       legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS
     },
     {
-      file: path.join(projectPath, FRAME_FILES.AGENTS),
+      file: frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS),
       body: templates.SPEC_DRIVEN_CORE_SECTION,
       legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
     }
@@ -686,6 +763,152 @@ function upgradeSpecDocs(projectPath) {
       }
     }
   }
+
+  syncClaudeRule(projectPath); // an upgraded AGENTS.md means a stale copy
+}
+
+// ─── Remove Frame from a project ──────────────────────────
+
+/**
+ * Delete everything Frame authored in this project and forget it:
+ * `.frame/`, the pointer file, Frame's hook entries in both Claude settings
+ * files, the managed block in the pre-commit hook, and the exclude block.
+ *
+ * User files are never touched — not the CLAUDE.md a migration restored, not
+ * an AGENTS.md they wrote, not their own hooks. What Frame did not write, it
+ * does not remove.
+ */
+function removeFrame(projectPath) {
+  const removed = [];
+  const errors = [];
+
+  const drop = (label, fn) => {
+    try {
+      if (fn() !== false) removed.push(label);
+    } catch (err) {
+      errors.push(`${label}: ${err.message}`);
+    }
+  };
+
+  // The exclude block first: it names .frame/, so it has to go while the
+  // directory (and the git repo's view of it) is still intact.
+  drop('.git/info/exclude block', () => gitExclude.removeExcluded(projectPath).removed);
+
+  drop(FRAME_DIR, () => {
+    const dir = path.join(projectPath, FRAME_DIR);
+    if (!fs.existsSync(dir)) return false;
+    fs.rmSync(dir, { recursive: true, force: true });
+    return true;
+  });
+
+  drop(CLAUDE_RULE_PATH, () => {
+    const rule = path.join(projectPath, ...CLAUDE_RULE_PATH.split('/'));
+    if (!fs.existsSync(rule)) return false;
+    fs.unlinkSync(rule);
+    // Take the rules/ directory with it when Frame's file was the only thing
+    // in it; a directory with someone else's rules stays.
+    const rulesDir = path.dirname(rule);
+    try {
+      if (fs.readdirSync(rulesDir).length === 0) fs.rmdirSync(rulesDir);
+    } catch (err) { /* leave it */ }
+    return true;
+  });
+
+  for (const file of ['settings.json', 'settings.local.json']) {
+    drop(`.claude/${file} hooks`, () => removeSpecHintHook(projectPath, { file }).removed > 0);
+    // A settings file whose only content was Frame's hooks is a file Frame
+    // created. `{}` left behind is still a Frame-authored byte.
+    drop(`.claude/${file}`, () => dropEmptySettingsFile(projectPath, file));
+  }
+
+  drop('pre-commit hook block', () => removeHookSnippet(projectPath));
+
+  workspace.removeProject(projectPath);
+  return { removed, errors, projectPath };
+}
+
+/**
+ * Delete a Claude settings file that now parses to `{}` — Frame wrote it to
+ * hold its hook entries and nothing else ever went in. A file with any key
+ * left, or one that does not parse, is not ours to remove.
+ */
+function dropEmptySettingsFile(projectPath, file) {
+  const settingsPath = path.join(projectPath, '.claude', file);
+  if (!fs.existsSync(settingsPath)) return false;
+  let settings;
+  try {
+    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  } catch (err) {
+    return false;
+  }
+  if (!settings || typeof settings !== 'object' || Object.keys(settings).length > 0) return false;
+
+  fs.unlinkSync(settingsPath);
+  try {
+    if (fs.readdirSync(path.join(projectPath, '.claude')).length === 0) {
+      fs.rmdirSync(path.join(projectPath, '.claude'));
+    }
+  } catch (err) { /* someone else's .claude/ stays */ }
+  return true;
+}
+
+/**
+ * What Frame's own pre-commit file looks like once its managed block is gone:
+ * the shebang and the two header comment lines it wrote at init. Matching this
+ * exactly is what separates "a file Frame created" from "a file the user
+ * happens to have written only comments in".
+ */
+function isFrameOwnedHookResidue(text) {
+  if (/^\s*(#![^\n]*\n)?\s*(exit 0\s*)?$/.test(text)) return true;
+  const bare = templates.getStructurePreCommitHookTemplate()
+    .replace(templates.getStructureHookSnippet(), '');
+  const normalize = (s) => s.replace(/\n{2,}/g, '\n').trim();
+  return normalize(text) === normalize(bare);
+}
+
+/**
+ * Strip Frame's marker-wrapped block from whichever pre-commit hook carries
+ * it. Anything the user wrote around the block is left exactly as it was, and
+ * a file that becomes nothing but a shebang is deleted — but only where Frame
+ * is the one that could have written the file. Frame never creates
+ * `.husky/pre-commit` (it only offers the snippet to paste), so a Frame block
+ * there is in a file the user owns and usually tracks: strip it, keep it.
+ */
+function removeHookSnippet(projectPath) {
+  const candidates = [
+    { hookPath: path.join(projectPath, '.git', 'hooks', 'pre-commit'), frameCreates: true },
+    { hookPath: path.join(projectPath, '.husky', 'pre-commit'), frameCreates: false }
+  ];
+
+  let changed = false;
+  for (const { hookPath, frameCreates } of candidates) {
+    let text;
+    try {
+      text = fs.readFileSync(hookPath, 'utf8');
+    } catch (err) {
+      continue;
+    }
+    const start = text.indexOf(templates.FRAME_HOOK_MARKER_START);
+    if (start === -1) continue;
+
+    const endIdx = text.indexOf(templates.FRAME_HOOK_MARKER_END, start);
+    const end = endIdx === -1
+      ? text.length
+      : endIdx + templates.FRAME_HOOK_MARKER_END.length + 1; // include the newline
+    const head = text.slice(0, start);
+    const tail = text.slice(end);
+    // Appending the snippet to someone's existing hook inserted a blank-line
+    // separator; removal has to take that back too, or "no Frame bytes left"
+    // is a byte off from what the user actually wrote.
+    const next = tail === '' ? head.replace(/\n{2,}$/, '\n') : head + tail;
+
+    // Frame wrote the whole file at init when there was no hook; if nothing
+    // but what Frame itself put there is left, the file is ours to remove.
+    if (frameCreates && isFrameOwnedHookResidue(next)) fs.unlinkSync(hookPath);
+    else fs.writeFileSync(hookPath, next, 'utf8');
+    changed = true;
+  }
+  return changed;
 }
 
 /**
@@ -695,11 +918,41 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.CHECK_IS_FRAME_PROJECT, (event, projectPath) => {
     const isFrame = isFrameProject(projectPath);
     workspace.updateProjectFrameStatus(projectPath, isFrame);
-    event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame });
+    // `layout` tells the renderer whether this project still carries the
+    // pre-overlay layout, which is what opens the migration modal.
+    const layout = !isFrame ? 'none' : (frameStore.isLegacyLayout(projectPath) ? 'legacy' : 'overlay');
+    if (isFrame) {
+      // `.frame/bin` is committed, so a checkout can carry scripts older than
+      // the running Frame — a clone, a linked worktree, a teammate's commit.
+      // Both stagers are copy-if-changed, so an up-to-date project is read,
+      // compared and left alone. Non-fatal, all of it.
+      try {
+        structureBootstrap.copyParserScripts(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not refresh .frame/bin (non-fatal):', err.message);
+      }
+      try {
+        commandStaging.stageCommandFiles(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not refresh the staged commands (non-fatal):', err.message);
+      }
+      // Tracked state changes behind Frame's back (a teammate commits .frame/,
+      // the user runs `git rm --cached`), so the sharing mode's side effects
+      // are re-applied every time the project is opened.
+      try {
+        gitSharing.reconcile(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not reconcile the sharing mode (non-fatal):', err.message);
+      }
+      // The copy Claude Code reads follows .frame/AGENTS.md, which anything
+      // may have edited since this project was last open.
+      syncClaudeRule(projectPath);
+    }
+    event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout });
     event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
   });
 
-  ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed }) => {
+  ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed, gitSharing }) => {
     try {
       // If not already confirmed by renderer modal, show native dialog as fallback
       if (!confirmed) {
@@ -714,7 +967,7 @@ function setupIPC(ipcMain) {
         }
       }
 
-      const config = await initializeFrameProject(projectPath, projectName);
+      const config = await initializeFrameProject(projectPath, projectName, { gitSharing });
       // Lazy require, same reason as aiToolManager below: telemetry pulls
       // @aptabase/electron → electron, and CI runs the suite with no
       // node_modules. Keep this module's load graph Electron-free.
@@ -753,6 +1006,73 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.SET_SPEC_DRIVEN, (event, { projectPath, enabled }) =>
     setSpecDrivenEnabled(projectPath, enabled === true)
   );
+
+  // ─── Git sharing ───────────────────────────────────────────
+  ipcMain.handle(IPC.GET_GIT_SHARING_STATE, (event, projectPath) => {
+    if (!projectPath || !isFrameProject(projectPath)) return { error: 'not a Frame project' };
+    return gitSharing.getState(projectPath);
+  });
+
+  ipcMain.handle(IPC.SET_GIT_SHARING, (event, { projectPath, mode }) => {
+    if (!projectPath || !isFrameProject(projectPath)) return { error: 'not a Frame project' };
+    return gitSharing.setMode(projectPath, mode);
+  });
+
+  ipcMain.handle(IPC.REMOVE_FRAME_FROM_PROJECT, (event, projectPath) => {
+    if (!projectPath) return { removed: [], errors: ['no project'] };
+    const result = removeFrame(projectPath);
+    event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
+    return result;
+  });
+
+  // ─── Layout migration ──────────────────────────────────────
+  ipcMain.handle(IPC.GET_LAYOUT_MIGRATION_PLAN, (event, projectPath) => {
+    if (!projectPath || !isFrameProject(projectPath)) return null;
+    return layoutMigration.plan(projectPath);
+  });
+
+  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, async (event, { projectPath }) => {
+    if (!projectPath || !isFrameProject(projectPath)) {
+      return { ran: false, reason: 'not a Frame project', moved: [], backedUp: [], review: [] };
+    }
+
+    let receipt;
+    try {
+      receipt = layoutMigration.run(projectPath, null, (progress) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);
+        }
+      });
+    } catch (err) {
+      // run() contains its own failures; anything reaching here happened
+      // around them (planning, the activity log). Say so instead of letting
+      // the invoke reject into a modal that reads "migration did not run".
+      console.error('[frame] layout migration failed:', err);
+      return { ran: false, reason: 'error', error: err.message, moved: [], backedUp: [], review: [] };
+    }
+
+    if (receipt.ran) {
+      // Every meta file just changed address. The watchers are pointed at the
+      // directory they left, and the renderer is showing the old tree.
+      try {
+        require('./tasksManager').restartWatching(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not re-arm the tasks watcher after migration:', err.message);
+      }
+      try {
+        require('./specManager').startWatching(projectPath);
+      } catch (err) {
+        console.warn('[frame] could not re-arm the spec watcher after migration:', err.message);
+      }
+      try {
+        const files = await require('./fileTree').getFileTree(projectPath);
+        if (!event.sender.isDestroyed()) event.sender.send(IPC.FILE_TREE_DATA, files);
+      } catch (err) {
+        console.warn('[frame] could not refresh the file tree after migration:', err.message);
+      }
+    }
+    return receipt;
+  });
 }
 
 module.exports = {
@@ -760,6 +1080,11 @@ module.exports = {
   isFrameProject,
   getFrameConfig,
   initializeFrameProject,
+  runProjectInit,
+  syncClaudeRule,
+  installSpecHintHook,
+  removeSpecHintHook,
+  removeFrame,
   isSpecDrivenEnabled,
   enableSpecDriven,
   disableSpecDriven,

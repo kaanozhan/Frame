@@ -118,6 +118,22 @@ class TerminalTabBar {
     this.element.innerHTML = `
       <div class="lane-bar-left"></div>
       <div class="terminal-tab-actions">
+        <!-- Live agent chips across all projects (topbar-presence spec) -->
+        <div id="presence-bar" class="presence-bar" style="display:none"></div>
+        <!-- Default Agent launcher — moved from the retired sidebar Agent
+             tab; IDs preserved so aiToolSelector/index.js bindings survive -->
+        <div class="lane-bar-launcher">
+          <select id="ai-tool-selector" class="ai-tool-select" tabindex="-1" title="Default agent">
+            <option value="claude">Claude</option>
+            <option value="codex">Codex</option>
+          </select>
+          <button id="sidebar-agent-launch" class="sidebar-agent-launch" tabindex="-1" title="Start default agent">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <span>Start</span>
+          </button>
+        </div>
         <div class="claude-usage-bars" title="Click to refresh">
           <div class="usage-item session">
             <span class="usage-label">Session</span>
@@ -189,7 +205,7 @@ class TerminalTabBar {
     const activeKey = state.activeSectionKey || null;
     const onSection = !!activeKey;
     const onHome = state.viewMode === 'board' && !onSection;
-    const onFrames = state.viewMode !== 'board' && !onSection;
+    const onFrames = state.viewMode === 'detail' && !onSection;
 
     const terminals = state.terminals || [];
     const hasFrames = terminals.length > 0;
@@ -202,9 +218,9 @@ class TerminalTabBar {
       ${hasFrames ? `
         <span class="lane-bar-divider"></span>
         ${terminals.map(t => `
-          <button class="btn-lane-frame ${onFrames && t.id === state.activeTerminalId ? 'current' : ''}" data-id="${escapeHtml(t.id)}" title="${escapeHtml(t.name || 'Frame')}">
+          <button class="btn-lane-frame ${onFrames && t.id === state.activeTerminalId ? 'current' : ''}" data-id="${escapeHtml(t.id)}" title="${escapeHtml(t.name || 'Terminal')}">
             ${lucideIcon(Boxes, 15)}
-            <span class="btn-lane-frame-label">${escapeHtml(t.name || 'Frame')}</span>
+            <span class="btn-lane-frame-label">${escapeHtml(t.name || 'Terminal')}</span>
           </button>
         `).join('')}
       ` : ''}
@@ -396,11 +412,11 @@ class TerminalTabBar {
     try {
       id = await this.manager.createTerminal(options);
     } catch (err) {
-      notify.error(`Could not create a new Frame: ${err.message || 'terminal creation failed'}`);
+      notify.error(`Could not create a new terminal: ${err.message || 'terminal creation failed'}`);
       return;
     }
     if (!id) {
-      notify.error(`Could not create a new Frame — maximum (${this.manager.maxTerminals}) reached for this project`);
+      notify.error(`Could not create a new terminal — maximum (${this.manager.maxTerminals}) reached for this project`);
       return;
     }
     if (this.onLaneCreated) this.onLaneCreated(id);

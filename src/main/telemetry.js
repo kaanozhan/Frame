@@ -23,6 +23,11 @@ const ENABLED_KEY = 'telemetryEnabled';
 
 let initialized = false;
 
+// Bounds what one run can spend of the analytics quota; see the limiter's
+// note in telemetryEvents.js for why an app that only sends user-driven
+// events still needs a ceiling.
+const rateLimiter = telemetryEvents.createRateLimiter();
+
 /**
  * Initialize Aptabase. MUST be called before app.whenReady() because the
  * SDK uses protocol.registerSchemesAsPrivileged internally.
@@ -53,6 +58,9 @@ function track(name, props) {
   if (!isEnabled() || !initialized) return;
   const validated = telemetryEvents.validateEvent(name, props);
   if (validated === null) return;
+  const gate = rateLimiter.check(Date.now());
+  if (gate.notice) console.warn('Telemetry:', gate.notice);
+  if (!gate.allowed) return;
   try {
     aptabase.trackEvent(name, Object.keys(validated).length ? validated : undefined);
   } catch (err) {

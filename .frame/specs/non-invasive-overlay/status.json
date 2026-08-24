@@ -1,10 +1,32 @@
 {
   "slug": "non-invasive-overlay",
-  "title": "Non-Invasive Frame Overlay (.frame-only, zero-touch)",
-  "phase": "specified",
+  "title": "Frame footprint: meta files move into .frame/, delivery stays native",
+  "phase": "done",
   "ai_tool": "claude-code",
-  "generated_task_ids": [],
+  "generated_task_ids": [
+    "task-spec-non-invasive-overlay-T01",
+    "task-spec-non-invasive-overlay-T02",
+    "task-spec-non-invasive-overlay-T03",
+    "task-spec-non-invasive-overlay-T04",
+    "task-spec-non-invasive-overlay-T05",
+    "task-spec-non-invasive-overlay-T06",
+    "task-spec-non-invasive-overlay-T07",
+    "task-spec-non-invasive-overlay-T08",
+    "task-spec-non-invasive-overlay-T09",
+    "task-spec-non-invasive-overlay-T10",
+    "task-spec-non-invasive-overlay-T11",
+    "task-spec-non-invasive-overlay-T12",
+    "task-spec-non-invasive-overlay-T13",
+    "task-spec-non-invasive-overlay-T14",
+    "task-spec-non-invasive-overlay-T15",
+    "task-spec-non-invasive-overlay-T16",
+    "task-spec-non-invasive-overlay-T17",
+    "task-spec-non-invasive-overlay-T18",
+    "task-spec-non-invasive-overlay-T19",
+    "task-spec-non-invasive-overlay-T20"
+  ],
   "created_at": "2026-06-02T12:08:24.367Z",
-  "updated_at": "2026-06-02T12:14:39.963Z",
-  "last_phase_at": "2026-06-02T12:14:39.963Z"
+  "updated_at": "2026-08-24T05:30:00.000Z",
+  "last_phase_at": "2026-08-24T05:30:00.000Z",
+  "implement_mode": "guided"
 }

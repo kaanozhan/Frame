@@ -9,6 +9,8 @@
  * Cards are intentionally minimal here — no Play / Complete / Pause buttons.
  * Clicking a card opens a detail aside on the right with the full task body
  * (description, original userRequest, acceptance criteria, notes, context).
+ * That aside is on demand only: with no selection and no open New Task form
+ * it leaves the layout so the three columns get the full width.
  *
  * State is sourced from the same TASKS_DATA stream used by the side panel,
  * so the dashboard, the side panel, and the on-disk tasks.json all stay in
@@ -34,7 +36,6 @@ let projectLabelEl = null;
 let columnEls = {};
 let countEls = {};
 let detailEl = null;
-let detailEmptyEl = null;
 let detailContentEl = null;
 let detailFormEl = null;
 let dragSource = null;
@@ -67,7 +68,6 @@ function init() {
 
   projectLabelEl = document.getElementById('tasks-dashboard-project');
   detailEl = document.getElementById('tasks-dashboard-detail');
-  detailEmptyEl = detailEl.querySelector('.tasks-dashboard-detail-empty');
   detailContentEl = detailEl.querySelector('.tasks-dashboard-detail-content');
   detailFormEl = document.getElementById('tasks-dashboard-form');
 
@@ -80,12 +80,9 @@ function init() {
 
   document.getElementById('tasks-dashboard-close').addEventListener('click', hide);
 
-  // Both Add entry points (header New Task button, empty-state add card)
-  // open the form inside the right aside instead of the modal — the modal
-  // is reserved for the tasks side panel.
+  // The header New Task button opens the form inside the right aside rather
+  // than the modal — the modal is reserved for the tasks side panel.
   document.getElementById('tasks-dashboard-add').addEventListener('click', showForm);
-  const detailAddBtn = document.getElementById('tasks-dashboard-detail-add');
-  if (detailAddBtn) detailAddBtn.addEventListener('click', showForm);
 
   detailEl.querySelector('.tasks-dashboard-detail-close').addEventListener('click', clearSelection);
 
@@ -142,8 +139,42 @@ function flatten(data) {
   ];
 }
 
-function show() {
-  if (!dashboardEl) return;
+// ─── Inline hosting (center-specs-tasks-views spec) ────────
+// Same contract as specsDashboard: with an inline host registered, the board
+// renders inside the center content area and all legacy entry points route
+// through the host — the full-window overlay path goes dormant.
+
+let inlineHost = null;     // { open(), close() } — set by multiTerminalUI
+let inlineMounted = false;
+let overlayParent = null;
+
+function setInlineHost(host) {
+  inlineHost = host;
+}
+
+function mountInline(container) {
+  if (!dashboardEl || !container) return;
+  if (!overlayParent) overlayParent = dashboardEl.parentNode;
+  dashboardEl.classList.add('visible', 'inline');
+  container.appendChild(dashboardEl);
+  inlineMounted = true;
+  _load();
+}
+
+function notifyDetached() {
+  if (!inlineMounted) return;
+  inlineMounted = false;
+  isVisible = false;
+  resetAside();
+  closeFilterPopover();
+  closeSortPopover();
+  dashboardEl.classList.remove('visible', 'inline');
+  if (overlayParent && dashboardEl.parentNode !== overlayParent) {
+    overlayParent.appendChild(dashboardEl);
+  }
+}
+
+function _load() {
   const projectPath = state.getProjectPath();
   // No project = nothing to show. Surface the same info modal the side panel
   // uses so the user gets one consistent message no matter where they enter.
@@ -155,7 +186,6 @@ function show() {
     return;
   }
   isVisible = true;
-  dashboardEl.classList.add('visible');
   if (projectLabelEl) {
     projectLabelEl.textContent =
       projectPath.split('/').pop() || projectPath.split('\\').pop() || '';
@@ -164,16 +194,34 @@ function show() {
   render();
 }
 
+function show() {
+  if (!dashboardEl) return;
+  if (inlineHost) {
+    inlineHost.open();
+    return;
+  }
+  dashboardEl.classList.add('visible');
+  _load();
+}
+
 function hide() {
   if (!dashboardEl) return;
+  if (inlineMounted && inlineHost) {
+    inlineHost.close(); // view switch triggers notifyDetached()
+    return;
+  }
   isVisible = false;
   dashboardEl.classList.remove('visible');
-  clearSelection();
+  resetAside();
   closeFilterPopover();
   closeSortPopover();
 }
 
 function toggle() {
+  if (inlineHost) {
+    inlineMounted ? inlineHost.close() : inlineHost.open();
+    return;
+  }
   if (isVisible) hide(); else show();
 }
 
@@ -234,14 +282,10 @@ function render() {
     }
   }
 
-  if (selectedTaskId) {
-    const stillExists = tasks.some(t => t.id === selectedTaskId);
-    if (stillExists) {
-      renderDetail(tasks.find(t => t.id === selectedTaskId));
-    } else {
-      clearSelection();
-    }
-  }
+  // A push can delete the selected task out from under us; syncAside drops
+  // the selection rather than leaving a stranded panel.
+  if (selectedTaskId && !tasks.some(t => t.id === selectedTaskId)) selectedTaskId = null;
+  syncAside();
 }
 
 function renderCard(task) {
@@ -392,18 +436,39 @@ function commitOrder() {
   ipcRenderer.send(IPC.REORDER_TASKS, { projectPath, order });
 }
 
+/* ---------- Right aside (detail / form) ---------- */
+
+/**
+ * Single owner of the aside's visibility. It has exactly two reasons to
+ * exist — a selected task or an open form — and when it has neither it
+ * leaves the layout entirely so the three columns take the full width
+ * (tasks-detail-on-demand spec). Every path that changes selection or form
+ * state ends here, so the panel can only be wrong in one place.
+ */
+function syncAside() {
+  if (!detailEl) return;
+  const formOpen = isFormOpen();
+  const task = (!formOpen && selectedTaskId)
+    ? tasks.find(t => t.id === selectedTaskId)
+    : null;
+
+  detailEl.classList.toggle('open', formOpen || !!task);
+  if (detailContentEl) detailContentEl.style.display = task ? '' : 'none';
+  if (task) renderDetail(task);
+}
+
 function selectTask(taskId) {
-  selectedTaskId = taskId;
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
+  selectedTaskId = taskId;
   // Selecting a card always exits form mode — the aside has one job at a time.
-  if (isFormOpen()) hideForm();
+  if (isFormOpen()) detailFormEl.style.display = 'none';
   document.querySelectorAll('.tasks-dashboard-card.selected').forEach(el => {
     el.classList.remove('selected');
   });
   const card = document.querySelector(`.tasks-dashboard-card[data-task-id="${taskId}"]`);
   if (card) card.classList.add('selected');
-  renderDetail(task);
+  syncAside();
 }
 
 function clearSelection() {
@@ -411,9 +476,17 @@ function clearSelection() {
   document.querySelectorAll('.tasks-dashboard-card.selected').forEach(el => {
     el.classList.remove('selected');
   });
-  if (isFormOpen()) return; // keep showing the form if it's open
-  if (detailEmptyEl) detailEmptyEl.style.display = '';
-  if (detailContentEl) detailContentEl.style.display = 'none';
+  syncAside();
+}
+
+/** Leaving the board: no selection, no half-typed form waiting on return. */
+function resetAside() {
+  selectedTaskId = null;
+  document.querySelectorAll('.tasks-dashboard-card.selected').forEach(el => {
+    el.classList.remove('selected');
+  });
+  if (detailFormEl) detailFormEl.style.display = 'none';
+  syncAside();
 }
 
 /* ---------- Inline form (right aside) ---------- */
@@ -438,10 +511,10 @@ function setupForm() {
 
 function showForm() {
   if (!detailFormEl) return;
-  // Form replaces both the empty state and the detail view in the aside.
-  if (detailEmptyEl) detailEmptyEl.style.display = 'none';
-  if (detailContentEl) detailContentEl.style.display = 'none';
+  // Form takes over the aside; a selected task stays selected underneath and
+  // comes back when the form closes.
   detailFormEl.style.display = '';
+  syncAside();
   detailFormEl.reset();
   // Default the priority/category since reset puts the first option
   detailFormEl.querySelector('#tasks-dashboard-form-priority').value = 'medium';
@@ -454,17 +527,9 @@ function showForm() {
 function hideForm() {
   if (!detailFormEl) return;
   detailFormEl.style.display = 'none';
-  // Restore the previous aside state: detail view if a card is selected,
-  // otherwise the empty/add state.
-  if (selectedTaskId) {
-    const task = tasks.find(t => t.id === selectedTaskId);
-    if (task) {
-      renderDetail(task);
-      return;
-    }
-  }
-  if (detailEmptyEl) detailEmptyEl.style.display = '';
-  if (detailContentEl) detailContentEl.style.display = 'none';
+  // Falls back to the detail view if a card is selected, otherwise the aside
+  // collapses.
+  syncAside();
 }
 
 function requestDeleteSelected() {
@@ -479,7 +544,7 @@ function requestDeleteSelected() {
     onConfirm: () => {
       ipcRenderer.send(IPC.DELETE_TASK, { projectPath, taskId: idToDelete });
       // Clear local selection right away — the next TASKS_DATA push will
-      // refresh the columns and the aside falls back to the empty/add state.
+      // refresh the columns and the aside collapses.
       if (selectedTaskId === idToDelete) clearSelection();
     }
   });
@@ -506,7 +571,6 @@ function submitForm() {
 function renderDetail(task) {
   if (!detailEl || !task) return;
 
-  detailEmptyEl.style.display = 'none';
   detailContentEl.style.display = '';
 
   const pill = detailContentEl.querySelector('.tasks-dashboard-detail-status-pill');
@@ -835,5 +899,9 @@ module.exports = {
   show,
   hide,
   toggle,
-  isVisible: () => isVisible
+  isVisible: () => isVisible,
+  setInlineHost,
+  mountInline,
+  notifyDetached,
+  isInlineMounted: () => inlineMounted
 };

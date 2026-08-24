@@ -35,9 +35,9 @@ function getTerminalTheme() {
     };
   }
   return {
-    background: '#151516',
-    foreground: '#d4d4d4',
-    cursor: '#ffffff',
+    background: '#0a0908',
+    foreground: '#c4bcac',
+    cursor: '#8ff0ae',
     black: '#000000',
     red: '#cd3131',
     green: '#0dbc79',
@@ -100,7 +100,7 @@ class TerminalManager {
   constructor() {
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
     this.activeTerminalId = null;
-    this.viewMode = 'board'; // 'board' | 'detail'
+    this.viewMode = 'terminals'; // 'terminals' (default) | 'board' | 'detail'
     this.gridLayout = '1x1'; // detail layout: 1x1 single, larger = cells
     this.maxTerminals = 9;
     this.terminalCounter = 0;
@@ -123,8 +123,13 @@ class TerminalManager {
 
     this.currentProjectPath = projectPath;
 
-    // Restore session for new project
+    // Restore session for new project (names, gridLayout)
     this.restoreProjectSession(projectPath);
+
+    // Selecting a project always lands on its terminals view (terminals-view
+    // spec) — the restored viewMode only survives within a session via the
+    // tab bar, never across a project switch.
+    this.viewMode = 'terminals';
 
     this._notifyStateChange();
   }
@@ -360,8 +365,8 @@ class TerminalManager {
   _initializeTerminal(terminalId, options) {
     const terminal = new Terminal({
       cursorBlink: true,
-      fontSize: 14,
-      fontFamily: 'Consolas, "Courier New", monospace',
+      fontSize: 13,
+      fontFamily: '"JetBrains Mono", Consolas, "Courier New", monospace',
       theme: getTerminalTheme(),
       allowTransparency: false,
       scrollback: 10000,
@@ -385,7 +390,7 @@ class TerminalManager {
 
     const state = {
       id: terminalId,
-      name: options.name || `Frame ${++this.terminalCounter}`,
+      name: options.name || `Terminal ${++this.terminalCounter}`,
       customName: null,
       isActive: false,
       createdAt: Date.now(),
@@ -839,7 +844,7 @@ class TerminalManager {
     terminals.forEach((tState, index) => {
       const instance = this.terminals.get(tState.id);
       if (instance && !instance.state.customName) {
-        const newName = `Frame ${index + 1}`;
+        const newName = `Terminal ${index + 1}`;
         if (instance.state.name !== newName) {
           instance.state.name = newName;
         }

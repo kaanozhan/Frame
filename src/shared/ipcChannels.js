@@ -187,6 +187,21 @@ const IPC = {
   ORCH_REMOVE_WORKER: 'orch-remove-worker',          // renderer → main: cleanup a worker (worktree + branch)
   ORCH_RESUME_WORKER: 'orch-resume-worker',          // renderer → main: relaunch a recovered worker's lane in its existing worktree
 
+  // Meta-file store (frameStore owns where .frame/ files live)
+  LOAD_STRUCTURE_MAP: 'load-structure-map',          // renderer → main (invoke): parsed STRUCTURE.json, or { error }
+
+  // Git sharing mode (.frame/ shared with the repo, or local to this machine)
+  GET_GIT_SHARING_STATE: 'get-git-sharing-state',    // renderer → main (invoke): { mode, tracked, inGit, warning }
+  SET_GIT_SHARING: 'set-git-sharing',                // renderer → main (invoke): { projectPath, mode } → same state
+
+  // Layout migration (pre-overlay project → .frame/), consented per project
+  GET_LAYOUT_MIGRATION_PLAN: 'get-layout-migration-plan',  // renderer → main (invoke): the plan, or null
+  RUN_LAYOUT_MIGRATION: 'run-layout-migration',            // renderer → main (invoke): the receipt
+  LAYOUT_MIGRATION_PROGRESS: 'layout-migration-progress',  // main → renderer: { step, detail }
+
+  // Detach Frame from a project (deletes everything Frame authored)
+  REMOVE_FRAME_FROM_PROJECT: 'remove-frame-from-project',   // renderer → main (invoke): { removed, errors }
+
   // Activity record (the work Frame does on its own — local only, never sent)
   GET_ACTIVITY: 'get-activity',                      // renderer → main: backlog (ring + what landed while closed)
   ACTIVITY_DATA: 'activity-data'                     // main → renderer: coalesced batch of new entries

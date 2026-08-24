@@ -130,8 +130,43 @@ function setupIPCListeners() {
 
 // ─── Visibility ──────────────────────────────────────────
 
-async function show() {
-  if (!dashboardEl) return;
+// ─── Inline hosting (center-specs-tasks-views spec) ────────
+// When multiTerminalUI registers itself as the inline host, the dashboard
+// renders inside the center content area instead of the full-window overlay,
+// and every legacy entry point (show/toggle, deep links, palette) routes
+// through the host so no code path opens the overlay anymore.
+
+let inlineHost = null;     // { open(), close() } — set by multiTerminalUI
+let inlineMounted = false;
+let overlayParent = null;  // where the element lives when not inline-mounted
+
+function setInlineHost(host) {
+  inlineHost = host;
+}
+
+/** Mount into the center content area and load data. Called by the host. */
+async function mountInline(container) {
+  if (!dashboardEl || !container) return;
+  if (!overlayParent) overlayParent = dashboardEl.parentNode;
+  dashboardEl.classList.add('visible', 'inline');
+  container.appendChild(dashboardEl);
+  inlineMounted = true;
+  await _load();
+}
+
+/** The host swapped the center to another view — reset without routing. */
+function notifyDetached() {
+  if (!inlineMounted) return;
+  inlineMounted = false;
+  isVisible = false;
+  clearSelection();
+  dashboardEl.classList.remove('visible', 'inline');
+  if (overlayParent && dashboardEl.parentNode !== overlayParent) {
+    overlayParent.appendChild(dashboardEl);
+  }
+}
+
+async function _load() {
   const projectPath = state.getProjectPath();
   if (!projectPath) {
     require('./taskInfoModal').open?.({
@@ -145,7 +180,6 @@ async function show() {
   try { require('./specPanel').hide?.(); } catch {}
 
   clearSearch();  // start from a clean search state on every open
-  dashboardEl.classList.add('visible');
   isVisible = true;
   if (projectLabelEl) projectLabelEl.textContent = displayProjectName(projectPath);
 
@@ -162,14 +196,32 @@ async function show() {
   renderGrid();
 }
 
+async function show() {
+  if (!dashboardEl) return;
+  if (inlineHost) {
+    inlineHost.open();
+    return;
+  }
+  dashboardEl.classList.add('visible');
+  await _load();
+}
+
 function hide() {
   if (!dashboardEl) return;
+  if (inlineMounted && inlineHost) {
+    inlineHost.close(); // view switch triggers notifyDetached()
+    return;
+  }
   dashboardEl.classList.remove('visible');
   isVisible = false;
   clearSelection();
 }
 
 function toggle() {
+  if (inlineHost) {
+    inlineMounted ? inlineHost.close() : inlineHost.open();
+    return;
+  }
   isVisible ? hide() : show();
 }
 
@@ -631,4 +683,8 @@ function displayProjectName(projectPath) {
   return projectPath.split('/').pop() || projectPath.split('\\').pop() || projectPath;
 }
 
-module.exports = { init, show, hide, toggle };
+module.exports = {
+  init, show, hide, toggle,
+  setInlineHost, mountInline, notifyDetached,
+  isInlineMounted: () => inlineMounted
+};

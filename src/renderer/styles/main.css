@@ -62,6 +62,9 @@
 /* 16. Lane Board (Lane Orchestrator home screen) */
 @import 'components/lane-board.css';
 
+/* 16a. Terminals View (default center view — terminals-view spec) */
+@import 'components/terminals-view.css';
+
 /* 17. Task Section (pinned task detail surface) */
 @import 'components/task-section.css';
 

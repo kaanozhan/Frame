@@ -140,6 +140,22 @@ function setIsFrameProject(isFrame) {
 }
 
 /**
+ * Frame was removed from this project (Settings → Workflow). Flip the flag so
+ * the spec panel and the workflow toggles stop acting on a project that has no
+ * `.frame/` any more, and ask main to re-answer — the workspace record follows
+ * from that. The init prompt is suppressed first: removing Frame is a
+ * decision, and offering to initialize it again in the same second is not an
+ * answer to it.
+ */
+function noteFrameRemoved(projectPath) {
+  if (!projectPath) return;
+  frameInitPromptSuppressed.add(projectPath);
+  if (projectPath !== currentProjectPath) return;
+  setIsFrameProject(false);
+  ipcRenderer.send(IPC.CHECK_IS_FRAME_PROJECT, projectPath);
+}
+
+/**
  * Register callback for Frame status change
  */
 function onFrameStatusChange(callback) {
@@ -217,12 +233,18 @@ function dismissInitPrompt() {
  * Handle initialize Frame confirmation
  */
 function handleInitializeFrame() {
+  // Read the sharing choice before the modal is hidden — `repo` is
+  // pre-selected in the markup, so this is what the user actually saw.
+  const selected = document.querySelector('input[name="init-frame-sharing"]:checked');
+  const gitSharing = selected ? selected.value : 'repo';
+
   hideInitializeFrameModal();
   if (currentProjectPath) {
     const projectName = currentProjectPath.split('/').pop() || currentProjectPath.split('\\').pop();
     ipcRenderer.send(IPC.INITIALIZE_FRAME_PROJECT, {
       projectPath: currentProjectPath,
       projectName: projectName,
+      gitSharing,
       confirmed: true
     });
   }
@@ -420,9 +442,15 @@ function setupIPC() {
     // Terminal session switching is now handled by setProjectPath via multiTerminalUI
   });
 
-  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame }) => {
+  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame, layout }) => {
     if (projectPath === currentProjectPath) {
       setIsFrameProject(isFrame);
+      // A project still carrying Frame's old root layout gets the offer to
+      // move it into .frame/ — once per session, and only for the project
+      // the user is actually looking at.
+      if (layout === 'legacy') {
+        require('./migrationModal').offer(projectPath);
+      }
     }
   });
 
@@ -449,6 +477,7 @@ module.exports = {
   onSampleChange,
   getIsFrameProject,
   setIsFrameProject,
+  noteFrameRemoved,
   onFrameStatusChange,
   onFrameInitialized,
   initializeAsFrameProject

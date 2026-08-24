@@ -51,7 +51,6 @@ release/
 .frame/index/
 
 # Frame orchestration artifacts (materialized on every orchestration start — regenerated)
-.frame/bin/*.js
 .frame/orchestration/
 
 # Frame durable-write artifacts (src/main/fsSafe.js) — the .bak of the last good
@@ -73,3 +72,6 @@ pitch-assets/pdf/
 
 # Orientation eval transcripts/diffs — bulky, local-only (summary lives in scripts/eval/README.md)
 scripts/eval/results/
+
+# Local UI prototypes — exploratory artifacts, never committed
+docs/prototypes/

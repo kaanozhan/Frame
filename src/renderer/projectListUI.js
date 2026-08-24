@@ -1,89 +1,41 @@
 /**
- * Project List UI Module
- * Renders project list in sidebar
+ * Project List UI Module — headless controller (project-dropdown spec).
+ *
+ * The visible project list is gone (the sidebar list → far-left rail →
+ * retired); selection lives in the current-project switcher at the top of
+ * the sidebar (wired in index.js). This module keeps everything that isn't
+ * a row: the workspace projects array, selection flow, first-boot
+ * auto-select, next/prev switching, add/remove, the per-project agent
+ * status store the switcher menu reads, and the workspace nav block under
+ * the Projects tab.
  */
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
-const { Bot } = require('lucide');
 
-let projectsListElement = null;
 let activeProjectPath = null;
 let onProjectSelectCallback = null;
 let projects = []; // Store projects list for navigation
-let focusedIndex = -1; // Currently focused project index
 // On first launch, open the first project automatically. One-shot so later
-// workspace updates never yank the user to the top of the list.
+// workspace updates never yank the user to another project.
 let didInitialAutoSelect = false;
 // projectPath -> { approval, input } counts, from projectStatusBadges.
 let agentStatusMap = new Map();
-
-function lucideIcon(data, size = 12) {
-  const children = data.map(([tag, attrs]) => {
-    const attrStr = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
-    return `<${tag} ${attrStr}/>`;
-  }).join('');
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${children}</svg>`;
-}
+// Set by index.js's switcher so focus()/renders can drive the dropdown.
+let switcherHooks = { open: null, refresh: null };
 
 /**
- * Initialize project list UI
+ * Initialize. The old list container id is accepted and ignored so callers
+ * didn't have to change.
  */
-function init(containerId, onSelectCallback) {
-  projectsListElement = document.getElementById(containerId);
+function init(_containerId, onSelectCallback) {
   onProjectSelectCallback = onSelectCallback;
-  setupStatusTooltip();
   setupIPC();
 }
 
-// ---- Custom hover tooltip for the agent-status badges ----
-// The native `title` tooltip is slow and faint; a fixed-positioned element
-// reads clearly and escapes the list's `overflow-y: auto` clipping.
-let statusTooltipEl = null;
-
-function ensureStatusTooltip() {
-  if (!statusTooltipEl) {
-    statusTooltipEl = document.createElement('div');
-    statusTooltipEl.className = 'project-status-tooltip';
-    document.body.appendChild(statusTooltipEl);
-  }
-  return statusTooltipEl;
-}
-
-function showStatusTooltip(badge) {
-  const text = badge.dataset.tip;
-  if (!text) return;
-  const tip = ensureStatusTooltip();
-  tip.textContent = text;
-  tip.classList.add('visible');
-
-  const r = badge.getBoundingClientRect();
-  const tr = tip.getBoundingClientRect();
-  // Right-align to the badge, clamped to the viewport; sit above when there's
-  // room, otherwise flip below.
-  let left = Math.max(8, Math.min(r.right - tr.width, window.innerWidth - tr.width - 8));
-  let top = r.top - tr.height - 6;
-  if (top < 8) top = r.bottom + 6;
-  tip.style.left = `${left}px`;
-  tip.style.top = `${top}px`;
-}
-
-function hideStatusTooltip() {
-  if (statusTooltipEl) statusTooltipEl.classList.remove('visible');
-}
-
-function setupStatusTooltip() {
-  if (!projectsListElement) return;
-  projectsListElement.addEventListener('mouseover', (e) => {
-    const badge = e.target.closest('.project-status-badge');
-    if (badge && projectsListElement.contains(badge)) showStatusTooltip(badge);
-  });
-  projectsListElement.addEventListener('mouseout', (e) => {
-    const badge = e.target.closest('.project-status-badge');
-    if (badge && !badge.contains(e.relatedTarget)) hideStatusTooltip();
-  });
-  // The hovered badge may scroll out or be re-rendered without a mouseout.
-  projectsListElement.addEventListener('scroll', hideStatusTooltip, { passive: true });
+/** index.js's switcher registers itself here. */
+function setSwitcherHooks(hooks) {
+  switcherHooks = { ...switcherHooks, ...hooks };
 }
 
 /**
@@ -94,211 +46,25 @@ function loadProjects() {
 }
 
 /**
- * Render project list
+ * Workspace data arrived — refresh state (no rows to render anymore).
  */
 function renderProjects(projectsList) {
-  if (!projectsListElement) return;
-
-  projectsListElement.innerHTML = '';
-
-  if (!projectsList || projectsList.length === 0) {
-    projects = [];
-    const noProjectsMsg = document.createElement('div');
-    noProjectsMsg.className = 'no-projects-message';
-    noProjectsMsg.textContent = 'No projects yet. Add a project to get started.';
-    projectsListElement.appendChild(noProjectsMsg);
-    return;
-  }
-
-  // Render in the workspace's stored order — the user controls it by dragging
-  // (persisted via REORDER_WORKSPACE_PROJECTS). No recency auto-sort.
-  projects = [...projectsList];
-
-  projects.forEach((project, index) => {
-    const projectItem = createProjectItem(project, index);
-    projectsListElement.appendChild(projectItem);
-  });
+  projects = [...(projectsList || [])];
 
   // First launch with nothing selected yet: open the top project so the app
-  // doesn't start on an empty context. Skipped if a project is already active
-  // (e.g. restored), and only ever runs once.
+  // doesn't start on an empty context. Skipped if a project is already
+  // active (e.g. restored), and only ever runs once.
   if (!didInitialAutoSelect && !activeProjectPath && projects.length > 0) {
     didInitialAutoSelect = true;
     selectProject(projects[0].path);
   }
 
-  // Keep the active project visible even if it sits below the 3-row fold.
-  scrollActiveIntoView();
-
-  // Update focused index based on active project
-  focusedIndex = projects.findIndex(p => p.path === activeProjectPath);
+  placeWorkspaceNav();
+  if (switcherHooks.refresh) switcherHooks.refresh();
 }
 
 /**
- * Create a project item element
- */
-function createProjectItem(project, index) {
-  const item = document.createElement('div');
-  item.className = 'project-item';
-  item.dataset.path = project.path;
-  item.dataset.index = index;
-  item.tabIndex = 0; // Make focusable
-  item.draggable = true; // Reorderable via drag
-
-  if (project.path === activeProjectPath) {
-    item.classList.add('active');
-  }
-
-  attachDragHandlers(item);
-
-  // Leading marker: Frame projects get a FRAME tag in place of the icon;
-  // everything else keeps the file icon. (No separate right-side badge.)
-  if (project.isFrameProject) {
-    const tag = document.createElement('span');
-    tag.className = 'project-frame-tag';
-    tag.textContent = 'FRAME';
-    item.appendChild(tag);
-  } else {
-    const icon = document.createElement('span');
-    icon.className = 'project-icon';
-    icon.textContent = '📁';
-    item.appendChild(icon);
-  }
-
-  // Project name
-  const name = document.createElement('span');
-  name.className = 'project-name';
-  name.textContent = project.name;
-  name.title = project.path;
-  item.appendChild(name);
-
-  // Agent status badges (needs-approval / waiting-for-input in this project's
-  // background terminals). Populated from the latest status map.
-  const status = document.createElement('span');
-  status.className = 'project-status';
-  renderItemStatus(status, agentStatusMap.get(project.path));
-  item.appendChild(status);
-
-  // Remove button (visible on hover)
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'project-remove-btn';
-  removeBtn.title = 'Remove from list';
-  removeBtn.innerHTML = '&times;';
-  removeBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // Prevent project selection
-    confirmRemoveProject(project.path, project.name);
-  });
-  item.appendChild(removeBtn);
-
-  // Click handler
-  item.addEventListener('click', () => {
-    selectProject(project.path);
-  });
-
-  return item;
-}
-
-/**
- * Render the agent status badges for one project into its status container.
- * `counts` is { approval, input } or undefined (no attention-worthy agents).
- */
-function renderItemStatus(container, counts) {
-  const approval = counts ? counts.approval : 0;
-  const input = counts ? counts.input : 0;
-  let html = '';
-  if (approval > 0) {
-    const label = `${approval} agent${approval > 1 ? 's' : ''} need approval`;
-    html += `<span class="project-status-badge approval" data-tip="${label}" aria-label="${label}">`
-      + `${lucideIcon(Bot, 12)}<span class="project-status-count">${approval}</span></span>`;
-  }
-  if (input > 0) {
-    const label = `${input} agent${input > 1 ? 's' : ''} waiting for input`;
-    html += `<span class="project-status-badge input" data-tip="${label}" aria-label="${label}">`
-      + `${lucideIcon(Bot, 12)}<span class="project-status-count">${input}</span></span>`;
-  }
-  container.innerHTML = html;
-}
-
-/**
- * Apply per-project agent status counts (from projectStatusBadges) to the
- * currently-rendered items. Stored so re-renders keep the badges.
- */
-function applyAgentStatuses(map) {
-  agentStatusMap = map || new Map();
-  if (!projectsListElement) return;
-  hideStatusTooltip();
-  projectsListElement.querySelectorAll('.project-item').forEach((item) => {
-    const status = item.querySelector('.project-status');
-    if (status) renderItemStatus(status, agentStatusMap.get(item.dataset.path));
-  });
-}
-
-/**
- * Wire HTML5 drag-and-drop reordering onto a project item. Dragging an item
- * live-reorders the DOM; on drop the new order is persisted to the workspace.
- */
-function attachDragHandlers(item) {
-  item.addEventListener('dragstart', (e) => {
-    item.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    // setData is required for the drag to initiate in some Chromium builds.
-    try { e.dataTransfer.setData('text/plain', item.dataset.path); } catch (_) {}
-  });
-
-  item.addEventListener('dragend', () => {
-    item.classList.remove('dragging');
-    persistOrder();
-  });
-
-  item.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    const dragging = projectsListElement.querySelector('.project-item.dragging');
-    if (!dragging || dragging === item) return;
-    const rect = item.getBoundingClientRect();
-    const after = (e.clientY - rect.top) / rect.height > 0.5;
-    if (after) {
-      item.after(dragging);
-    } else {
-      item.before(dragging);
-    }
-  });
-}
-
-/**
- * Read the current DOM order, sync the in-memory list, and persist it.
- */
-function persistOrder() {
-  if (!projectsListElement) return;
-  const order = [...projectsListElement.querySelectorAll('.project-item')]
-    .map((el) => el.dataset.path);
-  if (order.length === 0) return;
-
-  // Re-sync the local `projects` array (used for keyboard nav) to the new order.
-  const rank = new Map(order.map((p, i) => [p, i]));
-  projects.sort((a, b) => (rank.get(a.path) ?? 0) - (rank.get(b.path) ?? 0));
-  projects.forEach((p, i) => {
-    const el = projectsListElement.querySelector(`.project-item[data-path="${CSS.escape(p.path)}"]`);
-    if (el) el.dataset.index = i;
-  });
-  focusedIndex = projects.findIndex((p) => p.path === activeProjectPath);
-
-  ipcRenderer.send(IPC.REORDER_WORKSPACE_PROJECTS, order);
-}
-
-/**
- * Scroll the active project item into view within the (max-3-row) list.
- */
-function scrollActiveIntoView() {
-  if (!projectsListElement || !activeProjectPath) return;
-  const el = projectsListElement.querySelector(
-    `.project-item[data-path="${CSS.escape(activeProjectPath)}"]`
-  );
-  if (el) el.scrollIntoView({ block: 'nearest' });
-}
-
-/**
- * Show confirmation dialog and remove project
+ * Confirmation + removal (also offered as the × in the switcher menu).
  */
 function confirmRemoveProject(projectPath, projectName) {
   const confirmed = window.confirm(
@@ -335,29 +101,14 @@ function selectProject(projectPath) {
 }
 
 /**
- * Set active project (visual only)
+ * Set active project (visual state lives in the switcher + workspace nav)
  */
 function setActiveProject(projectPath) {
   activeProjectPath = projectPath;
-
-  // Update visual state
-  if (projectsListElement) {
-    const items = projectsListElement.querySelectorAll('.project-item');
-    items.forEach(item => {
-      if (item.dataset.path === projectPath) {
-        item.classList.add('active');
-      } else {
-        item.classList.remove('active');
-      }
-    });
-  }
-
-  scrollActiveIntoView();
+  placeWorkspaceNav();
+  if (switcherHooks.refresh) switcherHooks.refresh();
 }
 
-/**
- * Get active project path
- */
 function getActiveProject() {
   return activeProjectPath;
 }
@@ -400,6 +151,37 @@ function setupIPC() {
   ipcRenderer.on(IPC.WORKSPACE_UPDATED, (event, projects) => {
     renderProjects(projects);
   });
+
+  // Workspace-nav counts: same pushes the panels/lane rail consume. Both are
+  // scoped to the current project by the senders, which is exactly the nav's
+  // scope (it only exists under the selected project).
+  ipcRenderer.on(IPC.SPEC_DATA, (event, { specs }) => {
+    // Active specs only — same semantics as the lane rail's count
+    navSpecsCount = (specs || []).filter(s => s.phase !== 'done').length;
+    refreshWorkspaceNav();
+  });
+  ipcRenderer.on(IPC.TASKS_DATA, (event, { tasks }) => {
+    const list = (tasks && Array.isArray(tasks.tasks)) ? tasks.tasks : [];
+    navTasksCount = list.filter(t => t.status !== 'completed').length;
+    refreshWorkspaceNav();
+  });
+
+  // Running-agent indicator on the Terminals row tracks live lane status
+  require('./laneStatus').onChange(() => refreshWorkspaceNav());
+}
+
+/**
+ * Per-project agent status counts (from projectStatusBadges). Stored for the
+ * switcher menu's attention dots.
+ */
+function applyAgentStatuses(map) {
+  agentStatusMap = map || new Map();
+  if (switcherHooks.refresh) switcherHooks.refresh();
+}
+
+/** { approval, input } counts for one project, or undefined. */
+function getAgentStatus(projectPath) {
+  return agentStatusMap.get(projectPath);
 }
 
 /**
@@ -425,92 +207,143 @@ function selectPrevProject() {
 }
 
 /**
- * Focus project list for keyboard navigation
+ * "Focus Project List" now means: open the switcher dropdown.
  */
 function focus() {
-  if (!projectsListElement || projects.length === 0) return;
-
-  // Focus current active project or first project
-  const currentIndex = projects.findIndex(p => p.path === activeProjectPath);
-  focusedIndex = currentIndex >= 0 ? currentIndex : 0;
-
-  const items = projectsListElement.querySelectorAll('.project-item');
-  if (items[focusedIndex]) {
-    items[focusedIndex].focus();
-    items[focusedIndex].classList.add('focused');
-  }
-
-  // Setup keyboard navigation (one-time)
-  if (!projectsListElement.dataset.keyboardSetup) {
-    projectsListElement.dataset.keyboardSetup = 'true';
-    projectsListElement.addEventListener('keydown', handleKeydown);
-  }
+  if (switcherHooks.open) switcherHooks.open();
 }
 
-/**
- * Handle keyboard navigation in project list
- */
-function handleKeydown(e) {
-  const items = projectsListElement.querySelectorAll('.project-item');
-
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    items[focusedIndex]?.classList.remove('focused');
-
-    if (e.key === 'ArrowDown') {
-      focusedIndex = focusedIndex < projects.length - 1 ? focusedIndex + 1 : 0;
-    } else {
-      focusedIndex = focusedIndex > 0 ? focusedIndex - 1 : projects.length - 1;
-    }
-
-    items[focusedIndex]?.focus();
-    items[focusedIndex]?.classList.add('focused');
-  }
-
-  if (e.key === 'Enter' && focusedIndex >= 0) {
-    e.preventDefault();
-    selectProject(projects[focusedIndex].path);
-  }
-
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    items[focusedIndex]?.classList.remove('focused');
-    // Return focus to terminal
-    if (typeof window.terminalFocus === 'function') {
-      window.terminalFocus();
-    }
-  }
-}
+/** No list rows to blur anymore — kept for callers. */
+function blur() {}
 
 /**
- * Blur/unfocus project list
- */
-function blur() {
-  const items = projectsListElement?.querySelectorAll('.project-item');
-  items?.forEach(item => item.classList.remove('focused'));
-}
-
-/**
- * Snapshot of the workspace projects (used by the current-project dropdown in
- * the Files/Changes panel). Copy so callers can't mutate internal state.
+ * Snapshot of the workspace projects (switcher menu, file panels). Copy so
+ * callers can't mutate internal state.
  */
 function getProjects() {
   return [...projects];
 }
 
+// ─── Workspace nav (terminals-view spec) ─────────────────────
+// A prototype-style nav block under the selected project. One row per
+// workspace destination; counts ride existing data pushes.
+
+let workspaceNavEl = null;
+let navSpecsCount = 0;
+let navTasksCount = 0;
+
+// One row per workspace destination. `open` receives the multiTerminalUI
+// instance. `surfaces` are the getActiveSurface() values that light the row.
+const WORKSPACE_NAV_ITEMS = [
+  { view: 'terminals', icon: '›_', label: 'Terminals', open: ui => ui.showTerminals(), surfaces: ['terminals'] },
+  { view: 'specs', icon: '≡', label: 'Specs', count: true, open: ui => ui.showSpecs(), surfaces: ['specs', 'section:spec'] },
+  { view: 'tasks', icon: '✓', label: 'Tasks', count: true, open: ui => ui.showTasksBoard(), surfaces: ['tasks', 'section:task'] },
+  { view: 'overview', icon: '◎', label: 'Overview', open: ui => ui.toggleOverview(), surfaces: ['overview'] },
+  { view: 'github', icon: '◇', label: 'GitHub', open: ui => ui.togglePanel('github'), surfaces: ['panel:github'] },
+  { view: 'claude', icon: '✦', label: 'Claude', open: ui => ui.togglePanel('claude'), surfaces: ['panel:claude'] },
+  { view: 'prompts', icon: '❯', label: 'Prompts', open: ui => ui.togglePanel('prompts'), surfaces: ['panel:prompts'] },
+  { view: 'history', icon: '↺', label: 'History', open: ui => ui.togglePanel('history'), surfaces: ['panel:history'] },
+  { view: 'activity', icon: '∿', label: 'Activity', open: ui => ui.togglePanel('activity'), surfaces: ['panel:activity'] }
+];
+
+function buildWorkspaceNav() {
+  const nav = document.createElement('div');
+  nav.className = 'project-workspace-nav';
+  nav.innerHTML = WORKSPACE_NAV_ITEMS.map(item => `
+    <div class="workspace-nav-item" data-view="${item.view}" tabindex="0" role="button">
+      <span class="workspace-nav-icon">${item.icon}</span>
+      <span class="workspace-nav-label">${item.label}</span>
+      <span class="workspace-nav-right">
+        ${item.view === 'terminals' ? '<span class="workspace-nav-agents" style="display:none"></span>' : ''}
+        ${item.view === 'terminals' || item.count ? `<span class="workspace-nav-count" data-count="${item.view}"></span>` : ''}
+      </span>
+    </div>`).join('');
+
+  WORKSPACE_NAV_ITEMS.forEach((item) => {
+    nav.querySelector(`[data-view="${item.view}"]`).addEventListener('click', () => {
+      try {
+        item.open(require('./terminal').getMultiTerminalUI());
+      } catch (err) {
+        console.error(`Failed to open ${item.view} view:`, err);
+      }
+    });
+  });
+  return nav;
+}
+
+function placeWorkspaceNav() {
+  const panel = document.getElementById('workspace-panel');
+  if (!panel) return;
+  if (!activeProjectPath) {
+    if (workspaceNavEl) workspaceNavEl.remove();
+    return;
+  }
+  if (!workspaceNavEl) workspaceNavEl = buildWorkspaceNav();
+  if (workspaceNavEl.parentNode !== panel) panel.appendChild(workspaceNavEl);
+  refreshWorkspaceNav();
+}
+
+function refreshWorkspaceNav() {
+  if (!workspaceNavEl || !workspaceNavEl.isConnected) return;
+  let count = 0;
+  let agents = 0;
+  let surface = '';
+  try {
+    const ui = require('./terminal').getMultiTerminalUI();
+    const manager = ui && ui.getManager && ui.getManager();
+    if (manager) {
+      const laneStatus = require('./laneStatus');
+      const terminals = manager.getTerminalsByProject(activeProjectPath);
+      count = terminals.length;
+      agents = terminals.filter(t => laneStatus.getStatus(t.id).agentName).length;
+      surface = ui.getActiveSurface ? ui.getActiveSurface() : manager.viewMode;
+    }
+  } catch (_) { /* terminal UI not initialized yet */ }
+
+  const termItem = workspaceNavEl.querySelector('[data-view="terminals"]');
+  termItem.querySelector('.workspace-nav-count').textContent = String(count);
+  WORKSPACE_NAV_ITEMS.forEach((item) => {
+    workspaceNavEl.querySelector(`[data-view="${item.view}"]`)
+      .classList.toggle('on', item.surfaces.includes(surface));
+  });
+  const agentsEl = termItem.querySelector('.workspace-nav-agents');
+  agentsEl.style.display = agents > 0 ? '' : 'none';
+  agentsEl.textContent = `◆ ${agents}`;
+  agentsEl.title = `${agents} agent${agents > 1 ? 's' : ''} running`;
+
+  workspaceNavEl.querySelector('[data-count="specs"]').textContent = String(navSpecsCount);
+  workspaceNavEl.querySelector('[data-count="tasks"]').textContent = String(navTasksCount);
+}
+
+/**
+ * Called by multiTerminalUI on every manager state change so the Terminals
+ * count and active highlight track reality without polling.
+ */
+function updateWorkspaceNav() {
+  if (!workspaceNavEl || !workspaceNavEl.isConnected) {
+    placeWorkspaceNav();
+    return;
+  }
+  refreshWorkspaceNav();
+}
+
 module.exports = {
   init,
+  setSwitcherHooks,
   loadProjects,
   renderProjects,
   selectProject,
   setActiveProject,
   getActiveProject,
   getProjects,
+  getAgentStatus,
   addProject,
   removeProject,
+  confirmRemoveProject,
   selectNextProject,
   selectPrevProject,
   focus,
   blur,
-  applyAgentStatuses
+  applyAgentStatuses,
+  updateWorkspaceNav
 };

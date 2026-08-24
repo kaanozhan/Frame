@@ -87,8 +87,9 @@ function readSpecTasks() {
 
 beforeEach(() => {
   projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-spec-sync-'));
+  fs.mkdirSync(path.join(projectDir, FRAME_DIR), { recursive: true });
   fs.writeFileSync(
-    path.join(projectDir, FRAME_FILES.TASKS),
+    path.join(projectDir, FRAME_DIR, FRAME_FILES.TASKS),
     JSON.stringify({ version: '2.0', tasks: [] }, null, 2),
     'utf8'
   );
@@ -184,4 +185,95 @@ test('appending new work leaves existing tasks untouched', () => {
     'completed',
     'the completed task still describes the work it was completed for'
   );
+});
+
+test('a spec is never walked back when the task data cannot be read', () => {
+  // An older Frame opening a migrated repository reads the pre-`.frame/`
+  // tasks.json, finds nothing, and used to derive the phase from files alone —
+  // which walked every finished spec in this repository from `done` back to
+  // `tasks_generated`, rewriting 21 status.json files nobody asked it to touch.
+  writeStatus();
+  writeTasksMd(NON_ASCENDING);
+  fs.writeFileSync(path.join(specDir(), 'spec.md'), '# Sample spec\n', 'utf8');
+  fs.writeFileSync(path.join(specDir(), 'plan.md'), '# Plan\n', 'utf8');
+
+  for (const phase of ['done', 'implementing']) {
+    const statusPath = path.join(specDir(), 'status.json');
+    const status = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+    fs.writeFileSync(statusPath, JSON.stringify({ ...status, phase }, null, 2), 'utf8');
+
+    assert.equal(specManager.derivePhase(projectDir, SLUG, phase, null), phase, `${phase} survives null`);
+    assert.equal(specManager.derivePhase(projectDir, SLUG, phase, undefined), phase, `${phase} survives undefined`);
+
+    specManager.reconcilePhase(projectDir, SLUG, null);
+    assert.equal(JSON.parse(fs.readFileSync(statusPath, 'utf8')).phase, phase, 'status.json untouched');
+  }
+
+  // Real task data still drives the transition it is there to drive.
+  specManager.syncTasksFromMarkdown(projectDir, SLUG);
+  const data = tasksManager.loadTasks(projectDir);
+  assert.equal(specManager.derivePhase(projectDir, SLUG, 'done', data), 'tasks_generated', 'pending tasks still rewind');
+});
+
+test('a spec is never walked back when its recorded tasks are gone from tasks.json', () => {
+  // A corrupt tasks.json is not reported as unreadable: tasksManager replaces
+  // it with a fresh empty one and hands back `{ tasks: [], corrupt: true }`,
+  // and the next open reads that empty file as plain valid data. Both look
+  // like "this spec has no tasks" and used to walk `done` back — permanently,
+  // because the empty replacement is on disk from then on.
+  writeStatus();
+  writeTasksMd(NON_ASCENDING);
+  fs.writeFileSync(path.join(specDir(), 'spec.md'), '# Sample spec\n', 'utf8');
+
+  const statusPath = path.join(specDir(), 'status.json');
+  const recorded = { ...JSON.parse(fs.readFileSync(statusPath, 'utf8')), phase: 'done', generated_task_ids: ['task-a', 'task-b'] };
+  fs.writeFileSync(statusPath, JSON.stringify(recorded, null, 2), 'utf8');
+
+  for (const data of [{ version: '2.0', tasks: [], corrupt: true }, { version: '2.0', tasks: [] }, {}]) {
+    assert.equal(
+      specManager.derivePhase(projectDir, SLUG, 'done', data),
+      'done',
+      `done survives ${JSON.stringify(data)}`
+    );
+    specManager.reconcilePhase(projectDir, SLUG, data);
+    assert.equal(JSON.parse(fs.readFileSync(statusPath, 'utf8')).phase, 'done', 'status.json untouched');
+  }
+
+  // A regenerate that legitimately ends with no tasks clears the record, and
+  // then the file-based fallback is the right answer again.
+  fs.writeFileSync(statusPath, JSON.stringify({ ...recorded, generated_task_ids: [] }, null, 2), 'utf8');
+  assert.equal(
+    specManager.derivePhase(projectDir, SLUG, 'done', { version: '2.0', tasks: [] }),
+    'tasks_generated',
+    'no recorded ids → files decide'
+  );
+});
+
+test('two Frames arguing over one spec stop being answered', () => {
+  // An older build on the same project rewrites status.json the moment this
+  // one corrects it. Left alone the two watchers answer each other forever,
+  // rewriting the file and churning git. The natural lifecycle never revisits
+  // a phase; a third return to one is the argument, not the work.
+  writeStatus();
+  writeTasksMd(NON_ASCENDING);
+  fs.writeFileSync(path.join(specDir(), 'spec.md'), '# Sample spec\n', 'utf8');
+  const statusPath = path.join(specDir(), 'status.json');
+  const setPhase = (phase) => {
+    const s = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+    fs.writeFileSync(statusPath, JSON.stringify({ ...s, phase }, null, 2), 'utf8');
+  };
+  const phaseNow = () => JSON.parse(fs.readFileSync(statusPath, 'utf8')).phase;
+
+  // tasks.md exists, so reconcile derives 'tasks_generated' every time; the
+  // other Frame keeps putting 'done' back.
+  let corrected = 0;
+  for (let round = 0; round < 10; round++) {
+    setPhase('done');
+    specManager.reconcilePhase(projectDir, SLUG, { version: '2.0', tasks: [] });
+    if (phaseNow() === 'tasks_generated') corrected++;
+  }
+
+  assert.ok(corrected >= 1, 'it does correct the first rounds');
+  assert.ok(corrected <= 3, `and then stops answering (corrected ${corrected} times)`);
+  assert.equal(phaseNow(), 'done', 'the last write is the other Frame\'s, not ours');
 });

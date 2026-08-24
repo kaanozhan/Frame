@@ -479,14 +479,19 @@ function repoRootFrom(dir) {
 }
 
 // The repo's tasks.json `tasks` array, or [] if it can't be read — the banner
-// is a convenience layered on the report, never a reason to fail it.
-function readTasks(repoRoot) {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(path.join(repoRoot, 'tasks.json'), 'utf8'));
-    return Array.isArray(parsed.tasks) ? parsed.tasks : [];
-  } catch (_) {
-    return [];
+// is a convenience layered on the report, never a reason to fail it. `.frame/`
+// first, the project root second: a project that has not migrated yet still
+// keeps its tasks.json where it always was.
+export function readTasks(repoRoot) {
+  for (const candidate of [path.join(repoRoot, '.frame', 'tasks.json'), path.join(repoRoot, 'tasks.json')]) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+      return Array.isArray(parsed.tasks) ? parsed.tasks : [];
+    } catch (_) {
+      /* try the next one */
+    }
   }
+  return [];
 }
 
 // Open the finished report in the default browser, detached so it never blocks

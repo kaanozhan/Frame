@@ -19,6 +19,10 @@ let overlayEl = null;
 let toggleEl = null;
 let crashDumpsToggleEl = null;
 let specDrivenToggleEl = null;
+let gitSharingSelectEl = null;
+let gitSharingWarningEl = null;
+let removeFrameBtnEl = null;
+let removeFrameNoteEl = null;
 let specDrivenNoteEl = null;
 let isOpen = false;
 
@@ -39,6 +43,10 @@ function init() {
   crashDumpsToggleEl = document.getElementById('settings-crash-dumps-toggle');
   specDrivenToggleEl = document.getElementById('settings-spec-driven-toggle');
   specDrivenNoteEl = document.getElementById('settings-spec-driven-note');
+  gitSharingSelectEl = document.getElementById('settings-git-sharing');
+  gitSharingWarningEl = document.getElementById('settings-git-sharing-warning');
+  removeFrameBtnEl = document.getElementById('settings-remove-frame');
+  removeFrameNoteEl = document.getElementById('settings-remove-frame-note');
 
   // About section
   aboutVersionEl = document.getElementById('settings-version');
@@ -108,6 +116,70 @@ function init() {
         setSpecDrivenNote('Could not change this setting: ' + err.message);
       } finally {
         specDrivenToggleEl.disabled = false;
+      }
+    });
+  }
+
+  // Git sharing: per-project, like the spec-driven flag. Main applies the
+  // mode (exclude block, .frame/.gitignore, which settings file the hooks
+  // live in) and answers with the state we re-render from — including the
+  // warning when .frame/ is already committed.
+  if (gitSharingSelectEl) {
+    gitSharingSelectEl.addEventListener('change', async () => {
+      const projectPath = state.getProjectPath();
+      const mode = gitSharingSelectEl.value;
+      if (!projectPath) return;
+      gitSharingSelectEl.disabled = true;
+      try {
+        const result = await ipcRenderer.invoke(IPC.SET_GIT_SHARING, { projectPath, mode });
+        renderGitSharing(result);
+      } catch (err) {
+        setGitSharingWarning('Could not change this setting: ' + err.message);
+      } finally {
+        gitSharingSelectEl.disabled = false;
+      }
+    });
+  }
+
+  // Remove Frame: destructive and irreversible, so it confirms first and
+  // says exactly what will be deleted. Main does the work and answers with a
+  // list; the note reports it rather than a bare "done".
+  if (removeFrameBtnEl) {
+    removeFrameBtnEl.addEventListener('click', async () => {
+      const projectPath = state.getProjectPath();
+      if (!projectPath) {
+        setRemoveFrameNote('Open a project first.');
+        return;
+      }
+      const confirmed = window.confirm(
+        'Remove Frame from this project?\n\n' +
+        'This deletes .frame/ (including your specs, notes and tasks) and ' +
+        '.claude/rules/frame.md, takes Frame\'s hook entries out of ' +
+        '.claude/settings.json and settings.local.json — deleting either file ' +
+        'if Frame\'s entries were all it held — takes Frame\'s block out of the ' +
+        'pre-commit hook, and removes its block from .git/info/exclude. ' +
+        'Anything you wrote is left where it is.\n\n' +
+        'This cannot be undone.'
+      );
+      if (!confirmed) return;
+
+      removeFrameBtnEl.disabled = true;
+      try {
+        const result = await ipcRenderer.invoke(IPC.REMOVE_FRAME_FROM_PROJECT, projectPath);
+        if (result && result.errors && result.errors.length > 0) {
+          setRemoveFrameNote('Removed, with problems: ' + result.errors.join('; '));
+        } else {
+          setRemoveFrameNote('Removed: ' + ((result && result.removed) || []).join(', '));
+        }
+        // The project is no longer a Frame project: say so, or the spec
+        // panel keeps offering to write into a .frame/ that is gone.
+        state.noteFrameRemoved(projectPath);
+        await syncGitSharing();
+        await syncSpecDrivenToggle();
+      } catch (err) {
+        setRemoveFrameNote('Could not remove Frame: ' + err.message);
+      } finally {
+        removeFrameBtnEl.disabled = false;
       }
     });
   }
@@ -331,6 +403,7 @@ async function syncToggleFromSettings() {
   }
 
   await syncSpecDrivenToggle();
+  await syncGitSharing();
 }
 
 /**
@@ -356,6 +429,53 @@ async function syncSpecDrivenToggle() {
     specDrivenToggleEl.disabled = true;
     setSpecDrivenNote('Could not read this project’s Frame config.');
   }
+}
+
+/**
+ * Paint the sharing row from main's state object. `error` means the project
+ * isn't a Frame project (or none is open) — the control goes inert rather
+ * than showing a mode the project doesn't have.
+ */
+function renderGitSharing(stateObj) {
+  if (!gitSharingSelectEl) return;
+  if (!stateObj || stateObj.error) {
+    gitSharingSelectEl.disabled = true;
+    setGitSharingWarning(
+      stateObj && stateObj.error === 'not a Frame project'
+        ? 'Initialize this project with Frame to choose how its files relate to git.'
+        : null
+    );
+    return;
+  }
+  gitSharingSelectEl.disabled = false;
+  gitSharingSelectEl.value = stateObj.mode;
+  setGitSharingWarning(stateObj.warning);
+}
+
+async function syncGitSharing() {
+  if (!gitSharingSelectEl) return;
+  const projectPath = state.getProjectPath();
+  if (!projectPath) {
+    renderGitSharing({ error: 'no project' });
+    return;
+  }
+  try {
+    renderGitSharing(await ipcRenderer.invoke(IPC.GET_GIT_SHARING_STATE, projectPath));
+  } catch (err) {
+    renderGitSharing({ error: err.message });
+  }
+}
+
+function setRemoveFrameNote(message) {
+  if (!removeFrameNoteEl) return;
+  removeFrameNoteEl.textContent = message || '';
+  removeFrameNoteEl.style.display = message ? '' : 'none';
+}
+
+function setGitSharingWarning(message) {
+  if (!gitSharingWarningEl) return;
+  gitSharingWarningEl.textContent = message || '';
+  gitSharingWarningEl.style.display = message ? '' : 'none';
 }
 
 function setSpecDrivenNote(message) {

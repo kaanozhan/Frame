@@ -38,6 +38,8 @@
   },
   "dependencies": {
     "@aptabase/electron": "^0.3.1",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "d3": "^7.9.0",
     "diff2html": "^3.4.56",
     "electron-log": "^5.4.4",

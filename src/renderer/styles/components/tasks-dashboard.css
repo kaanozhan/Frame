@@ -16,6 +16,17 @@
   opacity: 1;
 }
 
+/* Inline mode (center-specs-tasks-views spec): rendered inside the center
+   content area instead of the full-window overlay. */
+.tasks-dashboard.inline {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  height: 100%;
+  min-height: 0;
+  transition: none;
+}
+
 /* ---------- Header ---------- */
 .tasks-dashboard-header {
   flex-shrink: 0;
@@ -36,7 +47,7 @@
 }
 
 .tasks-dashboard-title h2 {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -44,7 +55,7 @@
 }
 
 .tasks-dashboard-mark {
-  font-size: 18px;
+  font-size: 15px;
   color: var(--accent-primary);
   line-height: 1;
 }
@@ -470,7 +481,7 @@
 }
 
 .tasks-dashboard-column-dot.status-pending { background: var(--text-tertiary); }
-.tasks-dashboard-column-dot.status-in-progress { background: var(--info); box-shadow: 0 0 8px rgba(120, 165, 212, 0.5); }
+.tasks-dashboard-column-dot.status-in-progress { background: var(--info); box-shadow: 0 0 8px rgba(166, 192, 240, 0.5); }
 .tasks-dashboard-column-dot.status-completed { background: var(--success); }
 
 .tasks-dashboard-column-title {
@@ -550,10 +561,11 @@
 .tasks-dashboard-card.priority-medium::before { background: var(--warning); }
 .tasks-dashboard-card.priority-low::before { background: var(--success); }
 
+/* No hover transform: a card that lifts under the cursor slips out from
+   under it at the edges and re-enters — an oscillating hover (jitter). */
 .tasks-dashboard-card:hover {
   border-color: var(--border-strong);
   background: var(--bg-elevated);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
@@ -569,7 +581,7 @@
 }
 
 .tasks-dashboard-card-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1.4;
@@ -604,7 +616,7 @@
 }
 
 .tasks-dashboard-card-priority.priority-high { background: var(--error-subtle); color: var(--error); }
-.tasks-dashboard-card-priority.priority-medium { background: rgba(224, 164, 88, 0.15); color: var(--warning); }
+.tasks-dashboard-card-priority.priority-medium { background: rgba(229, 205, 142, 0.15); color: var(--warning); }
 .tasks-dashboard-card-priority.priority-low { background: var(--success-subtle); color: var(--success); }
 
 .tasks-dashboard-card-category {
@@ -623,99 +635,25 @@
 }
 
 /* ---------- Detail panel ---------- */
-/* Fluid width: scales with the viewport so cards keep room when the window
-   is narrow. Floor (220px) is the minimum that still renders meta + buttons
-   sensibly; ceiling (380px) matches the previous fixed width on roomy screens. */
+/* On demand only: the aside is out of layout unless a task is selected or
+   the New Task form is open, so the board's default state gives all three
+   columns the full width (tasks-detail-on-demand spec).
+   Fluid width when open: scales with the viewport so cards keep room when
+   the window is narrow. Floor (220px) is the minimum that still renders
+   meta + buttons sensibly; ceiling (380px) matches the previous fixed
+   width on roomy screens. */
 .tasks-dashboard-detail {
+  display: none;
   flex-shrink: 0;
   width: clamp(220px, 26vw, 380px);
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-subtle);
-  display: flex;
   flex-direction: column;
   overflow-y: auto;
 }
 
-.tasks-dashboard-detail-empty {
-  flex: 1;
+.tasks-dashboard-detail.open {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md);
-  padding: var(--space-xl);
-  text-align: center;
-}
-
-.tasks-dashboard-detail-add {
-  width: 100%;
-  max-width: 280px;
-  background: var(--bg-tertiary);
-  border: 2px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl) var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: all var(--transition-fast);
-  font-family: inherit;
-}
-
-.tasks-dashboard-detail-add:hover {
-  border-color: var(--accent-primary);
-  background: var(--accent-subtle);
-  color: var(--accent-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.tasks-dashboard-detail-add-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent-primary);
-  transition: all var(--transition-fast);
-  margin-bottom: var(--space-xs);
-}
-
-.tasks-dashboard-detail-add:hover .tasks-dashboard-detail-add-icon {
-  background: var(--accent-primary);
-  color: var(--bg-deep);
-  border-color: var(--accent-primary);
-  transform: scale(1.05);
-  box-shadow: 0 0 24px var(--accent-glow);
-}
-
-.tasks-dashboard-detail-add-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.tasks-dashboard-detail-add:hover .tasks-dashboard-detail-add-title {
-  color: var(--accent-primary);
-}
-
-.tasks-dashboard-detail-add-sub {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  line-height: 1.5;
-  max-width: 240px;
-}
-
-.tasks-dashboard-detail-empty-hint {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin: 0;
-  font-style: italic;
 }
 
 .tasks-dashboard-detail-content {
@@ -744,7 +682,7 @@
   font-size: 12px;
   font-weight: 600;
   background: var(--error-subtle);
-  border: 1px solid rgba(212, 120, 120, 0.4);
+  border: 1px solid rgba(232, 147, 138, 0.4);
   color: var(--error);
   padding: 5px 10px;
   border-radius: var(--radius-sm);
@@ -756,7 +694,7 @@
   background: var(--error);
   border-color: var(--error);
   color: #ffffff;
-  box-shadow: 0 0 14px rgba(212, 120, 120, 0.35);
+  box-shadow: 0 0 14px rgba(232, 147, 138, 0.35);
   transform: translateY(-1px);
 }
 
@@ -782,19 +720,19 @@
 }
 
 .tasks-dashboard-detail-status-pill.status-in-progress {
-  background: rgba(120, 165, 212, 0.15);
+  background: rgba(166, 192, 240, 0.15);
   color: var(--info);
-  border-color: rgba(120, 165, 212, 0.3);
+  border-color: rgba(166, 192, 240, 0.3);
 }
 
 .tasks-dashboard-detail-status-pill.status-completed {
   background: var(--success-subtle);
   color: var(--success);
-  border-color: rgba(124, 179, 130, 0.3);
+  border-color: rgba(155, 220, 168, 0.3);
 }
 
 .tasks-dashboard-detail-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 var(--space-md) 0;
@@ -837,7 +775,7 @@
 }
 
 .tasks-dashboard-detail-section p {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary);
   line-height: 1.6;
   margin: 0;
@@ -927,8 +865,8 @@
   border-radius: var(--radius-md);
   padding: 10px 14px;
   color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
   transition: all var(--transition-fast);
   box-sizing: border-box;
 }
@@ -943,7 +881,7 @@
 }
 
 .tasks-dashboard-form-group input {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -951,7 +889,7 @@
   resize: vertical;
   min-height: 140px;
   line-height: 1.6;
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
 }
 
 .tasks-dashboard-form-row {
@@ -973,7 +911,7 @@
 .tasks-dashboard-form-cancel,
 .tasks-dashboard-form-save {
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   padding: 9px 18px;
   border-radius: var(--radius-md);
@@ -1063,7 +1001,7 @@
   height: 52px;
   border-radius: 50%;
   background: var(--error-subtle);
-  border: 1px solid rgba(212, 120, 120, 0.35);
+  border: 1px solid rgba(232, 147, 138, 0.35);
   color: var(--error);
   display: flex;
   align-items: center;
@@ -1072,7 +1010,7 @@
 
 .task-confirm-modal-body h3 {
   margin: 0 0 var(--space-xs) 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.2px;
@@ -1080,7 +1018,7 @@
 
 .task-confirm-modal-body p {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.6;
   word-break: break-word;
@@ -1102,7 +1040,7 @@
 .task-confirm-modal-delete {
   flex: 1;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   padding: 10px 16px;
   border-radius: var(--radius-md);
@@ -1126,13 +1064,13 @@
   background: var(--error);
   border: 1px solid var(--error);
   color: #ffffff;
-  box-shadow: 0 0 14px rgba(212, 120, 120, 0.3);
+  box-shadow: 0 0 14px rgba(232, 147, 138, 0.3);
 }
 
 .task-confirm-modal-delete:hover {
   filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 0 18px rgba(212, 120, 120, 0.45), var(--shadow-sm);
+  box-shadow: 0 0 18px rgba(232, 147, 138, 0.45), var(--shadow-sm);
 }
 
 .task-confirm-modal-delete:focus-visible {
@@ -1180,8 +1118,8 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgba(120, 165, 212, 0.12);
-  border: 1px solid rgba(120, 165, 212, 0.35);
+  background: rgba(166, 192, 240, 0.12);
+  border: 1px solid rgba(166, 192, 240, 0.35);
   color: var(--info);
   display: flex;
   align-items: center;
@@ -1190,7 +1128,7 @@
 
 .task-info-modal-body h3 {
   margin: 0 0 var(--space-xs) 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.2px;
@@ -1198,7 +1136,7 @@
 
 .task-info-modal-body p {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.6;
 }
@@ -1211,7 +1149,7 @@
 .task-info-modal-ok {
   width: 100%;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   padding: 10px 16px;
   border-radius: var(--radius-md);
@@ -1359,7 +1297,7 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   transition: all var(--transition-fast);
 }
@@ -1408,9 +1346,9 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   padding: 8px 10px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   transition: all var(--transition-fast);
 }
 
@@ -1442,7 +1380,7 @@
 
 .task-run-btn {
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   padding: 8px 16px;
   border-radius: var(--radius-md);

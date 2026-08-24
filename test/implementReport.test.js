@@ -340,3 +340,25 @@ test('openCommand maps each platform to its file opener', () => {
 test('EXCLUDED_PATHS keeps Frame bookkeeping out of every diff', () => {
   assert.deepEqual(mod.EXCLUDED_PATHS, ['.frame', 'tasks.json', 'STRUCTURE.json']);
 });
+
+// ─── readTasks ────────────────────────────────────────────────
+
+test('readTasks prefers .frame/tasks.json and falls back to the project root', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-report-tasks-'));
+  try {
+    assert.deepEqual(mod.readTasks(dir), [], 'no tasks file is not a reason to fail the report');
+
+    // Unmigrated project: the file is still where it always was.
+    fs.writeFileSync(path.join(dir, 'tasks.json'), JSON.stringify({ tasks: [{ id: 'root' }] }), 'utf8');
+    assert.deepEqual(mod.readTasks(dir), [{ id: 'root' }], 'root fallback');
+
+    // Migrated: .frame/ wins, which is where every task has lived since.
+    fs.mkdirSync(path.join(dir, '.frame'), { recursive: true });
+    fs.writeFileSync(path.join(dir, '.frame', 'tasks.json'), JSON.stringify({ tasks: [{ id: 'overlay' }] }), 'utf8');
+    assert.deepEqual(mod.readTasks(dir), [{ id: 'overlay' }], 'overlay first');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

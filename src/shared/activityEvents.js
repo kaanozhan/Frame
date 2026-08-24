@@ -157,6 +157,34 @@ const EVENTS = {
         : 'Background polling paused while the window is hidden'
   },
 
+  // ─── layout migration + sharing mode ────────────────────
+  //
+  // Frame moving a project's own files is exactly the kind of work this
+  // record exists for: the user consented once in a modal, and everything
+  // after that happens without them watching.
+  'migration.completed': {
+    kind: 'action',
+    fields: { moved: COUNT, backedUp: COUNT, review: COUNT, ms: MS },
+    label: (r) => `Moved ${r.moved ?? 0} Frame file${r.moved === 1 ? '' : 's'} into .frame/`
+  },
+  'migration.skipped': {
+    kind: 'suppression',
+    fields: { reason: enumOf(['dirty-tree', 'no-fingerprint', 'nothing-to-move']), repeats: REPEATS },
+    label: (r) => `Layout migration skipped — ${MIGRATION_SKIP_TEXT[r.reason] || r.reason}`
+  },
+  'migration.conflict': {
+    kind: 'action',
+    fields: { path: PATH },
+    label: (r) => `${r.path || 'A file'} differed from its .frame/ copy — kept in migration-backup/`
+  },
+  'sharing.mode_changed': {
+    kind: 'action',
+    fields: { from: enumOf(['repo', 'local']), to: enumOf(['repo', 'local']) },
+    label: (r) => (r.to === 'local'
+      ? 'Frame\'s files are now local to this machine'
+      : 'Frame\'s files are now shared with the repo')
+  },
+
   // ─── scripts running outside Frame's process ────────────
   'script.ran': {
     kind: 'action',
@@ -179,6 +207,12 @@ const HINT_REASON_TEXT = {
   'no-match': 'no spec matched',
   'no-stale-free-match': 'matches were filtered out',
   'no-context': 'nothing to send'
+};
+
+const MIGRATION_SKIP_TEXT = {
+  'dirty-tree': 'the files have uncommitted changes',
+  'no-fingerprint': 'this project already uses the .frame/ layout',
+  'nothing-to-move': 'nothing was left at the project root'
 };
 
 const WATCHER_TEXT = {

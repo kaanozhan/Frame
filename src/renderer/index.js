@@ -19,7 +19,6 @@ const pluginsPanel = require('./pluginsPanel');
 const githubPanel = require('./githubPanel');
 const promptsPanel = require('./promptsPanel');
 const activityPanel = require('./activityPanel');
-const instrumentRail = require('./instrumentRail');
 const specPanel = require('./specPanel');
 const specPanelResize = require('./specPanelResize');
 const specsDashboard = require('./specsDashboard');
@@ -28,7 +27,7 @@ const projectListUI = require('./projectListUI');
 const openProjectModal = require('./openProjectModal');
 const projectSection = require('./projectSection');
 const projectStatusBadges = require('./projectStatusBadges');
-const agentPanel = require('./agentPanel');
+const presenceBar = require('./presenceBar');
 const orchestrator = require('./orchestrator');
 const editor = require('./editor');
 const sidebarResize = require('./sidebarResize');
@@ -42,12 +41,16 @@ const settingsModal = require('./settingsModal');
 const telemetryNotice = require('./telemetryNotice');
 const healthNotice = require('./healthNotice');
 const specDrivenHint = require('./specDrivenHint');
+const migrationModal = require('./migrationModal');
 const sampleBanner = require('./sampleBanner');
 
 /**
  * Initialize all modules
  */
 function init() {
+  // IPC watchdog first, so it observes every module's traffic from boot
+  require('./ipcWatchdog').init();
+
   // Show app version
   const version = require('../../package.json').version;
   const versionEl = document.getElementById('app-version');
@@ -97,7 +100,7 @@ function init() {
   projectStatusBadges.init(multiTerminalUI);
 
   // Agent rail view: live list of running agents across all projects.
-  agentPanel.init(multiTerminalUI);
+  presenceBar.init(multiTerminalUI, document.getElementById('presence-bar'));
 
   // Initialize file tree UI
   fileTreeUI.init('file-tree', state.getProjectPath);
@@ -151,12 +154,6 @@ function init() {
   // Initialize prompts panel
   promptsPanel.init();
   activityPanel.init();
-  instrumentRail.init({
-    // Overview is a view mode rather than a panel, so its open/closed state
-    // has to come from the UI that owns it.
-    onOverviewToggle: () => multiTerminalUI && multiTerminalUI.toggleOverview(),
-    isOverviewVisible: () => Boolean(multiTerminalUI && multiTerminalUI.isOverviewVisible)
-  });
 
   // Initialize specs panel (spec-driven development)
   specPanel.init();
@@ -202,7 +199,7 @@ function init() {
   // Setup Frame initialized listener
   state.onFrameInitialized((projectPath) => {
     terminal.writelnToTerminal(`\x1b[1;32m✓ Frame project initialized!\x1b[0m`);
-    terminal.writelnToTerminal(`  Created: .frame/, AGENTS.md, CLAUDE.md (symlink), STRUCTURE.json, PROJECT_NOTES.md, tasks.json, QUICKSTART.md`);
+    terminal.writelnToTerminal(`  Created: .frame/ (AGENTS.md, STRUCTURE.json, PROJECT_NOTES.md, tasks.json, QUICKSTART.md, bin/) and .claude/rules/frame.md`);
     // Refresh file tree to show new files
     fileTreeUI.refreshFileTree();
     // Load tasks for the new project
@@ -224,6 +221,7 @@ function init() {
   appLoader.init();
 
   commandPalette.init();
+  require('./paletteSources').init(multiTerminalUI); // dynamic ⌘K jump targets
   cheatSheet.init();
   welcomeOverlay.init();
   settingsModal.init();
@@ -231,6 +229,7 @@ function init() {
   healthNotice.init();
   sampleBanner.init();
   specDrivenHint.init();
+  migrationModal.init();
   setupUpdateDot();
   registerCommands();
   commandRegistry.bindKeyboard();
@@ -290,6 +289,18 @@ function setupButtonHandlers() {
     sidebarSettingsBtn.addEventListener('click', () => settingsModal.toggle());
   }
 
+  // Theme toggle — moved here from the retired instrument rail. Boot-time
+  // theme restore lives in terminalTabBar; flipping data-theme is the whole
+  // contract (terminalManager observes it for the xterm theme).
+  const sidebarThemeBtn = document.getElementById('sidebar-theme-btn');
+  if (sidebarThemeBtn) {
+    sidebarThemeBtn.addEventListener('click', () => {
+      const next = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('frame-theme', next); } catch (_) { /* non-fatal */ }
+    });
+  }
+
   // Current-project switcher (Files / Changes views): reflects the active
   // project and opens a dropdown to switch project without leaving the view.
   const currentProjectNameEl = document.getElementById('sidebar-current-project-name');
@@ -313,6 +324,10 @@ function setupProjectSwitcher() {
   const btn = document.getElementById('sidebar-current-project');
   const menu = document.getElementById('sidebar-project-menu');
   if (!btn || !menu) return;
+
+  // Always visible now — it is the one project selector (project-dropdown spec)
+  const wrap = document.getElementById('sidebar-current-project-wrap');
+  if (wrap) wrap.style.display = '';
 
   const CHECK = '<svg class="sidebar-project-menu-item-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 
@@ -348,11 +363,22 @@ function setupProjectSwitcher() {
         item.type = 'button';
         item.className = 'sidebar-project-menu-item' + (isActive ? ' active' : '');
         item.setAttribute('role', 'menuitem');
+        const counts = projectListUI.getAgentStatus(p.path);
+        const attention = counts && (counts.approval || counts.input)
+          ? `<span class="sidebar-project-menu-dot ${counts.approval ? 'approval' : 'input'}" title="${counts.approval ? 'agents need approval' : 'agents waiting for input'}"></span>`
+          : '';
         item.innerHTML = '<span class="sidebar-project-menu-item-name"></span>'
           + (p.isFrameProject ? '<span class="sidebar-project-menu-tag">Frame</span>' : '')
-          + (isActive ? CHECK : '');
+          + attention
+          + (isActive ? CHECK : '')
+          + '<span class="sidebar-project-menu-remove" title="Remove from list">×</span>';
         item.querySelector('.sidebar-project-menu-item-name').textContent = p.name;
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.sidebar-project-menu-remove')) {
+            close();
+            projectListUI.confirmRemoveProject(p.path, p.name);
+            return;
+          }
           close();
           if (!isActive) projectListUI.selectProject(p.path);
         });
@@ -387,6 +413,13 @@ function setupProjectSwitcher() {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (menu.hidden) open(); else close();
+  });
+
+  // Headless projectListUI drives us: focus() opens the menu, data changes
+  // rebuild it while open.
+  projectListUI.setSwitcherHooks({
+    open,
+    refresh: () => { if (!menu.hidden) open(); }
   });
 }
 
@@ -440,14 +473,11 @@ function revealSidebarTab(tabName) {
   document.querySelectorAll('[data-sidebar-tab-content]').forEach((el) => {
     el.style.display = el.dataset.sidebarTabContent === tabName ? '' : 'none';
   });
-  // The current-project switcher shows (and changes) the active project for
-  // Files / Changes and the Agent view's Start target. It's hidden only on
-  // Projects, which highlights its own active row. (The Agent view's Running
-  // Agents list stays cross-project regardless of this selection.)
+  // The current-project switcher is THE project selector on every tab
+  // (project-dropdown spec) — the list/rail it used to defer to is gone.
   const cp = document.getElementById('sidebar-current-project-wrap');
-  if (cp) cp.style.display = tabName === 'projects' ? 'none' : '';
+  if (cp) cp.style.display = '';
   if (tabName === 'changes') ipcRenderer.send(IPC.REFRESH_GIT_STATUS);
-  if (tabName === 'agent') agentPanel.recompute();
 }
 
 /**
@@ -533,7 +563,7 @@ function registerCommands() {
     title: 'Toggle Prompt History Panel',
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+H',
-    run: () => historyPanel.toggleHistoryPanel()
+    run: () => multiTerminalUI && multiTerminalUI.togglePanel('history')
   });
   // Tasks/Specs side panels are retired — Home's lane rail covers the
   // at-a-glance view, and these entry points now open the full dashboards.
@@ -556,21 +586,21 @@ function registerCommands() {
     title: 'Toggle Plugins Panel',
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+X',
-    run: () => pluginsPanel.toggle()
+    run: () => multiTerminalUI && multiTerminalUI.togglePanel('claude')
   });
   r({
     id: 'panel.toggleGitHub',
     title: 'Toggle GitHub Panel',
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+G',
-    run: () => githubPanel.toggle()
+    run: () => multiTerminalUI && multiTerminalUI.togglePanel('github')
   });
   r({
     id: 'panel.togglePrompts',
     title: 'Toggle Prompts Panel',
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+L',
-    run: () => promptsPanel.toggle()
+    run: () => multiTerminalUI && multiTerminalUI.togglePanel('prompts')
   });
 
   // ---------- Focus ----------

@@ -97,8 +97,8 @@ Once a spec is merged (the user clicked Approve, or you merged on their explicit
 request — you'll see a `MERGED: <slug>` confirmation), bring shared meta files up
 to date (workers were forbidden from touching them):
 - Regenerate the structure map: `npm run structure` (if present).
-- Mark that spec's tasks completed in `tasks.json` as appropriate.
-- Append a short note to `PROJECT_NOTES.md` if the work warrants it.
+- Mark that spec's tasks completed in `.frame/tasks.json` as appropriate.
+- Append a short note to `.frame/PROJECT_NOTES.md` if the work warrants it.
 
 ### 8. Advance
 Keep dispatching ready/queued specs as slots free up. When a serialized spec's

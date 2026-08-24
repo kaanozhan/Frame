@@ -47,7 +47,7 @@ Whether this spec's work should ship with tests depends on what the project
 can actually run. That is a fact about the project, not about this spec, so it
 is established once and recorded rather than re-derived on every planning run.
 
-The record is a standing `## Testing` section in `PROJECT_NOTES.md`, sitting
+The record is a standing `## Testing` section in `.frame/PROJECT_NOTES.md`, sitting
 with the other topical sections (beside `## Tech Stack`) — never in
 `## Session Notes`, which is an append-only log of dated events. It looks like
 this:
@@ -129,7 +129,7 @@ This is a fallback for genuine ambiguity, not a substitute for looking, and it
 happens once — the answer becomes part of the record, so no later planning run
 has to ask again.
 
-**Write what you established back to `PROJECT_NOTES.md`.** Whenever you had to
+**Write what you established back to `.frame/PROJECT_NOTES.md`.** Whenever you had to
 look — because the section was missing, or because re-verifying an area the
 record called uncovered turned up something new — write the section in the
 place described above, stamped with today's date. Rewrite it in full rather
@@ -142,10 +142,10 @@ learns to click through. Say what you recorded in **one line** of your closing
 message — enough that a change to a shared file is never silent, short enough
 that it does not compete with the plan itself.
 
-**A project without `PROJECT_NOTES.md` still gets planned.** The record is a
+**A project without `.frame/PROJECT_NOTES.md` still gets planned.** The record is a
 convenience, not a prerequisite. When the file is absent, establish the testing
 facts the same way, use them for this run, and skip the write — do not create
-the file. Frame creates `PROJECT_NOTES.md` when a project is initialised, so
+the file. Frame creates `.frame/PROJECT_NOTES.md` when a project is initialised, so
 its absence means this project was never set up that way, and a planning run is
 the wrong moment to decide otherwise on the user's behalf. Note in your closing
 message that the facts could not be recorded, so the next run will look again.
@@ -244,7 +244,7 @@ Section guidance:
 
 - **Architecture** — Design decisions. Data shapes. Key components and how they fit together. Stay narrow — describe only what this spec needs, not the whole system. Open with a `### Resolved plan-time decisions` subsection: one bullet per gate decision (business and technical, asked or silent) — the fork, the chosen option, and its recorded rationale.
 - **Files** — Concrete file paths. Mark each as **New**, **Modified**, or **Deleted**. One-line purpose per file. Use the project's existing structure — don't invent directories that don't exist.
-- **Footprint** — A flat, machine-readable list of the source files this spec will create or modify, **one path per line as a plain `- ` bullet, nothing else on the line** (a path or a glob, e.g. `- src/main/foo.js` or `- src/renderer/styles/**`). This is parsed by the orchestrator to detect collisions between specs running in parallel, so keep it literal and accurate — it should mirror the New/Modified entries in **Files**. **Exclude Frame meta files** (`tasks.json`, `STRUCTURE.json`, `PROJECT_NOTES.md`, `AGENTS.md`/`CLAUDE.md`): they are reconciled separately and would otherwise mark every spec as conflicting.
+- **Footprint** — A flat, machine-readable list of the source files this spec will create or modify, **one path per line as a plain `- ` bullet, nothing else on the line** (a path or a glob, e.g. `- src/main/foo.js` or `- src/renderer/styles/**`). This is parsed by the orchestrator to detect collisions between specs running in parallel, so keep it literal and accurate — it should mirror the New/Modified entries in **Files**. **Exclude Frame meta files** (everything under `.frame/`: `tasks.json`, `STRUCTURE.json`, `PROJECT_NOTES.md`, `AGENTS.md`): they are reconciled separately and would otherwise mark every spec as conflicting.
 - **Dependencies** — Packages or services to add (with one-line rationale each), or `None`. If a dep already exists in `package.json`, don't re-list it.
 - **Sequencing** — Numbered steps in implementation order. Each step is small, end-to-end shippable. Do not bundle unrelated work into one step.
 

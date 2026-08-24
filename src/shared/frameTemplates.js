@@ -4,7 +4,9 @@
  * Each template includes instructions header for Claude Code
  */
 
+const crypto = require('crypto');
 const managedBlock = require('./docsManagedBlock');
+const { FRAME_FILE_CLASSES, FRAME_TRACKED_DERIVED } = require('./frameConstants');
 
 /**
  * Get current date in YYYY-MM-DD format
@@ -31,7 +33,7 @@ function getISOTimestamp() {
  * rewritten on next open, docs stamped current are left alone (so user tweaks
  * inside the block survive between identical Frame versions).
  */
-const SPEC_SECTION_VERSION = 1;
+const SPEC_SECTION_VERSION = 2;
 
 /**
  * Previous shipped generations of the spec sections, preserved byte-for-byte
@@ -190,7 +192,7 @@ const AGENTS_SPEC_LEGACY_MATCHERS = [
  */
 const SPEC_DRIVEN_SECTION = `## Spec-Driven Development (.frame/specs/)
 
-Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`tasks.json\` in sync.
+Frame supports a structured \`spec → plan → tasks → implement\` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps \`.frame/tasks.json\` in sync.
 
 ### File layout
 
@@ -240,9 +242,9 @@ The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spe
 
 **5. Autonomous implement ceiling.** \`spec.implement\`'s autonomous mode needs permission flags that only a fresh, flagged launch can carry — a running session cannot acquire them. If the user picks autonomous conversationally, do what the template says: record the choice in the spec's \`status.json\` and hand off — the user clicks Implement on the spec's page in Frame and picks Autonomous, or runs \`node .frame/bin/implement-launch.js <slug>\` in a fresh terminal. Never run a degraded imitation silently.
 
-### tasks.json linkage
+### .frame/tasks.json linkage
 
-After \`spec.tasks\`, **do not** also write entries to \`tasks.json\` — Frame's watcher imports them automatically with \`source: "spec:<slug>:T<n>"\` markers. Spec-generated tasks carry that \`source\` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.
+After \`spec.tasks\`, **do not** also write entries to \`.frame/tasks.json\` — Frame's watcher imports them automatically with \`source: "spec:<slug>:T<n>"\` markers. Spec-generated tasks carry that \`source\` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.
 
 ### When to suggest a spec (steer the conversation)
 
@@ -259,7 +261,7 @@ make this a reflex on every message.
 
 **Do NOT suggest a spec for:**
 - Typos, one-line fixes, small tweaks, renames → just do it
-- Small, discrete tracked work → that's a task (\`tasks.json\`)
+- Small, discrete tracked work → that's a task (\`.frame/tasks.json\`)
 - Questions, debugging, explanations, experiments
 - Anything the user explicitly says to "just do" / "do directly"
 
@@ -378,9 +380,9 @@ implemented without approval.
 
 **Read these at the start of each session:**
 
-1. **STRUCTURE.json** — module map, which file is where
-2. **PROJECT_NOTES.md** — project vision, past decisions, session notes
-3. **tasks.json** — pending tasks
+1. **\`.frame/STRUCTURE.json\`** — module map, which file is where
+2. **\`.frame/PROJECT_NOTES.md\`** — project vision, past decisions, session notes
+3. **\`.frame/tasks.json\`** — pending tasks
 
 **Fast file lookup** — before manual grep/glob, run:
 
@@ -414,17 +416,17 @@ ${renderSpecCoreSection()}
 
 ## Writing Frame meta files — read the reference first
 
-| Before writing…  | Read in \`.frame/docs/REFERENCE.md\` |
-| ---------------- | ------------------------------------ |
-| tasks.json       | "Task Management" (schema + rules)   |
-| PROJECT_NOTES.md | "PROJECT_NOTES.md Rules"             |
-| STRUCTURE.json   | "STRUCTURE.json Rules"               |
-| QUICKSTART.md    | "QUICKSTART.md Rules"                |
+| Before writing…              | Read in \`.frame/docs/REFERENCE.md\` |
+| ---------------------------- | ------------------------------------ |
+| \`.frame/tasks.json\`          | "Task Management" (schema + rules)   |
+| \`.frame/PROJECT_NOTES.md\`    | "PROJECT_NOTES.md Rules"             |
+| \`.frame/STRUCTURE.json\`      | "STRUCTURE.json Rules"               |
+| \`.frame/QUICKSTART.md\`       | "QUICKSTART.md Rules"                |
 
 Quick reminders that always apply:
 - Task work: \`status: "in_progress"\` when starting, \`"completed"\` +
   \`completedAt\` when done; re-check statuses after commits.
-- Important decisions: append to PROJECT_NOTES.md as
+- Important decisions: append to \`.frame/PROJECT_NOTES.md\` as
   \`### [YYYY-MM-DD] Title\` with the conversation's context (not a summary).
 - Documentation in English; dates in ISO 8601.
 
@@ -435,7 +437,10 @@ Quick reminders that always apply:
 
 ---
 
-**Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.
+**Note:** This file lives at \`.frame/AGENTS.md\` and is named \`AGENTS.md\` to be
+AI-tool agnostic. Claude Code reads a generated copy of it at
+\`.claude/rules/frame.md\`, which Frame rewrites whenever this file changes —
+edit this file, never the copy; delete the copy to detach.
 `;
 }
 
@@ -450,8 +455,9 @@ function getReferenceTemplate(projectName) {
   return `# ${projectName} — Frame Reference
 
 Read the relevant section of this file **before writing a Frame meta file**
-(tasks.json, PROJECT_NOTES.md, STRUCTURE.json, QUICKSTART.md). The always-on
-orientation lives in \`AGENTS.md\`; this file is loaded on demand.
+(\`.frame/tasks.json\`, \`.frame/PROJECT_NOTES.md\`, \`.frame/STRUCTURE.json\`,
+\`.frame/QUICKSTART.md\`). The always-on orientation lives in
+\`.frame/AGENTS.md\`; this file is loaded on demand.
 
 ---
 
@@ -459,7 +465,7 @@ orientation lives in \`AGENTS.md\`; this file is loaded on demand.
 
 ### Task Recognition Rules
 
-**These ARE TASKS - add to tasks.json:**
+**These ARE TASKS - add to .frame/tasks.json:**
 - When the user requests a feature or change
 - Decisions like "Let's do this", "Let's add this", "Improve this"
 - Deferred work when we say "We'll do this later", "Let's leave it for now"
@@ -476,8 +482,8 @@ orientation lives in \`AGENTS.md\`; this file is loaded on demand.
 ### Task Creation Flow
 
 1. Detect task patterns during conversation
-2. Ask the user at an appropriate moment: "I identified these tasks from our conversation, should I add them to tasks.json?"
-3. If the user approves, add to tasks.json
+2. Ask the user at an appropriate moment: "I identified these tasks from our conversation, should I add them to .frame/tasks.json?"
+3. If the user approves, add to .frame/tasks.json
 
 ### Task Structure
 
@@ -535,12 +541,12 @@ Frame's core purpose is to prevent context loss. Therefore, capture important mo
 
 ### When to Ask?
 
-Ask the user when one of the following situations occurs: **"Should I add this conversation to PROJECT_NOTES.md?"**
+Ask the user when one of the following situations occurs: **"Should I add this conversation to .frame/PROJECT_NOTES.md?"**
 
 - When a task is successfully completed
 - When an important architectural/technical decision is made
 - When a bug is fixed and the solution method is noteworthy
-- When "let's do this later" is said (in this case, also add to tasks.json)
+- When "let's do this later" is said (in this case, also add to \`.frame/tasks.json\`)
 - When a new pattern or best practice is discovered
 
 ### Completion Detection
@@ -554,7 +560,7 @@ Pay attention to these signals:
 
 1. **DON'T write a summary** - Add the conversation as is, with its context
 2. **Add date** - In \`### [YYYY-MM-DD] Title\` format
-3. **Add to Session Notes section** - At the end of PROJECT_NOTES.md
+3. **Add to Session Notes section** - At the end of .frame/PROJECT_NOTES.md
 
 ### When NOT to Ask
 
@@ -607,8 +613,8 @@ No problem, continue. The user can also say what they consider important themsel
 
 1. **Language:** Write documentation in English (except code examples)
 2. **Date Format:** ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)
-3. **After Commit:** Check tasks.json and STRUCTURE.json
-4. **Session Start:** Review pending tasks in tasks.json
+3. **After Commit:** Check \`.frame/tasks.json\` and \`.frame/STRUCTURE.json\`
+4. **Session Start:** Review pending tasks in \`.frame/tasks.json\`
 
 ---
 
@@ -764,10 +770,10 @@ ${cmds.test || todo}
 
 | File | Purpose |
 |------|---------|
-| \`STRUCTURE.json\` | Module map and architecture |
-| \`PROJECT_NOTES.md\` | Decisions and context |
-| \`tasks.json\` | Task tracking |
-| \`QUICKSTART.md\` | This file |
+| \`.frame/STRUCTURE.json\` | Module map and architecture |
+| \`.frame/PROJECT_NOTES.md\` | Decisions and context |
+| \`.frame/tasks.json\` | Task tracking |
+| \`.frame/QUICKSTART.md\` | This file |
 
 ## Project Structure
 
@@ -777,9 +783,9 @@ ${tree}
 
 ## For AI Assistants
 
-1. **First**: Read \`STRUCTURE.json\` for architecture overview
-2. **Then**: Check \`PROJECT_NOTES.md\` for current context and decisions
-3. **Check**: \`tasks.json\` for pending tasks
+1. **First**: Read \`.frame/STRUCTURE.json\` for architecture overview
+2. **Then**: Check \`.frame/PROJECT_NOTES.md\` for current context and decisions
+3. **Check**: \`.frame/tasks.json\` for pending tasks
 4. **Follow**: Existing code patterns and conventions
 5. **Update**: These files as you make changes
 
@@ -799,10 +805,17 @@ function getFrameConfigTemplate(projectName) {
     description: "",
     createdAt: getISOTimestamp(),
     initializedBy: "Frame",
+    // Stable identity for this project, stamped once (frameStore.ensureProjectId
+    // fills it in for projects created before this field existed).
+    projectId: crypto.randomUUID(),
     settings: {
       autoUpdateStructure: true,
       autoUpdateNotes: false,
-      taskRecognition: true
+      taskRecognition: true,
+      // How Frame's own files relate to git: "repo" tracks .frame/ and puts
+      // hooks in .claude/settings.json; "local" excludes them and uses
+      // .claude/settings.local.json. Chosen at init, changeable in Settings.
+      gitSharing: "repo"
     },
     features: {
       // Spec-Driven Development is ON for new projects: the spec commands
@@ -811,17 +824,85 @@ function getFrameConfigTemplate(projectName) {
       // it off in Settings → Workflow, which flips this flag and strips the
       // spec section from AGENTS.md.
       specDriven: true
-    },
-    files: {
-      agents: "AGENTS.md",
-      claudeSymlink: "CLAUDE.md",
-      structure: "STRUCTURE.json",
-      notes: "PROJECT_NOTES.md",
-      tasks: "tasks.json",
-      quickstart: "QUICKSTART.md"
     }
+    // No `files` record: every meta file lives under .frame/ now, and the
+    // record's only remaining job is marking a project as pre-overlay (it is
+    // the migration fingerprint frameStore.isLegacyLayout looks for).
   };
 }
+
+/**
+ * `.claude/rules/frame.md` — the file Claude Code loads at session start.
+ *
+ * A generated **copy** of `.frame/AGENTS.md`, not an `@`-import of it: Claude
+ * Code does not expand an import that resolves above the session's working
+ * directory, so a session started in `<project>/src` loaded this file and
+ * silently got nothing. The copy costs a few KB of duplication and works from
+ * any directory. `.frame/AGENTS.md` stays canonical — Frame rewrites this file
+ * whenever it changes — so a user who deletes this one detaches cleanly.
+ */
+function getClaudeRuleTemplate(agentsText) {
+  const header = '<!-- Generated by Frame from .frame/AGENTS.md — edit that file, this copy is rewritten. -->';
+  const body = typeof agentsText === 'string' ? agentsText : '';
+  return `${header}\n\n${body.replace(/^\s*\n/, '')}`;
+}
+
+/**
+ * The managed block of `.frame/.gitignore`, generated from the file classes:
+ * derived and runtime entries are machine-local, except the ones listed in
+ * FRAME_TRACKED_DERIVED (STRUCTURE.json and bin/) which the repository is
+ * meant to carry. Lines outside the markers are the user's and never touched.
+ */
+const FRAME_GITIGNORE_MARKER_START = '# managed by Frame — machine-local; edit outside this block';
+const FRAME_GITIGNORE_MARKER_END = '# end managed by Frame';
+
+function getFrameGitignoreBlock() {
+  const entries = [
+    ...FRAME_FILE_CLASSES.runtime,
+    ...FRAME_FILE_CLASSES.derived.filter((entry) => !FRAME_TRACKED_DERIVED.includes(entry))
+  ];
+  return `${FRAME_GITIGNORE_MARKER_START}\n${entries.join('\n')}\n${FRAME_GITIGNORE_MARKER_END}\n`;
+}
+
+/**
+ * Spec-knowledge hook entries for a user project. The command is guarded so a
+ * clone without `.frame/bin/` (sharing mode `local`, or a teammate who hasn't
+ * run Frame) produces no hook error. The guard is written as `[ ! -f … ] || …`
+ * rather than `[ -f … ] && …`: with `&&`, a missing file makes the whole `sh -c`
+ * exit 1 and Claude Code reports a failing hook on every prompt. With `||` the
+ * absent file is the success case. The literal command string is Frame's
+ * marker: entries are added and removed by exact match, never fuzzily.
+ */
+const SPEC_HINT_HOOKS = {
+  PreToolUse: [
+    {
+      matcher: 'Edit|Write',
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js pre-edit'"
+      }]
+    }
+  ],
+  UserPromptSubmit: [
+    {
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js prompt'"
+      }]
+    }
+  ]
+};
+
+// Forms Frame installed before: the unguarded pre-overlay commands, and the
+// `&&` guard that exited 1 when the file was missing. Removal matches these
+// too, so an upgrade takes Frame's older entries out cleanly; nothing else
+// matches them.
+const LEGACY_SPEC_HINT_COMMANDS = [
+  'node .frame/bin/spec-hint.js pre-edit',
+  'node .frame/bin/spec-hint.js prompt',
+  "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js pre-edit'",
+  "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js prompt'"
+];
 
 /**
  * AI Tool Wrapper Script Templates
@@ -835,11 +916,11 @@ function getFrameConfigTemplate(projectName) {
 function getCodexWrapperTemplate() {
   return `#!/usr/bin/env bash
 # Frame AI Tool Wrapper for Codex CLI
-# This script injects AGENTS.md as initial prompt
+# This script injects .frame/AGENTS.md as initial prompt
 
-AGENTS_FILE="AGENTS.md"
+AGENTS_FILE=".frame/AGENTS.md"
 
-# Find AGENTS.md in current directory or parent directories
+# Find .frame/AGENTS.md in current directory or parent directories
 find_agents_file() {
   local dir="$PWD"
   while [ "$dir" != "/" ]; do
@@ -856,7 +937,7 @@ AGENTS_PATH=$(find_agents_file)
 
 # Run codex with initial prompt to read AGENTS.md
 if [ -n "$AGENTS_PATH" ]; then
-  exec codex "Please read AGENTS.md and follow the project instructions. This file contains important rules for this project." "$@"
+  exec codex "Please read .frame/AGENTS.md and follow the project instructions. This file contains important rules for this project." "$@"
 else
   exec codex "$@"
 fi
@@ -873,11 +954,11 @@ function getGenericWrapperTemplate(toolCommand, promptFlag = '') {
   const flagPart = promptFlag ? `${promptFlag} ` : '';
   return `#!/usr/bin/env bash
 # Frame AI Tool Wrapper for ${toolCommand}
-# This script injects AGENTS.md as initial prompt
+# This script injects .frame/AGENTS.md as initial prompt
 
-AGENTS_FILE="AGENTS.md"
+AGENTS_FILE=".frame/AGENTS.md"
 
-# Find AGENTS.md in current directory or parent directories
+# Find .frame/AGENTS.md in current directory or parent directories
 find_agents_file() {
   local dir="$PWD"
   while [ "$dir" != "/" ]; do
@@ -894,7 +975,7 @@ AGENTS_PATH=$(find_agents_file)
 
 # Run tool with initial prompt to read AGENTS.md
 if [ -n "$AGENTS_PATH" ]; then
-  exec ${toolCommand} ${flagPart}"Please read AGENTS.md and follow the project instructions." "$@"
+  exec ${toolCommand} ${flagPart}"Please read .frame/AGENTS.md and follow the project instructions." "$@"
 else
   exec ${toolCommand} "$@"
 fi
@@ -921,9 +1002,26 @@ function getStructureHookSnippet() {
 # don't want Frame to manage your STRUCTURE.json file.
 if command -v node >/dev/null 2>&1; then
   FRAME_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-  if [ -n "$FRAME_ROOT" ] && [ -f "$FRAME_ROOT/.frame/bin/update-structure.js" ]; then
-    FRAME_PROJECT_ROOT="$FRAME_ROOT" node "$FRAME_ROOT/.frame/bin/update-structure.js" --changed || true
-    if [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then
+  FRAME_PARSER="$FRAME_ROOT/.frame/bin/update-structure.js"
+  if [ -n "$FRAME_ROOT" ] && [ ! -f "$FRAME_PARSER" ]; then
+    # Linked worktree (or any checkout without its own .frame/bin): borrow the
+    # main worktree's parser, still writing this checkout's STRUCTURE.json.
+    FRAME_COMMON="$(git rev-parse --git-common-dir 2>/dev/null)"
+    case "$FRAME_COMMON" in
+      /*) ;;
+      *) FRAME_COMMON="$FRAME_ROOT/$FRAME_COMMON" ;;
+    esac
+    if [ -n "$FRAME_COMMON" ] && [ -f "$(dirname "$FRAME_COMMON")/.frame/bin/update-structure.js" ]; then
+      FRAME_PARSER="$(dirname "$FRAME_COMMON")/.frame/bin/update-structure.js"
+    fi
+  fi
+  if [ -n "$FRAME_ROOT" ] && [ -f "$FRAME_PARSER" ]; then
+    FRAME_PROJECT_ROOT="$FRAME_ROOT" node "$FRAME_PARSER" --changed || true
+    # .frame/STRUCTURE.json is where the parser writes; the root copy only
+    # exists in a project that has not migrated yet.
+    if [ -f "$FRAME_ROOT/.frame/STRUCTURE.json" ]; then
+      git add "$FRAME_ROOT/.frame/STRUCTURE.json" || true
+    elif [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then
       git add "$FRAME_ROOT/STRUCTURE.json" || true
     fi
   fi
@@ -934,7 +1032,8 @@ ${FRAME_HOOK_MARKER_END}
 
 /**
  * Full pre-commit hook file content for the "no existing hook" case.
- * Husky/lefthook get the snippet appended into their own files instead.
+ * Husky/lefthook/existing hooks are the user's files: Frame writes nothing
+ * there, it only hands back the snippet for them to paste.
  */
 function getStructurePreCommitHookTemplate() {
   return `#!/bin/sh
@@ -1026,6 +1125,12 @@ module.exports = {
   getTasksTemplate,
   getQuickstartTemplate,
   getFrameConfigTemplate,
+  getClaudeRuleTemplate,
+  getFrameGitignoreBlock,
+  FRAME_GITIGNORE_MARKER_START,
+  FRAME_GITIGNORE_MARKER_END,
+  SPEC_HINT_HOOKS,
+  LEGACY_SPEC_HINT_COMMANDS,
   SPEC_DRIVEN_SECTION,
   SPEC_DRIVEN_CORE_SECTION,
   renderSpecSection,

@@ -15,7 +15,7 @@ back to the user, or the whole spec unattended.
   - `.frame/specs/{slug}/plan.md` — the architecture and approach
   - `.frame/specs/{slug}/tasks.md` — the canonical task list
   - `.frame/specs/{slug}/outcome.md` — what previous tasks actually shipped (read this if it exists; it tells you why the codebase may differ from the plan)
-  - `tasks.json` — find the next task where `source` starts with `spec:{slug}:` AND `status === "pending"` (lowest T-number first)
+  - `.frame/tasks.json` — find the next task where `source` starts with `spec:{slug}:` AND `status === "pending"` (lowest T-number first)
 
 ## Which mode is in force — resolve it, don't ask for it
 
@@ -87,7 +87,7 @@ classify what's there before asking, so the question you ask is the right one:
 
 - **Plan-phase artifacts** — changes confined to `.frame/specs/{slug}/`
   (spec.md, plan.md, tasks.md, status.json) and this spec's entries in the
-  root `tasks.json`. That is the planning session's output that never got
+  `.frame/tasks.json`. That is the planning session's output that never got
   committed. Offer the natural move: *commit these as a plan commit before
   implementation starts* (a `docs`/`plan`-style commit naming the spec), with
   "leave them, start anyway" as the alternative.
@@ -129,7 +129,7 @@ may change the loop, the commit policy, the verification and the reporting. It
 may not drop the accounting below — that is what separates describing a flow
 from replacing this file wholesale.
 
-**Which task.** The lowest-numbered task in `tasks.json` whose `source` is
+**Which task.** The lowest-numbered task in `.frame/tasks.json` whose `source` is
 `spec:{slug}:T<n>` and whose `status` is `pending`. One task at a time, in
 order; never bundle two into one unit of work.
 
@@ -141,7 +141,7 @@ whether they stop for an answer.
 
 **Task state.** `status: "in_progress"` when you start it, `status:
 "completed"` plus `completedAt` and `updatedAt` (ISO 8601) when it is done.
-Edit `tasks.json` directly.
+Edit `.frame/tasks.json` directly.
 
 **Spec phase.** `.frame/specs/{slug}/status.json` goes to `"implementing"` when
 work starts, and to `"done"` once no pending task remains. Merge into the

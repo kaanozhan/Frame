@@ -27,7 +27,7 @@
 }
 
 .health-notice-icon {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--warning);
   flex-shrink: 0;
 }
@@ -50,7 +50,7 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   padding: 4px 6px;
   border-radius: 4px;
   line-height: 1;

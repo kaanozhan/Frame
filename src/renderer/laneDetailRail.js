@@ -102,7 +102,7 @@ function _renderInto() {
     strip.className = 'lane-rail-strip';
     strip.innerHTML = `
       <button class="lane-rail-strip-btn" title="Show frames">${lucideIcon(PanelRightOpen, 15)}</button>
-      <button class="lane-rail-strip-btn" title="Frames">${lucideIcon(Terminal, 15)}</button>
+      <button class="lane-rail-strip-btn" title="Terminals">${lucideIcon(Terminal, 15)}</button>
     `;
     strip.addEventListener('click', (e) => {
       if (!e.target.closest('.lane-rail-strip-btn')) return;
@@ -117,7 +117,7 @@ function _renderInto() {
   const header = document.createElement('div');
   header.className = 'lane-rail-section-header lanes-rail-header';
   header.innerHTML = `
-    <span class="lane-rail-section-title">Frames</span>
+    <span class="lane-rail-section-title">Terminals</span>
     <span class="lane-rail-section-count">${lastState.terminals.length}</span>
     <button class="lane-rail-toggle" title="Hide panel">${lucideIcon(PanelRightClose, 15)}</button>
   `;
@@ -173,8 +173,8 @@ function _renderInto() {
   // to the list it adds to.
   const addBtn = document.createElement('button');
   addBtn.className = 'lane-rail-add-btn';
-  addBtn.title = 'New Frame';
-  addBtn.innerHTML = `${lucideIcon(Plus, 14)}<span>Add new Frame</span>`;
+  addBtn.title = 'New Terminal';
+  addBtn.innerHTML = `${lucideIcon(Plus, 14)}<span>Add new Terminal</span>`;
   addBtn.addEventListener('click', () => {
     if (callbacks.onNewLane) callbacks.onNewLane();
   });

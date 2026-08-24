@@ -4,9 +4,15 @@
   <meta charset="UTF-8">
   <title>Frame</title>
   <link rel="stylesheet" href="node_modules/xterm/css/xterm.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Vendored locally (npm dep) — fonts must work offline -->
+  <link rel="stylesheet" href="node_modules/@fontsource/inter/400.css">
+  <link rel="stylesheet" href="node_modules/@fontsource/inter/500.css">
+  <link rel="stylesheet" href="node_modules/@fontsource/inter/600.css">
+  <link rel="stylesheet" href="node_modules/@fontsource/jetbrains-mono/400.css">
+  <link rel="stylesheet" href="node_modules/@fontsource/jetbrains-mono/500.css">
+  <link rel="stylesheet" href="node_modules/@fontsource/jetbrains-mono/600.css">
+  <link rel="stylesheet" href="node_modules/@fontsource/jetbrains-mono/700.css">
+  <link rel="stylesheet" href="node_modules/@fontsource/jetbrains-mono/800.css">
   <!-- Vendored locally (npm dep) — the structure map must work offline -->
   <script src="node_modules/d3/dist/d3.min.js"></script>
   <link rel="stylesheet" href="src/renderer/styles/main.css">
@@ -75,10 +81,10 @@
         and track decisions.
       </p>
       <div class="spotlight-card-files">
-        <span>AGENTS.md</span>
-        <span>STRUCTURE.json</span>
-        <span>PROJECT_NOTES.md</span>
-        <span>tasks.json</span>
+        <span>.frame/AGENTS.md</span>
+        <span>.frame/STRUCTURE.json</span>
+        <span>.frame/PROJECT_NOTES.md</span>
+        <span>.frame/tasks.json</span>
         <span>+ more</span>
       </div>
     </div>
@@ -103,14 +109,15 @@
             <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 10h6"/><path d="M12 13V7"/><path d="M9 17h6"/>
           </svg>
         </button>
-        <button class="sidebar-tab-btn sidebar-rail-btn" data-sidebar-tab="agent" title="Agent" aria-label="Agent" tabindex="-1">
+        <!-- Theme + Settings sit at the foot of the rail, below the view
+             tabs: they don't switch views — hence no .sidebar-tab-btn (that
+             class drives view switching). Theme moved here when the
+             instrument rail retired (retire-rail-and-panels spec). -->
+        <button id="sidebar-theme-btn" class="sidebar-rail-btn sidebar-rail-btn-foot" title="Toggle light/dark theme" aria-label="Toggle theme" tabindex="-1">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
           </svg>
         </button>
-        <!-- Settings sits at the foot of the rail, below the view tabs: it
-             opens the same modal as the app menu, it doesn't switch views —
-             hence no .sidebar-tab-btn (that class drives view switching). -->
         <button id="sidebar-settings-btn" class="sidebar-rail-btn sidebar-rail-btn-foot" title="Settings (Cmd+,)" aria-label="Settings" tabindex="-1">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
@@ -135,26 +142,14 @@
           <div id="sidebar-project-menu" class="sidebar-project-menu" role="menu" hidden></div>
         </div>
 
-        <!-- Projects view (default): the full workspace list, then an
-             Add new Project button that opens the same modal as the old `+`. -->
+        <!-- Projects view (default) — the workspace panel for the selected
+             project (project-dropdown spec): selection lives in the
+             current-project switcher above; Add new Project sits pinned at
+             the bottom. -->
         <div class="sidebar-tab-content sidebar-view-projects" data-sidebar-tab-content="projects">
-          <div id="project-section" class="project-section">
-            <div class="project-section-header">
-              <span class="project-section-title">Projects</span>
-              <button type="button" class="project-section-help" tabindex="-1" aria-label="About projects">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-                </svg>
-              </button>
-              <span class="project-section-help-tip" role="tooltip">When the app first opens, the first project opens automatically. Drag &amp; drop to reorder your projects.</span>
-            </div>
-            <!-- Workspace project list: drag to reorder, fills the view -->
-            <div id="projects-list" class="project-section-list">
-              <div class="no-projects-message">No projects yet. Add a project to get started.</div>
-            </div>
-          </div>
+          <div id="workspace-panel" class="workspace-panel"></div>
           <button id="project-add-btn" class="project-add-btn" tabindex="-1" title="Open a project">
-            <span class="project-add-btn-icon">+</span><span>Add new Project</span>
+            <span class="project-add-btn-icon">+</span><span class="project-add-btn-label">Add new Project</span>
           </button>
         </div>
 
@@ -213,48 +208,6 @@
         <!-- Agent view: default-agent controls (selector + Start) and the live
              running-agents list across all projects. Replaces the old bottom
              Agent footer card. -->
-        <div class="sidebar-tab-content sidebar-view-agent" data-sidebar-tab-content="agent" style="display:none;">
-          <div id="sidebar-agent-footer" class="sidebar-agent-footer">
-            <div class="sidebar-agent-footer-head">
-              <span class="sidebar-agent-footer-icon" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 8V4H8"/>
-                  <rect width="16" height="12" x="4" y="8" rx="2"/>
-                  <path d="M2 14h2"/>
-                  <path d="M20 14h2"/>
-                  <path d="M15 13v2"/>
-                  <path d="M9 13v2"/>
-                </svg>
-              </span>
-              <span class="sidebar-agent-footer-label">Default Agent</span>
-            </div>
-            <div class="sidebar-agent-footer-row">
-              <select id="ai-tool-selector" class="ai-tool-select" tabindex="-1" title="Default agent">
-                <option value="claude">Claude</option>
-                <option value="codex">Codex</option>
-              </select>
-              <button id="sidebar-agent-launch" class="sidebar-agent-launch" tabindex="-1" title="Start default agent">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-                <span>Start</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="agent-running-header">
-            <span class="agent-running-header-label">Running agents</span>
-            <button type="button" class="agent-running-help" tabindex="-1" aria-label="About running agents">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-              </svg>
-            </button>
-            <span class="agent-running-help-tip" role="tooltip">Here you can see agents running across all your projects — not just the current one.</span>
-          </div>
-          <div id="agent-running-list" class="agent-running-list">
-            <div class="agent-running-empty">No agents running — pick an agent and hit Start.</div>
-          </div>
-        </div>
 
         <!-- Update Available Banner -->
         <button
@@ -517,11 +470,6 @@
       </div>
     </div>
 
-    <!-- Instrument rail: last flex child of #main-content, so it sits at the
-         outer edge and panels open inboard of it. A rail that shifts when a
-         panel toggles stops being a landmark. -->
-    <nav id="instrument-rail" class="instrument-rail" aria-label="Frame instruments"></nav>
-
     <!-- Command Palette -->
     <div id="command-palette-overlay" class="command-palette-overlay">
       <div class="command-palette" role="dialog" aria-label="Command Palette">
@@ -641,10 +589,10 @@
           and track decisions.
         </p>
         <div class="spotlight-card-files">
-          <span>AGENTS.md</span>
-          <span>STRUCTURE.json</span>
-          <span>PROJECT_NOTES.md</span>
-          <span>tasks.json</span>
+          <span>.frame/AGENTS.md</span>
+          <span>.frame/STRUCTURE.json</span>
+          <span>.frame/PROJECT_NOTES.md</span>
+          <span>.frame/tasks.json</span>
           <span>+ more</span>
         </div>
         <button id="spotlight-dismiss" class="spotlight-card-btn">Got it</button>
@@ -662,16 +610,33 @@
           <p class="init-modal-lead">This project isn't set up with Frame yet. Initialize it to enable AI context, task tracking, and session notes.</p>
           <p class="init-modal-description">This will create the following files in your project:</p>
           <ul class="init-modal-file-list">
-            <li><span class="file-icon">&#128193;</span> .frame/ <span class="file-desc">config directory</span></li>
-            <li><span class="file-icon">&#128193;</span> .frame/bin/ <span class="file-desc">AI tool wrappers</span></li>
-            <li><span class="file-icon">&#128196;</span> AGENTS.md <span class="file-desc">AI instructions</span></li>
-            <li><span class="file-icon">&#128279;</span> CLAUDE.md <span class="file-desc">symlink to AGENTS.md</span></li>
-            <li><span class="file-icon">&#128279;</span> GEMINI.md <span class="file-desc">symlink to AGENTS.md</span></li>
-            <li><span class="file-icon">&#128196;</span> STRUCTURE.json <span class="file-desc">module map</span></li>
-            <li><span class="file-icon">&#128196;</span> PROJECT_NOTES.md <span class="file-desc">session notes</span></li>
-            <li><span class="file-icon">&#128196;</span> tasks.json <span class="file-desc">task tracking</span></li>
-            <li><span class="file-icon">&#128196;</span> QUICKSTART.md <span class="file-desc">getting started</span></li>
+            <li><span class="file-icon">&#128193;</span> .frame/ <span class="file-desc">everything Frame writes lives here</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/AGENTS.md <span class="file-desc">AI instructions</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/STRUCTURE.json <span class="file-desc">module map</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/PROJECT_NOTES.md <span class="file-desc">session notes</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/tasks.json <span class="file-desc">task tracking</span></li>
+            <li><span class="file-icon">&#128196;</span> .frame/QUICKSTART.md <span class="file-desc">getting started</span></li>
+            <li><span class="file-icon">&#128193;</span> .frame/bin/ <span class="file-desc">Frame's parser and helper scripts</span></li>
+            <li><span class="file-icon">&#128279;</span> .claude/rules/frame.md <span class="file-desc">a copy of .frame/AGENTS.md, kept in sync, for Claude Code to read</span></li>
           </ul>
+          <p class="init-modal-note">Nothing is added to your project root, and no existing file is
+            read, moved or replaced &mdash; your CLAUDE.md and AGENTS.md stay yours.</p>
+          <fieldset class="init-modal-sharing">
+            <legend>How should Frame's files relate to git?</legend>
+            <label>
+              <input type="radio" name="init-frame-sharing" value="repo" checked>
+              <span class="init-sharing-title">Share with the repo</span>
+              <span class="init-sharing-desc">Commit <code>.frame/</code> so teammates get the same context. Machine-local files are ignored by <code>.frame/.gitignore</code>.</span>
+            </label>
+            <label>
+              <input type="radio" name="init-frame-sharing" value="local">
+              <span class="init-sharing-title">Keep it local to me</span>
+              <span class="init-sharing-desc">Excluded through <code>.git/info/exclude</code>, so <code>git status</code> shows nothing Frame made. Nothing is added to the tracked <code>.gitignore</code>.</span>
+            </label>
+          </fieldset>
+          <p class="init-modal-note init-modal-requirement">Needs Claude Code new enough to load
+            <code>.claude/rules/</code> — verified with Claude Code 2.1.x. Run <code>/context</code> in a
+            session to confirm <code>.claude/rules/frame.md</code> loaded.</p>
           <div id="init-frame-existing-warning" class="init-modal-warning" style="display: none;">
             <p>These files already exist and will NOT be overwritten:</p>
             <ul id="init-frame-existing-list"></ul>
@@ -683,6 +648,38 @@
           </label>
           <button class="modal-btn modal-btn-cancel" id="init-frame-cancel">Not Now</button>
           <button class="modal-btn modal-btn-primary" id="init-frame-confirm">Initialize</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Frame Layout Migration Modal (pre-overlay project → .frame/) -->
+    <div id="migration-modal" class="modal-overlay">
+      <div class="modal-container modal-container-wide">
+        <div class="modal-header">
+          <h3>Move Frame's files into <code>.frame/</code>?</h3>
+          <button class="modal-close" id="migration-modal-close">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <p class="init-modal-lead" id="migration-lead">
+            This project keeps Frame's files at its root. Frame can move them into
+            <code>.frame/</code> so your project root is yours again. Nothing is deleted:
+            every file is copied to a backup first.
+          </p>
+          <ul class="init-modal-file-list" id="migration-file-list"></ul>
+          <p class="init-modal-note" id="migration-backup-note"></p>
+          <div class="init-modal-warning" id="migration-dirty-warning" style="display:none;">
+            <p>These files have uncommitted changes, so migration is paused:</p>
+            <ul id="migration-dirty-list"></ul>
+            <p>Commit or stash them, then reopen this project.</p>
+          </div>
+          <div id="migration-progress" class="migration-progress" style="display:none;">
+            <p id="migration-progress-step">Working…</p>
+          </div>
+          <div id="migration-receipt" class="migration-receipt" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" id="migration-later">Later</button>
+          <button class="modal-btn modal-btn-primary" id="migration-run">Migrate</button>
         </div>
       </div>
     </div>
@@ -909,19 +906,6 @@
           </div>
         </div>
         <aside id="tasks-dashboard-detail" class="tasks-dashboard-detail">
-          <div class="tasks-dashboard-detail-empty">
-            <button id="tasks-dashboard-detail-add" class="tasks-dashboard-detail-add" tabindex="-1">
-              <span class="tasks-dashboard-detail-add-icon" aria-hidden="true">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-              </span>
-              <span class="tasks-dashboard-detail-add-title">Add a new task</span>
-              <span class="tasks-dashboard-detail-add-sub">Quickly capture something to do — it lands in Pending and is ready to drag.</span>
-            </button>
-            <p class="tasks-dashboard-detail-empty-hint">Or click any card to see its details.</p>
-          </div>
           <form id="tasks-dashboard-form" class="tasks-dashboard-form" style="display:none;">
             <div class="tasks-dashboard-form-header">
               <h3>New task</h3>
@@ -1293,6 +1277,34 @@
               <input type="checkbox" id="settings-spec-driven-toggle" />
               <span class="settings-switch-slider"></span>
             </label>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-git-sharing">Git sharing</label>
+              <p class="settings-row-desc">
+                Whether <code>.frame/</code> is committed with the repo, or kept local to this
+                machine through <code>.git/info/exclude</code>. Frame never edits your tracked
+                <code>.gitignore</code> and never untracks files for you.
+              </p>
+              <p class="settings-row-desc settings-row-warning" id="settings-git-sharing-warning" style="display:none;"></p>
+            </div>
+            <select class="settings-select" id="settings-git-sharing">
+              <option value="repo">Share with the repo</option>
+              <option value="local">Local to me</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label">Remove Frame from this project</label>
+              <p class="settings-row-desc">
+                Deletes <code>.frame/</code>, <code>.claude/rules/frame.md</code> and Frame's hook
+                entries. Your own files are never touched.
+              </p>
+              <p class="settings-row-desc" id="settings-remove-frame-note" style="display:none;"></p>
+            </div>
+            <button type="button" class="settings-danger-btn" id="settings-remove-frame">Remove Frame</button>
           </div>
         </div>
 

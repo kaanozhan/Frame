@@ -479,7 +479,7 @@ async function handleMerge(session, slug, args = []) {
   w.merged = true;
   w.lastActivityAt = Date.now();
   relayToConductor(session,
-    `MERGED: "${slug}" → ${res.branch}. Reconcile meta now (npm run structure; mark ${slug} tasks done in tasks.json; append PROJECT_NOTES if useful), then advance to the next spec.`
+    `MERGED: "${slug}" → ${res.branch}. Reconcile meta now (npm run structure; mark ${slug} tasks done in .frame/tasks.json; append .frame/PROJECT_NOTES.md if useful), then advance to the next spec.`
   );
   publishState(session);
   return { status: 'merged', branch: res.branch };
