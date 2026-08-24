@@ -234,9 +234,16 @@ function init() {
   registerCommands();
   commandRegistry.bindKeyboard();
 
-  // Setup window resize handler
+  // Window resize → refit every terminal, but only once the drag settles.
+  // Undebounced this fired per frame and each frame sent one resize IPC per
+  // open terminal — 363 messages in 2.2s with three terminals, enough to trip
+  // the IPC watchdog (resize-storm-watchdog spec). The PTY only needs the
+  // final size. 80ms matches the terminals view's own ResizeObserver, so both
+  // resize paths settle alike.
+  let resizeSettleTimer = null;
   window.addEventListener('resize', () => {
-    terminal.fitTerminal();
+    clearTimeout(resizeSettleTimer);
+    resizeSettleTimer = setTimeout(() => terminal.fitTerminal(), 80);
   });
 }
 
