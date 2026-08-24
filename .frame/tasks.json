@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-24T19:06:30.026Z",
+  "lastUpdated": "2026-08-24T19:41:00.638Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5117,6 +5117,58 @@
       "createdAt": "2026-08-24T19:00:16.462Z",
       "updatedAt": "2026-08-24T19:06:30.026Z",
       "completedAt": "2026-08-24T19:06:30.026Z"
+    },
+    {
+      "id": "task-spec-sessions-from-transcripts-T01",
+      "title": "Rewrite getSessionsForProject: stream every <id>.jsonl in the project directory into the session shape the panel renders; keep the { sessions, reason } contract.",
+      "description": "",
+      "source": "spec:sessions-from-transcripts:T01",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "From spec: sessions-from-transcripts",
+      "createdAt": "2026-08-24T19:30:48.578Z",
+      "updatedAt": "2026-08-24T19:41:00.638Z",
+      "completedAt": "2026-08-24T19:41:00.638Z"
+    },
+    {
+      "id": "task-spec-sessions-from-transcripts-T02",
+      "title": "Append-only cache: remember consumed offset + derived state per file, re-read only the appended tail, rescan on shrink.",
+      "description": "",
+      "source": "spec:sessions-from-transcripts:T02",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "From spec: sessions-from-transcripts",
+      "createdAt": "2026-08-24T19:30:48.578Z",
+      "updatedAt": "2026-08-24T19:41:00.638Z",
+      "completedAt": "2026-08-24T19:41:00.638Z"
+    },
+    {
+      "id": "task-spec-sessions-from-transcripts-T03",
+      "title": "Resume opens a new terminal: route the session click through agentDispatch (create terminal -> settle -> run Claude with --resume <id>), using the Claude tool command and a validated id.",
+      "description": "",
+      "source": "spec:sessions-from-transcripts:T03",
+      "status": "completed",
+      "priority": "high",
+      "category": "test",
+      "context": "From spec: sessions-from-transcripts",
+      "createdAt": "2026-08-24T19:30:48.578Z",
+      "updatedAt": "2026-08-24T19:41:00.638Z",
+      "completedAt": "2026-08-24T19:41:00.638Z"
+    },
+    {
+      "id": "task-spec-sessions-from-transcripts-T04",
+      "title": "Tests over fixture transcripts (title fallback, meta/command prompts skipped, ordering, missing dir, unreadable file, incremental append) + live panel verification.",
+      "description": "",
+      "source": "spec:sessions-from-transcripts:T04",
+      "status": "completed",
+      "priority": "high",
+      "category": "test",
+      "context": "From spec: sessions-from-transcripts",
+      "createdAt": "2026-08-24T19:35:15.908Z",
+      "updatedAt": "2026-08-24T19:41:00.638Z",
+      "completedAt": "2026-08-24T19:41:00.638Z"
     }
   ],
   "metadata": {

@@ -1714,3 +1714,38 @@ never prunes them — after this change STRUCTURE.json still listed the two
 removed channels (141 vs the real 139) even after a full run. Pruned by
 hand. Any future channel removal needs the same manual step, or the script
 needs a prune pass.
+
+### [2026-08-24] Claude session list read from transcripts; resume gets its own terminal (spec: sessions-from-transcripts)
+
+Kaan: the sessions screen "çok eski sessionları gösteriyor… orası çalışmıyor
+özetle." Measured before touching anything: `sessions-index.json` here was
+written 2026-01-28, held 3 entries, and all three transcripts had been
+deleted — so every row was a dead session, and clicking one ran
+`claude --resume` on an id that no longer existed. The file exists in 2 of 95
+project directories; Claude Code writes `<sessionId>.jsonl` and does not
+maintain the index. 14 real transcripts sat unlisted in the same directory.
+
+Fix: derive the list from the transcripts (streamed, so a 24MB file neither
+loads into memory nor blocks the main process), with an append-only offset
+cache so re-opening the panel re-reads only new bytes. Titles come from the
+`ai-title`/`summary` record and fall back to the first *real* user prompt —
+isMeta records, tool results, `<command-name>` wrappers and caveat blocks
+are skipped, or the title would read like harness noise. Transcripts with no
+conversation are not listed at all.
+
+Second half, from Kaan seeing the failure live: resume now opens a NEW
+terminal and runs Claude there. The old path used
+`window.terminalSendCommand`, which types into the *focused* terminal — and
+since that terminal is normally already running Claude, `claude --resume <id>`
+arrived as a chat message. (It reached this very session that way, which is
+how the bug got noticed.) It now reuses the Start button's path:
+createTerminalForCurrentProject → enter lane → send after the 800ms settle,
+using the Claude tool's command rather than the active tool, with the id
+validated as a UUID first.
+
+Result: 13 real sessions replaced 3 dead rows. Honest limit recorded in the
+spec — transcripts Claude Code already pruned cannot come back.
+
+Also worth keeping: `CLAUDE_CONFIG_DIR` is now honoured when resolving
+Claude's data directory (matching Claude Code itself), which is also the seam
+the tests use to point the module at a fixture tree.

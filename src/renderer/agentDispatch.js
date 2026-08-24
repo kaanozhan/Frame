@@ -301,6 +301,57 @@ async function _startAgentInNewFrame() {
   _startAgentIn(id, { fresh: true });
 }
 
+/**
+ * Resume a Claude Code session from the sessions list.
+ *
+ * Always in a NEW terminal. The old path handed `claude --resume <id>` to
+ * whichever terminal had focus; when that terminal is already running Claude
+ * — the normal case — the text landed in Claude's prompt as a message and
+ * nothing resumed (sessions-from-transcripts spec).
+ *
+ * The command comes from the Claude tool entry rather than the active tool:
+ * these are Claude Code transcripts, so Codex or Gemini cannot resume them.
+ */
+async function resumeClaudeSession(sessionId) {
+  if (!multiTerminalUI) {
+    notify.error('Terminal system is not ready yet');
+    return;
+  }
+  if (!state.getProjectPath()) {
+    notify.error('Open a project first');
+    return;
+  }
+  // The id reaches a command line, so it must be exactly what Claude Code
+  // names its transcripts — a UUID, nothing else.
+  if (!/^[0-9a-fA-F-]{36}$/.test(String(sessionId || ''))) {
+    notify.error('That session has an unreadable id and cannot be resumed');
+    return;
+  }
+
+  const aiToolSelector = require('./aiToolSelector');
+  const tools = aiToolSelector.getAvailableTools() || {};
+  const claudeCommand = (tools.claude && tools.claude.command) || 'claude';
+
+  let id = null;
+  try {
+    id = await multiTerminalUI.createTerminalForCurrentProject();
+  } catch (err) {
+    console.error('agentDispatch: terminal creation failed', err);
+  }
+  if (!id) {
+    const max = multiTerminalUI.getManager().maxTerminals;
+    notify.error(`Could not create a new terminal — maximum (${max}) may be reached for this project`);
+    return;
+  }
+
+  multiTerminalUI.enterLane(id);
+  ipcRenderer.send(IPC.TELEMETRY_TRACK, 'agent_run_started', { tool: 'claude' });
+  // Same settle a freshly spawned shell gets before the Start button types.
+  setTimeout(() => {
+    multiTerminalUI.sendCommand(`${claudeCommand} --resume ${sessionId}`, id);
+  }, 800);
+}
+
 // "Open a new Frame / Kill & restart here" — asked when the focused Frame is
 // busy. Resolves 'new' | 'restart' | 'cancel'; opening a new Frame is the
 // safe default (never silently kills running work).
@@ -744,6 +795,7 @@ module.exports = {
   init,
   dispatch,
   startDefaultAgent,
+  resumeClaudeSession,
   dispatchSpecCommand,
   getSpecLaneInfo,
   getTaskLaneInfo,

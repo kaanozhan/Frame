@@ -563,17 +563,16 @@ function renderSessionsEmpty(message) {
 }
 
 /**
- * Resume a session by sending command to terminal
+ * Resume a session in a terminal of its own.
+ *
+ * Not window.terminalSendCommand: that types into whatever terminal has
+ * focus, and when that terminal is already running Claude the command lands
+ * in Claude's prompt as a message instead of starting anything
+ * (sessions-from-transcripts spec).
  */
 function resumeSession(sessionId) {
-  const command = `claude --resume ${sessionId}`;
-
-  if (typeof window.terminalSendCommand === 'function') {
-    window.terminalSendCommand(command);
-    hide();
-  } else {
-    notify.error('Terminal not available');
-  }
+  hide();
+  require('./agentDispatch').resumeClaudeSession(sessionId);
 }
 
 /**
