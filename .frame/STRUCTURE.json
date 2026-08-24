@@ -301,32 +301,66 @@
         "fs",
         "path",
         "os",
+        "readline",
         "shared/ipcChannels"
       ],
       "functions": {
+        "projectsDir": {
+          "line": 30,
+          "purpose": "Where Claude Code keeps its data. `CLAUDE_CONFIG_DIR` is how Claude Code"
+        },
         "init": {
-          "line": 19,
+          "line": 49,
           "params": [
             "window"
           ],
           "purpose": "Initialize sessions manager"
         },
         "encodeProjectPath": {
-          "line": 30,
+          "line": 60,
           "params": [
             "projectPath"
           ],
           "purpose": "Encode project path to Claude Code's directory format: every character"
         },
+        "userPromptText": {
+          "line": 71,
+          "params": [
+            "record"
+          ],
+          "purpose": "Text of a user record, when it is the user's own words."
+        },
+        "applyRecord": {
+          "line": 99,
+          "params": [
+            "session",
+            "record"
+          ],
+          "purpose": "Fold one transcript record into the session being built."
+        },
+        "emptySession": {
+          "line": 124,
+          "params": [
+            "sessionId"
+          ]
+        },
+        "scanTranscript": {
+          "line": 143,
+          "params": [
+            "file",
+            "stat"
+          ],
+          "purpose": "Read one transcript into a session record, reusing whatever a previous"
+        },
         "getSessionsForProject": {
-          "line": 39,
+          "line": 187,
           "params": [
             "projectPath"
           ],
           "purpose": "Get sessions for a given project path."
         },
         "setupIPC": {
-          "line": 75,
+          "line": 250,
           "params": [
             "ipcMain"
           ],
@@ -4158,6 +4192,7 @@
         "init",
         "dispatch",
         "startDefaultAgent",
+        "resumeClaudeSession",
         "dispatchSpecCommand",
         "getSpecLaneInfo",
         "getTaskLaneInfo",
@@ -4213,8 +4248,15 @@
         "_startAgentInNewFrame": {
           "line": 289
         },
+        "resumeClaudeSession": {
+          "line": 315,
+          "params": [
+            "sessionId"
+          ],
+          "purpose": "Resume a Claude Code session from the sessions list."
+        },
         "_askNewOrRestart": {
-          "line": 307,
+          "line": 358,
           "params": [
             "frameName",
             "hasAgent"
@@ -4222,7 +4264,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 364,
+          "line": 415,
           "params": [
             "{ slug",
             "title = null",
@@ -4231,7 +4273,7 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "_dispatchImplement": {
-          "line": 431,
+          "line": 482,
           "params": [
             "{ slug",
             "title",
@@ -4241,79 +4283,79 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "getSpecLaneInfo": {
-          "line": 522,
+          "line": 573,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 546,
+          "line": 597,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 567,
+          "line": 618,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 571,
+          "line": 622,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 575,
+          "line": 626,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 592,
+          "line": 643,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 600,
+          "line": 651,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 623,
+          "line": 674,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 631,
+          "line": 682,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 649,
+          "line": 700,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 659,
+          "line": 710,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 668,
+          "line": 719,
           "params": [
             "frameName",
             "specName"
@@ -4321,14 +4363,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 709,
+          "line": 760,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 738,
+          "line": 789,
           "params": [
             "terminalId",
             "message"
@@ -4340,6 +4382,7 @@
           "TERMINAL_DESTROYED"
         ],
         "emits": [
+          "TELEMETRY_TRACK",
           "TELEMETRY_TRACK",
           "TELEMETRY_TRACK",
           "SPEC_AGENT_ACTIVITY"
@@ -6398,7 +6441,8 @@
         "shared/ipcChannels",
         "state",
         "htmlUtils",
-        "notify"
+        "notify",
+        "agentDispatch"
       ],
       "functions": {
         "init": {
@@ -6510,14 +6554,14 @@
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 568,
+          "line": 573,
           "params": [
             "sessionId"
           ],
-          "purpose": "Resume a session by sending command to terminal"
+          "purpose": "Resume a session in a terminal of its own."
         },
         "formatRelativeTime": {
-          "line": 582,
+          "line": 581,
           "params": [
             "dateString"
           ],

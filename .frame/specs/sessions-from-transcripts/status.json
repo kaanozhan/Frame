@@ -1,0 +1,15 @@
+{
+  "slug": "sessions-from-transcripts",
+  "title": "Claude sessions read from transcripts; resume opens its own terminal",
+  "phase": "done",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [
+    "task-spec-sessions-from-transcripts-T01",
+    "task-spec-sessions-from-transcripts-T02",
+    "task-spec-sessions-from-transcripts-T03",
+    "task-spec-sessions-from-transcripts-T04"
+  ],
+  "created_at": "2026-08-24T20:10:00Z",
+  "updated_at": "2026-08-24T19:41:00.638Z",
+  "last_phase_at": "2026-08-24T19:41:00.638Z"
+}
