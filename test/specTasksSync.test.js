@@ -248,3 +248,32 @@ test('a spec is never walked back when its recorded tasks are gone from tasks.js
     'no recorded ids → files decide'
   );
 });
+
+test('two Frames arguing over one spec stop being answered', () => {
+  // An older build on the same project rewrites status.json the moment this
+  // one corrects it. Left alone the two watchers answer each other forever,
+  // rewriting the file and churning git. The natural lifecycle never revisits
+  // a phase; a third return to one is the argument, not the work.
+  writeStatus();
+  writeTasksMd(NON_ASCENDING);
+  fs.writeFileSync(path.join(specDir(), 'spec.md'), '# Sample spec\n', 'utf8');
+  const statusPath = path.join(specDir(), 'status.json');
+  const setPhase = (phase) => {
+    const s = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+    fs.writeFileSync(statusPath, JSON.stringify({ ...s, phase }, null, 2), 'utf8');
+  };
+  const phaseNow = () => JSON.parse(fs.readFileSync(statusPath, 'utf8')).phase;
+
+  // tasks.md exists, so reconcile derives 'tasks_generated' every time; the
+  // other Frame keeps putting 'done' back.
+  let corrected = 0;
+  for (let round = 0; round < 10; round++) {
+    setPhase('done');
+    specManager.reconcilePhase(projectDir, SLUG, { version: '2.0', tasks: [] });
+    if (phaseNow() === 'tasks_generated') corrected++;
+  }
+
+  assert.ok(corrected >= 1, 'it does correct the first rounds');
+  assert.ok(corrected <= 3, `and then stops answering (corrected ${corrected} times)`);
+  assert.equal(phaseNow(), 'done', 'the last write is the other Frame\'s, not ours');
+});

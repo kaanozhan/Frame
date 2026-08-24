@@ -336,11 +336,46 @@ function collectSpecTasks(slug, tasksData) {
   return tasksData.tasks.filter(t => t && typeof t.source === 'string' && t.source.startsWith(prefix));
 }
 
+// A second Frame open on the same project — an older build that reads the
+// pre-`.frame/` layout and derives phases differently — rewrites status.json
+// the moment this one corrects it, and the two watchers answer each other
+// indefinitely: disk writes, git churn and a phase that never settles.
+//
+// The signature is returning to the same phase over and over in a short
+// space of time. A spec's own lifecycle climbs draft → … → done without
+// repeating itself, and someone iterating — flipping a task back to pending,
+// finishing it again — revisits a phase a few times across a working session.
+// Two Frames answering each other do it within seconds, so the window is what
+// separates them; a session-long tally would eventually punish real work.
+const MAX_WRITES_PER_PHASE = 3;
+const PHASE_WRITE_WINDOW_MS = 60 * 1000;
+const phaseWrites = new Map();
+
+function countPhaseWrite(projectPath, slug, phase, now) {
+  const key = `${projectPath}::${slug}::${phase}`;
+  const times = (phaseWrites.get(key) || []).filter((t) => now - t < PHASE_WRITE_WINDOW_MS);
+  times.push(now);
+  phaseWrites.set(key, times);
+  return times.length;
+}
+
 function reconcilePhase(projectPath, slug, tasksDataOrNull) {
   const status = readStatus(projectPath, slug);
   if (!status) return;
   const newPhase = derivePhase(projectPath, slug, status.phase, tasksDataOrNull, status.generated_task_ids);
   if (newPhase === status.phase) return;
+
+  const writes = countPhaseWrite(projectPath, slug, newPhase, Date.now());
+  if (writes > MAX_WRITES_PER_PHASE) {
+    if (writes === MAX_WRITES_PER_PHASE + 1) {
+      console.warn(
+        `specManager: "${slug}" keeps returning to "${newPhase}" — leaving it alone. ` +
+        'Another Frame is probably open on this project; close the older one.'
+      );
+    }
+    return;
+  }
+
   const now = new Date().toISOString();
   writeStatus(projectPath, slug, {
     ...status,

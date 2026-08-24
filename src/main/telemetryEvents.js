@@ -95,4 +95,70 @@ function effectiveEnabled({ value, loadFailed }) {
   return value !== false;
 }
 
-module.exports = { EVENTS, normalizeTool, validateEvent, effectiveEnabled };
+/**
+ * How much of the analytics quota any single run may spend.
+ *
+ * Every event here is user-driven, so a busy day is tens of events, not
+ * hundreds. These ceilings sit far above real use and exist for the case
+ * where something loops: two Frames open on one project — an older build
+ * walking spec phases backwards while this one reconciles them forward —
+ * sent hundreds of events in minutes, and a repeating `error_occurred`
+ * could do the same. The quota is finite; a bug must not be able to spend
+ * it.
+ */
+const DEFAULT_RATE_LIMIT = { perWindow: 30, perSession: 500, windowMs: 60 * 1000 };
+
+/**
+ * A rolling-window limiter. `check(now)` decides one event and returns
+ * `{ allowed, notice }`; `notice` is a message worth logging and arrives at
+ * most once per window, because one line per dropped event is its own flood.
+ *
+ * The clock is a parameter rather than `Date.now()` so the decision stays
+ * pure and testable.
+ */
+function createRateLimiter(options) {
+  const cfg = Object.assign({}, DEFAULT_RATE_LIMIT, options || {});
+  const window = [];
+  let sessionCount = 0;
+  let suppressed = 0;
+  let lastNoticeAt = null;
+
+  return {
+    check(now) {
+      while (window.length > 0 && now - window[0] >= cfg.windowMs) window.shift();
+
+      const overSession = sessionCount >= cfg.perSession;
+      const overWindow = window.length >= cfg.perWindow;
+      if (!overSession && !overWindow) {
+        window.push(now);
+        sessionCount += 1;
+        return { allowed: true, notice: null };
+      }
+
+      suppressed += 1;
+      if (lastNoticeAt !== null && now - lastNoticeAt < cfg.windowMs) {
+        return { allowed: false, notice: null };
+      }
+      lastNoticeAt = now;
+      const cause = overSession
+        ? `this run has sent ${cfg.perSession} events`
+        : `more than ${cfg.perWindow} events in a minute`;
+      return {
+        allowed: false,
+        notice: `rate limit reached (${cause}) — dropping events; ${suppressed} dropped so far`
+      };
+    },
+    stats() {
+      return { sessionCount, suppressed };
+    }
+  };
+}
+
+module.exports = {
+  EVENTS,
+  normalizeTool,
+  validateEvent,
+  effectiveEnabled,
+  createRateLimiter,
+  DEFAULT_RATE_LIMIT
+};

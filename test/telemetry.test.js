@@ -9,7 +9,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { EVENTS, normalizeTool, validateEvent, effectiveEnabled } = require('../src/main/telemetryEvents');
+const { EVENTS, normalizeTool, validateEvent, effectiveEnabled, createRateLimiter, DEFAULT_RATE_LIMIT } = require('../src/main/telemetryEvents');
 
 // ─── effectiveEnabled — the re-opt-in regression ──────────
 
@@ -85,4 +85,53 @@ test('normalizeTool collapses everything outside the built-ins to custom', () =>
   assert.equal(normalizeTool(''), 'custom');
   assert.equal(normalizeTool(undefined), 'custom');
   assert.equal(normalizeTool(null), 'custom');
+});
+
+// ─── Rate limiting — the quota is finite ──────────────────
+
+test('normal use is never rate limited', () => {
+  const limiter = createRateLimiter();
+  // A busy minute of real user activity: every event goes out.
+  for (let i = 0; i < DEFAULT_RATE_LIMIT.perWindow; i++) {
+    assert.equal(limiter.check(1000 + i * 100).allowed, true, `event ${i} sent`);
+  }
+  assert.equal(limiter.stats().suppressed, 0);
+});
+
+test('a burst past the window cap is dropped, and says so once', () => {
+  // Two Frames on one project: the older build walks spec phases back, this
+  // one reconciles them forward, and the loop bills the analytics quota.
+  const limiter = createRateLimiter();
+  for (let i = 0; i < DEFAULT_RATE_LIMIT.perWindow; i++) limiter.check(1000);
+
+  const first = limiter.check(1000);
+  assert.equal(first.allowed, false, 'over the cap');
+  assert.match(first.notice, /rate limit reached/, 'and it is reported');
+
+  const next = limiter.check(1001);
+  assert.equal(next.allowed, false);
+  assert.equal(next.notice, null, 'but not reported per dropped event');
+
+  assert.equal(limiter.stats().suppressed, 2);
+});
+
+test('the window rolls: a quiet minute restores the budget', () => {
+  const limiter = createRateLimiter();
+  for (let i = 0; i < DEFAULT_RATE_LIMIT.perWindow; i++) limiter.check(1000);
+  assert.equal(limiter.check(1000).allowed, false);
+
+  const later = 1000 + DEFAULT_RATE_LIMIT.windowMs;
+  assert.equal(limiter.check(later).allowed, true, 'the old window has expired');
+});
+
+test('the session ceiling holds even when every window is under the cap', () => {
+  // A slow loop — one event every few seconds, forever — stays under the
+  // per-minute cap, so the session ceiling is what bounds it.
+  const limiter = createRateLimiter({ perWindow: 1000, perSession: 5 });
+  for (let i = 0; i < 5; i++) {
+    assert.equal(limiter.check(i * 10_000).allowed, true);
+  }
+  const over = limiter.check(6 * 10_000);
+  assert.equal(over.allowed, false);
+  assert.match(over.notice, /this run has sent 5 events/);
 });

@@ -3335,8 +3335,17 @@
             "tasksData"
           ]
         },
+        "countPhaseWrite": {
+          "line": 354,
+          "params": [
+            "projectPath",
+            "slug",
+            "phase",
+            "now"
+          ]
+        },
         "reconcilePhase": {
-          "line": 339,
+          "line": 362,
           "params": [
             "projectPath",
             "slug",
@@ -3344,14 +3353,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 374,
+          "line": 409,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 378,
+          "line": 413,
           "params": [
             "projectPath",
             "aiTool",
@@ -3359,7 +3368,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 382,
+          "line": 417,
           "params": [
             "projectPath",
             "aiTool",
@@ -3367,14 +3376,14 @@
           ]
         },
         "interpolate": {
-          "line": 388,
+          "line": 423,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 395,
+          "line": 430,
           "params": [
             "projectPath",
             "slug",
@@ -3383,7 +3392,7 @@
           ]
         },
         "stageCommandAsset": {
-          "line": 444,
+          "line": 479,
           "params": [
             "projectPath",
             "aiTool",
@@ -3392,7 +3401,7 @@
           "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
         },
         "stageCommandAssets": {
-          "line": 465,
+          "line": 500,
           "params": [
             "projectPath",
             "command",
@@ -3400,34 +3409,34 @@
           ]
         },
         "resolveVerificationCommand": {
-          "line": 529,
+          "line": 564,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 544,
+          "line": 579,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 562,
+          "line": 597,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 586,
+          "line": 621,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 602,
+          "line": 637,
           "params": [
             "projectPath",
             "slug"
@@ -3435,7 +3444,7 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "buildSpecCommandFile": {
-          "line": 609,
+          "line": 644,
           "params": [
             "projectPath",
             "slug",
@@ -3444,53 +3453,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 645,
+          "line": 680,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 671,
+          "line": 706,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 690,
+          "line": 725,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 695,
+          "line": 730,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 775,
+          "line": 810,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 782,
+          "line": 817,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 799,
+          "line": 834,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 829,
+          "line": 864,
           "params": [
             "projectPath",
             "query"
@@ -3498,14 +3507,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 850,
+          "line": 885,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 893,
+          "line": 928,
           "params": [
             "projectPath",
             "slug",
@@ -3513,14 +3522,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 912,
+          "line": 947,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 929,
+          "line": 964,
           "params": [
             "projectPath",
             "oldSlug",
@@ -3529,28 +3538,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1041,
+          "line": 1076,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1124
+          "line": 1159
         },
         "pushSpecData": {
-          "line": 1145,
+          "line": 1180,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1165,
+          "line": 1200,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1169,
+          "line": 1204,
           "params": [
             "ipcMain"
           ]
@@ -3826,11 +3835,11 @@
       ],
       "functions": {
         "init": {
-          "line": 35,
+          "line": 40,
           "purpose": "Initialize Aptabase. MUST be called before app.whenReady() because the"
         },
         "track": {
-          "line": 52,
+          "line": 57,
           "params": [
             "name",
             "props"
@@ -3838,18 +3847,18 @@
           "purpose": "Send a registered anonymous event. No-op if disabled or not initialized."
         },
         "trackAppStarted": {
-          "line": 66,
+          "line": 74,
           "purpose": "Anonymous event marking this launch."
         },
         "setEnabled": {
-          "line": 74,
+          "line": 82,
           "params": [
             "enabled"
           ],
           "purpose": "Toggle telemetry from Settings. Persists the new state. Aptabase is"
         },
         "isEnabled": {
-          "line": 86,
+          "line": 94,
           "purpose": "Effective enabled state. Default ON when the setting has never been"
         }
       }
@@ -3861,7 +3870,9 @@
         "EVENTS",
         "normalizeTool",
         "validateEvent",
-        "effectiveEnabled"
+        "effectiveEnabled",
+        "createRateLimiter",
+        "DEFAULT_RATE_LIMIT"
       ],
       "depends": [],
       "functions": {
@@ -3887,6 +3898,13 @@
             "loadFailed }"
           ],
           "purpose": "Effective telemetry state from the persisted setting plus settings-load"
+        },
+        "createRateLimiter": {
+          "line": 119,
+          "params": [
+            "options"
+          ],
+          "purpose": "A rolling-window limiter. `check(now)` decides one event and returns"
         }
       }
     },
