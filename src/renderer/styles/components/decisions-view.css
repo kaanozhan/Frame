@@ -1,0 +1,220 @@
+/* ==================== DECISIONS VIEW ==================== */
+/* Center view for the project's decision log (decisions-view spec).
+   Collapsed rows keep 50+ entries scannable; one expands in place. */
+
+.decisions-view {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-deep);
+}
+
+/* ---------- Header ---------- */
+.decisions-header {
+  flex-shrink: 0;
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.decisions-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.decisions-title h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.decisions-mark {
+  font-size: 13px;
+  color: var(--accent-primary);
+  line-height: 1;
+}
+
+.decisions-project {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding: 2px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.decisions-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.decisions-search {
+  width: 220px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 7px 10px;
+  transition: border-color var(--transition-fast);
+}
+
+.decisions-search::placeholder { color: var(--text-quaternary); }
+
+.decisions-search:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.decisions-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  min-width: 24px;
+  text-align: right;
+}
+
+.decisions-refresh {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.decisions-refresh:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+/* ---------- List ---------- */
+.decisions-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-md) var(--space-xl) var(--space-xl);
+}
+
+.decisions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 900px;
+}
+
+.decision-row {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.decision-head {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  padding: 10px 8px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.decision-head:hover { background: var(--bg-secondary); }
+
+.decision-chevron {
+  flex-shrink: 0;
+  color: var(--text-quaternary);
+  font-size: 13px;
+  line-height: 1.4;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.decision-row.open .decision-chevron {
+  transform: rotate(90deg);
+  color: var(--accent-primary);
+}
+
+.decision-date {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.decision-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.decision-row.open .decision-title {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ---------- Expanded body ---------- */
+.decision-body {
+  padding: 0 8px var(--space-lg) 30px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* The body starts under a heading that is already on screen, so its own
+   first heading shouldn't push it down with the default 24px top margin. */
+.decision-body > :first-child { margin-top: 0; }
+
+.decision-body-empty {
+  color: var(--text-quaternary);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ---------- Loading / empty ---------- */
+.decisions-loading {
+  padding: var(--space-xl);
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.decisions-empty {
+  padding: 64px var(--space-xl);
+  text-align: center;
+}
+
+.decisions-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.decisions-empty-message {
+  font-size: 13px;
+  color: var(--text-quaternary);
+  margin: 0 auto;
+  max-width: 420px;
+  line-height: 1.6;
+}

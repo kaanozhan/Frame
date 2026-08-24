@@ -1681,3 +1681,36 @@ Empty-state markup/CSS/listener deleted.
 Left alone deliberately: the Specs dashboard has the same always-on aside
 shape (`specs-dashboard-detail-empty`). The request was about Tasks; if the
 same complaint arrives there, the pattern above ports directly.
+
+### [2026-08-24] Overview retired; Decisions became a center view (spec: decisions-view)
+
+Kaan: "bu overview ekranından da kurtulabiliriz, sadece ordaki decisions ı
+sol panele menüye almak istiyorum ve tıkladığımda bütün listeyi merkez
+ekranda görmek istiyorum" — like Tasks.
+
+Overview was four cards: Structure, Progress, Decisions, Stats. Progress and
+Stats restated what the Tasks board and the repo already show; Structure was
+just a launcher for the map. Decisions was the only card holding data with no
+other home — and it showed five rows of date + title, the least useful part
+of a decision record.
+
+Two choices Kaan made when asked: the structure map gets **its own sidebar
+item** (rather than palette-only or dropped), and the list is a **collapsible
+list + search**, not a two-pane detail view — consistent with him having just
+called the Tasks board's permanent right pane "rahatsız edici".
+
+Shipped: `decisionsView.js` (53 entries here, body expands in place as
+markdown, search over date/title/body, 900px prose cap); `overviewPanel.js`
+and 376 lines of overview CSS deleted; `overviewManager.js` →
+`projectInsights.js` keeping the two reads that outlived the dashboard
+(decisions + per-file git history for the map).
+
+Deliberate IPC delta: `LOAD_DECISIONS` added, `LOAD_OVERVIEW` removed (its
+only caller was the deleted screen), `OVERVIEW_DATA` removed (already dead).
+139 channels before, 139 after.
+
+Worth remembering: `scripts/update-structure.js` merges IPC channels and
+never prunes them — after this change STRUCTURE.json still listed the two
+removed channels (141 vs the real 139) even after a full run. Pruned by
+hand. Any future channel removal needs the same manual step, or the script
+needs a prune pass.

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-24T18:28:05.210Z",
+  "lastUpdated": "2026-08-24T19:06:30.026Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5065,6 +5065,58 @@
       "createdAt": "2026-08-24T18:24:11.990Z",
       "updatedAt": "2026-08-24T18:28:05.210Z",
       "completedAt": "2026-08-24T18:28:05.210Z"
+    },
+    {
+      "id": "task-spec-decisions-view-T01",
+      "title": "Main: rename overviewManager -> projectInsights, drop overview loaders + LOAD_OVERVIEW handler, loadDecisions returns every decision with its body, add LOAD_DECISIONS, remove LOAD_OVERVIEW/OVERVIEW_DATA.",
+      "description": "",
+      "source": "spec:decisions-view:T01",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: decisions-view",
+      "createdAt": "2026-08-24T19:00:16.462Z",
+      "updatedAt": "2026-08-24T19:06:30.026Z",
+      "completedAt": "2026-08-24T19:06:30.026Z"
+    },
+    {
+      "id": "task-spec-decisions-view-T02",
+      "title": "Renderer: decisionsView.js (header + count + search + collapsible rows with markdown bodies) and its stylesheet.",
+      "description": "",
+      "source": "spec:decisions-view:T02",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: decisions-view",
+      "createdAt": "2026-08-24T19:00:16.462Z",
+      "updatedAt": "2026-08-24T19:06:30.026Z",
+      "completedAt": "2026-08-24T19:06:30.026Z"
+    },
+    {
+      "id": "task-spec-decisions-view-T03",
+      "title": "Wiring: multiTerminalUI decisions view + structure map entry, sidebar nav (Decisions, Structure), palette entries, tab-bar hook removal, overviewPanel + overview CSS deleted.",
+      "description": "",
+      "source": "spec:decisions-view:T03",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: decisions-view",
+      "createdAt": "2026-08-24T19:00:16.462Z",
+      "updatedAt": "2026-08-24T19:06:30.026Z",
+      "completedAt": "2026-08-24T19:06:30.026Z"
+    },
+    {
+      "id": "task-spec-decisions-view-T04",
+      "title": "Verify live (nav open, expand/collapse, search, empty project, structure map, palette), tests, STRUCTURE, outcome + digest.",
+      "description": "",
+      "source": "spec:decisions-view:T04",
+      "status": "completed",
+      "priority": "medium",
+      "category": "test",
+      "context": "From spec: decisions-view",
+      "createdAt": "2026-08-24T19:00:16.462Z",
+      "updatedAt": "2026-08-24T19:06:30.026Z",
+      "completedAt": "2026-08-24T19:06:30.026Z"
     }
   ],
   "metadata": {

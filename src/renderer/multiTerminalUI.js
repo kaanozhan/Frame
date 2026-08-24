@@ -28,7 +28,7 @@ const { LaneBoard } = require('./laneBoard');
 const laneStatus = require('./laneStatus');
 const agentDispatch = require('./agentDispatch');
 const laneDetailRail = require('./laneDetailRail');
-const overviewPanel = require('./overviewPanel');
+const decisionsView = require('./decisionsView');
 const taskSection = require('./taskSection');
 const specSection = require('./specSection');
 const diffSection = require('./diffSection');
@@ -60,7 +60,7 @@ class MultiTerminalUI {
     this.board = null;
     this.contentContainer = null;
     this.initialized = false;
-    this.isOverviewVisible = false; // Track if overview is shown
+    this.isDecisionsVisible = false; // Track if the decisions view is shown
     this.sections = [];             // Open section tabs (task/spec detail instances)
     this.activeSectionKey = null;   // Which section tab is focused
     this.isSectionVisible = false;  // A section tab is currently the on-screen surface
@@ -116,11 +116,10 @@ class MultiTerminalUI {
       onNewTerminal: () => this._createLaneOrNotify()
     });
 
-    // Initialize overview panel (creates structure map overlay)
-    overviewPanel.init();
+    // Structure map overlay (its own sidebar item since Overview retired)
+    require('./structureMap').init();
 
     // Wire up top bar callbacks
-    this.tabBar.onOverviewToggle = () => this.toggleOverview();
     this.tabBar.onGoHome = () => this.goHome();
     this.tabBar.onEnterFrames = () => this.enterFrames();
     this.tabBar.onEnterLane = (terminalId) => this.enterLane(terminalId);
@@ -262,7 +261,7 @@ class MultiTerminalUI {
    * Return to the lane board.
    */
   goHome() {
-    if (this.isOverviewVisible) this.hideOverview();
+    if (this.isDecisionsVisible) this.hideDecisions();
     this.isSectionVisible = false; // section tabs stay open, just leave the screen
     this.manager.setViewMode('board');
     this._onStateChange(this._currentState());
@@ -402,7 +401,7 @@ class MultiTerminalUI {
   /** Show a legacy side panel as the center view. */
   showPanel(key) {
     if (!PANEL_REGISTRY[key]) return;
-    if (this.isOverviewVisible) this.hideOverview();
+    if (this.isDecisionsVisible) this.hideDecisions();
     this.isSectionVisible = false;
     this._activePanelKey = key;
     if (this.manager.viewMode === 'panel') {
@@ -417,7 +416,7 @@ class MultiTerminalUI {
     const onIt = this.manager.viewMode === 'panel'
       && this._activePanelKey === key
       && !this.isSectionVisible
-      && !this.isOverviewVisible;
+      && !this.isDecisionsVisible;
     if (onIt) this.showTerminals();
     else this.showPanel(key);
   }
@@ -536,25 +535,25 @@ class MultiTerminalUI {
 
   /** Show the specs card grid inline (dashboard's own switch also lands here). */
   showSpecsGrid() {
-    if (this.isOverviewVisible) this.hideOverview();
+    if (this.isDecisionsVisible) this.hideDecisions();
     this.isSectionVisible = false;
     this.manager.setViewMode('specs');
   }
 
   /** Show the tasks kanban inline as the center view. */
   showTasksBoard() {
-    if (this.isOverviewVisible) this.hideOverview();
+    if (this.isDecisionsVisible) this.hideDecisions();
     this.isSectionVisible = false;
     this.manager.setViewMode('tasks');
   }
 
   /**
    * What the center currently shows: 'terminals' | 'board' | 'detail' |
-   * 'specs' | 'tasks' | 'overview' | 'section:<type>'. Drives the sidebar
+   * 'specs' | 'tasks' | 'decisions' | 'section:<type>'. Drives the sidebar
    * nav's active states.
    */
   getActiveSurface() {
-    if (this.isOverviewVisible) return 'overview';
+    if (this.isDecisionsVisible) return 'decisions';
     if (this.isSectionVisible) {
       const s = this._activeSection();
       return s ? `section:${s.type}` : 'section';
@@ -582,7 +581,7 @@ class MultiTerminalUI {
    * Show the terminals view (sidebar workspace nav entry point).
    */
   showTerminals() {
-    if (this.isOverviewVisible) this.hideOverview();
+    if (this.isDecisionsVisible) this.hideDecisions();
     this.isSectionVisible = false;
     this.manager.setViewMode('terminals');
   }
@@ -790,7 +789,7 @@ class MultiTerminalUI {
       return;
     }
 
-    if (this.manager.viewMode === 'board' && !this.isOverviewVisible) {
+    if (this.manager.viewMode === 'board' && !this.isDecisionsVisible) {
       this.enterLane(targetId);
     }
     this.manager.sendCommand(command, targetId);
@@ -819,38 +818,34 @@ class MultiTerminalUI {
 
   /**
    * True only when a Frame's terminal is the surface on screen — not the lane
-   * board, an open section (task/spec) viewport, or the overview. Used by the
+   * board, an open section (task/spec) viewport, or the decisions list. Used by the
    * sidebar launch shortcut to decide between "start in the focused Frame" and
    * "open a new Frame".
    */
   isViewingFrame() {
     return this.manager.viewMode === 'detail'
       && !this.isSectionVisible
-      && !this.isOverviewVisible;
+      && !this.isDecisionsVisible;
   }
 
   /**
-   * Show overview panel
+   * Show the Decisions view (decisions-view spec — replaces Overview)
    */
-  showOverview() {
+  showDecisions() {
     // Rendering bypasses _onStateChange — park inline surfaces first so the
     // container wipe below can't destroy their elements.
     require('./specsDashboard').notifyDetached();
     require('./tasksDashboard').notifyDetached();
     this._detachPanel();
 
-    this.isOverviewVisible = true;
+    this.isDecisionsVisible = true;
     this._mountedTerminalId = null;
-    this._lastViewMode = 'overview';
+    this._lastViewMode = 'decisions';
     this.contentContainer.innerHTML = '';
-    this.contentContainer.className = 'terminal-content overview-view';
+    this.contentContainer.className = 'terminal-content decisions-view-host';
     this._clearGridInlineStyles();
 
-    // Render overview
-    overviewPanel.render(this.contentContainer);
-
-    // Update tab bar to show overview as active
-    this.tabBar.setOverviewActive(true);
+    decisionsView.render(this.contentContainer);
 
     // Rendering bypassed _onStateChange — refresh the sidebar nav ourselves
     try {
@@ -859,26 +854,33 @@ class MultiTerminalUI {
   }
 
   /**
-   * Hide overview panel and return to the current view mode
+   * Hide the Decisions view and return to the current view mode
    */
-  hideOverview() {
-    this.isOverviewVisible = false;
-    this.tabBar.setOverviewActive(false);
-
-    // Re-render current view
+  hideDecisions() {
+    this.isDecisionsVisible = false;
     this._onStateChange(this._currentState());
   }
 
-  /**
-   * Toggle overview panel
-   */
-  toggleOverview() {
-    if (this.isOverviewVisible) {
-      this.hideOverview();
-    } else {
-      this.showOverview();
-    }
+  toggleDecisions() {
+    if (this.isDecisionsVisible) this.hideDecisions(); else this.showDecisions();
   }
+
+  /**
+   * Open the interactive structure map. It is an overlay, not a center view,
+   * and since Overview retired this is its only entry point besides ⌘K.
+   */
+  showStructureMap() {
+    const projectPath = require('./state').getProjectPath();
+    if (!projectPath) {
+      require('./taskInfoModal').open({
+        title: 'No project selected',
+        message: 'Select a project from the switcher to open its structure map.'
+      });
+      return;
+    }
+    require('./structureMap').show(projectPath);
+  }
+
 }
 
 module.exports = { MultiTerminalUI };
