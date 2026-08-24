@@ -1,8 +1,9 @@
 # Frame Reference — meta-file maintenance rules
 
 Read the relevant section of this file **before writing a Frame meta file**
-(tasks.json, PROJECT_NOTES.md, STRUCTURE.json, QUICKSTART.md). The always-on
-orientation lives in `AGENTS.md`; this file is loaded on demand.
+(`.frame/tasks.json`, `.frame/PROJECT_NOTES.md`, `.frame/STRUCTURE.json`,
+`.frame/QUICKSTART.md`). The always-on orientation lives in `.frame/AGENTS.md`;
+this file is loaded on demand.
 
 ---
 
@@ -355,5 +356,5 @@ version-drift detection (Tier 2); orchestration bus, PTY and IPC detail
 
 1. **Language:** Write documentation in English (except code examples)
 2. **Date Format:** ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)
-3. **After Commit:** Check tasks.json and STRUCTURE.json
-4. **Session Start:** Review pending tasks in tasks.json
+3. **After Commit:** Check `.frame/tasks.json` and `.frame/STRUCTURE.json`
+4. **Session Start:** Review pending tasks in `.frame/tasks.json`

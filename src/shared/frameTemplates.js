@@ -546,7 +546,7 @@ Ask the user when one of the following situations occurs: **"Should I add this c
 - When a task is successfully completed
 - When an important architectural/technical decision is made
 - When a bug is fixed and the solution method is noteworthy
-- When "let's do this later" is said (in this case, also add to tasks.json)
+- When "let's do this later" is said (in this case, also add to \`.frame/tasks.json\`)
 - When a new pattern or best practice is discovered
 
 ### Completion Detection
@@ -613,8 +613,8 @@ No problem, continue. The user can also say what they consider important themsel
 
 1. **Language:** Write documentation in English (except code examples)
 2. **Date Format:** ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)
-3. **After Commit:** Check tasks.json and STRUCTURE.json
-4. **Session Start:** Review pending tasks in tasks.json
+3. **After Commit:** Check \`.frame/tasks.json\` and \`.frame/STRUCTURE.json\`
+4. **Session Start:** Review pending tasks in \`.frame/tasks.json\`
 
 ---
 
@@ -770,10 +770,10 @@ ${cmds.test || todo}
 
 | File | Purpose |
 |------|---------|
-| \`STRUCTURE.json\` | Module map and architecture |
-| \`PROJECT_NOTES.md\` | Decisions and context |
-| \`tasks.json\` | Task tracking |
-| \`QUICKSTART.md\` | This file |
+| \`.frame/STRUCTURE.json\` | Module map and architecture |
+| \`.frame/PROJECT_NOTES.md\` | Decisions and context |
+| \`.frame/tasks.json\` | Task tracking |
+| \`.frame/QUICKSTART.md\` | This file |
 
 ## Project Structure
 
@@ -783,9 +783,9 @@ ${tree}
 
 ## For AI Assistants
 
-1. **First**: Read \`STRUCTURE.json\` for architecture overview
-2. **Then**: Check \`PROJECT_NOTES.md\` for current context and decisions
-3. **Check**: \`tasks.json\` for pending tasks
+1. **First**: Read \`.frame/STRUCTURE.json\` for architecture overview
+2. **Then**: Check \`.frame/PROJECT_NOTES.md\` for current context and decisions
+3. **Check**: \`.frame/tasks.json\` for pending tasks
 4. **Follow**: Existing code patterns and conventions
 5. **Update**: These files as you make changes
 

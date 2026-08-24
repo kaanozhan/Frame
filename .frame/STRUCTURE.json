@@ -9537,7 +9537,8 @@
         "computeProgress",
         "parseArgs",
         "openCommand",
-        "readCommitDiff"
+        "readCommitDiff",
+        "readTasks"
       ],
       "depends": [
         "node:fs",
@@ -9639,14 +9640,14 @@
           ]
         },
         "readTasks": {
-          "line": 483,
+          "line": 485,
           "params": [
             "repoRoot"
           ],
           "purpose": "The repo's tasks.json `tasks` array, or [] if it can't be read — the banner"
         },
         "openInBrowser": {
-          "line": 495,
+          "line": 500,
           "params": [
             "filePath",
             "platform = process.platform"
@@ -9654,7 +9655,7 @@
           "purpose": "Open the finished report in the default browser, detached so it never blocks"
         },
         "main": {
-          "line": 504,
+          "line": 509,
           "params": [
             "argv"
           ]

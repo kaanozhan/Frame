@@ -231,6 +231,18 @@
         "status": "pass",
         "detail": "302 pass, 0 fail (incl. 2 real `claude -p` runs)"
       }
+    },
+    {
+      "id": "T20",
+      "title": "Finish the prose and the report helper",
+      "commit": "8b2ede5",
+      "whatChanged": "build-implement-report.mjs's readTasks reads .frame/tasks.json with a project-root fallback (exported, with a regression test). The QUICKSTART template's Key Files and For AI Assistants sections, the REFERENCE template's intro and General Rules, and this repo's .frame/docs/REFERENCE.md now name .frame/ paths. The init modal, README and docs/index.html say \"verified with Claude Code 2.1.x; run /context to confirm .claude/rules/frame.md loaded\"; .frame/bin is described as Frame's parser and helper scripts in the modal, the native confirmation dialog and docs/capabilities. The GEMINI.md/symlink passages in docs/blog/multi-ai-support, docs/blog/context-preservation and docs/capabilities now describe the generated rule file.",
+      "whyChanged": "The report banner had been reading a tasks.json that no longer exists at the root, so it silently counted nothing — it now reads 19 of 20 on this spec. REFERENCE's section headings were left as they are on purpose: the AGENTS.md table cross-references them by exact text, so renaming them to .frame/… would break the pointer the prose fix is meant to serve.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "303 pass, 0 fail"
+      }
     }
   ]
 }

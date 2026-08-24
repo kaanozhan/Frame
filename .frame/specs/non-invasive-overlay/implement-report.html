@@ -155,15 +155,18 @@
     </div>
   </div>
   <div class="topbar-meta">
-    <span class="pill">19 tasks</span>
-    <span class="pill good">19 verified</span>
+    <span class="pill">20 tasks</span>
+    <span class="pill good">20 verified</span>
     
     <span class="chip">2026-08-24</span>
   </div>
 </header>
 
 <div class="wrap">
-
+<div class="run-status done">
+  <span class="rs-badge">Complete</span>
+  <span class="rs-count">20 of 20 tasks done</span>
+</div>
 <section class="report-head">
   <h1>Frame footprint: meta files move into .frame/, delivery stays native</h1>
 </section>
@@ -11394,6 +11397,336 @@
 <span class="dl-add">+      output.includes(FRAME_MARKER),</span>
 <span class="dl-add">+      `Frame&#39;s instructions reached a sub-directory session (got: ${output.trim()})`</span>
 <span class="dl-add">+    );</span>
+<span class="dl-add">+  } finally {</span>
+<span class="dl-add">+    fs.rmSync(dir, { recursive: true, force: true });</span>
+<span class="dl-add">+  }</span>
+<span class="dl-add">+});</span></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <span class="card-id">T20</span>
+    <h2>Finish the prose and the report helper</h2>
+    <span class="card-meta"><span class="chip">8b2ede5</span><span class="pill good">pass</span> <code>npm test</code> <span class="muted">303 pass, 0 fail</span></span>
+  </header>
+  <div class="card-body">
+    <div class="field"><span class="label">What changed</span><p>build-implement-report.mjs&#39;s readTasks reads .frame/tasks.json with a project-root fallback (exported, with a regression test). The QUICKSTART template&#39;s Key Files and For AI Assistants sections, the REFERENCE template&#39;s intro and General Rules, and this repo&#39;s .frame/docs/REFERENCE.md now name .frame/ paths. The init modal, README and docs/index.html say &quot;verified with Claude Code 2.1.x; run /context to confirm .claude/rules/frame.md loaded&quot;; .frame/bin is described as Frame&#39;s parser and helper scripts in the modal, the native confirmation dialog and docs/capabilities. The GEMINI.md/symlink passages in docs/blog/multi-ai-support, docs/blog/context-preservation and docs/capabilities now describe the generated rule file.</p></div>
+    <div class="field"><span class="label">Why</span><p>The report banner had been reading a tasks.json that no longer exists at the root, so it silently counted nothing — it now reads 19 of 20 on this spec. REFERENCE&#39;s section headings were left as they are on purpose: the AGENTS.md table cross-references them by exact text, so renaming them to .frame/… would break the pointer the prose fix is meant to serve.</p></div>
+    <details>
+      <summary>Diff</summary>
+      <pre class="diff"><span class="dl-meta">diff --git a/README.md b/README.md</span>
+<span class="dl-meta">index 4f8d226..c1bea63 100644</span>
+<span class="dl-file">--- a/README.md</span>
+<span class="dl-file">+++ b/README.md</span>
+<span class="dl-hunk">@@ -67,8 +67,9 @@ Frame brings a consistent structure to every project you work on. When you initi</span>
+<span class="dl-ctx"> Everything Frame writes lives under `.frame/`, plus that one pointer file. Your</span>
+<span class="dl-ctx"> project root stays yours: an existing `CLAUDE.md`, `AGENTS.md` or `.cursorrules`</span>
+<span class="dl-ctx"> is never read, moved or replaced, and &quot;Remove Frame&quot; leaves no Frame-authored</span>
+<span class="dl-del">-bytes behind. Requires Claude Code new enough to load `.claude/rules/` (the</span>
+<span class="dl-del">-2.1.x line); run `/context` in a session to confirm the rule loaded.</span>
+<span class="dl-add">+bytes behind. Needs Claude Code new enough to load `.claude/rules/` — verified</span>
+<span class="dl-add">+with Claude Code 2.1.x; run `/context` in a session to confirm</span>
+<span class="dl-add">+`.claude/rules/frame.md` loaded.</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> &gt; **Upgrading:** update Frame before pulling a repository that has been</span>
+<span class="dl-ctx"> &gt; migrated to `.frame/`. An older Frame looks for the meta files at the project</span>
+<span class="dl-meta">diff --git a/docs/blog/context-preservation/index.html b/docs/blog/context-preservation/index.html</span>
+<span class="dl-meta">index 4ae9aed..16e8a24 100644</span>
+<span class="dl-file">--- a/docs/blog/context-preservation/index.html</span>
+<span class="dl-file">+++ b/docs/blog/context-preservation/index.html</span>
+<span class="dl-hunk">@@ -98,7 +98,7 @@</span>
+<span class="dl-ctx">         &lt;/ul&gt;</span>
+<span class="dl-ctx">         &lt;p&gt;No re-explaining. No context loss. The session picks up where the last one left off.&lt;/p&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-        &lt;p&gt;This approach works with &lt;em&gt;any&lt;/em&gt; AI coding tool — Claude Code reads &lt;code&gt;CLAUDE.md&lt;/code&gt; natively, Gemini CLI reads &lt;code&gt;GEMINI.md&lt;/code&gt;, and Codex CLI gets the context injected via a wrapper script. Same system, multiple tools.&lt;/p&gt;</span>
+<span class="dl-add">+        &lt;p&gt;This approach works with &lt;em&gt;any&lt;/em&gt; AI coding tool — Claude Code loads &lt;code&gt;.claude/rules/frame.md&lt;/code&gt; natively, and Codex CLI gets the context injected via a wrapper script. Same system, multiple tools.&lt;/p&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">     &lt;/div&gt;</span>
+<span class="dl-ctx">   &lt;/article&gt;</span>
+<span class="dl-meta">diff --git a/docs/blog/multi-ai-support/index.html b/docs/blog/multi-ai-support/index.html</span>
+<span class="dl-meta">index b68e2af..874a187 100644</span>
+<span class="dl-file">--- a/docs/blog/multi-ai-support/index.html</span>
+<span class="dl-file">+++ b/docs/blog/multi-ai-support/index.html</span>
+<span class="dl-hunk">@@ -4,7 +4,7 @@</span>
+<span class="dl-ctx">   &lt;meta charset=&quot;UTF-8&quot;&gt;</span>
+<span class="dl-ctx">   &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;</span>
+<span class="dl-ctx">   &lt;title&gt;Supporting Claude, Codex, and Gemini in One App — Frame Blog&lt;/title&gt;</span>
+<span class="dl-del">-  &lt;meta name=&quot;description&quot; content=&quot;Each AI coding tool reads project context differently. Here&#39;s how Frame provides unified context injection for Claude Code, Codex CLI, and Gemini CLI using symlinks and wrapper scripts.&quot;&gt;</span>
+<span class="dl-add">+  &lt;meta name=&quot;description&quot; content=&quot;Each AI coding tool reads project context differently. Here&#39;s how Frame provides unified context injection for Claude Code and Codex CLI from one source file.&quot;&gt;</span>
+<span class="dl-ctx">   &lt;link rel=&quot;canonical&quot; href=&quot;https://frame.cool/blog/multi-ai-support&quot;&gt;</span>
+<span class="dl-ctx">   &lt;meta property=&quot;og:type&quot; content=&quot;article&quot;&gt;</span>
+<span class="dl-ctx">   &lt;meta property=&quot;og:url&quot; content=&quot;https://frame.cool/blog/multi-ai-support&quot;&gt;</span>
+<span class="dl-hunk">@@ -49,31 +49,29 @@</span>
+<span class="dl-ctx">     &lt;div class=&quot;post-content&quot;&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;container&quot;&gt;</span>
+<span class="dl-ctx">         &lt;h2&gt;The Challenge&lt;/h2&gt;</span>
+<span class="dl-del">-        &lt;p&gt;Frame&#39;s context preservation system is built around &lt;code&gt;AGENTS.md&lt;/code&gt; — a single file containing all project instructions, navigation rules, and conventions. But each AI tool reads context differently:&lt;/p&gt;</span>
+<span class="dl-add">+        &lt;p&gt;Frame&#39;s context preservation system is built around &lt;code&gt;.frame/AGENTS.md&lt;/code&gt; — a single file containing all project instructions, navigation rules, and conventions. But each AI tool reads context differently:&lt;/p&gt;</span>
+<span class="dl-ctx">         &lt;ul&gt;</span>
+<span class="dl-del">-          &lt;li&gt;&lt;strong&gt;Claude Code&lt;/strong&gt; reads &lt;code&gt;CLAUDE.md&lt;/code&gt; automatically at session start&lt;/li&gt;</span>
+<span class="dl-del">-          &lt;li&gt;&lt;strong&gt;Gemini CLI&lt;/strong&gt; reads &lt;code&gt;GEMINI.md&lt;/code&gt; automatically at session start&lt;/li&gt;</span>
+<span class="dl-add">+          &lt;li&gt;&lt;strong&gt;Claude Code&lt;/strong&gt; loads every &lt;code&gt;.claude/rules/*.md&lt;/code&gt; automatically at session start&lt;/li&gt;</span>
+<span class="dl-ctx">           &lt;li&gt;&lt;strong&gt;Codex CLI&lt;/strong&gt; has no standard for reading project files&lt;/li&gt;</span>
+<span class="dl-ctx">         &lt;/ul&gt;</span>
+<span class="dl-del">-        &lt;p&gt;We needed each tool to get the same project context, without maintaining separate instruction files.&lt;/p&gt;</span>
+<span class="dl-add">+        &lt;p&gt;We needed each tool to get the same project context, without maintaining separate instruction files — and without Frame planting anything in the project root.&lt;/p&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-        &lt;h2&gt;Solution: Symlinks + Wrapper Scripts&lt;/h2&gt;</span>
+<span class="dl-add">+        &lt;h2&gt;Solution: A Generated Rule File + Wrapper Scripts&lt;/h2&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-        &lt;h3&gt;Claude Code and Gemini CLI — Symlinks&lt;/h3&gt;</span>
+<span class="dl-del">-        &lt;p&gt;Both Claude Code and Gemini CLI have native support for reading a specific file. The solution is simple: create symlinks that point to the single source of truth.&lt;/p&gt;</span>
+<span class="dl-del">-        &lt;pre&gt;&lt;code&gt;AGENTS.md          ← The actual file (single source of truth)</span>
+<span class="dl-del">-CLAUDE.md → AGENTS.md   ← Symlink for Claude Code</span>
+<span class="dl-del">-GEMINI.md → AGENTS.md   ← Symlink for Gemini CLI&lt;/code&gt;&lt;/pre&gt;</span>
+<span class="dl-del">-        &lt;p&gt;One file to maintain, all tools read the same instructions.&lt;/p&gt;</span>
+<span class="dl-add">+        &lt;h3&gt;Claude Code — &lt;code&gt;.claude/rules/frame.md&lt;/code&gt;&lt;/h3&gt;</span>
+<span class="dl-add">+        &lt;p&gt;Claude Code loads its rule files natively, so Frame writes one and keeps it in step with the single source of truth:&lt;/p&gt;</span>
+<span class="dl-add">+        &lt;pre&gt;&lt;code&gt;.frame/AGENTS.md          ← The actual file (single source of truth)</span>
+<span class="dl-add">+.claude/rules/frame.md    ← Generated copy, rewritten whenever AGENTS.md changes&lt;/code&gt;&lt;/pre&gt;</span>
+<span class="dl-add">+        &lt;p&gt;One file to maintain, and nothing in the project root: an existing &lt;code&gt;CLAUDE.md&lt;/code&gt; is the user&#39;s, and Frame never touches it.&lt;/p&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">         &lt;h3&gt;Codex CLI — Wrapper Script&lt;/h3&gt;</span>
+<span class="dl-ctx">         &lt;p&gt;Codex CLI doesn&#39;t have a native file-reading convention. Our first attempt was to use a &lt;code&gt;--system-prompt&lt;/code&gt; flag — but Codex CLI doesn&#39;t have that flag.&lt;/p&gt;</span>
+<span class="dl-del">-        &lt;p&gt;The final solution: a wrapper script in &lt;code&gt;.frame/bin/codex&lt;/code&gt; that sends &quot;Read AGENTS.md&quot; as the initial prompt:&lt;/p&gt;</span>
+<span class="dl-add">+        &lt;p&gt;The final solution: a wrapper script in &lt;code&gt;.frame/bin/codex&lt;/code&gt; that sends &quot;Read .frame/AGENTS.md&quot; as the initial prompt:&lt;/p&gt;</span>
+<span class="dl-ctx">         &lt;pre&gt;&lt;code&gt;#!/bin/bash</span>
+<span class="dl-ctx"> # .frame/bin/codex - Frame wrapper for Codex CLI</span>
+<span class="dl-del">-AGENTS_FILE=&quot;./AGENTS.md&quot;</span>
+<span class="dl-add">+AGENTS_FILE=&quot;.frame/AGENTS.md&quot;</span>
+<span class="dl-ctx"> if [ -f &quot;$AGENTS_FILE&quot; ]; then</span>
+<span class="dl-del">-  codex &quot;Please read AGENTS.md and follow the project instructions.&quot;</span>
+<span class="dl-add">+  codex &quot;Please read .frame/AGENTS.md and follow the project instructions.&quot;</span>
+<span class="dl-ctx"> else</span>
+<span class="dl-ctx">   codex &quot;$@&quot;</span>
+<span class="dl-ctx"> fi&lt;/code&gt;&lt;/pre&gt;</span>
+<span class="dl-hunk">@@ -81,15 +79,14 @@ fi&lt;/code&gt;&lt;/pre&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">         &lt;h2&gt;Key Insight&lt;/h2&gt;</span>
+<span class="dl-ctx">         &lt;blockquote&gt;</span>
+<span class="dl-del">-          &lt;p&gt;Instead of trying to pass system prompts via flags (which vary per tool), simply ask the AI to read the AGENTS.md file. This approach is tool-agnostic and works with any AI coding assistant.&lt;/p&gt;</span>
+<span class="dl-add">+          &lt;p&gt;Instead of trying to pass system prompts via flags (which vary per tool), simply ask the AI to read the &lt;code&gt;.frame/AGENTS.md&lt;/code&gt; file. This approach is tool-agnostic and works with any AI coding assistant.&lt;/p&gt;</span>
+<span class="dl-ctx">         &lt;/blockquote&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx">         &lt;h2&gt;Switching Between Tools&lt;/h2&gt;</span>
+<span class="dl-ctx">         &lt;p&gt;In Frame&#39;s UI, switching between AI tools is a single click from the toolbar dropdown. Each tool gets proper context injection automatically:&lt;/p&gt;</span>
+<span class="dl-ctx">         &lt;ul&gt;</span>
+<span class="dl-del">-          &lt;li&gt;Select &lt;strong&gt;Claude&lt;/strong&gt; → runs &lt;code&gt;claude&lt;/code&gt; directly (reads CLAUDE.md natively)&lt;/li&gt;</span>
+<span class="dl-del">-          &lt;li&gt;Select &lt;strong&gt;Gemini&lt;/strong&gt; → runs &lt;code&gt;gemini&lt;/code&gt; directly (reads GEMINI.md natively)&lt;/li&gt;</span>
+<span class="dl-del">-          &lt;li&gt;Select &lt;strong&gt;Codex&lt;/strong&gt; → runs via &lt;code&gt;.frame/bin/codex&lt;/code&gt; wrapper (injects AGENTS.md)&lt;/li&gt;</span>
+<span class="dl-add">+          &lt;li&gt;Select &lt;strong&gt;Claude&lt;/strong&gt; → runs &lt;code&gt;claude&lt;/code&gt; directly (loads &lt;code&gt;.claude/rules/frame.md&lt;/code&gt; natively)&lt;/li&gt;</span>
+<span class="dl-add">+          &lt;li&gt;Select &lt;strong&gt;Codex&lt;/strong&gt; → runs via the &lt;code&gt;.frame/bin/codex&lt;/code&gt; wrapper (injects &lt;code&gt;.frame/AGENTS.md&lt;/code&gt;)&lt;/li&gt;</span>
+<span class="dl-ctx">         &lt;/ul&gt;</span>
+<span class="dl-ctx">         &lt;p&gt;Same project context, different AI engines. Use whichever tool is best for the task at hand.&lt;/p&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/docs/capabilities/index.html b/docs/capabilities/index.html</span>
+<span class="dl-meta">index 499e018..fa2982d 100644</span>
+<span class="dl-file">--- a/docs/capabilities/index.html</span>
+<span class="dl-file">+++ b/docs/capabilities/index.html</span>
+<span class="dl-hunk">@@ -610,7 +610,7 @@</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;01.01&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;.frame/AGENTS.md&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Single source of truth for project rules. Claude Code reaches it through the two-line .claude/rules/frame.md pointer — no symlink, nothing at your project root.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Single source of truth for project rules. Claude Code reads the generated copy at .claude/rules/frame.md, which Frame keeps in step — nothing at your project root.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Core &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-hunk">@@ -634,7 +634,7 @@</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;id&quot;&gt;01.05&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;name&quot;&gt;.frame/bin/&lt;/div&gt;</span>
+<span class="dl-del">-        &lt;div class=&quot;desc&quot;&gt;Per-project tooling shipped at init: parser scripts, AI wrappers, and the fast-lookup binary. Lives inside the project, travels with it.&lt;/div&gt;</span>
+<span class="dl-add">+        &lt;div class=&quot;desc&quot;&gt;Per-project tooling shipped at init: Frame&#39;s parser and helper scripts, and the fast-lookup binary. Lives inside the project, travels with it.&lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;div class=&quot;tag&quot;&gt;Infra &lt;b&gt;—&lt;/b&gt;&lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;/div&gt;</span>
+<span class="dl-ctx">       &lt;div class=&quot;row&quot;&gt;</span>
+<span class="dl-hunk">@@ -959,10 +959,10 @@</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;┌─ PROJECT  FILESYSTEM ────────────────────────────────────────────────────┐&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/AGENTS.md&lt;/span&gt;     project rules · single source · via .claude/rules  &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/STRUCTURE.json&lt;/span&gt; module map · intentIndex · updated on commit  &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-del">-   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;tasks.json&lt;/span&gt;           kanban state · with provenance + acceptance fields  &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-del">-   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;PROJECT_NOTES.md&lt;/span&gt;     decision journal · agent-prompted, human-curated    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-add">+   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/tasks.json&lt;/span&gt;    kanban state · provenance + acceptance fields       &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-add">+   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/PROJECT_NOTES.md&lt;/span&gt; decision journal · agent-prompted, human-curated &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/specs/&amp;lt;slug&amp;gt;/&lt;/span&gt; spec · plan · tasks · outcome (markdown only)       &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-del">-   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/bin/&lt;/span&gt;          parser scripts · find-module · ai wrappers          &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-add">+   &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.frame/bin/&lt;/span&gt;          parser + helper scripts · find-module · spec-hint    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;   &lt;span class=&quot;c-rust&quot;&gt;.git/hooks/&lt;/span&gt;          pre-commit · safe append-mode for husky/lefthook    &lt;span class=&quot;c-mute&quot;&gt;│&lt;/span&gt;</span>
+<span class="dl-ctx">    &lt;span class=&quot;c-mute&quot;&gt;└──────────────────────────────────────────────────────────────────────────┘&lt;/span&gt;</span>
+<span class="dl-ctx"> &lt;/pre&gt;</span>
+<span class="dl-meta">diff --git a/docs/index.html b/docs/index.html</span>
+<span class="dl-meta">index a3aa0de..046f382 100644</span>
+<span class="dl-file">--- a/docs/index.html</span>
+<span class="dl-file">+++ b/docs/index.html</span>
+<span class="dl-hunk">@@ -1573,7 +1573,7 @@</span>
+<span class="dl-ctx">             &lt;svg class=&quot;faq-chevron&quot; width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;polyline points=&quot;6 9 12 15 18 9&quot;/&gt;&lt;/svg&gt;</span>
+<span class="dl-ctx">           &lt;/button&gt;</span>
+<span class="dl-ctx">           &lt;div class=&quot;faq-answer&quot;&gt;</span>
+<span class="dl-del">-            &lt;p&gt;Frame supports &lt;strong&gt;Claude Code&lt;/strong&gt;, &lt;strong&gt;Codex CLI&lt;/strong&gt;, and &lt;strong&gt;Gemini CLI&lt;/strong&gt;. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code loads &lt;code&gt;.claude/rules/frame.md&lt;/code&gt; natively, which imports &lt;code&gt;.frame/AGENTS.md&lt;/code&gt; (needs the Claude Code 2.1.x line or newer; run &lt;code&gt;/context&lt;/code&gt; to confirm), and Codex CLI uses a wrapper script that injects the same file automatically.&lt;/p&gt;</span>
+<span class="dl-add">+            &lt;p&gt;Frame supports &lt;strong&gt;Claude Code&lt;/strong&gt;, &lt;strong&gt;Codex CLI&lt;/strong&gt;, and &lt;strong&gt;Gemini CLI&lt;/strong&gt;. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code loads &lt;code&gt;.claude/rules/frame.md&lt;/code&gt; natively, a copy of &lt;code&gt;.frame/AGENTS.md&lt;/code&gt; that Frame keeps in step (verified with Claude Code 2.1.x; run &lt;code&gt;/context&lt;/code&gt; to confirm &lt;code&gt;.claude/rules/frame.md&lt;/code&gt; loaded), and Codex CLI uses a wrapper script that injects the same file automatically.&lt;/p&gt;</span>
+<span class="dl-ctx">           &lt;/div&gt;</span>
+<span class="dl-ctx">         &lt;/div&gt;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/index.html b/index.html</span>
+<span class="dl-meta">index 916c2d8..20500e9 100644</span>
+<span class="dl-file">--- a/index.html</span>
+<span class="dl-file">+++ b/index.html</span>
+<span class="dl-hunk">@@ -616,7 +616,7 @@</span>
+<span class="dl-ctx">             &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; .frame/PROJECT_NOTES.md &lt;span class=&quot;file-desc&quot;&gt;session notes&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-ctx">             &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; .frame/tasks.json &lt;span class=&quot;file-desc&quot;&gt;task tracking&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-ctx">             &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128196;&lt;/span&gt; .frame/QUICKSTART.md &lt;span class=&quot;file-desc&quot;&gt;getting started&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-del">-            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128193;&lt;/span&gt; .frame/bin/ &lt;span class=&quot;file-desc&quot;&gt;parsers and AI tool wrappers&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-add">+            &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128193;&lt;/span&gt; .frame/bin/ &lt;span class=&quot;file-desc&quot;&gt;Frame&#39;s parser and helper scripts&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-ctx">             &lt;li&gt;&lt;span class=&quot;file-icon&quot;&gt;&amp;#128279;&lt;/span&gt; .claude/rules/frame.md &lt;span class=&quot;file-desc&quot;&gt;two lines pointing Claude Code at .frame/AGENTS.md&lt;/span&gt;&lt;/li&gt;</span>
+<span class="dl-ctx">           &lt;/ul&gt;</span>
+<span class="dl-ctx">           &lt;p class=&quot;init-modal-note&quot;&gt;Nothing is added to your project root, and no existing file is</span>
+<span class="dl-hunk">@@ -634,9 +634,9 @@</span>
+<span class="dl-ctx">               &lt;span class=&quot;init-sharing-desc&quot;&gt;Excluded through &lt;code&gt;.git/info/exclude&lt;/code&gt;, so &lt;code&gt;git status&lt;/code&gt; shows nothing Frame made. Nothing is added to the tracked &lt;code&gt;.gitignore&lt;/code&gt;.&lt;/span&gt;</span>
+<span class="dl-ctx">             &lt;/label&gt;</span>
+<span class="dl-ctx">           &lt;/fieldset&gt;</span>
+<span class="dl-del">-          &lt;p class=&quot;init-modal-note init-modal-requirement&quot;&gt;Requires Claude Code new enough to load</span>
+<span class="dl-del">-            &lt;code&gt;.claude/rules/&lt;/code&gt; (2.1.x or later). Run &lt;code&gt;/context&lt;/code&gt; in a session to confirm</span>
+<span class="dl-del">-            the rule file loaded.&lt;/p&gt;</span>
+<span class="dl-add">+          &lt;p class=&quot;init-modal-note init-modal-requirement&quot;&gt;Needs Claude Code new enough to load</span>
+<span class="dl-add">+            &lt;code&gt;.claude/rules/&lt;/code&gt; — verified with Claude Code 2.1.x. Run &lt;code&gt;/context&lt;/code&gt; in a</span>
+<span class="dl-add">+            session to confirm &lt;code&gt;.claude/rules/frame.md&lt;/code&gt; loaded.&lt;/p&gt;</span>
+<span class="dl-ctx">           &lt;div id=&quot;init-frame-existing-warning&quot; class=&quot;init-modal-warning&quot; style=&quot;display: none;&quot;&gt;</span>
+<span class="dl-ctx">             &lt;p&gt;These files already exist and will NOT be overwritten:&lt;/p&gt;</span>
+<span class="dl-ctx">             &lt;ul id=&quot;init-frame-existing-list&quot;&gt;&lt;/ul&gt;</span>
+<span class="dl-meta">diff --git a/src/main/frameProject.js b/src/main/frameProject.js</span>
+<span class="dl-meta">index 0d6cef5..3dcf3a2 100644</span>
+<span class="dl-file">--- a/src/main/frameProject.js</span>
+<span class="dl-file">+++ b/src/main/frameProject.js</span>
+<span class="dl-hunk">@@ -116,7 +116,7 @@ async function showInitializeConfirmation(projectPath) {</span>
+<span class="dl-ctx">   message += &#39;  • .frame/PROJECT_NOTES.md (session notes)\n&#39;;</span>
+<span class="dl-ctx">   message += &#39;  • .frame/tasks.json (task tracking)\n&#39;;</span>
+<span class="dl-ctx">   message += &#39;  • .frame/QUICKSTART.md (getting started)\n&#39;;</span>
+<span class="dl-del">-  message += &#39;  • .frame/bin/ (parsers and AI tool wrappers)\n&#39;;</span>
+<span class="dl-add">+  message += &quot;  • .frame/bin/ (Frame&#39;s parser and helper scripts)\n&quot;;</span>
+<span class="dl-ctx">   message += &#39;  • .claude/rules/frame.md (points Claude Code at .frame/AGENTS.md)\n&#39;;</span>
+<span class="dl-ctx">   message += &#39;\nNothing is added to your project root, and no existing file is read, moved or replaced.\n&#39;;</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -266,7 +266,7 @@ async function runProjectInit(projectPath, projectName, options = {}) {</span>
+<span class="dl-ctx">   // replacing the CLAUDE.md symlink Frame used to plant.</span>
+<span class="dl-ctx">   syncClaudeRule(projectPath);</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-  // Create .frame/bin directory for AI tool wrappers</span>
+<span class="dl-add">+  // Create .frame/bin for Frame&#39;s parser and helper scripts</span>
+<span class="dl-ctx">   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);</span>
+<span class="dl-ctx">   await fsp.mkdir(binDirPath, { recursive: true });</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/shared/frameTemplates.js b/src/shared/frameTemplates.js</span>
+<span class="dl-meta">index 224f778..69af764 100644</span>
+<span class="dl-file">--- a/src/shared/frameTemplates.js</span>
+<span class="dl-file">+++ b/src/shared/frameTemplates.js</span>
+<span class="dl-hunk">@@ -546,7 +546,7 @@ Ask the user when one of the following situations occurs: **&quot;Should I add this c</span>
+<span class="dl-ctx"> - When a task is successfully completed</span>
+<span class="dl-ctx"> - When an important architectural/technical decision is made</span>
+<span class="dl-ctx"> - When a bug is fixed and the solution method is noteworthy</span>
+<span class="dl-del">-- When &quot;let&#39;s do this later&quot; is said (in this case, also add to tasks.json)</span>
+<span class="dl-add">+- When &quot;let&#39;s do this later&quot; is said (in this case, also add to \`.frame/tasks.json\`)</span>
+<span class="dl-ctx"> - When a new pattern or best practice is discovered</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ### Completion Detection</span>
+<span class="dl-hunk">@@ -613,8 +613,8 @@ No problem, continue. The user can also say what they consider important themsel</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> 1. **Language:** Write documentation in English (except code examples)</span>
+<span class="dl-ctx"> 2. **Date Format:** ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)</span>
+<span class="dl-del">-3. **After Commit:** Check tasks.json and STRUCTURE.json</span>
+<span class="dl-del">-4. **Session Start:** Review pending tasks in tasks.json</span>
+<span class="dl-add">+3. **After Commit:** Check \`.frame/tasks.json\` and \`.frame/STRUCTURE.json\`</span>
+<span class="dl-add">+4. **Session Start:** Review pending tasks in \`.frame/tasks.json\`</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ---</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -770,10 +770,10 @@ ${cmds.test || todo}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> | File | Purpose |</span>
+<span class="dl-ctx"> |------|---------|</span>
+<span class="dl-del">-| \`STRUCTURE.json\` | Module map and architecture |</span>
+<span class="dl-del">-| \`PROJECT_NOTES.md\` | Decisions and context |</span>
+<span class="dl-del">-| \`tasks.json\` | Task tracking |</span>
+<span class="dl-del">-| \`QUICKSTART.md\` | This file |</span>
+<span class="dl-add">+| \`.frame/STRUCTURE.json\` | Module map and architecture |</span>
+<span class="dl-add">+| \`.frame/PROJECT_NOTES.md\` | Decisions and context |</span>
+<span class="dl-add">+| \`.frame/tasks.json\` | Task tracking |</span>
+<span class="dl-add">+| \`.frame/QUICKSTART.md\` | This file |</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ## Project Structure</span>
+<span class="dl-ctx"> </span>
+<span class="dl-hunk">@@ -783,9 +783,9 @@ ${tree}</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> ## For AI Assistants</span>
+<span class="dl-ctx"> </span>
+<span class="dl-del">-1. **First**: Read \`STRUCTURE.json\` for architecture overview</span>
+<span class="dl-del">-2. **Then**: Check \`PROJECT_NOTES.md\` for current context and decisions</span>
+<span class="dl-del">-3. **Check**: \`tasks.json\` for pending tasks</span>
+<span class="dl-add">+1. **First**: Read \`.frame/STRUCTURE.json\` for architecture overview</span>
+<span class="dl-add">+2. **Then**: Check \`.frame/PROJECT_NOTES.md\` for current context and decisions</span>
+<span class="dl-add">+3. **Check**: \`.frame/tasks.json\` for pending tasks</span>
+<span class="dl-ctx"> 4. **Follow**: Existing code patterns and conventions</span>
+<span class="dl-ctx"> 5. **Update**: These files as you make changes</span>
+<span class="dl-ctx"> </span>
+<span class="dl-meta">diff --git a/src/templates/commands/claude-code/build-implement-report.mjs b/src/templates/commands/claude-code/build-implement-report.mjs</span>
+<span class="dl-meta">index d8f42bb..817ae27 100644</span>
+<span class="dl-file">--- a/src/templates/commands/claude-code/build-implement-report.mjs</span>
+<span class="dl-file">+++ b/src/templates/commands/claude-code/build-implement-report.mjs</span>
+<span class="dl-hunk">@@ -479,14 +479,19 @@ function repoRootFrom(dir) {</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // The repo&#39;s tasks.json `tasks` array, or [] if it can&#39;t be read — the banner</span>
+<span class="dl-del">-// is a convenience layered on the report, never a reason to fail it.</span>
+<span class="dl-del">-function readTasks(repoRoot) {</span>
+<span class="dl-del">-  try {</span>
+<span class="dl-del">-    const parsed = JSON.parse(fs.readFileSync(path.join(repoRoot, &#39;tasks.json&#39;), &#39;utf8&#39;));</span>
+<span class="dl-del">-    return Array.isArray(parsed.tasks) ? parsed.tasks : [];</span>
+<span class="dl-del">-  } catch (_) {</span>
+<span class="dl-del">-    return [];</span>
+<span class="dl-add">+// is a convenience layered on the report, never a reason to fail it. `.frame/`</span>
+<span class="dl-add">+// first, the project root second: a project that has not migrated yet still</span>
+<span class="dl-add">+// keeps its tasks.json where it always was.</span>
+<span class="dl-add">+export function readTasks(repoRoot) {</span>
+<span class="dl-add">+  for (const candidate of [path.join(repoRoot, &#39;.frame&#39;, &#39;tasks.json&#39;), path.join(repoRoot, &#39;tasks.json&#39;)]) {</span>
+<span class="dl-add">+    try {</span>
+<span class="dl-add">+      const parsed = JSON.parse(fs.readFileSync(candidate, &#39;utf8&#39;));</span>
+<span class="dl-add">+      return Array.isArray(parsed.tasks) ? parsed.tasks : [];</span>
+<span class="dl-add">+    } catch (_) {</span>
+<span class="dl-add">+      /* try the next one */</span>
+<span class="dl-add">+    }</span>
+<span class="dl-ctx">   }</span>
+<span class="dl-add">+  return [];</span>
+<span class="dl-ctx"> }</span>
+<span class="dl-ctx"> </span>
+<span class="dl-ctx"> // Open the finished report in the default browser, detached so it never blocks</span>
+<span class="dl-meta">diff --git a/test/implementReport.test.js b/test/implementReport.test.js</span>
+<span class="dl-meta">index 6dd47ab..3604cb4 100644</span>
+<span class="dl-file">--- a/test/implementReport.test.js</span>
+<span class="dl-file">+++ b/test/implementReport.test.js</span>
+<span class="dl-hunk">@@ -340,3 +340,25 @@ test(&#39;openCommand maps each platform to its file opener&#39;, () =&gt; {</span>
+<span class="dl-ctx"> test(&#39;EXCLUDED_PATHS keeps Frame bookkeeping out of every diff&#39;, () =&gt; {</span>
+<span class="dl-ctx">   assert.deepEqual(mod.EXCLUDED_PATHS, [&#39;.frame&#39;, &#39;tasks.json&#39;, &#39;STRUCTURE.json&#39;]);</span>
+<span class="dl-ctx"> });</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+// ─── readTasks ────────────────────────────────────────────────</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+test(&#39;readTasks prefers .frame/tasks.json and falls back to the project root&#39;, () =&gt; {</span>
+<span class="dl-add">+  const fs = require(&#39;fs&#39;);</span>
+<span class="dl-add">+  const os = require(&#39;os&#39;);</span>
+<span class="dl-add">+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), &#39;frame-report-tasks-&#39;));</span>
+<span class="dl-add">+  try {</span>
+<span class="dl-add">+    assert.deepEqual(mod.readTasks(dir), [], &#39;no tasks file is not a reason to fail the report&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // Unmigrated project: the file is still where it always was.</span>
+<span class="dl-add">+    fs.writeFileSync(path.join(dir, &#39;tasks.json&#39;), JSON.stringify({ tasks: [{ id: &#39;root&#39; }] }), &#39;utf8&#39;);</span>
+<span class="dl-add">+    assert.deepEqual(mod.readTasks(dir), [{ id: &#39;root&#39; }], &#39;root fallback&#39;);</span>
+<span class="dl-add">+</span>
+<span class="dl-add">+    // Migrated: .frame/ wins, which is where every task has lived since.</span>
+<span class="dl-add">+    fs.mkdirSync(path.join(dir, &#39;.frame&#39;), { recursive: true });</span>
+<span class="dl-add">+    fs.writeFileSync(path.join(dir, &#39;.frame&#39;, &#39;tasks.json&#39;), JSON.stringify({ tasks: [{ id: &#39;overlay&#39; }] }), &#39;utf8&#39;);</span>
+<span class="dl-add">+    assert.deepEqual(mod.readTasks(dir), [{ id: &#39;overlay&#39; }], &#39;overlay first&#39;);</span>
 <span class="dl-add">+  } finally {</span>
 <span class="dl-add">+    fs.rmSync(dir, { recursive: true, force: true });</span>
 <span class="dl-add">+  }</span>

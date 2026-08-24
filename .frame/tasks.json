@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-24T03:54:23.734Z",
+  "lastUpdated": "2026-08-24T04:42:31.426Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5019,18 +5019,18 @@
       "title": "Finish the prose and the report helper: `build-implement-report.mjs` reads `.frame/tasks.json` (root fallback); QUICKSTART and REFERENCE templates plus this repository's `.frame/docs/REFERENCE.md` name `.frame/…` paths; init modal/README Claude Code version note reads \"verified with Claude Code 2.1.x; run `/context` to confirm `.claude/rules/frame.md` loaded\"; `.frame/bin` described as \"Frame's parser and helper scripts\"; remove the stale `GEMINI`/symlink sentences from `docs/blog/**` and `docs/capabilities/index.html`.",
       "description": "",
       "source": "spec:non-invasive-overlay:T20",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: non-invasive-overlay",
       "createdAt": "2026-08-23T13:30:00.000Z",
-      "updatedAt": "2026-08-23T13:30:00.000Z",
-      "completedAt": null
+      "updatedAt": "2026-08-24T04:42:31.426Z",
+      "completedAt": "2026-08-24T04:42:31.426Z"
     }
   ],
   "metadata": {
     "totalCreated": 314,
-    "totalCompleted": 27
+    "totalCompleted": 28
   },
   "categories": {
     "feature": "New features",

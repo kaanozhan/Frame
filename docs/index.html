@@ -1573,7 +1573,7 @@
             <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="faq-answer">
-            <p>Frame supports <strong>Claude Code</strong>, <strong>Codex CLI</strong>, and <strong>Gemini CLI</strong>. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code loads <code>.claude/rules/frame.md</code> natively, which imports <code>.frame/AGENTS.md</code> (needs the Claude Code 2.1.x line or newer; run <code>/context</code> to confirm), and Codex CLI uses a wrapper script that injects the same file automatically.</p>
+            <p>Frame supports <strong>Claude Code</strong>, <strong>Codex CLI</strong>, and <strong>Gemini CLI</strong>. You can switch between them with a single click from the toolbar. Each tool gets proper context injection — Claude Code loads <code>.claude/rules/frame.md</code> natively, a copy of <code>.frame/AGENTS.md</code> that Frame keeps in step (verified with Claude Code 2.1.x; run <code>/context</code> to confirm <code>.claude/rules/frame.md</code> loaded), and Codex CLI uses a wrapper script that injects the same file automatically.</p>
           </div>
         </div>
 

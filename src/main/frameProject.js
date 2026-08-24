@@ -116,7 +116,7 @@ async function showInitializeConfirmation(projectPath) {
   message += '  • .frame/PROJECT_NOTES.md (session notes)\n';
   message += '  • .frame/tasks.json (task tracking)\n';
   message += '  • .frame/QUICKSTART.md (getting started)\n';
-  message += '  • .frame/bin/ (parsers and AI tool wrappers)\n';
+  message += "  • .frame/bin/ (Frame's parser and helper scripts)\n";
   message += '  • .claude/rules/frame.md (points Claude Code at .frame/AGENTS.md)\n';
   message += '\nNothing is added to your project root, and no existing file is read, moved or replaced.\n';
 
@@ -266,7 +266,7 @@ async function runProjectInit(projectPath, projectName, options = {}) {
   // replacing the CLAUDE.md symlink Frame used to plant.
   syncClaudeRule(projectPath);
 
-  // Create .frame/bin directory for AI tool wrappers
+  // Create .frame/bin for Frame's parser and helper scripts
   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);
   await fsp.mkdir(binDirPath, { recursive: true });
 

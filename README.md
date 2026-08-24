@@ -67,8 +67,9 @@ Frame brings a consistent structure to every project you work on. When you initi
 Everything Frame writes lives under `.frame/`, plus that one pointer file. Your
 project root stays yours: an existing `CLAUDE.md`, `AGENTS.md` or `.cursorrules`
 is never read, moved or replaced, and "Remove Frame" leaves no Frame-authored
-bytes behind. Requires Claude Code new enough to load `.claude/rules/` (the
-2.1.x line); run `/context` in a session to confirm the rule loaded.
+bytes behind. Needs Claude Code new enough to load `.claude/rules/` — verified
+with Claude Code 2.1.x; run `/context` in a session to confirm
+`.claude/rules/frame.md` loaded.
 
 > **Upgrading:** update Frame before pulling a repository that has been
 > migrated to `.frame/`. An older Frame looks for the meta files at the project

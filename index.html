@@ -616,7 +616,7 @@
             <li><span class="file-icon">&#128196;</span> .frame/PROJECT_NOTES.md <span class="file-desc">session notes</span></li>
             <li><span class="file-icon">&#128196;</span> .frame/tasks.json <span class="file-desc">task tracking</span></li>
             <li><span class="file-icon">&#128196;</span> .frame/QUICKSTART.md <span class="file-desc">getting started</span></li>
-            <li><span class="file-icon">&#128193;</span> .frame/bin/ <span class="file-desc">parsers and AI tool wrappers</span></li>
+            <li><span class="file-icon">&#128193;</span> .frame/bin/ <span class="file-desc">Frame's parser and helper scripts</span></li>
             <li><span class="file-icon">&#128279;</span> .claude/rules/frame.md <span class="file-desc">two lines pointing Claude Code at .frame/AGENTS.md</span></li>
           </ul>
           <p class="init-modal-note">Nothing is added to your project root, and no existing file is
@@ -634,9 +634,9 @@
               <span class="init-sharing-desc">Excluded through <code>.git/info/exclude</code>, so <code>git status</code> shows nothing Frame made. Nothing is added to the tracked <code>.gitignore</code>.</span>
             </label>
           </fieldset>
-          <p class="init-modal-note init-modal-requirement">Requires Claude Code new enough to load
-            <code>.claude/rules/</code> (2.1.x or later). Run <code>/context</code> in a session to confirm
-            the rule file loaded.</p>
+          <p class="init-modal-note init-modal-requirement">Needs Claude Code new enough to load
+            <code>.claude/rules/</code> — verified with Claude Code 2.1.x. Run <code>/context</code> in a
+            session to confirm <code>.claude/rules/frame.md</code> loaded.</p>
           <div id="init-frame-existing-warning" class="init-modal-warning" style="display: none;">
             <p>These files already exist and will NOT be overwritten:</p>
             <ul id="init-frame-existing-list"></ul>

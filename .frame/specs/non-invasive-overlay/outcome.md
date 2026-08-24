@@ -373,3 +373,28 @@ against the real `claude` where the import version returned NONE.
 _Captured: 2026-08-24 · 10 file change(s)_
 
 ---
+
+## T20 — Finish the prose and the report helper
+
+`build-implement-report.mjs`'s `readTasks` reads `.frame/tasks.json` with a
+project-root fallback (exported now, with a regression test) — the report's
+progress banner had been counting a file that no longer exists at the root and
+silently reporting nothing; it reads 19 of 20 on this spec. The QUICKSTART
+template's Key Files and For AI Assistants sections, the REFERENCE template's
+intro and General Rules, and this repository's `.frame/docs/REFERENCE.md` name
+`.frame/…` paths; the init modal, README and `docs/index.html` say "verified
+with Claude Code 2.1.x; run `/context` to confirm `.claude/rules/frame.md`
+loaded"; `.frame/bin` is "Frame's parser and helper scripts" in the modal, the
+native confirmation dialog and the capabilities page; and the `GEMINI.md`/
+symlink passages in `docs/blog/multi-ai-support`,
+`docs/blog/context-preservation` and `docs/capabilities` describe the generated
+rule file instead.
+
+Deviation: REFERENCE's section headings ("Task Management (tasks.json)",
+"STRUCTURE.json Rules") keep their bare names on purpose — the AGENTS.md table
+cross-references them by exact text, so renaming them would break the pointer
+this prose fix exists to serve.
+
+_Captured: 2026-08-24 · 9 file change(s)_
+
+---
