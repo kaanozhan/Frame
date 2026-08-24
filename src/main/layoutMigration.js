@@ -298,8 +298,9 @@ const AGENTS_SYMLINK_NOTE = /(^|\n)([ \t]*>?[ \t]*)\*\*Note:\*\* This file is na
 
 const AGENTS_POINTER_NOTE = [
   '**Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be',
-  'AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,',
-  'which imports this file; delete that pointer to detach.'
+  'AI-tool agnostic. Claude Code reads a generated copy of it at',
+  '`.claude/rules/frame.md`, which Frame rewrites whenever this file changes —',
+  'edit this file, never the copy; delete the copy to detach.'
 ];
 
 function upgradeAgentsText(text) {
@@ -409,7 +410,7 @@ function execute(projectPath, activePlan, onProgress, state) {
   // 4. The pointer, the identity, and the end of the fingerprint.
   state.step = 'pointer';
   onProgress({ step: 'pointer', detail: CLAUDE_RULE_PATH });
-  require('./frameProject').ensureClaudePointer(projectPath);
+  require('./frameProject').syncClaudeRule(projectPath);
   frameStore.ensureProjectId(projectPath);
 
   const config = frameStore.readConfig(projectPath) || {};

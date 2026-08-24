@@ -219,6 +219,18 @@
         "status": "pass",
         "detail": "301 pass, 0 fail"
       }
+    },
+    {
+      "id": "T19",
+      "title": "Make .claude/rules/frame.md an inline copy of .frame/AGENTS.md",
+      "commit": "598d479",
+      "whatChanged": "getClaudeRuleTemplate(agentsText) now emits a generated-from header plus the whole of AGENTS.md, and ensureClaudePointer became syncClaudeRule(projectPath) — write-only-when-different — called at init, on project open, after migration, after every spec-driven enable/disable/upgrade, and from tasksManager's meta-directory watcher through the new onMetaFileChange hook. The AGENTS/CLAUDE templates and the migration's note replacement say Claude reads the generated copy; this repo's and the sample project's rule files were regenerated; spec.md D2 records why an import cannot work.",
+      "whyChanged": "Verified against the real CLI: from <project>/sub, .claude/rules/frame.md loads but @../../.frame/AGENTS.md is not expanded, so the session got an empty rule — the new sub-directory case in test/nativeContext.test.js now finds the codeword where it previously found NONE. Riding tasksManager's existing watcher rather than opening a second one on the same directory keeps the copy fresh while Frame runs.",
+      "verification": {
+        "command": "npm test",
+        "status": "pass",
+        "detail": "302 pass, 0 fail (incl. 2 real `claude -p` runs)"
+      }
     }
   ]
 }

@@ -330,7 +330,9 @@ function startWatching(projectPath) {
 
   try {
     watcher = fsSafe.safeWatch(dir, { persistent: false }, (eventType, filename) => {
-      if (!filename || filename !== FRAME_FILES.TASKS) return;
+      if (!filename) return;
+      notifyMetaChange(projectPath, filename);
+      if (filename !== FRAME_FILES.TASKS) return;
       if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
         activityLog.record('watch.suppressed', { watcher: 'tasks-root', reason: 'self-write' });
         return;
@@ -356,6 +358,27 @@ function startWatching(projectPath) {
     console.error('Error watching project dir:', err);
     watcher = null;
     watchedPath = null;
+  }
+}
+
+/**
+ * Other modules care about the meta directory too — frameProject keeps the
+ * generated `.claude/rules/frame.md` in step with `AGENTS.md`. They register
+ * here rather than opening a second watcher on the same directory.
+ */
+const metaChangeListeners = [];
+
+function onMetaFileChange(listener) {
+  if (typeof listener === 'function') metaChangeListeners.push(listener);
+}
+
+function notifyMetaChange(projectPath, filename) {
+  for (const listener of metaChangeListeners) {
+    try {
+      listener(projectPath, filename);
+    } catch (err) {
+      console.error('tasksManager: meta-change listener failed', err);
+    }
   }
 }
 
@@ -455,5 +478,6 @@ module.exports = {
   setupIPC,
   stopWatching,
   restartWatching,
+  onMetaFileChange,
   getLastSelfWriteAt
 };

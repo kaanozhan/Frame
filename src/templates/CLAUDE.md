@@ -84,5 +84,6 @@ Quick reminders that always apply:
 ---
 
 **Note:** This file lives at `.frame/AGENTS.md` and is named `AGENTS.md` to be
-AI-tool agnostic. Claude Code reaches it through `.claude/rules/frame.md`,
-which imports this file; delete that pointer to detach.
+AI-tool agnostic. Claude Code reads a generated copy of it at
+`.claude/rules/frame.md`, which Frame rewrites whenever this file changes —
+edit this file, never the copy; delete the copy to detach.

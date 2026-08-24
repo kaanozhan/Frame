@@ -352,3 +352,24 @@ rather than bouncing straight back.
 _Captured: 2026-08-23 · 5 file change(s)_
 
 ---
+
+## T19 — Make `.claude/rules/frame.md` an inline copy of `.frame/AGENTS.md`
+
+Verified against the real CLI that the import never worked from a
+sub-directory: `.claude/rules/frame.md` loads, but `@../../.frame/AGENTS.md`
+resolves above the working directory and is not expanded, so the session got an
+empty rule. `getClaudeRuleTemplate(agentsText)` now emits a "generated from
+.frame/AGENTS.md — edit that file" header plus the whole file, and
+`ensureClaudePointer` became `syncClaudeRule(projectPath)` (writes only when
+the content differs), called at init, on project open, after migration, after
+every spec-driven enable/disable/upgrade, and from `tasksManager`'s
+meta-directory watcher via the new `onMetaFileChange` hook — one watcher, not
+two. The AGENTS and CLAUDE templates and migration's note replacement now say
+Claude reads the generated copy; this repository's and the sample project's
+rule files were regenerated, and spec.md D2 records the import finding.
+`test/nativeContext.test.js` gained the sub-directory launch case, which passes
+against the real `claude` where the import version returned NONE.
+
+_Captured: 2026-08-24 · 10 file change(s)_
+
+---

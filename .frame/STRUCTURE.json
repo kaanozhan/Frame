@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-23",
+  "lastUpdated": "2026-08-24",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -729,7 +729,7 @@
         "getFrameConfig",
         "initializeFrameProject",
         "runProjectInit",
-        "ensureClaudePointer",
+        "syncClaudeRule",
         "installSpecHintHook",
         "removeSpecHintHook",
         "removeFrame",
@@ -757,10 +757,10 @@
         "perfMonitor",
         "activityLog",
         "../scripts/detect-project",
+        "tasksManager",
         "electron",
         "aiToolManager",
         "telemetry",
-        "tasksManager",
         "specManager",
         "fileTree"
       ],
@@ -773,21 +773,21 @@
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 36,
+          "line": 47,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 44,
+          "line": 55,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 57,
+          "line": 68,
           "params": [
             "filePath",
             "content"
@@ -795,21 +795,21 @@
           "purpose": "Create file if it doesn't exist"
         },
         "checkExistingFrameFiles": {
-          "line": 71,
+          "line": 82,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 98,
+          "line": 109,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 143,
+          "line": 154,
           "params": [
             "projectPath",
             "projectName",
@@ -817,7 +817,7 @@
           ]
         },
         "doInitializeFrameProject": {
-          "line": 151,
+          "line": 162,
           "params": [
             "projectPath",
             "projectName",
@@ -825,22 +825,22 @@
           ]
         },
         "runProjectInit": {
-          "line": 163,
+          "line": 174,
           "params": [
             "projectPath",
             "projectName",
             "options = {}"
           ]
         },
-        "ensureClaudePointer": {
-          "line": 330,
+        "syncClaudeRule": {
+          "line": 351,
           "params": [
             "projectPath"
           ],
-          "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start"
+          "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start,"
         },
         "detectJsonIndent": {
-          "line": 349,
+          "line": 378,
           "params": [
             "text",
             "fallback = 2"
@@ -848,18 +848,18 @@
           "purpose": "The indentation an existing settings file uses, so rewriting it preserves"
         },
         "hookCommandsIn": {
-          "line": 356,
+          "line": 385,
           "params": [
             "settings"
           ],
           "purpose": "Every hook command in a settings object, whatever shape the file is in."
         },
         "frameHookCommands": {
-          "line": 373,
+          "line": 402,
           "purpose": "The command strings Frame installs today."
         },
         "installSpecHintHook": {
-          "line": 397,
+          "line": 426,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -867,7 +867,7 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "removeSpecHintHook": {
-          "line": 463,
+          "line": 492,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -875,67 +875,67 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 519,
+          "line": 548,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 524,
+          "line": 553,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 551,
+          "line": 582,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 578,
+          "line": 610,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 582,
+          "line": 614,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 596,
+          "line": 628,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 606,
+          "line": 638,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 678,
+          "line": 710,
           "params": [
             "projectPath"
           ]
         },
         "removeFrame": {
-          "line": 727,
+          "line": 761,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "dropEmptySettingsFile": {
-          "line": 781,
+          "line": 815,
           "params": [
             "projectPath",
             "file"
@@ -943,21 +943,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 807,
+          "line": 841,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 820,
+          "line": 854,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "setupIPC": {
-          "line": 860,
+          "line": 894,
           "params": [
             "ipcMain"
           ],
@@ -2047,13 +2047,13 @@
           ]
         },
         "upgradeAgentsText": {
-          "line": 305,
+          "line": 306,
           "params": [
             "text"
           ]
         },
         "execute": {
-          "line": 334,
+          "line": 335,
           "params": [
             "projectPath",
             "activePlan",
@@ -2063,7 +2063,7 @@
           "purpose": "The steps themselves, in order, writing what happened into `state`. Split"
         },
         "run": {
-          "line": 453,
+          "line": 454,
           "params": [
             "projectPath",
             "migrationPlan",
@@ -3640,6 +3640,7 @@
         "setupIPC",
         "stopWatching",
         "restartWatching",
+        "onMetaFileChange",
         "getLastSelfWriteAt"
       ],
       "depends": [
@@ -3750,24 +3751,37 @@
             "projectPath"
           ]
         },
+        "onMetaFileChange": {
+          "line": 371,
+          "params": [
+            "listener"
+          ]
+        },
+        "notifyMetaChange": {
+          "line": 375,
+          "params": [
+            "projectPath",
+            "filename"
+          ]
+        },
         "restartWatching": {
-          "line": 367,
+          "line": 390,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-arm the watcher on the project's current meta directory. Migration moves"
         },
         "stopWatching": {
-          "line": 372
+          "line": 395
         },
         "setupIPC": {
-          "line": 382,
+          "line": 405,
           "params": [
             "ipcMain"
           ]
         },
         "getLastSelfWriteAt": {
-          "line": 442,
+          "line": 465,
           "purpose": "Timestamp of this module's last tasks.json write — exported so other"
         }
       },
@@ -9298,14 +9312,14 @@
           ]
         },
         "getReferenceTemplate": {
-          "line": 452,
+          "line": 453,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 628,
+          "line": 629,
           "params": [
             "projectName",
             "project"
@@ -9313,21 +9327,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 653,
+          "line": 654,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 673,
+          "line": 674,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 719,
+          "line": 720,
           "params": [
             "projectName",
             "project"
@@ -9335,25 +9349,28 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 800,
+          "line": 801,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getClaudeRuleTemplate": {
-          "line": 838,
-          "purpose": "`.claude/rules/frame.md` — the pointer Claude Code loads at session start."
+          "line": 844,
+          "params": [
+            "agentsText"
+          ],
+          "purpose": "`.claude/rules/frame.md` — the file Claude Code loads at session start."
         },
         "getFrameGitignoreBlock": {
-          "line": 853
+          "line": 859
         },
         "getCodexWrapperTemplate": {
-          "line": 910,
+          "line": 916,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 947,
+          "line": 953,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -9361,27 +9378,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 993
+          "line": 999
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1031,
+          "line": 1037,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1054,
+          "line": 1060,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1066,
+          "line": 1072,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1086
+          "line": 1092
         },
         "getOrchBinScripts": {
-          "line": 1104,
+          "line": 1110,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

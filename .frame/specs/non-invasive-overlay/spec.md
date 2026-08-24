@@ -69,12 +69,19 @@ stay where they are.
 
 ### D2 — Context delivery stays file-based and native
 
-- Frame writes **`.claude/rules/frame.md`** containing a single import line,
-  `@../../.frame/AGENTS.md`, plus a one-line comment naming Frame as the
-  owner. Claude Code loads `.claude/rules/*.md` at launch and expands the
-  import (verified 2026-08-22 with `claude -p` against a scratch repo: the
-  rule alone, and the rule alongside a user-owned root `CLAUDE.md`, both
-  loaded; relative imports resolve relative to the importing file).
+- Frame writes **`.claude/rules/frame.md`** containing a generated **copy** of
+  `.frame/AGENTS.md`, under a one-line comment naming Frame as the owner and
+  `.frame/AGENTS.md` as the file to edit. Frame rewrites the copy whenever
+  `AGENTS.md` changes (init, project open, migration, spec-driven toggles, and
+  the meta-directory watcher). Claude Code loads `.claude/rules/*.md` at launch
+  from any working directory (verified 2026-08-22/23 with `claude -p` against a
+  scratch repo: the rule alone, the rule alongside a user-owned root
+  `CLAUDE.md`, and a session started in a sub-directory, all loaded).
+  **An `@`-import is not usable here**: the first revision of this spec used
+  `@../../.frame/AGENTS.md`, and a session started in a sub-directory loads the
+  rule file but does *not* expand an import that resolves above its working
+  directory — the session got an empty rule. The copy costs a few KB of
+  duplication; `.frame/AGENTS.md` remains canonical.
 - Frame **never** creates, deletes, symlinks, appends to or rewrites
   `CLAUDE.md`, `.claude/CLAUDE.md`, `AGENTS.md` at the root, or any other
   instruction file it did not author. The consume-and-symlink code path is

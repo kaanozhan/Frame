@@ -421,7 +421,7 @@ test('the symlink note is replaced whole, however it was wrapped', () => {
   const upgraded = layoutMigration.upgradeAgentsText(blockquote);
   assert.ok(!upgraded.text.includes('symlink is provided'), 'no orphaned continuation line');
   assert.match(upgraded.text, /> \*\*Note:\*\* This file lives at `\.frame\/AGENTS\.md`/);
-  assert.match(upgraded.text, /> which imports this file/, 'replacement keeps the blockquote prefix');
+  assert.match(upgraded.text, /> edit this file, never the copy/, 'replacement keeps the blockquote prefix');
   assert.match(upgraded.text, /\n## Next section/, 'the rest of the document is intact');
 
   const oneLine = '# P\n\n**Note:** This file is named `AGENTS.md` to be AI-tool agnostic. A `CLAUDE.md` symlink is provided for Claude Code compatibility.\n\n## After\n';
@@ -490,13 +490,13 @@ test('a mid-run failure returns a truthful partial receipt', () => {
 
   // Break step 4 (the pointer write) the way a permission problem would.
   const frameProject = require('../src/main/frameProject');
-  const original = frameProject.ensureClaudePointer;
-  frameProject.ensureClaudePointer = () => { throw new Error('disk on fire'); };
+  const original = frameProject.syncClaudeRule;
+  frameProject.syncClaudeRule = () => { throw new Error('disk on fire'); };
   let receipt;
   try {
     receipt = layoutMigration.run(projectDir, p);
   } finally {
-    frameProject.ensureClaudePointer = original;
+    frameProject.syncClaudeRule = original;
   }
 
   assert.equal(receipt.ran, true, 'files did move — "did not run" would be a lie');

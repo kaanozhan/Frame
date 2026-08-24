@@ -28,6 +28,17 @@ let mainWindow = null;
  */
 function init(window) {
   mainWindow = window;
+
+  // .claude/rules/frame.md is a copy of .frame/AGENTS.md, so it goes stale the
+  // moment an agent edits AGENTS.md mid-session. tasksManager already watches
+  // the meta directory; this rides along rather than opening a second watcher.
+  try {
+    require('./tasksManager').onMetaFileChange((projectPath, filename) => {
+      if (filename === FRAME_FILES.AGENTS) syncClaudeRule(projectPath);
+    });
+  } catch (err) {
+    console.warn('[frame] could not watch AGENTS.md for rule sync (non-fatal):', err.message);
+  }
 }
 
 /**
@@ -250,10 +261,10 @@ async function runProjectInit(projectPath, projectName, options = {}) {
     templates.getQuickstartTemplate(name, detectedProject)
   );
 
-  // .claude/rules/frame.md — the pointer Claude Code loads at session start.
-  // The whole native-delivery mechanism: two lines that @-import
-  // .frame/AGENTS.md, replacing the CLAUDE.md symlink Frame used to plant.
-  ensureClaudePointer(projectPath);
+  // .claude/rules/frame.md — what Claude Code loads at session start. The
+  // whole native-delivery mechanism: a generated copy of .frame/AGENTS.md,
+  // replacing the CLAUDE.md symlink Frame used to plant.
+  syncClaudeRule(projectPath);
 
   // Create .frame/bin directory for AI tool wrappers
   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);
@@ -322,16 +333,34 @@ async function runProjectInit(projectPath, projectName, options = {}) {
 
 /**
  * Write `.claude/rules/frame.md` — the only thing Frame puts outside
- * `.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start
- * and follows the `@` import to `.frame/AGENTS.md`, which is how Frame reaches
- * a session without a launch wrapper or a root file. Rewritten every init so a
- * stale pointer heals; a user who deletes it has detached on purpose.
+ * `.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start,
+ * which is how Frame reaches a session without a launch wrapper or a root
+ * file.
+ *
+ * It holds a *copy* of `.frame/AGENTS.md`, not an `@` import of it: Claude
+ * Code does not expand an import that resolves above the session's working
+ * directory, so a session started in a sub-directory loaded this file and got
+ * nothing from it (verified against the real CLI). `.frame/AGENTS.md` stays
+ * canonical and this copy is rewritten whenever it changes — at init, on
+ * project open, after migration, on every spec-driven toggle, and from the
+ * meta-directory watcher while Frame runs.
+ *
+ * Writes only when the content differs: this runs on every project open, and
+ * a needless rewrite is a file-watcher event in someone else's editor.
  */
-function ensureClaudePointer(projectPath) {
+function syncClaudeRule(projectPath) {
+  const agentsText = frameStore.readAgents(projectPath);
+  if (agentsText === null) return false; // nothing to copy — never write an empty rule
+
   const rulePath = path.join(projectPath, ...CLAUDE_RULE_PATH.split('/'));
+  const next = templates.getClaudeRuleTemplate(agentsText);
   try {
+    let existing = null;
+    try { existing = fs.readFileSync(rulePath, 'utf8'); } catch (_) { /* first write */ }
+    if (existing === next) return false;
+
     fs.mkdirSync(path.dirname(rulePath), { recursive: true });
-    fs.writeFileSync(rulePath, templates.getClaudeRuleTemplate(), 'utf8');
+    fs.writeFileSync(rulePath, next, 'utf8');
     return true;
   } catch (err) {
     console.warn('[frame] could not write .claude/rules/frame.md (non-fatal):', err.message);
@@ -532,6 +561,7 @@ function enableSpecDriven(projectPath) {
     // Already enabled — make sure the artifacts exist anyway (handles the
     // case where someone deleted .frame/specs/ manually) and short-circuit.
     ensureSpecDrivenArtifacts(projectPath, config);
+    syncClaudeRule(projectPath);
     return { success: true, alreadyEnabled: true };
   }
 
@@ -539,6 +569,7 @@ function enableSpecDriven(projectPath) {
   writeFrameConfig(projectPath, config);
 
   ensureSpecDrivenArtifacts(projectPath, config);
+  syncClaudeRule(projectPath); // AGENTS.md gained the spec section
   return { success: true };
 }
 
@@ -571,6 +602,7 @@ function disableSpecDriven(projectPath) {
   } catch (err) {
     // Missing or unreadable AGENTS.md — the flag flip is what matters.
   }
+  syncClaudeRule(projectPath); // AGENTS.md lost the spec section
 
   return { success: true, alreadyDisabled: !wasEnabled };
 }
@@ -711,6 +743,8 @@ function upgradeSpecDocs(projectPath) {
       }
     }
   }
+
+  syncClaudeRule(projectPath); // an upgraded AGENTS.md means a stale copy
 }
 
 // ─── Remove Frame from a project ──────────────────────────
@@ -887,6 +921,9 @@ function setupIPC(ipcMain) {
       } catch (err) {
         console.warn('[frame] could not reconcile the sharing mode (non-fatal):', err.message);
       }
+      // The copy Claude Code reads follows .frame/AGENTS.md, which anything
+      // may have edited since this project was last open.
+      syncClaudeRule(projectPath);
     }
     event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout });
     event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
@@ -1021,7 +1058,7 @@ module.exports = {
   getFrameConfig,
   initializeFrameProject,
   runProjectInit,
-  ensureClaudePointer,
+  syncClaudeRule,
   installSpecHintHook,
   removeSpecHintHook,
   removeFrame,
