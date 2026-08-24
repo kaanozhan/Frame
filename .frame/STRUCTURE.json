@@ -8417,65 +8417,65 @@
       ],
       "functions": {
         "init": {
-          "line": 64
+          "line": 65
         },
         "flatten": {
-          "line": 134,
+          "line": 131,
           "params": [
             "data"
           ]
         },
         "setInlineHost": {
-          "line": 154,
+          "line": 151,
           "params": [
             "host"
           ]
         },
         "mountInline": {
-          "line": 158,
+          "line": 155,
           "params": [
             "container"
           ]
         },
         "notifyDetached": {
-          "line": 167
+          "line": 164
         },
         "_load": {
-          "line": 180
+          "line": 177
         },
         "show": {
-          "line": 200
+          "line": 197
         },
         "hide": {
-          "line": 210
+          "line": 207
         },
         "toggle": {
-          "line": 223
+          "line": 220
         },
         "render": {
-          "line": 231
+          "line": 228
         },
         "renderCard": {
-          "line": 298,
+          "line": 291,
           "params": [
             "task"
           ]
         },
         "setupDropTargets": {
-          "line": 349
+          "line": 342
         },
         "onDragStart": {
-          "line": 388,
+          "line": 381,
           "params": [
             "e",
             "task"
           ]
         },
         "onDragEnd": {
-          "line": 400
+          "line": 393
         },
         "getCardAfterY": {
-          "line": 414,
+          "line": 407,
           "params": [
             "container",
             "y"
@@ -8483,44 +8483,52 @@
           "purpose": "Find the card the dragged item should be inserted *before*, based on"
         },
         "commitOrder": {
-          "line": 430,
+          "line": 423,
           "purpose": "Read the current DOM order across all three columns and send the new order"
         },
+        "syncAside": {
+          "line": 448,
+          "purpose": "Single owner of the aside's visibility. It has exactly two reasons to"
+        },
         "selectTask": {
-          "line": 446,
+          "line": 460,
           "params": [
             "taskId"
           ]
         },
         "clearSelection": {
-          "line": 460
+          "line": 474
+        },
+        "resetAside": {
+          "line": 483,
+          "purpose": "Leaving the board: no selection, no half-typed form waiting on return."
         },
         "isFormOpen": {
-          "line": 472
+          "line": 494
         },
         "setupForm": {
-          "line": 476
+          "line": 498
         },
         "showForm": {
-          "line": 490
+          "line": 512
         },
         "hideForm": {
-          "line": 505
+          "line": 527
         },
         "requestDeleteSelected": {
-          "line": 521
+          "line": 535
         },
         "submitForm": {
-          "line": 539
+          "line": 553
         },
         "renderDetail": {
-          "line": 557,
+          "line": 571,
           "params": [
             "task"
           ]
         },
         "appendMetaPill": {
-          "line": 609,
+          "line": 622,
           "params": [
             "container",
             "text",
@@ -8528,7 +8536,7 @@
           ]
         },
         "setSection": {
-          "line": 616,
+          "line": 629,
           "params": [
             "textEl",
             "sectionEl",
@@ -8536,71 +8544,71 @@
           ]
         },
         "formatDate": {
-          "line": 627,
+          "line": 640,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 641
+          "line": 654
         },
         "filterMatches": {
-          "line": 645,
+          "line": 658,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 651
+          "line": 664
         },
         "isFilterPopoverOpen": {
-          "line": 689
+          "line": 702
         },
         "toggleFilterPopover": {
-          "line": 693
+          "line": 706
         },
         "openFilterPopover": {
-          "line": 699
+          "line": 712
         },
         "closeFilterPopover": {
-          "line": 705
+          "line": 718
         },
         "clearFilters": {
-          "line": 711
+          "line": 724
         },
         "updateFilterUI": {
-          "line": 723
+          "line": 736
         },
         "compareTasks": {
-          "line": 740,
+          "line": 753,
           "params": [
             "a",
             "b"
           ]
         },
         "setupSort": {
-          "line": 756
+          "line": 769
         },
         "isSortPopoverOpen": {
-          "line": 801
+          "line": 814
         },
         "toggleSortPopover": {
-          "line": 805
+          "line": 818
         },
         "openSortPopover": {
-          "line": 811
+          "line": 824
         },
         "closeSortPopover": {
-          "line": 817
+          "line": 830
         },
         "resetSort": {
-          "line": 823
-        },
-        "updateSortUI": {
           "line": 836
         },
+        "updateSortUI": {
+          "line": 849
+        },
         "commitSortToFile": {
-          "line": 861,
+          "line": 874,
           "purpose": "Commit the current sorted view to tasks.json. Per-column sorted order is"
         }
       },

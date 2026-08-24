@@ -1658,3 +1658,26 @@ https://claude.ai/code/artifact/2c4d436b-5f95-4f72-8736-aa92d9f766a5
 Pieces of PR #116 worth reusing as reference when planning: gitExclude.js,
 gitSharing.js (clean in audit), migration happy path, Project Settings modal,
 the tree-walk "nothing outside .frame/" test.
+
+### [2026-08-24] Tasks board: the right aside is on demand now (spec: tasks-detail-on-demand)
+
+Kaan: the Tasks board's right panel is "rahatsız edici, çok yer kaplıyor" —
+it fills in only two cases (new task, task detail), and New Task already has
+a header button, so it should open only when needed and give the columns the
+full width when closed.
+
+Agreed, and the reason is worth recording: the panel's *default* state was
+its least useful one. Empty, it showed an "Add a new task" card that
+duplicated the header button, while costing up to 380px of a center view
+already sharing the window with the sidebar. Widest cost, thinnest content.
+
+Shipped: `.tasks-dashboard-detail` is `display: none` unless `.open`;
+columns measured 646px → 1094px at the default window size. The three
+scattered show/hide toggles collapsed into one `syncAside()` (form → detail
+→ collapsed) that every selection/form path routes through, plus
+`resetAside()` when the board is left so no half-typed form waits on return.
+Empty-state markup/CSS/listener deleted.
+
+Left alone deliberately: the Specs dashboard has the same always-on aside
+shape (`specs-dashboard-detail-empty`). The request was about Tasks; if the
+same complaint arrives there, the pattern above ports directly.

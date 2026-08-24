@@ -635,99 +635,25 @@
 }
 
 /* ---------- Detail panel ---------- */
-/* Fluid width: scales with the viewport so cards keep room when the window
-   is narrow. Floor (220px) is the minimum that still renders meta + buttons
-   sensibly; ceiling (380px) matches the previous fixed width on roomy screens. */
+/* On demand only: the aside is out of layout unless a task is selected or
+   the New Task form is open, so the board's default state gives all three
+   columns the full width (tasks-detail-on-demand spec).
+   Fluid width when open: scales with the viewport so cards keep room when
+   the window is narrow. Floor (220px) is the minimum that still renders
+   meta + buttons sensibly; ceiling (380px) matches the previous fixed
+   width on roomy screens. */
 .tasks-dashboard-detail {
+  display: none;
   flex-shrink: 0;
   width: clamp(220px, 26vw, 380px);
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-subtle);
-  display: flex;
   flex-direction: column;
   overflow-y: auto;
 }
 
-.tasks-dashboard-detail-empty {
-  flex: 1;
+.tasks-dashboard-detail.open {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md);
-  padding: var(--space-xl);
-  text-align: center;
-}
-
-.tasks-dashboard-detail-add {
-  width: 100%;
-  max-width: 280px;
-  background: var(--bg-tertiary);
-  border: 2px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl) var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: all var(--transition-fast);
-  font-family: inherit;
-}
-
-.tasks-dashboard-detail-add:hover {
-  border-color: var(--accent-primary);
-  background: var(--accent-subtle);
-  color: var(--accent-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.tasks-dashboard-detail-add-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent-primary);
-  transition: all var(--transition-fast);
-  margin-bottom: var(--space-xs);
-}
-
-.tasks-dashboard-detail-add:hover .tasks-dashboard-detail-add-icon {
-  background: var(--accent-primary);
-  color: var(--bg-deep);
-  border-color: var(--accent-primary);
-  transform: scale(1.05);
-  box-shadow: 0 0 24px var(--accent-glow);
-}
-
-.tasks-dashboard-detail-add-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.tasks-dashboard-detail-add:hover .tasks-dashboard-detail-add-title {
-  color: var(--accent-primary);
-}
-
-.tasks-dashboard-detail-add-sub {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  line-height: 1.5;
-  max-width: 240px;
-}
-
-.tasks-dashboard-detail-empty-hint {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin: 0;
-  font-style: italic;
 }
 
 .tasks-dashboard-detail-content {

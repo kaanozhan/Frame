@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-24T04:42:31.426Z",
+  "lastUpdated": "2026-08-24T18:28:05.210Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5026,6 +5026,45 @@
       "createdAt": "2026-08-23T13:30:00.000Z",
       "updatedAt": "2026-08-24T04:42:31.426Z",
       "completedAt": "2026-08-24T04:42:31.426Z"
+    },
+    {
+      "id": "task-spec-tasks-detail-on-demand-T01",
+      "title": "Markup + CSS: drop the empty-state block; aside defaults to display:none, .open restores display:flex.",
+      "description": "",
+      "source": "spec:tasks-detail-on-demand:T01",
+      "status": "completed",
+      "priority": "medium",
+      "category": "refactor",
+      "context": "From spec: tasks-detail-on-demand",
+      "createdAt": "2026-08-24T18:24:11.990Z",
+      "updatedAt": "2026-08-24T18:28:05.210Z",
+      "completedAt": "2026-08-24T18:28:05.210Z"
+    },
+    {
+      "id": "task-spec-tasks-detail-on-demand-T02",
+      "title": "tasksDashboard.js: single syncAside() owning form / detail / collapsed; route selectTask, clearSelection, showForm, hideForm, the TASKS_DATA re-render and hide()/project change through it; remove the empty-state add listener.",
+      "description": "",
+      "source": "spec:tasks-detail-on-demand:T02",
+      "status": "completed",
+      "priority": "medium",
+      "category": "refactor",
+      "context": "From spec: tasks-detail-on-demand",
+      "createdAt": "2026-08-24T18:24:11.990Z",
+      "updatedAt": "2026-08-24T18:28:05.210Z",
+      "completedAt": "2026-08-24T18:28:05.210Z"
+    },
+    {
+      "id": "task-spec-tasks-detail-on-demand-T03",
+      "title": "Verify live (full-width board, card -> detail, close -> full-width, New Task -> form -> cancel, delete selected, Esc ladder, watchdog quiet), tests, STRUCTURE, outcome + digest.",
+      "description": "",
+      "source": "spec:tasks-detail-on-demand:T03",
+      "status": "completed",
+      "priority": "medium",
+      "category": "test",
+      "context": "From spec: tasks-detail-on-demand",
+      "createdAt": "2026-08-24T18:24:11.990Z",
+      "updatedAt": "2026-08-24T18:28:05.210Z",
+      "completedAt": "2026-08-24T18:28:05.210Z"
     }
   ],
   "metadata": {
