@@ -11,6 +11,12 @@
  * one), errors stay 4000 ms because they require user attention, everything
  * else 2000 ms. The message is set via textContent, never innerHTML, so
  * user-provided text can't inject markup.
+ *
+ * `{ sticky: true }` opts a message out of the auto-hide and gives it a
+ * close button — for warnings that carry detail worth reading, which the
+ * four-second fade made unreadable (resize-storm-watchdog spec). Use it
+ * sparingly: a toast that never leaves on its own is the user's problem
+ * until they click it.
  */
 
 const VISIBLE_ERROR_MS = 4000;
@@ -23,12 +29,12 @@ const ICONS = {
   info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
 };
 
-function show(message, type = 'info') {
+function show(message, type = 'info', { sticky = false } = {}) {
   const existing = document.querySelector('.app-toast');
   if (existing) existing.remove();
 
   const toast = document.createElement('div');
-  toast.className = `app-toast app-toast-${type}`;
+  toast.className = `app-toast app-toast-${type}${sticky ? ' app-toast-sticky' : ''}`;
 
   const icon = document.createElement('span');
   icon.className = 'toast-icon';
@@ -40,21 +46,36 @@ function show(message, type = 'info') {
 
   toast.appendChild(icon);
   toast.appendChild(text);
+
+  const dismiss = () => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), FADE_MS);
+  };
+
+  if (sticky) {
+    const close = document.createElement('button');
+    close.className = 'toast-close';
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Dismiss');
+    close.textContent = '×';
+    close.addEventListener('click', dismiss);
+    toast.appendChild(close);
+  }
+
   document.body.appendChild(toast);
 
   requestAnimationFrame(() => {
     toast.classList.add('visible');
   });
 
+  if (sticky) return;
+
   const visibleMs = type === 'error' ? VISIBLE_ERROR_MS : VISIBLE_DEFAULT_MS;
-  setTimeout(() => {
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), FADE_MS);
-  }, visibleMs);
+  setTimeout(dismiss, visibleMs);
 }
 
 module.exports = {
-  error: (message) => show(message, 'error'),
-  success: (message) => show(message, 'success'),
-  info: (message) => show(message, 'info')
+  error: (message, options) => show(message, 'error', options),
+  success: (message, options) => show(message, 'success', options),
+  info: (message, options) => show(message, 'info', options)
 };

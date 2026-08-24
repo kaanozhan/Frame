@@ -1749,3 +1749,35 @@ spec — transcripts Claude Code already pruned cannot come back.
 Also worth keeping: `CLAUDE_CONFIG_DIR` is now honoured when resolving
 Claude's data directory (matching Claude Code itself), which is also the seam
 the tests use to point the module at a fixture tree.
+
+### [2026-08-24] The "high internal traffic" toast: resize storm found, watchdog now leaves evidence (spec: resize-storm-watchdog)
+
+Kaan saw a warning at the top of the window now and then — "unusual high
+traffic" — unreadable and gone before it could be read, and asked whether it
+had reached the logs. It had not: the warning was a renderer `console.warn`
+plus a 4-second toast, and electron-log bridges only the main process, so
+`main.log` held zero watchdog lines. A watchdog whose evidence evaporates is
+not a watchdog.
+
+Cause, measured before changing anything: `window.addEventListener('resize')`
+→ `fitTerminal()` → `fitAll()` with no debounce, so a window drag sent one
+`TERMINAL_RESIZE_ID` per terminal per frame — 363 messages in 2.2s with three
+terminals (~205/s), past the 300-per-5s threshold. Ruled out by measurement:
+idle, streaming PTY output (already batched), touching 300 source files, git
+churn, spec status.json churn — all ~0/s.
+
+So the toast was accusing legitimate traffic of being a render loop while
+pointing at real waste (the PTY only needs the final size). Fixed by
+debouncing 80ms — the same settle the terminals view's ResizeObserver already
+used — 363 → 6 messages, terminals still fit their panes.
+
+Two things the incident taught, both now fixed: (1) the watchdog logs through
+`electron-log/renderer` so the channel breakdown survives the toast, and its
+wording reports what it observed rather than asserting a loop; (2) toasts can
+opt into sticky mode with an ×, because a warning carrying detail cannot fade
+in four seconds.
+
+And a plain bug found while verifying: `.app-toast-error` used
+`var(--error-subtle)` — 15% alpha — as its background, so whatever sat behind
+the toast read through the text. That was part of "tam okunaklı değil" all
+along. The tint is now layered over `--bg-elevated`.

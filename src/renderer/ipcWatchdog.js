@@ -11,9 +11,28 @@
  * never blocks or drops a message. Threshold is set well above legitimate
  * bursts (project switch, dashboard load ≈ tens of calls) and requires the
  * rate to be sustained for a full window, so it only fires on loops.
+ *
+ * Every warning is written to the main log file as well as the console. The
+ * first real report of this warning could not be investigated at all: the
+ * toast had faded, and `console.warn` never reached `main.log`, so nothing
+ * remained of a storm that had already happened (resize-storm-watchdog spec).
  */
 
 const { ipcRenderer } = require('electron');
+
+/**
+ * electron-log's renderer entry forwards to the main process's file
+ * transport over its own internal channel — no Frame IPC channel involved,
+ * and main's redaction hook still runs over the line. Guarded: a watchdog
+ * that throws while reporting a storm would be worse than the storm.
+ */
+function toMainLog(message) {
+  try {
+    require('electron-log/renderer').warn('[ipcWatchdog]', message);
+  } catch (err) {
+    console.warn('[ipcWatchdog] could not write to the main log:', err.message);
+  }
+}
 
 const WINDOW_MS = 5000;
 const THRESHOLD = 300;       // messages per window (~60/s sustained)
@@ -56,14 +75,19 @@ function init() {
         .map(([ch, n]) => `${ch} ×${n}`)
         .join(', ');
       const perSec = Math.round(total / (WINDOW_MS / 1000));
-      console.warn(`[ipcWatchdog] IPC storm: ${perSec} msg/s sustained — top: ${top}`);
+      const detail = `${perSec} IPC msg/s sustained for ${WINDOW_MS / 1000}s — top: ${top}`;
+      console.warn(`[ipcWatchdog] ${detail}`);
+      toMainLog(detail);
       if (Date.now() - lastWarnAt > REARM_MS) {
         lastWarnAt = Date.now();
         try {
+          // Sticky: this text names the channels, which is the whole point —
+          // it has to survive long enough to be read or copied.
           require('./notify').error(
-            `Unusually high internal traffic (${perSec} msg/s) — likely a render loop. Top: ${top}`
+            `Frame is sending ${detail}. A render loop is the usual cause; the full breakdown is in the log.`,
+            { sticky: true }
           );
-        } catch (_) { /* notify not ready — console.warn already fired */ }
+        } catch (_) { /* notify not ready — the console and log lines already fired */ }
       }
     }
     counts = {};

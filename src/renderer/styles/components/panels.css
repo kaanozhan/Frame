@@ -646,6 +646,31 @@
   word-break: break-word;
 }
 
+/* Sticky variant: stays until dismissed, so a warning carrying detail
+   (channel breakdown, rates) can actually be read — the four-second fade
+   made those unreadable (resize-storm-watchdog spec). The message takes the
+   free space and the × sits at the end. */
+.app-toast-sticky .toast-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-toast .toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.app-toast .toast-close:hover {
+  color: var(--text-primary);
+}
+
 .app-toast-success .toast-icon {
   color: var(--success);
 }
@@ -655,9 +680,12 @@
 }
 
 /* Error variant: louder background tint, accent border, larger text
-   so a missed-CLI / failure message can't slip past the user. */
+   so a missed-CLI / failure message can't slip past the user.
+   The tint (--error-subtle) is 15% alpha, so it is layered over an opaque
+   base — on its own it let whatever sat behind the toast read straight
+   through the message (resize-storm-watchdog spec). */
 .app-toast-error {
-  background: var(--error-subtle);
+  background: linear-gradient(var(--error-subtle), var(--error-subtle)), var(--bg-elevated);
   border-color: var(--error);
   padding: 14px 18px;
   box-shadow: var(--shadow-lg), 0 0 0 1px var(--error);

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-24T19:41:00.638Z",
+  "lastUpdated": "2026-08-24T20:00:47.206Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5169,6 +5169,58 @@
       "createdAt": "2026-08-24T19:35:15.908Z",
       "updatedAt": "2026-08-24T19:41:00.638Z",
       "completedAt": "2026-08-24T19:41:00.638Z"
+    },
+    {
+      "id": "task-spec-resize-storm-watchdog-T01",
+      "title": "Debounce the window resize -> fitAll path (80ms trailing).",
+      "description": "",
+      "source": "spec:resize-storm-watchdog:T01",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "From spec: resize-storm-watchdog",
+      "createdAt": "2026-08-24T19:56:21.051Z",
+      "updatedAt": "2026-08-24T20:00:47.206Z",
+      "completedAt": "2026-08-24T20:00:47.206Z"
+    },
+    {
+      "id": "task-spec-resize-storm-watchdog-T02",
+      "title": "Watchdog warnings reach the main log via electron-log/renderer, with the channel breakdown and honest wording.",
+      "description": "",
+      "source": "spec:resize-storm-watchdog:T02",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "From spec: resize-storm-watchdog",
+      "createdAt": "2026-08-24T19:56:21.051Z",
+      "updatedAt": "2026-08-24T20:00:47.206Z",
+      "completedAt": "2026-08-24T20:00:47.206Z"
+    },
+    {
+      "id": "task-spec-resize-storm-watchdog-T03",
+      "title": "Sticky toasts: notify options + close button + styles; watchdog opts in.",
+      "description": "",
+      "source": "spec:resize-storm-watchdog:T03",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "From spec: resize-storm-watchdog",
+      "createdAt": "2026-08-24T19:56:21.051Z",
+      "updatedAt": "2026-08-24T20:00:47.206Z",
+      "completedAt": "2026-08-24T20:00:47.206Z"
+    },
+    {
+      "id": "task-spec-resize-storm-watchdog-T04",
+      "title": "Verify live (resize message count before/after, forced storm lands in main.log, toast stays until dismissed), tests, STRUCTURE, outcome + digest.",
+      "description": "",
+      "source": "spec:resize-storm-watchdog:T04",
+      "status": "completed",
+      "priority": "medium",
+      "category": "test",
+      "context": "From spec: resize-storm-watchdog",
+      "createdAt": "2026-08-24T19:56:21.051Z",
+      "updatedAt": "2026-08-24T20:00:47.206Z",
+      "completedAt": "2026-08-24T20:00:47.206Z"
     }
   ],
   "metadata": {

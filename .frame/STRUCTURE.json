@@ -5574,30 +5574,30 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 246,
+          "line": 253,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 323,
+          "line": 330,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 434,
+          "line": 441,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 465,
+          "line": 472,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 488,
+          "line": 495,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 760,
+          "line": 767,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -5619,18 +5619,26 @@
       ],
       "depends": [
         "electron",
+        "electron-log/renderer",
         "notify"
       ],
       "functions": {
+        "toMainLog": {
+          "line": 29,
+          "params": [
+            "message"
+          ],
+          "purpose": "electron-log's renderer entry forwards to the main process's file"
+        },
         "bump": {
-          "line": 26,
+          "line": 45,
           "params": [
             "direction",
             "channel"
           ]
         },
         "init": {
-          "line": 32
+          "line": 51
         }
       }
     },
@@ -6113,19 +6121,26 @@
       "description": "Notify",
       "exports": [
         "error",
-        "'error')",
+        "options) => show(message",
+        "'error'",
+        "options)",
         "success",
-        "'success')",
+        "options) => show(message",
+        "'success'",
+        "options)",
         "info",
-        "'info')"
+        "options) => show(message",
+        "'info'",
+        "options)"
       ],
       "depends": [],
       "functions": {
         "show": {
-          "line": 26,
+          "line": 32,
           "params": [
             "message",
-            "type = 'info'"
+            "type = 'info'",
+            "{ sticky = false } = {}"
           ]
         }
       }
