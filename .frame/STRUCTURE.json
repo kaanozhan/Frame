@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-24",
+  "lastUpdated": "2026-08-25",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -729,7 +729,7 @@
       ],
       "functions": {
         "getFileTree": {
-          "line": 18,
+          "line": 27,
           "params": [
             "dirPath",
             "maxDepth = 5",
@@ -738,7 +738,7 @@
           "purpose": "Get file tree for a directory (async — the whole-subtree walk must not"
         },
         "setupIPC": {
-          "line": 61,
+          "line": 69,
           "params": [
             "ipcMain"
           ],

@@ -1,11 +1,20 @@
 /**
  * File Tree Module
  * Generates directory tree structure
+ *
+ * Dotfiles and dot-directories are part of the tree: this is a tool for
+ * working on projects whose configuration lives in `.frame/`, `.github/`,
+ * `.claude/` and friends, and hiding them hid exactly the files a Frame user
+ * edits most. Only machinery is skipped — `.git` (plumbing nobody edits, and
+ * hundreds of hash-named entries) and `node_modules`.
  */
 
 const fsp = require('fs').promises;
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
+
+/** Never walked: repository plumbing and installed dependencies. */
+const SKIP = new Set(['.git', 'node_modules']);
 
 /**
  * Get file tree for a directory (async — the whole-subtree walk must not
@@ -30,8 +39,7 @@ async function getFileTree(dirPath, maxDepth = 5, currentDepth = 0) {
     });
 
     for (const item of items) {
-      // Skip hidden files and node_modules
-      if (item.name.startsWith('.') || item.name === 'node_modules') continue;
+      if (SKIP.has(item.name)) continue;
 
       const fullPath = path.join(dirPath, item.name);
       const fileInfo = {
