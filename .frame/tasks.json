@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-24T20:00:47.206Z",
+  "lastUpdated": "2026-08-25T09:50:28.213Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5221,6 +5221,19 @@
       "createdAt": "2026-08-24T19:56:21.051Z",
       "updatedAt": "2026-08-24T20:00:47.206Z",
       "completedAt": "2026-08-24T20:00:47.206Z"
+    },
+    {
+      "id": "task-file-tree-hidden-files",
+      "title": "File tree shows dotfiles and dot-directories",
+      "description": "getFileTree skipped every name starting with a dot, hiding .frame/, .github/, .claude/ and .gitignore — the files a Frame user edits most. Now only .git and node_modules are skipped. 574 -> 4407 entries at depth 5; full main walk + DOM rebuild measured at 108ms.",
+      "source": "user-request",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "Kaan: fileview da hidden dosyalar gorunmuyor, onlari da gosterelim",
+      "createdAt": "2026-08-25T09:50:28.213Z",
+      "updatedAt": "2026-08-25T09:50:28.213Z",
+      "completedAt": "2026-08-25T09:50:28.213Z"
     }
   ],
   "metadata": {
