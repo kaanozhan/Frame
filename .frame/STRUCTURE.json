@@ -9198,50 +9198,95 @@
       "exports": [
         "findBlock",
         "upgradeDoc",
+        "appendBlock",
         "renderBlock",
         "BLOCK_NAME",
+        "SPEC_BLOCK_NAME",
         "END_MARKER"
       ],
       "depends": [],
       "functions": {
-        "beginMarker": {
-          "line": 27,
+        "escapeRe": {
+          "line": 39,
           "params": [
-            "version"
+            "text"
+          ]
+        },
+        "beginMarkerRe": {
+          "line": 43,
+          "params": [
+            "blockName"
+          ]
+        },
+        "endMarkerRe": {
+          "line": 47,
+          "params": [
+            "blockName"
+          ]
+        },
+        "beginMarker": {
+          "line": 51,
+          "params": [
+            "version",
+            "blockName"
+          ]
+        },
+        "endMarker": {
+          "line": 55,
+          "params": [
+            "blockName"
           ]
         },
         "renderBlock": {
-          "line": 36,
+          "line": 64,
           "params": [
             "body",
-            "version"
+            "version",
+            "blockName = SPEC_BLOCK_NAME"
           ],
           "purpose": "Wrap a section body in stamped markers — the canonical emitted form."
         },
         "findBlock": {
-          "line": 47,
+          "line": 75,
           "params": [
-            "text"
+            "text",
+            "blockName = SPEC_BLOCK_NAME"
           ],
           "purpose": "Locate the managed block. Returns { start, end, version } — start/end are"
         },
         "normalize": {
-          "line": 66,
+          "line": 94,
           "params": [
             "text"
           ],
           "purpose": "Whitespace-normalized comparison basis. The shipped legacy sections were"
         },
         "findLegacySpan": {
-          "line": 77,
+          "line": 105,
           "params": [
             "text",
             "matcher"
           ],
           "purpose": "Find the heading-bounded span of a legacy section that passes the"
         },
+        "firstFooterIndex": {
+          "line": 149,
+          "params": [
+            "text",
+            "footerMarker"
+          ],
+          "purpose": "Where a new block goes in a document that has none: before the trailing"
+        },
+        "appendBlock": {
+          "line": 172,
+          "params": [
+            "text",
+            "options"
+          ],
+          "purpose": "Add a managed block to a document that carries none, rewriting nothing:"
+        },
         "upgradeDoc": {
-          "line": 127,
+          "line": 210,
           "params": [
             "text",
             "options"

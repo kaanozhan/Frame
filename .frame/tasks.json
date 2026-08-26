@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-26T12:25:34.826Z",
+  "lastUpdated": "2026-08-26T12:45:09.568Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5422,13 +5422,13 @@
       "title": "Parameterize `docsManagedBlock` by block name and add `appendBlock` plus `upgradeDoc`'s `onAbsent` option, keeping the current exports bound to `spec-section` so the existing eleven tests pass unchanged.",
       "description": "",
       "source": "spec:spec-docs-delivery-invariant:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-docs-delivery-invariant",
       "createdAt": "2026-08-26T12:25:34.826Z",
-      "updatedAt": "2026-08-26T12:25:34.826Z",
-      "completedAt": null
+      "updatedAt": "2026-08-26T12:45:09.568Z",
+      "completedAt": "2026-08-26T12:45:09.568Z"
     },
     {
       "id": "task-spec-spec-docs-delivery-invariant-T02",
