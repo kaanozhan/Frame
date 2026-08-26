@@ -8983,17 +8983,17 @@
       ],
       "functions": {
         "lucideIcon": {
-          "line": 32,
+          "line": 33,
           "params": [
             "data",
             "size = 13"
           ]
         },
         "_loadAllPrefs": {
-          "line": 40
+          "line": 41
         },
         "_saveProjectPrefs": {
-          "line": 48,
+          "line": 49,
           "params": [
             "projectKey",
             "prefs"

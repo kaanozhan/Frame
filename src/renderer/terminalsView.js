@@ -23,6 +23,7 @@
  */
 
 const laneStatus = require('./laneStatus');
+const { statusLabel, attentionMark } = laneStatus;
 const { escapeHtml } = require('./htmlUtils');
 const { Plus, Search, Pencil, X } = require('lucide');
 
@@ -74,11 +75,24 @@ class TerminalsView {
       if (!this.container || !this.container.isConnected) return;
       const pane = this.container.querySelector(`.tv-pane[data-terminal-id="${terminalId}"]`);
       if (!pane) return;
-      const { status, agentName } = laneStatus.getStatus(terminalId);
+      const { status, agentName, foreground, commandLine } = laneStatus.getStatus(terminalId);
       const dot = pane.querySelector('.lane-status-dot');
       if (dot) dot.className = `lane-status-dot ${status}`;
-      const agent = pane.querySelector('.tv-pane-agent');
-      if (agent) agent.textContent = agentName ? `· ${agentName}` : '';
+
+      const mark = attentionMark(status);
+      const attention = pane.querySelector('.tv-pane-attention');
+      if (attention) {
+        attention.className = `tv-pane-attention ${status}`;
+        attention.textContent = mark || '';
+        attention.setAttribute('aria-hidden', String(!mark));
+      }
+
+      const label = pane.querySelector('.tv-pane-status');
+      if (label) {
+        label.className = `tv-pane-status ${status}`;
+        label.textContent = statusLabel(status, { agentName, foreground, commandLine, short: true });
+        label.title = commandLine || '';
+      }
     });
 
     // The strip's dots are the same signal one level up — a tabbed terminal
@@ -349,7 +363,8 @@ class TerminalsView {
    * magnifier would open — no drag, no magnifier.
    */
   _buildPane(state, prefs, { single = false } = {}) {
-    const { status, agentName } = laneStatus.getStatus(state.id);
+    const { status, agentName, foreground, commandLine } = laneStatus.getStatus(state.id);
+    const mark = attentionMark(status);
     const pane = document.createElement('div');
     pane.className = `tv-pane ${state.isActive ? 'active' : ''} ${single ? 'tv-pane-single' : ''}`;
     pane.dataset.terminalId = state.id;
@@ -358,7 +373,8 @@ class TerminalsView {
       <div class="tv-pane-header" draggable="${!single}" title="${single ? '' : 'Drag to reorder'}">
         <span class="lane-status-dot ${status}"></span>
         <span class="tv-pane-name">${escapeHtml(state.customName || state.name)}</span>
-        <span class="tv-pane-agent">${agentName ? `· ${escapeHtml(agentName)}` : ''}</span>
+        <span class="tv-pane-attention ${status}" aria-hidden="${!mark}">${mark || ''}</span>
+        <span class="tv-pane-status ${status}" title="${escapeHtml(commandLine || '')}">${escapeHtml(statusLabel(status, { agentName, foreground, commandLine, short: true }))}</span>
         <span class="tv-pane-actions">
           <button class="tv-pane-btn" data-rename title="Rename terminal">${lucideIcon(Pencil, 11)}</button>
           ${single ? '' : `<button class="tv-pane-btn" data-open title="Open in its own tab">${lucideIcon(Search, 12)}</button>`}

@@ -232,11 +232,38 @@
   white-space: nowrap;
 }
 
-.tv-pane-agent {
+/* The pane header is this project's agent board — Overview carries no rail,
+   so the header itself has to say what the terminal is doing. The marker is
+   the loud part; approval is the strongest call in the vocabulary. */
+
+.tv-pane-status {
   color: var(--text-tertiary);
   font-size: 10px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
+
+.tv-pane-status.agent-working  { color: var(--accent-primary); }
+.tv-pane-status.agent-approval { color: var(--error, #d45555); font-weight: 600; }
+.tv-pane-status.agent-input    { color: var(--warning, #e5a50a); }
+.tv-pane-status.running        { color: var(--success, #23d18b); }
+.tv-pane-status.idle           { color: var(--text-tertiary); }
+
+.tv-pane-attention {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tv-pane-attention:empty {
+  display: none;
+}
+
+.tv-pane-attention.agent-approval { color: var(--error, #d45555); }
+.tv-pane-attention.agent-input    { color: var(--warning, #e5a50a); }
 
 .tv-pane-actions {
   margin-left: auto;

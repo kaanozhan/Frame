@@ -101,3 +101,20 @@ dead code, left alone as outside this spec's Files.
 _Captured: 2026-08-26 · 6 file changes_
 
 ---
+
+## T06 — Make the Overview pane header legible
+
+Replaced the pane header's bare `· claude` with two elements drawn from the
+shared vocabulary: `.tv-pane-attention` from `attentionMark(status)` and
+`.tv-pane-status` from `statusLabel(status, { agentName, foreground,
+commandLine, short: true })`, both kept live by the `laneStatus.onChange`
+handler that was already updating the dot, and both coloured per status.
+Putting the agent name inside the label rather than in a chip of its own makes
+"claude · Needs approval" one string from one source — the same words the rail
+shows. The marker span always renders and hides through `:empty`, so the live
+updater only sets `textContent` instead of adding and removing nodes. No rail
+work was needed in Overview: it has had none since `detail` retired in T04.
+
+_Captured: 2026-08-26 · 2 file changes_
+
+---

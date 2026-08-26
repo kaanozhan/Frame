@@ -5487,13 +5487,13 @@
       "title": "Make the Overview pane header legible: status text and attention marker",
       "description": "",
       "source": "spec:terminals-home-agents:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: terminals-home-agents",
       "createdAt": "2026-08-26T12:25:33.153Z",
-      "updatedAt": "2026-08-26T12:25:33.153Z",
-      "completedAt": null
+      "updatedAt": "2026-08-26T12:55:15.189Z",
+      "completedAt": "2026-08-26T12:55:15.189Z"
     },
     {
       "id": "task-spec-terminals-home-agents-T07",
