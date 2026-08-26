@@ -53,3 +53,28 @@ the next `_updatePrefs`, which spreads the new `_prefs()`.
 _Captured: 2026-08-26 · 2 file changes_
 
 ---
+
+## T04 — Retire the `detail` view mode
+
+Deleted `terminalGrid.js` and every piece of the cell machinery in
+`multiTerminalUI` (`_renderDetailView`, `_ensureAssignments`, `_assignCell`,
+`_newLaneInCell`, `_cellAssignments`, `_detailRailCallbacks`, the
+`TerminalGrid` and `laneDetailRail` imports), dropped `gridLayout` /
+`setGridLayout` and the dead viewMode restore from `terminalManager`,
+redefined `enterLane` as "open or focus this terminal's tab in the Terminals
+section" and `isViewingFrame` per the plan — which fixes
+`agentDispatch.js:251`, where Start never used the focused terminal because
+the old definition answered false on the default view. Two deviations, both
+forced: the top bar's layout select had to go **here** rather than in T05,
+because it called the `setGridLayout` this task deletes and would otherwise
+have left a broken intermediate commit; and `openTab` gained a
+`{ render: false }` mode so `enterLane` writes the tab *before* switching
+view mode and the section draws once. Also removed the CSS orphaned by the
+deletions (`.grid-cell*`, `.grid-divider*`, `.grid-resizer*`,
+`.detail-layout`, `.lane-menu`), and made the render dispatch's `else` branch
+`_renderTerminalsView` so an unrecognised viewMode lands on the default
+surface instead of a deleted one.
+
+_Captured: 2026-08-26 · 7 file changes_
+
+---

@@ -222,13 +222,19 @@ class TerminalsView {
   /**
    * Open a terminal in its own tab, or switch to it when the tab is already
    * there — never a second tab for one terminal.
+   *
+   * `render: false` writes the prefs and stops. enterLane uses it to set the
+   * tab *before* switching the view mode, so the section is drawn once,
+   * already showing this terminal, instead of drawing Overview and then
+   * redrawing on the tab.
    */
-  openTab(terminalId) {
+  openTab(terminalId, { render = true } = {}) {
     const prefs = this._prefs();
     const openTabs = prefs.openTabs.includes(terminalId)
       ? prefs.openTabs
       : [...prefs.openTabs, terminalId];
     this._updatePrefs({ openTabs, activeTab: terminalId });
+    if (!render) return;
     this.manager.setActiveTerminal(terminalId);
     this._rerender();
   }

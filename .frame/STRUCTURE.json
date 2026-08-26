@@ -4260,11 +4260,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 239,
+          "line": 240,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 274,
+          "line": 275,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -4272,17 +4272,17 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_startAgentInNewFrame": {
-          "line": 289
+          "line": 294
         },
         "resumeClaudeSession": {
-          "line": 315,
+          "line": 320,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a Claude Code session from the sessions list."
         },
         "_askNewOrRestart": {
-          "line": 358,
+          "line": 363,
           "params": [
             "frameName",
             "hasAgent"
@@ -4290,7 +4290,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 415,
+          "line": 420,
           "params": [
             "{ slug",
             "title = null",
@@ -4299,7 +4299,7 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "_dispatchImplement": {
-          "line": 482,
+          "line": 487,
           "params": [
             "{ slug",
             "title",
@@ -4309,79 +4309,79 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "getSpecLaneInfo": {
-          "line": 573,
+          "line": 578,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 597,
+          "line": 602,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 618,
+          "line": 623,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 622,
+          "line": 627,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 626,
+          "line": 631,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 643,
+          "line": 648,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 651,
+          "line": 656,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 674,
+          "line": 679,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 682,
+          "line": 687,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 700,
+          "line": 705,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 710,
+          "line": 715,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 719,
+          "line": 724,
           "params": [
             "frameName",
             "specName"
@@ -4389,14 +4389,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 760,
+          "line": 765,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 789,
+          "line": 794,
           "params": [
             "terminalId",
             "message"
@@ -6059,12 +6059,10 @@
         "shared/ipcChannels",
         "terminalManager",
         "terminalTabBar",
-        "terminalGrid",
         "terminalsView",
         "laneBoard",
         "laneStatus",
         "agentDispatch",
-        "laneDetailRail",
         "decisionsView",
         "taskSection",
         "specSection",
@@ -8943,28 +8941,6 @@
         ]
       }
     },
-    "renderer/terminalGrid": {
-      "file": "src/renderer/terminalGrid.js",
-      "description": "Terminal Grid Module",
-      "exports": [
-        "TerminalGrid",
-        "GRID_LAYOUTS"
-      ],
-      "depends": [
-        "laneStatus",
-        "lucide",
-        "htmlUtils"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 28,
-          "params": [
-            "data",
-            "size = 13"
-          ]
-        }
-      }
-    },
     "renderer/terminalManager": {
       "file": "src/renderer/terminalManager.js",
       "description": "Terminal Manager Module",
@@ -11130,11 +11106,6 @@
         "module": "renderer/terminal",
         "file": "src/renderer/terminal.js",
         "description": "Terminal UI Module"
-      },
-      {
-        "module": "renderer/terminalGrid",
-        "file": "src/renderer/terminalGrid.js",
-        "description": "Terminal Grid Module"
       },
       {
         "module": "renderer/terminalManager",

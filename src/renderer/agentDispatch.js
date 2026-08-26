@@ -230,11 +230,12 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
  * a prompt-less launch, unlike dispatch() which delivers a prompt.
  *
  * Context decides the target:
- *   - On the Frames surface (viewMode 'detail') the focused Frame is the
- *     target. If it's idle the agent starts right there; if it's busy
- *     (a live agent or a foreground process) the user is asked whether to
- *     open a new Frame or kill this one and start fresh.
- *   - Anywhere else (Home / any other tab) it always opens a new Frame.
+ *   - In the Terminals section the focused terminal is the target. If it's
+ *     idle the agent starts right there — in place, without pulling the user
+ *     out of Overview; if it's busy (a live agent or a foreground process)
+ *     the user is asked whether to open a new terminal or kill this one and
+ *     start fresh.
+ *   - Anywhere else (Home / any other surface) it always opens a new one.
  */
 async function startDefaultAgent() {
   if (!multiTerminalUI) {
@@ -272,7 +273,11 @@ async function startDefaultAgent() {
 // Start the active tool's CLI in an existing lane. `fresh` allows a newly
 // spawned shell a beat to accept input before the command is typed.
 function _startAgentIn(terminalId, { fresh = false } = {}) {
-  multiTerminalUI.enterLane(terminalId);
+  // A terminal that was just created has to be shown. An existing one, while
+  // the Terminals section is already on screen, is visible where it is — so
+  // navigating would only drag the user out of Overview's side-by-side view
+  // to somewhere they already are.
+  if (fresh || !multiTerminalUI.isViewingFrame()) multiTerminalUI.enterLane(terminalId);
   const aiToolSelector = require('./aiToolSelector');
   const startCommand = aiToolSelector.getStartCommand();
   if (!startCommand) {

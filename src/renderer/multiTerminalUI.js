@@ -1,14 +1,12 @@
 /**
  * Multi-Terminal UI Module
- * Orchestrates the lane board (home), the detail view and the terminal manager.
+ * Orchestrates Home, the Terminals section and the terminal manager.
  *
  * View modes:
- *   'terminals' — default on project selection (terminals-view spec): every
- *                 terminal of the project live in an N-column pane grid
- *   'board'     — Lane Orchestrator home screen (lane cards, via Home)
- *   'detail'    — entered by clicking a lane card; has its own layout:
- *                 1x1 = one mounted terminal, larger layouts (1x2, 2x2, ...) =
- *                 assignable grid cells with New Lane placeholders
+ *   'terminals' — default on project selection: the Terminals section, which
+ *                 owns its own tab strip (Overview + one tab per opened
+ *                 terminal) inside terminalsView
+ *   'board'     — Home (via the top bar's Home)
  *   'specs'     — specs card-grid dashboard mounted inline in the center
  *   'tasks'     — tasks kanban dashboard mounted inline in the center
  *                 (both: center-specs-tasks-views spec)
@@ -22,12 +20,10 @@ const { IPC } = require('../shared/ipcChannels');
 
 const { TerminalManager } = require('./terminalManager');
 const { TerminalTabBar } = require('./terminalTabBar');
-const { TerminalGrid } = require('./terminalGrid');
 const { TerminalsView } = require('./terminalsView');
 const { LaneBoard } = require('./laneBoard');
 const laneStatus = require('./laneStatus');
 const agentDispatch = require('./agentDispatch');
-const laneDetailRail = require('./laneDetailRail');
 const decisionsView = require('./decisionsView');
 const taskSection = require('./taskSection');
 const specSection = require('./specSection');
@@ -49,7 +45,6 @@ class MultiTerminalUI {
     this.container = document.getElementById(containerId);
     this.manager = new TerminalManager();
     this.tabBar = null;
-    this.grid = null;
     this.board = null;
     this.contentContainer = null;
     this.initialized = false;
@@ -93,15 +88,6 @@ class MultiTerminalUI {
 
     // Initialize components
     this.tabBar = new TerminalTabBar(tabBarContainer, this.manager);
-    this.grid = new TerminalGrid(this.manager, {
-      onAssign: (cellIndex, terminalId) => this._assignCell(cellIndex, terminalId),
-      onNewLane: (cellIndex) => this._newLaneInCell(cellIndex),
-      onMaximize: (terminalId) => {
-        this.manager.setActiveTerminal(terminalId);
-        this.manager.setGridLayout('1x1');
-      }
-    });
-    this._cellAssignments = [];
     this.board = new LaneBoard(this.manager, {
       onEnterLane: (terminalId) => this.enterLane(terminalId)
     });
@@ -151,7 +137,6 @@ class MultiTerminalUI {
       terminals: this.manager.getTerminalStates(),
       activeTerminalId: this.manager.activeTerminalId,
       viewMode: this.manager.viewMode,
-      gridLayout: this.manager.gridLayout,
       currentProjectPath: this.manager.getCurrentProject()
     };
   }
@@ -228,13 +213,19 @@ class MultiTerminalUI {
   // ─── Lane navigation ────────────────────────────────────
 
   /**
-   * Enter a lane: make it active and show its full terminal view.
+   * Enter a terminal: go to the Terminals section and open — or focus — that
+   * terminal's own tab. The single choke point every caller routes through:
+   * Home's cards, the rail, agentDispatch, the palette, the orchestrator.
+   *
    * A pinned section stays open (chip in the bar) but leaves the screen.
    */
   enterLane(terminalId) {
     this.isSectionVisible = false; // section tabs stay open, just leave the screen
+    // Write the tab into the prefs before the render, so the section draws
+    // its strip and body once, already showing this terminal.
+    this.terminalsView.openTab(terminalId, { render: false });
     this.manager.setActiveTerminal(terminalId);
-    this.manager.setViewMode('detail');
+    this.manager.setViewMode('terminals');
     this._onStateChange(this._currentState());
   }
 
@@ -339,13 +330,6 @@ class MultiTerminalUI {
    * Handle state changes
    */
   _onStateChange(state) {
-    // Closing the last lane while inside detail/grid lands the user back on
-    // the terminals view (it has its own empty state)
-    if (state.viewMode === 'detail' && state.terminals.length === 0) {
-      this.manager.setViewMode('terminals');
-      return;
-    }
-
     // Keep the sidebar's workspace nav (Terminals count / active state) fresh
     try {
       require('./projectListUI').updateWorkspaceNav(state);
@@ -376,8 +360,6 @@ class MultiTerminalUI {
     // Render based on view mode
     if (state.viewMode === 'board') {
       this._renderBoardView(state);
-    } else if (state.viewMode === 'terminals') {
-      this._renderTerminalsView(state);
     } else if (state.viewMode === 'specs') {
       this._renderDashView('specs', require('./specsDashboard'));
     } else if (state.viewMode === 'tasks') {
@@ -385,7 +367,9 @@ class MultiTerminalUI {
     } else if (state.viewMode === 'panel') {
       this._renderPanelView(state);
     } else {
-      this._renderDetailView(state);
+      // 'terminals', and anything unrecognised — the default surface is the
+      // one place it is always safe to land.
+      this._renderTerminalsView(state);
     }
   }
 
@@ -543,8 +527,8 @@ class MultiTerminalUI {
   }
 
   /**
-   * What the center currently shows: 'terminals' | 'board' | 'detail' |
-   * 'specs' | 'tasks' | 'decisions' | 'section:<type>'. Drives the sidebar
+   * What the center currently shows: 'terminals' | 'board' | 'specs' |
+   * 'tasks' | 'decisions' | 'section:<type>'. Drives the sidebar
    * nav's active states.
    */
   getActiveSurface() {
@@ -560,8 +544,8 @@ class MultiTerminalUI {
   }
 
   /**
-   * Render the terminals view (default): all of the project's terminals as
-   * live panes (terminalsView owns layout, reorder, maximize, persistence).
+   * Render the Terminals section (default): terminalsView owns the tab strip,
+   * the Overview grid, the single-terminal body and their persistence.
    */
   _renderTerminalsView(state) {
     this._lastViewMode = 'terminals';
@@ -604,103 +588,6 @@ class MultiTerminalUI {
     this.contentContainer.className = 'terminal-content board-view';
     this._clearGridInlineStyles();
     this.board.render(this.contentContainer, state);
-  }
-
-  _detailRailCallbacks() {
-    return {
-      onEnterLane: (terminalId) => this.enterLane(terminalId),
-      onLayoutChange: () => setTimeout(() => this.manager.fitAll(), 60),
-      onNewLane: async () => {
-        const id = await this._createLaneOrNotify();
-        if (id) this.enterLane(id);
-      }
-    };
-  }
-
-  /**
-   * Render detail view: a layout of assignable cells (1x1 = one cell, every
-   * cell carries its own header bar) + the collapsible lanes rail. The cell
-   * header is the single home of the lane name/switcher — the top bar only
-   * keeps Home, so nothing is duplicated between layouts.
-   */
-  _renderDetailView(state) {
-    this.contentContainer.className = 'terminal-content detail-view';
-    this._clearGridInlineStyles();
-
-    const gridLayout = state.gridLayout || '1x1';
-    this._lastViewMode = 'detail';
-    this._mountedTerminalId = null;
-    this.contentContainer.innerHTML = '';
-
-    const layout = document.createElement('div');
-    layout.className = 'detail-layout';
-    this.contentContainer.appendChild(layout);
-
-    const contentArea = document.createElement('div');
-    contentArea.className = 'detail-content-area';
-    contentArea.style.position = 'relative';
-    layout.appendChild(contentArea);
-
-    this._detailRailEl = document.createElement('div');
-    layout.appendChild(this._detailRailEl);
-    laneDetailRail.render(this._detailRailEl, state, this._detailRailCallbacks());
-
-    this._ensureAssignments(state, gridLayout);
-    this.grid.render(contentArea, this._cellAssignments, gridLayout);
-
-    setTimeout(() => this.manager.fitAll(), 100);
-  }
-
-  /**
-   * Keep cell assignments valid for the current layout: drop closed lanes,
-   * guarantee the active lane occupies a cell, fill fresh layouts with the
-   * open lanes in order. Empty cells stay null → "New Lane" placeholders.
-   */
-  _ensureAssignments(state, gridLayout) {
-    const { GRID_LAYOUTS } = require('./terminalGrid');
-    const config = GRID_LAYOUTS[gridLayout] || { rows: 2, cols: 2 };
-    const cellCount = config.rows * config.cols;
-    const openIds = state.terminals.map(t => t.id);
-
-    // Drop stale ids, resize to cell count
-    const cells = this._cellAssignments
-      .slice(0, cellCount)
-      .map(id => (id && openIds.includes(id) ? id : null));
-    while (cells.length < cellCount) cells.push(null);
-
-    // Active lane must be visible — first empty cell, else take over cell 0
-    if (state.activeTerminalId && !cells.includes(state.activeTerminalId)) {
-      const slot = cells.indexOf(null);
-      cells[slot >= 0 ? slot : 0] = state.activeTerminalId;
-    }
-
-    // Auto-fill remaining empty cells with open lanes that aren't shown yet —
-    // "New Lane" placeholders only appear once every open lane has a cell.
-    const unassigned = openIds.filter(id => !cells.includes(id));
-    for (let i = 0; i < cells.length && unassigned.length > 0; i++) {
-      if (cells[i] === null) cells[i] = unassigned.shift();
-    }
-
-    this._cellAssignments = cells;
-  }
-
-  _assignCell(cellIndex, terminalId) {
-    // If the lane already lives in another cell, swap the two cells
-    const existingIndex = this._cellAssignments.indexOf(terminalId);
-    if (existingIndex >= 0 && existingIndex !== cellIndex) {
-      this._cellAssignments[existingIndex] = this._cellAssignments[cellIndex];
-    }
-    this._cellAssignments[cellIndex] = terminalId;
-    this.manager.setActiveTerminal(terminalId);
-    this._onStateChange(this._currentState());
-  }
-
-  async _newLaneInCell(cellIndex) {
-    const newId = await this._createLaneOrNotify();
-    if (!newId) return;
-    this._cellAssignments[cellIndex] = newId;
-    this.manager.setActiveTerminal(newId);
-    this._onStateChange(this._currentState());
   }
 
   _clearGridInlineStyles() {
@@ -812,15 +699,20 @@ class MultiTerminalUI {
   }
 
   /**
-   * True only when a Frame's terminal is the surface on screen — not the lane
-   * board, an open section (task/spec) viewport, or the decisions list. Used by the
-   * sidebar launch shortcut to decide between "start in the focused Frame" and
-   * "open a new Frame".
+   * True when the Terminals section is the surface on screen and a terminal is
+   * focused — in an Overview pane or in its own tab. Not Home, not an open
+   * section (task/spec) viewport, not the decisions list. Used by the sidebar
+   * launch shortcut to decide between "start in the focused terminal" and
+   * "open a new one".
+   *
+   * It was bound to the retired 'detail' mode, so it answered false on the
+   * default view every single time and Start never used the focused terminal.
    */
   isViewingFrame() {
-    return this.manager.viewMode === 'detail'
+    return this.manager.viewMode === 'terminals'
       && !this.isSectionVisible
-      && !this.isDecisionsVisible;
+      && !this.isDecisionsVisible
+      && !!this.manager.activeTerminalId;
   }
 
   /**

@@ -137,17 +137,6 @@ class TerminalTabBar {
             <span>Start</span>
           </button>
         </div>
-        <select class="grid-layout-select" title="Layout">
-          <option value="1x1" selected>1×1</option>
-          <option value="1x2">1×2</option>
-          <option value="1x3">1×3</option>
-          <option value="1x4">1×4</option>
-          <option value="2x1">2×1</option>
-          <option value="2x2">2×2</option>
-          <option value="3x1">3×1</option>
-          <option value="3x2">3×2</option>
-          <option value="3x3">3×3</option>
-        </select>
         <button class="btn-update-notify" title="Check for updates" style="display:none;position:relative;">
           ${lucideIcon(Bell)}
           <span class="update-badge"></span>
@@ -175,20 +164,14 @@ class TerminalTabBar {
     this._lastState = state;
 
     this._renderLeftSection(state);
-
-    // Layout selector lives in the detail view: 1×1 is the plain single
-    // terminal, larger layouts split the view into assignable cells.
-    const layoutSelect = this.element.querySelector('.grid-layout-select');
-    layoutSelect.style.display = state.viewMode === 'detail' ? 'inline-block' : 'none';
-    layoutSelect.value = state.gridLayout || '1x1';
   }
 
   /**
    * Render the single-state left section: the Home tab (the lane board) and,
    * once at least one Frame is open, one tab per open Frame — spread out right
    * after Home, each carrying the Frame's name. Whichever surface is on screen
-   * gets the highlight (in detail view that's the active Frame). Each open
-   * detail section (task or spec) appears after those as its own chip —
+   * gets the highlight (in the Terminals section that's the active Frame).
+   * Each open detail section (task or spec) appears after those as its own chip —
    * multiple can be open at once; the active one is highlighted and every chip
    * has a close button.
    */
@@ -199,7 +182,7 @@ class TerminalTabBar {
     const activeKey = state.activeSectionKey || null;
     const onSection = !!activeKey;
     const onHome = state.viewMode === 'board' && !onSection;
-    const onFrames = state.viewMode === 'detail' && !onSection;
+    const onFrames = state.viewMode === 'terminals' && !onSection;
 
     const terminals = state.terminals || [];
     const hasFrames = terminals.length > 0;
@@ -253,11 +236,6 @@ class TerminalTabBar {
         if (this.onEnterLane) this.onEnterLane(frameEl.dataset.id);
         return;
       }
-    });
-
-    // Layout selector (1×1 single terminal ↔ multi-cell layouts)
-    this.element.querySelector('.grid-layout-select').addEventListener('change', (e) => {
-      this.manager.setGridLayout(e.target.value);
     });
 
     // Update notification button
