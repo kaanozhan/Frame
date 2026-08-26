@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-25T09:50:28.213Z",
+  "lastUpdated": "2026-08-26T10:07:00.001Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5234,6 +5234,71 @@
       "createdAt": "2026-08-25T09:50:28.213Z",
       "updatedAt": "2026-08-25T09:50:28.213Z",
       "completedAt": "2026-08-25T09:50:28.213Z"
+    },
+    {
+      "id": "task-spec-spec-status-repair-T01",
+      "title": "repairSpecStatus(): fill slug from folder name and default generated_task_ids, never overwrite an existing slug; wire into listSpecs (one-time write-back) and updateSpecStatus.",
+      "description": "",
+      "source": "spec:spec-status-repair:T01",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "From spec: spec-status-repair (issue #122)",
+      "createdAt": "2026-08-26T09:56:47.009Z",
+      "updatedAt": "2026-08-26T10:07:00.001Z",
+      "completedAt": "2026-08-26T10:07:00.001Z"
+    },
+    {
+      "id": "task-spec-spec-status-repair-T02",
+      "title": "listSpecs surfaces what it cannot repair: malformed entries with the validator reason, logged; folders holding no spec file stay skipped.",
+      "description": "",
+      "source": "spec:spec-status-repair:T02",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "From spec: spec-status-repair (issue #122)",
+      "createdAt": "2026-08-26T09:56:47.009Z",
+      "updatedAt": "2026-08-26T10:07:00.001Z",
+      "completedAt": "2026-08-26T10:07:00.001Z"
+    },
+    {
+      "id": "task-spec-spec-status-repair-T03",
+      "title": "Renderer: malformed cards in specs dashboard and spec section — reason shown, interactions assuming a valid spec disabled.",
+      "description": "",
+      "source": "spec:spec-status-repair:T03",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "From spec: spec-status-repair (issue #122)",
+      "createdAt": "2026-08-26T09:56:47.009Z",
+      "updatedAt": "2026-08-26T10:07:00.001Z",
+      "completedAt": "2026-08-26T10:07:00.001Z"
+    },
+    {
+      "id": "task-spec-spec-status-repair-T04",
+      "title": "Document the required status.json shape in spec.new.md and CONDUCTOR.md (src/templates, not the staged copy).",
+      "description": "",
+      "source": "spec:spec-status-repair:T04",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "From spec: spec-status-repair (issue #122)",
+      "createdAt": "2026-08-26T09:56:47.009Z",
+      "updatedAt": "2026-08-26T10:07:00.001Z",
+      "completedAt": "2026-08-26T10:07:00.001Z"
+    },
+    {
+      "id": "task-spec-spec-status-repair-T05",
+      "title": "Tests (repair rules, slug never overwritten, malformed surfaced, non-spec folders ignored, valid specs untouched) + live verification.",
+      "description": "",
+      "source": "spec:spec-status-repair:T05",
+      "status": "completed",
+      "priority": "high",
+      "category": "test",
+      "context": "From spec: spec-status-repair (issue #122)",
+      "createdAt": "2026-08-26T09:56:47.009Z",
+      "updatedAt": "2026-08-26T10:07:00.001Z",
+      "completedAt": "2026-08-26T10:07:00.001Z"
     }
   ],
   "metadata": {

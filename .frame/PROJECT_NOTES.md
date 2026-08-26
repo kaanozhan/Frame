@@ -1781,3 +1781,43 @@ And a plain bug found while verifying: `.app-toast-error` used
 `var(--error-subtle)` — 15% alpha — as its background, so whatever sat behind
 the toast read through the text. That was part of "tam okunaklı değil" all
 along. The tint is now layered over `--bg-elevated`.
+
+### [2026-08-26] Issue #122 — a spec folder is never silently hidden (spec: spec-status-repair)
+
+An outside report (StreamlinedStartup, issue #122): the spec panel showed
+none of five spec folders that Frame's **own conductor agent** had created,
+with no error anywhere. Their `status.json` carried `title`, `phase` and
+timestamps — the fields the staged templates name — but not `slug`, and
+`listSpecs` did `continue; // silently skip malformed`.
+
+The reporter's framing is the part worth keeping: this was not a third-party
+tool guessing at our format. Frame launched the conductor, handed it
+`CONDUCTOR.md` and the staged spec templates, and those templates say which
+fields to *update* without ever stating the required shape. Meanwhile the
+rest of Frame accepted the same folders — the task watcher imported their
+tasks and wrote `generated_task_ids` back into the very file the panel
+rejected, and `spec-index.js` indexed them. Half of Frame agreed, half
+pretended they did not exist.
+
+Reproduced against the real specManager before touching anything, and found
+one thing the report missed: deriving the slug is not enough.
+`generated_task_ids` is the validator's other required field, so those specs
+would have stayed hidden even after a slug-only fix.
+
+Shipped three parts: repair what the folder itself answers (slug ← folder
+name, generated_task_ids ← []) and persist it once; surface anything still
+invalid as a "needs attention" card with the validator's reason, sorted
+first and inert, instead of dropping it; and document the required shape in
+`spec.new.md` and `CONDUCTOR.md` — in `src/templates/`, since `.frame/runtime/`
+is a staged copy Frame overwrites.
+
+One rule guarded by its own test: **an existing slug is never overwritten.**
+A folder name disagreeing with a recorded slug is a rename question, and
+"fixing" it silently would cut every `source: spec:<slug>:T##` link in
+tasks.json.
+
+Two things the live check taught: `specPanel.renderSpecRow` (the legacy side
+panel, still rendering on every SPEC_DATA push) threw on a phase-less entry
+and needed a guard; and `reconcilePhase` already heals an invalid `phase`
+from the files on disk, so in practice the malformed path is narrower than
+the issue suggests — a missing title or an unreadable file.

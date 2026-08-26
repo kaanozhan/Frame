@@ -4411,6 +4411,37 @@
   color: var(--success);
 }
 
+/* A spec folder Frame could not read as a spec (issue #122). Warning
+   colours, not error: the folder is fine, its status.json needs a field. */
+.spec-phase-badge.phase-malformed {
+  background: rgba(229, 205, 142, 0.15);
+  color: var(--warning);
+}
+
+.specs-card-malformed {
+  border-style: dashed;
+  cursor: default;
+}
+
+.specs-card-malformed:hover {
+  border-color: var(--warning);
+}
+
+.specs-card-malformed-reason,
+.lane-rail-malformed-reason {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  word-break: break-word;
+}
+
+.specs-card-malformed-reason strong {
+  font-family: var(--font-mono);
+  color: var(--warning);
+  font-weight: 500;
+}
+
 /* Empty state */
 .specs-empty {
   display: flex;

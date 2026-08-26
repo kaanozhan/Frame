@@ -138,8 +138,25 @@ function createViewport() {
   function _railItems() {
     return specsList
       .slice()
+      // Malformed specs (issue #122) carry no phase; they sort to the top of
+      // the list, where a spec that needs a hand belongs.
       .sort((a, b) => SPEC_PHASE_ORDER.indexOf(a.phase) - SPEC_PHASE_ORDER.indexOf(b.phase))
       .map((s) => {
+        if (s.malformed) {
+          return {
+            id: s.slug,
+            active: false,
+            completed: false,
+            className: 'lane-rail-spec lane-rail-spec-malformed',
+            html: `
+              <div class="lane-rail-item-title">${escapeHtml(s.title || s.slug)}</div>
+              <div class="lane-rail-card-meta">
+                <span class="spec-phase-badge phase-malformed">needs attention</span>
+              </div>
+              <div class="lane-rail-malformed-reason">status.json ${escapeHtml(s.malformed)}</div>
+            `
+          };
+        }
         const { done, total } = _specProgress(s.slug);
         return {
           id: s.slug,

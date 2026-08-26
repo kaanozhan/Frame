@@ -84,6 +84,31 @@ Update `.frame/specs/{slug}/status.json`:
 - `updated_at` → current ISO timestamp
 - `last_phase_at` → current ISO timestamp
 
+### status.json — the required shape
+
+Frame creates this file for you here, so you are only editing fields. If you
+ever write one from scratch (creating a spec folder without `/spec.new`),
+every field below marked required must be present, or Frame cannot read the
+folder as a spec:
+
+```json
+{
+  "slug": "{slug}",                  // required — must equal the folder name
+  "title": "Human readable title",   // required
+  "phase": "specified",              // required — draft | specified | planned |
+                                     //            tasks_generated | implementing | done
+  "generated_task_ids": [],          // required — [] until /spec.tasks fills it
+  "ai_tool": "claude-code",          // optional
+  "created_at": "ISO-8601",          // optional
+  "updated_at": "ISO-8601",          // optional
+  "last_phase_at": "ISO-8601"        // optional
+}
+```
+
+Frame repairs a missing `slug` or `generated_task_ids` from the folder itself,
+but anything else missing leaves the spec listed as "needs attention" until a
+human fixes it.
+
 Do **not** generate plan.md or tasks.md — those come from `/spec.plan` and `/spec.tasks`.
 
 ## Style

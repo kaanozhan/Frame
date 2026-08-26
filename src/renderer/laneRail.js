@@ -201,7 +201,7 @@ function _renderSpecsSection(ui) {
   section.className = 'lane-rail-section rail-specs';
 
   const active = specs
-    .filter(s => s.phase !== 'done')
+    .filter(s => s.phase !== 'done' && !s.malformed)
     .sort((a, b) => SPEC_PHASE_ORDER.indexOf(a.phase) - SPEC_PHASE_ORDER.indexOf(b.phase));
 
   section.appendChild(_sectionHeader({
