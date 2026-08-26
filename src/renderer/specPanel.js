@@ -193,7 +193,10 @@ function renderList() {
 }
 
 function renderSpecRow(spec) {
-  const phaseLabel = spec.phase.replace(/_/g, ' ');
+  // A spec folder Frame could not read as a spec carries no phase — it is
+  // listed so it can be fixed rather than dropped (issue #122).
+  const phaseLabel = spec.malformed ? 'needs attention' : spec.phase.replace(/_/g, ' ');
+  const phaseClass = spec.malformed ? 'malformed' : spec.phase;
   const updated = relativeTime(spec.updated_at);
   const tasksLabel = spec.task_count
     ? `${spec.task_count} task${spec.task_count === 1 ? '' : 's'}`
@@ -202,7 +205,7 @@ function renderSpecRow(spec) {
     <div class="spec-row" data-slug="${escapeHtml(spec.slug)}">
       <div class="spec-row-title">${require('./agentDispatch').specStatusDotHtml(spec.slug)}${escapeHtml(spec.title)}</div>
       <div class="spec-row-meta">
-        <span class="spec-phase-badge phase-${spec.phase}">${phaseLabel}</span>
+        <span class="spec-phase-badge phase-${phaseClass}">${phaseLabel}</span>
         ${tasksLabel ? `<span class="spec-row-tasks">${tasksLabel}</span>` : ''}
         <span class="spec-row-time">${updated}</span>
       </div>

@@ -331,11 +331,34 @@ function renderGrid() {
 
   gridEl.innerHTML = filtered.map(renderCard).join('');
   gridEl.querySelectorAll('.specs-card').forEach(card => {
+    if (card.dataset.malformed) return; // nothing to open — the reason is on the card
     card.addEventListener('click', () => selectCard(card.dataset.slug));
   });
 }
 
 function renderCard(spec) {
+  // A spec folder Frame could not read as a spec. It is shown with the
+  // reason instead of being dropped from the list (issue #122), and it is
+  // inert: no phase badge, no progress, no click-through to a detail view
+  // that has nothing to show.
+  if (spec.malformed) {
+    return `
+      <div class="specs-card specs-card-malformed" data-malformed="1">
+        <div class="specs-card-top">
+          <span class="spec-phase-badge phase-malformed">needs attention</span>
+        </div>
+        <div class="specs-card-title">${escapeHtml(spec.title)}</div>
+        <div class="specs-card-slug">${escapeHtml(spec.slug)}</div>
+        <div class="specs-card-malformed-reason">
+          <strong>status.json</strong> ${escapeHtml(spec.malformed)}
+        </div>
+        <div class="specs-card-foot">
+          <span class="specs-card-time">.frame/specs/${escapeHtml(spec.slug)}/status.json</span>
+        </div>
+      </div>
+    `;
+  }
+
   const taskMatches = allTasks.filter(t => t && typeof t.source === 'string' && t.source.startsWith(`spec:${spec.slug}:`));
   const total = taskMatches.length || spec.task_count || 0;
   const done = taskMatches.filter(t => t.status === 'completed').length;

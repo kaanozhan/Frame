@@ -98,6 +98,41 @@ function uniqueSlug(projectPath, baseSlug) {
 // Shape check only — phase enum, required fields, ISO date strings.
 // Returns null when valid, or a human-readable reason string.
 
+/**
+ * Fill in the fields of a status.json that the folder itself already
+ * answers, and report which ones were filled.
+ *
+ * Issue #122: Frame's own conductor agent wrote spec folders with `title`,
+ * `phase` and timestamps — the fields the staged templates name — and the
+ * panel then hid all five specs, because the validator also requires `slug`
+ * and `generated_task_ids`. Both are derivable: the slug IS the folder's
+ * name, and a spec that generated no tasks has none.
+ *
+ * An existing slug is never touched. A folder name disagreeing with a
+ * recorded slug is a rename question, and rewriting it here would silently
+ * cut every `source: spec:<slug>:T##` link in tasks.json.
+ *
+ * Returns { status, filled } — `status` is the same object when nothing was
+ * missing, so callers can skip writing.
+ */
+function repairSpecStatus(obj, folderName) {
+  if (!obj || typeof obj !== 'object') return { status: obj, filled: [] };
+
+  const filled = [];
+  const status = { ...obj };
+
+  if ((typeof status.slug !== 'string' || !status.slug) && folderName) {
+    status.slug = folderName;
+    filled.push('slug');
+  }
+  if (!Array.isArray(status.generated_task_ids)) {
+    status.generated_task_ids = [];
+    filled.push('generated_task_ids');
+  }
+
+  return filled.length ? { status, filled } : { status: obj, filled: [] };
+}
+
 function validateSpecStatus(obj) {
   if (!obj || typeof obj !== 'object') return 'not an object';
   if (typeof obj.slug !== 'string' || !obj.slug) return 'missing slug';
@@ -248,29 +283,90 @@ function listSpecs(projectPath) {
   const specs = [];
   for (const ent of entries) {
     if (!ent.isDirectory()) continue;
+    // A directory holding none of the spec artifacts is not a spec — a
+    // stray backup or scratch folder under .frame/specs/ stays invisible
+    // rather than becoming a "malformed spec" card (issue #122 fix).
+    if (!looksLikeSpecFolder(projectPath, ent.name)) continue;
     // Reconcile phase from filesystem state + task statuses — catches the
     // case where the AI wrote a plan.md / tasks.md but didn't (or couldn't)
     // update status.json, and also flips to implementing/done as the user
     // moves spec tasks through their lifecycle.
     reconcilePhase(projectPath, ent.name, tasksData);
     const status = readStatus(projectPath, ent.name);
-    if (!status) continue;
-    if (validateSpecStatus(status)) continue; // silently skip malformed
-    const specTasks = collectSpecTasks(status.slug, tasksData);
+    if (!status) {
+      specs.push(malformedSpec(ent.name, null, 'is missing or unreadable'));
+      continue;
+    }
+
+    // Fill what the folder already answers, and persist it once so the rest
+    // of Frame reads the same file the panel now accepts.
+    const { status: repaired, filled } = repairSpecStatus(status, ent.name);
+    if (filled.length) {
+      console.warn(`specManager: repaired ${ent.name}/status.json — filled ${filled.join(', ')}`);
+      try {
+        writeStatus(projectPath, ent.name, repaired);
+      } catch (err) {
+        console.error('specManager: could not persist the repair', ent.name, err.message);
+      }
+    }
+
+    // Whatever is still wrong cannot be derived from the folder. It is shown
+    // with its reason instead of disappearing: a spec the user can see and
+    // fix beats a spec Frame pretends does not exist (issue #122).
+    const reason = validateSpecStatus(repaired);
+    if (reason) {
+      console.warn(`specManager: ${ent.name}/status.json is unusable — ${reason}`);
+      specs.push(malformedSpec(ent.name, repaired, reason));
+      continue;
+    }
+    const status_ = repaired;
+    const specTasks = collectSpecTasks(status_.slug, tasksData);
     const completedCount = specTasks.filter(t => t.status === 'completed').length;
     specs.push({
-      slug: status.slug,
-      title: status.title,
-      phase: status.phase,
-      ai_tool: status.ai_tool || null,
-      task_count: specTasks.length || status.generated_task_ids.length,
+      slug: status_.slug,
+      title: status_.title,
+      phase: status_.phase,
+      ai_tool: status_.ai_tool || null,
+      task_count: specTasks.length || status_.generated_task_ids.length,
       completed_count: completedCount,
-      created_at: status.created_at || null,
-      updated_at: status.updated_at || null
+      created_at: status_.created_at || null,
+      updated_at: status_.updated_at || null
     });
   }
-  specs.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+  // Malformed first: a spec Frame cannot read needs a human, and sorting it
+  // by a timestamp it doesn't have buried it under everything else.
+  specs.sort((a, b) => {
+    if (!!a.malformed !== !!b.malformed) return a.malformed ? -1 : 1;
+    return (b.updated_at || '').localeCompare(a.updated_at || '');
+  });
   return specs;
+}
+
+/** A folder is a spec if it carries at least one of the chain's artifacts. */
+function looksLikeSpecFolder(projectPath, folderName) {
+  const dir = getSpecDir(projectPath, folderName);
+  return [STATUS_FILE, SPEC_FILE, PLAN_FILE, TASKS_FILE, OUTCOME_FILE]
+    .some(name => fs.existsSync(path.join(dir, name)));
+}
+
+/**
+ * A spec folder Frame cannot read as a spec, rendered as itself rather than
+ * dropped. It carries the folder name as its slug so every existing
+ * slug-keyed path in the renderer keeps working, `phase: null` so nothing
+ * mistakes it for a live phase, and the validator's reason for the user.
+ */
+function malformedSpec(folderName, status, reason) {
+  return {
+    slug: folderName,
+    title: (status && typeof status.title === 'string' && status.title) || folderName,
+    phase: null,
+    malformed: reason,
+    ai_tool: null,
+    task_count: 0,
+    completed_count: 0,
+    created_at: (status && status.created_at) || null,
+    updated_at: (status && status.updated_at) || null
+  };
 }
 
 // ─── Phase derivation ──────────────────────────────────────
@@ -930,12 +1026,16 @@ function updateSpecStatus(projectPath, slug, partial) {
   if (!current) return { error: 'spec not found' };
   const phaseChanged = partial && partial.phase && partial.phase !== current.phase;
   const now = new Date().toISOString();
+  // Repair first: a status.json written without `slug` / `generated_task_ids`
+  // used to fail validation here too, so an agent-created spec could not have
+  // its phase advanced through the API either (issue #122).
+  const { status: base } = repairSpecStatus(current, slug);
   const merged = {
-    ...current,
+    ...base,
     ...partial,
-    slug: current.slug, // slug is immutable
+    slug: base.slug, // slug is immutable
     updated_at: now,
-    last_phase_at: phaseChanged ? now : current.last_phase_at
+    last_phase_at: phaseChanged ? now : base.last_phase_at
   };
   const reason = validateSpecStatus(merged);
   if (reason) return { error: reason };
@@ -1260,6 +1360,7 @@ module.exports = {
   // Exported for tests + future Slice 1.5 (project init) reuse
   generateSlug,
   validateSpecStatus,
+  repairSpecStatus,
   listSpecs,
   searchSpecs,
   getSpec,

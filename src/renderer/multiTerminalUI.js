@@ -524,8 +524,10 @@ class MultiTerminalUI {
     } catch (_) { /* fall through to the grid */ }
     const order = ['implementing', 'tasks_generated', 'planned', 'specified', 'draft'];
     const top = specs
-      .filter(s => s.phase !== 'done')
-      .sort((a, b) => order.indexOf(a.phase) - order.indexOf(b.phase))[0] || specs[0];
+      .filter(s => s.phase !== 'done' && !s.malformed)
+      .sort((a, b) => order.indexOf(a.phase) - order.indexOf(b.phase))[0]
+      || specs.find(s => !s.malformed)
+      || specs[0];
     if (top) {
       require('./specSection').open(top.slug);
     } else {

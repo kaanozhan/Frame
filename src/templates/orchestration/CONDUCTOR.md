@@ -32,6 +32,23 @@ The user assigns a set of **specs** to you (shown in the orchestrator UI). Each
 spec lives at `.frame/specs/<slug>/` with `spec.md`, `plan.md`, `tasks.md`, and
 `status.json`.
 
+**If you create a spec folder yourself**, its `status.json` must carry these
+fields or Frame's spec panel cannot read the folder as a spec:
+
+```json
+{
+  "slug": "<must equal the folder name>",
+  "title": "Human readable title",
+  "phase": "draft | specified | planned | tasks_generated | implementing | done",
+  "generated_task_ids": []
+}
+```
+
+`created_at`, `updated_at`, `last_phase_at` (ISO-8601) and `ai_tool` are
+optional. Frame repairs a missing `slug` or `generated_task_ids` from the
+folder itself; anything else missing leaves the spec listed as "needs
+attention" until a human fixes it.
+
 **The assigned set is the single source of truth — not individual messages.**
 Frame may inject a nudge like *"Assigned specs are now: a, b, c …"*. Treat that
 as a pointer to the full set (also queryable via `status.js`), **not** as a
