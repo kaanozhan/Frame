@@ -1,6 +1,6 @@
 ---
-keywords: home, terminals, overview, tabs, agents rail, navigation, view modes, lane board, top bar, cross-project attention, presence
-related: lane-orchestrator, decisions-view, agent-dispatch, agent-orchestration, sidebar-project-section
+keywords: home, terminals, overview, tabs, other terminals rail, status bar, navigation, view modes, lane board, top bar, cross-project attention, presence, sidebar nav groups
+related: lane-orchestrator, decisions-view, agent-dispatch, agent-orchestration, sidebar-project-section, status-bar, sidebar-nav-groups
 ---
 
 # Home, Terminals ve Agents — üç yüzeyin tek modele oturtulması
@@ -44,6 +44,31 @@ Konuşma boyunca kullanıcının verdiği kararlar (hepsi bu spec'e girdi):
 
 > "Büyüteç'in kalması iyi olur gibi — otomatik açabilir yine terminal'i ama
 > kullanıcı isterse kapar, kaparsa açar, açmaz ise overview'da kalır."
+
+
+> "Terminals Work altına gelmiş ve orada yaşayan bir şey haline gelmiş. Şöyle
+> bir şey yapılabilir: terminals de kapanabilir bir şey olur, böylelikle
+> kapalıyken Work kısmından erişilebilir; onun dışında 2 yerden de erişilebilir
+> olur." … "Amaç tam olarak kapatmak olmuyor zaten, sadece yukarıdaki
+> toolbar'dan kaldırılıyor; Terminals içinde yaşamaya devam ediyor."
+
+> "Overview'da zaten her terminal'in yanında ismi vs'si gözüküyor, bunu hiç
+> dahil etmeyelim; statuları daha okunur şekilde terminal'in tepesine yazalım,
+> görülür olsun ünlem işaretleriyle vs. Tekli terminal görünümünde ise Other
+> Terminals gibi bir sağda section olsa."
+
+> "Other Terminals sadece tekli görünümde olsun ve default kapalı olsun. Orada
+> bir hover buton olsun, kullanıcı isterse açabilsin… Kapalı halindeyken de
+> eğer bir agent approval bekliyorsa, kapalı halinde de tık diye o listede
+> kırmızı ünlem agent'lı vs bir görünümle o da gözüksün."
+
+> "Status bar => burada other agents ile ilgili bir alan… yoksa orada bir
+> bilgilendirme olabilir: seçili proje dışındaki agentların takibi vs şeklinde.
+> Olduğunda da agent sayısı ve durumları, approval vs bekleyen varsa o da daha
+> kapsamlı gösterilebilir. Tıklandığında menu açılıp hızlı geçiş olur."
+
+> "Ya da hover olsun, session kısmıyla tutarlı olsun."
+
 
 ## Problem
 
@@ -103,16 +128,26 @@ Bu bölüm normatiftir. Uygulama buradan sapmamalıdır.
 
 ### 1. Top bar
 
-- Sabit ve tek durumlu: **yalnızca `Home` ve `Terminals`** + sağdaki action
-  cluster (kullanım barları, ayarlar, "…" menüsü, güncelleme bildirimi).
-- Hangi bölümdeysen o vurgulanır.
-- Bugünkü **terminal başına tab'lar top bar'dan kalkar** — onlar Terminals
-  bölümünün kendi tab şeridine iner.
-- Bugünkü **grid layout select** (1x1…3x3) kalkar.
-- Bugünkü **presence chip'leri (◆) kalkar** — `presenceBar.js` silinir.
-- Açık section chip'leri (spec / task / diff / orchestrator) bugünkü gibi top
-  bar'da kalmaya devam eder. Kural: **dıştaki şerit "hangi bölümdeyim",
-  içteki şerit "bölüm içinde ne açık"** demektir.
+
+- Sabit ve tek durumlu değil artık — **tek kural**: `Home` kalıcıdır, top
+  bar'daki diğer her şey *açılmış bir yüzeydir ve şeritten kaldırılabilir*.
+- Şerit: `Home` · `Terminals` · açık section chip'leri (spec / task / diff /
+  orchestrator).
+- **`×` her zaman "bu şeritten kaldır" demektir, asla "yok et".** Terminals'ın
+  `×`'i yalnızca onu top bar'dan düşürür: bölüm, açık terminal sekmeleri,
+  Overview düzeni ve çalışan agent'lar aynen yaşamaya devam eder. Sidebar'daki
+  **Work → Terminals** ile bıraktığın durumla geri gelir.
+- Terminals açılışta şeritte **vardır** (Terminals landing view olmaya devam
+  ediyor). Kaldırılmışsa Home'a düşülür.
+- **Kural — yazılmalı, yoksa aşınır:** top bar *canlı durumu olan* yüzeyleri
+  taşır. Terminals'ta çalışan process'ler ve kendi sekme şeridi var; Specs
+  grid'inde yok. Specs/Tasks/Decisions/panel'ler sidebar'dan açılır ve top
+  bar'da görünmez — bugünkü davranışları korunur.
+- **Kalkanlar:** terminal başına tab'lar, grid layout select, presence
+  chip'leri (`presenceBar.js` silinir).
+- **Kalanlar:** tema toggle'ı (status-bar spec'iyle top bar'a taşındı),
+  "…" menüsü, güncelleme bildirimi. **Claude kullanım barları status bar'a
+  taşındı ve orada kalır** — top bar'a geri getirilmez.
 
 ### 2. Terminals bölümü — tab şeridi
 
@@ -174,32 +209,71 @@ Bu bölüm normatiftir. Uygulama buradan sapmamalıdır.
 - **Proje seçili değilse Home gösterilmez** — proje seçimi önceliklendirilir
   (bugünkü `_renderNoProjectState` davranışı bu role taşınır).
 
-### 5. Agents rail
+### 5. Agent görünürlüğü — dört yüzey
 
-- Sağdaki panel terminal listesi olmaktan çıkar, **yalnızca agent'ları**
-  listeler. Agent olmayan terminaller rail'de görünmez (onlara erişim tab
-  şeridi ve Overview üzerindendir).
-- **Hem Overview'da hem terminal tab'larında** görünür.
-- Sıralama bugünkü aciliyet önceliğini korur:
-  `agent-approval → agent-input → agent-working`.
-- Bir satıra tıklamak o agent'ın terminaline gider (`enterLane`).
-- **Daraltılmış hâlde** statü renklerine göre küçük ikonlardan oluşan bir
-  şerit olarak kalır — kullanıcı paneli küçültse bile approval bekleyen
-  agent'ı görebilir. Collapse mekaniği `sectionRail`/`laneRail`'in mevcut
-  `.lane-rail` idiomundan devralınır, yeni bir rail implementasyonu yazılmaz.
-- **Cross-project:** rail'in kendisi mevcut projeye aittir. En altta tek bir
-  satır bulunur — *"Diğer projelerde N agent · M approval bekliyor"* — ve
-  tıklandığında o projeye geçirir. Bu satırın verisi `projectStatusBadges`'in
-  zaten hesapladığı proje başına approval/input sayımından gelir; **yeni IPC
-  kanalı veya yeni hesaplama eklenmez.**
+
+Agent görünürlüğü tek bir panele değil, **dört yüzeye** dağılır. Kural:
+*her yüzey, kendi bağlamının zaten gösteremediği şeyi gösterir.* Aynı liste
+iki yerde çizilmez.
+
+**5a — Overview: pane başlıkları.** Overview zaten bu projenin agent panosu;
+yanına liste koymak tekrar olurdu. Bunun yerine pane başlığındaki statü
+**okunur hale gelir**: durum metni ve dikkat işareti (approval en güçlüsü)
+başlıkta net görünür. Overview'da ayrı bir rail **yoktur**.
+
+**5b — "Other Terminals" rail: yalnızca tekli terminal gövdesinde.** Tek bir
+terminale bakarken diğerlerini göremezsin; bu rail o boşluğu kapatır.
+- Baktığın terminal hariç **projenin tüm terminallerini** listeler — sekmesi
+  olan da olmayan da. Agent'lar işaretlidir. (Yalnızca agent'ları listeleme
+  fikri elendi: hızlı geçiş de bu rail'in işi.)
+- **Varsayılan kapalıdır.** Kenarda hover'da beliren bir düğmeyle açılır;
+  açık/kapalı durumu hatırlanır.
+- **Kapalıyken sessizdir ama kör değildir:** approval veya input bekleyen bir
+  agent varsa dar şeritte kırmızı ünlem + agent göstergesi belirir. Çalışan ve
+  idle terminaller kapalı şeritte hiç görünmez.
+- Sekme şeridiyle karışmaması için kural: **şerit = açtıklarım arasında
+  gezinme; rail = göremediklerimin durumu.**
+
+**5c — Sidebar `◆` chip'i: bu proje, her yüzeyde.** `sidebar-nav-groups` ile
+gelen Work → Terminals satırındaki `◆ N` göstergesi korunur ve **dikkat
+durumu kazanır**: bugün yalnızca çalışan agent sayısı, bundan sonra biri
+approval/input beklerken renk değiştirir. Beslemesi `projectStatusBadges`'in
+zaten hesapladığı proje-başına approval/input sayımıdır — yeni veri yok. Bu,
+Specs/Tasks/Decisions/panel'lerdeyken bu projenin agent'ını kaçırma boşluğunu
+kapatır.
+
+**5d — Status bar slotu: diğer projeler, her yüzeyde.** `status-bar` spec'inin
+bilinçli boş bıraktığı sol slot (`statusBar.js:10`) doldurulur. Kapsamı
+**yalnızca seçili proje dışındaki** agent'lardır ve etiketi bunu açıkça söyler
+— yoksa "5 agent'ım var, neden 2 yazıyor?" sorusu doğar. Üç durum:
+- *Hiç yok* → sönük, kendini açıklayan bir ipucu (slot'un ne olduğunu öğretir;
+  kısa tutulur, uzun açıklama tooltip'te).
+- *Var, hiçbiri bloke değil* → sakin sayı.
+- *Approval/input bekleyen var* → öne çıkan, renkli ve daha kapsamlı.
+
+**Hover menüyü açar, tık en acil agent'a gider** — bu, bar'ın kendi idiomudur:
+kullanım ölçerleri de detayı hover'da açıyor, tıklama ise eylem (refresh)
+(`status-bar.css:38-39`). Menü projeye göre gruplanır, satır tıklaması
+gerekirse projeyi değiştirip o terminalin sekmesini açar. Bar pencerenin
+dibinde olduğu için menü **yukarı** açılır; hover menüsü küçük bir açılma
+gecikmesi ve bağışlayıcı bir kapanma alanı ister.
+
+**Ortak sözlük.** Dört yüzey de aynı statü sözcüklerini ve aynı sembolleri
+kullanır (§7). Sidebar chip'i ile status bar slotu aynı şeyi farklı kapsamda
+söyler; farklı renk veya sembol kullanmaları kuralı tesadüfe çevirir.
 
 ### 6. Sidebar
 
-- **Terminals satırı sidebar'dan kalkar.** Kalanlar: Specs, Tasks, Decisions,
-  Structure, GitHub, Claude, Prompts, History, Activity.
-- Bölünme kuralı: **top bar = canlı iş (Home, Terminals); sidebar = proje
-  artefaktları.** Bu kural korunmalıdır — Specs/Tasks top bar'a taşınmaz,
-  terminal sidebar'a dönmez.
+
+- **Terminals sidebar'da kalır.** `sidebar-nav-groups` (2026-08-25) sol menüyü
+  Work / Context / Frame gruplarına ayırdı ve Terminals'ı Work'ün ilk satırı
+  yaptı. Bu karar **geri çevrilmez, üstüne binilir**: sidebar Work → Terminals
+  *açma noktasıdır*, top bar'daki Terminals ise *açık olandır*. Tekrar değil,
+  iki farklı iş.
+- Satırın terminal sayısı korunur; `◆` göstergesi §5c'deki dikkat durumunu
+  kazanır.
+- Gruplar ve katlanma durumu olduğu gibi korunur. `historyPanel` aynı merge'de
+  emekli oldu; bu spec onu geri getirmez.
 
 ### 7. Sözlük
 
@@ -218,44 +292,60 @@ Bu bölüm normatiftir. Uygulama buradan sapmamalıdır.
 
 ## Goal / Acceptance
 
-- [ ] Top bar'da yalnızca `Home` ve `Terminals` var; terminal tab'ları, grid
-      layout select ve presence chip'leri orada değil.
+- [ ] Top bar `Home` · `Terminals` · açık section chip'lerinden oluşuyor;
+      terminal başına tab'lar, grid layout select ve presence chip'leri orada
+      değil. S1
 - [ ] Terminals bölümü bir tab şeridi gösteriyor; `Overview` en solda ve
-      kapatılamaz durumda.
-- [ ] Overview bugünkü çoklu görünümün davranışını (kolon 1/2/3, sürükle-sırala,
-      boyutlandırma, `+ New terminal`) aynen koruyor.
-- [ ] Pane başlığındaki büyüteç o terminali kendi tab'ında açıyor; ikinci kez
-      basınca yeni tab açmayıp var olana geçiyor.
-- [ ] Yukarıdaki tab yaşam döngüsü tablosundaki yedi satırın her biri
-      tanımlandığı gibi çalışıyor — özellikle: tab'ı kapatmak terminali
-      öldürmüyor, ve proje değişimi tab'ları kaybettirmiyor.
+      kapatılamaz durumda. S2
+- [ ] Overview bugünkü çoklu görünümün davranışını (kolon 1/2/3,
+      sürükle-sırala, boyutlandırma) aynen koruyor. S3
+- [ ] Pane başlığındaki büyüteç o terminali kendi sekmesinde açıyor; ikinci kez
+      basınca yeni sekme açmayıp var olana geçiyor. S4
+- [ ] Sekme yaşam döngüsü tablosundaki yedi satırın her biri tanımlandığı gibi
+      çalışıyor. S5
 - [ ] `detail` viewMode, `terminalGrid.js`, hücre atama mantığı ve `gridLayout`
-      kodda yok.
-- [ ] `enterLane` "o terminalin tab'ını aç/öne getir" anlamında tek giriş
-      noktası; Home kartı, Agents rail ve `agentDispatch` oradan geçiyor.
-- [ ] `isViewingFrame()` Overview'da ve terminal tab'ında doğru cevap veriyor;
-      odaklı terminal boştayken Start onu kullanıyor, yeni terminal açmıyor.
+      kodda yok. S6
+- [ ] `enterLane` "o terminalin sekmesini aç/öne getir" anlamında tek giriş
+      noktası. S7
+- [ ] `isViewingFrame()` Overview'da ve terminal sekmesinde doğru cevap
+      veriyor; odaklı boş terminal varken Start onu kullanıyor. S8
 - [ ] Home dört karttan oluşuyor (Terminals, Orchestration, Specs, Tasks);
-      Specs/Tasks yan paneli (`laneRail.js`) yok.
-- [ ] Home'un Terminals kartı hem boşken hem doluyken doğrudan yeni terminal
-      yaratabiliyor; yarattığında Terminals'a geçip o terminalin tab'ını açıyor.
-- [ ] Proje seçili değilken Home değil, proje seçimi gösteriliyor.
-- [ ] Agents rail yalnızca agent'ları listeliyor, aciliyet sırasında, hem
-      Overview'da hem tab'larda; daraltılmış hâlde statü ikonu şeridi kalıyor.
-- [ ] Agents rail'in altında "diğer projelerde N agent" satırı var ve o projeye
-      geçiriyor; bu satır yeni IPC kanalı kullanmıyor.
-- [ ] `presenceBar.js` silinmiş ve top bar'daki chip alanı kaldırılmış.
-- [ ] Sidebar'da Terminals satırı yok; kalan satırların aktif vurgusu doğru
-      çalışıyor (Home ve Terminals sidebar'da yer almadığı için sidebar'ın
-      "hiçbiri aktif değil" durumu artık tutarlı).
-- [ ] Kullanıcıya görünen hiçbir metinde "Frame/Frames/Mainframe/Lane" geçmiyor.
-- [ ] Statü etiketleri tek kaynaktan geliyor; Home kartı, Agents rail ve
-      Overview pane'i aynı sözcükleri kullanıyor.
+      `laneRail.js` yok. S9
+- [ ] Home'un Terminals kartı hem boşken hem doluyken yeni terminal yaratıyor
+      ve sekmesini açıyor. S10
+- [ ] Proje seçili değilken Home değil, proje seçimi gösteriliyor. S11
+- [ ] "Other Terminals" rail yalnızca tekli terminal gövdesinde var; baktığın
+      terminal hariç projenin tüm terminallerini durumlarıyla listeliyor ve
+      tıklama hızlı geçiş yapıyor. S12
+- [ ] Status bar'ın sol slotu **yalnızca seçili proje dışındaki** agent'ları
+      kapsıyor ve etiketi kapsamını açıkça söylüyor. S13
+- [ ] `presenceBar.js` silinmiş ve top bar'daki chip alanı kaldırılmış. S14
+- [ ] Sidebar'da Terminals, Work grubunun ilk satırı olarak duruyor; sayısı ve
+      `◆` göstergesi çalışıyor. S15
+- [ ] Kullanıcıya görünen hiçbir metinde "Frame/Frames/Mainframe/Lane"
+      geçmiyor. S16
+- [ ] Statü sözcükleri ve dikkat sembolleri tek kaynaktan geliyor; Overview
+      pane başlığı, Other Terminals rail'i, sidebar chip'i ve status bar slotu
+      aynı sözlüğü kullanıyor. S17
 - [ ] Ölü kod temizlendi: `enterFrames()`/`onEnterFrames`, `.btn-lane-frames`
-      CSS'i, `restoreProjectSession`'ın ezilen viewMode restore'u.
-- [ ] Boş durum tek yerde tanımlı (Home kartı ve Overview aynı metni tekrar
-      etmiyor).
-- [ ] Testler geçiyor.
+      CSS'i, ezilen viewMode restore'u. S18
+- [ ] Boş durum tek yerde tanımlı. S19
+- [ ] Testler geçiyor. S20
+- [ ] Terminals'ın `×`'i bölümü yok etmiyor: terminaller, sekmeler ve Overview
+      düzeni yaşıyor; Work → Terminals bıraktığın durumla geri getiriyor. S21
+- [ ] Overview pane başlığı okunur statü metni ve dikkat işareti taşıyor;
+      Overview'da ayrı bir rail yok. S22
+- [ ] Other Terminals rail varsayılan kapalı; kenardaki hover düğmesiyle
+      açılıyor ve açık/kapalı durumu hatırlanıyor. S23
+- [ ] Rail kapalıyken dar şeritte yalnızca approval/input bekleyenler
+      görünüyor; çalışan ve idle terminaller sessiz. S24
+- [ ] Sidebar `◆` chip'i approval/input bekleyen varken dikkat durumuna
+      geçiyor; beslemesi mevcut `projectStatusBadges` sayımı, yeni IPC yok. S25
+- [ ] Status bar slotu üç durumu doğru gösteriyor (yok → ipucu · var → sakin
+      sayı · bekleyen var → öne çıkan); hover menüyü açıyor, tık en acil
+      agent'a götürüyor; menü yukarı açılıyor ve projeye göre gruplu. S26
+- [ ] Home'un Specs kartı `!malformed` filtresini taşıyor. S27
+
 
 ## Uygulamada uyulması zorunlu teknik kısıtlar
 
@@ -289,54 +379,79 @@ Bunlar konuşma sırasında kodda doğrulandı; tasarım tercihi değil, kısıt
    (`terminalManager.js:163-165`). Tab durumu oraya yazılacaksa bu erken dönüş
    gözden geçirilmelidir, yoksa sıfır terminalli projenin durumu hiç kaydedilmez.
 
+
+5. **Gelen merge'ün kararları korunur (`sidebar-nav-groups`, `status-bar`,
+   `spec-status-repair` — 2026-08-25).**
+   - Sol menünün Work / Context / Frame grupları, katlanma durumu ve Terminals
+     satırının sayacı korunur; `historyPanel`'in emekliliği geri alınmaz.
+   - Claude kullanım ölçerleri status bar'da kalır, top bar'a geri taşınmaz;
+     tema toggle'ı top bar'da kalır.
+   - Spec listelerindeki `!malformed` filtresi (`laneRail.js:204`,
+     `multiTerminalUI.js:520`) korunur. **Home'un Specs kartı `laneRail`'in
+     aboneliklerini devralırken bu filtreyi taşımak zorundadır**, yoksa yeni
+     gelen düzeltme regresyona uğrar.
 ## Kapsam dışı
 
-- **Cross-project mimarisi.** Bu spec yalnızca yukarıdaki tek satırlık dikkat
-  göstergesini ekler. Ambient bir cross-project yüzeyi, başka projeye gitmeden
-  müdahale, ve OS bildirim katmanı ayrı bir spec'e (`cross-project-attention`)
-  bırakılır. Not: veri katmanı zaten hazır — `laneStatus` bütün projelerin
-  terminallerini izliyor ve `projectStatusBadges` proje başına dikkat sayımını
-  hesaplıyor; eksik olan yalnızca görünür bir ev.
-- **Section chip'lerinin (spec/task/diff) kendi bölümlerine indirilmesi.**
-  Terminals kendi tab şeridini kazandıktan sonra "spec tab'ları neden hâlâ top
-  bar'da?" sorusu meşrudur, ama bu spec'in kapsamını büyütür — ayrı ele alınır.
-- **Overview'da pane gizleme / seçici çoklu görünüm.** Detail'in hücre atama
-  yeteneği (belirli terminalleri seçip izleme) bilinçli olarak kaybediliyor;
-  karşılığında sürükle-sırala ve tab'lar var. İhtiyaç doğarsa ayrı iş.
+- **Cross-project mimarisinin geri kalanı.** Bu spec status bar slotunu ve onun
+  hover menüsünü getiriyor; **projeye gitmeden müdahale** (başka projenin
+  terminaline oradan yazmak) ve **OS bildirim katmanı** ayrı bir spec'e
+  (`cross-project-attention`) bırakılır.
+- **Section chip'lerinin kendi bölümlerine indirilmesi.** Terminals kendi sekme
+  şeridini kazandıktan sonra "spec chip'leri neden hâlâ top bar'da?" sorusu
+  meşrudur, ama kapsamı büyütür.
+- **Overview'da seçici pane gizleme.** `detail`'in hücre atama yeteneği bilinçli
+  kaybediliyor; karşılığında sürükle-sırala ve sekmeler var.
+- **Status bar'ın sağ yarısı.** Kullanım ölçerleri `status-bar` spec'inin işi;
+  bu spec yalnızca boş bırakılmış sol slotu doldurur.
 - Memory / Team / prototipin diğer adımları.
+
 
 ## Açıkça geri çevrilen kararlar
 
 - **`retire-rail-and-panels` (2026-08-20)** — *"One navigation system remains:
-  sidebar workspace nav (nine entries) → center views."* Artık prensipli bir
-  ikili bölünme var: top bar = canlı iş, sidebar = proje artefaktları.
-  Terminals sidebar'dan çıkıyor.
-- **`topbar-presence` (2026-08-20)** — presence chip'leri Agents rail'e
-  birleşiyor; `presenceBar.js` siliniyor. Chip'lerin taşıdığı proje-üstü
-  dikkat değeri, rail'in alt satırıyla korunuyor.
+  sidebar workspace nav → center views."* Artık top bar da canlı yüzeyler için
+  bir hızlı yol taşıyor. Yumuşak bir çevirme: sidebar **eksiksiz** navigasyon
+  olmaya devam ediyor (Terminals dahil), top bar yalnızca açık olanı gösteriyor.
+- **`topbar-presence` (2026-08-20)** — presence chip'leri siliniyor;
+  `presenceBar.js` gidiyor. Taşıdığı proje-üstü dikkat değeri kaybolmuyor,
+  status bar slotuna (§5d) ve sidebar chip'ine (§5c) dağılıyor.
 - **`lane-orchestrator` (2026-06)** — board'un landing view olması zaten
-  `terminals-view` (2026-08-20) tarafından çevrilmişti; burada Home'un rolü
-  tamamen yeniden tanımlanıyor (terminal panosu → proje panosu). Ayrıca
-  lane-orchestrator'ın detail/grid yüzeyi tamamen emekli oluyor.
-- **`terminals-view` (2026-08-20)** — Terminals'ın varsayılan landing view
-  olması korunuyor; ancak "Terminals sidebar workspace nav girişidir" kısmı
-  çevriliyor.
+  `terminals-view` tarafından çevrilmişti; burada Home'un rolü yeniden
+  tanımlanıyor (terminal panosu → proje panosu) ve detail/grid yüzeyi tamamen
+  emekli oluyor.
+
+**Açıkça geri çevrilmeyenler** — üstüne binilenler:
+
+- **`sidebar-nav-groups` (2026-08-25)** — Work/Context/Frame grupları ve
+  Terminals'ın Work'teki yeri **korunur**. Bu spec'in ilk taslağı Terminals'ı
+  sidebar'dan kaldırıyordu; o karar geri alındı.
+- **`status-bar` (2026-08-25)** — bilinçli boş bırakılan sol slot doldurulur;
+  bar'ın "hover açar, tık iş yapar" idiomu ve kullanım ölçerlerinin yeri
+  korunur.
+- **`terminals-view` (2026-08-20)** — Terminals'ın landing view olması ve
+  sidebar workspace nav girişi olması **korunur**.
+
 
 ## Değerlendirilip elenen alternatifler
 
-- **"Multi mod / single mod" ikilisi.** Terminals'ın iki modu olması ve
-  moda göre farklı davranması önerildi; tab şeridi lehine elendi. Sebep: tab
-  modeli "var olan terminaller" ile "üzerinde çalıştıklarım" ayrımını doğal
-  olarak kuruyor, birden fazla terminali aynı anda açık tutmayı sağlıyor ve
-  mod hafızası gibi gizli bir durum gerektirmiyor.
-- **Büyütecin tamamen kaldırılması** (her terminal otomatik ve kalıcı bir tab
-  alsın). Elendi: tab kapatmayı ya yıkıcı (terminali öldürür) ya da
-  geri alınamaz (kapatılan tab bir daha açılamaz) hâle getiriyordu. Mevcut
-  karar ikisini de çözüyor: otomatik açılır, istenirse kapatılır, büyüteçle
-  geri açılır.
-- **Overview'da pane tıklamasının tab açması.** Elendi: Overview'ın var oluş
-  sebebi birden fazla terminali yan yana izleyip birine yazabilmek; tıklama
-  seni oradan çıkarsaydı bu amaç ortadan kalkardı.
-- **Presence chip'lerinin korunması.** Elendi: Agents rail ile birebir aynı
-  işi yapıyor; ikisi de kalsaydı bu spec'in çözdüğü "aynı liste iki yerde"
-  problemi agent katmanında yeniden kurulmuş olurdu.
+- **"Çoklu mod / tekli mod" ikilisi.** Sekme şeridi lehine elendi: modeli gizli
+  bir mod durumu olmadan kuruyor, birden fazla terminali açık tutmaya izin
+  veriyor.
+- **Büyütecin tamamen kaldırılması** (her terminal kalıcı sekme alsın). Elendi:
+  sekme kapatmayı ya yıkıcı ya geri alınamaz yapıyordu.
+- **Overview'da pane tıklamasının sekme açması.** Elendi: Overview'ın var oluş
+  sebebi birden fazla terminali izleyip birine yazabilmek.
+- **Presence chip'lerinin korunması.** Elendi: status bar slotu ve sidebar
+  chip'i aynı işi okunur biçimde yapıyor.
+- **Terminals'ın sidebar'dan kaldırılması.** Elendi: `sidebar-nav-groups`
+  Work grubuyla ona prensipli bir ev verdi ("eylemde bulunduğun yer"), ve
+  sidebar = açma noktası / top bar = açık olan ayrımı tekrar değil.
+- **Tek bir "Agents" rail'i.** Elendi: Overview'ın pane başlıklarıyla ve status
+  bar slotuyla çakışıyordu, üstelik Terminals şeritten kaldırılınca hiç
+  görünmüyordu — yani hiçbir zaman "terminal view'dan bağımsız" olamıyordu.
+- **Rail'in yalnızca agent'ları listelemesi.** Elendi: tekli görünümde düz
+  shell'lere geçiş yolu kalmıyordu; rail'in işi durum kadar hızlı geçiş de.
+- **Status bar slotunun tüm projeleri kapsaması.** Elendi: Overview'da ekranda
+  olanı tekrar ederdi ve bu projenin dikkati zaten sidebar chip'inde.
+- **Status bar menüsünün tıkla açılması.** Elendi: bar'ın kendi idiomu hover
+  açar / tık iş yapar (`status-bar.css:38-39`).

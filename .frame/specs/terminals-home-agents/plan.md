@@ -6,156 +6,190 @@
 
 **İş kararları (kullanıcıya soruldu)**
 
-- **Perf spec'ine göre sıralama** — `audit-q3-performance-resources` T10 (ölçüm
-  turu) açıkken başlanır; T10 sonrasında ölçer. *Gerekçe:* T01–T09 kod işi
-  bitmiş, T10 kod değiştirmiyor. Kullanıcı, ölçümün gerçek son hali görmesini
-  tercih etti; bedeli T10'un bütçelerinin yeni tasarıma göre yeniden
-  yorumlanması.
-- **Agents rail Home'da yok** — yalnızca Terminals bölümünde (Overview ve
-  terminal sekmeleri). *Gerekçe:* Home'un Terminals kartı zaten terminal
-  özetini ve agent durumunu taşıyor; rail'i oraya da koymak aynı bilgiyi iki
-  yerde gösterir ve "Home'dan yan paneli kaldır" kararıyla çelişir.
+- **D1 · Perf spec'ine göre sıralama** — `audit-q3-performance-resources` T10
+  (ölçüm turu) açıkken başlanır. *Gerekçe:* T01–T09 kod işi bitmiş, T10 kod
+  değiştirmiyor; ölçümün nihai tasarımı görmesi tercih edildi. *Not:* T10
+  37 gündür `in_progress` — "yakında kapanır" varsayımına yaslanılmamalı.
+- **D2 · Agent görünürlüğü tek panelde toplanmaz** — dört yüzeye dağıtılır
+  (Overview pane başlıkları · Other Terminals rail'i · sidebar chip'i · status
+  bar slotu). *Gerekçe:* her yüzey kendi bağlamının gösteremediğini gösterir.
+  Tek "Agents" rail'i Overview'la çakışıyordu ve Terminals şeritten
+  kaldırılınca hiç görünmüyordu.
+- **D10 · Terminals sidebar'da kalır** — `sidebar-nav-groups`'un Work grubundaki
+  yeri korunur. *Gerekçe:* o spec sidebar'a "eylemde bulunduğun yer" anlamını
+  verdi; sidebar = açma noktası, top bar = açık olan. Tekrar değil, iki iş.
+- **D11 · Top bar'daki Terminals şeritten kaldırılabilir** — `×` yalnızca top
+  bar'dan düşürür; bölüm, sekmeler, düzen ve agent'lar yaşar. *Gerekçe:* tek
+  kural kurar — Home kalıcı, gerisi açık ve kaldırılabilir; ve `×` her iki
+  seviyede de "şeritten kaldır" demek olur, asla "yok et".
+- **D13 · Other Terminals varsayılan kapalı** — kenardaki hover düğmesiyle
+  açılır, durumu hatırlanır; kapalı şeritte yalnızca approval/input bekleyenler
+  belirir. *Gerekçe:* tekli görünümde ekran terminalin; panel istendiğinde
+  gelir, ama kör bırakmaz.
+- **D14 · Status bar slotu yalnızca diğer projeleri kapsar** — bu projenin
+  dikkati sidebar chip'inde. *Gerekçe:* aksi halde Overview'da ekranda olanı
+  tekrar ederdi. Etiket kapsamı açıkça söyler.
+- **D15 · Status bar: hover menüyü açar, tık iş yapar** — *Gerekçe:* bar'ın
+  kendi idiomu (`status-bar.css:38-39`, kullanım ölçerleri detayı hover'da
+  açıyor, tık refresh). Bar-içi tutarlılık.
 
 **Teknik kararlar (kullanıcıya soruldu)**
 
-- **Sekme durumu `terminalsView` prefs'inde** — `openTabs: string[]` +
-  `activeTab: string|null`, `localStorage['frame-terminals-view']` içinde,
-  `cols`/`order` ile aynı proje-başına kayıtta. *Gerekçe:* ölü id budaması
-  orada zaten var (`_orderedTerminals`), restart sonrası şerit kendiliğinden
-  Overview'a düşer, ve `terminalManager.saveProjectSession`'a hiç dokunulmaz —
-  onun sıfır-terminalli projede erken dönen dalı (`terminalManager.js:163-165`)
-  ile perf spec'inin oraya yeni koyduğu MRU pruning'i riske atmayız.
-- **Tab şeridi `terminalsView` içinde** — ayrı modüle çıkarılmaz. *Gerekçe:*
-  durum (openTabs/activeTab/prefs) ve mount taşıma mantığı tek sahipte kalır;
-  o mantığın bölünmesi C1'in ihlal edilme riskini artırır.
-- **`laneDetailRail.js` → `agentsRail.js`** (git mv). *Gerekçe:* modül artık
-  lane değil agent listeliyor ve "detail" emekli olan bir yüzeyin adı.
-  Kod-"lane"/arayüz-"terminal" kuralı terminal sözlüğüyle ilgilidir, ihlal yok.
+- **D3 · Sekme durumu `terminalsView` prefs'inde** — `openTabs`/`activeTab`,
+  `localStorage['frame-terminals-view']`, `cols`/`order` ile aynı proje-başına
+  kayıtta. *Gerekçe:* ölü id budaması orada zaten var; `saveProjectSession`'ın
+  erken dönen dalına (C4) ve perf spec'inin MRU pruning'ine dokunulmaz.
+- **D4 · Tab şeridi `terminalsView` içinde** — ayrı modüle çıkarılmaz.
+  *Gerekçe:* mount taşıma mantığının bölünmesi C1'in tek ihlal yolu.
+- **D5 (revize) · `laneDetailRail.js` → `otherTerminalsRail.js`** —
+  *silinmez.* Bir ara "status bar rail'i gereksiz kılıyor" diye silinmesi
+  kararlaştırılmıştı; çerçeve değişince (agent paneli değil, "göremediğim
+  terminaller") geri alındı. Ad içeriğe uyar; `detail` emekli oluyor.
 
 **Sessiz kararlar (tek savunulabilir cevap)**
 
-- **Test duruşu: none this time.** `.frame/PROJECT_NOTES.md` §Testing kaydı
-  `src/renderer/` için "no DOM/UI harness present" diyor; bugün doğruladım —
-  `jsdom`, `playwright`, `@testing-library`, `puppeteer` hiçbiri
-  `package.json`'da yok. Bu spec'in işi %100 renderer. Çalıştırılamayacak test
-  planlamak planı daha titiz gösterip daha az doğru yapardı. Beş bölüm test
-  işinden arınmıştır.
-- **Statü etiketi tek kaynağı `laneStatus.js`** — taksonominin sahibi zaten o
-  modül; ayrı bir modül açmak üçüncü bir ev yaratırdı.
-- **Cross-project satırı `projectStatusBadges`'ten** — oradaki yuvarlama saf
-  bir fonksiyona (`computeCounts`) çıkarılıp export edilir; rail onu çağırır.
-  Mantığı rail'de yeniden yazmak iki implementasyon demek olurdu.
-- **Orchestrator ile dağıtılmaz.** Footprint `audit-q3-performance-resources`
-  ile dört dosyada kesiştiği ve o spec `implementing` olduğu için Frame'in
-  conflict guard'ı bu spec'i reddeder. T10 kapanana kadar iş doğrudan
-  yürütülür; sonrasında dağıtım serbest.
+- **Test duruşu: none this time.** PROJECT_NOTES §Testing `src/renderer/` için
+  "no DOM/UI harness present" diyor; bugün doğrulandı (`jsdom`, `playwright`,
+  `@testing-library`, `puppeteer` yok). Bu spec %100 renderer. Beş bölüm test
+  işinden arınıktır.
+- **Statü sözlüğü tek kaynağı `laneStatus.js`** — taksonominin sahibi o modül.
+  Dört yüzey (Overview başlığı, rail, sidebar chip'i, status bar slotu) aynı
+  sözcükleri ve aynı dikkat sembollerini kullanır.
+- **D8 (genişletildi) · `projectStatusBadges.computeCounts()`** — yuvarlama saf
+  bir fonksiyona çıkarılıp export edilir ve **iki tüketiciyi** besler: sidebar
+  chip'inin dikkat durumu ve status bar slotu. Tek implementasyon, yeni IPC yok.
+- **Rail agent-only değil** — baktığın terminal hariç projenin tüm terminalleri,
+  agent'lar işaretli. Agent-only olsaydı tekli görünümde düz shell'lere geçiş
+  yolu kalmazdı.
+- **Kapalı şeritte yalnızca dikkat gerektirenler.** `projectStatusBadges.js`
+  başlığındaki kayıtlı ilkenin bir seviye aşağıda tekrarı: *"the list only flags
+  projects that need the user's attention."*
+- **D9 · Orchestrator ile dağıtılmaz.** Footprint `audit-q3-performance-resources`
+  ile dört dosyada kesişiyor ve o spec `implementing` — conflict guard dispatch'i
+  reddeder. T10 kapanana kadar doğrudan yürütülür.
 
 ### Kısıtlar (C-ID'ler)
 
-- **C1 — Mount tekilliği.** Bir terminalin DOM elementi tektir;
-  `mountTerminal` onu kopyalamaz, `container.appendChild(instance.element)` ile
-  **taşır** (`terminalManager.js:547`). Sekme ↔ Overview geçişinde hedef gövde
-  her zaman yeniden mount eder; `terminalsView` "zaten mount edilmişti"
-  varsayımıyla mount'u asla atlamaz. Atlanırsa geri dönüşte pane boş kalır.
+- **C1 — Mount tekilliği.** `mountTerminal` DOM elementini kopyalamaz,
+  `container.appendChild(instance.element)` ile **taşır**
+  (`terminalManager.js:547`). Sekme ↔ Overview geçişinde hedef gövde her zaman
+  yeniden mount eder; "zaten mount'luydu" varsayımı yasaktır. İhlali sessiz bir
+  boş-pane hatasıdır.
 - **C2 — Inline yüzeyler mount-idempotent.** `laneBoard.render()` bugün her
-  state değişiminde `container.innerHTML = ''` yapıp her şeyi yeniden kuruyor
-  (`laneBoard.js:133-169`). Dört canlı veri kartıyla bu, 2026-08-20'de
-  ölçülmüş IPC fırtınasının (saniyede ~100 round-trip, %163 CPU) birebir
-  şeklidir. Home `mount()` + `update()` ikilisine ayrılır; `_renderBoardView`
-  `_renderDashView`'in idempotence guard'ını taklit eder.
-- **C3 — Proje değişimi terminalleri öldürmez.** `terminals` tek bir Map'tir
-  ve geçişte budanmaz; `getTerminalStates()` yalnızca görünümü filtreler
-  (`terminalManager.js:666-672`). Sekmeler de bu yüzden atılmaz.
+  state değişiminde container'ı siliyor (`laneBoard.js:135`). Dört canlı veri
+  kartıyla bu, 2026-08-20'de ölçülen IPC fırtınasının (saniyede ~100 round-trip,
+  %163 CPU) birebir şekli. Home `mount()`/`update()` ikilisine ayrılır.
+- **C3 — Proje değişimi terminalleri öldürmez** (`terminalManager.js:666-672`).
+  Sekmeler de bu yüzden atılmaz.
 - **C4 — `saveProjectSession` erken dönüşü** (`terminalManager.js:163-165`)
-  sekme durumunun oraya yazılmamasıyla dolanılır; o dal değiştirilmez.
-- **C5 — `audit-q3-performance-resources`'ın kayıtlı kararları korunur.**
-  Footprint dört dosyada kesişiyor. Korunacaklar: `laneStatus`'ta
-  `_armQuietTimer` (per-chunk timer yerine burst başına tek timer),
-  `terminalManager`'da 20'lik MRU session pruning + `clearProjectSession`
-  wiring, ve `laneRail`/`laneBoard`/`laneStatus`/`terminalManager`'daki
-  **init-once listener guard'ları**. Yeniden yazılan `laneBoard` ve yeni
-  `agentsRail` init-once guard idiomunu sürdürür; `laneRail`'in silinmesi o
-  spec'in amacıyla (daha az dinleyici) çelişmez.
+  sekme durumu oraya yazılmayarak dolanılır; o dal değiştirilmez.
+- **C5 — `audit-q3-performance-resources`'ın kayıtlı kararları korunur:**
+  `laneStatus`'ta `_armQuietTimer`, `terminalManager`'da 20'lik MRU session
+  pruning + `clearProjectSession` wiring, ve `laneRail`/`laneBoard`/`laneStatus`/
+  `terminalManager`'daki **init-once listener guard'ları**. Yeniden yazılan
+  `laneBoard` ve yeni rail bu idiomu sürdürür.
+- **C6 — 2026-08-25 merge'ünün kararları korunur.** Work/Context/Frame grupları,
+  katlanma durumu ve Terminals satırının sayacı; `historyPanel`'in emekliliği;
+  kullanım ölçerlerinin status bar'da, tema toggle'ının top bar'da olması. Ve
+  spec listelerindeki `!malformed` filtresi (`laneRail.js:204`,
+  `multiTerminalUI.js:520`) — **Home'un Specs kartı `laneRail`'in aboneliklerini
+  devralırken bu filtreyi taşımak zorundadır.**
 
 ### Bileşenler
 
 **Statü sözlüğü.** `laneStatus.js` sunum yardımcılarının tek evi olur:
 `statusLabel(status, { agentName, foreground, commandLine, short })`,
-`cleanCommand`, `formatRelativeTime`, `assignmentIcon`, `assignmentText`.
-`short` bayrağı bugünkü iki tonu ("Agent working" / "Working") tek tablodan
-üretir. `laneBoard`'un helper export'ları kalkar; bu, `laneDetailRail`'in
-bugün `laneBoard`'a olan import bağımlılığını (`laneDetailRail.js:15`) de
-koparır.
+`attentionMark(status)` (Overview başlığındaki ve kapalı şeritteki dikkat
+sembolü), `cleanCommand`, `formatRelativeTime`, `assignmentIcon`,
+`assignmentText`. `laneBoard`'un helper export'ları kalkar — bu, rail'in
+bugün `laneBoard`'a olan import bağımlılığını (`laneDetailRail.js:15`) de koparır.
 
-**Terminals bölümü.** `terminalsView` iki katmana ayrılır: `_buildTabStrip()`
-ve aktif sekmenin gövdesi. `activeTab === null` → Overview gövdesi (bugünkü
-`tv-grid` + layout bar, davranışı korunur); `activeTab === id` → tek terminal
-gövdesi (layout bar yok, hayalet pane yok). Şerit `overflow-x: auto`.
-Pane başlığındaki `data-maximize` düğmesi `data-open`'a, ikonu `Maximize2` →
-`Search` olur ve `openTab(id)` çağırır; `maximizedId` prefs'i ve onu okuyan
-tüm dallar silinir. Agents rail her iki gövde tipinde de tek yerden render
-edilir.
+**Terminals bölümü.** `terminalsView` iki katmana ayrılır: `_buildTabStrip()` ve
+aktif sekmenin gövdesi. `activeTab === null` → Overview gövdesi (bugünkü
+`tv-grid` + layout bar; pane başlığı okunur statü + dikkat işareti kazanır,
+rail **yok**); `activeTab === id` → tek terminal gövdesi + Other Terminals
+rail'i. Şerit `overflow-x: auto`. Pane'deki `data-maximize` → `data-open`,
+ikon `Maximize2` → `Search`, `openTab(id)` çağırır; `maximizedId` prefs'i ve
+onu okuyan dallar silinir.
 
-Sekme yaşam döngüsü: `openTab(id)` zaten açıksa yalnızca `activeTab`'ı
-değiştirir (ikinci sekme yok); `closeTab(id)` sekmeyi düşürür, terminale
-dokunmaz; terminal kapanınca (`TERMINAL_DESTROYED`) normalizasyon sekmeyi
-düşürür; Overview'da pane tıklaması bugünkü yerinde-odaklanma davranışında
+Sekme yaşam döngüsü: `openTab` zaten açıksa yalnızca `activeTab`'ı değiştirir;
+`closeTab` sekmeyi düşürür, terminale dokunmaz; terminal ölünce normalizasyon
+sekmeyi düşürür; Overview'da pane tıklaması yerinde odaklanma davranışında
 kalır (`terminalsView.js:243-252`).
 
-**`detail`'in emekliliği.** `viewMode` seti `board | terminals | specs | tasks
-| panel`. `enterLane(id)` tek çoke point olarak kalır, yeni anlamı
-"Terminals'a geç + o terminalin sekmesini aç/öne getir"; Home kartı, Agents
-rail ve `agentDispatch` buradan geçer. `isViewingFrame()` →
-`viewMode === 'terminals' && !isSectionVisible && !isDecisionsVisible &&
-!!activeTerminalId`; bu, `agentDispatch.js:251`'in bugün varsayılan görünümde
-her zaman `false` dönüp Start'ı odaklı terminal yerine hep yeni terminale
-göndermesini düzeltir.
+**Top bar.** `_renderLeftSection` `Home` (kalıcı) + `Terminals` (kaldırılabilir,
+`×`'li) + section chip'lerine iner. Terminals'ın chip mekaniği section
+chip'lerinden devralınır; kaldırılmışsa Home'a düşülür ve **Work → Terminals**
+onu geri koyar. Terminal başına tab'lar, `grid-layout-select` ve presence kabı
+kaldırılır; tema toggle'ı ve güncelleme bildirimi yerinde kalır (C6).
 
-**Home.** `laneBoard` dört karta yeniden yazılır: Terminals (sayı + agent
-durumu + her durumda "yeni terminal"), Orchestration (bugünkü kartın
-davranışı), Specs, Tasks. Specs/Tasks kartları `laneRail`'in `SPEC_DATA` /
-`TASKS_DATA` aboneliklerini devralır — yeni IPC yok. Proje yokken Home
-render edilmez; proje seçimi gösterilir.
+**`detail`'in emekliliği.** `viewMode` = `board | terminals | specs | tasks |
+panel`. `_renderDetailView`, `_ensureAssignments`, `_assignCell`,
+`_newLaneInCell`, `_cellAssignments`, `_detailRailCallbacks` ve `TerminalGrid`
+import'u kaldırılır. `enterLane(id)` tek çoke point kalır, yeni anlamı
+"Terminals'a geç (gerekirse şeride geri koy) + o terminalin sekmesini aç/öne
+getir". `isViewingFrame()` → `viewMode === 'terminals' && !isSectionVisible &&
+!isDecisionsVisible && !!activeTerminalId`; bu `agentDispatch.js:251`'deki
+hatayı düzeltir.
 
-**Agents rail.** `agentsRail` kaynağı `getTerminalStates(true)` + `laneStatus`;
-`agentName` taşımayanlar filtrelenir. Sıra `agent-approval → agent-input →
-agent-working`. Satır tıklaması `enterLane`; başka projedeyse önce
-`state.setProjectPath(...)` — bu mantık bugün `presenceBar._focus`'ta
-(`presenceBar.js:105-113`) yazılı, oradan devralınır. Daraltılmış hâlde statü
-renkli ikon şeridi. En altta "Diğer projelerde N agent · M approval bekliyor"
-satırı, `projectStatusBadges.computeCounts()` ile beslenir.
+**Home.** `laneBoard` dört karta yeniden yazılır (Terminals, Orchestration,
+Specs, Tasks), `mount()`/`update()` ikilisiyle. `laneRail.js` silinir;
+Specs/Tasks abonelikleri (`SPEC_DATA`/`TASKS_DATA`, `!malformed` filtresiyle)
+kartlara geçer. Proje yokken Home render edilmez.
+
+**Other Terminals rail.** `otherTerminalsRail` yalnızca tekli terminal
+gövdesinde render edilir. Kaynak: bu projenin terminalleri eksi baktığın.
+Varsayılan kapalı (`isHidden` varsayılanı ters çevrilir); kapalı şeritte
+yalnızca approval/input bekleyenler kırmızı ünlem + agent göstergesiyle
+görünür — bugünkü jenerik iki ikon (`laneDetailRail.js:103-106`) yerine.
+Collapse mekaniği ve `.lane-rail` CSS'i korunur.
+
+**Sidebar chip'i.** `projectListUI`'daki `workspace-nav-agents` (`:392-395`)
+sayıya ek olarak dikkat durumu kazanır: `computeCounts()`'tan gelen
+approval/input varsa renk ve sembol değişir. Terminals satırı ve sayacı
+korunur (C6).
+
+**Status bar slotu.** `statusBar.js`'in ilan edilmiş boş sol slotu (`:10`)
+doldurulur: kapsam **yalnızca diğer projeler**, üç durum (yok → sönük ipucu ·
+var → sakin sayı · bekleyen var → öne çıkan). Hover projeye göre gruplu menüyü
+**yukarı** açar; satır tıklaması gerekirse `state.setProjectPath` + `enterLane`
+— bu mantık `presenceBar._focus`'tan (`presenceBar.js:105-113`) devralınır ve
+`presenceBar.js` silinir. Hover menüsü açılma gecikmesi + bağışlayıcı kapanma
+alanı ister.
 
 ## Files
 
 **Modified**
 
-- `src/renderer/laneStatus.js` — statü etiketi + sunum yardımcılarının tek evi; `_armQuietTimer` ve init-once guard korunur (C5).
-- `src/renderer/terminalsView.js` — tab şeridi, `openTab`/`closeTab`, büyüteç, `maximizedId`'nin kaldırılması, prefs'e `openTabs`/`activeTab`, rail hosting.
-- `src/renderer/multiTerminalUI.js` — `detail` render yolunun ve hücre mantığının kaldırılması, `enterLane`/`isViewingFrame` yeniden tanımı, Home için idempotent board render.
-- `src/renderer/terminalManager.js` — `gridLayout`/`setGridLayout` ve legacy `tabs|grid → detail` eşlemesinin kaldırılması, ölü viewMode restore temizliği; MRU pruning ve `clearProjectSession` wiring korunur (C5).
-- `src/renderer/terminalTabBar.js` — sol bölüm `Home` + `Terminals`'a iner; terminal tab'ları, layout select, presence kabı ve ölü `onEnterFrames` kalkar.
-- `src/renderer/laneBoard.js` — dört kartlık Home panosuna yeniden yazım, `mount()`/`update()` ayrımıyla (C2); init-once guard idiomu sürdürülür (C5).
+- `src/renderer/laneStatus.js` — statü sözcükleri, dikkat sembolleri ve sunum yardımcılarının tek evi; `_armQuietTimer` ve init-once guard korunur (C5).
+- `src/renderer/terminalsView.js` — tab şeridi, `openTab`/`closeTab`, büyüteç, `maximizedId`'nin kaldırılması, prefs'e `openTabs`/`activeTab`, Overview pane başlığının okunur statüsü, tekli gövdede rail hosting.
+- `src/renderer/multiTerminalUI.js` — `detail` render yolunun ve hücre mantığının kaldırılması, `enterLane`/`isViewingFrame` yeniden tanımı, Terminals'ın şeritten kaldırılabilirliği, Home için idempotent board render.
+- `src/renderer/terminalManager.js` — `gridLayout`/`setGridLayout` ve legacy eşlemenin kaldırılması, ölü viewMode restore temizliği; MRU pruning korunur (C5).
+- `src/renderer/terminalTabBar.js` — sol bölüm `Home` + kaldırılabilir `Terminals` + section chip'leri; terminal tab'ları, layout select, presence kabı ve ölü `onEnterFrames` kalkar; tema toggle'ı korunur (C6).
+- `src/renderer/laneBoard.js` — dört kartlık Home panosuna yeniden yazım, `mount()`/`update()` ayrımıyla (C2); Specs kartı `!malformed` filtresini taşır (C6); init-once guard sürdürülür (C5).
 - `src/renderer/agentDispatch.js` — `isViewingFrame`'in yeni anlamına uyum; `_startAgentIn` kullanıcıyı Overview'dan koparmaz.
-- `src/renderer/projectStatusBadges.js` — proje başına yuvarlama saf `computeCounts()` olarak dışa açılır.
-- `src/renderer/projectListUI.js` — workspace nav'dan `terminals` satırı ve ona bağlı sayaç/`◆ N` göstergesi kalkar; `clearProjectSession` wiring korunur (C5).
-- `src/renderer/paletteSources.js` — `Go to Home` eklenir, `Go to Terminals` kalır.
-- `src/renderer/index.js` — komut sözlüğü "Frame/Mainframe" → "Terminal/Home", kategori `Frames` → `Terminals`; `presenceBar` init'inin kaldırılması.
-- `src/renderer/styles/components/lane-board.css` — top bar iki düğmeye iner, Home kartları, öksüz `.btn-lane-frames*` temizliği.
-- `src/renderer/styles/components/terminals-view.css` — tab şeridi, tek-terminal gövdesi, `maximized` kurallarının kaldırılması.
+- `src/renderer/projectStatusBadges.js` — proje başına yuvarlama saf `computeCounts()` olarak dışa açılır; iki tüketici.
+- `src/renderer/projectListUI.js` — Work→Terminals satırı ve sayacı korunur; `◆` göstergesi dikkat durumu kazanır (C6).
+- `src/renderer/statusBar.js` — boş sol slot doldurulur: diğer-projeler göstergesi + hover menüsü + navigasyon.
+- `src/renderer/paletteSources.js` — `Go to Home` eklenir.
+- `src/renderer/index.js` — komut sözlüğü "Frame/Mainframe" → "Terminal/Home", kategori `Frames` → `Terminals`; `presenceBar` init'i kaldırılır.
+- `src/renderer/styles/components/lane-board.css` — top bar'ın yeni hali, Home kartları, öksüz `.btn-lane-frames*` temizliği.
+- `src/renderer/styles/components/terminals-view.css` — tab şeridi, tekli gövde, okunur pane başlığı, `maximized` kurallarının kaldırılması.
+- `src/renderer/styles/components/status-bar.css` — sol slot ve yukarı açılan hover menüsü.
 - `src/renderer/styles/components/terminal.css` — presence chip kurallarının kaldırılması.
 - `src/renderer/styles/components/orchestrator.css` — Home kartına taşınan orchestrator rozet kuralları.
-- `src/renderer/styles/components/project-section.css` — workspace nav'dan kalkan Terminals satırının kuralları.
+- `src/renderer/styles/components/project-section.css` — sidebar chip'inin dikkat durumu.
 
 **New**
 
-- `src/renderer/agentsRail.js` — `laneDetailRail.js`'ten `git mv`; agent-only liste, aciliyet sırası, daraltılmış ikon şeridi, cross-project satırı.
+- `src/renderer/otherTerminalsRail.js` — `laneDetailRail.js`'ten `git mv`; tekli gövdede "diğer terminaller", varsayılan kapalı, kapalı şeritte dikkat işareti.
 
 **Deleted**
 
-- `src/renderer/laneDetailRail.js` — `agentsRail.js` olarak taşındı.
-- `src/renderer/laneRail.js` — Home'un Specs/Tasks yan paneli; içeriği Home kartlarına geçti.
-- `src/renderer/terminalGrid.js` — `detail` görünümünün hücre grid'i; yüzey emekli oldu.
-- `src/renderer/presenceBar.js` — top bar agent chip'leri; Agents rail'e birleşti.
+- `src/renderer/laneDetailRail.js` — `otherTerminalsRail.js` olarak taşındı.
+- `src/renderer/laneRail.js` — Home'un Specs/Tasks yan paneli; içeriği kartlara geçti.
+- `src/renderer/terminalGrid.js` — `detail` görünümünün hücre grid'i.
+- `src/renderer/presenceBar.js` — top bar agent chip'leri; status bar slotuna birleşti.
 
 ## Footprint
 
@@ -165,7 +199,7 @@ satırı, `projectStatusBadges.computeCounts()` ile beslenir.
 - src/renderer/terminalManager.js
 - src/renderer/terminalTabBar.js
 - src/renderer/laneBoard.js
-- src/renderer/agentsRail.js
+- src/renderer/otherTerminalsRail.js
 - src/renderer/laneDetailRail.js
 - src/renderer/laneRail.js
 - src/renderer/terminalGrid.js
@@ -173,10 +207,12 @@ satırı, `projectStatusBadges.computeCounts()` ile beslenir.
 - src/renderer/agentDispatch.js
 - src/renderer/projectStatusBadges.js
 - src/renderer/projectListUI.js
+- src/renderer/statusBar.js
 - src/renderer/paletteSources.js
 - src/renderer/index.js
 - src/renderer/styles/components/lane-board.css
 - src/renderer/styles/components/terminals-view.css
+- src/renderer/styles/components/status-bar.css
 - src/renderer/styles/components/terminal.css
 - src/renderer/styles/components/orchestrator.css
 - src/renderer/styles/components/project-section.css
@@ -184,47 +220,43 @@ satırı, `projectStatusBadges.computeCounts()` ile beslenir.
 ## Dependencies
 
 None. Yeni paket yok, yeni IPC kanalı yok — `src/main/` ve
-`src/shared/ipcChannels.js` bu spec'in dışında kalır. (CI `npm ci`
-çalıştırmıyor; repo-yerel modüllerle çalışma kuralı zaten korunuyor.)
+`src/shared/ipcChannels.js` bu spec'in dışında kalır.
 
 ## Sequencing
 
 1. **Statü sözlüğünü `laneStatus`'a taşı.** `statusLabel` (`short` bayraklı),
-   `cleanCommand`, `formatRelativeTime`, `assignmentIcon`, `assignmentText`
-   oraya taşınır; `laneBoard` ve `laneDetailRail` tüketiciye döner. Davranış
-   değişmez, iki etiket sözlüğü teke iner. `_armQuietTimer` ve init-once
-   guard'a dokunulmaz. — G7, C5
-2. **Tab şeridini kur.** `terminalsView`'a `openTabs`/`activeTab` prefs'i,
-   `_buildTabStrip()`, `openTab`/`closeTab`, tek-terminal gövdesi ve şeridin
-   `overflow-x` davranışı. Overview gövdesi aynen korunur. Sekme ↔ Overview
-   geçişinde mount her zaman yeniden yapılır. — G2, C1, C3
-3. **Büyüteci bağla, `maximizedId`'yi kaldır.** `data-maximize` → `data-open`,
-   `Maximize2` → `Search`, `openTab` çağrısı; `maximizedId` prefs'i ve onu
-   okuyan `_buildLayoutBar`/`render`/`_buildPane` dalları silinir. — G2
-4. **`detail`'i emekli et.** `_renderDetailView`, `_ensureAssignments`,
-   `_assignCell`, `_newLaneInCell`, `_cellAssignments`, `_detailRailCallbacks`
-   ve `TerminalGrid` import'u kaldırılır; `terminalGrid.js` silinir;
-   `terminalManager`'dan `gridLayout`/`setGridLayout`, legacy eşleme ve ölü
-   viewMode restore temizlenir. `enterLane` ve `isViewingFrame` yeniden
-   tanımlanır, `agentDispatch` uyumlanır. MRU pruning korunur. — G3, C5
-5. **Top bar'ı ikiye indir.** `_renderLeftSection` `Home` + `Terminals`;
-   terminal tab'ları, layout select, presence kabı ve ölü
-   `onEnterFrames`/`enterFrames` kaldırılır; `presenceBar.js` silinir ve
-   `index.js`'teki init'i çıkarılır; öksüz `.btn-lane-frames*` CSS'i temizlenir.
-   — G1
-6. **Agents rail'i kur.** `git mv laneDetailRail.js agentsRail.js`; agent
-   filtresi, aciliyet sırası, daraltılmış ikon şeridi, `enterLane` ile
-   satır tıklaması ve `presenceBar._focus`'tan devralınan proje değiştirme.
-   `projectStatusBadges`'e `computeCounts()` export'u eklenir ve rail'in alt
-   satırı ondan beslenir. Rail her iki gövde tipinde render edilir. Init-once
-   guard idiomu sürdürülür. — G5, C5
-7. **Home'u kart panosuna çevir.** `laneBoard` dört karta yeniden yazılır,
-   `mount()`/`update()` ayrımıyla; `_renderBoardView` idempotence guard'ı
-   kazanır; `laneRail.js` silinir ve Specs/Tasks abonelikleri kartlara geçer;
-   proje yokken proje seçimi gösterilir; Terminals kartı her durumda yeni
-   terminal yaratır ve sekmesini açar. — G4, C2, C5
-8. **Sidebar, palette, sözlük ve ölü kod süpürmesi.** `projectListUI`'dan
-   `terminals` nav satırı ve göstergeleri; `paletteSources`'a `Go to Home`;
-   `index.js` komut sözlüğü "Frame/Mainframe" → "Terminal/Home" ve kategori
-   `Frames` → `Terminals`; kısayollar `enterLane`'in yeni anlamıyla; kalan
-   "New Frame" metinleri; boş durumun tek yerde toplanması. — G6, G7
+   `attentionMark`, `cleanCommand`, `formatRelativeTime`, `assignmentIcon`,
+   `assignmentText`. Davranış değişmez, iki etiket sözlüğü teke iner.
+   `_armQuietTimer` ve init-once guard'a dokunulmaz. — G7, C5, S17
+2. **Tab şeridini kur.** `openTabs`/`activeTab` prefs'i, `_buildTabStrip()`,
+   `openTab`/`closeTab`, tekli gövde, şeridin `overflow-x` davranışı; mount
+   sekme ↔ Overview geçişinde her zaman yeniden yapılır. — G2, C1, C3, S2, S5
+3. **Büyüteci bağla, `maximizedId`'yi kaldır.** — G2, S4
+4. **`detail`'i emekli et.** Hücre mantığı ve `terminalGrid.js` silinir;
+   `gridLayout`, legacy eşleme ve ölü viewMode restore temizlenir; `enterLane`
+   ve `isViewingFrame` yeniden tanımlanır, `agentDispatch` uyumlanır. — G3, C5,
+   S6, S7, S8
+5. **Top bar'ı yeniden kur.** `Home` + kaldırılabilir `Terminals` + section
+   chip'leri; `×` şeritten kaldırır, bölüm yaşar; Work → Terminals geri koyar.
+   Terminal tab'ları, layout select, presence kabı ve ölü `enterFrames`
+   kaldırılır; `presenceBar.js` silinir; öksüz CSS temizlenir; tema toggle'ı
+   korunur. — G1, C6, S1, S14, S18, S21
+6. **Overview'ın pane başlığını okunur yap.** Statü metni + dikkat işareti,
+   `laneStatus` sözlüğünden. Overview'a rail eklenmez. — G5, S22
+7. **Other Terminals rail'ini kur.** `git mv laneDetailRail.js
+   otherTerminalsRail.js`; yalnızca tekli gövdede render; varsayılan kapalı +
+   hover açma düğmesi; kapalı şeritte yalnızca approval/input bekleyenler;
+   satır tıklaması `enterLane`. Init-once guard sürdürülür. — G5, C5, S12, S23,
+   S24
+8. **Sidebar chip'i + status bar slotu.** `projectStatusBadges`'e
+   `computeCounts()` export'u; sidebar `◆` chip'i dikkat durumu kazanır; status
+   bar'ın sol slotu üç durumla doldurulur, hover menüsü yukarı açılır, satır
+   tıklaması gerekirse projeyi değiştirip sekmeyi açar. — G5, C6, S13, S25, S26
+9. **Home'u kart panosuna çevir.** Dört kart, `mount()`/`update()` ayrımı,
+   `_renderBoardView` idempotence guard'ı, `laneRail.js` silinir, Specs kartı
+   `!malformed` filtresini taşır, proje yokken proje seçimi. — G4, C2, C6, S9,
+   S10, S11, S19, S27
+10. **Palette, sözlük ve kalan temizlik.** `Go to Home`; komut sözlüğünde
+    "Frame/Mainframe" → "Terminal/Home"; kısayollar `enterLane`'in yeni
+    anlamıyla; kalan "New Frame" metinleri; boş durumun tek yerde toplanması.
+    — G6, G7, S16, S19
