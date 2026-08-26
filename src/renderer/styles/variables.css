@@ -25,6 +25,9 @@
   --success: #9bdca8;
   --success-subtle: rgba(155, 220, 168, 0.15);
   --warning: #e5cd8e;
+  /* Warning text sitting on a warning tint. Dark themes can reuse the fill
+     colour; light cannot (status-bar spec's light-theme pass). */
+  --warning-ink: var(--warning);
   --error: #e8938a;
   --error-subtle: rgba(232, 147, 138, 0.15);
   --info: #a6c0f0;
@@ -63,6 +66,11 @@
   --space-lg: 14px;
   --space-xl: 20px;
 
+  /* Chrome */
+  /* Status bar height — read by both the bar itself and body's
+     padding-bottom, so the two can never disagree (status-bar spec). */
+  --status-bar-height: 26px;
+
   /* Border Radius */
   --radius-sm: 4px;
   --radius-md: 5px;
@@ -93,8 +101,12 @@
   --text-tertiary: #8a8480;
   --text-muted: #b0aba5;
 
-  --accent-primary: #2f7d4f;
-  --accent-secondary: #256b41;
+  /* Darkened until text in these colours clears WCAG AA (4.5:1) on its own
+     12% tint — the badges and chips throughout the app pair the two, and at
+     the previous values they measured 3.5–4.0 (status-bar spec's light pass).
+     The shift is ~12% darker: invisible as a hue, decisive as contrast. */
+  --accent-primary: #286b44;
+  --accent-secondary: #1f5a37;
   --accent-subtle: rgba(47, 125, 79, 0.12);
   --accent-glow: rgba(47, 125, 79, 0.08);
 
@@ -104,12 +116,15 @@
   --doc-task: #b0722e;
   --doc-outcome: #3e7d4c;
 
-  --success: #4a7c50;
+  --success: #3e6843;
   --success-subtle: rgba(74, 124, 80, 0.12);
   --warning: #c07820;
-  --error: #b84040;
+  /* --warning stays as it is: it fills bars and dots, where darkening it to
+     text contrast would just look muddy. Warning *text* on a tint uses this. */
+  --warning-ink: #815015;
+  --error: #a43939;
   --error-subtle: rgba(184, 64, 64, 0.12);
-  --info: #4070a8;
+  --info: #376090;
 
   --border-subtle: rgba(0, 0, 0, 0.07);
   --border-default: rgba(0, 0, 0, 0.10);

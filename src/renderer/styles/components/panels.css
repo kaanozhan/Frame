@@ -1029,9 +1029,11 @@
   color: var(--info);
 }
 
+/* Was --text-muted on --bg-hover: 1.44:1 in light theme, unreadable
+   (status-bar spec's light pass). --text-secondary clears AA on both. */
 .plugin-status.status-available {
   background: var(--bg-hover);
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .plugin-description {
@@ -4415,7 +4417,7 @@
    colours, not error: the folder is fine, its status.json needs a field. */
 .spec-phase-badge.phase-malformed {
   background: rgba(229, 205, 142, 0.15);
-  color: var(--warning);
+  color: var(--warning-ink);
 }
 
 .specs-card-malformed {
@@ -4438,7 +4440,7 @@
 
 .specs-card-malformed-reason strong {
   font-family: var(--font-mono);
-  color: var(--warning);
+  color: var(--warning-ink);
   font-weight: 500;
 }
 

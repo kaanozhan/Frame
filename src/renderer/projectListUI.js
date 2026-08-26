@@ -232,32 +232,84 @@ let workspaceNavEl = null;
 let navSpecsCount = 0;
 let navTasksCount = 0;
 
-// One row per workspace destination. `open` receives the multiTerminalUI
+// Workspace destinations, grouped (sidebar-nav-groups spec). Ten flat rows
+// read as a list of everything; three named groups say what each row is for:
+// Work is where you act, Context is what the project knows about itself,
+// Frame is the tool watching itself. `open` receives the multiTerminalUI
 // instance. `surfaces` are the getActiveSurface() values that light the row.
-const WORKSPACE_NAV_ITEMS = [
-  { view: 'terminals', icon: '›_', label: 'Terminals', open: ui => ui.showTerminals(), surfaces: ['terminals'] },
-  { view: 'specs', icon: '≡', label: 'Specs', count: true, open: ui => ui.showSpecs(), surfaces: ['specs', 'section:spec'] },
-  { view: 'tasks', icon: '✓', label: 'Tasks', count: true, open: ui => ui.showTasksBoard(), surfaces: ['tasks', 'section:task'] },
-  { view: 'decisions', icon: '◈', label: 'Decisions', open: ui => ui.showDecisions(), surfaces: ['decisions'] },
-  { view: 'structure', icon: '◎', label: 'Structure', open: ui => ui.showStructureMap(), surfaces: [] },
-  { view: 'github', icon: '◇', label: 'GitHub', open: ui => ui.togglePanel('github'), surfaces: ['panel:github'] },
-  { view: 'claude', icon: '✦', label: 'Claude', open: ui => ui.togglePanel('claude'), surfaces: ['panel:claude'] },
-  { view: 'prompts', icon: '❯', label: 'Prompts', open: ui => ui.togglePanel('prompts'), surfaces: ['panel:prompts'] },
-  { view: 'history', icon: '↺', label: 'History', open: ui => ui.togglePanel('history'), surfaces: ['panel:history'] },
-  { view: 'activity', icon: '∿', label: 'Activity', open: ui => ui.togglePanel('activity'), surfaces: ['panel:activity'] }
+const WORKSPACE_NAV_GROUPS = [
+  {
+    key: 'work',
+    label: 'Work',
+    items: [
+      { view: 'terminals', icon: '›_', label: 'Terminals', open: ui => ui.showTerminals(), surfaces: ['terminals'] },
+      { view: 'github', icon: '◇', label: 'GitHub', open: ui => ui.togglePanel('github'), surfaces: ['panel:github'] },
+      { view: 'claude', icon: '✦', label: 'Claude', open: ui => ui.togglePanel('claude'), surfaces: ['panel:claude'] }
+    ]
+  },
+  {
+    key: 'context',
+    label: 'Context',
+    items: [
+      { view: 'specs', icon: '≡', label: 'Specs', count: true, open: ui => ui.showSpecs(), surfaces: ['specs', 'section:spec'] },
+      { view: 'tasks', icon: '✓', label: 'Tasks', count: true, open: ui => ui.showTasksBoard(), surfaces: ['tasks', 'section:task'] },
+      { view: 'decisions', icon: '◈', label: 'Decisions', open: ui => ui.showDecisions(), surfaces: ['decisions'] },
+      { view: 'structure', icon: '◎', label: 'Structure', open: ui => ui.showStructureMap(), surfaces: [] },
+      { view: 'prompts', icon: '❯', label: 'Prompts', open: ui => ui.togglePanel('prompts'), surfaces: ['panel:prompts'] }
+    ]
+  },
+  {
+    key: 'frame',
+    label: 'Frame',
+    items: [
+      { view: 'activity', icon: '∿', label: 'Activity', open: ui => ui.togglePanel('activity'), surfaces: ['panel:activity'] }
+    ]
+  }
 ];
 
+/** Every row, flat — for the passes that don't care about grouping. */
+const WORKSPACE_NAV_ITEMS = WORKSPACE_NAV_GROUPS.flatMap(g => g.items);
+
+const NAV_GROUPS_KEY = 'frame-nav-groups';
+
+function loadCollapsedGroups() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(NAV_GROUPS_KEY) || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveCollapsedGroups(state) {
+  try {
+    localStorage.setItem(NAV_GROUPS_KEY, JSON.stringify(state));
+  } catch (err) {
+    console.error('Failed to save nav group state:', err);
+  }
+}
+
 function buildWorkspaceNav() {
+  const collapsed = loadCollapsedGroups();
   const nav = document.createElement('div');
   nav.className = 'project-workspace-nav';
-  nav.innerHTML = WORKSPACE_NAV_ITEMS.map(item => `
-    <div class="workspace-nav-item" data-view="${item.view}" tabindex="0" role="button">
-      <span class="workspace-nav-icon">${item.icon}</span>
-      <span class="workspace-nav-label">${item.label}</span>
-      <span class="workspace-nav-right">
-        ${item.view === 'terminals' ? '<span class="workspace-nav-agents" style="display:none"></span>' : ''}
-        ${item.view === 'terminals' || item.count ? `<span class="workspace-nav-count" data-count="${item.view}"></span>` : ''}
-      </span>
+  nav.innerHTML = WORKSPACE_NAV_GROUPS.map(group => `
+    <div class="workspace-nav-group${collapsed[group.key] ? ' collapsed' : ''}" data-group="${group.key}">
+      <div class="workspace-nav-group-header" tabindex="0" role="button" aria-expanded="${!collapsed[group.key]}">
+        <span class="workspace-nav-group-chevron">&#8250;</span>
+        <span class="workspace-nav-group-label">${group.label}</span>
+      </div>
+      <div class="workspace-nav-group-items">
+        ${group.items.map(item => `
+          <div class="workspace-nav-item" data-view="${item.view}" tabindex="0" role="button">
+            <span class="workspace-nav-icon">${item.icon}</span>
+            <span class="workspace-nav-label">${item.label}</span>
+            <span class="workspace-nav-right">
+              ${item.view === 'terminals' ? '<span class="workspace-nav-agents" style="display:none"></span>' : ''}
+              ${item.view === 'terminals' || item.count ? `<span class="workspace-nav-count" data-count="${item.view}"></span>` : ''}
+            </span>
+          </div>`).join('')}
+      </div>
     </div>`).join('');
 
   WORKSPACE_NAV_ITEMS.forEach((item) => {
@@ -269,6 +321,25 @@ function buildWorkspaceNav() {
       }
     });
   });
+
+  nav.querySelectorAll('.workspace-nav-group-header').forEach((header) => {
+    const toggle = () => {
+      const group = header.closest('.workspace-nav-group');
+      const key = group.dataset.group;
+      const nowCollapsed = !group.classList.contains('collapsed');
+      group.classList.toggle('collapsed', nowCollapsed);
+      header.setAttribute('aria-expanded', String(!nowCollapsed));
+      const state = loadCollapsedGroups();
+      state[key] = nowCollapsed;
+      saveCollapsedGroups(state);
+      refreshWorkspaceNav();
+    };
+    header.addEventListener('click', toggle);
+    header.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  });
+
   return nav;
 }
 
@@ -306,6 +377,17 @@ function refreshWorkspaceNav() {
   WORKSPACE_NAV_ITEMS.forEach((item) => {
     workspaceNavEl.querySelector(`[data-view="${item.view}"]`)
       .classList.toggle('on', item.surfaces.includes(surface));
+  });
+
+  // A collapsed group hides its rows, and with them the active-surface
+  // highlight. The header carries it instead, so "where am I" survives
+  // collapsing (sidebar-nav-groups spec).
+  WORKSPACE_NAV_GROUPS.forEach((group) => {
+    const el = workspaceNavEl.querySelector(`[data-group="${group.key}"]`);
+    if (!el) return;
+    const holdsActive = group.items.some(item => item.surfaces.includes(surface));
+    el.querySelector('.workspace-nav-group-header')
+      .classList.toggle('on', holdsActive && el.classList.contains('collapsed'));
   });
   const agentsEl = termItem.querySelector('.workspace-nav-agents');
   agentsEl.style.display = agents > 0 ? '' : 'none';

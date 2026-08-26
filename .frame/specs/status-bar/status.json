@@ -1,0 +1,16 @@
+{
+  "slug": "status-bar",
+  "title": "A status bar at the foot of the window",
+  "phase": "done",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [
+    "task-spec-status-bar-T01",
+    "task-spec-status-bar-T02",
+    "task-spec-status-bar-T03",
+    "task-spec-status-bar-T04",
+    "task-spec-status-bar-T05"
+  ],
+  "created_at": "2026-08-26T11:00:00Z",
+  "updated_at": "2026-08-26T10:45:24.667Z",
+  "last_phase_at": "2026-08-26T10:33:26.475Z"
+}

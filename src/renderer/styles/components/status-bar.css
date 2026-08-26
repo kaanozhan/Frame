@@ -1,0 +1,69 @@
+/* ==================== STATUS BAR ==================== */
+/* The foot of the window (status-bar spec): ambient state you glance at,
+   as opposed to the top bar's controls you click. Deliberately quiet — one
+   line of 11px text on the panel background, no elevation, no shadow. It
+   must never read as a second toolbar.
+
+   Fixed rather than a flex row in the shell: every modal and overlay is a
+   body child, and re-parenting them to add one bar is not a trade worth
+   making. `body` carries the matching padding-bottom instead. */
+
+#status-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--status-bar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 0 var(--space-md);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  /* Above the content, below modals/toasts (9000+). */
+  z-index: 500;
+}
+
+.status-bar-left,
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+/* The usage meters keep the markup and behaviour they had in the top bar
+   (weekly still reveals on hover), but drop the pill chrome: the bar is
+   already their container. */
+#status-bar .claude-usage-bars {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin-right: 0;
+  padding: 0;
+}
+
+#status-bar .claude-usage-bars:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+#status-bar .claude-usage-bars:hover .usage-label,
+#status-bar .claude-usage-bars:hover .usage-percent {
+  color: var(--text-primary);
+}
+
+/* Measured in both themes: the meters' own text sat at 2.4–3.1:1 against
+   the bar, under WCAG AA. The label and the reset time move one step up the
+   text scale — they are the two smallest strings in the app, and a readout
+   nobody can read is decoration (status-bar spec's light pass). */
+#status-bar .usage-label {
+  color: var(--text-secondary);
+}
+
+#status-bar .usage-reset {
+  color: var(--text-secondary);
+}

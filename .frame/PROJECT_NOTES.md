@@ -1821,3 +1821,108 @@ panel, still rendering on every SPEC_DATA push) threw on a phase-less entry
 and needed a guard; and `reconcilePhase` already heals an invalid `phase`
 from the files on disk, so in practice the malformed path is narrower than
 the issue suggests — a missing title or an unreadable file.
+
+### [2026-08-26] A status bar at the foot of the window (spec: status-bar)
+
+Kaan proposed a bottom bar: session limit meter to the bottom-right, theme
+toggle to the top-right, room for more later. Agreed, and the reason is worth
+recording as a rule rather than a one-off: **the top bar holds controls you
+click, the status bar holds readouts you glance at.** The usage meters had
+already caused one crowding complaint up there ("start butonu çok dip dibe"),
+which is what a readout wedged into a toolbar does.
+
+Shipped: 26px bar, fixed, with `body { padding-bottom }` — both reading the
+same `--status-bar-height` token so they cannot drift. Fixed rather than a
+new flex row in the shell because every modal and overlay is a body child,
+and re-parenting all of them to add one bar is not a trade worth making.
+
+Two ownership fixes rode along. The usage widget belonged to
+`terminalTabBar`, which rendered and updated it; it now belongs to a new
+`statusBar.js` (behaviour moved verbatim, tab bar −111 lines). And the theme
+toggle is wired inside `terminalTabBar` rather than `index.js`, because the
+tab bar renders that button — an `index.js` listener would bind before the
+element exists, which is exactly how "Add new Project" died silently for a
+day.
+
+The bar's left half is deliberately empty. It is a declared slot; nothing was
+invented to fill it.
+
+A correction worth keeping, because it nearly cost a day of work: I reported
+"light theme has real contrast problems — the project switcher and agent
+selector keep dark backgrounds". That was **false**. The screenshot was
+captured in the same tick as the theme flip, so `capturePage` returned a
+half-repainted frame: some elements light, some still dark. Computed styles
+in light theme were correct all along. Lesson for the verification recipe:
+after a theme change (or any global restyle), wait a beat before capturing,
+and check computed values rather than reading a screenshot as truth.
+
+The light-theme pass that followed was therefore driven by measurement, not
+by the picture — see the entry below.
+
+### [2026-08-26] Light-theme contrast, measured (spec: status-bar, second half)
+
+Kaan asked to fix light theme in the same PR. Since my original claim turned
+out to be a screenshot artifact, the pass was done with a real WCAG contrast
+probe instead: for every text node, the element's colour composited over its
+actual ancestor backgrounds, compared against 4.5:1 (3:1 for large text),
+across Home / Specs / Specs grid / Tasks / Decisions / Claude, in both themes.
+
+Two real defects, both fixed:
+
+1. **`.plugin-status.status-available` measured 1.44:1** — `--text-muted` on
+   `--bg-hover`, effectively invisible. Now `--text-secondary`.
+2. **Every badge that pairs a 12% tint with the same hue as text** measured
+   3.5–4.0:1 in light (58 such rules across the CSS: phase badges, priority
+   chips, active filter chips, status pills). Fixed once at the token level
+   by darkening the light palette's text hues ~12% — `--accent-primary`
+   `#2f7d4f→#286b44`, `--success` `#4a7c50→#3e6843`, `--error`
+   `#b84040→#a43939`, `--info` `#4070a8→#376090` — so all 58 clear AA without
+   touching a single rule. Dark theme is untouched.
+
+`--warning` was left alone: it fills bars and dots, where the darkening
+needed for text (`#c07820→#815015`) would look muddy. Warning *text on a
+tint* uses a new `--warning-ink`, which is just `var(--warning)` in dark.
+
+The status bar's own meters were fixed too — its label and reset time sat at
+2.4–3.1:1, and a readout nobody can read is decoration.
+
+**Left as a decision, not silently changed:** the app-wide metadata palette
+(`--text-tertiary` / `--text-muted` at 9–11px: nav counts, card slugs, dates,
+the version string) measures 2.2–3.2:1 in **both** themes. That is a
+deliberate "quiet" look, not a light-theme bug, and raising it would visibly
+change the whole app. It needs a call, not a patch.
+
+### [2026-08-26] Sidebar nav grouped; History retired; four shortcuts that never worked (spec: sidebar-nav-groups)
+
+Kaan asked to tidy the left menu into Work / Context / Frame / Project, then
+withdrew the Project group mid-request ("sol bar dursun") — so the icon rail,
+Files, Changes and Settings stayed exactly where they were, and only the
+workspace nav changed.
+
+Three groups now: Work (Terminals, GitHub, Claude), Context (Specs, Tasks,
+Decisions, Structure, Prompts), Frame (Activity). Collapsible, state in
+localStorage. One detail worth keeping: **a folded group holding the active
+surface marks its header** — without it, collapsing Context while sitting in
+Tasks made "where am I" disappear entirely.
+
+History retired. Kaan's instinct ("aynı şeyleri yazıyoruz gibi görünüyor")
+was exactly right and cheap to verify: `promptsPanel` and `historyPanel` both
+sent `LOAD_PROMPT_HISTORY` and rendered `PROMPT_HISTORY_DATA`. Two surfaces,
+one dataset. He chose to keep Prompts (search, cards, per-project).
+
+**The find of the day, and it was free:** `registerCommands()` is a top-level
+function, but four of its commands closed over `multiTerminalUI`, a `const`
+declared inside `init()`. Each threw `ReferenceError: multiTerminalUI is not
+defined`, which `runById`'s catch turned into a console line nobody reads. So
+⌘⇧L (Prompts), ⌘⇧X (Claude) and ⌘⇧G (GitHub) had never once opened a panel.
+Same family as the dead "Add new Project" button: a control that fails
+silently is indistinguishable from one that was never wired. Fixed by
+resolving the UI the way the sidebar rows do.
+
+Verification note, for the recipe: **localStorage persistence cannot be
+tested through Playwright here.** A canary key written and given six seconds
+came back `null` after relaunch, because the harness kills the app rather
+than quitting it, so Chromium never flushes its LevelDB. `frame-terminals-view`
+looked like proof of persistence but is written fresh at boot. Read paths can
+be proven with `page.reload()` (same process, storage intact); disk survival
+has to be taken on the mechanism's track record.

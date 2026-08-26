@@ -41,14 +41,7 @@ const PANEL_REGISTRY = {
   github:   { elementId: 'github-panel',   module: () => require('./githubPanel') },
   claude:   { elementId: 'plugins-panel',  module: () => require('./pluginsPanel') },
   prompts:  { elementId: 'prompts-panel',  module: () => require('./promptsPanel') },
-  activity: { elementId: 'activity-panel', module: () => require('./activityPanel') },
-  history:  {
-    elementId: 'history-panel',
-    module: () => {
-      const m = require('./historyPanel');
-      return { show: m.showHistoryPanel, hide: m.hideHistoryPanel };
-    }
-  }
+  activity: { elementId: 'activity-panel', module: () => require('./activityPanel') }
 };
 
 class MultiTerminalUI {

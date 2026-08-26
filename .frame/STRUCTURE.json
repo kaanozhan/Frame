@@ -5439,73 +5439,6 @@
         "emits": []
       }
     },
-    "renderer/historyPanel": {
-      "file": "src/renderer/historyPanel.js",
-      "description": "History Panel Module",
-      "exports": [
-        "init",
-        "isHistoryVisible",
-        "toggleHistoryPanel",
-        "showHistoryPanel",
-        "hideHistoryPanel",
-        "loadPromptHistory"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels"
-      ],
-      "functions": {
-        "init": {
-          "line": 17,
-          "params": [
-            "panelId",
-            "contentId",
-            "onToggle"
-          ],
-          "purpose": "Initialize history panel"
-        },
-        "isHistoryVisible": {
-          "line": 28,
-          "purpose": "Check if history panel is visible"
-        },
-        "toggleHistoryPanel": {
-          "line": 35,
-          "purpose": "Toggle history panel visibility"
-        },
-        "showHistoryPanel": {
-          "line": 56,
-          "purpose": "Show history panel"
-        },
-        "hideHistoryPanel": {
-          "line": 65,
-          "purpose": "Hide history panel"
-        },
-        "loadPromptHistory": {
-          "line": 74,
-          "purpose": "Load prompt history from file"
-        },
-        "renderPromptHistory": {
-          "line": 81,
-          "params": [
-            "historyData"
-          ],
-          "purpose": "Render prompt history data"
-        },
-        "setupIPC": {
-          "line": 119,
-          "purpose": "Setup IPC listeners"
-        }
-      },
-      "ipc": {
-        "listens": [
-          "PROMPT_HISTORY_DATA",
-          "TOGGLE_HISTORY_PANEL"
-        ],
-        "emits": [
-          "LOAD_PROMPT_HISTORY"
-        ]
-      }
-    },
     "renderer/htmlUtils": {
       "file": "src/renderer/htmlUtils.js",
       "description": "HTML Utils",
@@ -5555,7 +5488,6 @@
         "fileTreeUI",
         "gitChangesPanel",
         "diffSection",
-        "historyPanel",
         "tasksPanel",
         "tasksDashboard",
         "taskConfirmModal",
@@ -5591,39 +5523,40 @@
         "sampleBanner",
         "ipcWatchdog",
         "../package.json",
+        "statusBar",
         "paletteSources",
         "agentDispatch"
       ],
       "functions": {
         "init": {
-          "line": 50,
+          "line": 49,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 253,
+          "line": 251,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 330,
+          "line": 316,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 441,
+          "line": 427,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 472,
+          "line": 458,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 495,
+          "line": 481,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 767,
+          "line": 751,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -6132,7 +6065,6 @@
         "pluginsPanel",
         "promptsPanel",
         "activityPanel",
-        "historyPanel",
         "structureMap",
         "specsDashboard",
         "tasksDashboard",
@@ -6795,17 +6727,26 @@
           "line": 223,
           "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
         },
-        "buildWorkspaceNav": {
-          "line": 250
-        },
-        "placeWorkspaceNav": {
+        "loadCollapsedGroups": {
           "line": 275
         },
+        "saveCollapsedGroups": {
+          "line": 284,
+          "params": [
+            "state"
+          ]
+        },
+        "buildWorkspaceNav": {
+          "line": 292
+        },
+        "placeWorkspaceNav": {
+          "line": 346
+        },
         "refreshWorkspaceNav": {
-          "line": 287
+          "line": 358
         },
         "updateWorkspaceNav": {
-          "line": 323,
+          "line": 405,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -8063,6 +8004,54 @@
         ]
       }
     },
+    "renderer/statusBar": {
+      "file": "src/renderer/statusBar.js",
+      "description": "Status Bar Module",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 18
+        },
+        "updateUsage": {
+          "line": 39,
+          "params": [
+            "data"
+          ],
+          "purpose": "Paint both meters from a usage push."
+        },
+        "updateItem": {
+          "line": 68,
+          "params": [
+            "item",
+            "usage",
+            "percentText",
+            "resetText"
+          ]
+        },
+        "formatResetTime": {
+          "line": 91,
+          "params": [
+            "isoString"
+          ],
+          "purpose": "\"2h 15m\" / \"45m\" / \"3d 4h\" until the window resets."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "CLAUDE_USAGE_DATA"
+        ],
+        "emits": [
+          "REFRESH_CLAUDE_USAGE",
+          "LOAD_CLAUDE_USAGE"
+        ]
+      }
+    },
     "renderer/structureMap": {
       "file": "src/renderer/structureMap.js",
       "description": "Structure Map Module",
@@ -9026,7 +9015,7 @@
       ],
       "functions": {
         "lucideIcon": {
-          "line": 19,
+          "line": 23,
           "params": [
             "data",
             "size = 18"
@@ -9035,13 +9024,9 @@
       },
       "ipc": {
         "listens": [
-          "UPDATE_AVAILABLE",
-          "CLAUDE_USAGE_DATA"
+          "UPDATE_AVAILABLE"
         ],
-        "emits": [
-          "REFRESH_CLAUDE_USAGE",
-          "LOAD_CLAUDE_USAGE"
-        ]
+        "emits": []
       }
     },
     "renderer/terminalsView": {
@@ -10666,6 +10651,18 @@
         "description": "AI Tool Selector Module"
       }
     ],
+    "bar": [
+      {
+        "module": "renderer/presenceBar",
+        "file": "src/renderer/presenceBar.js",
+        "description": "Presence Bar (topbar-presence spec)"
+      },
+      {
+        "module": "renderer/statusBar",
+        "file": "src/renderer/statusBar.js",
+        "description": "Status Bar Module"
+      }
+    ],
     "claude-sessions": [
       {
         "module": "main/claudeSessionsManager",
@@ -10825,11 +10822,6 @@
         "module": "main/promptLogger",
         "file": "src/main/promptLogger.js",
         "description": "Prompt Logger Module"
-      },
-      {
-        "module": "renderer/historyPanel",
-        "file": "src/renderer/historyPanel.js",
-        "description": "History Panel Module"
       },
       {
         "module": "renderer/promptsPanel",
@@ -11034,6 +11026,18 @@
         "module": "renderer/specSection",
         "file": "src/renderer/specSection.js",
         "description": "Spec Section Module"
+      }
+    ],
+    "status": [
+      {
+        "module": "renderer/projectStatusBadges",
+        "file": "src/renderer/projectStatusBadges.js",
+        "description": "Project Status Badges"
+      },
+      {
+        "module": "renderer/statusBar",
+        "file": "src/renderer/statusBar.js",
+        "description": "Status Bar Module"
       }
     ],
     "structure": [
