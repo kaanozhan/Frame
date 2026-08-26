@@ -7,15 +7,12 @@
     "task-spec-spec-docs-delivery-invariant-T02",
     "task-spec-spec-docs-delivery-invariant-T03",
     "task-spec-spec-docs-delivery-invariant-T04",
-    "task-spec-spec-docs-delivery-invariant-T05",
-    "task-spec-spec-docs-delivery-invariant-T06",
-    "task-spec-spec-docs-delivery-invariant-T07",
     "task-spec-spec-docs-delivery-invariant-T08",
     "task-spec-spec-docs-delivery-invariant-T09"
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-08-26T11:52:12.969Z",
-  "updated_at": "2026-08-26T12:45:09.591Z",
+  "updated_at": "2026-08-26T13:05:30.958Z",
   "last_phase_at": "2026-08-26T12:45:09.592Z",
   "implement_mode": "guided"
 }

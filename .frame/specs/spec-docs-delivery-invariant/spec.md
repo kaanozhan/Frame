@@ -69,8 +69,7 @@ cannot and offered the fix. Concretely:
    own always-on prose names actually exists, and reports what it finds.
 3. A health-notice banner surfaces a broken invariant with a one-click
    remedy and a dismissal that sticks.
-4. The migration's meta-path prose repair covers pre-split generations.
-5. `.frame/specs/.gitkeep` and `.frame/bin/codex` are re-ensured on open.
+4. `.frame/specs/.gitkeep` and `.frame/bin/codex` are re-ensured on open.
 
 ## Constraints
 
@@ -129,6 +128,15 @@ cannot and offered the fix. Concretely:
 
 ## Out of Scope
 
+- **The pre-split AGENTS.md, and the migration prose inside it.** Dropped from
+  this spec after implementation disproved the premise it rested on: all seven
+  `AGENTS_LINE_EDITS` targets *hit* the post-split generation they were written
+  for, and they miss on pre-split documents because that generation has no
+  navigation section at all — it is a wholesale different document carrying the
+  maintenance ceremony inline, with 13 root-relative meta mentions across
+  sections the current template no longer has. That is a real problem and a
+  different question from this one; it gets its own spec, diagnosed before
+  decided.
 - `.claude/commands/` slash-command shims — decision reaffirmed, not revisited.
 - Sharing `.frame/runtime/commands/` in `repo` mode.
 - Rewriting or merging a user's own spec section.
@@ -137,10 +145,5 @@ cannot and offered the fix. Concretely:
 
 ## Open Questions
 
-- **How the migration's meta-path prose repair should work.** Extending
-  `AGENTS_LINE_EDITS` with each pre-split generation's exact lines is narrow
-  and safe but stays a one-shot that only fires during migration, so a project
-  that migrated already is never repaired. Moving the navigation and
-  pointer-table prose into a managed block instead would let it self-heal on
-  every open like the spec section, at the cost of claiming more of AGENTS.md
-  as Frame-managed. Decide at the plan's decision gate.
+- ~~How the migration's meta-path prose repair should work.~~ **Resolved by
+  disproof during implementation** — neither option was right. See Out of Scope.

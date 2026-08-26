@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-26T13:00:10.494Z",
+  "lastUpdated": "2026-08-26T13:05:30.659Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5468,45 +5468,6 @@
       "createdAt": "2026-08-26T12:25:34.826Z",
       "updatedAt": "2026-08-26T13:00:10.494Z",
       "completedAt": "2026-08-26T13:00:10.494Z"
-    },
-    {
-      "id": "task-spec-spec-docs-delivery-invariant-T05",
-      "title": "Freeze each shipped generation's AGENTS.md navigation and pointer-table text as `AGENTS_NAV_LEGACY_MATCHERS` and add `NAV_SECTION`, `NAV_SECTION_VERSION` and `renderNavSection()` to `frameTemplates.js`.",
-      "description": "",
-      "source": "spec:spec-docs-delivery-invariant:T05",
-      "status": "pending",
-      "priority": "medium",
-      "category": "feature",
-      "context": "From spec: spec-docs-delivery-invariant",
-      "createdAt": "2026-08-26T12:25:34.826Z",
-      "updatedAt": "2026-08-26T12:25:34.826Z",
-      "completedAt": null
-    },
-    {
-      "id": "task-spec-spec-docs-delivery-invariant-T06",
-      "title": "Add the nav block to `upgradeSpecDocs`' AGENTS.md entry and stop `layoutMigration` reporting per-line misses for the regions the block now owns, proving a pre-split AGENTS.md comes out naming `.frame/` meta paths.",
-      "description": "",
-      "source": "spec:spec-docs-delivery-invariant:T06",
-      "status": "pending",
-      "priority": "medium",
-      "category": "feature",
-      "context": "From spec: spec-docs-delivery-invariant",
-      "createdAt": "2026-08-26T12:25:34.826Z",
-      "updatedAt": "2026-08-26T12:25:34.826Z",
-      "completedAt": null
-    },
-    {
-      "id": "task-spec-spec-docs-delivery-invariant-T07",
-      "title": "Extend `docsHealth` to report a nav block no frozen generation matched, so a drifted pre-split AGENTS.md is surfaced rather than silently left unrepaired.",
-      "description": "",
-      "source": "spec:spec-docs-delivery-invariant:T07",
-      "status": "pending",
-      "priority": "medium",
-      "category": "feature",
-      "context": "From spec: spec-docs-delivery-invariant",
-      "createdAt": "2026-08-26T12:25:34.826Z",
-      "updatedAt": "2026-08-26T12:25:34.826Z",
-      "completedAt": null
     },
     {
       "id": "task-spec-spec-docs-delivery-invariant-T08",

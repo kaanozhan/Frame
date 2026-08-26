@@ -1926,3 +1926,35 @@ than quitting it, so Chromium never flushes its LevelDB. `frame-terminals-view`
 looked like proof of persistence but is written fresh at boot. Read paths can
 be proven with `page.reload()` (same process, storage intact); disk survival
 has to be taken on the mechanism's track record.
+
+### [2026-08-26] AGENTS.md generations have different *shapes*, not just different text
+A user reported the symptom recorded in **[2026-07-23] Spec-flow delivery gap**
+all over again: asked in natural language to plan a spec, the agent never
+entered the deep `spec.plan` flow. Diagnosis this time went one layer down.
+The 07-23 fix broadened `AGENTS_SPEC_LEGACY_MATCHERS` so a pre-split AGENTS.md's
+full section would finally be replaced by the core pointer. It was — and the
+pointer aimed at `.frame/docs/REFERENCE.md`, which `upgradeSpecDocs` never
+creates (`catch (_) { continue; // missing file — never create it }`). The old
+bug was "the agent follows a stale flow"; the fix turned it into "the agent has
+no flow". Every project born v1.0.0–v2.4.0 with spec-driven on took that path
+on its next open. Fixed in `spec-docs-delivery-invariant` T01–T04: artifacts
+before docs on open, and the pointer written only once its target is read back
+and confirmed to carry the block.
+
+**The reusable finding, and a planning mistake worth not repeating.** While
+planning, one measurement — all seven `AGENTS_LINE_EDITS` targets miss on a
+genuine v2.4.0 AGENTS.md — was carried to the decision gate with its cause
+assumed rather than checked, and a whole navigation-managed-block workstream
+was decided on it. The measurement was right; the cause was not. Verified
+afterwards: every one of the seven **hits** the post-split (v2.5.0/v2.6.0)
+generation they were written for, so that population was never broken. They
+miss on pre-split documents because `## Project Navigation` and the pointer
+table **do not exist there**. Pre-split AGENTS.md is not the current document
+with different wording — it is a different document, carrying the whole
+maintenance ceremony inline (`## Task Management`, `## PROJECT_NOTES.md Rules`,
+`## Context Preservation`, `## STRUCTURE.json Rules`, `## General Rules`), 13
+root-relative meta mentions and no `.frame/` prefixes at all. So: when reasoning
+about an older generation of a Frame-written document, compare **headings
+first**; a matcher that misses may be pointing at a section that was never
+there. The pre-split document remains a real open problem — deliberately left
+to its own spec, to be diagnosed before it is decided.

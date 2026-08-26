@@ -30,11 +30,22 @@
   `IPC.SET_USER_SETTING`. Copying the proven pattern beats widening `healthNotice`'s
   contract for its three existing callers, and beats merging two unrelated triggers
   into one module.
-- **Migration's meta-path prose repair** → *Make the navigation prose a managed
-  block.* Extending `AGENTS_LINE_EDITS` per generation is narrower, but it only ever
-  fires during migration — every already-migrated project, this repository included,
-  would stay unrepaired forever. The block self-heals on each open, on the same
-  machinery the spec section already uses.
+- **Migration's meta-path prose repair** → *Dropped from this spec — the premise
+  behind the original decision was wrong.* The gate chose "make the navigation
+  prose a managed block" on the strength of one measurement: all seven
+  `AGENTS_LINE_EDITS` targets miss on a genuine v2.4.0 AGENTS.md. The
+  measurement holds; the reason assumed for it did not. Verified afterwards:
+  every one of the seven **hits** the post-split (v2.5.0/v2.6.0) generation
+  they were written for, so that population was never broken. They miss on
+  pre-split documents because `## Project Navigation` and the pointer table do
+  not exist there at all — that generation is an entirely different document,
+  carrying the whole maintenance ceremony inline. A managed block over
+  navigation prose is therefore unnecessary for one population and impossible
+  for the other. What pre-split projects actually have is a wholesale
+  previous-generation AGENTS.md (13 root-relative meta mentions across
+  `## Task Management`, `## PROJECT_NOTES.md Rules`, `## STRUCTURE.json Rules`,
+  `## General Rules`), which is a different question from the one this spec
+  asks and belongs in its own spec, diagnosed first.
 - **Test posture** → *Everything the infrastructure can reach.* The record covers
   `src/main/`, `src/shared/`, `scripts/`; `src/renderer/` has no harness (jsdom,
   playwright, @testing-library, puppeteer all re-verified absent today). Decisive
@@ -103,15 +114,15 @@ Append fires only when `findBlock` is null **and** no matcher hit **and**
 `docsHealth` reports no Frame-shaped section — so a doc with a customized section
 still falls through to `null`, and is reported instead.
 
-### The navigation block
+### Scope, narrowed after the evidence
 
-`getAgentsTemplate`'s navigation list and meta-file pointer table become a second
-managed block (`frame:managed:nav-section`, own version constant), migrated once
-from frozen per-generation texts. Honest limit: those texts must match what each
-released Frame actually wrote, and pre-split generations may have drifted in ways
-the freeze does not capture. Any generation that fails to match is not silently
-left behind — `docsHealth` reports the file as degraded and the popover surfaces
-it. The safety net is what makes the narrow matcher acceptable.
+This plan shipped with a navigation-block step that the evidence pass should
+have killed before the gate — see the revised D4. Steps 5 and 6 are gone and
+`frameTemplates.js`, `layoutMigration.js` and their test are out of the
+footprint. What remains is one coherent claim: the upgrade path ensures what
+its prose names, appends where nothing conflicts, asks where something might,
+and never fails silently. The pre-split AGENTS.md question is real and is left
+for a spec that diagnoses it first.
 
 ## Files
 
@@ -119,9 +130,6 @@ it. The safety net is what makes the narrow matcher acceptable.
   add `appendBlock` and `upgradeDoc`'s `onAbsent` option.
 - `src/shared/docsHealth.js` — **New** — pure report: missing named paths and
   unmatched Frame-shaped sections.
-- `src/shared/frameTemplates.js` — **Modified** — `NAV_SECTION`,
-  `NAV_SECTION_VERSION`, `AGENTS_NAV_LEGACY_MATCHERS`, `renderNavSection()`; wire
-  the nav block into `getAgentsTemplate`.
 - `src/shared/activityEvents.js` — **Modified** — register `docs.repaired` and
   `docs.degraded`.
 - `src/shared/ipcChannels.js` — **Modified** — doc-health report and remedy channels.
@@ -134,8 +142,6 @@ it. The safety net is what makes the narrow matcher acceptable.
   messages. *Added to scope during T04, with the user's approval: the plan named
   the project-open path but listed only `frameProject.js`, and the ordering the
   fix depends on lives in this handler.*
-- `src/main/layoutMigration.js` — **Modified** — stop reporting per-line misses for
-  the regions the nav block now owns; symlink-note handling unchanged.
 - `src/renderer/docsHealthHint.js` — **New** — the quiet popover, per-project
   dismissal, remedy actions.
 - `src/renderer/index.js` — **Modified** — init the new hint module.
@@ -144,25 +150,20 @@ it. The safety net is what makes the narrow matcher acceptable.
 - `test/docsHealth.test.js` — **New** — the pure report over crafted doc texts.
 - `test/specDocsUpgrade.test.js` — **New** — end-to-end over temp projects: the
   pre-split state, the customized state, and byte-identity for a healthy project.
-- `test/layoutMigration.test.js` — **Modified** — a genuine pre-split AGENTS.md
-  comes out of migration naming `.frame/` meta paths.
 
 ## Footprint
 
 - src/shared/docsManagedBlock.js
 - src/shared/docsHealth.js
-- src/shared/frameTemplates.js
 - src/shared/activityEvents.js
 - src/shared/ipcChannels.js
 - src/main/frameProject.js
 - src/main/specManager.js
-- src/main/layoutMigration.js
 - src/renderer/docsHealthHint.js
 - src/renderer/index.js
 - test/docsManagedBlock.test.js
 - test/docsHealth.test.js
 - test/specDocsUpgrade.test.js
-- test/layoutMigration.test.js
 
 ## Dependencies
 
@@ -197,20 +198,10 @@ deliberately installs nothing, so no test may reach `node_modules`.
    already stamped current, so `upgradeSpecDocs` leaves both docs alone and the
    fix comes from the target appearing. The test must assert that both docs are
    byte-identical across the open and the deep flow is nonetheless reachable.
-5. **Freeze the navigation texts.** Extract what each shipped generation's
-   `getAgentsTemplate` wrote for the navigation list and pointer table from the
-   release tags; add `NAV_SECTION`, `NAV_SECTION_VERSION`,
-   `AGENTS_NAV_LEGACY_MATCHERS` and `renderNavSection()`; emit the block from
-   `getAgentsTemplate`. Round-trip and legacy-migration tests alongside the existing
-   spec-section ones.
-6. **Migrate the navigation prose.** Add the nav block to `upgradeSpecDocs`'
-   AGENTS.md entry and drop `layoutMigration`'s per-line review noise for the regions
-   the block now owns. Extend `test/layoutMigration.test.js`: a genuine pre-split
-   AGENTS.md comes out naming `.frame/tasks.json` and `.frame/STRUCTURE.json`.
-7. **Record what happened.** Register `docs.repaired` and `docs.degraded` in
+5. **Record what happened.** Register `docs.repaired` and `docs.degraded` in
    `activityEvents.js` with their label functions, and record them from the open
    path. Assert the registry shape in `test/activityEvents.test.js`.
-8. **Raise the prompt.** Add `src/renderer/docsHealthHint.js` in `specDrivenHint`'s
+6. **Raise the prompt.** Add `src/renderer/docsHealthHint.js` in `specDrivenHint`'s
    shape — quiet popover, remedy actions for the ask-cases, per-project "don't show
    again" through `SET_USER_SETTING` — plus its IPC channels and the init call in
    `src/renderer/index.js`. No tests: `src/renderer/` has no harness, per the record.
