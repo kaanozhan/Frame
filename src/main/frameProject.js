@@ -929,6 +929,71 @@ function upgradeSpecDocs(projectPath) {
 }
 
 /**
+ * Append the managed spec section to a document the pass deliberately refused
+ * to touch, because the user asked for it.
+ *
+ * The refusal is the whole point of the `unmatched` state: a section Frame
+ * cannot prove is its own may hold instructions of the user's that Frame's
+ * would contradict, and two overlapping protocols is how an agent ends up
+ * following the wrong one. That judgement is the user's to overturn, and this
+ * is where they overturn it — never on Frame's initiative.
+ *
+ * Additive even here: `appendBlock` rewrites nothing, so their section stays
+ * exactly where it was, with Frame's beneath it.
+ */
+function appendSpecSection(projectPath, rel) {
+  if (!projectPath || !isFrameProject(projectPath)) {
+    return { success: false, error: 'not a Frame project' };
+  }
+  const doc = specDocDescriptors(projectPath).find((d) => d.rel === rel);
+  if (!doc) return { success: false, error: `not a Frame-managed doc: ${rel}` };
+
+  const text = readTextOrNull(doc.file);
+  if (text === null) return { success: false, error: `could not read ${rel}` };
+  if (docsManagedBlock.findBlock(text, doc.block.name)) {
+    return { success: true, alreadyPresent: true };
+  }
+
+  const appended = docsManagedBlock.appendBlock(text, {
+    body: doc.body,
+    version: templates.SPEC_SECTION_VERSION,
+    blockName: doc.block.name,
+    footerMarker: FRAME_DOC_FOOTER
+  });
+  if (appended === null || appended === text) {
+    return { success: false, error: `nothing to append to ${rel}` };
+  }
+
+  try {
+    fs.writeFileSync(doc.file, appended, 'utf8');
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+  syncClaudeRule(projectPath);
+  try {
+    activityLog.record('docs.repaired', { docs: 1, appended: 1 });
+  } catch (_) { /* bookkeeping never breaks a repair */ }
+  return { success: true, health: docsHealthFor(projectPath) };
+}
+
+/**
+ * The report on its own, without running the repair pass — what the UI asks
+ * for when it wants to know whether to say anything.
+ */
+function docsHealthFor(projectPath) {
+  if (!projectPath || !isFrameProject(projectPath)) return null;
+  const descriptors = specDocDescriptors(projectPath);
+  return docsHealth.report(
+    descriptors.map((d) => ({
+      path: d.rel,
+      text: readTextOrNull(d.file),
+      blocks: [d.block]
+    })),
+    (rel) => fs.existsSync(path.join(projectPath, rel))
+  );
+}
+
+/**
  * Put the pass's result on the record. This is the half that was missing when
  * the delivery gap shipped: the repair and the failure both happened silently,
  * so a month passed with nothing to look at.
@@ -1201,6 +1266,14 @@ function setupIPC(ipcMain) {
     setSpecDrivenEnabled(projectPath, enabled === true)
   );
 
+  // ─── Doc health ────────────────────────────────────────────
+  ipcMain.handle(IPC.GET_DOCS_HEALTH, (event, projectPath) =>
+    docsHealthFor(projectPath)
+  );
+  ipcMain.handle(IPC.APPEND_DOCS_SECTION, (event, { projectPath, doc }) =>
+    appendSpecSection(projectPath, doc)
+  );
+
   // ─── Git sharing ───────────────────────────────────────────
   ipcMain.handle(IPC.GET_GIT_SHARING_STATE, (event, projectPath) => {
     if (!projectPath || !isFrameProject(projectPath)) return { error: 'not a Frame project' };
@@ -1286,5 +1359,7 @@ module.exports = {
   upgradeSpecDocs,
   ensureProjectArtifacts,
   ensureCodexWrapper,
+  appendSpecSection,
+  docsHealthFor,
   setupIPC
 };

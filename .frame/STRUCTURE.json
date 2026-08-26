@@ -774,6 +774,8 @@
         "upgradeSpecDocs",
         "ensureProjectArtifacts",
         "ensureCodexWrapper",
+        "appendSpecSection",
+        "docsHealthFor",
         "setupIPC"
       ],
       "depends": [
@@ -991,8 +993,23 @@
           ],
           "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
         },
+        "appendSpecSection": {
+          "line": 944,
+          "params": [
+            "projectPath",
+            "rel"
+          ],
+          "purpose": "Append the managed spec section to a document the pass deliberately refused"
+        },
+        "docsHealthFor": {
+          "line": 983,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The report on its own, without running the repair pass — what the UI asks"
+        },
         "recordDocsActivity": {
-          "line": 940,
+          "line": 1005,
           "params": [
             "written",
             "appended",
@@ -1001,14 +1018,14 @@
           "purpose": "Put the pass's result on the record. This is the half that was missing when"
         },
         "removeFrame": {
-          "line": 975,
+          "line": 1040,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "dropEmptySettingsFile": {
-          "line": 1029,
+          "line": 1094,
           "params": [
             "projectPath",
             "file"
@@ -1016,21 +1033,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 1055,
+          "line": 1120,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 1071,
+          "line": 1136,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "setupIPC": {
-          "line": 1111,
+          "line": 1176,
           "params": [
             "ipcMain"
           ],
@@ -1045,6 +1062,8 @@
           "IS_SPEC_DRIVEN_ENABLED",
           "ENABLE_SPEC_DRIVEN",
           "SET_SPEC_DRIVEN",
+          "GET_DOCS_HEALTH",
+          "APPEND_DOCS_SECTION",
           "GET_GIT_SHARING_STATE",
           "SET_GIT_SHARING",
           "REMOVE_FRAME_FROM_PROJECT",
@@ -4918,6 +4937,106 @@
         }
       }
     },
+    "renderer/docsHealthHint": {
+      "file": "src/renderer/docsHealthHint.js",
+      "description": "Doc-health hint",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 44
+        },
+        "evaluate": {
+          "line": 64,
+          "purpose": "Show the hint if this project has something only a person can settle. Safe"
+        },
+        "actionable": {
+          "line": 91,
+          "params": [
+            "health"
+          ],
+          "purpose": "What is worth interrupting for. `unreadable` is deliberately absent: a"
+        },
+        "schedule": {
+          "line": 99,
+          "params": [
+            "projectPath",
+            "findings"
+          ]
+        },
+        "escapeHtml": {
+          "line": 109,
+          "params": [
+            "text"
+          ]
+        },
+        "describe": {
+          "line": 116,
+          "params": [
+            "{ unmatched",
+            "missing }"
+          ],
+          "purpose": "The one-line explanation, chosen by which finding is the more actionable."
+        },
+        "render": {
+          "line": 130,
+          "params": [
+            "projectPath",
+            "findings"
+          ]
+        },
+        "onOutsideClick": {
+          "line": 167,
+          "params": [
+            "e"
+          ]
+        },
+        "position": {
+          "line": 175,
+          "purpose": "Anchor to the Settings button, the same way specDrivenHint does."
+        },
+        "appendSections": {
+          "line": 201,
+          "params": [
+            "projectPath",
+            "unmatched",
+            "btn"
+          ],
+          "purpose": "Carry out the one thing Frame would not do unasked. Each document is"
+        },
+        "dismissForever": {
+          "line": 227,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "markDismissed": {
+          "line": 236,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Remembered in user settings rather than the project's config: it is a"
+        },
+        "isDismissed": {
+          "line": 248,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "readDismissed": {
+          "line": 253
+        },
+        "hide": {
+          "line": 258
+        }
+      }
+    },
     "renderer/editor": {
       "file": "src/renderer/editor.js",
       "description": "File Editor Module",
@@ -5558,6 +5677,7 @@
         "telemetryNotice",
         "healthNotice",
         "specDrivenHint",
+        "docsHealthHint",
         "migrationModal",
         "sampleBanner",
         "ipcWatchdog",
@@ -5568,34 +5688,34 @@
       ],
       "functions": {
         "init": {
-          "line": 49,
+          "line": 50,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 251,
+          "line": 253,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 316,
+          "line": 318,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 427,
+          "line": 429,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 458,
+          "line": 460,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 481,
+          "line": 483,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 751,
+          "line": 753,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -10768,6 +10888,20 @@
         "direction": "",
         "description": ""
       }
+    },
+    "docs": {
+      "GET_DOCS_HEALTH": {
+        "name": "get-docs-health",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "append": {
+      "APPEND_DOCS_SECTION": {
+        "name": "append-docs-section",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -10859,6 +10993,11 @@
       }
     ],
     "docs": [
+      {
+        "module": "renderer/docsHealthHint",
+        "file": "src/renderer/docsHealthHint.js",
+        "description": "Doc-health hint"
+      },
       {
         "module": "shared/docsHealth",
         "file": "src/shared/docsHealth.js",
@@ -10979,6 +11118,30 @@
         "module": "renderer/githubPanel",
         "file": "src/renderer/githubPanel.js",
         "description": "GitHub Panel Module"
+      }
+    ],
+    "health": [
+      {
+        "module": "renderer/docsHealthHint",
+        "file": "src/renderer/docsHealthHint.js",
+        "description": "Doc-health hint"
+      },
+      {
+        "module": "shared/docsHealth",
+        "file": "src/shared/docsHealth.js",
+        "description": "Doc health — does Frame's own prose still describe a project that exists?"
+      }
+    ],
+    "hint": [
+      {
+        "module": "renderer/docsHealthHint",
+        "file": "src/renderer/docsHealthHint.js",
+        "description": "Doc-health hint"
+      },
+      {
+        "module": "renderer/specDrivenHint",
+        "file": "src/renderer/specDrivenHint.js",
+        "description": "Spec-Driven Development hint"
       }
     ],
     "history": [

@@ -33,3 +33,10 @@ Registered `docs.repaired` and `docs.degraded` with a three-value reason enum (`
 _Captured: 2026-08-26 · 3 file change(s)_
 
 ---
+## T09 — Raise the prompt
+
+Added the `GET_DOCS_HEALTH` and `APPEND_DOCS_SECTION` channels, `frameProject.docsHealthFor` and `appendSpecSection`, and `src/renderer/docsHealthHint.js` in `specDrivenHint`'s shape — anchored quiet popover, per-project dismissal through `SET_USER_SETTING`, reusing the same CSS rather than inventing a second idiom for a structurally identical moment. Only two findings reach the user: a section Frame will not write over, and a path the prose names that is not on disk; everything else the pass repairs on its own and stays quiet about, and `unreadable` is deliberately not surfaced because a document Frame cannot read is a filesystem problem met elsewhere. Appending on the user's say-so is still additive — their section stays exactly where it is, Frame's goes beneath it. No tests: `src/renderer/` has no harness, which is precisely why the decision logic lives in the pure `docsHealth` module and this file only presents it.
+
+_Captured: 2026-08-26 · 4 file change(s)_
+
+---
