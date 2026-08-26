@@ -15,6 +15,105 @@
   overflow: hidden;
 }
 
+/* ─── Tab strip ─── */
+/* Navigation among what you opened. It scrolls rather than truncating: nine
+   terminals per project is the cap, and a tab you cannot see is worse than a
+   scrollbar. The global thin scrollbar (ui.css) applies. */
+
+.tv-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tv-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  max-width: 190px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  user-select: none;
+}
+
+.tv-tab:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.tv-tab.on {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+.tv-tab:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.tv-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-tab-close {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+}
+
+.tv-tab:hover .tv-tab-close,
+.tv-tab.on .tv-tab-close {
+  opacity: 1;
+}
+
+.tv-tab-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* ─── Single-terminal body ─── */
+/* A tab is one terminal filling the section: no grid, no resize handle, no
+   fixed pane height to fight the flex box. */
+
+.tv-single {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.tv-pane.tv-pane-single {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  resize: none;
+}
+
+.tv-pane.tv-pane-single .tv-pane-header {
+  cursor: default;
+}
+
 /* ─── Layout bar ─── */
 
 .tv-bar {

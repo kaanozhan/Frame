@@ -18,3 +18,22 @@ output (checked across 180 status/foreground/command/agent combinations), and
 _Captured: 2026-08-26 · 3 file changes_
 
 ---
+
+## T02 — Add the tab strip to `terminalsView.js`
+
+Split `render()` into a strip plus a body: `_renderOverview` is today's grid
+untouched, `_renderSingle` is one terminal filling the section, and
+`openTabs`/`activeTab` joined `cols`/`order` in the per-project prefs (D3).
+Added `_normalizeTabs`, `_buildTabStrip` and the public
+`openTab`/`closeTab`/`showOverview`/`getActiveTab`, gave `_buildPane` a
+`{ single }` variant with no drag and no maximize control, and styled
+`.tv-tabs` with `overflow-x: auto` so nine tabs scroll instead of truncating.
+A closed terminal loses its tab through `_normalizeTabs` on the next render
+rather than through a `TERMINAL_DESTROYED` listener — the prefs are already
+normalised against the live set for `order`, and a second mechanism would be a
+second source of truth. Both bodies mount their terminals every render (C1);
+`maximizedId` stays until T03 takes it.
+
+_Captured: 2026-08-26 · 2 file changes_
+
+---

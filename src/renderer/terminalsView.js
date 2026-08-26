@@ -1,11 +1,22 @@
 /**
  * Terminals View Module
  *
- * The project's default center view (terminals-view spec): every terminal of
- * the current project rendered as a live pane at once — no cell assignment,
- * no entering. A layout bar switches 1/2/3 columns, pane headers drag to
- * reorder, ⤢ maximizes one pane and ❐ returns to the grid. View preferences
- * ({cols, order, maximizedId}) persist per project in localStorage.
+ * The project's default center view. Its first row is a tab strip:
+ * `[Overview] [Terminal N] …`. Overview is leftmost, always there and never
+ * closable, and holds the terminals-view grid — every terminal of the project
+ * as a live pane at once, 1/2/3 columns, headers dragged to reorder. Any other
+ * tab is one terminal on its own, no cells and no layout choice.
+ *
+ * The tab strip is navigation among what you opened; closing a tab drops the
+ * tab, never the terminal. Tabs live in the per-project prefs
+ * ({cols, order, maximizedId, openTabs, activeTab}) in localStorage, so
+ * switching project keeps each project's strip; ids do not survive a restart,
+ * so a fresh launch opens Overview.
+ *
+ * One rule the layer cannot break (C1): mountTerminal *moves* the DOM element
+ * rather than copying it, so the body being drawn must mount its terminals
+ * every single render. "It was already mounted" is never true across an
+ * Overview↔tab switch, and assuming it silently empties the pane.
  *
  * Naming rule (terminals-view spec): code says "lane"/"tv", user-facing
  * strings say "terminal".
@@ -69,6 +80,16 @@ class TerminalsView {
       const agent = pane.querySelector('.tv-pane-agent');
       if (agent) agent.textContent = agentName ? `· ${agentName}` : '';
     });
+
+    // The strip's dots are the same signal one level up — a tabbed terminal
+    // is often the one you are not looking at.
+    laneStatus.onChange((terminalId) => {
+      if (!this.container || !this.container.isConnected) return;
+      const tab = this.container.querySelector(`.tv-tab[data-terminal-id="${terminalId}"]`);
+      if (!tab) return;
+      const dot = tab.querySelector('.lane-status-dot');
+      if (dot) dot.className = `lane-status-dot ${laneStatus.getStatus(terminalId).status}`;
+    });
   }
 
   // ─── Preferences ────────────────────────────────────────
@@ -82,7 +103,9 @@ class TerminalsView {
     return {
       cols: [1, 2, 3].includes(stored.cols) ? stored.cols : 2,
       order: Array.isArray(stored.order) ? stored.order : [],
-      maximizedId: stored.maximizedId || null
+      maximizedId: stored.maximizedId || null,
+      openTabs: Array.isArray(stored.openTabs) ? stored.openTabs : [],
+      activeTab: stored.activeTab || null
     };
   }
 
@@ -117,6 +140,7 @@ class TerminalsView {
     if (prefs.maximizedId && !terminals.some(t => t.id === prefs.maximizedId)) {
       prefs = this._updatePrefs({ maximizedId: null });
     }
+    prefs = this._normalizeTabs(prefs, terminals);
 
     const view = document.createElement('div');
     view.className = 'terminals-view';
@@ -127,6 +151,23 @@ class TerminalsView {
       return;
     }
 
+    view.appendChild(this._buildTabStrip(prefs, terminals));
+
+    const active = prefs.activeTab
+      ? terminals.find(t => t.id === prefs.activeTab)
+      : null;
+    if (active) {
+      this._renderSingle(view, active, prefs);
+    } else {
+      this._renderOverview(view, terminals, prefs);
+    }
+  }
+
+  /**
+   * Overview: today's grid, unchanged — 1/2/3 columns, drag to reorder, drag
+   * the bottom edge to resize, the ghost pane at the end.
+   */
+  _renderOverview(view, terminals, prefs) {
     view.appendChild(this._buildLayoutBar(prefs));
 
     const grid = document.createElement('div');
@@ -152,7 +193,137 @@ class TerminalsView {
     this._observePanes(grid);
   }
 
+  /**
+   * A tab's body: one terminal, filling the section. It mounts here every
+   * render — the element was in an Overview pane a moment ago (C1).
+   */
+  _renderSingle(view, state, prefs) {
+    const body = document.createElement('div');
+    body.className = 'tv-single';
+    view.appendChild(body);
+
+    const pane = this._buildPane(state, prefs, { single: true });
+    body.appendChild(pane);
+    this.manager.mountTerminal(state.id, pane.querySelector('.tv-pane-content'));
+
+    this._observePanes(body);
+  }
+
+  // ─── Tabs ───────────────────────────────────────────────
+
+  /**
+   * Tabs against the live terminals: a dead id drops its tab, and an active
+   * tab that is gone falls back to Overview. This is how a closed terminal
+   * (pane ×, Cmd+Shift+W, the process dying) loses its tab — no listener,
+   * just the next render.
+   */
+  _normalizeTabs(prefs, terminals) {
+    const live = new Set(terminals.map(t => t.id));
+    const openTabs = prefs.openTabs.filter(id => live.has(id));
+    const activeTab = openTabs.includes(prefs.activeTab) ? prefs.activeTab : null;
+    if (openTabs.length === prefs.openTabs.length && activeTab === prefs.activeTab) {
+      return prefs;
+    }
+    return this._updatePrefs({ openTabs, activeTab });
+  }
+
+  /**
+   * Open a terminal in its own tab, or switch to it when the tab is already
+   * there — never a second tab for one terminal.
+   */
+  openTab(terminalId) {
+    const prefs = this._prefs();
+    const openTabs = prefs.openTabs.includes(terminalId)
+      ? prefs.openTabs
+      : [...prefs.openTabs, terminalId];
+    this._updatePrefs({ openTabs, activeTab: terminalId });
+    this.manager.setActiveTerminal(terminalId);
+    this._rerender();
+  }
+
+  /**
+   * Drop a tab from the strip. The terminal keeps running and stays in
+   * Overview — × means "drop from this strip", never "destroy", at every
+   * level of the interface.
+   */
+  closeTab(terminalId) {
+    const prefs = this._prefs();
+    if (!prefs.openTabs.includes(terminalId)) return;
+    this._updatePrefs({
+      openTabs: prefs.openTabs.filter(id => id !== terminalId),
+      activeTab: prefs.activeTab === terminalId ? null : prefs.activeTab
+    });
+    this._rerender();
+  }
+
+  /** Back to the grid. */
+  showOverview() {
+    if (this._prefs().activeTab === null) return;
+    this._updatePrefs({ activeTab: null });
+    this._rerender();
+  }
+
+  /** The focused tab's terminal id, or null while Overview is showing. */
+  getActiveTab() {
+    return this._prefs().activeTab;
+  }
+
   // ─── Pieces ─────────────────────────────────────────────
+
+  _buildTabStrip(prefs, terminals) {
+    const strip = document.createElement('div');
+    strip.className = 'tv-tabs';
+    strip.setAttribute('role', 'tablist');
+
+    const overview = document.createElement('div');
+    overview.className = `tv-tab tv-tab-overview ${prefs.activeTab ? '' : 'on'}`;
+    overview.setAttribute('role', 'tab');
+    overview.tabIndex = 0;
+    overview.innerHTML = '<span class="tv-tab-name">Overview</span>';
+    overview.addEventListener('click', () => this.showOverview());
+    overview.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.showOverview(); }
+    });
+    strip.appendChild(overview);
+
+    const byId = new Map(terminals.map(t => [t.id, t]));
+    prefs.openTabs.forEach((id) => {
+      const t = byId.get(id);
+      if (!t) return;
+      const { status } = laneStatus.getStatus(id);
+      const tab = document.createElement('div');
+      tab.className = `tv-tab ${prefs.activeTab === id ? 'on' : ''}`;
+      tab.dataset.terminalId = id;
+      tab.setAttribute('role', 'tab');
+      tab.tabIndex = 0;
+      tab.innerHTML = `
+        <span class="lane-status-dot ${status}"></span>
+        <span class="tv-tab-name">${escapeHtml(t.customName || t.name)}</span>
+        <button class="tv-tab-close" title="Close tab — the terminal keeps running">${lucideIcon(X, 11)}</button>
+      `;
+      tab.addEventListener('click', (e) => {
+        if (e.target.closest('.tv-tab-close')) return;
+        this.openTab(id);
+      });
+      tab.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.openTab(id); }
+      });
+      tab.querySelector('.tv-tab-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeTab(id);
+      });
+      strip.appendChild(tab);
+    });
+
+    // The strip scrolls rather than truncating (up to 9 terminals per
+    // project), so keep the focused tab in view after a switch.
+    requestAnimationFrame(() => {
+      const on = strip.querySelector('.tv-tab.on');
+      if (on && strip.isConnected) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+
+    return strip;
+  }
 
   _buildLayoutBar(prefs) {
     const bar = document.createElement('div');
@@ -182,21 +353,26 @@ class TerminalsView {
     return bar;
   }
 
-  _buildPane(state, prefs) {
+  /**
+   * The pane. `single` is the tab body's variant: it fills the section, so
+   * there is nothing to reorder it against and nothing to enlarge it into —
+   * no drag, no maximize control.
+   */
+  _buildPane(state, prefs, { single = false } = {}) {
     const { status, agentName } = laneStatus.getStatus(state.id);
-    const maximized = prefs.maximizedId === state.id;
+    const maximized = !single && prefs.maximizedId === state.id;
     const pane = document.createElement('div');
-    pane.className = `tv-pane ${state.isActive ? 'active' : ''} ${maximized ? 'maximized' : ''}`;
+    pane.className = `tv-pane ${state.isActive ? 'active' : ''} ${maximized ? 'maximized' : ''} ${single ? 'tv-pane-single' : ''}`;
     pane.dataset.terminalId = state.id;
 
     pane.innerHTML = `
-      <div class="tv-pane-header" draggable="${maximized ? 'false' : 'true'}" title="Drag to reorder">
+      <div class="tv-pane-header" draggable="${!single && !maximized}" title="${single ? '' : 'Drag to reorder'}">
         <span class="lane-status-dot ${status}"></span>
         <span class="tv-pane-name">${escapeHtml(state.customName || state.name)}</span>
         <span class="tv-pane-agent">${agentName ? `· ${escapeHtml(agentName)}` : ''}</span>
         <span class="tv-pane-actions">
           <button class="tv-pane-btn" data-rename title="Rename terminal">${lucideIcon(Pencil, 11)}</button>
-          <button class="tv-pane-btn" data-maximize title="${maximized ? 'Back to grid' : 'Maximize pane'}">${lucideIcon(maximized ? Minimize2 : Maximize2, 12)}</button>
+          ${single ? '' : `<button class="tv-pane-btn" data-maximize title="${maximized ? 'Back to grid' : 'Maximize pane'}">${lucideIcon(maximized ? Minimize2 : Maximize2, 12)}</button>`}
           <button class="tv-pane-btn" data-close title="Close terminal">${lucideIcon(X, 12)}</button>
         </span>
       </div>
@@ -206,7 +382,7 @@ class TerminalsView {
       </button>
     `;
 
-    this._setupPaneEvents(pane, state.id);
+    this._setupPaneEvents(pane, state.id, { single });
     return pane;
   }
 
@@ -236,7 +412,7 @@ class TerminalsView {
 
   // ─── Events ─────────────────────────────────────────────
 
-  _setupPaneEvents(pane, terminalId) {
+  _setupPaneEvents(pane, terminalId, { single = false } = {}) {
     // Click anywhere in the pane focuses that terminal
     pane.addEventListener('click', (e) => {
       if (e.target.closest('.tv-pane-btn') || e.target.closest('.lane-rename-input')
@@ -249,13 +425,16 @@ class TerminalsView {
       if (instance && instance.opened) instance.terminal.focus();
     });
 
-    pane.querySelector('[data-maximize]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      const prefs = this._prefs();
-      this._updatePrefs({ maximizedId: prefs.maximizedId === terminalId ? null : terminalId });
-      this.manager.setActiveTerminal(terminalId);
-      this._rerender();
-    });
+    const maximizeBtn = pane.querySelector('[data-maximize]');
+    if (maximizeBtn) {
+      maximizeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const prefs = this._prefs();
+        this._updatePrefs({ maximizedId: prefs.maximizedId === terminalId ? null : terminalId });
+        this.manager.setActiveTerminal(terminalId);
+        this._rerender();
+      });
+    }
 
     pane.querySelector('[data-close]').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -277,7 +456,9 @@ class TerminalsView {
       if (instance) instance.terminal.scrollToBottom();
     });
 
-    // Drag-to-reorder (prototype behavior: drag header, drop on a pane)
+    // Drag-to-reorder (prototype behavior: drag header, drop on a pane).
+    // Overview only — a tab body holds one pane, with nothing to reorder.
+    if (single) return;
     const header = pane.querySelector('.tv-pane-header');
     header.addEventListener('dragstart', (e) => {
       this._dragId = terminalId;
@@ -344,7 +525,8 @@ class TerminalsView {
         e.stopPropagation();
         this._startRename(pane, terminalId);
       });
-      header.draggable = !pane.classList.contains('maximized');
+      header.draggable = !pane.classList.contains('maximized')
+        && !pane.classList.contains('tv-pane-single');
     };
 
     input.addEventListener('click', (e) => e.stopPropagation());

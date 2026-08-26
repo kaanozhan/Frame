@@ -9051,17 +9051,17 @@
       ],
       "functions": {
         "lucideIcon": {
-          "line": 21,
+          "line": 32,
           "params": [
             "data",
             "size = 13"
           ]
         },
         "_loadAllPrefs": {
-          "line": 29
+          "line": 40
         },
         "_saveProjectPrefs": {
-          "line": 37,
+          "line": 48,
           "params": [
             "projectKey",
             "prefs"
