@@ -173,6 +173,10 @@ const IPC = {
   ENABLE_SPEC_DRIVEN: 'enable-spec-driven',
   SET_SPEC_DRIVEN: 'set-spec-driven',                // renderer → main: { projectPath, enabled } — Settings toggle
 
+  // Health of the docs Frame keeps for the agent (AGENTS.md / REFERENCE.md)
+  GET_DOCS_HEALTH: 'get-docs-health',                // renderer → main: projectPath → docsHealth report
+  APPEND_DOCS_SECTION: 'append-docs-section',        // renderer → main: { projectPath, doc } — user consents to a section Frame would not write unasked
+
   // Orchestration (conductor / parallel spec execution)
   OPEN_ORCHESTRATOR: 'open-orchestrator',            // → renderer: open the orchestrator view
   START_ORCHESTRATION: 'start-orchestration',        // renderer → main: begin a session (conductor lane id in)

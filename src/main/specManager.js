@@ -1328,12 +1328,23 @@ function setupIPC(ipcMain) {
   );
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
-    // Project open: stage the command templates, report assets and launch
-    // helper so a CLI session (or a helper-driven launch) can self-serve the
-    // current flow even before any in-app dispatch, and upgrade the docs'
-    // managed spec section to the current generation. Never breaks watching.
+    // Project open, in three steps whose order is load-bearing:
+    //
+    //   1. stage the command templates, report assets and launch helper, so a
+    //      CLI session can self-serve the current flow before any dispatch;
+    //   2. re-ensure the artifacts a project upgraded from an older Frame
+    //      never received — above all `.frame/docs/REFERENCE.md`;
+    //   3. upgrade the docs' managed sections to the current generation.
+    //
+    // 2 before 3 is the fix: the pointer's target must exist before anything
+    // writes a pointer at it. Both live in this one handler rather than
+    // splitting across IS_FRAME_PROJECT precisely so that ordering is a single
+    // synchronous block instead of two IPC messages racing.
+    //
+    // Never breaks watching.
     try {
       commandStaging.stageCommandFiles(projectPath);
+      frameProject.ensureProjectArtifacts(projectPath);
       frameProject.upgradeSpecDocs(projectPath);
     } catch (err) {
       console.error('specManager: command staging failed', err);

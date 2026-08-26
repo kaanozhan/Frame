@@ -40,6 +40,7 @@ const settingsModal = require('./settingsModal');
 const telemetryNotice = require('./telemetryNotice');
 const healthNotice = require('./healthNotice');
 const specDrivenHint = require('./specDrivenHint');
+const docsHealthHint = require('./docsHealthHint');
 const migrationModal = require('./migrationModal');
 const sampleBanner = require('./sampleBanner');
 
@@ -227,6 +228,7 @@ function init() {
   healthNotice.init();
   sampleBanner.init();
   specDrivenHint.init();
+  docsHealthHint.init();
   migrationModal.init();
   setupUpdateDot();
   registerCommands();

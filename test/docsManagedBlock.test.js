@@ -11,7 +11,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { findBlock, upgradeDoc, renderBlock } = require('../src/shared/docsManagedBlock');
+const { findBlock, upgradeDoc, appendBlock, renderBlock } = require('../src/shared/docsManagedBlock');
 
 const LEGACY_SECTION = `## Spec-Driven Development (.frame/specs/)
 
@@ -217,4 +217,94 @@ test('subheadings inside the section do not truncate the match', () => {
   assert.ok(migrated);
   assert.ok(!migrated.includes('### Slash commands'));
   assert.ok(migrated.includes("## User's Own Section"));
+});
+
+// ─── Named blocks ─────────────────────────────────────────────
+
+const NAV_BLOCK = 'frame:managed:nav-section';
+
+test('a second named block is found and upgraded independently of the spec block', () => {
+  const doc = docWith(renderBlock(NEW_BODY, 1, NAV_BLOCK));
+
+  // The spec block's name must not see the nav block's markers.
+  assert.equal(findBlock(doc), null);
+
+  const nav = findBlock(doc, NAV_BLOCK);
+  assert.ok(nav);
+  assert.equal(nav.version, 1);
+
+  const upgraded = upgradeDoc(doc, {
+    body: 'Fresh nav prose.', version: 2, blockName: NAV_BLOCK
+  });
+  assert.ok(upgraded);
+  assert.ok(upgraded.includes(renderBlock('Fresh nav prose.', 2, NAV_BLOCK)));
+  assert.ok(upgraded.includes("## User's Own Section"));
+});
+
+test('two blocks coexist in one document, each on its own version stamp', () => {
+  const doc = `# Doc\n\n${renderBlock('spec body', 2)}\n\n---\n\n${renderBlock('nav body', 1, NAV_BLOCK)}\n`;
+
+  // The nav block is stale; the spec block is current. Only the nav one moves.
+  assert.equal(upgradeDoc(doc, { body: 'spec body', version: 2 }), null);
+
+  const upgraded = upgradeDoc(doc, {
+    body: 'nav body v2', version: 2, blockName: NAV_BLOCK
+  });
+  assert.ok(upgraded);
+  assert.ok(upgraded.includes(renderBlock('spec body', 2)));
+  assert.ok(upgraded.includes(renderBlock('nav body v2', 2, NAV_BLOCK)));
+});
+
+// ─── Additive branch ──────────────────────────────────────────
+
+const FOOTER = '*This file was automatically created by Frame.*';
+
+test('onAbsent append adds the block to a document that carries no section', () => {
+  const doc = `# My Project\n\nIntro paragraph the user wrote.\n\n---\n\n${FOOTER}\n`;
+  const appended = upgradeDoc(doc, {
+    body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION],
+    onAbsent: 'append', footerMarker: FOOTER
+  });
+  assert.ok(appended);
+  // Added, not rewritten: the user's prose and the footer both survive, and
+  // the block lands between them.
+  assert.ok(appended.includes('Intro paragraph the user wrote.'));
+  assert.ok(appended.includes(renderBlock(NEW_BODY, 2)));
+  assert.ok(appended.indexOf(renderBlock(NEW_BODY, 2)) < appended.indexOf(FOOTER));
+  // No stacked rules where the footer's separator used to be.
+  assert.ok(!/-{3,}[ \t]*\n+-{3,}/.test(appended));
+  // And the result is now on the marker path, so the next upgrade is a no-op.
+  assert.equal(upgradeDoc(appended, { body: NEW_BODY, version: 2 }), null);
+});
+
+test('append with no footer marker puts the block at the end', () => {
+  const doc = '# My Project\n\nJust prose.\n';
+  const appended = appendBlock(doc, { body: NEW_BODY, version: 2 });
+  assert.ok(appended.startsWith('# My Project\n\nJust prose.'));
+  assert.ok(appended.trimEnd().endsWith(renderBlock(NEW_BODY, 2)));
+});
+
+test('append never fires where a section already exists', () => {
+  const opts = {
+    body: NEW_BODY, version: 2, legacyMatchers: [LEGACY_SECTION],
+    onAbsent: 'append', footerMarker: FOOTER
+  };
+
+  // A legacy section is replaced, not duplicated.
+  const migrated = upgradeDoc(docWith(LEGACY_SECTION), opts);
+  assert.ok(migrated);
+  assert.equal(migrated.match(/frame:managed:spec-section v=/g).length, 1);
+
+  // A block at the current version stays a no-op even with append asked for.
+  assert.equal(upgradeDoc(docWith(renderBlock(NEW_BODY, 2)), opts), null);
+
+  // A marker fragment is corruption: never append beside it.
+  const broken = docWith('<!-- frame:managed:spec-section v=1 -->\nbody, no end marker');
+  assert.equal(upgradeDoc(broken, opts), null);
+});
+
+test('append rejects the same invalid inputs upgradeDoc does', () => {
+  assert.equal(appendBlock(null, { body: NEW_BODY, version: 2 }), null);
+  assert.equal(appendBlock('# Doc', { body: NEW_BODY, version: 1.5 }), null);
+  assert.equal(appendBlock('# Doc', { version: 2 }), null);
 });

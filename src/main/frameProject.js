@@ -17,6 +17,7 @@ const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
 const docsManagedBlock = require('../shared/docsManagedBlock');
+const docsHealth = require('../shared/docsHealth');
 const perfMonitor = require('./perfMonitor');
 const activityLog = require('./activityLog');
 const detector = require('../../scripts/detect-project');
@@ -271,10 +272,7 @@ async function runProjectInit(projectPath, projectName, options = {}) {
   await fsp.mkdir(binDirPath, { recursive: true });
 
   // Create Codex CLI wrapper script
-  const codexWrapperPath = path.join(binDirPath, 'codex');
-  if (!fs.existsSync(codexWrapperPath)) {
-    await fsp.writeFile(codexWrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
-  }
+  ensureCodexWrapper(projectPath);
 
   // Bootstrap STRUCTURE.json auto-fill: ship parser scripts to .frame/bin/,
   // install pre-commit hook (with safe detection for husky/lefthook/custom),
@@ -348,6 +346,68 @@ async function runProjectInit(projectPath, projectName, options = {}) {
  * Writes only when the content differs: this runs on every project open, and
  * a needless rewrite is a file-watcher event in someone else's editor.
  */
+/**
+ * The Codex CLI wrapper. Written at init and, since it is the kind of file a
+ * project upgraded from an older Frame simply never received, re-ensured on
+ * every open. Only ever created when absent — a project that edited its own
+ * wrapper keeps it.
+ *
+ * Deliberately not in `structureBootstrap.PARSER_FILES`: that module sits in
+ * another spec's live footprint, and this file already owns the wrapper.
+ */
+function ensureCodexWrapper(projectPath) {
+  const wrapperPath = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'codex');
+  if (fs.existsSync(wrapperPath)) return false;
+  try {
+    fs.mkdirSync(path.dirname(wrapperPath), { recursive: true });
+    fs.writeFileSync(wrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
+    return true;
+  } catch (err) {
+    console.warn('[frame] could not write .frame/bin/codex (non-fatal):', err.message);
+    return false;
+  }
+}
+
+/**
+ * Re-ensure on open what a fresh init creates.
+ *
+ * `ensureSpecDrivenArtifacts` has always known how to produce
+ * `.frame/docs/REFERENCE.md` — `audit-q3-core-value-efficacy` T08 put it there
+ * expressly "so pre-split projects get it" — but the only callers were
+ * enable/disable, and a pre-split project already has the flag on, so the
+ * branch never ran. The result was `upgradeSpecDocs` rewriting AGENTS.md into
+ * a pointer at a file nothing ever created.
+ *
+ * Calling it on open finishes what T08 started. Every write inside is guarded
+ * by an existence check, so a project that keeps its own reference document,
+ * its own wrapper or its own `.gitkeep` is untouched; this only fills gaps.
+ *
+ * Must run before `upgradeSpecDocs` in the same pass: target, then pointer.
+ */
+function ensureProjectArtifacts(projectPath) {
+  if (!projectPath || !isFrameProject(projectPath)) return false;
+  ensureCodexWrapper(projectPath);
+  const config = getFrameConfig(projectPath) || {};
+  if (config.features && config.features.specDriven === true) {
+    const referencePath = path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md');
+    const had = fs.existsSync(referencePath);
+    try {
+      ensureSpecDrivenArtifacts(projectPath, config);
+    } catch (err) {
+      console.warn('[frame] could not re-ensure spec artifacts (non-fatal):', err.message);
+      return false;
+    }
+    // Creating the document a pointer aims at is the repair for the most
+    // common broken state in the field, and it happens with nobody watching.
+    if (!had && fs.existsSync(referencePath)) {
+      try {
+        activityLog.record('docs.repaired', { docs: 1, created: 1 });
+      } catch (_) { /* bookkeeping never breaks an open */ }
+    }
+  }
+  return true;
+}
+
 function syncClaudeRule(projectPath) {
   const agentsText = frameStore.readAgents(projectPath);
   if (agentsText === null) return false; // nothing to copy — never write an empty rule
@@ -723,41 +783,138 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
 // REFERENCE.md and AGENTS.md carry a Frame-managed spec section; the
 // managed-block engine upgrades it in place when Frame's shipped content is
 // newer (version stamp) or migrates a byte-identical legacy section once.
-// Everything outside the block — and any file the user deleted or heavily
-// rewrote — is left alone. Files are never created here, only rewritten on
-// change.
+// Everything outside the block is left alone.
+//
+// Two rules were missing, and between them they produced the delivery gap this
+// pass now closes:
+//
+//   1. **A pointer is never written at nothing.** AGENTS.md's section is a
+//      pointer into REFERENCE.md's. Writing it while REFERENCE.md carries no
+//      protocol replaces a stale-but-working flow with no flow at all — which
+//      is exactly what shipped after the 2026-07-23 matcher fix. REFERENCE.md
+//      is therefore settled first, and AGENTS.md is upgraded only once the
+//      target is confirmed to carry the block. Confirmed by reading it back,
+//      not by predicting it.
+//   2. **A document with no section at all is appended to, not skipped.**
+//      "Leave it alone" is right for a section the user customized and wrong
+//      for a document that never had one. docsHealth draws that line; this
+//      pass only acts on it.
+//
+// A document whose section Frame cannot prove is its own is still never
+// written — it comes back in the returned report instead, for the caller to
+// surface.
 
-function upgradeSpecDocs(projectPath) {
-  if (!projectPath || !isFrameProject(projectPath)) return;
+// Both shipped documents end with this line; a block appended to one goes
+// above it rather than after it.
+const FRAME_DOC_FOOTER = '*This file was automatically created by Frame.';
 
-  const docs = [
+// Heading stems that mean "this document already has a section about the spec
+// workflow", whoever wrote it. Deliberately loose — see docsHealth.headingStem.
+const SPEC_HEADING_STEMS = ['spec-driven development'];
+
+/**
+ * The spec-section descriptors, in the order they must be settled: the target
+ * of a pointer before the pointer itself.
+ */
+function specDocDescriptors(projectPath) {
+  return [
     {
+      rel: `${FRAME_DIR}/docs/REFERENCE.md`,
       file: path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md'),
       body: templates.SPEC_DRIVEN_SECTION,
-      legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS
+      block: {
+        name: docsManagedBlock.SPEC_BLOCK_NAME,
+        legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS,
+        headingStems: SPEC_HEADING_STEMS
+      }
     },
     {
+      rel: `${FRAME_DIR}/${FRAME_FILES.AGENTS}`,
       file: frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS),
       body: templates.SPEC_DRIVEN_CORE_SECTION,
-      legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
+      // The core section is a pointer into the reference; it may not be
+      // written until that document actually carries the protocol.
+      pointsAt: `${FRAME_DIR}/docs/REFERENCE.md`,
+      block: {
+        name: docsManagedBlock.SPEC_BLOCK_NAME,
+        legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS,
+        headingStems: SPEC_HEADING_STEMS
+      }
     }
   ];
+}
 
-  for (const doc of docs) {
-    let text;
-    try {
-      text = fs.readFileSync(doc.file, 'utf8');
-    } catch (_) {
-      continue; // missing file — never create it
+function readTextOrNull(file) {
+  try {
+    return fs.readFileSync(file, 'utf8');
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Upgrade the Frame-managed sections and report what could not be settled.
+ * Returns the docsHealth report (or null when this is not a Frame project),
+ * so the caller can record and surface a broken invariant rather than let it
+ * pass silently — the failure mode this whole pass exists to end.
+ */
+function upgradeSpecDocs(projectPath) {
+  if (!projectPath || !isFrameProject(projectPath)) return null;
+
+  const descriptors = specDocDescriptors(projectPath);
+  const exists = (rel) => fs.existsSync(path.join(projectPath, rel));
+  const survey = () => docsHealth.report(
+    descriptors.map((d) => ({
+      path: d.rel,
+      text: readTextOrNull(d.file),
+      blocks: [d.block]
+    })),
+    exists
+  );
+
+  // Two surveys, and the distinction matters. The pass *decides* from the
+  // state it found — append or skip is a question about what was there. It
+  // *reports* the state it leaves behind, because the report is what the UI
+  // raises to the user, and a popover complaining about a section this pass
+  // just repaired would be worse than no popover at all.
+  const before = survey();
+  let written = 0;
+  let appended = 0;
+  const stateOf = (rel) => {
+    const found = before.sections.find((s) => s.doc === rel);
+    return found ? found.state : null;
+  };
+
+  for (const doc of descriptors) {
+    const text = readTextOrNull(doc.file);
+    if (text === null) continue; // absent file — creating it is not this pass's job
+
+    // A section Frame cannot prove is its own: report it, never write over it.
+    if (stateOf(doc.rel) === 'unmatched') continue;
+
+    // Rule 1 — never aim a pointer at a document that will not carry the
+    // protocol. Read the target back rather than assume this pass fixed it.
+    if (doc.pointsAt) {
+      const targetText = readTextOrNull(path.join(projectPath, doc.pointsAt));
+      if (targetText === null || !docsManagedBlock.findBlock(targetText, doc.block.name)) {
+        continue;
+      }
     }
+
     const upgraded = docsManagedBlock.upgradeDoc(text, {
       body: doc.body,
       version: templates.SPEC_SECTION_VERSION,
-      legacyMatchers: doc.legacyMatchers
+      legacyMatchers: doc.block.legacyMatchers,
+      blockName: doc.block.name,
+      // Rule 2 — a document with no section at all gets one, additively.
+      onAbsent: stateOf(doc.rel) === 'absent' ? 'append' : undefined,
+      footerMarker: FRAME_DOC_FOOTER
     });
     if (upgraded !== null && upgraded !== text) {
       try {
         fs.writeFileSync(doc.file, upgraded, 'utf8');
+        written += 1;
+        if (stateOf(doc.rel) === 'absent') appended += 1;
       } catch (err) {
         console.warn(`[frame] spec docs upgrade failed for ${doc.file} (non-fatal):`, err.message);
       }
@@ -765,6 +922,108 @@ function upgradeSpecDocs(projectPath) {
   }
 
   syncClaudeRule(projectPath); // an upgraded AGENTS.md means a stale copy
+
+  const after = survey();
+  recordDocsActivity(written, appended, after);
+  return after;
+}
+
+/**
+ * Append the managed spec section to a document the pass deliberately refused
+ * to touch, because the user asked for it.
+ *
+ * The refusal is the whole point of the `unmatched` state: a section Frame
+ * cannot prove is its own may hold instructions of the user's that Frame's
+ * would contradict, and two overlapping protocols is how an agent ends up
+ * following the wrong one. That judgement is the user's to overturn, and this
+ * is where they overturn it — never on Frame's initiative.
+ *
+ * Additive even here: `appendBlock` rewrites nothing, so their section stays
+ * exactly where it was, with Frame's beneath it.
+ */
+function appendSpecSection(projectPath, rel) {
+  if (!projectPath || !isFrameProject(projectPath)) {
+    return { success: false, error: 'not a Frame project' };
+  }
+  const doc = specDocDescriptors(projectPath).find((d) => d.rel === rel);
+  if (!doc) return { success: false, error: `not a Frame-managed doc: ${rel}` };
+
+  const text = readTextOrNull(doc.file);
+  if (text === null) return { success: false, error: `could not read ${rel}` };
+  if (docsManagedBlock.findBlock(text, doc.block.name)) {
+    return { success: true, alreadyPresent: true };
+  }
+
+  const appended = docsManagedBlock.appendBlock(text, {
+    body: doc.body,
+    version: templates.SPEC_SECTION_VERSION,
+    blockName: doc.block.name,
+    footerMarker: FRAME_DOC_FOOTER
+  });
+  if (appended === null || appended === text) {
+    return { success: false, error: `nothing to append to ${rel}` };
+  }
+
+  try {
+    fs.writeFileSync(doc.file, appended, 'utf8');
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+  syncClaudeRule(projectPath);
+  try {
+    activityLog.record('docs.repaired', { docs: 1, appended: 1 });
+  } catch (_) { /* bookkeeping never breaks a repair */ }
+  return { success: true, health: docsHealthFor(projectPath) };
+}
+
+/**
+ * The report on its own, without running the repair pass — what the UI asks
+ * for when it wants to know whether to say anything.
+ */
+function docsHealthFor(projectPath) {
+  if (!projectPath || !isFrameProject(projectPath)) return null;
+  const descriptors = specDocDescriptors(projectPath);
+  return docsHealth.report(
+    descriptors.map((d) => ({
+      path: d.rel,
+      text: readTextOrNull(d.file),
+      blocks: [d.block]
+    })),
+    (rel) => fs.existsSync(path.join(projectPath, rel))
+  );
+}
+
+/**
+ * Put the pass's result on the record. This is the half that was missing when
+ * the delivery gap shipped: the repair and the failure both happened silently,
+ * so a month passed with nothing to look at.
+ *
+ * Degradations are one record per reason rather than one per finding — a
+ * project that stays broken is reopened every day, and three lines an open is
+ * a report, while thirty is noise nobody reads.
+ */
+function recordDocsActivity(written, appended, report) {
+  const emit = (name, fields) => {
+    try {
+      activityLog.record(name, fields);
+    } catch (_) { /* bookkeeping never breaks an open */ }
+  };
+
+  if (written > 0) emit('docs.repaired', { docs: written, appended });
+
+  const groups = [
+    ['missing-path', report.missingPaths.map((m) => m.path)],
+    ['unmatched-section', report.unmatchedSections.map((s) => s.doc)],
+    ['unreadable', report.unreadable.map((u) => u.doc)]
+  ];
+  for (const [reason, paths] of groups) {
+    if (paths.length === 0) continue;
+    // A single finding names itself; several are counted, because a path
+    // field holding one of five would read as the whole story.
+    emit('docs.degraded', paths.length === 1
+      ? { reason, path: paths[0], count: 1 }
+      : { reason, count: paths.length });
+  }
 }
 
 // ─── Remove Frame from a project ──────────────────────────
@@ -1007,6 +1266,14 @@ function setupIPC(ipcMain) {
     setSpecDrivenEnabled(projectPath, enabled === true)
   );
 
+  // ─── Doc health ────────────────────────────────────────────
+  ipcMain.handle(IPC.GET_DOCS_HEALTH, (event, projectPath) =>
+    docsHealthFor(projectPath)
+  );
+  ipcMain.handle(IPC.APPEND_DOCS_SECTION, (event, { projectPath, doc }) =>
+    appendSpecSection(projectPath, doc)
+  );
+
   // ─── Git sharing ───────────────────────────────────────────
   ipcMain.handle(IPC.GET_GIT_SHARING_STATE, (event, projectPath) => {
     if (!projectPath || !isFrameProject(projectPath)) return { error: 'not a Frame project' };
@@ -1090,5 +1357,9 @@ module.exports = {
   disableSpecDriven,
   setSpecDrivenEnabled,
   upgradeSpecDocs,
+  ensureProjectArtifacts,
+  ensureCodexWrapper,
+  appendSpecSection,
+  docsHealthFor,
   setupIPC
 };
