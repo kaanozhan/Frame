@@ -18,10 +18,17 @@
  * (output flow), the PTY's foreground process from ptyManager's poll
  * (running vs idle, agent identity), and buffer-tail pattern tables
  * (approval vs input, agent TUI fingerprints).
+ *
+ * This module also owns the *presentation* of those statuses — the words, the
+ * attention symbols and the small formatters every surface draws them with
+ * (Home's cards, the Overview pane header, the Other Terminals rail, the
+ * sidebar chip, the status bar slot). One taxonomy, one vocabulary: two
+ * label tables drifting apart is what this consolidation ends.
  */
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
+const { FileText, CheckSquare } = require('lucide');
 
 // How long output must be quiet before we classify the buffer
 const QUIET_MS = 1800;
@@ -316,7 +323,101 @@ function _emit(terminalId, entry) {
   }
 }
 
+// ─── Presentation ───────────────────────────────────────────
+//
+// The single source for the status vocabulary. Every surface reads from here,
+// so a status can never be called two different things in two places.
+
+// The words. `short` picks the compressed variant where a surface is tight —
+// only 'agent-working' differs, the rest are already short enough.
+const STATUS_LABELS = {
+  'idle': 'Idle',
+  'running': 'Running',
+  'agent-working': 'Agent working',
+  'agent-approval': 'Needs approval',
+  'agent-input': 'Awaiting input'
+};
+const STATUS_LABELS_SHORT = {
+  'agent-working': 'Working'
+};
+
+// The attention symbols. Only the two statuses that are actually waiting on
+// the user get one — approval is the stronger call, which is why it is the
+// exclamation; input carries the same agent marker the sidebar chip uses.
+// Working, running and idle are not attention: they get nothing, so a surface
+// that only draws marks stays quiet until it has something to say.
+const ATTENTION_MARKS = {
+  'agent-approval': '!',
+  'agent-input': '◆'
+};
+
+/**
+ * The status in words.
+ *
+ * "Running · npm run dev" beats a bare "Running" when we know what runs, so
+ * the running case names the command (falling back to the process name). Pass
+ * `agentName` where the surface has no separate agent chip and the name has to
+ * ride in the label ("claude · Needs approval"); leave it out where the chip
+ * already says it.
+ *
+ * @param {string} status
+ * @param {{agentName?: string, foreground?: string, commandLine?: string, short?: boolean}} [opts]
+ */
+function statusLabel(status, opts = {}) {
+  const { agentName = null, foreground = null, commandLine = null, short = false } = opts;
+  const base = (short && STATUS_LABELS_SHORT[status]) || STATUS_LABELS[status];
+  if (status === 'running') {
+    const what = cleanCommand(commandLine) || foreground;
+    return what ? `Running · ${what}` : base;
+  }
+  if (agentName) return `${agentName} · ${base}`;
+  return base;
+}
+
+/** The attention symbol for a status, or null when it wants no attention. */
+function attentionMark(status) {
+  return ATTENTION_MARKS[status] || null;
+}
+
+// "/usr/local/bin/node /Users/x/proj/server.js --port 3000"
+// → "node server.js --port 3000": basename every path-looking token so the
+// label reads like what the user typed, not like absolute-path soup.
+function cleanCommand(commandLine) {
+  if (!commandLine) return null;
+  return commandLine
+    .trim()
+    .split(/\s+/)
+    .map((tok) => (tok.startsWith('/') || tok.startsWith('~') ? tok.split('/').pop() : tok))
+    .join(' ');
+}
+
+function formatRelativeTime(ts) {
+  if (!ts) return 'no activity yet';
+  const diff = Date.now() - ts;
+  if (diff < 10000) return 'just now';
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return `${Math.floor(diff / 1000)}s ago`;
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+// Assignment chip (what the terminal works on): the icon already says spec vs
+// task, so spec labels drop the baked-in "spec: " prefix and show the slug.
+function assignmentIcon(assignment) {
+  return assignment.kind === 'spec' ? FileText : CheckSquare;
+}
+
+function assignmentText(assignment) {
+  if (assignment.kind === 'spec') return assignment.ref || assignment.label;
+  return assignment.label;
+}
+
 module.exports = {
   init, onChange, getStatus, remove, detectAgentName,
-  KNOWN_AGENTS, AGENT_PATTERNS, APPROVAL_PATTERNS
+  statusLabel, attentionMark, cleanCommand, formatRelativeTime,
+  assignmentIcon, assignmentText,
+  KNOWN_AGENTS, AGENT_PATTERNS, APPROVAL_PATTERNS,
+  STATUS_LABELS, ATTENTION_MARKS
 };

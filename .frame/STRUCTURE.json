@@ -5605,12 +5605,7 @@
       "file": "src/renderer/laneBoard.js",
       "description": "Lane Board Module",
       "exports": [
-        "LaneBoard",
-        "formatRelativeTime",
-        "STATUS_LABELS",
-        "cleanCommand",
-        "assignmentIcon",
-        "assignmentText"
+        "LaneBoard"
       ],
       "depends": [
         "electron",
@@ -5624,46 +5619,11 @@
         "openProjectModal"
       ],
       "functions": {
-        "statusLabel": {
-          "line": 37,
-          "params": [
-            "status",
-            "foreground",
-            "commandLine"
-          ],
-          "purpose": "\"Running · npm run dev\" beats a bare \"Running\" when we know what's"
-        },
-        "cleanCommand": {
-          "line": 48,
-          "params": [
-            "commandLine"
-          ],
-          "purpose": "\"/usr/local/bin/node /Users/x/proj/server.js --port 3000\""
-        },
-        "assignmentIcon": {
-          "line": 62,
-          "params": [
-            "assignment"
-          ],
-          "purpose": "Assignment chip (what the lane works on): the icon already says spec vs"
-        },
-        "assignmentText": {
-          "line": 66,
-          "params": [
-            "assignment"
-          ]
-        },
         "lucideIcon": {
-          "line": 71,
+          "line": 34,
           "params": [
             "data",
             "size = 14"
-          ]
-        },
-        "formatRelativeTime": {
-          "line": 79,
-          "params": [
-            "ts"
           ]
         }
       },
@@ -5682,36 +5642,35 @@
       ],
       "depends": [
         "laneStatus",
-        "laneBoard",
         "lucide",
         "htmlUtils"
       ],
       "functions": {
         "itemStatusText": {
-          "line": 38,
+          "line": 32,
           "params": [
             "s"
           ],
-          "purpose": "Same information as the Mainframe cards, compressed for the rail:"
+          "purpose": "Same information as the Home cards, compressed for the rail: agents read"
         },
         "lucideIcon": {
-          "line": 52,
+          "line": 46,
           "params": [
             "data",
             "size = 14"
           ]
         },
         "isHidden": {
-          "line": 60
+          "line": 54
         },
         "setHidden": {
-          "line": 68,
+          "line": 62,
           "params": [
             "hidden"
           ]
         },
         "render": {
-          "line": 78,
+          "line": 72,
           "params": [
             "el",
             "state",
@@ -5720,10 +5679,10 @@
           "purpose": "Render the rail. Called by multiTerminalUI on every detail render;"
         },
         "_renderInto": {
-          "line": 95
+          "line": 89
         },
         "_startTicker": {
-          "line": 188
+          "line": 182
         }
       }
     },
@@ -5866,38 +5825,47 @@
         "getStatus",
         "remove",
         "detectAgentName",
+        "statusLabel",
+        "attentionMark",
+        "cleanCommand",
+        "formatRelativeTime",
+        "assignmentIcon",
+        "assignmentText",
         "KNOWN_AGENTS",
         "AGENT_PATTERNS",
-        "APPROVAL_PATTERNS"
+        "APPROVAL_PATTERNS",
+        "STATUS_LABELS",
+        "ATTENTION_MARKS"
       ],
       "depends": [
         "electron",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "lucide"
       ],
       "functions": {
         "init": {
-          "line": 66,
+          "line": 73,
           "params": [
             "terminalManager"
           ],
           "purpose": "Initialize with the TerminalManager (needed to read xterm buffers)."
         },
         "onChange": {
-          "line": 99,
+          "line": 106,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to status changes. Returns an unsubscribe function."
         },
         "getStatus": {
-          "line": 108,
+          "line": 115,
           "params": [
             "terminalId"
           ],
           "purpose": "Current status for a terminal."
         },
         "_agentNameFor": {
-          "line": 128,
+          "line": 135,
           "params": [
             "terminalId",
             "entry"
@@ -5905,7 +5873,7 @@
           "purpose": "Agent identity for a lane. Process name first (reliable on Unix). On Windows"
         },
         "detectAgentName": {
-          "line": 142,
+          "line": 149,
           "params": [
             "foreground",
             "commandLine"
@@ -5913,27 +5881,27 @@
           "purpose": "Which known agent (if any) the foreground process / command line names."
         },
         "remove": {
-          "line": 156,
+          "line": 163,
           "params": [
             "terminalId"
           ],
           "purpose": "Drop tracking for a closed terminal."
         },
         "_isShellProcess": {
-          "line": 181,
+          "line": 188,
           "params": [
             "processName",
             "shellName"
           ]
         },
         "_ensureEntry": {
-          "line": 188,
+          "line": 195,
           "params": [
             "terminalId"
           ]
         },
         "_isAgentMode": {
-          "line": 207,
+          "line": 214,
           "params": [
             "entry",
             "tail"
@@ -5941,13 +5909,13 @@
           "purpose": "Agent mode: the foreground process is a known agent, or (fallback)"
         },
         "_onOutput": {
-          "line": 218,
+          "line": 225,
           "params": [
             "terminalId"
           ]
         },
         "_armQuietTimer": {
-          "line": 246,
+          "line": 253,
           "params": [
             "terminalId",
             "entry"
@@ -5955,22 +5923,63 @@
           "purpose": "Quiet detection without per-chunk timer churn: `lastActivityAt` is the"
         },
         "_classifyQuiet": {
-          "line": 262,
+          "line": 269,
           "params": [
             "terminalId"
           ]
         },
         "_readBufferTail": {
-          "line": 288,
+          "line": 295,
           "params": [
             "terminalId"
           ]
         },
         "_emit": {
-          "line": 308,
+          "line": 315,
           "params": [
             "terminalId",
             "entry"
+          ]
+        },
+        "statusLabel": {
+          "line": 366,
+          "params": [
+            "status",
+            "opts = {}"
+          ],
+          "purpose": "The status in words."
+        },
+        "attentionMark": {
+          "line": 378,
+          "params": [
+            "status"
+          ],
+          "purpose": "The attention symbol for a status, or null when it wants no attention."
+        },
+        "cleanCommand": {
+          "line": 385,
+          "params": [
+            "commandLine"
+          ],
+          "purpose": "\"/usr/local/bin/node /Users/x/proj/server.js --port 3000\""
+        },
+        "formatRelativeTime": {
+          "line": 394,
+          "params": [
+            "ts"
+          ]
+        },
+        "assignmentIcon": {
+          "line": 408,
+          "params": [
+            "assignment"
+          ],
+          "purpose": "Assignment chip (what the terminal works on): the icon already says spec vs"
+        },
+        "assignmentText": {
+          "line": 412,
+          "params": [
+            "assignment"
           ]
         }
       },

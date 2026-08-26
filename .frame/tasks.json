@@ -5422,13 +5422,13 @@
       "title": "Move the status vocabulary into `laneStatus.js` — `statusLabel` with a",
       "description": "",
       "source": "spec:terminals-home-agents:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: terminals-home-agents",
       "createdAt": "2026-08-26T12:25:33.153Z",
-      "updatedAt": "2026-08-26T12:25:33.153Z",
-      "completedAt": null
+      "updatedAt": "2026-08-26T12:40:44.807Z",
+      "completedAt": "2026-08-26T12:40:44.807Z"
     },
     {
       "id": "task-spec-terminals-home-agents-T02",

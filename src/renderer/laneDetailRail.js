@@ -12,7 +12,7 @@
  */
 
 const laneStatus = require('./laneStatus');
-const { formatRelativeTime, cleanCommand, assignmentIcon, assignmentText } = require('./laneBoard');
+const { statusLabel, formatRelativeTime, assignmentIcon, assignmentText } = laneStatus;
 const { PanelRightClose, PanelRightOpen, Terminal, Bot, Plus } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 
@@ -25,23 +25,17 @@ const STATUS_PRIORITY = {
   'running': 3,
   'idle': 4
 };
-const STATUS_SHORT = {
-  'agent-approval': 'Needs approval',
-  'agent-input': 'Awaiting input',
-  'agent-working': 'Working',
-  'running': 'Running',
-  'idle': 'Idle'
-};
 
-// Same information as the Mainframe cards, compressed for the rail:
-// agents read "claude · Needs approval", commands read "Running · npm run dev".
+// Same information as the Home cards, compressed for the rail: agents read
+// "claude · Needs approval", commands read "Running · npm run dev". The words
+// come from laneStatus — the rail picks the short variant, nothing more.
 function itemStatusText(s) {
-  if (s.status === 'running') {
-    const what = cleanCommand(s.commandLine) || s.foreground;
-    return what ? `Running · ${what}` : 'Running';
-  }
-  if (s.agentName) return `${s.agentName} · ${STATUS_SHORT[s.status]}`;
-  return STATUS_SHORT[s.status];
+  return statusLabel(s.status, {
+    agentName: s.agentName,
+    foreground: s.foreground,
+    commandLine: s.commandLine,
+    short: true
+  });
 }
 
 let container = null;

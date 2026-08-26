@@ -20,53 +20,16 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
 const laneRail = require('./laneRail');
-const { Plus, Pencil, X, FolderOpen, GitBranch, Bot, FileText, CheckSquare } = require('lucide');
+const { Plus, Pencil, X, FolderOpen, GitBranch, Bot } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
 
-const STATUS_LABELS = {
-  'idle': 'Idle',
-  'running': 'Running',
-  'agent-working': 'Agent working',
-  'agent-approval': 'Needs approval',
-  'agent-input': 'Awaiting input'
-};
-
-// "Running · npm run dev" beats a bare "Running" when we know what's
-// running. Falls back to the process name when no command line is known.
-function statusLabel(status, foreground, commandLine) {
-  if (status === 'running') {
-    const what = cleanCommand(commandLine) || foreground;
-    if (what) return `Running · ${what}`;
-  }
-  return STATUS_LABELS[status];
-}
-
-// "/usr/local/bin/node /Users/x/proj/server.js --port 3000"
-// → "node server.js --port 3000": basename every path-looking token so the
-// label reads like what the user typed, not like absolute-path soup.
-function cleanCommand(commandLine) {
-  if (!commandLine) return null;
-  return commandLine
-    .trim()
-    .split(/\s+/)
-    .map((tok) => (tok.startsWith('/') || tok.startsWith('~') ? tok.split('/').pop() : tok))
-    .join(' ');
-}
+// The status vocabulary lives in laneStatus — the board is one of five
+// surfaces drawing it, not its owner.
+const { statusLabel, formatRelativeTime, assignmentIcon, assignmentText } = laneStatus;
 
 // Agent identity (the card chip) comes live from laneStatus's foreground
 // detection — never a static tag, so failed launches leave nothing behind.
-
-// Assignment chip (what the lane works on): the icon already says spec vs
-// task, so spec labels drop the baked-in "spec: " prefix and show the slug.
-function assignmentIcon(assignment) {
-  return assignment.kind === 'spec' ? FileText : CheckSquare;
-}
-
-function assignmentText(assignment) {
-  if (assignment.kind === 'spec') return assignment.ref || assignment.label;
-  return assignment.label;
-}
 
 function lucideIcon(data, size = 14) {
   const children = data.map(([tag, attrs]) => {
@@ -74,18 +37,6 @@ function lucideIcon(data, size = 14) {
     return `<${tag} ${attrStr}/>`;
   }).join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${children}</svg>`;
-}
-
-function formatRelativeTime(ts) {
-  if (!ts) return 'no activity yet';
-  const diff = Date.now() - ts;
-  if (diff < 10000) return 'just now';
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return `${Math.floor(diff / 1000)}s ago`;
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
 }
 
 class LaneBoard {
@@ -197,7 +148,7 @@ class LaneBoard {
         </span>
       </div>` : ''}
       <div class="lane-card-footer">
-        <span class="lane-card-status-label ${status}" title="${escapeHtml(commandLine || '')}">${escapeHtml(statusLabel(status, foreground, commandLine))}</span>
+        <span class="lane-card-status-label ${status}" title="${escapeHtml(commandLine || '')}">${escapeHtml(statusLabel(status, { foreground, commandLine }))}</span>
         <span class="lane-card-activity" data-ts="${lastActivityAt || ''}">${formatRelativeTime(lastActivityAt)}</span>
       </div>
     `;
@@ -378,7 +329,7 @@ class LaneBoard {
     const label = card.querySelector('.lane-card-status-label');
     if (label) {
       label.className = `lane-card-status-label ${status}`;
-      label.textContent = statusLabel(status, foreground, commandLine);
+      label.textContent = statusLabel(status, { foreground, commandLine });
       label.title = commandLine || '';
     }
 
@@ -508,4 +459,4 @@ class LaneBoard {
 
 }
 
-module.exports = { LaneBoard, formatRelativeTime, STATUS_LABELS, cleanCommand, assignmentIcon, assignmentText };
+module.exports = { LaneBoard };
