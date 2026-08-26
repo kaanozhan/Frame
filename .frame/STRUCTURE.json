@@ -2908,32 +2908,40 @@
       ],
       "functions": {
         "init": {
-          "line": 29,
+          "line": 33,
           "params": [
             "app"
           ],
           "purpose": "Initialize prompt logger"
         },
         "setProject": {
-          "line": 44,
+          "line": 48,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project — switches log file to project-specific path"
         },
         "getLogFilePath": {
-          "line": 53,
+          "line": 57,
           "purpose": "Get log file path"
         },
         "logInput": {
-          "line": 61,
+          "line": 73,
           "params": [
             "data"
           ],
           "purpose": "Process and log input data"
         },
+        "_consumeEscape": {
+          "line": 112,
+          "params": [
+            "state",
+            "char"
+          ],
+          "purpose": "One step of the escape-sequence scanner. Returns the next state; 'text'"
+        },
         "appendAndRotate": {
-          "line": 89,
+          "line": 138,
           "params": [
             "filePath",
             "entry"
@@ -2941,18 +2949,18 @@
           "purpose": "Append a line, then rotate past the cap: the live file moves to"
         },
         "getHistory": {
-          "line": 102,
+          "line": 151,
           "purpose": "Get prompt history (live file only — bounded by MAX_LOG_SIZE)"
         },
         "setupIPC": {
-          "line": 116,
+          "line": 165,
           "params": [
             "ipcMain"
           ],
           "purpose": "Setup IPC handlers"
         },
         "flush": {
-          "line": 126,
+          "line": 175,
           "purpose": "Await all queued appends — tests and shutdown ordering."
         }
       },
@@ -5737,26 +5745,34 @@
       ],
       "depends": [
         "electron",
+        "shared/ipcChannels",
         "electron-log/renderer",
         "notify"
       ],
       "functions": {
         "toMainLog": {
-          "line": 29,
+          "line": 30,
           "params": [
             "message"
           ],
           "purpose": "electron-log's renderer entry forwards to the main process's file"
         },
         "bump": {
-          "line": 45,
+          "line": 75,
           "params": [
             "direction",
             "channel"
           ]
         },
+        "classifyInput": {
+          "line": 83,
+          "params": [
+            "args"
+          ],
+          "purpose": "Tally the escape sequences in one stdin payload. Never throws."
+        },
         "init": {
-          "line": 51
+          "line": 96
         }
       }
     },
@@ -9020,51 +9036,52 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "multiTerminalUI"
+        "multiTerminalUI",
+        "terminalInput"
       ],
       "functions": {
         "initTerminal": {
-          "line": 16,
+          "line": 17,
           "params": [
             "containerId"
           ],
           "purpose": "Initialize terminal (now creates MultiTerminalUI)"
         },
         "writeToTerminal": {
-          "line": 24,
+          "line": 25,
           "params": [
             "data"
           ],
           "purpose": "Write to active terminal"
         },
         "writelnToTerminal": {
-          "line": 33,
+          "line": 34,
           "params": [
             "data"
           ],
           "purpose": "Write line to active terminal"
         },
         "fitTerminal": {
-          "line": 42,
+          "line": 43,
           "purpose": "Fit all terminals"
         },
         "getTerminal": {
-          "line": 51,
+          "line": 52,
           "purpose": "Get terminal manager"
         },
         "startTerminal": {
-          "line": 61,
+          "line": 62,
           "purpose": "Start terminal (no longer needed - auto-starts)"
         },
         "restartTerminal": {
-          "line": 69,
+          "line": 70,
           "params": [
             "projectPath"
           ],
           "purpose": "Restart terminal with new path (creates new terminal in path for current project)"
         },
         "sendCommand": {
-          "line": 85,
+          "line": 86,
           "params": [
             "command",
             "terminalId = null"
@@ -9072,14 +9089,14 @@
           "purpose": "Send command to active terminal or specific terminal"
         },
         "setActiveTerminal": {
-          "line": 94,
+          "line": 95,
           "params": [
             "terminalId"
           ],
           "purpose": "Set active terminal"
         },
         "getMultiTerminalUI": {
-          "line": 149,
+          "line": 144,
           "purpose": "Get MultiTerminalUI instance"
         }
       },
@@ -9087,10 +9104,7 @@
         "listens": [
           "RUN_COMMAND"
         ],
-        "emits": [
-          "TERMINAL_INPUT_ID",
-          "TERMINAL_INPUT_ID"
-        ]
+        "emits": []
       }
     },
     "renderer/terminalGrid": {
@@ -9115,6 +9129,36 @@
         }
       }
     },
+    "renderer/terminalInput": {
+      "file": "src/renderer/terminalInput.js",
+      "description": "Terminal Input — the single renderer→PTY stdin path.",
+      "exports": [
+        "send"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "flush": {
+          "line": 35
+        },
+        "send": {
+          "line": 49,
+          "params": [
+            "terminalId",
+            "data"
+          ],
+          "purpose": "Queue input for a terminal. Chunks queued in the same tick are sent as"
+        }
+      },
+      "ipc": {
+        "listens": [],
+        "emits": [
+          "TERMINAL_INPUT_ID"
+        ]
+      }
+    },
     "renderer/terminalManager": {
       "file": "src/renderer/terminalManager.js",
       "description": "Terminal Manager Module",
@@ -9125,21 +9169,22 @@
         "electron",
         "xterm",
         "xterm-addon-fit",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "terminalInput"
       ],
       "functions": {
         "getTerminalTheme": {
-          "line": 12,
+          "line": 13,
           "purpose": "Terminal theme based on current app theme"
         },
         "escapePathForShell": {
-          "line": 74,
+          "line": 75,
           "params": [
             "p"
           ]
         },
         "installGlobalDropGuard": {
-          "line": 90
+          "line": 91
         }
       },
       "ipc": {
@@ -9152,9 +9197,7 @@
         "emits": [
           "TERMINAL_CREATE",
           "GET_AVAILABLE_SHELLS",
-          "TERMINAL_INPUT_ID",
           "TERMINAL_DESTROY",
-          "TERMINAL_INPUT_ID",
           "TERMINAL_RESIZE_ID"
         ]
       }
