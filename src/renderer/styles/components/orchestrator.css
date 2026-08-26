@@ -46,37 +46,6 @@
   border-color: var(--error);
 }
 
-/* Empty-state secondary action — orchestrator entry on first launch */
-.lane-board-empty-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: var(--space-md);
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: 7px 14px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-}
-.lane-board-empty-secondary:hover {
-  color: var(--text-primary);
-  border-color: var(--accent-primary);
-  background: var(--bg-hover);
-}
-
-/* Home board "Orchestrator" card — running badge when a session is live */
-.lane-card-orch-running {
-  margin-top: 4px;
-  font-size: 10px;
-  color: var(--success);
-  background: color-mix(in srgb, var(--success) 18%, transparent);
-  border-radius: 999px;
-  padding: 1px 8px;
-}
-
 /* Pipeline rail — at-a-glance lifecycle of all workers */
 .orch-pipeline {
   flex: none;

@@ -158,3 +158,23 @@ tally was computed from, so nothing is traversed twice.
 _Captured: 2026-08-26 · 5 file changes_
 
 ---
+
+## T09 — Home becomes the four-card project board
+
+Rewrote `laneBoard.js` as Terminals / Orchestration / Specs / Tasks with a
+`mount()`/`update()` split, and gave `_renderBoardView` the matching
+idempotence guard (C2) — 20 consecutive `update()` calls build zero elements.
+Deleted `laneRail.js` and moved its `SPEC_DATA`/`TASKS_DATA` subscriptions,
+`!malformed` filter included (C6), into the board behind the init-once idiom
+(C5). `isMountedIn` takes the state as well as the container, so a
+project → no-project switch remounts instead of patching a board whose cards
+do not exist. Two judgement calls: the Terminals card's action creates with the
+default shell on click and offers the shell menu on right-click — the reverse
+of the old new-lane card, but the spec asks for a *direct* action; and the
+Tasks rows are static, since the dashboard is the surface that opens a task.
+The orchestrator card's running badge moved out of `orchestrator.css` into
+`.home-card-running`, and the per-terminal card CSS went with the cards.
+
+_Captured: 2026-08-26 · 5 file changes_
+
+---

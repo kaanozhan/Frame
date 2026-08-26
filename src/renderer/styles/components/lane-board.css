@@ -5,12 +5,6 @@
   background: var(--bg-primary);
 }
 
-.lane-board-layout {
-  display: flex;
-  height: 100%;
-  min-height: 0;
-}
-
 .lane-board {
   padding: 24px;
   height: 100%;
@@ -23,75 +17,204 @@
   container-type: inline-size;
 }
 
-/* Max 9 lanes (+ New Lane) and "at least 3 side by side on a wide
-   screen": a fixed 3-column grid is the baseline — 3×3 fits the cap
-   exactly. Narrow boards step down to 2/1; ultrawide steps up to 4 so
-   cards don't become slabs. Cards fill their tracks, no centering. */
-.lane-board-grid {
+/* ─── Home cards ────────────────────────────────────────── */
+/* Four cards: Terminals, Orchestration, Specs, Tasks. Each is a summary and
+   an entry point — the header opens the surface, the body teases at most a
+   few rows, the footer carries the one direct action. The sidebar is where
+   the full list lives; a card that grew into a list would be a second
+   dashboard nobody asked for. */
+
+.home-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
   align-content: start;
 }
 
-@container (max-width: 899px) {
-  .lane-board-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@container (max-width: 569px) {
-  .lane-board-grid {
+@container (max-width: 699px) {
+  .home-cards {
     grid-template-columns: 1fr;
   }
 }
 
 @container (min-width: 1500px) {
-  .lane-board-grid {
+  .home-cards {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
-/* ─── Lane card ─────────────────────────────────────────── */
-
-.lane-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 18px;
-  cursor: pointer;
+.home-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-height: 168px;
-  /* Grid items default to min-width:auto, so a long assignment label would
-     widen the 1fr track and stretch the card past its column. min-width:0
-     lets the card hold its track and the label truncate instead. */
   min-width: 0;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
-.lane-card:hover {
-  border-color: var(--accent-primary);
-  background: var(--bg-hover);
+.home-card:hover {
+  border-color: var(--border-strong);
 }
 
-.lane-card-header {
+.home-card.active {
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+.home-card-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
-.lane-card-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.home-card-header:hover {
+  background: var(--bg-hover);
+}
+
+.home-card-icon {
+  display: flex;
+  color: var(--text-tertiary);
+}
+
+.home-card-title {
   flex: 1;
   min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.home-card-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  padding: 0 7px;
+  line-height: 16px;
+}
+
+.home-card-open {
+  display: flex;
+  color: var(--text-tertiary);
+}
+
+.home-card-header:hover .home-card-open {
+  color: var(--accent-primary);
+}
+
+.home-card-body {
+  flex: 1;
+  min-height: 64px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-card-empty,
+.home-card-note {
+  padding: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+}
+
+/* The running badge, carried over from the orchestrator card it replaces. */
+.home-card-running {
+  font-size: 10px;
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.home-card-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 5px 6px;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-card-row.static {
+  cursor: default;
+}
+
+.home-card-row:not(.static):hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.home-card-row-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-card-row-mark {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.home-card-row-meta {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.home-card-row.agent-approval .home-card-row-mark,
+.home-card-row.agent-approval .home-card-row-meta { color: var(--error, #d45555); font-weight: 600; }
+.home-card-row.agent-input .home-card-row-mark,
+.home-card-row.agent-input .home-card-row-meta    { color: var(--warning, #e5a50a); }
+.home-card-row.agent-working .home-card-row-meta  { color: var(--accent-primary); }
+
+.home-card-more {
+  padding: 4px 6px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+/* The direct action, present in every state — empty or full. */
+.home-card-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-card-action:hover {
+  background: var(--bg-hover);
+  color: var(--accent-primary);
 }
 
 .lane-rename-input {
@@ -105,94 +228,6 @@
   border-radius: var(--radius-sm);
   padding: 1px 5px;
   outline: none;
-}
-
-.lane-card-action {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 3px;
-  border-radius: var(--radius-sm);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-
-.lane-card:hover .lane-card-action {
-  display: flex;
-}
-
-.lane-card-action:hover {
-  color: var(--text-primary);
-  background: var(--bg-primary);
-}
-
-.lane-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.lane-card-branch {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  min-width: 0;
-}
-
-.lane-card-branch svg {
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-
-.lane-card-branch-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* "Agent" badge: filled accent chip marking the lane kind */
-.lane-card-agent-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  color: var(--bg-primary);
-  background: var(--accent-primary);
-  border-radius: 99px;
-  padding: 0 8px;
-  line-height: 17px;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.lane-card-agent-badge svg {
-  flex-shrink: 0;
-}
-
-/* Tool chip: which agent (claude / codex / gemini) — outlined */
-.lane-card-tool {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--accent-primary);
-  border: 1px solid var(--accent-primary);
-  border-radius: 99px;
-  padding: 0 7px;
-  line-height: 16px;
-  flex-shrink: 0;
-}
-
-/* What the lane is working on — Agent Dispatch label as a typed chip
-   (FileText = spec, CheckSquare = task). Shared by cards and the rail. */
-.lane-card-assignment {
-  display: flex;
-  min-width: 0;
 }
 
 .lane-assignment-chip {
@@ -231,38 +266,6 @@
   opacity: 0.45;
 }
 
-.lane-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: auto;
-}
-
-.lane-card-status-label {
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.lane-card-activity {
-  flex-shrink: 0;
-}
-
-.lane-card-status-label.agent-working  { color: var(--accent-primary); }
-.lane-card-status-label.agent-approval { color: var(--error, #d45555); font-weight: 600; }
-.lane-card-status-label.agent-input    { color: var(--warning, #e5a50a); }
-.lane-card-status-label.running        { color: var(--success, #23d18b); }
-.lane-card-status-label.idle           { color: var(--text-secondary); }
-
-.lane-card-activity {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
 /* ─── Status dot (shared with lane switcher in the top bar) ─ */
 
 .lane-status-dot {
@@ -299,43 +302,6 @@
 @keyframes lane-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
-}
-
-/* ─── New Lane card ─────────────────────────────────────── */
-
-.lane-card-new {
-  border-style: dashed;
-  background: transparent;
-  align-items: center;
-  justify-content: center;
-}
-
-.lane-card-new:hover {
-  background: var(--bg-hover);
-}
-
-.lane-card-new.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.lane-card-new.disabled:hover {
-  border-color: var(--border-subtle);
-  background: transparent;
-}
-
-.lane-card-new-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.lane-card-new:not(.disabled):hover .lane-card-new-inner {
-  color: var(--text-primary);
 }
 
 /* ─── Empty state ───────────────────────────────────────── */

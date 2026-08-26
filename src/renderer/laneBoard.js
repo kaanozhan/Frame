@@ -1,13 +1,24 @@
 /**
- * Lane Board Module
+ * Lane Board Module — Home
  *
- * The Lane Orchestrator home screen: a card grid where every card is a lane
- * (= one terminal of the current project). Cards show metadata + a live
- * activity badge from laneStatus; clicking a card enters the lane's detail
- * view. The final card is "+ New Lane".
+ * The project board. Four cards, each a summary of one surface and the way
+ * into it: Terminals, Orchestration, Specs, Tasks. The rule that decides what
+ * belongs on a card: **a card is a summary and an entry point; the sidebar is
+ * the full surface.** Cards do not replace the dashboards, they lead to them.
  *
  * Rendered by MultiTerminalUI into its content container when
- * viewMode === 'board' — a view mode, not an overlay.
+ * viewMode === 'board' — a view mode, not an overlay. Without a project there
+ * is no Home: project selection takes priority and gets the whole area.
+ *
+ * Mount/update split (C2). Four live data cards rebuilt on every state change
+ * is precisely the shape of the IPC storm measured on 2026-08-20 (~100
+ * round-trips/sec, 163% CPU), so `mount()` builds the DOM once and `update()`
+ * patches text and small list bodies in place. The host's `_renderBoardView`
+ * holds the matching guard.
+ *
+ * Specs and Tasks ride the SPEC_DATA / TASKS_DATA pushes the panels already
+ * use — the subscriptions the retired laneRail owned, `!malformed` filter and
+ * all (C6) — so no new IPC channel exists for Home.
  *
  * Naming convention (revised by the terminals-view spec, 2026-08-20;
  * overturns the 2026-06-11 rule): code, module names, and DOM ids still say
@@ -19,17 +30,15 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
-const laneRail = require('./laneRail');
-const { Plus, Pencil, X, FolderOpen, GitBranch, Bot } = require('lucide');
+const { statusLabel, attentionMark } = laneStatus;
+const { Plus, FolderOpen, Bot, FileText, CheckSquare, ArrowUpRight, Boxes } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
 
-// The status vocabulary lives in laneStatus — the board is one of five
-// surfaces drawing it, not its owner.
-const { statusLabel, formatRelativeTime, assignmentIcon, assignmentText } = laneStatus;
+// A card is a teaser, not a list. Past this the dashboards take over.
+const MAX_ROWS = 3;
 
-// Agent identity (the card chip) comes live from laneStatus's foreground
-// detection — never a static tag, so failed launches leave nothing behind.
+const SPEC_PHASE_ORDER = ['implementing', 'tasks_generated', 'planned', 'specified', 'draft', 'done'];
 
 function lucideIcon(data, size = 14) {
   const children = data.map(([tag, attrs]) => {
@@ -44,183 +53,310 @@ class LaneBoard {
    * @param {TerminalManager} manager
    * @param {Object} callbacks
    * @param {Function} callbacks.onEnterLane - (terminalId) => void
+   * @param {Function} callbacks.onOpenTerminals - () => show the Terminals section
    */
-  constructor(manager, { onEnterLane }) {
+  constructor(manager, { onEnterLane, onOpenTerminals }) {
     this.manager = manager;
     this.onEnterLane = onEnterLane;
+    this.onOpenTerminals = onOpenTerminals;
     this.container = null;
     this.boardEl = null;
+    this.cards = null;
     this.shellMenu = null;
     this.availableShells = [];
-    this._ticker = null;
-    this._branch = null;
-    this._branchProject = null;
+    this._specs = [];
+    this._tasks = [];
+    this._dataProject = null;
+    this._lastState = null;
 
     this._createShellMenu();
     this._loadAvailableShells();
 
-    // Live badge/label updates while the board is visible
-    laneStatus.onChange((terminalId) => {
-      if (this._isVisible()) this._updateCardStatus(terminalId);
+    // Live agent state on the Terminals card.
+    laneStatus.onChange(() => {
+      if (this._isVisible() && this._lastState) this._updateTerminalsCard(this._lastState);
     });
 
-    // Current branch comes from the git status watcher fileTreeUI already
-    // starts per project — cards show it instead of the (redundant) project.
-    // Init-once across instances: LaneBoard is a singleton; a second
-    // construction must not stack another GIT_STATUS_DATA listener.
-    if (!LaneBoard._gitListenerBound) {
-      LaneBoard._gitListenerBound = true;
-      ipcRenderer.on(IPC.GIT_STATUS_DATA, (event, payload) => {
-        this._branch = payload.isRepo ? payload.branch : null;
-        this._branchProject = payload.projectPath;
-        if (this._isVisible()) this._updateBranchChips();
+    // Init-once across instances: LaneBoard is a singleton, and a second
+    // construction must not stack another set of listeners (C5). These are
+    // the subscriptions laneRail used to own.
+    if (!LaneBoard._dataListenersBound) {
+      LaneBoard._dataListenersBound = true;
+      ipcRenderer.on(IPC.SPEC_DATA, (event, { specs }) => {
+        LaneBoard._instance._specs = specs || [];
+        LaneBoard._instance._refreshData();
       });
+      ipcRenderer.on(IPC.TASKS_DATA, (event, { tasks }) => {
+        LaneBoard._instance._tasks = (tasks && Array.isArray(tasks.tasks)) ? tasks.tasks : [];
+        LaneBoard._instance._refreshData();
+      });
+      // The spec/task activity dots track the assigned terminals' agents.
+      const dispatch = require('./agentDispatch');
+      dispatch.onSpecLaneActivity(() => LaneBoard._instance._refreshData());
+      dispatch.onTaskLaneActivity(() => LaneBoard._instance._refreshData());
     }
+    LaneBoard._instance = this;
   }
 
+  // ─── Mount / update (C2) ────────────────────────────────
+
   /**
-   * Full render into the given container.
+   * Build the board's DOM. Called once per visit to Home; every state change
+   * after that goes through update().
    */
-  render(container, state) {
+  mount(container, state) {
     this.container = container;
     container.innerHTML = '';
 
     this.boardEl = document.createElement('div');
     this.boardEl.className = 'lane-board';
+    container.appendChild(this.boardEl);
 
     if (!state.currentProjectPath) {
-      // Lanes live inside a project — ask for one before anything else.
-      // No rail either: specs/tasks are project-scoped too.
+      // Terminals, specs and tasks are all project-scoped — asking for a
+      // project is the only thing Home can usefully do without one.
+      this.cards = null;
       this.boardEl.appendChild(this._renderNoProjectState());
-      container.appendChild(this.boardEl);
       return;
     }
 
-    if (state.terminals.length === 0) {
-      this.boardEl.appendChild(this._renderEmptyState());
-    } else {
-      const grid = document.createElement('div');
-      grid.className = 'lane-board-grid';
-      state.terminals.forEach((t) => grid.appendChild(this._renderCard(t)));
-      grid.appendChild(this._renderNewLaneCard(state));
-      grid.appendChild(this._renderOrchestratorCard());
-      this.boardEl.appendChild(grid);
+    const grid = document.createElement('div');
+    grid.className = 'home-cards';
+    this.cards = {
+      terminals: this._buildTerminalsCard(),
+      orchestration: this._buildOrchestrationCard(),
+      specs: this._buildSpecsCard(),
+      tasks: this._buildTasksCard()
+    };
+    Object.values(this.cards).forEach(c => grid.appendChild(c.el));
+    this.boardEl.appendChild(grid);
+
+    this.update(state);
+  }
+
+  /** Patch the cards in place. Never rebuilds the board. */
+  update(state) {
+    this._lastState = state;
+    if (!this.cards) return;
+
+    if (state.currentProjectPath !== this._dataProject) {
+      this._dataProject = state.currentProjectPath;
+      this._specs = [];
+      this._tasks = [];
+      this._fetchForProject(state.currentProjectPath);
     }
 
-    // Board (left) + specs/tasks context rail (right)
-    const layout = document.createElement('div');
-    layout.className = 'lane-board-layout';
-    layout.appendChild(this.boardEl);
+    this._updateTerminalsCard(state);
+    this._updateOrchestrationCard();
+    this._updateSpecsCard();
+    this._updateTasksCard();
+  }
 
-    const railEl = document.createElement('div');
-    layout.appendChild(railEl);
-    laneRail.render(railEl, state.currentProjectPath);
-
-    container.appendChild(layout);
-    this._startTicker();
+  /** True when this container already holds a mounted board for this project. */
+  isMountedIn(container, state) {
+    return !!this.boardEl
+      && this.boardEl.isConnected
+      && this.boardEl.parentNode === container
+      && !!this.cards === !!state.currentProjectPath;
   }
 
   // ─── Cards ──────────────────────────────────────────────
 
-  _renderCard(t) {
-    const { status, lastActivityAt, foreground, commandLine, agentName } = laneStatus.getStatus(t.id);
-    const branch = (this._branchProject === t.projectPath) ? this._branch : null;
-
-    const card = document.createElement('div');
-    card.className = 'lane-card';
-    card.dataset.terminalId = t.id;
-    card.innerHTML = `
-      <div class="lane-card-header">
-        <span class="lane-status-dot ${status}"></span>
-        <span class="lane-card-name">${escapeHtml(t.customName || t.name)}</span>
-        <button class="lane-card-action lane-card-rename" title="Rename terminal">${lucideIcon(Pencil, 13)}</button>
-        <button class="lane-card-action lane-card-close" title="Close terminal">${lucideIcon(X, 14)}</button>
-      </div>
-      <div class="lane-card-meta">
-        <span class="lane-card-branch" style="${branch ? '' : 'display:none'}">${lucideIcon(GitBranch, 11)}<span class="lane-card-branch-name">${escapeHtml(branch || '')}</span></span>
-        <span class="lane-card-agent-badge" style="${agentName ? '' : 'display:none'}">${lucideIcon(Bot, 11)}<span>Agent</span></span>
-        <span class="lane-card-tool" style="${agentName ? '' : 'display:none'}">${escapeHtml(agentName || '')}</span>
-      </div>
-      ${t.assignment ? `
-      <div class="lane-card-assignment">
-        <span class="lane-assignment-chip${agentName ? '' : ' dimmed'}" title="${escapeHtml(t.assignment.label)}">
-          ${lucideIcon(assignmentIcon(t.assignment), 11)}<span class="lane-assignment-chip-label">${escapeHtml(assignmentText(t.assignment))}</span>
-        </span>
-      </div>` : ''}
-      <div class="lane-card-footer">
-        <span class="lane-card-status-label ${status}" title="${escapeHtml(commandLine || '')}">${escapeHtml(statusLabel(status, { foreground, commandLine }))}</span>
-        <span class="lane-card-activity" data-ts="${lastActivityAt || ''}">${formatRelativeTime(lastActivityAt)}</span>
-      </div>
+  /**
+   * One card shell: a header that opens the surface, a body the update
+   * methods write into, and a footer action.
+   */
+  _card({ key, icon, title, actionLabel, onOpen, onAction, onActionContext }) {
+    const el = document.createElement('div');
+    el.className = `home-card home-card-${key}`;
+    el.innerHTML = `
+      <button class="home-card-header" type="button">
+        <span class="home-card-icon">${lucideIcon(icon, 15)}</span>
+        <span class="home-card-title">${title}</span>
+        <span class="home-card-count"></span>
+        <span class="home-card-open">${lucideIcon(ArrowUpRight, 13)}</span>
+      </button>
+      <div class="home-card-body"></div>
+      <button class="home-card-action" type="button">${lucideIcon(Plus, 13)}<span>${actionLabel}</span></button>
     `;
+    el.querySelector('.home-card-header').addEventListener('click', onOpen);
+    const action = el.querySelector('.home-card-action');
+    action.addEventListener('click', (e) => { e.stopPropagation(); onAction(); });
+    if (onActionContext) {
+      action.addEventListener('contextmenu', (e) => { e.preventDefault(); onActionContext(e); });
+    }
+    return {
+      el,
+      count: el.querySelector('.home-card-count'),
+      body: el.querySelector('.home-card-body'),
+      action
+    };
+  }
 
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.lane-card-action') || e.target.closest('.lane-rename-input')) return;
-      this.onEnterLane(t.id);
+  _buildTerminalsCard() {
+    const card = this._card({
+      key: 'terminals',
+      icon: Boxes,
+      title: 'Terminals',
+      actionLabel: 'New terminal',
+      onOpen: () => this.onOpenTerminals && this.onOpenTerminals(),
+      // Direct: one click makes a terminal with the default shell and goes to
+      // it. Right-click still picks a shell, the way the old new-lane card did.
+      onAction: () => this._createLane(),
+      onActionContext: (e) => this._showShellMenu(e.clientX, e.clientY)
     });
-
-    card.querySelector('.lane-card-close').addEventListener('click', () => {
-      this.manager.closeTerminal(t.id);
-    });
-
-    card.querySelector('.lane-card-rename').addEventListener('click', () => {
-      this._startRename(card, t);
-    });
-
+    card.action.title = 'New Terminal — right-click to pick a shell';
     return card;
   }
 
-  _renderNewLaneCard(state) {
-    const card = document.createElement('div');
-    card.className = 'lane-card lane-card-new';
-    const atMax = state.terminals.length >= this.manager.maxTerminals;
-    if (atMax) {
-      card.classList.add('disabled');
-      card.title = `Maximum frames (${this.manager.maxTerminals}) reached for this project`;
-    } else {
-      card.title = 'New Terminal — click to select shell, right-click for default';
-    }
-    card.innerHTML = `
-      <div class="lane-card-new-inner">
-        ${lucideIcon(Plus, 22)}
-        <span>New Frame</span>
-      </div>
-    `;
-
-    if (!atMax) {
-      card.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = card.getBoundingClientRect();
-        this._showShellMenu(rect.left, rect.top + 40);
-      });
-      card.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        this._createLane();
-      });
-    }
-
+  _buildOrchestrationCard() {
+    const orchestrator = require('./orchestrator'); // lazy — load-order coupling
+    const card = this._card({
+      key: 'orchestration',
+      icon: Bot,
+      title: 'Orchestration',
+      actionLabel: 'Start Orchestrator',
+      onOpen: () => orchestrator.open(),
+      onAction: () => orchestrator.open()
+    });
+    card.el.querySelector('.home-card-count').style.display = 'none';
     return card;
   }
 
-  _renderOrchestratorCard() {
-    const orchestrator = require('./orchestrator'); // lazy — avoids load-order coupling
+  _buildSpecsCard() {
+    return this._card({
+      key: 'specs',
+      icon: FileText,
+      title: 'Specs',
+      actionLabel: 'Open specs',
+      onOpen: () => require('./specsDashboard').show(),
+      onAction: () => require('./specsDashboard').show()
+    });
+  }
+
+  _buildTasksCard() {
+    return this._card({
+      key: 'tasks',
+      icon: CheckSquare,
+      title: 'Tasks',
+      actionLabel: 'Open tasks',
+      onOpen: () => require('./tasksDashboard').show(),
+      onAction: () => require('./tasksDashboard').show()
+    });
+  }
+
+  // ─── Card contents ──────────────────────────────────────
+
+  _updateTerminalsCard(state) {
+    const card = this.cards && this.cards.terminals;
+    if (!card) return;
+
+    const terminals = state.terminals || [];
+    card.count.textContent = String(terminals.length);
+
+    if (terminals.length === 0) {
+      card.body.innerHTML = '<div class="home-card-empty">No terminals yet — a terminal is where you run your shell or an AI session.</div>';
+      return;
+    }
+
+    // Agents first, and the ones waiting on the user before those: the card
+    // exists to answer "is anything asking for me?" at a glance.
+    const rows = terminals
+      .map(t => ({ t, s: laneStatus.getStatus(t.id) }))
+      .filter(({ s }) => s.agentName)
+      .sort((a, b) => _attentionRank(a.s.status) - _attentionRank(b.s.status));
+
+    if (rows.length === 0) {
+      card.body.innerHTML = `<div class="home-card-note">${terminals.length} open · no agents running</div>`;
+      return;
+    }
+
+    card.body.innerHTML = rows.slice(0, MAX_ROWS).map(({ t, s }) => {
+      const mark = attentionMark(s.status);
+      return `
+        <button type="button" class="home-card-row ${s.status}" data-id="${escapeHtml(t.id)}">
+          <span class="lane-status-dot ${s.status}"></span>
+          <span class="home-card-row-name">${escapeHtml(t.customName || t.name)}</span>
+          ${mark ? `<span class="home-card-row-mark">${mark}</span>` : ''}
+          <span class="home-card-row-meta">${escapeHtml(statusLabel(s.status, { agentName: s.agentName, short: true }))}</span>
+        </button>
+      `;
+    }).join('') + _moreHtml(rows.length - MAX_ROWS);
+
+    card.body.querySelectorAll('.home-card-row').forEach((row) => {
+      row.addEventListener('click', () => this.onEnterLane(row.dataset.id));
+    });
+  }
+
+  _updateOrchestrationCard() {
+    const card = this.cards && this.cards.orchestration;
+    if (!card) return;
+    const orchestrator = require('./orchestrator');
     const active = orchestrator.isActive && orchestrator.isActive();
-    const card = document.createElement('div');
-    card.className = 'lane-card lane-card-new lane-card-orchestrator' + (active ? ' active' : '');
-    card.title = active
+
+    card.el.classList.toggle('active', !!active);
+    card.body.innerHTML = active
+      ? '<div class="home-card-note"><span class="home-card-running">running</span> — several specs in parallel with a conductor</div>'
+      : '<div class="home-card-empty">Run several specs in parallel, each in its own worktree, with a conductor scheduling them.</div>';
+    card.action.querySelector('span').textContent = active ? 'Open Orchestrator' : 'Start Orchestrator';
+    card.action.title = active
       ? 'Open Orchestrator — reattach to the running session (does not restart it)'
       : 'Start Orchestrator — run several specs in parallel with a conductor';
-    card.innerHTML = `
-      <div class="lane-card-new-inner">
-        ${lucideIcon(Bot, 22)}
-        <span>${active ? 'Open Orchestrator' : 'Start Orchestrator'}</span>
-        ${active ? '<span class="lane-card-orch-running">running</span>' : ''}
-      </div>
-    `;
-    card.addEventListener('click', (e) => {
-      e.stopPropagation();
-      orchestrator.open();
+  }
+
+  _updateSpecsCard() {
+    const card = this.cards && this.cards.specs;
+    if (!card) return;
+
+    // The !malformed filter travels with the subscription (C6) — a spec whose
+    // folder cannot be read is not an active spec, it is a broken one.
+    const active = this._specs
+      .filter(s => s.phase !== 'done' && !s.malformed)
+      .sort((a, b) => SPEC_PHASE_ORDER.indexOf(a.phase) - SPEC_PHASE_ORDER.indexOf(b.phase));
+
+    card.count.textContent = String(active.length);
+    if (active.length === 0) {
+      card.body.innerHTML = '<div class="home-card-empty">No active specs.</div>';
+      return;
+    }
+
+    const dispatch = require('./agentDispatch');
+    card.body.innerHTML = active.slice(0, MAX_ROWS).map(s => `
+      <button type="button" class="home-card-row" data-slug="${escapeHtml(s.slug)}">
+        <span class="home-card-row-name">${dispatch.specStatusDotHtml(s.slug)}${escapeHtml(s.title || s.slug)}</span>
+        <span class="spec-phase-badge phase-${escapeHtml(s.phase)}">${escapeHtml(String(s.phase).replace('_', ' '))}</span>
+      </button>
+    `).join('') + _moreHtml(active.length - MAX_ROWS);
+
+    card.body.querySelectorAll('.home-card-row').forEach((row) => {
+      row.addEventListener('click', () => require('./specSection').openInNewTab(row.dataset.slug));
     });
-    return card;
+  }
+
+  _updateTasksCard() {
+    const card = this.cards && this.cards.tasks;
+    if (!card) return;
+
+    const open = this._tasks.filter(t => t.status === 'in_progress' || t.status === 'pending');
+    const running = open.filter(t => t.status === 'in_progress').length;
+
+    card.count.textContent = String(open.length);
+    if (open.length === 0) {
+      card.body.innerHTML = '<div class="home-card-empty">Nothing pending.</div>';
+      return;
+    }
+
+    const ordered = [...open].sort((a, b) =>
+      (a.status === 'in_progress' ? 0 : 1) - (b.status === 'in_progress' ? 0 : 1));
+
+    card.body.innerHTML =
+      `<div class="home-card-note">${running} in progress · ${open.length - running} pending</div>`
+      + ordered.slice(0, MAX_ROWS).map(t => `
+        <div class="home-card-row static">
+          <span class="home-card-row-name">${escapeHtml(t.title || '')}</span>
+          <span class="home-card-row-meta">${escapeHtml(t.priority || 'medium')}</span>
+        </div>
+      `).join('') + _moreHtml(open.length - MAX_ROWS);
   }
 
   _renderNoProjectState() {
@@ -241,25 +377,24 @@ class LaneBoard {
     return empty;
   }
 
-  _renderEmptyState() {
-    const empty = document.createElement('div');
-    empty.className = 'lane-board-empty';
-    const orchestrator = require('./orchestrator');
-    const orchActive = orchestrator.isActive && orchestrator.isActive();
-    empty.innerHTML = `
-      <div class="lane-board-empty-icon">${lucideIcon(Plus, 28)}</div>
-      <p class="lane-board-empty-title">No terminals yet</p>
-      <p class="lane-board-empty-hint">A terminal is where you run your shell or an AI session.</p>
-      <button class="lane-board-empty-cta">Create your first terminal</button>
-      <button class="lane-board-empty-secondary">${lucideIcon(Bot, 14)}<span>${orchActive ? 'Open Orchestrator' : 'Start Orchestrator'}</span></button>
-    `;
-    empty.querySelector('.lane-board-empty-cta').addEventListener('click', () => {
-      this._createLane();
-    });
-    empty.querySelector('.lane-board-empty-secondary').addEventListener('click', () => {
-      orchestrator.open();
-    });
-    return empty;
+  // ─── Data ───────────────────────────────────────────────
+
+  _fetchForProject(projectPath) {
+    ipcRenderer.send(IPC.LOAD_TASKS, projectPath);
+    ipcRenderer.invoke(IPC.LIST_SPECS, projectPath)
+      .then((fresh) => {
+        if (!Array.isArray(fresh)) return;
+        this._specs = fresh;
+        this._refreshData();
+      })
+      .catch(() => { /* the SPEC_DATA push will cover it */ });
+  }
+
+  /** A data push repaints only the two cards that read it. */
+  _refreshData() {
+    if (!this._isVisible() || !this.cards) return;
+    this._updateSpecsCard();
+    this._updateTasksCard();
   }
 
   async _createLane(shellPath = null) {
@@ -281,105 +416,8 @@ class LaneBoard {
     this.onEnterLane(id);
   }
 
-  // ─── Rename ─────────────────────────────────────────────
-
-  _startRename(card, t) {
-    const nameSpan = card.querySelector('.lane-card-name');
-    if (!nameSpan) return;
-    const currentName = nameSpan.textContent;
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'lane-rename-input';
-    input.value = currentName;
-    nameSpan.replaceWith(input);
-    input.focus();
-    input.select();
-
-    const finish = () => {
-      const newName = input.value.trim() || currentName;
-      const span = document.createElement('span');
-      span.className = 'lane-card-name';
-      span.textContent = newName;
-      if (input.parentNode) input.replaceWith(span);
-      this.manager.renameTerminal(t.id, newName);
-    };
-
-    input.addEventListener('blur', finish);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
-      if (e.key === 'Escape') { input.value = currentName; input.blur(); }
-    });
-  }
-
-  // ─── Live updates ───────────────────────────────────────
-
   _isVisible() {
     return !!(this.boardEl && this.boardEl.isConnected);
-  }
-
-  _updateCardStatus(terminalId) {
-    const card = this.boardEl.querySelector(`.lane-card[data-terminal-id="${terminalId}"]`);
-    if (!card) return;
-    const { status, lastActivityAt, foreground, commandLine, agentName } = laneStatus.getStatus(terminalId);
-
-    const dot = card.querySelector('.lane-status-dot');
-    if (dot) dot.className = `lane-status-dot ${status}`;
-
-    const label = card.querySelector('.lane-card-status-label');
-    if (label) {
-      label.className = `lane-card-status-label ${status}`;
-      label.textContent = statusLabel(status, { foreground, commandLine });
-      label.title = commandLine || '';
-    }
-
-    // Agent badge + tool chip follow the live foreground process — they
-    // appear when an AI tool actually runs, disappear when it exits.
-    const badge = card.querySelector('.lane-card-agent-badge');
-    if (badge) badge.style.display = agentName ? '' : 'none';
-    const chip = card.querySelector('.lane-card-tool');
-    if (chip) {
-      chip.style.display = agentName ? '' : 'none';
-      chip.textContent = agentName || '';
-    }
-
-    // Assignment chip stays (provenance) but fades while no live agent
-    // is in the lane.
-    const assignChip = card.querySelector('.lane-assignment-chip');
-    if (assignChip) assignChip.classList.toggle('dimmed', !agentName);
-
-    const activity = card.querySelector('.lane-card-activity');
-    if (activity) {
-      activity.dataset.ts = lastActivityAt || '';
-      activity.textContent = formatRelativeTime(lastActivityAt);
-    }
-  }
-
-  _updateBranchChips() {
-    this.boardEl.querySelectorAll('.lane-card-branch').forEach((chip) => {
-      if (this._branch) {
-        chip.style.display = '';
-        const nameEl = chip.querySelector('.lane-card-branch-name');
-        if (nameEl) nameEl.textContent = this._branch;
-      } else {
-        chip.style.display = 'none';
-      }
-    });
-  }
-
-  _startTicker() {
-    if (this._ticker) clearInterval(this._ticker);
-    this._ticker = setInterval(() => {
-      if (!this._isVisible()) {
-        clearInterval(this._ticker);
-        this._ticker = null;
-        return;
-      }
-      this.boardEl.querySelectorAll('.lane-card-activity').forEach((el) => {
-        const ts = el.dataset.ts ? Number(el.dataset.ts) : null;
-        el.textContent = formatRelativeTime(ts);
-      });
-    }, 30000);
   }
 
   // ─── Shell menu (same idiom as terminalTabBar's) ────────
@@ -390,7 +428,7 @@ class LaneBoard {
     document.body.appendChild(this.shellMenu);
 
     document.addEventListener('click', (e) => {
-      if (!this.shellMenu.contains(e.target) && !e.target.closest('.lane-card-new')) {
+      if (!this.shellMenu.contains(e.target) && !e.target.closest('.home-card-action')) {
         this._hideShellMenu();
       }
     });
@@ -457,6 +495,15 @@ class LaneBoard {
     if (this.shellMenu) this.shellMenu.classList.remove('visible');
   }
 
+}
+
+// Waiting on the user first, then working, then everything else.
+function _attentionRank(status) {
+  return { 'agent-approval': 0, 'agent-input': 1, 'agent-working': 2 }[status] ?? 3;
+}
+
+function _moreHtml(extra) {
+  return extra > 0 ? `<div class="home-card-more">+${extra} more</div>` : '';
 }
 
 module.exports = { LaneBoard };

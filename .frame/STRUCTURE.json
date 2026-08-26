@@ -5602,7 +5602,7 @@
     },
     "renderer/laneBoard": {
       "file": "src/renderer/laneBoard.js",
-      "description": "Lane Board Module",
+      "description": "Lane Board Module — Home",
       "exports": [
         "LaneBoard"
       ],
@@ -5610,146 +5610,35 @@
         "electron",
         "shared/ipcChannels",
         "laneStatus",
-        "laneRail",
         "lucide",
         "htmlUtils",
         "notify",
+        "agentDispatch",
         "orchestrator",
+        "specsDashboard",
+        "tasksDashboard",
+        "specSection",
         "openProjectModal"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 34,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "GIT_STATUS_DATA"
-        ],
-        "emits": []
-      }
-    },
-    "renderer/laneRail": {
-      "file": "src/renderer/laneRail.js",
-      "description": "Lane Rail Module",
-      "exports": [
-        "render"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "htmlUtils",
-        "lucide",
-        "agentDispatch",
-        "specsDashboard",
-        "specSection",
-        "tasksDashboard",
-        "taskSection"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 37,
+          "line": 43,
           "params": [
             "data",
             "size = 14"
           ]
         },
-        "getUIState": {
-          "line": 53
-        },
-        "setUIState": {
-          "line": 61,
+        "_attentionRank": {
+          "line": 501,
           "params": [
-            "partial"
-          ]
-        },
-        "_initOnce": {
-          "line": 70
-        },
-        "_fetchForProject": {
-          "line": 92,
-          "params": [
-            "projectPath"
-          ]
-        },
-        "_rerenderIfVisible": {
-          "line": 103
-        },
-        "render": {
-          "line": 115,
-          "params": [
-            "container",
-            "projectPath"
+            "status"
           ],
-          "purpose": "Render the rail into the given container for the given project."
+          "purpose": "Waiting on the user first, then working, then everything else."
         },
-        "_renderInto": {
-          "line": 131,
+        "_moreHtml": {
+          "line": 505,
           "params": [
-            "container"
-          ]
-        },
-        "_renderCollapsedStrip": {
-          "line": 156
-        },
-        "_sectionHeader": {
-          "line": 180,
-          "params": [
-            "{ title",
-            "count",
-            "collapsed",
-            "onToggle",
-            "onOpen",
-            "openTitle }"
-          ]
-        },
-        "_renderSpecsSection": {
-          "line": 199,
-          "params": [
-            "ui"
-          ]
-        },
-        "_specProgress": {
-          "line": 253,
-          "params": [
-            "spec"
-          ]
-        },
-        "_renderTasksSection": {
-          "line": 270,
-          "params": [
-            "ui"
-          ]
-        },
-        "_popoverOption": {
-          "line": 350,
-          "params": [
-            "name",
-            "value",
-            "label",
-            "checked"
-          ]
-        },
-        "_taskControls": {
-          "line": 362,
-          "params": [
-            "ui",
-            "categories"
-          ],
-          "purpose": "Filter + Sort as compact icon buttons opening dashboard-style popovers —"
-        },
-        "_closeRailPopovers": {
-          "line": 437
-        },
-        "_moreLink": {
-          "line": 441,
-          "params": [
-            "label",
-            "onClick"
+            "extra"
           ]
         }
       },
@@ -10895,12 +10784,7 @@
       {
         "module": "renderer/laneBoard",
         "file": "src/renderer/laneBoard.js",
-        "description": "Lane Board Module"
-      },
-      {
-        "module": "renderer/laneRail",
-        "file": "src/renderer/laneRail.js",
-        "description": "Lane Rail Module"
+        "description": "Lane Board Module — Home"
       },
       {
         "module": "renderer/laneStatus",

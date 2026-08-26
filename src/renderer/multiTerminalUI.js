@@ -90,7 +90,8 @@ class MultiTerminalUI {
     // Initialize components
     this.tabBar = new TerminalTabBar(tabBarContainer, this.manager);
     this.board = new LaneBoard(this.manager, {
-      onEnterLane: (terminalId) => this.enterLane(terminalId)
+      onEnterLane: (terminalId) => this.enterLane(terminalId),
+      onOpenTerminals: () => this.showTerminals()
     });
     this.terminalsView = new TerminalsView(this.manager, {
       onNewTerminal: () => this._createLaneOrNotify(),
@@ -591,14 +592,20 @@ class MultiTerminalUI {
   }
 
   /**
-   * Render the lane board (home screen)
+   * Render Home (the project board).
+   *
+   * Idempotence guard (C2): Home holds four live data cards, and rebuilding
+   * them on every state change is exactly the shape of the IPC storm measured
+   * on 2026-08-20. Mount once, then patch in place — the board is only rebuilt
+   * when it is not already standing in this container.
    */
   _renderBoardView(state) {
     this._lastViewMode = 'board';
     this._mountedTerminalId = null;
     this.contentContainer.className = 'terminal-content board-view';
     this._clearGridInlineStyles();
-    this.board.render(this.contentContainer, state);
+    if (this.board.isMountedIn(this.contentContainer, state)) this.board.update(state);
+    else this.board.mount(this.contentContainer, state);
   }
 
   _clearGridInlineStyles() {
