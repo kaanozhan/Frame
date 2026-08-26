@@ -114,6 +114,40 @@
   cursor: default;
 }
 
+/* The Other Terminals rail sits beside the terminal, keeping its own width
+   (.lane-rail in lane-board.css). Closed it is a 36px strip; the control that
+   opens it appears on hover, so the screen belongs to the terminal until you
+   ask for the rest. */
+
+.tv-single .lane-rail {
+  flex: none;
+}
+
+.tv-single .lane-rail.collapsed .otr-open {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.tv-single .lane-rail.collapsed:hover .otr-open,
+.tv-single .lane-rail.collapsed .otr-open:focus-visible {
+  opacity: 1;
+}
+
+/* Waiting agents are the exception: they show whether or not you hover. */
+.otr-waiting {
+  gap: 2px;
+  padding: 4px 2px;
+}
+
+.otr-waiting-mark {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.otr-waiting.agent-approval { color: var(--error, #d45555); }
+.otr-waiting.agent-input    { color: var(--warning, #e5a50a); }
+
 /* ─── Layout bar ─── */
 
 .tv-bar {

@@ -5500,13 +5500,13 @@
       "title": "`git mv laneDetailRail.js otherTerminalsRail.js` and rework it for the",
       "description": "",
       "source": "spec:terminals-home-agents:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: terminals-home-agents",
       "createdAt": "2026-08-26T12:25:33.153Z",
-      "updatedAt": "2026-08-26T12:25:33.153Z",
-      "completedAt": null
+      "updatedAt": "2026-08-26T12:58:12.843Z",
+      "completedAt": "2026-08-26T12:58:12.843Z"
     },
     {
       "id": "task-spec-terminals-home-agents-T08",

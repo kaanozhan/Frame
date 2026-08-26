@@ -93,7 +93,8 @@ class MultiTerminalUI {
       onEnterLane: (terminalId) => this.enterLane(terminalId)
     });
     this.terminalsView = new TerminalsView(this.manager, {
-      onNewTerminal: () => this._createLaneOrNotify()
+      onNewTerminal: () => this._createLaneOrNotify(),
+      onEnterLane: (terminalId) => this.enterLane(terminalId)
     });
 
     // Structure map overlay (its own sidebar item since Overview retired)

@@ -24,6 +24,7 @@
 
 const laneStatus = require('./laneStatus');
 const { statusLabel, attentionMark } = laneStatus;
+const otherTerminalsRail = require('./otherTerminalsRail');
 const { escapeHtml } = require('./htmlUtils');
 const { Plus, Search, Pencil, X } = require('lucide');
 
@@ -61,6 +62,7 @@ class TerminalsView {
    * @param {TerminalManager} manager
    * @param {Object} callbacks
    * @param {Function} callbacks.onNewTerminal - create a terminal (cap feedback included)
+   * @param {Function} callbacks.onEnterLane - (terminalId) => go to that terminal
    */
   constructor(manager, callbacks = {}) {
     this.manager = manager;
@@ -167,7 +169,7 @@ class TerminalsView {
       ? terminals.find(t => t.id === prefs.activeTab)
       : null;
     if (active) {
-      this._renderSingle(view, active, prefs);
+      this._renderSingle(view, active, prefs, terminals);
     } else {
       this._renderOverview(view, terminals, prefs);
     }
@@ -200,10 +202,11 @@ class TerminalsView {
   }
 
   /**
-   * A tab's body: one terminal, filling the section. It mounts here every
-   * render — the element was in an Overview pane a moment ago (C1).
+   * A tab's body: one terminal, filling the section, with the Other Terminals
+   * rail beside it. It mounts here every render — the element was in an
+   * Overview pane a moment ago (C1).
    */
-  _renderSingle(view, state, prefs) {
+  _renderSingle(view, state, prefs, terminals) {
     const body = document.createElement('div');
     body.className = 'tv-single';
     view.appendChild(body);
@@ -212,7 +215,26 @@ class TerminalsView {
     body.appendChild(pane);
     this.manager.mountTerminal(state.id, pane.querySelector('.tv-pane-content'));
 
+    // The rail only exists here: looking at one terminal is the only place
+    // you cannot see the others. Overview never gets it.
+    const railEl = document.createElement('div');
+    body.appendChild(railEl);
+    otherTerminalsRail.render(railEl, { terminals, currentId: state.id }, {
+      onEnterLane: (id) => this._goToTerminal(id),
+      onNewLane: () => this.callbacks.onNewTerminal && this.callbacks.onNewTerminal(),
+      onLayoutChange: () => setTimeout(() => this.manager.fitTerminal(state.id), 60)
+    });
+
     this._observePanes(body);
+  }
+
+  /**
+   * Go to another terminal from inside the section. Routed through the host's
+   * enterLane where there is one, so the single choke point stays single.
+   */
+  _goToTerminal(terminalId) {
+    if (this.callbacks.onEnterLane) this.callbacks.onEnterLane(terminalId);
+    else this.openTab(terminalId);
   }
 
   // ─── Tabs ───────────────────────────────────────────────

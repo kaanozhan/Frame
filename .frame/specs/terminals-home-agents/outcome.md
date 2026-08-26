@@ -118,3 +118,23 @@ work was needed in Overview: it has had none since `detail` retired in T04.
 _Captured: 2026-08-26 · 2 file changes_
 
 ---
+
+## T07 — The Other Terminals rail
+
+`git mv`'d `laneDetailRail.js` to `otherTerminalsRail.js` and reworked it for
+the single-terminal body: it lists the project's terminals minus the one on
+screen, is closed by default (`isHidden` inverted, new storage key, and an
+unreadable value falls back to closed), opens from a control that appears on
+hover at the edge, and shows only approval and input in the collapsed strip —
+one entry per waiting agent, replacing the two generic icons.
+`terminalsView._renderSingle` hosts it and `multiTerminalUI` supplies
+`onEnterLane`, so a row click still goes through the single choke point. Two
+judgement calls: the rail renders nothing when there are no other terminals,
+because a strip that opens onto an empty list is worse than no strip; and the
+`active-lane` row highlight is gone, since the terminal it marked is by
+definition never in this list. Collapse mechanics, the `.lane-rail` CSS and
+the init-once subscribe guard (C5) are untouched.
+
+_Captured: 2026-08-26 · 4 file changes_
+
+---

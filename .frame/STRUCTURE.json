@@ -5633,58 +5633,6 @@
         "emits": []
       }
     },
-    "renderer/laneDetailRail": {
-      "file": "src/renderer/laneDetailRail.js",
-      "description": "Lane Detail Rail Module",
-      "exports": [
-        "render"
-      ],
-      "depends": [
-        "laneStatus",
-        "lucide",
-        "htmlUtils"
-      ],
-      "functions": {
-        "itemStatusText": {
-          "line": 32,
-          "params": [
-            "s"
-          ],
-          "purpose": "Same information as the Home cards, compressed for the rail: agents read"
-        },
-        "lucideIcon": {
-          "line": 46,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        },
-        "isHidden": {
-          "line": 54
-        },
-        "setHidden": {
-          "line": 62,
-          "params": [
-            "hidden"
-          ]
-        },
-        "render": {
-          "line": 72,
-          "params": [
-            "el",
-            "state",
-            "cbs"
-          ],
-          "purpose": "Render the rail. Called by multiTerminalUI on every detail render;"
-        },
-        "_renderInto": {
-          "line": 89
-        },
-        "_startTicker": {
-          "line": 182
-        }
-      }
-    },
     "renderer/laneRail": {
       "file": "src/renderer/laneRail.js",
       "description": "Lane Rail Module",
@@ -6324,6 +6272,66 @@
           "TELEMETRY_TRACK",
           "ORCH_WORKER_LANE"
         ]
+      }
+    },
+    "renderer/otherTerminalsRail": {
+      "file": "src/renderer/otherTerminalsRail.js",
+      "description": "Other Terminals Rail Module",
+      "exports": [
+        "render"
+      ],
+      "depends": [
+        "laneStatus",
+        "lucide",
+        "htmlUtils"
+      ],
+      "functions": {
+        "itemStatusText": {
+          "line": 45,
+          "params": [
+            "s"
+          ],
+          "purpose": "Same information as the Home cards, compressed for the rail: agents read"
+        },
+        "lucideIcon": {
+          "line": 59,
+          "params": [
+            "data",
+            "size = 14"
+          ]
+        },
+        "isHidden": {
+          "line": 69,
+          "purpose": "Closed by default, and closed again whenever the stored value cannot be"
+        },
+        "setHidden": {
+          "line": 77,
+          "params": [
+            "hidden"
+          ]
+        },
+        "render": {
+          "line": 92,
+          "params": [
+            "el",
+            "state",
+            "cbs"
+          ],
+          "purpose": "Render the rail. Called by terminalsView on every single-terminal render;"
+        },
+        "_others": {
+          "line": 110,
+          "purpose": "The project's terminals minus the one filling the body."
+        },
+        "_open": {
+          "line": 114
+        },
+        "_renderInto": {
+          "line": 120
+        },
+        "_startTicker": {
+          "line": 234
+        }
       }
     },
     "renderer/paletteSources": {
@@ -8978,22 +8986,23 @@
       ],
       "depends": [
         "laneStatus",
+        "otherTerminalsRail",
         "htmlUtils",
         "lucide"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 33,
+          "line": 34,
           "params": [
             "data",
             "size = 13"
           ]
         },
         "_loadAllPrefs": {
-          "line": 41
+          "line": 42
         },
         "_saveProjectPrefs": {
-          "line": 49,
+          "line": 50,
           "params": [
             "projectKey",
             "prefs"
@@ -10828,11 +10837,6 @@
         "description": "Lane Board Module"
       },
       {
-        "module": "renderer/laneDetailRail",
-        "file": "src/renderer/laneDetailRail.js",
-        "description": "Lane Detail Rail Module"
-      },
-      {
         "module": "renderer/laneRail",
         "file": "src/renderer/laneRail.js",
         "description": "Lane Rail Module"
@@ -10892,6 +10896,18 @@
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
+      }
+    ],
+    "rail": [
+      {
+        "module": "renderer/otherTerminalsRail",
+        "file": "src/renderer/otherTerminalsRail.js",
+        "description": "Other Terminals Rail Module"
+      },
+      {
+        "module": "renderer/sectionRail",
+        "file": "src/renderer/sectionRail.js",
+        "description": "Section Rail Module"
       }
     ],
     "section": [
@@ -11060,6 +11076,18 @@
         "module": "renderer/terminalTabBar",
         "file": "src/renderer/terminalTabBar.js",
         "description": "Terminal Top Bar Module (historically the tab bar)"
+      }
+    ],
+    "terminals": [
+      {
+        "module": "renderer/otherTerminalsRail",
+        "file": "src/renderer/otherTerminalsRail.js",
+        "description": "Other Terminals Rail Module"
+      },
+      {
+        "module": "renderer/terminalsView",
+        "file": "src/renderer/terminalsView.js",
+        "description": "Terminals View Module"
       }
     ],
     "view": [
