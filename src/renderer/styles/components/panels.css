@@ -5340,16 +5340,18 @@
 
 /* Inline panel hosting (retire-rail-and-panels spec): a legacy side panel
    mounted into the center content area. Overrides the slide-in geometry —
-   fixed width, hidden-by-default display, transforms — with a centered
-   reading column. */
+   fixed width, hidden-by-default display, transforms — and fills the center
+   completely: a 900px column left the rest of the pane empty, which read as
+   a broken side panel rather than a view. The only way out is the × in the
+   header. */
 .panel-inline {
   display: flex !important;
-  width: min(900px, 100%) !important;
+  width: 100% !important;
   max-width: none;
   height: 100%;
-  margin: 0 auto;
-  border-left: 1px solid var(--border-subtle) !important;
-  border-right: 1px solid var(--border-subtle);
+  margin: 0;
+  border-left: none !important;
+  border-right: none;
   transform: none !important;
   opacity: 1 !important;
   transition: none !important;
