@@ -114,29 +114,66 @@
   cursor: default;
 }
 
+/* One terminal filling the section is self-evidently the focused one. The
+   accent ring exists to pick a pane out from the panes beside it; alone, it
+   is just a bright box around the whole screen. */
+.tv-pane.tv-pane-single.active {
+  border-color: var(--border-default);
+  box-shadow: none;
+}
+
+.tv-pane.tv-pane-single:hover {
+  border-color: var(--border-default);
+}
+
 /* The Other Terminals rail sits beside the terminal, keeping its own width
-   (.lane-rail in lane-board.css). Closed it is a 36px strip; the control that
-   opens it appears on hover, so the screen belongs to the terminal until you
-   ask for the rest. */
+   (.lane-rail in lane-board.css).
+
+   Collapsed it is an *edge*, not a second panel: it drops the panel's
+   background and left border, because 28px of filled slab beside a
+   full-height terminal reads as a sidebar that failed to load. It also sits
+   in the section's right padding rather than 14px inside it — an edge
+   affordance belongs at the edge. */
+
+.tv-single {
+  gap: var(--space-sm);
+}
 
 .tv-single .lane-rail {
   flex: none;
 }
 
-.tv-single .lane-rail.collapsed .otr-open {
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+.tv-single .lane-rail.collapsed {
+  width: 28px;
+  background: transparent;
+  border-left: none;
+  margin-right: calc(-1 * var(--space-sm));
 }
 
-.tv-single .lane-rail.collapsed:hover .otr-open,
-.tv-single .lane-rail.collapsed .otr-open:focus-visible {
-  opacity: 1;
+/* Line the first control up with the pane header beside it. */
+.tv-single .lane-rail.collapsed .lane-rail-strip {
+  padding-top: 6px;
+  gap: 6px;
 }
 
-/* Waiting agents are the exception: they show whether or not you hover. */
+/* Always visible, only quiet. Hiding it until hover meant a control nobody
+   could find — a deliberate change from the spec's "appears on hover" (D13);
+   the rail still opens only when asked, which was the point of that decision. */
+.otr-open {
+  color: var(--text-tertiary);
+}
+
+.otr-open:hover {
+  color: var(--text-primary);
+}
+
+/* Waiting agents: the mark above the agent marker, because side by side in a
+   28px column they collide into one smudge. */
 .otr-waiting {
-  gap: 2px;
-  padding: 4px 2px;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 2px;
+  line-height: 1;
 }
 
 .otr-waiting-mark {
@@ -503,6 +540,18 @@
   color: var(--accent-primary);
   font-size: 9px;
   font-weight: 700;
+}
+
+/* Orchestration's live session used to announce itself on Home's card; the
+   row carries it now that the card is gone. */
+.workspace-nav-running {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--success, #23d18b);
+  background: color-mix(in srgb, var(--success, #23d18b) 18%, transparent);
+  border-radius: 999px;
+  padding: 0 6px;
+  line-height: 14px;
 }
 
 /* Waiting on the user: the same two colours every other surface uses for
