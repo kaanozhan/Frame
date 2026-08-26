@@ -384,7 +384,7 @@ function setupProjectSwitcher() {
     add.type = 'button';
     add.className = 'sidebar-project-menu-item sidebar-project-menu-add';
     add.setAttribute('role', 'menuitem');
-    add.innerHTML = '<span class="sidebar-project-menu-item-name">+ Open a project…</span>';
+    add.innerHTML = '<span class="sidebar-project-menu-item-name">+ Add a project…</span>';
     add.addEventListener('click', () => {
       close();
       openProjectModal.open();

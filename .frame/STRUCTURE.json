@@ -6661,15 +6661,16 @@
       ],
       "depends": [
         "openProjectModal",
-        "projectListUI"
+        "projectListUI",
+        "state"
       ],
       "functions": {
         "focusList": {
-          "line": 19,
+          "line": 26,
           "purpose": "Move keyboard focus into the project list. Used by the \"Focus Project List\""
         },
         "init": {
-          "line": 23
+          "line": 30
         }
       }
     },

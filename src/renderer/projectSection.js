@@ -1,14 +1,21 @@
 /**
  * Projects Section
  *
- * The Projects rail view. It is a thin wrapper: a "Projects" header above the
- * workspace list (rendered/owned by `projectListUI`, drag-to-reorder) and an
- * "Add new Project" button below that opens the Open Project modal. The active
- * project is shown by list highlight (no separate summary row).
+ * The Projects rail view. It is a thin wrapper over the workspace panel
+ * (rendered/owned by `projectListUI`) plus the "Add new Project" button
+ * pinned below it. The active project is shown by the switcher above.
+ *
+ * That button belongs to the empty sidebar only. With a project selected the
+ * switcher already carries "+ Add a project…", and the panel below it is that
+ * project's own navigation — an accent-filled CTA at its foot is the loudest
+ * thing in the sidebar, pulling toward the one action the user is demonstrably
+ * not taking. With no project there is nothing else to click, so it is the
+ * whole point of the view.
  */
 
 const openProjectModal = require('./openProjectModal');
 const projectListUI = require('./projectListUI');
+const state = require('./state');
 
 let section = null;
 
@@ -31,6 +38,15 @@ function init() {
   const addBtn = document.getElementById('project-add-btn');
   if (addBtn) {
     addBtn.addEventListener('click', () => openProjectModal.open());
+
+    // Follows the project, both ways: removing the last project hands
+    // projectListUI a null path, and the button has to come back — that is
+    // the state where it is the only way forward.
+    const syncAddBtn = () => {
+      addBtn.style.display = state.getProjectPath() ? 'none' : '';
+    };
+    state.onProjectChange(syncAddBtn);
+    syncAddBtn();
   } else {
     console.error('projectSection: #project-add-btn not found — Add new Project will not work');
   }

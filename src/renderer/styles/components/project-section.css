@@ -90,7 +90,8 @@
 /* ==================== WORKSPACE PANEL (project-dropdown spec) ==================== */
 /* The Projects tab: workspace nav for the selected project; project
    selection lives in the current-project switcher above; Add new Project is
-   pinned at the bottom. */
+   pinned at the bottom, and only while no project is selected
+   (projectSection). */
 
 .sidebar-view-projects {
   display: flex;
