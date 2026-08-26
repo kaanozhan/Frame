@@ -112,3 +112,25 @@ test('promptLogger rotates the history file past 5MB to <name>.log.1', async () 
   const fresh = fs.readFileSync(livePath, 'utf8');
   assert.ok(fresh.includes('fresh-line') && !fresh.includes('first-line'), 'appends land in a fresh live file');
 });
+
+test('promptLogger keeps terminal replies out of the prompt history', async () => {
+  const promptLogger = initPromptLogger();
+  // What a working agent TUI actually puts on stdin: cursor-position
+  // replies, mouse motion, focus reports and an arrow key, wrapped around
+  // the one thing the user typed.
+  promptLogger.logInput('\x1b[?39;3R\x1b[?36;3Rgit ');
+  promptLogger.logInput('\x1b[<35;41;2Mstatus\x1b[I\x1b[O\x1b[A\x1b]11;?\x07\r');
+  await promptLogger.flush();
+  const logged = fs.readFileSync(promptLogger.getLogFilePath(), 'utf8');
+  const line = logged.trim().split('\n').pop();
+  assert.ok(line.endsWith('] git status'), `prompt polluted by replies: ${JSON.stringify(line)}`);
+});
+
+test('promptLogger survives a terminal reply split across two chunks', async () => {
+  const promptLogger = initPromptLogger();
+  promptLogger.logInput('\x1b[?39;');   // sequence cut mid-flight
+  promptLogger.logInput('3Rnpm test\r');
+  await promptLogger.flush();
+  const logged = fs.readFileSync(promptLogger.getLogFilePath(), 'utf8');
+  assert.ok(logged.trim().endsWith('] npm test'), `split sequence leaked: ${logged}`);
+});
