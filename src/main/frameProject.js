@@ -17,6 +17,7 @@ const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
 const commandStaging = require('./commandStaging');
 const docsManagedBlock = require('../shared/docsManagedBlock');
+const docsHealth = require('../shared/docsHealth');
 const perfMonitor = require('./perfMonitor');
 const activityLog = require('./activityLog');
 const detector = require('../../scripts/detect-project');
@@ -723,37 +724,125 @@ function ensureSpecDrivenArtifacts(projectPath, config) {
 // REFERENCE.md and AGENTS.md carry a Frame-managed spec section; the
 // managed-block engine upgrades it in place when Frame's shipped content is
 // newer (version stamp) or migrates a byte-identical legacy section once.
-// Everything outside the block — and any file the user deleted or heavily
-// rewrote — is left alone. Files are never created here, only rewritten on
-// change.
+// Everything outside the block is left alone.
+//
+// Two rules were missing, and between them they produced the delivery gap this
+// pass now closes:
+//
+//   1. **A pointer is never written at nothing.** AGENTS.md's section is a
+//      pointer into REFERENCE.md's. Writing it while REFERENCE.md carries no
+//      protocol replaces a stale-but-working flow with no flow at all — which
+//      is exactly what shipped after the 2026-07-23 matcher fix. REFERENCE.md
+//      is therefore settled first, and AGENTS.md is upgraded only once the
+//      target is confirmed to carry the block. Confirmed by reading it back,
+//      not by predicting it.
+//   2. **A document with no section at all is appended to, not skipped.**
+//      "Leave it alone" is right for a section the user customized and wrong
+//      for a document that never had one. docsHealth draws that line; this
+//      pass only acts on it.
+//
+// A document whose section Frame cannot prove is its own is still never
+// written — it comes back in the returned report instead, for the caller to
+// surface.
 
-function upgradeSpecDocs(projectPath) {
-  if (!projectPath || !isFrameProject(projectPath)) return;
+// Both shipped documents end with this line; a block appended to one goes
+// above it rather than after it.
+const FRAME_DOC_FOOTER = '*This file was automatically created by Frame.';
 
-  const docs = [
+// Heading stems that mean "this document already has a section about the spec
+// workflow", whoever wrote it. Deliberately loose — see docsHealth.headingStem.
+const SPEC_HEADING_STEMS = ['spec-driven development'];
+
+/**
+ * The spec-section descriptors, in the order they must be settled: the target
+ * of a pointer before the pointer itself.
+ */
+function specDocDescriptors(projectPath) {
+  return [
     {
+      rel: `${FRAME_DIR}/docs/REFERENCE.md`,
       file: path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md'),
       body: templates.SPEC_DRIVEN_SECTION,
-      legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS
+      block: {
+        name: docsManagedBlock.SPEC_BLOCK_NAME,
+        legacyMatchers: templates.REFERENCE_SPEC_LEGACY_MATCHERS,
+        headingStems: SPEC_HEADING_STEMS
+      }
     },
     {
+      rel: `${FRAME_DIR}/${FRAME_FILES.AGENTS}`,
       file: frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS),
       body: templates.SPEC_DRIVEN_CORE_SECTION,
-      legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS
+      // The core section is a pointer into the reference; it may not be
+      // written until that document actually carries the protocol.
+      pointsAt: `${FRAME_DIR}/docs/REFERENCE.md`,
+      block: {
+        name: docsManagedBlock.SPEC_BLOCK_NAME,
+        legacyMatchers: templates.AGENTS_SPEC_LEGACY_MATCHERS,
+        headingStems: SPEC_HEADING_STEMS
+      }
     }
   ];
+}
 
-  for (const doc of docs) {
-    let text;
-    try {
-      text = fs.readFileSync(doc.file, 'utf8');
-    } catch (_) {
-      continue; // missing file — never create it
+function readTextOrNull(file) {
+  try {
+    return fs.readFileSync(file, 'utf8');
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Upgrade the Frame-managed sections and report what could not be settled.
+ * Returns the docsHealth report (or null when this is not a Frame project),
+ * so the caller can record and surface a broken invariant rather than let it
+ * pass silently — the failure mode this whole pass exists to end.
+ */
+function upgradeSpecDocs(projectPath) {
+  if (!projectPath || !isFrameProject(projectPath)) return null;
+
+  const descriptors = specDocDescriptors(projectPath);
+  const exists = (rel) => fs.existsSync(path.join(projectPath, rel));
+
+  const health = docsHealth.report(
+    descriptors.map((d) => ({
+      path: d.rel,
+      text: readTextOrNull(d.file),
+      blocks: [d.block]
+    })),
+    exists
+  );
+
+  const stateOf = (rel) => {
+    const found = health.sections.find((s) => s.doc === rel);
+    return found ? found.state : null;
+  };
+
+  for (const doc of descriptors) {
+    const text = readTextOrNull(doc.file);
+    if (text === null) continue; // absent file — creating it is not this pass's job
+
+    // A section Frame cannot prove is its own: report it, never write over it.
+    if (stateOf(doc.rel) === 'unmatched') continue;
+
+    // Rule 1 — never aim a pointer at a document that will not carry the
+    // protocol. Read the target back rather than assume this pass fixed it.
+    if (doc.pointsAt) {
+      const targetText = readTextOrNull(path.join(projectPath, doc.pointsAt));
+      if (targetText === null || !docsManagedBlock.findBlock(targetText, doc.block.name)) {
+        continue;
+      }
     }
+
     const upgraded = docsManagedBlock.upgradeDoc(text, {
       body: doc.body,
       version: templates.SPEC_SECTION_VERSION,
-      legacyMatchers: doc.legacyMatchers
+      legacyMatchers: doc.block.legacyMatchers,
+      blockName: doc.block.name,
+      // Rule 2 — a document with no section at all gets one, additively.
+      onAbsent: stateOf(doc.rel) === 'absent' ? 'append' : undefined,
+      footerMarker: FRAME_DOC_FOOTER
     });
     if (upgraded !== null && upgraded !== text) {
       try {
@@ -765,6 +854,7 @@ function upgradeSpecDocs(projectPath) {
   }
 
   syncClaudeRule(projectPath); // an upgraded AGENTS.md means a stale copy
+  return health;
 }
 
 // ─── Remove Frame from a project ──────────────────────────

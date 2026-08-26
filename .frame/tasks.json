@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-26T12:48:47.559Z",
+  "lastUpdated": "2026-08-26T12:53:37.048Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5448,13 +5448,13 @@
       "title": "Reorder `upgradeSpecDocs` to ensure a pointer's target before writing the pointer and wire the health-gated append branch, with `test/specDocsUpgrade.test.js` covering the pre-split, customized-section and byte-identical-healthy projects.",
       "description": "",
       "source": "spec:spec-docs-delivery-invariant:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-docs-delivery-invariant",
       "createdAt": "2026-08-26T12:25:34.826Z",
-      "updatedAt": "2026-08-26T12:25:34.826Z",
-      "completedAt": null
+      "updatedAt": "2026-08-26T12:53:37.048Z",
+      "completedAt": "2026-08-26T12:53:37.048Z"
     },
     {
       "id": "task-spec-spec-docs-delivery-invariant-T04",

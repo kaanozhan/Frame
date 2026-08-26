@@ -12,3 +12,10 @@ Added `src/shared/docsHealth.js`: given the documents' texts, the managed blocks
 _Captured: 2026-08-26 · 2 file change(s)_
 
 ---
+## T03 — Ensure the target before the pointer, and append where nothing conflicts
+
+`upgradeSpecDocs` now builds a `docsHealth` report first and acts on it: an `unmatched` section is skipped and reported, an `absent` one is appended to, and AGENTS.md's pointer is written only once REFERENCE.md has been read back and confirmed to carry the block. It returns the report rather than nothing, so a broken invariant has somewhere to go. Divergence from `plan.md`, tightened while implementing: the plan gated the pointer on the target *existing*, but a REFERENCE.md that exists while carrying the user's own section would still leave the pointer aimed at a document without the protocol — the original bug in a softer form — so the gate became "the target carries the block", verified by reading it back. Tests are end-to-end over temp projects on purpose: a green `docsManagedBlock` suite is exactly what shipped alongside the delivery gap.
+
+_Captured: 2026-08-26 · 3 file change(s)_
+
+---
