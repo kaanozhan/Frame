@@ -12,9 +12,55 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
   /* Size queries below track the board's own width (window minus
      sidebar/rail), not the window — that's what actually varies. */
   container-type: inline-size;
+}
+
+/* ─── Home header ───────────────────────────────────────── */
+/* Home opens on a project and says which one: name, branch, path. Quiet
+   typography doing the work — the cards below are the busy part, and a header
+   competing with them would make the board harder to read, not richer. */
+
+.home-header {
+  flex: none;
+}
+
+.home-header-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.home-header-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-header-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  padding: 2px 9px;
+}
+
+.home-header-branch svg {
+  opacity: 0.7;
 }
 
 /* ─── Home cards ────────────────────────────────────────── */
@@ -24,22 +70,47 @@
    the full list lives; a card that grew into a list would be a second
    dashboard nobody asked for. */
 
+.home-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Equal shares of whatever the window leaves, with a floor: past it the
+     board scrolls instead of squeezing four cards into nothing. */
+  flex: 1 1 0;
+  min-height: 232px;
+}
+
+.home-group-title {
+  margin: 0;
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
 .home-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-md);
-  align-content: start;
+  flex: 1;
+  min-height: 0;
 }
 
+.home-cards-solo {
+  grid-template-columns: 1fr;
+}
+
+/* Narrow board: one card per row. The group's floor doubles with it, so the
+   cards keep their height and the board scrolls. */
 @container (max-width: 699px) {
   .home-cards {
     grid-template-columns: 1fr;
   }
-}
 
-@container (min-width: 1500px) {
-  .home-cards {
-    grid-template-columns: repeat(4, 1fr);
+  .home-group {
+    min-height: 480px;
   }
 }
 
@@ -47,6 +118,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   background: var(--bg-secondary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
@@ -66,6 +138,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
+  flex: none;
   background: none;
   border: none;
   border-bottom: 1px solid var(--border-subtle);
@@ -110,9 +183,12 @@
   color: var(--accent-primary);
 }
 
+/* The body takes the slack and scrolls inside the card, so a card with 50
+   tasks and a card with one sentence stay the same size. */
 .home-card-body {
   flex: 1;
-  min-height: 64px;
+  min-height: 0;
+  overflow-y: auto;
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -152,11 +228,21 @@
   cursor: pointer;
 }
 
-.home-card-row.static {
-  cursor: default;
+/* Terminals is a list of at most nine, so the rows can own the card: they
+   share its height, growing when two are open and tightening as they
+   approach the cap, instead of huddling at the top under empty space. */
+.home-card-terminals .home-card-body {
+  gap: 4px;
+  overflow-y: auto;
 }
 
-.home-card-row:not(.static):hover {
+.home-card-terminals .home-card-row {
+  flex: 1 1 auto;
+  min-height: 30px;
+  max-height: 56px;
+}
+
+.home-card-row:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
@@ -189,6 +275,346 @@
 .home-card-row.agent-input .home-card-row-meta    { color: var(--warning, #e5a50a); }
 .home-card-row.agent-working .home-card-row-meta  { color: var(--accent-primary); }
 
+/* An empty card has a better job than saying "none": explaining what the
+   thing is to someone who has not made one yet. Sans-serif and a little
+   looser than a row — this is prose, not data. */
+.home-card-onboard {
+  padding: 6px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.home-card-onboard p {
+  margin: 0 0 6px;
+}
+
+.home-card-onboard p:last-child {
+  margin-bottom: 0;
+}
+
+.home-card-onboard-lead {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ─── Terminal tiles ─────────────────────────────────────── */
+/* Six at a time, 3×2. The tiles take the card's full height
+   (grid-auto-rows: 1fr) rather than huddling at the top under empty space,
+   and they are large enough to carry what you would otherwise open the
+   terminal to find out. Past six, the last cell says so. */
+
+.home-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: var(--space-sm);
+  height: 100%;
+}
+
+/* Fewer columns before the tiles get narrow, not after. */
+@container (max-width: 1099px) {
+  .home-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container (max-width: 649px) {
+  .home-tiles {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 96px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.home-tile:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.home-tile-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.home-tile-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.home-tile-mark {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.home-tile-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* Pushed to the floor of the tile, so tiles of different content still line
+   their last row up with each other. */
+.home-tile-time {
+  margin-top: auto;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.home-tile .lane-assignment-chip {
+  align-self: flex-start;
+  max-width: 100%;
+  font-size: 10px;
+}
+
+/* Waiting on the user is the one state the tile shows without being read. */
+.home-tile.agent-approval { border-color: color-mix(in srgb, var(--error, #d45555) 45%, transparent); }
+.home-tile.agent-approval .home-tile-mark,
+.home-tile.agent-approval .home-tile-status { color: var(--error, #d45555); font-weight: 600; }
+.home-tile.agent-input { border-color: color-mix(in srgb, var(--warning, #e5a50a) 45%, transparent); }
+.home-tile.agent-input .home-tile-mark,
+.home-tile.agent-input .home-tile-status { color: var(--warning, #e5a50a); }
+.home-tile.agent-working .home-tile-status { color: var(--accent-primary); }
+
+/* Neither is a terminal: dashed, so the grid says which cells are real. */
+.home-tile-new,
+.home-tile-more {
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap: 7px;
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.home-tile-new:hover,
+.home-tile-more:hover {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+/* The chip is a second destination inside the tile, so it has to look like
+   one rather than like a label. */
+.home-tile-assign {
+  cursor: pointer;
+}
+
+.home-tile-assign:hover {
+  background: color-mix(in srgb, var(--accent-primary) 22%, transparent);
+}
+
+.home-tile-assign:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+/* No terminals at all: the message belongs in the middle of the card, not in
+   a lone dashed box in its top-left corner. */
+.home-tiles-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  text-align: center;
+  padding: var(--space-md);
+}
+
+.home-tiles-empty-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.home-tiles-empty-hint {
+  margin: 0 0 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  max-width: 42ch;
+}
+
+.home-tiles-empty-cta {
+  flex: none;
+  min-height: 0;
+  padding: 8px 16px;
+}
+
+/* Stat strip: the count leads because that is what the eye came for. */
+.home-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  flex: none;
+  padding: 4px 6px 6px;
+}
+
+.home-card-stats + .home-card-stats {
+  padding-top: 0;
+}
+
+.home-card-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.home-card-stat b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* The category strip is the second reading of the same number — quieter. */
+.home-card-stats.subtle .home-card-stat b {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* A task row carries three things: what it is, what kind of work it is, and
+   the one button that hands it to a terminal. */
+.task-row {
+  gap: 8px;
+}
+
+.task-row.running .home-card-row-name {
+  color: var(--text-primary);
+}
+
+/* In progress gets a marker, because "already being worked on" is the one
+   thing that changes what you do with a row. */
+.task-row.running .home-card-row-name::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 2px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+/* Kind of work beats priority: a fix and a feature are different jobs, two
+   "medium"s are not. */
+.home-card-cat {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  padding: 1px 7px;
+}
+
+.home-card-cat.cat-fix {
+  color: var(--error, #d45555);
+  background: color-mix(in srgb, var(--error, #d45555) 14%, transparent);
+}
+
+.home-card-cat.cat-feature {
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+.home-card-run {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+}
+
+.task-row:hover .home-card-run,
+.home-card-run:focus-visible {
+  opacity: 1;
+}
+
+.home-card-run:hover {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+}
+
+/* Work this card does not list, and the one thing most likely to be
+   forgotten: a spec holding tasks nobody has implemented yet. It sits above
+   everything else because it is the only line here that is a nudge rather
+   than a readout. */
+.home-card-warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  width: 100%;
+  margin-bottom: 2px;
+  background: color-mix(in srgb, var(--warning, #e5a50a) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, #e5a50a) 32%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  color: var(--warning, #e5a50a);
+  font: inherit;
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-card-warn:hover {
+  background: color-mix(in srgb, var(--warning, #e5a50a) 20%, transparent);
+}
+
+.home-card-warn svg {
+  flex-shrink: 0;
+}
+
+.home-card-warn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-card-more {
   padding: 4px 6px;
   font-size: 10px;
@@ -201,6 +627,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  flex: none;
   background: none;
   border: none;
   border-top: 1px solid var(--border-subtle);

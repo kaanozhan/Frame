@@ -296,11 +296,14 @@ class TerminalsView {
     this._rerender();
   }
 
-  /** Back to the grid. */
-  showOverview() {
+  /**
+   * Back to the grid. `render: false` writes the pref and stops, for callers
+   * that are about to switch into the section anyway (see openTab).
+   */
+  showOverview({ render = true } = {}) {
     if (this._prefs().activeTab === null) return;
     this._updatePrefs({ activeTab: null });
-    this._rerender();
+    if (render) this._rerender();
   }
 
   /** The focused tab's terminal id, or null while Overview is showing. */

@@ -1926,3 +1926,50 @@ than quitting it, so Chromium never flushes its LevelDB. `frame-terminals-view`
 looked like proof of persistence but is written fresh at boot. Read paths can
 be proven with `page.reload()` (same process, storage intact); disk survival
 has to be taken on the mechanism's track record.
+
+### [2026-08-26] Home became the landing surface, and three of the terminals-home-agents decisions were overturned
+
+Visual review of the finished `terminals-home-agents` spec, with Kaan driving
+from the running app. Most of it was polish; three things were reversals of
+decisions that spec had recorded, and they belong here rather than only in a
+commit message.
+
+**Landing view.** `terminals-view` had it that "selecting a project always
+lands on its terminals view", and this spec's §1 kept Terminals as the
+launch surface. Now: **a project with running terminals opens on Terminals, a
+project with none opens on Home.** That also settles the app-launch case
+without a first-run flag, because PTYs die with the main process — at startup
+no project has a terminal, so a fresh window always lands on Home. The
+argument that won: an empty terminals grid says nothing about the project,
+and Home now does.
+
+**The rail's hover control (D13).** The spec asked for a control at the edge
+that "appears on hover". Built that way it was invisible until you happened to
+be over it — a control nobody can find is a control nobody uses. It is now
+permanently visible and merely quiet. D13's actual point (the rail is closed
+by default and opens only when asked) is untouched.
+
+**Orchestration left Home.** §4 listed four cards; there are three. It is a
+surface you *open*, not a state you *read*, and it already opened as a top-bar
+section tab — so the entry moved to the sidebar's Work group and Home stopped
+carrying a card for it. Watch out for the signal that nearly went with it: the
+card was the only place a live conductor session announced itself, so the
+sidebar row grew a `running` badge.
+
+Home itself became a project board with a header (name + branch, no path — the
+sidebar already carries the path), two groups (Work / Project planning), and
+terminal *tiles* rather than rows: a project holds nine at most, so boxes fill
+the width a list wasted, and each box carries what you would otherwise open the
+terminal to learn — status, assignment, last activity. Tasks became **Active
+Tasks** and stopped listing spec-owned work; that work is the spec's business,
+so it gets a warning line at the top instead of a second pile of the same
+items.
+
+**Two bugs the throwaway harnesses caught, both off-by-one-shaped.** The tile
+grid's overflow label counted what was over the cap, not what was hidden — the
+overflow tile itself costs a cell, so nine terminals showing seven said "+1
+more" when two were missing. And the Tasks card would have claimed "Nothing
+pending" while every open task sat inside a spec. Neither is visible in a
+screenshot; both came from driving the real update methods against a DOM stub.
+For renderer work with no DOM harness, that remains the cheapest real check
+available — `npm test` never touches `src/renderer/`.

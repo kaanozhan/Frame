@@ -91,7 +91,7 @@ class MultiTerminalUI {
     this.tabBar = new TerminalTabBar(tabBarContainer, this.manager);
     this.board = new LaneBoard(this.manager, {
       onEnterLane: (terminalId) => this.enterLane(terminalId),
-      onOpenTerminals: () => this.showTerminals()
+      onOpenTerminals: () => this.showOverview()
     });
     this.terminalsView = new TerminalsView(this.manager, {
       onNewTerminal: () => this._createLaneOrNotify(),
@@ -560,6 +560,16 @@ class MultiTerminalUI {
     this.isSectionVisible = false;
     this.terminalsInStrip = true;
     this.manager.setViewMode('terminals');
+  }
+
+  /**
+   * Go to the Terminals section *and* show Overview, dropping whatever tab
+   * was focused. Home's Terminals card leads here: its tiles are the grid in
+   * miniature, so "see the rest" means the grid, not the last tab you left.
+   */
+  showOverview() {
+    this.terminalsView.showOverview({ render: false });
+    this.showTerminals();
   }
 
   /**

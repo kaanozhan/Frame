@@ -243,6 +243,7 @@ const WORKSPACE_NAV_GROUPS = [
     label: 'Work',
     items: [
       { view: 'terminals', icon: '›_', label: 'Terminals', open: ui => ui.showTerminals(), surfaces: ['terminals'] },
+      { view: 'orchestrator', icon: '⚙', label: 'Orchestration', open: () => require('./orchestrator').open(), surfaces: ['section:orchestrator'] },
       { view: 'github', icon: '◇', label: 'GitHub', open: ui => ui.togglePanel('github'), surfaces: ['panel:github'] },
       { view: 'claude', icon: '✦', label: 'Claude', open: ui => ui.togglePanel('claude'), surfaces: ['panel:claude'] }
     ]
@@ -306,6 +307,7 @@ function buildWorkspaceNav() {
             <span class="workspace-nav-label">${item.label}</span>
             <span class="workspace-nav-right">
               ${item.view === 'terminals' ? '<span class="workspace-nav-agents" style="display:none"></span>' : ''}
+              ${item.view === 'orchestrator' ? '<span class="workspace-nav-running" style="display:none" title="A conductor session is running">running</span>' : ''}
               ${item.view === 'terminals' || item.count ? `<span class="workspace-nav-count" data-count="${item.view}"></span>` : ''}
             </span>
           </div>`).join('')}
@@ -412,6 +414,16 @@ function refreshWorkspaceNav() {
     waiting.approval ? `${waiting.approval} needs approval` : null,
     waiting.input ? `${waiting.input} awaiting input` : null
   ].filter(Boolean).join(' · ');
+
+  const orchEl = workspaceNavEl.querySelector('.workspace-nav-running');
+  if (orchEl) {
+    let orchActive = false;
+    try {
+      const orchestrator = require('./orchestrator');
+      orchActive = !!(orchestrator.isActive && orchestrator.isActive());
+    } catch (_) { /* orchestrator not loaded yet */ }
+    orchEl.style.display = orchActive ? '' : 'none';
+  }
 
   workspaceNavEl.querySelector('[data-count="specs"]').textContent = String(navSpecsCount);
   workspaceNavEl.querySelector('[data-count="tasks"]').textContent = String(navTasksCount);
