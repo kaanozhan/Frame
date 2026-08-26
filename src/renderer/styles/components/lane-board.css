@@ -897,6 +897,35 @@
   background: var(--bg-hover);
 }
 
+/* ─── Terminals, the head of that group ─────────────────── */
+/* It wears the sidebar's own mark — the same `›_` the Work group's Terminals
+   row carries — and the mono face its chips are set in. Two surfaces naming
+   the same destination should look like they mean the same thing, and the
+   group only reads as one if its head matches its members. */
+
+.lane-bar-terminals {
+  font-family: var(--font-mono);
+}
+
+.lane-bar-terminals .lane-bar-section-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.lane-bar-terminals-icon {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+/* On the surface you are looking at, the mark stops being a quiet aside */
+.lane-bar-terminals.current .lane-bar-terminals-icon,
+.lane-bar-terminals:hover .lane-bar-terminals-icon {
+  color: inherit;
+}
+
 /* ─── Terminal breadcrumb chips ─────────────────────────── */
 /* Every live terminal of the project, beside Terminals itself: Terminals is
    the grid, a chip is that terminal enlarged. Quieter than a section chip —

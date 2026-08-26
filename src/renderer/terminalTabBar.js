@@ -30,7 +30,7 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
-const { Plus, Bell, CheckSquare, Home, X, Boxes, FileText, FileDiff, Bot } = require('lucide');
+const { Plus, Bell, CheckSquare, Home, X, FileText, FileDiff, Bot } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 const laneStatus = require('./laneStatus');
 const notify = require('./notify');
@@ -217,7 +217,7 @@ class TerminalTabBar {
       ${showTerminals || sections.length ? '<span class="lane-bar-divider"></span>' : ''}
       ${showTerminals ? `
         <button class="lane-bar-section lane-bar-terminals ${onTerminals && !shownId ? 'current' : ''}" title="All terminals">
-          ${lucideIcon(Boxes, 13)}
+          <span class="lane-bar-terminals-icon" aria-hidden="true">›_</span>
           <span class="lane-bar-section-label">Terminals</span>
           ${liveCount ? '' : `<span class="lane-bar-section-close" title="Remove from the bar">${lucideIcon(X, 12)}</span>`}
         </button>
