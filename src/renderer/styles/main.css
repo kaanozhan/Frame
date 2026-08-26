@@ -56,6 +56,9 @@
 /* 13b. Decisions view (center list of PROJECT_NOTES decisions) */
 @import 'components/decisions-view.css';
 
+/* 13c. Status bar (foot of the window) */
+@import 'components/status-bar.css';
+
 /* 14. Git Changes Panel (Changes sidebar tab) */
 @import 'components/git-changes.css';
 

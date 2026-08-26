@@ -9,7 +9,6 @@ const terminal = require('./terminal');
 const fileTreeUI = require('./fileTreeUI');
 const gitChangesPanel = require('./gitChangesPanel');
 const diffSection = require('./diffSection');
-const historyPanel = require('./historyPanel');
 const tasksPanel = require('./tasksPanel');
 const tasksDashboard = require('./tasksDashboard');
 const taskConfirmModal = require('./taskConfirmModal');
@@ -102,6 +101,10 @@ function init() {
   // Agent rail view: live list of running agents across all projects.
   presenceBar.init(multiTerminalUI, document.getElementById('presence-bar'));
 
+  // Status bar at the foot of the window: Claude usage meters today
+  // (status-bar spec).
+  require('./statusBar').init();
+
   // Initialize file tree UI
   fileTreeUI.init('file-tree', state.getProjectPath);
   fileTreeUI.setProjectPathGetter(state.getProjectPath);
@@ -123,11 +126,6 @@ function init() {
   // Connect file tree clicks to editor
   fileTreeUI.setOnFileClick((filePath, source) => {
     editor.openFile(filePath, source);
-  });
-
-  // Initialize history panel with terminal resize callback
-  historyPanel.init('history-panel', 'history-content', () => {
-    setTimeout(() => terminal.fitTerminal(), 50);
   });
 
   // Initialize tasks panel
@@ -278,11 +276,6 @@ function setupButtonHandlers() {
     fileTreeUI.refreshFileTree();
   });
 
-  // Close history panel
-  document.getElementById('history-close').addEventListener('click', () => {
-    historyPanel.toggleHistoryPanel();
-  });
-
   // Sidebar activity rail (Projects / Files / Changes). Bound to the button,
   // not e.target — clicks land on the inner SVG/path otherwise.
   document.querySelectorAll('.sidebar-tab-btn').forEach(btn => {
@@ -296,17 +289,10 @@ function setupButtonHandlers() {
     sidebarSettingsBtn.addEventListener('click', () => settingsModal.toggle());
   }
 
-  // Theme toggle — moved here from the retired instrument rail. Boot-time
-  // theme restore lives in terminalTabBar; flipping data-theme is the whole
-  // contract (terminalManager observes it for the xterm theme).
-  const sidebarThemeBtn = document.getElementById('sidebar-theme-btn');
-  if (sidebarThemeBtn) {
-    sidebarThemeBtn.addEventListener('click', () => {
-      const next = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      try { localStorage.setItem('frame-theme', next); } catch (_) { /* non-fatal */ }
-    });
-  }
+  // Theme toggle now lives in the top bar and is wired by terminalTabBar,
+  // which renders it and already owns the boot-time theme restore
+  // (status-bar spec). Binding it from here would attach a listener before
+  // the element exists.
 
   // Current-project switcher (Files / Changes views): reflects the active
   // project and opens a dropdown to switch project without leaving the view.
@@ -565,13 +551,9 @@ function registerCommands() {
       terminal.fitTerminal();
     }
   });
-  r({
-    id: 'panel.toggleHistory',
-    title: 'Toggle Prompt History Panel',
-    category: 'Panel',
-    shortcut: 'CmdOrCtrl+Shift+H',
-    run: () => multiTerminalUI && multiTerminalUI.togglePanel('history')
-  });
+  // 'panel.toggleHistory' retired with the History panel: it and
+  // 'panel.togglePrompts' now pointed at the same surface, and one prompt
+  // history belongs behind one command (sidebar-nav-groups spec).
   // Tasks/Specs side panels are retired — Home's lane rail covers the
   // at-a-glance view, and these entry points now open the full dashboards.
   r({
@@ -589,25 +571,27 @@ function registerCommands() {
     run: () => specsDashboard.toggle()
   });
   r({
+    // The panel is "Claude" everywhere the user sees it (sidebar row, palette
+    // jump); only this title still said Plugins (sidebar-nav-groups spec).
     id: 'panel.togglePlugins',
-    title: 'Toggle Plugins Panel',
+    title: 'Toggle Claude Panel',
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+X',
-    run: () => multiTerminalUI && multiTerminalUI.togglePanel('claude')
+    run: () => require('./terminal').getMultiTerminalUI()?.togglePanel('claude')
   });
   r({
     id: 'panel.toggleGitHub',
     title: 'Toggle GitHub Panel',
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+G',
-    run: () => multiTerminalUI && multiTerminalUI.togglePanel('github')
+    run: () => require('./terminal').getMultiTerminalUI()?.togglePanel('github')
   });
   r({
     id: 'panel.togglePrompts',
     title: 'Toggle Prompts Panel',
     category: 'Panel',
     shortcut: 'CmdOrCtrl+Shift+L',
-    run: () => multiTerminalUI && multiTerminalUI.togglePanel('prompts')
+    run: () => require('./terminal').getMultiTerminalUI()?.togglePanel('prompts')
   });
 
   // ---------- Focus ----------

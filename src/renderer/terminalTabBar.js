@@ -5,9 +5,13 @@
  * single-state — identical on the Mainframe and inside a Frame: the
  * Mainframe button (highlighted when you're on it), the Active Frames
  * count, and a chip for any pinned section (e.g. a task detail) that can
- * re-open or close it from either view. The right action cluster (usage
- * bars, new frame, layout select, panels, more menu) is mode-independent
- * except the layout select, which only shows in detail.
+ * re-open or close it from either view. The right action cluster (agent
+ * launcher, layout select, update, theme) is mode-independent except the
+ * layout select, which only shows in detail.
+ *
+ * Controls you click live here; ambient readouts live in the status bar at
+ * the foot of the window — the Claude usage meters moved there
+ * (status-bar spec).
  */
 
 const { ipcRenderer } = require('electron');
@@ -133,24 +137,6 @@ class TerminalTabBar {
             <span>Start</span>
           </button>
         </div>
-        <div class="claude-usage-bars" title="Click to refresh">
-          <div class="usage-item session">
-            <span class="usage-label">Session</span>
-            <div class="usage-bar-container">
-              <div class="usage-bar-fill"></div>
-            </div>
-            <span class="usage-percent">--</span>
-            <span class="usage-reset"></span>
-          </div>
-          <div class="usage-item weekly">
-            <span class="usage-label">Weekly</span>
-            <div class="usage-bar-container">
-              <div class="usage-bar-fill"></div>
-            </div>
-            <span class="usage-percent">--</span>
-            <span class="usage-reset"></span>
-          </div>
-        </div>
         <select class="grid-layout-select" title="Layout">
           <option value="1x1" selected>1×1</option>
           <option value="1x2">1×2</option>
@@ -165,6 +151,15 @@ class TerminalTabBar {
         <button class="btn-update-notify" title="Check for updates" style="display:none;position:relative;">
           ${lucideIcon(Bell)}
           <span class="update-badge"></span>
+        </button>
+        <!-- Theme toggle: window-level control, so it sits at the far right
+             of the top bar (status-bar spec). Wired here rather than in
+             index.js because this element is rendered by this module — a
+             listener attached elsewhere would bind before it exists. -->
+        <button id="sidebar-theme-btn" class="btn-theme-toggle" tabindex="-1" title="Toggle light/dark theme" aria-label="Toggle theme">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
         </button>
       </div>
     `;
@@ -265,11 +260,6 @@ class TerminalTabBar {
       this.manager.setGridLayout(e.target.value);
     });
 
-    // Usage bars click to refresh
-    this.element.querySelector('.claude-usage-bars').addEventListener('click', () => {
-      ipcRenderer.send(IPC.REFRESH_CLAUDE_USAGE);
-    });
-
     // Update notification button
     const updateBtn = this.element.querySelector('.btn-update-notify');
     updateBtn.addEventListener('click', (e) => {
@@ -287,119 +277,13 @@ class TerminalTabBar {
       updateBtn.title = `New version available: v${info.latestVersion}`;
     });
 
-    // Setup usage bar IPC listener
-    this._setupUsageListener();
-  }
-
-  /**
-   * Setup IPC listener for Claude usage updates
-   */
-  _setupUsageListener() {
-    ipcRenderer.on(IPC.CLAUDE_USAGE_DATA, (event, data) => {
-      this._updateUsageBar(data);
+    // Theme toggle — flipping data-theme is the whole contract
+    // (terminalManager observes it for the xterm theme, CSS does the rest).
+    this.element.querySelector('#sidebar-theme-btn')?.addEventListener('click', () => {
+      const next = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('frame-theme', next); } catch (_) { /* non-fatal */ }
     });
-
-    // Request initial usage data
-    ipcRenderer.send(IPC.LOAD_CLAUDE_USAGE);
-  }
-
-  /**
-   * Update usage bar UI with new data
-   */
-  _updateUsageBar(data) {
-    const container = this.element.querySelector('.claude-usage-bars');
-    if (!container) return;
-
-    const sessionItem = container.querySelector('.usage-item.session');
-    const weeklyItem = container.querySelector('.usage-item.weekly');
-
-    container.style.display = '';
-
-    if (data.error) {
-      // Show error state with the reason from main (e.g. "sign in via the
-      // claude CLI") so the user knows what's degraded and why.
-      this._updateUsageItem(sessionItem, 0, 'N/A', '');
-      this._updateUsageItem(weeklyItem, 0, 'N/A', '');
-      container.title = `${data.error}\nClick to refresh`;
-      return;
-    }
-
-    // Update session (5-hour) bar
-    const sessionUsage = data.fiveHour?.utilization || 0;
-    const sessionReset = data.fiveHour?.resetsAt
-      ? this._formatResetTime(data.fiveHour.resetsAt)
-      : '';
-    this._updateUsageItem(sessionItem, sessionUsage, `${Math.round(sessionUsage)}%`, sessionReset);
-
-    // Update weekly (7-day) bar
-    const weeklyUsage = data.sevenDay?.utilization || 0;
-    const weeklyReset = data.sevenDay?.resetsAt
-      ? this._formatResetTime(data.sevenDay.resetsAt)
-      : '';
-    this._updateUsageItem(weeklyItem, weeklyUsage, `${Math.round(weeklyUsage)}%`, weeklyReset);
-
-    container.title = 'Click to refresh';
-  }
-
-  /**
-   * Update a single usage item
-   */
-  _updateUsageItem(item, usage, percentText, resetText) {
-    if (!item) return;
-
-    const fill = item.querySelector('.usage-bar-fill');
-    const percent = item.querySelector('.usage-percent');
-    const reset = item.querySelector('.usage-reset');
-
-    if (fill) {
-      fill.style.width = `${Math.min(usage, 100)}%`;
-      fill.className = 'usage-bar-fill';
-      if (usage >= 80) {
-        fill.classList.add('critical');
-      } else if (usage >= 50) {
-        fill.classList.add('warning');
-      }
-    }
-
-    if (percent) {
-      percent.textContent = percentText;
-    }
-
-    if (reset && resetText) {
-      reset.textContent = `(${resetText})`;
-    } else if (reset) {
-      reset.textContent = '';
-    }
-  }
-
-  /**
-   * Format reset time
-   */
-  _formatResetTime(isoString) {
-    try {
-      const date = new Date(isoString);
-      const now = new Date();
-      const diffMs = date - now;
-
-      if (diffMs < 0) return 'soon';
-
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 60) {
-        return `${diffMins}m`;
-      }
-
-      const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) {
-        const remainingMins = diffMins % 60;
-        return `${diffHours}h ${remainingMins}m`;
-      }
-
-      const diffDays = Math.floor(diffHours / 24);
-      const remainingHours = diffHours % 24;
-      return `${diffDays}d ${remainingHours}h`;
-    } catch {
-      return '';
-    }
   }
 
   /**

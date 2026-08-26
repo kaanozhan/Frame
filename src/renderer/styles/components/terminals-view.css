@@ -249,6 +249,62 @@
   margin: 2px 0 6px;
 }
 
+/* ---------- Nav groups (sidebar-nav-groups spec) ---------- */
+/* Headers are labels, not buttons: uppercase, small, quiet. They exist to
+   say what the rows below are for — Work / Context / Frame — and to fold
+   away the ones you are not using. */
+.workspace-nav-group + .workspace-nav-group {
+  margin-top: 10px;
+}
+
+.workspace-nav-group-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  color: var(--text-quaternary, var(--text-tertiary));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.workspace-nav-group-header:hover {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+}
+
+.workspace-nav-group-header:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: -1px;
+}
+
+/* When the group is folded and the active surface lives inside it, the
+   header carries the highlight — otherwise "where am I" disappears with
+   the rows. */
+.workspace-nav-group-header.on {
+  color: var(--accent-primary);
+}
+
+.workspace-nav-group-chevron {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform var(--transition-fast);
+}
+
+.workspace-nav-group.collapsed .workspace-nav-group-chevron {
+  transform: rotate(0deg);
+}
+
+.workspace-nav-group.collapsed .workspace-nav-group-items {
+  display: none;
+}
+
 .workspace-nav-item {
   display: flex;
   align-items: center;

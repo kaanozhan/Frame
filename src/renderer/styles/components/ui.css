@@ -7,7 +7,11 @@
 
 body {
   margin: 0;
-  padding: 0;
+  /* Room for the fixed status bar at the foot of the window (status-bar
+     spec). With the global border-box, 100vh minus this padding is exactly
+     the shell's content box, so the sidebar and the terminal grid shrink by
+     the bar's height instead of sliding under it. */
+  padding: 0 0 var(--status-bar-height) 0;
   background-color: var(--bg-deep);
   font-family: var(--font-mono);
   overflow: hidden;

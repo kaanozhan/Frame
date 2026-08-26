@@ -111,7 +111,6 @@ function viewItems() {
     ['github', 'Go to GitHub', () => ui.showPanel('github')],
     ['claude', 'Go to Claude', () => ui.showPanel('claude')],
     ['prompts', 'Go to Prompts', () => ui.showPanel('prompts')],
-    ['history', 'Go to History', () => ui.showPanel('history')],
     ['activity', 'Go to Activity', () => ui.showPanel('activity')]
   ];
   return views.map(([key, title, run]) => ({
