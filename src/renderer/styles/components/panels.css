@@ -791,25 +791,6 @@
   border-radius: 50%;
 }
 
-#plugins-collapse-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: var(--space-xs);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: var(--space-xs);
-}
-
-#plugins-collapse-btn:hover {
-  color: var(--info);
-  background: rgba(166, 192, 240, 0.15);
-}
-
 .plugins-header-actions {
   display: flex;
   align-items: center;
@@ -1401,25 +1382,6 @@
   height: 6px;
   background: var(--accent-primary);
   border-radius: 50%;
-}
-
-#github-collapse-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: var(--space-xs);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: var(--space-xs);
-}
-
-#github-collapse-btn:hover {
-  color: var(--accent-primary);
-  background: var(--accent-subtle);
 }
 
 .github-header-actions {
@@ -3927,7 +3889,6 @@
   opacity: 0.7;
 }
 
-#prompts-collapse-btn,
 #prompts-close {
   background: transparent;
   border: none;
@@ -3945,7 +3906,6 @@
   padding: 0;
 }
 
-#prompts-collapse-btn:hover,
 #prompts-close:hover {
   color: var(--text-primary);
   background: var(--bg-hover);

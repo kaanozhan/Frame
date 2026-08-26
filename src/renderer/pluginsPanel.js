@@ -52,12 +52,6 @@ function setupEventListeners() {
     closeBtn.addEventListener('click', hide);
   }
 
-  // Collapse button
-  const collapseBtn = document.getElementById('plugins-collapse-btn');
-  if (collapseBtn) {
-    collapseBtn.addEventListener('click', hide);
-  }
-
   // Refresh button
   const refreshBtn = document.getElementById('plugins-refresh-btn');
   if (refreshBtn) {
