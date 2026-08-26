@@ -9192,6 +9192,74 @@
         }
       }
     },
+    "shared/docsHealth": {
+      "file": "src/shared/docsHealth.js",
+      "description": "Doc health — does Frame's own prose still describe a project that exists?",
+      "exports": [
+        "report",
+        "namedPaths",
+        "hasSectionLike",
+        "headingStem",
+        "classifySection"
+      ],
+      "depends": [
+        "docsManagedBlock"
+      ],
+      "functions": {
+        "isPlaceholder": {
+          "line": 48,
+          "params": [
+            "path"
+          ],
+          "purpose": "Placeholders, not paths: `.frame/specs/<slug>/spec.md`,"
+        },
+        "trimTrailing": {
+          "line": 57,
+          "params": [
+            "path"
+          ],
+          "purpose": "Trim what sentence punctuation glued onto the end of a match. A trailing dot"
+        },
+        "namedPaths": {
+          "line": 68,
+          "params": [
+            "text"
+          ],
+          "purpose": "Every distinct `.frame/…` path a document names, placeholders dropped, in"
+        },
+        "headingStem": {
+          "line": 92,
+          "params": [
+            "line"
+          ],
+          "purpose": "A heading's comparable stem: the words, lowercased, with the decoration"
+        },
+        "hasSectionLike": {
+          "line": 108,
+          "params": [
+            "text",
+            "stems"
+          ],
+          "purpose": "Does this document carry a heading that reads like the block's own section,"
+        },
+        "classifySection": {
+          "line": 123,
+          "params": [
+            "text",
+            "block"
+          ],
+          "purpose": "Classify one managed block within one document. `block` is"
+        },
+        "report": {
+          "line": 155,
+          "params": [
+            "docs",
+            "exists"
+          ],
+          "purpose": "The whole report."
+        }
+      }
+    },
     "shared/docsManagedBlock": {
       "file": "src/shared/docsManagedBlock.js",
       "description": "Managed-block engine for Frame's spec docs sections.",
@@ -10749,6 +10817,18 @@
         "module": "renderer/healthNotice",
         "file": "src/renderer/healthNotice.js",
         "description": "Health Notice Banner"
+      }
+    ],
+    "docs": [
+      {
+        "module": "shared/docsHealth",
+        "file": "src/shared/docsHealth.js",
+        "description": "Doc health — does Frame's own prose still describe a project that exists?"
+      },
+      {
+        "module": "shared/docsManagedBlock",
+        "file": "src/shared/docsManagedBlock.js",
+        "description": "Managed-block engine for Frame's spec docs sections."
       }
     ],
     "editor": [

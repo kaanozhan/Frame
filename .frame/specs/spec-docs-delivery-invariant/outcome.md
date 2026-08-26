@@ -5,3 +5,10 @@ Made every entry point take a block name (default: the spec section) so one docu
 _Captured: 2026-08-26 · 2 file change(s)_
 
 ---
+## T02 — The pure doc-health report
+
+Added `src/shared/docsHealth.js`: given the documents' texts, the managed blocks they should carry and an existence predicate, it returns every `.frame/…` path the prose names but that is not on disk, plus a per-block state. Paths are read from backticked prose and fenced commands alike; placeholders and bare directories are dropped. The state is four-valued on purpose — `managed`, `legacy`, `absent`, `unmatched` — because collapsing the last two is what would put a second protocol beside a user's own; heading detection is loose enough that a hand-written variant still reads as an existing section, and `upgradeDoc` serves as the oracle for the legacy gate so the report always agrees with what the repair pass will do. Run against this repository's own docs it reports both as `unmatched` with `ok: false`, reproducing the diagnosis this spec started from.
+
+_Captured: 2026-08-26 · 2 file change(s)_
+
+---
