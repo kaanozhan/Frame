@@ -173,12 +173,6 @@
   padding-bottom: var(--space-sm);
 }
 
-.tv-grid.maximized {
-  grid-template-rows: 1fr;
-  align-content: stretch;
-  overflow: hidden;
-}
-
 .tv-pane {
   display: flex;
   flex-direction: column;
@@ -212,11 +206,6 @@
 .tv-pane.dropover {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 1px var(--accent-primary);
-}
-
-.tv-pane.maximized {
-  height: auto;
-  resize: none;
 }
 
 .tv-pane-header {

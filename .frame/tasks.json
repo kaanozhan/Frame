@@ -5448,13 +5448,13 @@
       "title": "Turn the pane's maximise control into the magnifier that opens a",
       "description": "",
       "source": "spec:terminals-home-agents:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: terminals-home-agents",
       "createdAt": "2026-08-26T12:25:33.153Z",
-      "updatedAt": "2026-08-26T12:25:33.153Z",
-      "completedAt": null
+      "updatedAt": "2026-08-26T12:46:45.289Z",
+      "completedAt": "2026-08-26T12:46:45.289Z"
     },
     {
       "id": "task-spec-terminals-home-agents-T04",

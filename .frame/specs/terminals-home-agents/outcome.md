@@ -37,3 +37,19 @@ second source of truth. Both bodies mount their terminals every render (C1);
 _Captured: 2026-08-26 · 2 file changes_
 
 ---
+
+## T03 — The magnifier opens a terminal in its own tab
+
+Turned the pane header's `data-maximize` into `data-open` with a `Search`
+icon calling `openTab(id)`, and deleted `maximizedId` along with every branch
+that read it: the render-time normalisation, the grid class and column
+override, the shown-pane filter, the ghost-pane condition, the layout bar's
+back-to-grid button, the rename's draggable restore, and the
+`.tv-grid.maximized` / `.tv-pane.maximized` rules. Overview now always draws
+every pane in `cols` columns, because the one-pane case is a tab rather than a
+mode of the grid. Stale `maximizedId` keys already in localStorage fall out on
+the next `_updatePrefs`, which spreads the new `_prefs()`.
+
+_Captured: 2026-08-26 · 2 file changes_
+
+---

@@ -9,7 +9,7 @@
  *
  * The tab strip is navigation among what you opened; closing a tab drops the
  * tab, never the terminal. Tabs live in the per-project prefs
- * ({cols, order, maximizedId, openTabs, activeTab}) in localStorage, so
+ * ({cols, order, openTabs, activeTab}) in localStorage, so
  * switching project keeps each project's strip; ids do not survive a restart,
  * so a fresh launch opens Overview.
  *
@@ -24,7 +24,7 @@
 
 const laneStatus = require('./laneStatus');
 const { escapeHtml } = require('./htmlUtils');
-const { Plus, Maximize2, Minimize2, Pencil, X } = require('lucide');
+const { Plus, Search, Pencil, X } = require('lucide');
 
 const PREFS_KEY = 'frame-terminals-view';
 const GLOBAL_PROJECT_KEY = '__global__';
@@ -103,7 +103,6 @@ class TerminalsView {
     return {
       cols: [1, 2, 3].includes(stored.cols) ? stored.cols : 2,
       order: Array.isArray(stored.order) ? stored.order : [],
-      maximizedId: stored.maximizedId || null,
       openTabs: Array.isArray(stored.openTabs) ? stored.openTabs : [],
       activeTab: stored.activeTab || null
     };
@@ -137,9 +136,6 @@ class TerminalsView {
     const terminals = this._orderedTerminals(this._prefs());
     // Persist the normalized order so drag indices stay stable
     let prefs = this._updatePrefs({ order: terminals.map(t => t.id) });
-    if (prefs.maximizedId && !terminals.some(t => t.id === prefs.maximizedId)) {
-      prefs = this._updatePrefs({ maximizedId: null });
-    }
     prefs = this._normalizeTabs(prefs, terminals);
 
     const view = document.createElement('div');
@@ -171,22 +167,18 @@ class TerminalsView {
     view.appendChild(this._buildLayoutBar(prefs));
 
     const grid = document.createElement('div');
-    grid.className = `tv-grid ${prefs.maximizedId ? 'maximized' : ''}`;
-    grid.style.gridTemplateColumns = `repeat(${prefs.maximizedId ? 1 : prefs.cols}, 1fr)`;
+    grid.className = 'tv-grid';
+    grid.style.gridTemplateColumns = `repeat(${prefs.cols}, 1fr)`;
     view.appendChild(grid);
 
-    const shown = prefs.maximizedId
-      ? terminals.filter(t => t.id === prefs.maximizedId)
-      : terminals;
-
-    shown.forEach((t) => {
+    terminals.forEach((t) => {
       const pane = this._buildPane(t, prefs);
       grid.appendChild(pane);
       this.manager.mountTerminal(t.id, pane.querySelector('.tv-pane-content'));
     });
 
-    // Ghost pane: create in place, hidden while a pane is maximized
-    if (!prefs.maximizedId && terminals.length < this.manager.maxTerminals) {
+    // Ghost pane: create in place
+    if (terminals.length < this.manager.maxTerminals) {
       grid.appendChild(this._buildGhostPane());
     }
 
@@ -331,48 +323,39 @@ class TerminalsView {
     bar.innerHTML = `
       <span class="tv-bar-label">LAYOUT</span>
       ${[1, 2, 3].map(n => `
-        <button class="tv-bar-btn ${!prefs.maximizedId && prefs.cols === n ? 'on' : ''}" data-cols="${n}" title="${n} column${n > 1 ? 's' : ''}">${'▮'.repeat(n)} ${n}</button>
+        <button class="tv-bar-btn ${prefs.cols === n ? 'on' : ''}" data-cols="${n}" title="${n} column${n > 1 ? 's' : ''}">${'▮'.repeat(n)} ${n}</button>
       `).join('')}
-      ${prefs.maximizedId ? `<button class="tv-bar-btn on" data-grid-back title="Back to grid">${lucideIcon(Minimize2, 12)} grid</button>` : ''}
-      <span class="tv-bar-hint">drag header to reorder · bottom edge to resize · ⤢ to focus</span>
+      <span class="tv-bar-hint">drag header to reorder · bottom edge to resize · 🔍 to open in a tab</span>
     `;
 
     bar.querySelectorAll('[data-cols]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        this._updatePrefs({ cols: Number(btn.dataset.cols), maximizedId: null });
+        this._updatePrefs({ cols: Number(btn.dataset.cols) });
         this._rerender();
       });
     });
-    const back = bar.querySelector('[data-grid-back]');
-    if (back) {
-      back.addEventListener('click', () => {
-        this._updatePrefs({ maximizedId: null });
-        this._rerender();
-      });
-    }
     return bar;
   }
 
   /**
    * The pane. `single` is the tab body's variant: it fills the section, so
-   * there is nothing to reorder it against and nothing to enlarge it into —
-   * no drag, no maximize control.
+   * there is nothing to reorder it against and it is already the tab the
+   * magnifier would open — no drag, no magnifier.
    */
   _buildPane(state, prefs, { single = false } = {}) {
     const { status, agentName } = laneStatus.getStatus(state.id);
-    const maximized = !single && prefs.maximizedId === state.id;
     const pane = document.createElement('div');
-    pane.className = `tv-pane ${state.isActive ? 'active' : ''} ${maximized ? 'maximized' : ''} ${single ? 'tv-pane-single' : ''}`;
+    pane.className = `tv-pane ${state.isActive ? 'active' : ''} ${single ? 'tv-pane-single' : ''}`;
     pane.dataset.terminalId = state.id;
 
     pane.innerHTML = `
-      <div class="tv-pane-header" draggable="${!single && !maximized}" title="${single ? '' : 'Drag to reorder'}">
+      <div class="tv-pane-header" draggable="${!single}" title="${single ? '' : 'Drag to reorder'}">
         <span class="lane-status-dot ${status}"></span>
         <span class="tv-pane-name">${escapeHtml(state.customName || state.name)}</span>
         <span class="tv-pane-agent">${agentName ? `· ${escapeHtml(agentName)}` : ''}</span>
         <span class="tv-pane-actions">
           <button class="tv-pane-btn" data-rename title="Rename terminal">${lucideIcon(Pencil, 11)}</button>
-          ${single ? '' : `<button class="tv-pane-btn" data-maximize title="${maximized ? 'Back to grid' : 'Maximize pane'}">${lucideIcon(maximized ? Minimize2 : Maximize2, 12)}</button>`}
+          ${single ? '' : `<button class="tv-pane-btn" data-open title="Open in its own tab">${lucideIcon(Search, 12)}</button>`}
           <button class="tv-pane-btn" data-close title="Close terminal">${lucideIcon(X, 12)}</button>
         </span>
       </div>
@@ -425,14 +408,13 @@ class TerminalsView {
       if (instance && instance.opened) instance.terminal.focus();
     });
 
-    const maximizeBtn = pane.querySelector('[data-maximize]');
-    if (maximizeBtn) {
-      maximizeBtn.addEventListener('click', (e) => {
+    // The magnifier means "open this terminal in its own tab" — not
+    // "enlarge it here". Already open, it switches to that tab.
+    const openBtn = pane.querySelector('[data-open]');
+    if (openBtn) {
+      openBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const prefs = this._prefs();
-        this._updatePrefs({ maximizedId: prefs.maximizedId === terminalId ? null : terminalId });
-        this.manager.setActiveTerminal(terminalId);
-        this._rerender();
+        this.openTab(terminalId);
       });
     }
 
@@ -525,8 +507,7 @@ class TerminalsView {
         e.stopPropagation();
         this._startRename(pane, terminalId);
       });
-      header.draggable = !pane.classList.contains('maximized')
-        && !pane.classList.contains('tv-pane-single');
+      header.draggable = !pane.classList.contains('tv-pane-single');
     };
 
     input.addEventListener('click', (e) => e.stopPropagation());
