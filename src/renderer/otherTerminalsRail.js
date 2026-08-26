@@ -1,16 +1,17 @@
 /**
  * Other Terminals Rail Module
  *
- * The right-side panel of the Terminals section's single-terminal body:
- * every terminal in the project **except the one on screen**, priority-ordered
- * by how much each needs the user:
+ * The right-side panel of the Terminals section's enlarged body: every
+ * terminal in the project **except the one on screen**, priority-ordered by
+ * how much each needs the user:
  *
  *   waiting (input needed) → agent (working) → busy (command) → idle
  *
- * The rule that keeps it distinct from the tab strip above it: **the strip is
- * navigation among what you opened; this rail is the state of what you cannot
- * see.** It is therefore not agents-only — listing only agents would leave no
- * path to a plain shell from here.
+ * The rule that keeps it distinct from the top bar's breadcrumb chips: **the
+ * chips are navigation, this rail is state.** The chips say which terminals
+ * exist and carry a status dot; the rail says what each one is doing and in
+ * what order it needs you. It is therefore not agents-only — listing only
+ * agents would leave no path to a plain shell from here.
  *
  * It is **closed by default** (D13): looking at one terminal, the screen
  * belongs to that terminal. A control at the edge appears on hover to open it

@@ -29,6 +29,7 @@ const taskSection = require('./taskSection');
 const specSection = require('./specSection');
 const diffSection = require('./diffSection');
 const notify = require('./notify');
+const terminalChipNotice = require('./terminalChipNotice');
 
 // Legacy side panels hosted inline in the center (retire-rail-and-panels
 // spec). Each entry keeps the module's own show()/hide() as the data/close
@@ -91,7 +92,7 @@ class MultiTerminalUI {
     this.tabBar = new TerminalTabBar(tabBarContainer, this.manager);
     this.board = new LaneBoard(this.manager, {
       onEnterLane: (terminalId) => this.enterLane(terminalId),
-      onOpenTerminals: () => this.showOverview()
+      onOpenTerminals: () => this.showTerminals()
     });
     this.terminalsView = new TerminalsView(this.manager, {
       onNewTerminal: () => this._createLaneOrNotify(),
@@ -105,6 +106,8 @@ class MultiTerminalUI {
     this.tabBar.onGoHome = () => this.goHome();
     this.tabBar.onEnterTerminals = () => this.showTerminals();
     this.tabBar.onDropTerminals = () => this.dropTerminalsFromStrip();
+    this.tabBar.onEnterTerminal = (terminalId) => this.enterLane(terminalId);
+    this.tabBar.onDropTerminal = (terminalId) => this.dropTerminalFromStrip(terminalId);
     this.tabBar.onLaneCreated = (terminalId) => this.enterLane(terminalId);
     this.tabBar.onActivateSection = (key) => this.activateSection(key);
     this.tabBar.onCloseSection = (key) => this.closeSection(key);
@@ -140,7 +143,6 @@ class MultiTerminalUI {
       terminals: this.manager.getTerminalStates(),
       activeTerminalId: this.manager.activeTerminalId,
       viewMode: this.manager.viewMode,
-      terminalsInStrip: this.terminalsInStrip,
       currentProjectPath: this.manager.getCurrentProject()
     };
   }
@@ -217,18 +219,19 @@ class MultiTerminalUI {
   // ─── Lane navigation ────────────────────────────────────
 
   /**
-   * Enter a terminal: go to the Terminals section and open — or focus — that
-   * terminal's own tab. The single choke point every caller routes through:
-   * Home's cards, the rail, agentDispatch, the palette, the orchestrator.
+   * Enter a terminal: go to the Terminals section and enlarge that terminal
+   * to fill it. The single choke point every caller routes through: Home's
+   * cards, the top bar's breadcrumb chips, the pane's ⤢, the rail,
+   * agentDispatch, the palette, the orchestrator.
    *
    * A pinned section stays open (chip in the bar) but leaves the screen.
    */
   enterLane(terminalId) {
     this.isSectionVisible = false; // section tabs stay open, just leave the screen
     this.terminalsInStrip = true;  // going there restores it to the strip
-    // Write the tab into the prefs before the render, so the section draws
-    // its strip and body once, already showing this terminal.
-    this.terminalsView.openTab(terminalId, { render: false });
+    // Choose the body before the render, so the section draws once, already
+    // showing this terminal enlarged.
+    this.terminalsView.showTerminal(terminalId, { render: false });
     this.manager.setActiveTerminal(terminalId);
     this.manager.setViewMode('terminals');
     this._onStateChange(this._currentState());
@@ -323,6 +326,22 @@ class MultiTerminalUI {
    * Handle state changes
    */
   _onStateChange(state) {
+    // The manager emits only what the manager owns, so a state that arrived
+    // from it (a terminal created, renamed, closed) carries none of the
+    // surface facts the top bar needs. Fill them in here rather than in
+    // _currentState(), which is only one of the two ways in.
+    state.terminalsInStrip = this.terminalsInStrip;
+    // Which terminal the section is enlarging — the breadcrumb chip to
+    // highlight (null = the grid, i.e. Terminals itself).
+    state.shownTerminalId = this.terminalsView
+      ? this.terminalsView.getShownTerminal()
+      : null;
+    // In the grid's own order, so a pane dragged into second place moves its
+    // breadcrumb chip with it — minus the chips the user dropped from the bar.
+    state.barTerminals = this.terminalsView
+      ? this.terminalsView.barTerminals()
+      : state.terminals;
+
     // Keep the sidebar's workspace nav (Terminals count / active state) fresh
     try {
       require('./projectListUI').updateWorkspaceNav(state);
@@ -550,33 +569,58 @@ class MultiTerminalUI {
   }
 
   /**
-   * Show the Terminals section (the sidebar's Work → Terminals entry point,
-   * and the top bar's own chip). Dropped from the strip, this is what puts
-   * it back — exactly as it was left, since nothing about the section was
-   * touched by dropping it.
+   * Show the Terminals section as the grid of every terminal — the top bar's
+   * Terminals chip, the sidebar's Work → Terminals, the palette's "Go to
+   * Terminals" and Home's Terminals card all land here.
+   *
+   * "Terminals" means *all of them* at every one of those entry points: the
+   * word names the whole set, and the breadcrumb beside it names the one.
+   * So this always drops back to the grid, even when a terminal is currently
+   * enlarged — clicking Terminals while looking at Terminal 2 is the way
+   * back out. Enlarging again is enterLane's job.
    */
   showTerminals() {
     if (this.isDecisionsVisible) this.hideDecisions();
     this.isSectionVisible = false;
     this.terminalsInStrip = true;
+    // Choose the body before the view mode, so the section draws once.
+    this.terminalsView.showOverview({ render: false });
     this.manager.setViewMode('terminals');
   }
 
   /**
-   * Go to the Terminals section *and* show Overview, dropping whatever tab
-   * was focused. Home's Terminals card leads here: its tiles are the grid in
-   * miniature, so "see the rest" means the grid, not the last tab you left.
+   * The × on a terminal's breadcrumb chip: drop the chip, nothing else. The
+   * terminal keeps running and Terminals still holds it — × means "drop from
+   * this bar", never "destroy", the same as it does on Terminals itself.
+   *
+   * A bar carrying every terminal of a busy project stops being readable, so
+   * this is how the user thins it out. The notice explains that the first
+   * times, since an × beside a terminal's name reads as "close" until told
+   * otherwise.
    */
-  showOverview() {
-    this.terminalsView.showOverview({ render: false });
-    this.showTerminals();
+  dropTerminalFromStrip(terminalId) {
+    const state = this.manager.getTerminalStates().find(t => t.id === terminalId);
+    const name = state ? (state.customName || state.name) : null;
+    terminalChipNotice.confirmRemoval({
+      name,
+      onConfirm: () => {
+        this.terminalsView.hideFromBar(terminalId);
+        // Dropping the chip you are looking at would leave you enlarged with
+        // nothing in the bar highlighted — go back to the grid, the same way
+        // dropping Terminals itself lands you on Home.
+        if (this.terminalsView.getShownTerminal() === terminalId) this.showTerminals();
+        else this._onStateChange(this._currentState());
+      }
+    });
   }
 
   /**
    * The × on the top bar's Terminals chip: drop it from the strip and
-   * nothing else. The section, its open tabs, the Overview layout and every
-   * running agent live on. Dropping it while looking at it lands the user on
-   * Home; dropping it from elsewhere leaves them where they are.
+   * nothing else. It is only offered while the project has no terminals —
+   * with terminals in it the breadcrumb beside it would be orphaned — so
+   * there is nothing to keep alive but the section's own layout, which is
+   * untouched. Dropping it while looking at it lands the user on Home;
+   * dropping it from elsewhere leaves them where they are.
    */
   dropTerminalsFromStrip() {
     this.terminalsInStrip = false;

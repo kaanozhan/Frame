@@ -15,87 +15,11 @@
   overflow: hidden;
 }
 
-/* ─── Tab strip ─── */
-/* Navigation among what you opened. It scrolls rather than truncating: nine
-   terminals per project is the cap, and a tab you cannot see is worse than a
-   scrollbar. The global thin scrollbar (ui.css) applies. */
-
-.tv-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: none;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.tv-tab {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  max-width: 190px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  padding: 4px 8px;
-  cursor: pointer;
-  font-size: 10px;
-  font-family: var(--font-mono);
-  user-select: none;
-}
-
-.tv-tab:hover {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
-
-.tv-tab.on {
-  color: var(--accent-primary);
-  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
-}
-
-.tv-tab:focus-visible {
-  outline: 1px solid var(--accent-primary);
-  outline-offset: 1px;
-}
-
-.tv-tab-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tv-tab-close {
-  display: grid;
-  place-items: center;
-  width: 15px;
-  height: 15px;
-  background: none;
-  border: none;
-  border-radius: 3px;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: 0;
-  opacity: 0;
-}
-
-.tv-tab:hover .tv-tab-close,
-.tv-tab.on .tv-tab-close {
-  opacity: 1;
-}
-
-.tv-tab-close:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-
-/* ─── Single-terminal body ─── */
-/* A tab is one terminal filling the section: no grid, no resize handle, no
-   fixed pane height to fight the flex box. */
+/* ─── Enlarged body ─── */
+/* One terminal filling the section: no grid, no resize handle, no fixed pane
+   height to fight the flex box. Reached from the pane's ⤢ or from that
+   terminal's breadcrumb chip in the top bar; the way back out is Terminals,
+   which never leaves the top bar. */
 
 .tv-single {
   display: flex;
@@ -335,6 +259,39 @@
 
 .tv-pane-attention.agent-approval { color: var(--error, #d45555); }
 .tv-pane-attention.agent-input    { color: var(--warning, #e5a50a); }
+
+/* The spec or task the enlarged terminal is working on. It takes the header's
+   free space so it sits against the action buttons on the right; when it is
+   there, the actions stop claiming that space themselves (two `auto` margins
+   would split it and park the chip in the middle). */
+
+.tv-pane-assign {
+  margin-left: auto;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 280px;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* Only the chips that lead somewhere invite a click. */
+button.tv-pane-assign:hover {
+  border-color: var(--accent-primary);
+}
+
+span.tv-pane-assign {
+  cursor: default;
+}
+
+.tv-pane-assign:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.tv-pane-header.has-assign .tv-pane-actions {
+  margin-left: 8px;
+}
 
 .tv-pane-actions {
   margin-left: auto;

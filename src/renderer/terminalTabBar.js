@@ -1,16 +1,24 @@
 /**
  * Terminal Top Bar Module (historically the tab bar)
  *
- * Persistent bar above the terminal content area. One rule governs the left
- * section: **Home is permanent; everything else there is an open surface and
- * can be dropped from the strip.** So it holds Home, then Terminals (with an
- * × that removes it from the bar and nothing else — the section, its tabs and
- * every running agent live on; Work → Terminals in the sidebar brings it
- * back), then a chip per open section (task / spec / diff / orchestrator).
+ * Persistent bar above the terminal content area. Home is permanent. After
+ * it comes Terminals and, as a breadcrumb beside it, a chip for **every live
+ * terminal of the project** — enlarged or not, the terminals are always
+ * reachable from up here. Terminals itself is the grid of all of them; a
+ * chip is that one terminal enlarged. Then a chip per open section
+ * (task / spec / diff / orchestrator).
+ *
+ * × means "drop from this bar", never "destroy" — on Terminals and on a
+ * terminal chip alike. A dropped chip's terminal keeps running and Terminals
+ * still holds it; going back to it there puts the chip back. That is how a
+ * busy project's bar stays readable, and terminalChipNotice teaches it until
+ * the user opts out. One departure from the rule: Terminals itself carries
+ * an × only while the project has **no** terminals — with terminals in it
+ * the breadcrumb beside it would be orphaned.
  *
  * What earns a place here is a surface with *live state*. Terminals has
- * running processes and a tab strip of its own; the Specs grid does not, so
- * Specs, Tasks, Decisions and the panels open from the sidebar and stay out.
+ * running processes; the Specs grid does not, so Specs, Tasks, Decisions and
+ * the panels open from the sidebar and stay out.
  *
  * The right action cluster (agent launcher, update, theme) is
  * mode-independent.
@@ -24,6 +32,7 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const { Plus, Bell, CheckSquare, Home, X, Boxes, FileText, FileDiff, Bot } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
+const laneStatus = require('./laneStatus');
 const notify = require('./notify');
 
 function lucideIcon(data, size = 18) {
@@ -44,6 +53,8 @@ class TerminalTabBar {
     this.onGoHome = null;          // Callback: return to Home
     this.onEnterTerminals = null;  // Callback: show the Terminals section
     this.onDropTerminals = null;   // Callback: drop Terminals from this strip
+    this.onEnterTerminal = null;   // Callback: (terminalId) => enlarge that terminal
+    this.onDropTerminal = null;    // Callback: (terminalId) => drop its chip from the bar
     this.onLaneCreated = null;    // Callback: (terminalId) => after + creates a lane
     this.onActivateSection = null; // Callback: (key) => focus an open section tab
     this.onCloseSection = null;    // Callback: (key) => close a section tab
@@ -53,6 +64,7 @@ class TerminalTabBar {
     this._createShellMenu();
     this._loadAvailableShells();
     this._initTheme();
+    this._watchLaneStatus();
   }
 
   _injectStyles() {
@@ -171,11 +183,14 @@ class TerminalTabBar {
   }
 
   /**
-   * The left section: Home, then Terminals, then a chip per open section.
+   * The left section: Home, then Terminals with its terminals as a
+   * breadcrumb, then a chip per open section.
    *
-   * Home is permanent. Terminals carries an × that means what × means
-   * everywhere in this interface — "drop from this strip", never "destroy".
-   * Whichever surface is on screen gets the highlight.
+   * Home is permanent. Terminals is the grid of every terminal; each chip
+   * after it is that one terminal enlarged, and they are all listed whether
+   * the user ever enlarged them or not. Whichever surface is on screen gets
+   * the highlight — Terminals while the grid shows, the chip while its own
+   * terminal fills the section.
    */
   _renderLeftSection(state) {
     const left = this.element.querySelector('.lane-bar-left');
@@ -186,6 +201,13 @@ class TerminalTabBar {
     const onHome = state.viewMode === 'board' && !onSection;
     const onTerminals = state.viewMode === 'terminals' && !onSection;
     const showTerminals = state.terminalsInStrip !== false;
+    // Two different counts, and mixing them up is easy: the breadcrumb draws
+    // what is left in the bar, while Terminals' own × asks whether the
+    // *project* has terminals. Dropping every chip must not make Terminals
+    // itself droppable while its terminals are still running.
+    const liveCount = (state.terminals || []).length;
+    const terminals = state.barTerminals || state.terminals || [];
+    const shownId = state.shownTerminalId || null;
 
     left.innerHTML = `
       <button class="btn-lane-home ${onHome ? 'current' : ''}" title="Home (Cmd+Esc)">
@@ -194,11 +216,12 @@ class TerminalTabBar {
       </button>
       ${showTerminals || sections.length ? '<span class="lane-bar-divider"></span>' : ''}
       ${showTerminals ? `
-        <button class="lane-bar-section lane-bar-terminals ${onTerminals ? 'current' : ''}" title="Terminals">
+        <button class="lane-bar-section lane-bar-terminals ${onTerminals && !shownId ? 'current' : ''}" title="All terminals">
           ${lucideIcon(Boxes, 13)}
           <span class="lane-bar-section-label">Terminals</span>
-          <span class="lane-bar-section-close" title="Remove from the bar — the terminals keep running">${lucideIcon(X, 12)}</span>
+          ${liveCount ? '' : `<span class="lane-bar-section-close" title="Remove from the bar">${lucideIcon(X, 12)}</span>`}
         </button>
+        ${terminals.map(t => this._terminalChip(t, onTerminals && shownId === t.id)).join('')}
       ` : ''}
       ${sections.map(sec => `
         <button class="lane-bar-section ${sec.key === activeKey ? 'current' : ''}" data-key="${escapeHtml(sec.key)}" title="${escapeHtml(sec.title)}">
@@ -208,6 +231,33 @@ class TerminalTabBar {
         </button>
       `).join('')}
     `;
+  }
+
+  /**
+   * One terminal's breadcrumb chip. The dot is the same status signal the
+   * pane header carries; `_watchLaneStatus` keeps it live between renders.
+   */
+  _terminalChip(state, current) {
+    const name = state.customName || state.name;
+    return `
+      <button class="lane-bar-section lane-bar-terminal ${current ? 'current' : ''}" data-terminal-id="${escapeHtml(state.id)}" title="${escapeHtml(name)}">
+        <span class="lane-status-dot ${laneStatus.getStatus(state.id).status}"></span>
+        <span class="lane-bar-section-label">${escapeHtml(name)}</span>
+        <span class="lane-bar-section-close" title="Remove from the bar — the terminal keeps running">${lucideIcon(X, 12)}</span>
+      </button>
+    `;
+  }
+
+  /**
+   * A chip's dot follows its terminal without waiting for a state change —
+   * the whole point of the breadcrumb is seeing an agent go red while you
+   * are looking at something else.
+   */
+  _watchLaneStatus() {
+    laneStatus.onChange((terminalId) => {
+      const dot = this.element?.querySelector(`.lane-bar-terminal[data-terminal-id="${terminalId}"] .lane-status-dot`);
+      if (dot) dot.className = `lane-status-dot ${laneStatus.getStatus(terminalId).status}`;
+    });
   }
 
   _setupEventHandlers() {
@@ -221,6 +271,19 @@ class TerminalTabBar {
           if (this.onDropTerminals) this.onDropTerminals();
         } else if (this.onEnterTerminals) {
           this.onEnterTerminals();
+        }
+        return;
+      }
+      // A terminal's breadcrumb chip: the body goes to that terminal, and
+      // its × takes the chip out of the bar, leaving the terminal alone.
+      const termEl = e.target.closest('.lane-bar-terminal');
+      if (termEl) {
+        const id = termEl.dataset.terminalId;
+        if (e.target.closest('.lane-bar-section-close')) {
+          e.stopPropagation();
+          if (this.onDropTerminal) this.onDropTerminal(id);
+        } else if (this.onEnterTerminal) {
+          this.onEnterTerminal(id);
         }
         return;
       }

@@ -794,7 +794,8 @@
   gap: 8px;
   min-width: 0;
   flex: 1;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .lane-bar-title {
@@ -894,6 +895,159 @@
 .lane-bar-section-close:hover {
   color: var(--text-primary);
   background: var(--bg-hover);
+}
+
+/* ─── Terminal breadcrumb chips ─────────────────────────── */
+/* Every live terminal of the project, beside Terminals itself: Terminals is
+   the grid, a chip is that terminal enlarged. Quieter than a section chip —
+   they are always there, so they must not shout. */
+
+.lane-bar-terminal {
+  gap: 5px;
+  max-width: 150px;
+  padding: 4px 4px 4px 7px;
+  font-family: var(--font-mono);
+}
+
+.lane-bar-terminal .lane-bar-section-label {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* One caret separates the group from Terminals; the chips themselves are
+   siblings, not a nesting path, so they get no caret of their own. */
+.lane-bar-terminals + .lane-bar-terminal::before {
+  content: '›';
+  color: var(--text-muted);
+  margin-right: 3px;
+  flex-shrink: 0;
+}
+
+/* This × drops the chip, not the terminal. It appears on hover of its own
+   chip only: a row of live terminals is exactly the case where the bar is
+   already crowded, and a permanent × on each is more of the same. */
+.lane-bar-terminal .lane-bar-section-close {
+  opacity: 0;
+}
+
+.lane-bar-terminal:hover .lane-bar-section-close,
+.lane-bar-terminal .lane-bar-section-close:focus-visible {
+  opacity: 1;
+}
+
+/* ─── "Removed from the top bar" notice ─────────────────── */
+
+.tcn-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 16, 0.35);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  z-index: 9800;
+  justify-content: center;
+  align-items: center;
+}
+
+.tcn-modal.visible {
+  display: flex;
+  animation: fadeIn 0.12s ease-out;
+}
+
+.tcn-container {
+  width: 90%;
+  max-width: 420px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  animation: slideUp var(--transition-normal) ease-out;
+}
+
+.tcn-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.tcn-body {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.tcn-body strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tcn-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tcn-check input {
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+  margin: 0;
+}
+
+.tcn-footer {
+  display: flex;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.tcn-cancel,
+.tcn-remove {
+  flex: 1;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tcn-cancel {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+}
+
+.tcn-cancel:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* Nothing here is destructive, so removing is the accented default. */
+.tcn-remove {
+  background: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.tcn-remove:hover {
+  opacity: 0.88;
+}
+
+.tcn-remove:focus-visible,
+.tcn-cancel:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .lane-switcher {

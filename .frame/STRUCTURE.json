@@ -5929,6 +5929,7 @@
         "specSection",
         "diffSection",
         "notify",
+        "terminalChipNotice",
         "githubPanel",
         "pluginsPanel",
         "promptsPanel",
@@ -6201,31 +6202,31 @@
       ],
       "functions": {
         "itemStatusText": {
-          "line": 45,
+          "line": 46,
           "params": [
             "s"
           ],
           "purpose": "Same information as the Home cards, compressed for the rail: agents read"
         },
         "lucideIcon": {
-          "line": 59,
+          "line": 60,
           "params": [
             "data",
             "size = 14"
           ]
         },
         "isHidden": {
-          "line": 69,
+          "line": 70,
           "purpose": "Closed by default, and closed again whenever the stored value cannot be"
         },
         "setHidden": {
-          "line": 77,
+          "line": 78,
           "params": [
             "hidden"
           ]
         },
         "render": {
-          "line": 92,
+          "line": 93,
           "params": [
             "el",
             "state",
@@ -6234,17 +6235,17 @@
           "purpose": "Render the rail. Called by terminalsView on every single-terminal render;"
         },
         "_others": {
-          "line": 110,
+          "line": 111,
           "purpose": "The project's terminals minus the one filling the body."
         },
         "_open": {
-          "line": 114
+          "line": 115
         },
         "_renderInto": {
-          "line": 120
+          "line": 121
         },
         "_startTicker": {
-          "line": 234
+          "line": 235
         }
       }
     },
@@ -8881,6 +8882,42 @@
         ]
       }
     },
+    "renderer/terminalChipNotice": {
+      "file": "src/renderer/terminalChipNotice.js",
+      "description": "\"Remove from the top bar\" notice.",
+      "exports": [
+        "confirmRemoval"
+      ],
+      "depends": [],
+      "functions": {
+        "_suppressed": {
+          "line": 26
+        },
+        "_persistSuppression": {
+          "line": 34
+        },
+        "_build": {
+          "line": 43
+        },
+        "_close": {
+          "line": 93
+        },
+        "_cancel": {
+          "line": 98
+        },
+        "_accept": {
+          "line": 105
+        },
+        "confirmRemoval": {
+          "line": 119,
+          "params": [
+            "{ name",
+            "onConfirm }"
+          ],
+          "purpose": "Drop a chip, explaining what that means unless the user opted out."
+        }
+      }
+    },
     "renderer/terminalManager": {
       "file": "src/renderer/terminalManager.js",
       "description": "Terminal Manager Module",
@@ -8936,11 +8973,12 @@
         "shared/ipcChannels",
         "lucide",
         "htmlUtils",
+        "laneStatus",
         "notify"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 29,
+          "line": 38,
           "params": [
             "data",
             "size = 18"
@@ -8966,21 +9004,23 @@
         "laneStatus",
         "otherTerminalsRail",
         "htmlUtils",
-        "lucide"
+        "lucide",
+        "specSection",
+        "taskSection"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 40,
+          "line": 47,
           "params": [
             "data",
             "size = 13"
           ]
         },
         "_loadAllPrefs": {
-          "line": 48
+          "line": 55
         },
         "_saveProjectPrefs": {
-          "line": 56,
+          "line": 63,
           "params": [
             "projectKey",
             "prefs"
