@@ -5474,13 +5474,13 @@
       "title": "Rebuild the top bar as `Home` plus a removable `Terminals` plus section",
       "description": "",
       "source": "spec:terminals-home-agents:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: terminals-home-agents",
       "createdAt": "2026-08-26T12:25:33.153Z",
-      "updatedAt": "2026-08-26T12:25:33.153Z",
-      "completedAt": null
+      "updatedAt": "2026-08-26T12:53:58.468Z",
+      "completedAt": "2026-08-26T12:53:58.468Z"
     },
     {
       "id": "task-spec-terminals-home-agents-T06",

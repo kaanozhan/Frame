@@ -26,7 +26,6 @@ const projectListUI = require('./projectListUI');
 const openProjectModal = require('./openProjectModal');
 const projectSection = require('./projectSection');
 const projectStatusBadges = require('./projectStatusBadges');
-const presenceBar = require('./presenceBar');
 const orchestrator = require('./orchestrator');
 const editor = require('./editor');
 const sidebarResize = require('./sidebarResize');
@@ -98,8 +97,6 @@ function init() {
   // as badges on the project rows.
   projectStatusBadges.init(multiTerminalUI);
 
-  // Agent rail view: live list of running agents across all projects.
-  presenceBar.init(multiTerminalUI, document.getElementById('presence-bar'));
 
   // Status bar at the foot of the window: Claude usage meters today
   // (status-bar spec).

@@ -49,6 +49,7 @@ class MultiTerminalUI {
     this.contentContainer = null;
     this.initialized = false;
     this.isDecisionsVisible = false; // Track if the decisions view is shown
+    this.terminalsInStrip = true;   // Terminals sits in the top bar until dropped
     this.sections = [];             // Open section tabs (task/spec detail instances)
     this.activeSectionKey = null;   // Which section tab is focused
     this.isSectionVisible = false;  // A section tab is currently the on-screen surface
@@ -100,8 +101,8 @@ class MultiTerminalUI {
 
     // Wire up top bar callbacks
     this.tabBar.onGoHome = () => this.goHome();
-    this.tabBar.onEnterFrames = () => this.enterFrames();
-    this.tabBar.onEnterLane = (terminalId) => this.enterLane(terminalId);
+    this.tabBar.onEnterTerminals = () => this.showTerminals();
+    this.tabBar.onDropTerminals = () => this.dropTerminalsFromStrip();
     this.tabBar.onLaneCreated = (terminalId) => this.enterLane(terminalId);
     this.tabBar.onActivateSection = (key) => this.activateSection(key);
     this.tabBar.onCloseSection = (key) => this.closeSection(key);
@@ -137,6 +138,7 @@ class MultiTerminalUI {
       terminals: this.manager.getTerminalStates(),
       activeTerminalId: this.manager.activeTerminalId,
       viewMode: this.manager.viewMode,
+      terminalsInStrip: this.terminalsInStrip,
       currentProjectPath: this.manager.getCurrentProject()
     };
   }
@@ -221,24 +223,13 @@ class MultiTerminalUI {
    */
   enterLane(terminalId) {
     this.isSectionVisible = false; // section tabs stay open, just leave the screen
+    this.terminalsInStrip = true;  // going there restores it to the strip
     // Write the tab into the prefs before the render, so the section draws
     // its strip and body once, already showing this terminal.
     this.terminalsView.openTab(terminalId, { render: false });
     this.manager.setActiveTerminal(terminalId);
     this.manager.setViewMode('terminals');
     this._onStateChange(this._currentState());
-  }
-
-  /**
-   * Enter the Frames surface from the top-bar tab: open the active Frame's
-   * detail view (falling back to the first open lane). No-op with no lanes.
-   */
-  enterFrames() {
-    const terminals = this.manager.getTerminalStates();
-    if (terminals.length === 0) return;
-    const activeId = this.manager.activeTerminalId;
-    const target = terminals.some(t => t.id === activeId) ? activeId : terminals[0].id;
-    this.enterLane(target);
   }
 
   /**
@@ -557,12 +548,31 @@ class MultiTerminalUI {
   }
 
   /**
-   * Show the terminals view (sidebar workspace nav entry point).
+   * Show the Terminals section (the sidebar's Work → Terminals entry point,
+   * and the top bar's own chip). Dropped from the strip, this is what puts
+   * it back — exactly as it was left, since nothing about the section was
+   * touched by dropping it.
    */
   showTerminals() {
     if (this.isDecisionsVisible) this.hideDecisions();
     this.isSectionVisible = false;
+    this.terminalsInStrip = true;
     this.manager.setViewMode('terminals');
+  }
+
+  /**
+   * The × on the top bar's Terminals chip: drop it from the strip and
+   * nothing else. The section, its open tabs, the Overview layout and every
+   * running agent live on. Dropping it while looking at it lands the user on
+   * Home; dropping it from elsewhere leaves them where they are.
+   */
+  dropTerminalsFromStrip() {
+    this.terminalsInStrip = false;
+    const onIt = this.manager.viewMode === 'terminals'
+      && !this.isSectionVisible
+      && !this.isDecisionsVisible;
+    if (onIt) this.goHome();
+    else this._onStateChange(this._currentState());
   }
 
   /**

@@ -262,55 +262,6 @@
   position: relative;
 }
 
-/* ==================== TOP BAR PRESENCE (topbar-presence spec) ==================== */
-/* One ◆ chip per live agent, across all projects. Status colors mirror the
-   lane status dots; clicking focuses the agent's terminal. */
-
-.presence-bar {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-right: var(--space-sm);
-}
-
-.presence-chip {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  font-size: 9px;
-  cursor: pointer;
-  color: var(--text-secondary);
-}
-
-.presence-chip:hover {
-  border-color: var(--accent-primary);
-}
-
-.presence-chip.working {
-  color: var(--accent-primary);
-  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
-  animation: presence-pulse 1.6s infinite;
-}
-
-.presence-chip.approval { color: var(--error); border-color: color-mix(in srgb, var(--error) 55%, transparent); }
-.presence-chip.input { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 55%, transparent); }
-.presence-chip.ready { color: var(--success); }
-
-@keyframes presence-pulse {
-  50% { opacity: 0.45; }
-}
-
-.presence-overflow {
-  color: var(--text-tertiary);
-  font-size: 9px;
-  padding: 0 2px;
-}
-
 /* Default Agent launcher, relocated from the retired sidebar Agent tab.
    The divider + wide gap keep it visually apart from the session usage
    bars sitting to its right. */

@@ -78,3 +78,26 @@ surface instead of a deleted one.
 _Captured: 2026-08-26 · 7 file changes_
 
 ---
+
+## T05 — Rebuild the top bar
+
+Reduced `_renderLeftSection` to `Home` + a removable `Terminals` + the open
+section chips, and deleted the per-terminal tabs, the presence container,
+`onEnterFrames`/`onEnterLane`, `multiTerminalUI.enterFrames`,
+`presenceBar.js` and the `.btn-lane-frame*` / `.btn-lane-frames*` /
+`.presence-*` CSS. `terminalsInStrip` lives on `multiTerminalUI` and travels
+in the state; `dropTerminalsFromStrip()` clears it while `showTerminals()` and
+`enterLane()` both restore it (D11). Terminals reuses the section chip's
+markup and CSS instead of getting its own, so the shared × keeps meaning "drop
+from this strip" at both levels — the click handler branches on
+`.lane-bar-terminals` first because the chip carries no section key. Dropping
+Terminals while looking at it lands on Home; dropping it from Specs or a panel
+leaves the user where they are.
+
+Followup: the shell menu in `terminalTabBar` (`_createLane`, `_showShellMenu`,
+`_getShellIcon`) is unreachable since the top bar's `+` retired — pre-existing
+dead code, left alone as outside this spec's Files.
+
+_Captured: 2026-08-26 · 6 file changes_
+
+---

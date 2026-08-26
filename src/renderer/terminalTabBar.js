@@ -1,13 +1,19 @@
 /**
  * Terminal Top Bar Module (historically the tab bar)
  *
- * Persistent bar above the terminal content area. The left section is
- * single-state — identical on the Mainframe and inside a Frame: the
- * Mainframe button (highlighted when you're on it), the Active Frames
- * count, and a chip for any pinned section (e.g. a task detail) that can
- * re-open or close it from either view. The right action cluster (agent
- * launcher, layout select, update, theme) is mode-independent except the
- * layout select, which only shows in detail.
+ * Persistent bar above the terminal content area. One rule governs the left
+ * section: **Home is permanent; everything else there is an open surface and
+ * can be dropped from the strip.** So it holds Home, then Terminals (with an
+ * × that removes it from the bar and nothing else — the section, its tabs and
+ * every running agent live on; Work → Terminals in the sidebar brings it
+ * back), then a chip per open section (task / spec / diff / orchestrator).
+ *
+ * What earns a place here is a surface with *live state*. Terminals has
+ * running processes and a tab strip of its own; the Specs grid does not, so
+ * Specs, Tasks, Decisions and the panels open from the sidebar and stay out.
+ *
+ * The right action cluster (agent launcher, update, theme) is
+ * mode-independent.
  *
  * Controls you click live here; ambient readouts live in the status bar at
  * the foot of the window — the Claude usage meters moved there
@@ -35,9 +41,9 @@ class TerminalTabBar {
     this.element = null;
     this.shellMenu = null;
     this.availableShells = [];
-    this.onGoHome = null;         // Callback: return to lane board
-    this.onEnterFrames = null;    // Callback: enter the active Frame (detail view)
-    this.onEnterLane = null;      // Callback: (terminalId) => enter a specific Frame's detail view
+    this.onGoHome = null;          // Callback: return to Home
+    this.onEnterTerminals = null;  // Callback: show the Terminals section
+    this.onDropTerminals = null;   // Callback: drop Terminals from this strip
     this.onLaneCreated = null;    // Callback: (terminalId) => after + creates a lane
     this.onActivateSection = null; // Callback: (key) => focus an open section tab
     this.onCloseSection = null;    // Callback: (key) => close a section tab
@@ -121,8 +127,6 @@ class TerminalTabBar {
     this.element.innerHTML = `
       <div class="lane-bar-left"></div>
       <div class="terminal-tab-actions">
-        <!-- Live agent chips across all projects (topbar-presence spec) -->
-        <div id="presence-bar" class="presence-bar" style="display:none"></div>
         <!-- Default Agent launcher — moved from the retired sidebar Agent
              tab; IDs preserved so aiToolSelector/index.js bindings survive -->
         <div class="lane-bar-launcher">
@@ -167,13 +171,11 @@ class TerminalTabBar {
   }
 
   /**
-   * Render the single-state left section: the Home tab (the lane board) and,
-   * once at least one Frame is open, one tab per open Frame — spread out right
-   * after Home, each carrying the Frame's name. Whichever surface is on screen
-   * gets the highlight (in the Terminals section that's the active Frame).
-   * Each open detail section (task or spec) appears after those as its own chip —
-   * multiple can be open at once; the active one is highlighted and every chip
-   * has a close button.
+   * The left section: Home, then Terminals, then a chip per open section.
+   *
+   * Home is permanent. Terminals carries an × that means what × means
+   * everywhere in this interface — "drop from this strip", never "destroy".
+   * Whichever surface is on screen gets the highlight.
    */
   _renderLeftSection(state) {
     const left = this.element.querySelector('.lane-bar-left');
@@ -182,41 +184,46 @@ class TerminalTabBar {
     const activeKey = state.activeSectionKey || null;
     const onSection = !!activeKey;
     const onHome = state.viewMode === 'board' && !onSection;
-    const onFrames = state.viewMode === 'terminals' && !onSection;
-
-    const terminals = state.terminals || [];
-    const hasFrames = terminals.length > 0;
+    const onTerminals = state.viewMode === 'terminals' && !onSection;
+    const showTerminals = state.terminalsInStrip !== false;
 
     left.innerHTML = `
       <button class="btn-lane-home ${onHome ? 'current' : ''}" title="Home (Cmd+Esc)">
         ${lucideIcon(Home, 15)}
         <span class="btn-lane-home-label">Home</span>
       </button>
-      ${hasFrames ? `
-        <span class="lane-bar-divider"></span>
-        ${terminals.map(t => `
-          <button class="btn-lane-frame ${onFrames && t.id === state.activeTerminalId ? 'current' : ''}" data-id="${escapeHtml(t.id)}" title="${escapeHtml(t.name || 'Terminal')}">
-            ${lucideIcon(Boxes, 15)}
-            <span class="btn-lane-frame-label">${escapeHtml(t.name || 'Terminal')}</span>
-          </button>
-        `).join('')}
+      ${showTerminals || sections.length ? '<span class="lane-bar-divider"></span>' : ''}
+      ${showTerminals ? `
+        <button class="lane-bar-section lane-bar-terminals ${onTerminals ? 'current' : ''}" title="Terminals">
+          ${lucideIcon(Boxes, 13)}
+          <span class="lane-bar-section-label">Terminals</span>
+          <span class="lane-bar-section-close" title="Remove from the bar — the terminals keep running">${lucideIcon(X, 12)}</span>
+        </button>
       ` : ''}
-      ${sections.length ? `
-        <span class="lane-bar-divider"></span>
-        ${sections.map(sec => `
-          <button class="lane-bar-section ${sec.key === activeKey ? 'current' : ''}" data-key="${escapeHtml(sec.key)}" title="${escapeHtml(sec.title)}">
-            ${lucideIcon(sec.type === 'spec' ? FileText : sec.type === 'diff' ? FileDiff : sec.type === 'orchestrator' ? Bot : CheckSquare, 13)}
-            <span class="lane-bar-section-label">${escapeHtml(sec.title)}</span>
-            <span class="lane-bar-section-close" title="Close tab">${lucideIcon(X, 12)}</span>
-          </button>
-        `).join('')}
-      ` : ''}
+      ${sections.map(sec => `
+        <button class="lane-bar-section ${sec.key === activeKey ? 'current' : ''}" data-key="${escapeHtml(sec.key)}" title="${escapeHtml(sec.title)}">
+          ${lucideIcon(sec.type === 'spec' ? FileText : sec.type === 'diff' ? FileDiff : sec.type === 'orchestrator' ? Bot : CheckSquare, 13)}
+          <span class="lane-bar-section-label">${escapeHtml(sec.title)}</span>
+          <span class="lane-bar-section-close" title="Close tab">${lucideIcon(X, 12)}</span>
+        </button>
+      `).join('')}
     `;
   }
 
   _setupEventHandlers() {
     // Left section (delegated — content re-renders on every state update)
     this.element.addEventListener('click', (e) => {
+      // Terminals wears a section chip but is not one — it has no key, and
+      // its × drops it from the bar rather than closing anything.
+      if (e.target.closest('.lane-bar-terminals')) {
+        if (e.target.closest('.lane-bar-section-close')) {
+          e.stopPropagation();
+          if (this.onDropTerminals) this.onDropTerminals();
+        } else if (this.onEnterTerminals) {
+          this.onEnterTerminals();
+        }
+        return;
+      }
       const sectionEl = e.target.closest('.lane-bar-section');
       if (e.target.closest('.lane-bar-section-close')) {
         e.stopPropagation();
@@ -229,11 +236,6 @@ class TerminalTabBar {
       }
       if (e.target.closest('.btn-lane-home')) {
         if (this.onGoHome) this.onGoHome();
-        return;
-      }
-      const frameEl = e.target.closest('.btn-lane-frame');
-      if (frameEl) {
-        if (this.onEnterLane) this.onEnterLane(frameEl.dataset.id);
         return;
       }
     });

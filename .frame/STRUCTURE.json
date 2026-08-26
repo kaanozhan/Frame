@@ -5505,7 +5505,6 @@
         "openProjectModal",
         "projectSection",
         "projectStatusBadges",
-        "presenceBar",
         "orchestrator",
         "editor",
         "sidebarResize",
@@ -5529,34 +5528,34 @@
       ],
       "functions": {
         "init": {
-          "line": 49,
+          "line": 48,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 251,
+          "line": 248,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 316,
+          "line": 313,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 427,
+          "line": 424,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 458,
+          "line": 455,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 481,
+          "line": 478,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 751,
+          "line": 748,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -6552,49 +6551,6 @@
         "listens": [
           "PLUGIN_TOGGLED",
           "TOGGLE_PLUGINS_PANEL"
-        ],
-        "emits": []
-      }
-    },
-    "renderer/presenceBar": {
-      "file": "src/renderer/presenceBar.js",
-      "description": "Presence Bar (topbar-presence spec)",
-      "exports": [
-        "init",
-        "recompute"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "laneStatus",
-        "state",
-        "htmlUtils"
-      ],
-      "functions": {
-        "init": {
-          "line": 37,
-          "params": [
-            "ui",
-            "container"
-          ]
-        },
-        "schedule": {
-          "line": 47
-        },
-        "recompute": {
-          "line": 56
-        },
-        "_focus": {
-          "line": 109,
-          "params": [
-            "a"
-          ],
-          "purpose": "Focus the agent's terminal. When it lives in another project, switch to"
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TERMINAL_DESTROYED"
         ],
         "emits": []
       }
@@ -9000,7 +8956,7 @@
       ],
       "functions": {
         "lucideIcon": {
-          "line": 23,
+          "line": 29,
           "params": [
             "data",
             "size = 18"
@@ -10634,18 +10590,6 @@
         "module": "renderer/aiToolSelector",
         "file": "src/renderer/aiToolSelector.js",
         "description": "AI Tool Selector Module"
-      }
-    ],
-    "bar": [
-      {
-        "module": "renderer/presenceBar",
-        "file": "src/renderer/presenceBar.js",
-        "description": "Presence Bar (topbar-presence spec)"
-      },
-      {
-        "module": "renderer/statusBar",
-        "file": "src/renderer/statusBar.js",
-        "description": "Status Bar Module"
       }
     ],
     "claude-sessions": [
