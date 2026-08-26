@@ -128,6 +128,12 @@ it. The safety net is what makes the narrow matcher acceptable.
 - `src/main/frameProject.js` — **Modified** — call `ensureSpecDrivenArtifacts` on
   open when spec-driven is on; extract and call `ensureCodexWrapper`; reorder and
   extend `upgradeSpecDocs`; expose the doc-health report over IPC.
+- `src/main/specManager.js` — **Modified** — the project-open handler calls
+  `ensureProjectArtifacts` between command staging and `upgradeSpecDocs`, so
+  target-before-pointer is one synchronous block rather than two racing IPC
+  messages. *Added to scope during T04, with the user's approval: the plan named
+  the project-open path but listed only `frameProject.js`, and the ordering the
+  fix depends on lives in this handler.*
 - `src/main/layoutMigration.js` — **Modified** — stop reporting per-line misses for
   the regions the nav block now owns; symlink-note handling unchanged.
 - `src/renderer/docsHealthHint.js` — **New** — the quiet popover, per-project
@@ -149,6 +155,7 @@ it. The safety net is what makes the narrow matcher acceptable.
 - src/shared/activityEvents.js
 - src/shared/ipcChannels.js
 - src/main/frameProject.js
+- src/main/specManager.js
 - src/main/layoutMigration.js
 - src/renderer/docsHealthHint.js
 - src/renderer/index.js

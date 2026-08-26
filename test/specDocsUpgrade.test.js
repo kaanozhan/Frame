@@ -34,9 +34,14 @@ function makeProject({ agents, reference }) {
   const config = templates.getFrameConfigTemplate('demo');
   config.features.specDriven = true;
   fs.writeFileSync(path.join(dir, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf8');
-  // The shipped sections name these two by path, so a fixture without them is
-  // not a healthy project — the report would be right to say so.
+  // The meta files Frame's own prose names by path. A fixture without them is
+  // not a healthy project, and the report would be right to say so — so they
+  // are here to keep the assertions about *sections* from tripping over a
+  // finding about *paths*.
   fs.writeFileSync(path.join(dir, '.frame', 'tasks.json'), '{"tasks":[]}', 'utf8');
+  fs.writeFileSync(path.join(dir, '.frame', 'PROJECT_NOTES.md'), '# Notes\n', 'utf8');
+  fs.writeFileSync(path.join(dir, '.frame', 'STRUCTURE.json'), '{"modules":{}}', 'utf8');
+  fs.writeFileSync(path.join(dir, '.frame', 'QUICKSTART.md'), '# Quickstart\n', 'utf8');
   fs.mkdirSync(path.join(dir, '.frame', 'bin'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.frame', 'bin', 'implement-launch.js'), '// stub\n', 'utf8');
   if (agents != null) fs.writeFileSync(path.join(dir, '.frame', 'AGENTS.md'), agents, 'utf8');
@@ -229,4 +234,114 @@ ${templates.renderSpecCoreSection()}
   assert.equal(health.ok, false);
   // Nothing is rewritten over it: a missing file is reported, not repaired here.
   assert.deepEqual(health.sections.map((s) => s.state), ['managed', 'managed']);
+});
+
+// ─── The artifact pass, and the state the field is actually in ──
+
+/**
+ * Simulates the project-open sequence: artifacts before docs. This is the
+ * order specManager's WATCH_SPECS handler runs them in, and the order is the
+ * fix.
+ */
+function open(dir) {
+  frameProject.ensureProjectArtifacts(dir);
+  return frameProject.upgradeSpecDocs(dir);
+}
+
+test('opening a pre-split project creates the reference and lands the pointer', () => {
+  const dir = makeProject({ agents: preSplitAgents });
+
+  const health = open(dir);
+
+  // The target now exists, so the pointer is allowed through in the same pass:
+  // the stale mini-flow is gone AND what replaced it is reachable. Both halves
+  // in one open is what the 2026-07-23 fix left half-done.
+  assert.equal(fs.existsSync(referencePath(dir)), true);
+  assert.ok(managedBlock.findBlock(read(referencePath(dir))));
+  const agents = read(agentsPath(dir));
+  assert.ok(!agents.includes(STALE_MARKER));
+  assert.ok(managedBlock.findBlock(agents));
+  assert.equal(health.ok, true);
+});
+
+test('the already-damaged project — pointer written, target never created — is repaired', () => {
+  // The most common state in the field today: a pre-split project that has
+  // already been opened once under a Frame carrying the 2026-07-23 matcher
+  // fix. Its AGENTS.md holds the marker-wrapped pointer; REFERENCE.md was
+  // never created; the agent has neither the old flow nor the new one.
+  const damagedAgents = `# demo
+
+Intro prose the user wrote.
+
+---
+
+${templates.renderSpecCoreSection()}
+
+---
+
+*This file was automatically created by Frame.*
+`;
+  const dir = makeProject({ agents: damagedAgents });
+  const before = read(agentsPath(dir));
+  assert.equal(fs.existsSync(referencePath(dir)), false);
+
+  const health = open(dir);
+
+  // Repaired entirely by the artifact pass: the pointer was already correct
+  // and already stamped current, so upgradeSpecDocs leaves both documents
+  // alone and the fix comes from the target appearing.
+  assert.equal(read(agentsPath(dir)), before);
+  assert.equal(fs.existsSync(referencePath(dir)), true);
+  assert.ok(managedBlock.findBlock(read(referencePath(dir))));
+  assert.equal(health.ok, true);
+});
+
+test('opening re-ensures the artifacts an upgraded project never received', () => {
+  const dir = makeProject({ agents: preSplitAgents });
+  fs.rmSync(path.join(dir, '.frame', 'bin'), { recursive: true, force: true });
+
+  open(dir);
+
+  assert.equal(fs.existsSync(path.join(dir, '.frame', 'specs', '.gitkeep')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.frame', 'bin', 'codex')), true);
+});
+
+test('a reference the user keeps is never overwritten by the artifact pass', () => {
+  const own = '# My own reference\n\nNothing Frame wrote.\n';
+  const dir = makeProject({ agents: preSplitAgents, reference: own });
+
+  open(dir);
+
+  // Only its missing spec section is appended; every existing byte survives,
+  // and the document is not replaced by Frame's template.
+  const reference = read(referencePath(dir));
+  assert.ok(reference.startsWith('# My own reference\n\nNothing Frame wrote.'));
+  assert.ok(managedBlock.findBlock(reference));
+});
+
+test('the artifact pass leaves a project with spec-driven off alone', () => {
+  const dir = makeProject({ agents: preSplitAgents });
+  const configPath = path.join(dir, '.frame', 'config.json');
+  const config = JSON.parse(read(configPath));
+  config.features.specDriven = false;
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+
+  frameProject.ensureProjectArtifacts(dir);
+
+  assert.equal(fs.existsSync(referencePath(dir)), false);
+  // The Codex wrapper is not a spec-driven artifact, so it is ensured either way.
+  assert.equal(fs.existsSync(path.join(dir, '.frame', 'bin', 'codex')), true);
+});
+
+test('the returned report describes the state the pass leaves, not the one it found', () => {
+  const dir = makeProject({ agents: preSplitAgents });
+
+  const health = open(dir);
+
+  // Found: AGENTS.md carrying a legacy section, REFERENCE.md absent.
+  // Left behind: both managed. Reporting what it found would have the UI
+  // raise a complaint about work this very pass completed.
+  assert.deepEqual(health.sections.map((s) => s.state), ['managed', 'managed']);
+  assert.deepEqual(health.unreadable, []);
+  assert.equal(health.ok, true);
 });

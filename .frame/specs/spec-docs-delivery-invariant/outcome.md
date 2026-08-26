@@ -19,3 +19,10 @@ _Captured: 2026-08-26 · 2 file change(s)_
 _Captured: 2026-08-26 · 3 file change(s)_
 
 ---
+## T04 — Re-ensure the artifacts on open
+
+Extracted `ensureCodexWrapper` from `runProjectInit` as a synchronous create-if-absent, added `ensureProjectArtifacts` (which calls `ensureSpecDrivenArtifacts` when spec-driven is on), and wired both into `specManager`'s `WATCH_SPECS` handler between command staging and `upgradeSpecDocs` — the order is the fix. `ensureSpecDrivenArtifacts` has always known how to create REFERENCE.md, expressly for pre-split projects, but its only callers were enable/disable and a pre-split project already has the flag on, so the branch never ran. Two divergences: `src/main/specManager.js` was not in `plan.md`'s Files, so the run stopped and resumed only after the user approved adding it — `plan.md` and the plan report now carry it; and `upgradeSpecDocs` was changed to survey twice, deciding from the state it found but reporting the state it leaves, because returning the pre-pass report would have the popover complain about a section the same pass had just repaired. The original v2.4.0 repro now comes out with the stale flow gone **and** the deep flow reachable in a single open.
+
+_Captured: 2026-08-26 · 4 file change(s)_
+
+---

@@ -272,10 +272,7 @@ async function runProjectInit(projectPath, projectName, options = {}) {
   await fsp.mkdir(binDirPath, { recursive: true });
 
   // Create Codex CLI wrapper script
-  const codexWrapperPath = path.join(binDirPath, 'codex');
-  if (!fs.existsSync(codexWrapperPath)) {
-    await fsp.writeFile(codexWrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
-  }
+  ensureCodexWrapper(projectPath);
 
   // Bootstrap STRUCTURE.json auto-fill: ship parser scripts to .frame/bin/,
   // install pre-commit hook (with safe detection for husky/lefthook/custom),
@@ -349,6 +346,59 @@ async function runProjectInit(projectPath, projectName, options = {}) {
  * Writes only when the content differs: this runs on every project open, and
  * a needless rewrite is a file-watcher event in someone else's editor.
  */
+/**
+ * The Codex CLI wrapper. Written at init and, since it is the kind of file a
+ * project upgraded from an older Frame simply never received, re-ensured on
+ * every open. Only ever created when absent — a project that edited its own
+ * wrapper keeps it.
+ *
+ * Deliberately not in `structureBootstrap.PARSER_FILES`: that module sits in
+ * another spec's live footprint, and this file already owns the wrapper.
+ */
+function ensureCodexWrapper(projectPath) {
+  const wrapperPath = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'codex');
+  if (fs.existsSync(wrapperPath)) return false;
+  try {
+    fs.mkdirSync(path.dirname(wrapperPath), { recursive: true });
+    fs.writeFileSync(wrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
+    return true;
+  } catch (err) {
+    console.warn('[frame] could not write .frame/bin/codex (non-fatal):', err.message);
+    return false;
+  }
+}
+
+/**
+ * Re-ensure on open what a fresh init creates.
+ *
+ * `ensureSpecDrivenArtifacts` has always known how to produce
+ * `.frame/docs/REFERENCE.md` — `audit-q3-core-value-efficacy` T08 put it there
+ * expressly "so pre-split projects get it" — but the only callers were
+ * enable/disable, and a pre-split project already has the flag on, so the
+ * branch never ran. The result was `upgradeSpecDocs` rewriting AGENTS.md into
+ * a pointer at a file nothing ever created.
+ *
+ * Calling it on open finishes what T08 started. Every write inside is guarded
+ * by an existence check, so a project that keeps its own reference document,
+ * its own wrapper or its own `.gitkeep` is untouched; this only fills gaps.
+ *
+ * Must run before `upgradeSpecDocs` in the same pass: target, then pointer.
+ */
+function ensureProjectArtifacts(projectPath) {
+  if (!projectPath || !isFrameProject(projectPath)) return false;
+  ensureCodexWrapper(projectPath);
+  const config = getFrameConfig(projectPath) || {};
+  if (config.features && config.features.specDriven === true) {
+    try {
+      ensureSpecDrivenArtifacts(projectPath, config);
+    } catch (err) {
+      console.warn('[frame] could not re-ensure spec artifacts (non-fatal):', err.message);
+      return false;
+    }
+  }
+  return true;
+}
+
 function syncClaudeRule(projectPath) {
   const agentsText = frameStore.readAgents(projectPath);
   if (agentsText === null) return false; // nothing to copy — never write an empty rule
@@ -804,8 +854,7 @@ function upgradeSpecDocs(projectPath) {
 
   const descriptors = specDocDescriptors(projectPath);
   const exists = (rel) => fs.existsSync(path.join(projectPath, rel));
-
-  const health = docsHealth.report(
+  const survey = () => docsHealth.report(
     descriptors.map((d) => ({
       path: d.rel,
       text: readTextOrNull(d.file),
@@ -814,8 +863,14 @@ function upgradeSpecDocs(projectPath) {
     exists
   );
 
+  // Two surveys, and the distinction matters. The pass *decides* from the
+  // state it found — append or skip is a question about what was there. It
+  // *reports* the state it leaves behind, because the report is what the UI
+  // raises to the user, and a popover complaining about a section this pass
+  // just repaired would be worse than no popover at all.
+  const before = survey();
   const stateOf = (rel) => {
-    const found = health.sections.find((s) => s.doc === rel);
+    const found = before.sections.find((s) => s.doc === rel);
     return found ? found.state : null;
   };
 
@@ -854,7 +909,7 @@ function upgradeSpecDocs(projectPath) {
   }
 
   syncClaudeRule(projectPath); // an upgraded AGENTS.md means a stale copy
-  return health;
+  return survey();
 }
 
 // ─── Remove Frame from a project ──────────────────────────
@@ -1180,5 +1235,7 @@ module.exports = {
   disableSpecDriven,
   setSpecDrivenEnabled,
   upgradeSpecDocs,
+  ensureProjectArtifacts,
+  ensureCodexWrapper,
   setupIPC
 };
