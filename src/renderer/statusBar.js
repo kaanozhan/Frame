@@ -147,9 +147,10 @@ function _renderAgents() {
 
   if (total === 0) {
     indicatorEl.className = 'sb-agents empty';
-    indicatorEl.textContent = 'No agents elsewhere';
-    indicatorEl.title = 'Agents running in your other projects show up here. '
-      + "This project's own agents are in the sidebar and in Overview.";
+    indicatorEl.textContent = 'No agents in other projects';
+    indicatorEl.title = 'Agents running in your other projects show up here, so '
+      + 'one waiting on you somewhere else cannot go unnoticed. This project\'s '
+      + 'own agents are in the sidebar and in Overview.';
     _closeMenu(true);
     return;
   }
@@ -157,11 +158,12 @@ function _renderAgents() {
   const attention = approval ? 'agent-approval' : input ? 'agent-input' : null;
   const mark = attention ? laneStatus.attentionMark(attention) : '';
   indicatorEl.className = `sb-agents${attention ? ` ${attention}` : ''}`;
+  const scope = `in ${lastProjects.length} other project${lastProjects.length === 1 ? '' : 's'}`;
   indicatorEl.textContent = waiting
-    ? `◆ ${total} agent${total === 1 ? '' : 's'} elsewhere ${mark} ${waiting} waiting`
-    : `◆ ${total} agent${total === 1 ? '' : 's'} elsewhere`;
+    ? `◆ ${total} agent${total === 1 ? '' : 's'} ${scope} ${mark} ${waiting} waiting`
+    : `◆ ${total} agent${total === 1 ? '' : 's'} ${scope}`;
   indicatorEl.title = [
-    `${total} agent${total === 1 ? '' : 's'} in ${lastProjects.length} other project${lastProjects.length === 1 ? '' : 's'}`,
+    `${total} agent${total === 1 ? '' : 's'} ${scope} — not this one`,
     approval ? `${approval} needs approval` : null,
     input ? `${input} awaiting input` : null,
     'Hover for the list'
