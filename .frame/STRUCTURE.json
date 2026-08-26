@@ -6590,7 +6590,8 @@
         "electron",
         "shared/ipcChannels",
         "terminal",
-        "laneStatus"
+        "laneStatus",
+        "projectStatusBadges"
       ],
       "functions": {
         "init": {
@@ -6717,7 +6718,7 @@
           "line": 358
         },
         "updateWorkspaceNav": {
-          "line": 405,
+          "line": 424,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -6761,27 +6762,36 @@
       "description": "Project Status Badges",
       "exports": [
         "init",
-        "recompute"
+        "recompute",
+        "computeCounts"
       ],
       "depends": [
         "electron",
         "shared/ipcChannels",
         "laneStatus",
-        "projectListUI"
+        "projectListUI",
+        "statusBar"
       ],
       "functions": {
         "init": {
-          "line": 28,
+          "line": 33,
           "params": [
             "multiTerminalUI"
           ]
         },
         "schedule": {
-          "line": 39
+          "line": 44
+        },
+        "computeCounts": {
+          "line": 60,
+          "params": [
+            "states"
+          ],
+          "purpose": "Tally attention-worthy agent statuses per project."
         },
         "recompute": {
-          "line": 51,
-          "purpose": "Tally attention-worthy agent statuses per project and push to the list."
+          "line": 81,
+          "purpose": "Recompute the tally and hand it to both surfaces that draw it. One pass,"
         }
       },
       "ipc": {
@@ -7979,25 +7989,76 @@
       "file": "src/renderer/statusBar.js",
       "description": "Status Bar Module",
       "exports": [
-        "init"
+        "init",
+        "updateAgents"
       ],
       "depends": [
         "electron",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "laneStatus",
+        "state",
+        "htmlUtils",
+        "terminal"
       ],
       "functions": {
         "init": {
-          "line": 18
+          "line": 45
+        },
+        "_buildAgentSlot": {
+          "line": 69
+        },
+        "updateAgents": {
+          "line": 104,
+          "params": [
+            "states",
+            "counts"
+          ],
+          "purpose": "Fed by projectStatusBadges on every recompute — one traversal for every"
+        },
+        "_projectName": {
+          "line": 136,
+          "params": [
+            "path"
+          ]
+        },
+        "_renderAgents": {
+          "line": 140
+        },
+        "_renderMenu": {
+          "line": 173
+        },
+        "_focus": {
+          "line": 197,
+          "params": [
+            "projectPath",
+            "terminalId"
+          ],
+          "purpose": "A click switches project when the agent lives elsewhere, then opens its"
+        },
+        "_scheduleOpen": {
+          "line": 207
+        },
+        "_scheduleClose": {
+          "line": 213
+        },
+        "_openMenu": {
+          "line": 219
+        },
+        "_closeMenu": {
+          "line": 227,
+          "params": [
+            "immediate = false"
+          ]
         },
         "updateUsage": {
-          "line": 39,
+          "line": 234,
           "params": [
             "data"
           ],
           "purpose": "Paint both meters from a usage push."
         },
         "updateItem": {
-          "line": 68,
+          "line": 263,
           "params": [
             "item",
             "usage",
@@ -8006,7 +8067,7 @@
           ]
         },
         "formatResetTime": {
-          "line": 91,
+          "line": 286,
           "params": [
             "isoString"
           ],

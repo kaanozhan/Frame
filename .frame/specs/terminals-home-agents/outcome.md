@@ -138,3 +138,23 @@ the init-once subscribe guard (C5) are untouched.
 _Captured: 2026-08-26 · 4 file changes_
 
 ---
+
+## T08 — The sidebar chip and the status bar slot
+
+Extracted `computeCounts(states)` out of `projectStatusBadges.recompute()`
+and exported it; `recompute()` now feeds `projectListUI` and `statusBar` from
+a single traversal inside the existing rAF debounce (C2). The sidebar `◆` chip
+gained the attention colour, the shared attention mark and a tooltip naming
+what is waiting — it calls `computeCounts` on this project's terminals rather
+than reading the debounced `agentStatusMap`, so it is never a frame behind its
+own `laneStatus` listener. `statusBar` fills the declared left slot with the
+other-projects indicator in its three states, an upward hover menu grouped by
+project (180ms open, 320ms close, and a `::after` strip bridging the gap so
+the pointer never crosses dead space), and a row click that runs
+`state.setProjectPath` then `enterLane` — the navigation `presenceBar` carried
+before T05 deleted it. The menu's rows come from the same `states` array the
+tally was computed from, so nothing is traversed twice.
+
+_Captured: 2026-08-26 · 5 file changes_
+
+---

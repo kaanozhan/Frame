@@ -504,3 +504,8 @@
   font-size: 9px;
   font-weight: 700;
 }
+
+/* Waiting on the user: the same two colours every other surface uses for
+   these two statuses (§7). */
+.workspace-nav-agents.agent-approval { color: var(--error, #d45555); }
+.workspace-nav-agents.agent-input    { color: var(--warning, #e5a50a); }
