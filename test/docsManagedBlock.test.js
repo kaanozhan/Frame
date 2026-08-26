@@ -308,3 +308,68 @@ test('append rejects the same invalid inputs upgradeDoc does', () => {
   assert.equal(appendBlock('# Doc', { body: NEW_BODY, version: 1.5 }), null);
   assert.equal(appendBlock('# Doc', { version: 2 }), null);
 });
+
+// ─── Removing sections Frame has since moved elsewhere ────────
+
+const { removeLegacySections } = require('../src/shared/docsManagedBlock');
+
+const SEC_A = '## Alpha Rules\n\nFirst shipped section.';
+const SEC_B = '## Beta Rules\n\nSecond shipped section.';
+
+const threeSectionDoc = `# Doc
+
+Intro.
+
+---
+
+${SEC_A}
+
+---
+
+${SEC_B}
+
+---
+
+## The User's Own
+
+Theirs.
+
+---
+
+${FOOTER}
+`;
+
+test('every matcher must hit, or nothing is removed', () => {
+  const both = removeLegacySections(threeSectionDoc, [SEC_A, SEC_B]);
+  assert.equal(both.matched, 2);
+  assert.ok(both.text);
+  assert.ok(!both.text.includes('First shipped section.'));
+  assert.ok(!both.text.includes('Second shipped section.'));
+  // Everything that was not matched survives.
+  assert.ok(both.text.includes("## The User's Own"));
+  assert.ok(both.text.includes('Intro.'));
+  assert.ok(both.text.includes(FOOTER));
+
+  // One section edited: five-of-six is exactly the case that must not fire,
+  // because stripping the rest strands the one the user worked on.
+  const edited = threeSectionDoc.replace('Second shipped section.', 'Mine now.');
+  const partial = removeLegacySections(edited, [SEC_A, SEC_B]);
+  assert.equal(partial.text, null);
+  assert.equal(partial.matched, 1);
+  assert.equal(partial.total, 2);
+  // `matched` is what separates "not this generation" from "this one, edited".
+  assert.equal(removeLegacySections('# Unrelated\n\nProse.', [SEC_A, SEC_B]).matched, 0);
+});
+
+test('removal leaves no stacked separators or blank-line runs', () => {
+  const { text } = removeLegacySections(threeSectionDoc, [SEC_A, SEC_B]);
+  assert.ok(!/-{3,}[ \t]*\n\s*\n-{3,}/.test(text), 'two rules left stacked');
+  assert.ok(!/\n{3,}/.test(text), 'blank-line run left behind');
+});
+
+test('removal refuses non-strings, empty matcher lists and unknown sections', () => {
+  assert.equal(removeLegacySections(null, [SEC_A]).text, null);
+  assert.equal(removeLegacySections(threeSectionDoc, []).text, null);
+  assert.equal(removeLegacySections(threeSectionDoc, []).total, 0);
+  assert.equal(removeLegacySections(threeSectionDoc, ['## Nope\n\nNever shipped.']).text, null);
+});

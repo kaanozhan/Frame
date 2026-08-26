@@ -1956,5 +1956,15 @@ maintenance ceremony inline (`## Task Management`, `## PROJECT_NOTES.md Rules`,
 root-relative meta mentions and no `.frame/` prefixes at all. So: when reasoning
 about an older generation of a Frame-written document, compare **headings
 first**; a matcher that misses may be pointing at a section that was never
-there. The pre-split document remains a real open problem — deliberately left
-to its own spec, to be diagnosed before it is decided.
+there.
+
+**Then fixed, the same day, after the diagnosis the first attempt skipped.**
+Measured across every released generation that wrote them (v1.0.0 → v2.4.0):
+the six ceremony sections are byte-identical, independent of project name and
+of the init date — the creation stamp sits in the footer, past the thematic
+break that bounds the last section. So they are matchable exactly the way the
+spec section was. `migrateLegacyCeremony` now removes all six on open and puts
+the pointer table the split intended in their place, all-or-nothing: one
+edited section and nothing is touched, because stripping five and stranding
+the sixth is worse than leaving all six. A real pre-split AGENTS.md goes from
+234 lines with 14 root-relative meta references to 48 lines with none.

@@ -986,15 +986,22 @@
             "file"
           ]
         },
+        "migrateLegacyCeremony": {
+          "line": 878,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Finish the 2026-07-06 split for a project created before it."
+        },
         "upgradeSpecDocs": {
-          "line": 861,
+          "line": 910,
           "params": [
             "projectPath"
           ],
           "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
         },
         "appendSpecSection": {
-          "line": 944,
+          "line": 997,
           "params": [
             "projectPath",
             "rel"
@@ -1002,30 +1009,31 @@
           "purpose": "Append the managed spec section to a document the pass deliberately refused"
         },
         "docsHealthFor": {
-          "line": 983,
+          "line": 1036,
           "params": [
             "projectPath"
           ],
           "purpose": "The report on its own, without running the repair pass — what the UI asks"
         },
         "recordDocsActivity": {
-          "line": 1005,
+          "line": 1058,
           "params": [
             "written",
             "appended",
+            "ceremony",
             "report"
           ],
           "purpose": "Put the pass's result on the record. This is the half that was missing when"
         },
         "removeFrame": {
-          "line": 1040,
+          "line": 1101,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "dropEmptySettingsFile": {
-          "line": 1094,
+          "line": 1155,
           "params": [
             "projectPath",
             "file"
@@ -1033,21 +1041,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 1120,
+          "line": 1181,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 1136,
+          "line": 1197,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "setupIPC": {
-          "line": 1176,
+          "line": 1237,
           "params": [
             "ipcMain"
           ],
@@ -9301,32 +9309,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 280,
+          "line": 282,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 284,
+          "line": 286,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 288,
+          "line": 290,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 292,
+          "line": 294,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 315,
+          "line": 317,
           "params": [
             "name",
             "fields"
@@ -9334,7 +9342,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 332,
+          "line": 334,
           "params": [
             "name",
             "fields"
@@ -9342,7 +9350,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 353,
+          "line": 355,
           "params": [
             "name",
             "fields"
@@ -9426,6 +9434,8 @@
         "findBlock",
         "upgradeDoc",
         "appendBlock",
+        "removeLegacySections",
+        "insertBeforeFooter",
         "renderBlock",
         "BLOCK_NAME",
         "SPEC_BLOCK_NAME",
@@ -9504,16 +9514,39 @@
           ],
           "purpose": "Where a new block goes in a document that has none: before the trailing"
         },
-        "appendBlock": {
+        "insertBeforeFooter": {
           "line": 172,
           "params": [
             "text",
-            "options"
+            "body",
+            "footerMarker"
           ],
           "purpose": "Add a managed block to a document that carries none, rewriting nothing:"
         },
+        "appendBlock": {
+          "line": 184,
+          "params": [
+            "text",
+            "options"
+          ]
+        },
+        "collapseSeparators": {
+          "line": 199,
+          "params": [
+            "text"
+          ],
+          "purpose": "Two thematic breaks with nothing between them, and runs of blank lines, are"
+        },
+        "removeLegacySections": {
+          "line": 223,
+          "params": [
+            "text",
+            "matchers"
+          ],
+          "purpose": "Remove whole sections Frame itself shipped and has since moved elsewhere."
+        },
         "upgradeDoc": {
-          "line": 210,
+          "line": 271,
           "params": [
             "text",
             "options"
@@ -9562,6 +9595,8 @@
         "getQuickstartTemplate",
         "getFrameConfigTemplate",
         "getClaudeRuleTemplate",
+        "METAFILES_SECTION",
+        "LEGACY_AGENTS_CEREMONY",
         "getFrameGitignoreBlock",
         "FRAME_GITIGNORE_MARKER_START",
         "FRAME_GITIGNORE_MARKER_END",
@@ -9609,28 +9644,28 @@
           "line": 304
         },
         "formatProjectFacts": {
-          "line": 325,
+          "line": 496,
           "params": [
             "project"
           ],
           "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
         },
         "getAgentsTemplate": {
-          "line": 354,
+          "line": 525,
           "params": [
             "projectName",
             "options"
           ]
         },
         "getReferenceTemplate": {
-          "line": 453,
+          "line": 610,
           "params": [
             "projectName"
           ],
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 629,
+          "line": 786,
           "params": [
             "projectName",
             "project"
@@ -9638,21 +9673,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 654,
+          "line": 811,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 674,
+          "line": 831,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 720,
+          "line": 877,
           "params": [
             "projectName",
             "project"
@@ -9660,28 +9695,28 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 801,
+          "line": 958,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getClaudeRuleTemplate": {
-          "line": 844,
+          "line": 1001,
           "params": [
             "agentsText"
           ],
           "purpose": "`.claude/rules/frame.md` — the file Claude Code loads at session start."
         },
         "getFrameGitignoreBlock": {
-          "line": 859
+          "line": 1016
         },
         "getCodexWrapperTemplate": {
-          "line": 916,
+          "line": 1073,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 953,
+          "line": 1110,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -9689,27 +9724,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 999
+          "line": 1156
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1038,
+          "line": 1195,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1061,
+          "line": 1218,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1073,
+          "line": 1230,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1093
+          "line": 1250
         },
         "getOrchBinScripts": {
-          "line": 1111,
+          "line": 1268,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

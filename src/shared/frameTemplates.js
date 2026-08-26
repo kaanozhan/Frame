@@ -318,6 +318,177 @@ function renderSpecCoreSection() {
  *               opted out must not get the section back on re-emit.
  */
 /**
+ * The pointer table the 2026-07-06 split put in place of the maintenance
+ * ceremony it moved to REFERENCE.md. Held as a constant so the template and
+ * the pre-split migration emit exactly the same text.
+ */
+/**
+ * The six maintenance sections every pre-split AGENTS.md carries, frozen
+ * byte-for-byte. Verified identical across every released generation that
+ * wrote them — v1.0.0 through v2.4.0, 2026-02-18 to 06-24 — and independent
+ * of the project name and of the init date (the creation stamp lives in the
+ * footer, past the thematic break that bounds the last section).
+ *
+ * The 2026-07-06 split moved all of this into .frame/docs/REFERENCE.md and
+ * left a pointer table in its place, but only for projects created after it.
+ * These matchers are how a project created before it gets the same treatment.
+ * Never edit them — they must match what older Frames actually wrote.
+ */
+const LEGACY_AGENTS_CEREMONY = [
+  `## Task Management (tasks.json)
+
+### Task Recognition Rules
+
+**These ARE TASKS - add to tasks.json:**
+- When the user requests a feature or change
+- Decisions like "Let's do this", "Let's add this", "Improve this"
+- Deferred work when we say "We'll do this later", "Let's leave it for now"
+- Gaps or improvement opportunities discovered while coding
+- Situations requiring bug fixes
+
+**These are NOT TASKS:**
+- Error messages and debugging sessions
+- Questions, explanations, information exchange
+- Temporary experiments and tests
+- Work already completed and closed
+- Instant fixes (like typo fixes)
+
+### Task Creation Flow
+
+1. Detect task patterns during conversation
+2. Ask the user at an appropriate moment: "I identified these tasks from our conversation, should I add them to tasks.json?"
+3. If the user approves, add to tasks.json
+
+### Task Structure
+
+\`\`\`json
+{
+  "id": "unique-id",
+  "title": "Short and clear title",
+  "description": "Detailed explanation",
+  "status": "pending | in_progress | completed",
+  "priority": "high | medium | low",
+  "context": "Where/how this task originated",
+  "createdAt": "ISO date",
+  "updatedAt": "ISO date",
+  "completedAt": "ISO date | null"
+}
+\`\`\`
+
+### Task Status Updates
+
+- When starting work on a task: \`status: "in_progress"\`
+- When task is completed: \`status: "completed"\`, update \`completedAt\`
+- After commit: Check and update the status of related tasks`,
+  `## PROJECT_NOTES.md Rules
+
+### When to Update?
+- When an important architectural decision is made
+- When a technology choice is made
+- When an important problem is solved and the solution method is noteworthy
+- When an approach is determined together with the user
+
+### Format
+Free format. Date + title is sufficient:
+\`\`\`markdown
+### [2026-01-26] Topic title
+Conversation/decision as is, with its context...
+\`\`\`
+
+### Update Flow
+- Update immediately after a decision is made
+- You can add without asking the user (for important decisions)
+- You can accumulate small decisions and add them in bulk`,
+  `## 📝 Context Preservation (Automatic Note Taking)
+
+Frame's core purpose is to prevent context loss. Therefore, capture important moments and ask the user.
+
+### When to Ask?
+
+Ask the user when one of the following situations occurs: **"Should I add this conversation to PROJECT_NOTES.md?"**
+
+- When a task is successfully completed
+- When an important architectural/technical decision is made
+- When a bug is fixed and the solution method is noteworthy
+- When "let's do this later" is said (in this case, also add to tasks.json)
+- When a new pattern or best practice is discovered
+
+### Completion Detection
+
+Pay attention to these signals:
+- User approval: "okay", "done", "it worked", "nice", "fixed", "yes"
+- Moving from one topic to another
+- User continuing after build/run succeeds
+
+### How to Add?
+
+1. **DON'T write a summary** - Add the conversation as is, with its context
+2. **Add date** - In \`### [YYYY-MM-DD] Title\` format
+3. **Add to Session Notes section** - At the end of PROJECT_NOTES.md
+
+### When NOT to Ask
+
+- For every small change (it becomes spam)
+- Typo fixes, simple corrections
+- If the user already said "no" or "not needed", don't ask again for the same topic in that session
+
+### If User Says "No"
+
+No problem, continue. The user can also say what they consider important themselves: "add this to notes"`,
+  `## STRUCTURE.json Rules
+
+**This file is the map of the codebase.**
+
+### When to Update?
+- When a new file/folder is created
+- When a file/folder is deleted or moved
+- When module dependencies change
+- When an important architectural pattern is discovered (architectureNotes)
+
+### Format
+\`\`\`json
+{
+  "modules": {
+    "moduleName": {
+      "path": "src/module",
+      "purpose": "What this module does",
+      "depends": ["otherModule"]
+    }
+  },
+  "architectureNotes": {}
+}
+\`\`\``,
+  `## QUICKSTART.md Rules
+
+### When to Update?
+- When installation steps change
+- When new requirements are added
+- When important commands change`,
+  `## General Rules
+
+1. **Language:** Write documentation in English (except code examples)
+2. **Date Format:** ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)
+3. **After Commit:** Check tasks.json and STRUCTURE.json
+4. **Session Start:** Review pending tasks in tasks.json`,
+];
+
+const METAFILES_SECTION = `## Writing Frame meta files — read the reference first
+
+| Before writing…              | Read in \`.frame/docs/REFERENCE.md\` |
+| ---------------------------- | ------------------------------------ |
+| \`.frame/tasks.json\`          | "Task Management" (schema + rules)   |
+| \`.frame/PROJECT_NOTES.md\`    | "PROJECT_NOTES.md Rules"             |
+| \`.frame/STRUCTURE.json\`      | "STRUCTURE.json Rules"               |
+| \`.frame/QUICKSTART.md\`       | "QUICKSTART.md Rules"                |
+
+Quick reminders that always apply:
+- Task work: \`status: "in_progress"\` when starting, \`"completed"\` +
+  \`completedAt\` when done; re-check statuses after commits.
+- Important decisions: append to \`.frame/PROJECT_NOTES.md\` as
+  \`### [YYYY-MM-DD] Title\` with the conversation's context (not a summary).
+- Documentation in English; dates in ISO 8601.`;
+
+/**
  * Render the Project Facts section for AGENTS.md from the detected project
  * block. The section exists even without detection — its job is to make the
  * agent RECORD the user's real stack, not to celebrate Frame's bookkeeping.
@@ -414,21 +585,7 @@ ${renderSpecCoreSection()}
 
 ` : ''}---
 
-## Writing Frame meta files — read the reference first
-
-| Before writing…              | Read in \`.frame/docs/REFERENCE.md\` |
-| ---------------------------- | ------------------------------------ |
-| \`.frame/tasks.json\`          | "Task Management" (schema + rules)   |
-| \`.frame/PROJECT_NOTES.md\`    | "PROJECT_NOTES.md Rules"             |
-| \`.frame/STRUCTURE.json\`      | "STRUCTURE.json Rules"               |
-| \`.frame/QUICKSTART.md\`       | "QUICKSTART.md Rules"                |
-
-Quick reminders that always apply:
-- Task work: \`status: "in_progress"\` when starting, \`"completed"\` +
-  \`completedAt\` when done; re-check statuses after commits.
-- Important decisions: append to \`.frame/PROJECT_NOTES.md\` as
-  \`### [YYYY-MM-DD] Title\` with the conversation's context (not a summary).
-- Documentation in English; dates in ISO 8601.
+${METAFILES_SECTION}
 
 ---
 
@@ -1126,6 +1283,8 @@ module.exports = {
   getQuickstartTemplate,
   getFrameConfigTemplate,
   getClaudeRuleTemplate,
+  METAFILES_SECTION,
+  LEGACY_AGENTS_CEREMONY,
   getFrameGitignoreBlock,
   FRAME_GITIGNORE_MARKER_START,
   FRAME_GITIGNORE_MARKER_END,

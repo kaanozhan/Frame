@@ -169,6 +169,18 @@ function firstFooterIndex(text, footerMarker) {
  *
  * Returns null on the same invalid inputs `upgradeDoc` rejects.
  */
+function insertBeforeFooter(text, body, footerMarker) {
+  const footerIdx = firstFooterIndex(text, footerMarker);
+  if (footerIdx >= 0) {
+    // Drop the separator that preceded the footer so the inserted text does
+    // not leave two rules stacked on each other.
+    const head = text.slice(0, footerIdx).replace(/\n*(-{3,}[ \t]*\n)?\s*$/, '');
+    const tail = text.slice(footerIdx);
+    return `${head}\n\n---\n\n${body}\n\n---\n\n${tail}`;
+  }
+  return `${text.replace(/\n*$/, '')}\n\n---\n\n${body}\n`;
+}
+
 function appendBlock(text, options) {
   if (typeof text !== 'string' || !options || typeof options.body !== 'string') return null;
   const version = options.version;
@@ -176,16 +188,65 @@ function appendBlock(text, options) {
 
   const blockName = options.blockName || SPEC_BLOCK_NAME;
   const rendered = renderBlock(options.body, version, blockName);
-  const footerIdx = firstFooterIndex(text, options.footerMarker);
+  return insertBeforeFooter(text, rendered, options.footerMarker);
+}
 
-  if (footerIdx >= 0) {
-    // Drop the separator that preceded the footer so the inserted block does
-    // not leave two rules stacked on each other.
-    const head = text.slice(0, footerIdx).replace(/\n*(-{3,}[ \t]*\n)?\s*$/, '');
-    const tail = text.slice(footerIdx);
-    return `${head}\n\n---\n\n${rendered}\n\n---\n\n${tail}`;
+/**
+ * Two thematic breaks with nothing between them, and runs of blank lines, are
+ * what removing a section leaves behind. Collapsed only where the separators
+ * are genuinely adjacent, so a `---` inside a fenced block is never touched.
+ */
+function collapseSeparators(text) {
+  let out = text;
+  let previous;
+  do {
+    previous = out;
+    out = out.replace(/\n-{3,}[ \t]*\n\s*\n-{3,}[ \t]*\n/g, '\n---\n');
+  } while (out !== previous);
+  return out.replace(/\n{3,}/g, '\n\n');
+}
+
+/**
+ * Remove whole sections Frame itself shipped and has since moved elsewhere.
+ *
+ * Unlike an upgrade, this deletes rather than replaces, so the confidence gate
+ * is stricter: **every** matcher must pass or nothing is removed. A document
+ * where five of six sections are Frame's and the sixth was edited is a
+ * document someone worked on, and stripping the five would leave their one
+ * section stranded among prose that no longer surrounds it.
+ *
+ * Returns `{ text, matched, total }` — `text` is null unless every matcher
+ * hit, and `matched` lets the caller tell "not this generation at all" (0)
+ * apart from "this generation, edited" (between 1 and total), which are
+ * different things to say to a user.
+ */
+function removeLegacySections(text, matchers) {
+  const list = Array.isArray(matchers) ? matchers : [];
+  const result = { text: null, matched: 0, total: list.length };
+  if (typeof text !== 'string' || list.length === 0) return result;
+
+  const spans = [];
+  for (const matcher of list) {
+    const span = findLegacySpan(text, matcher);
+    if (span) {
+      spans.push(span);
+      result.matched += 1;
+    }
   }
-  return `${text.replace(/\n*$/, '')}\n\n---\n\n${rendered}\n`;
+  if (result.matched !== result.total) return result;
+
+  // Back to front, so earlier offsets stay valid as later spans go.
+  spans.sort((a, b) => b.start - a.start);
+  let out = text;
+  let lastStart = Infinity;
+  for (const span of spans) {
+    if (span.end > lastStart) return result; // overlapping matches — refuse
+    lastStart = span.start;
+    out = out.slice(0, span.start) + out.slice(span.end);
+  }
+
+  result.text = collapseSeparators(out);
+  return result;
 }
 
 /**
@@ -243,6 +304,8 @@ module.exports = {
   findBlock,
   upgradeDoc,
   appendBlock,
+  removeLegacySections,
+  insertBeforeFooter,
   renderBlock,
   BLOCK_NAME,
   SPEC_BLOCK_NAME,

@@ -62,7 +62,8 @@ const HOSTS = ['app', 'claude-hook', 'git-precommit', 'orch-bus', 'cli'];
 const DOCS_DEGRADED_REASONS = [
   'missing-path', // the prose names a file that is not on disk
   'unmatched-section', // a section Frame cannot prove is its own — never written over
-  'unreadable' // the document itself could not be read
+  'unreadable', // the document itself could not be read
+  'legacy-ceremony' // a pre-split AGENTS.md whose maintenance sections were edited
 ];
 
 // Field types. Kept deliberately narrow: enums, numbers, and the two string
@@ -246,7 +247,8 @@ const HINT_REASON_TEXT = {
 const DOCS_DEGRADED_TEXT = {
   'missing-path': 'An agent doc points at a file that is not there',
   'unmatched-section': 'A doc carries its own spec section — left untouched',
-  unreadable: 'An agent doc could not be read'
+  unreadable: 'An agent doc could not be read',
+  'legacy-ceremony': "AGENTS.md still carries the pre-split maintenance rules, edited — left as it is"
 };
 
 const MIGRATION_SKIP_TEXT = {

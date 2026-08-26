@@ -383,3 +383,120 @@ test('a value outside the declared reasons is stripped rather than recorded', ()
   assert.equal(record.reason, undefined);
   assert.equal(record.count, 1);
 });
+
+// ─── Finishing the 2026-07-06 split for a project older than it ──
+//
+// A pre-split AGENTS.md carries the whole maintenance ceremony inline, naming
+// `tasks.json` and `PROJECT_NOTES.md` at the project root — where they have
+// not been since the `.frame/` move. AGENTS.md is the always-on document, so
+// that is the copy an agent reads every session.
+
+const CEREMONY = templates.LEGACY_AGENTS_CEREMONY;
+
+function preSplitFull() {
+  return `# demo - Frame Project
+
+Intro prose the user wrote.
+
+---
+
+${CEREMONY[0]}
+
+---
+
+${templates.LEGACY_SPEC_DRIVEN_SECTION}
+
+---
+
+${CEREMONY.slice(1).join('\n\n---\n\n')}
+
+---
+
+*This file was automatically created by Frame.*
+*Creation date: 2026-04-12*
+`;
+}
+
+test('the frozen ceremony is what pre-split Frames actually wrote', () => {
+  // Six sections, and none of them parameterized — the property the whole
+  // byte-match gate rests on. A generation that interpolated the project name
+  // or the init date could never be matched this way.
+  assert.equal(CEREMONY.length, 6);
+  for (const section of CEREMONY) {
+    assert.ok(/^## /.test(section));
+    assert.ok(!section.includes('${'));
+    assert.ok(!/\bdemo\b/.test(section));
+  }
+});
+
+test('opening a pre-split project finishes the split', () => {
+  const dir = makeProject({ agents: preSplitFull() });
+  const before = read(agentsPath(dir));
+  assert.ok(before.includes('## Task Management (tasks.json)'));
+  assert.ok(before.includes('## General Rules'));
+
+  open(dir);
+
+  const agents = read(agentsPath(dir));
+  // The ceremony is gone…
+  for (const section of CEREMONY) {
+    const heading = section.split('\n')[0];
+    assert.ok(!agents.includes(heading), `${heading} survived`);
+  }
+  // …replaced by the pointer table the split put in its place…
+  assert.ok(agents.includes('## Writing Frame meta files'));
+  assert.ok(agents.includes('`.frame/tasks.json`'));
+  // …the spec flow is settled…
+  assert.ok(!agents.includes(STALE_MARKER));
+  assert.ok(managedBlock.findBlock(agents));
+  // …and the user's own prose and the footer are untouched.
+  assert.ok(agents.includes('Intro prose the user wrote.'));
+  assert.ok(agents.includes('*Creation date: 2026-04-12*'));
+  assert.ok(!/\n{3,}/.test(agents));
+});
+
+test('a second open changes nothing — the migration is idempotent', () => {
+  const dir = makeProject({ agents: preSplitFull() });
+  open(dir);
+  const settled = read(agentsPath(dir));
+  open(dir);
+  assert.equal(read(agentsPath(dir)), settled);
+});
+
+test('an edited ceremony is left entirely alone', () => {
+  // One section the user rewrote. Frame will not strip the other five and
+  // strand theirs among prose that no longer surrounds it.
+  const edited = preSplitFull().replace(
+    '## QUICKSTART.md Rules',
+    '## QUICKSTART.md Rules (our version)'
+  );
+  const dir = makeProject({ agents: edited });
+
+  open(dir);
+
+  const agents = read(agentsPath(dir));
+  assert.ok(agents.includes('## Task Management (tasks.json)'));
+  assert.ok(agents.includes('## QUICKSTART.md Rules (our version)'));
+  assert.ok(!agents.includes('## Writing Frame meta files'));
+  // The spec flow is still repaired — the two are independent spans.
+  assert.ok(!agents.includes(STALE_MARKER));
+});
+
+test('a post-split project is not touched by the ceremony migration', () => {
+  const agents = `# demo
+
+Intro.
+
+---
+
+${templates.renderSpecCoreSection()}
+
+---
+
+*This file was automatically created by Frame.*
+`;
+  const dir = makeProject({ agents, reference: currentReference });
+  const before = read(agentsPath(dir));
+  open(dir);
+  assert.equal(read(agentsPath(dir)), before);
+});

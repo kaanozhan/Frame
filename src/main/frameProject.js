@@ -853,6 +853,55 @@ function readTextOrNull(file) {
 }
 
 /**
+ * Finish the 2026-07-06 split for a project created before it.
+ *
+ * That change moved the whole maintenance ceremony — Task Management,
+ * PROJECT_NOTES.md Rules, Context Preservation, STRUCTURE.json Rules,
+ * QUICKSTART.md Rules, General Rules — out of AGENTS.md and into
+ * `.frame/docs/REFERENCE.md`, leaving a pointer table in its place. It applied
+ * to projects created afterwards and to nobody else, because AGENTS.md belongs
+ * to the project, not to Frame.
+ *
+ * So a project created before it still carries all six sections inline, naming
+ * `tasks.json` and `PROJECT_NOTES.md` at the project root — where they have not
+ * been since the `.frame/` move. That is not a cosmetic staleness: AGENTS.md is
+ * the always-on document, so the copy an agent reads every session is the wrong
+ * one, and a task it dutifully adds to a root `tasks.json` is a task Frame never
+ * reads back (`frameStore.resolvePath` is overlay-first, and the root fallback
+ * needs the `config.files` record that migration removes).
+ *
+ * Safe because the six sections are constants: verified byte-identical across
+ * every released generation that wrote them (v1.0.0 → v2.4.0), independent of
+ * project name and init date. All six must match or nothing is removed — see
+ * `removeLegacySections`.
+ */
+function migrateLegacyCeremony(projectPath) {
+  const file = frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS);
+  const text = readTextOrNull(file);
+  if (text === null) return { changed: false, matched: 0, total: 0 };
+
+  const result = docsManagedBlock.removeLegacySections(text, templates.LEGACY_AGENTS_CEREMONY);
+  const outcome = { changed: false, matched: result.matched, total: result.total };
+  if (result.text === null) return outcome;
+
+  // What the split put in their place, from the same constant the template
+  // uses — so a migrated document ends up shaped like a freshly written one.
+  const next = docsManagedBlock.insertBeforeFooter(
+    result.text,
+    templates.METAFILES_SECTION,
+    FRAME_DOC_FOOTER
+  );
+  try {
+    fs.writeFileSync(file, next, 'utf8');
+  } catch (err) {
+    console.warn('[frame] could not finish the split for AGENTS.md (non-fatal):', err.message);
+    return outcome;
+  }
+  outcome.changed = true;
+  return outcome;
+}
+
+/**
  * Upgrade the Frame-managed sections and report what could not be settled.
  * Returns the docsHealth report (or null when this is not a Frame project),
  * so the caller can record and surface a broken invariant rather than let it
@@ -860,6 +909,10 @@ function readTextOrNull(file) {
  */
 function upgradeSpecDocs(projectPath) {
   if (!projectPath || !isFrameProject(projectPath)) return null;
+
+  // Finish the split first, so everything below surveys the document the
+  // agent will actually read rather than the previous generation of it.
+  const ceremony = migrateLegacyCeremony(projectPath);
 
   const descriptors = specDocDescriptors(projectPath);
   const exists = (rel) => fs.existsSync(path.join(projectPath, rel));
@@ -924,7 +977,7 @@ function upgradeSpecDocs(projectPath) {
   syncClaudeRule(projectPath); // an upgraded AGENTS.md means a stale copy
 
   const after = survey();
-  recordDocsActivity(written, appended, after);
+  recordDocsActivity(written, appended, ceremony, after);
   return after;
 }
 
@@ -1002,14 +1055,22 @@ function docsHealthFor(projectPath) {
  * project that stays broken is reopened every day, and three lines an open is
  * a report, while thirty is noise nobody reads.
  */
-function recordDocsActivity(written, appended, report) {
+function recordDocsActivity(written, appended, ceremony, report) {
   const emit = (name, fields) => {
     try {
       activityLog.record(name, fields);
     } catch (_) { /* bookkeeping never breaks an open */ }
   };
 
-  if (written > 0) emit('docs.repaired', { docs: written, appended });
+  if (written > 0 || ceremony.changed) {
+    emit('docs.repaired', { docs: written + (ceremony.changed ? 1 : 0), appended });
+  }
+
+  // A pre-split document whose ceremony someone edited: Frame will not strip
+  // five of six sections and strand the sixth, so it says so instead.
+  if (!ceremony.changed && ceremony.matched > 0) {
+    emit('docs.degraded', { reason: 'legacy-ceremony', count: ceremony.matched });
+  }
 
   const groups = [
     ['missing-path', report.missingPaths.map((m) => m.path)],
