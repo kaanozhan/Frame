@@ -854,7 +854,8 @@
   padding: 4px 10px 10px;
 }
 
-/* New Frame CTA in the Frames rail — same accent treatment as Add new Project. */
+/* New Terminal CTA in the Other Terminals rail — same accent treatment as
+   Add new Project. */
 .lane-rail-add-btn {
   flex: 0 0 auto;
   display: flex;
@@ -892,7 +893,7 @@
   border-color: var(--border-subtle);
 }
 
-/* Mini "Agent" badge — same identity marker as the Mainframe cards,
+/* Mini "Agent" badge — same identity marker as the Home cards,
    scaled down for the rail's narrow rows */
 .lane-rail-agent-badge {
   display: inline-flex;

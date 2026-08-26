@@ -107,7 +107,7 @@ function init() {
   fileTreeUI.setProjectPathGetter(state.getProjectPath);
 
   // Git Changes panel (Changes sidebar tab); a row click opens that file's
-  // diff as a section tab (next to Home / Frames), navigable with ◀ / ▶.
+  // diff as a section tab (next to Home / Terminals), navigable with ◀ / ▶.
   gitChangesPanel.init({
     onRowClick: ({ projectPath, relPath, staged }) => {
       if (!projectPath || !relPath) return;
@@ -651,11 +651,14 @@ function registerCommands() {
     run: () => state.initializeAsFrameProject()
   });
 
-  // ---------- Lanes / Terminal ----------
+  // ---------- Home / Terminals ----------
   r({
     id: 'lane.home',
-    title: 'Back to Mainframe',
-    category: 'Frames',
+    // The palette's own idiom for a surface ("Go to Terminals", "Go to
+    // Specs"). This command *is* the palette's Go to Home — a second entry in
+    // paletteSources' viewItems would put two identical rows in one list.
+    title: 'Go to Home',
+    category: 'Terminals',
     shortcut: 'CmdOrCtrl+Escape',
     run: () => {
       const ui = terminal.getMultiTerminalUI();
@@ -664,8 +667,8 @@ function registerCommands() {
   });
   r({
     id: 'terminal.new',
-    title: 'New Frame',
-    category: 'Frames',
+    title: 'New Terminal',
+    category: 'Terminals',
     shortcut: 'CmdOrCtrl+Shift+T',
     when: () => !!state.getProjectPath(),
     run: () => {
@@ -679,8 +682,8 @@ function registerCommands() {
   });
   r({
     id: 'terminal.close',
-    title: 'Close Frame',
-    category: 'Frames',
+    title: 'Close Terminal',
+    category: 'Terminals',
     shortcut: 'CmdOrCtrl+Shift+W',
     run: () => {
       const ui = terminal.getMultiTerminalUI();
@@ -689,8 +692,8 @@ function registerCommands() {
   });
   r({
     id: 'terminal.next',
-    title: 'Next Frame',
-    category: 'Frames',
+    title: 'Next Terminal',
+    category: 'Terminals',
     shortcut: 'CmdOrCtrl+Tab',
     run: () => {
       const ui = terminal.getMultiTerminalUI();
@@ -699,8 +702,8 @@ function registerCommands() {
   });
   r({
     id: 'terminal.prev',
-    title: 'Previous Frame',
-    category: 'Frames',
+    title: 'Previous Terminal',
+    category: 'Terminals',
     shortcut: 'CmdOrCtrl+Shift+Tab',
     run: () => {
       const ui = terminal.getMultiTerminalUI();
@@ -710,8 +713,8 @@ function registerCommands() {
   for (let i = 1; i <= 9; i++) {
     r({
       id: `terminal.switch.${i}`,
-      title: `Switch to Frame ${i}`,
-      category: 'Frames',
+      title: `Switch to Terminal ${i}`,
+      category: 'Terminals',
       shortcut: `CmdOrCtrl+${i}`,
       run: () => {
         const ui = terminal.getMultiTerminalUI();

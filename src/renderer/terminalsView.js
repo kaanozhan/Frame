@@ -31,6 +31,12 @@ const { Plus, Search, Pencil, X } = require('lucide');
 const PREFS_KEY = 'frame-terminals-view';
 const GLOBAL_PROJECT_KEY = '__global__';
 
+// The one definition of what "no terminals" says. Home's Terminals card
+// draws the same words in a single line; the same sentence written twice and
+// drifting apart is exactly the duplication this spec set out to remove.
+const EMPTY_TITLE = 'No terminals yet';
+const EMPTY_HINT = 'A terminal is where you run your shell or an AI session.';
+
 function lucideIcon(data, size = 13) {
   const children = data.map(([tag, attrs]) => {
     const attrStr = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
@@ -427,8 +433,8 @@ class TerminalsView {
     const empty = document.createElement('div');
     empty.className = 'tv-empty';
     empty.innerHTML = `
-      <p class="tv-empty-title">No terminals yet</p>
-      <p class="tv-empty-hint">A terminal is where you run your shell or an AI session.</p>
+      <p class="tv-empty-title">${EMPTY_TITLE}</p>
+      <p class="tv-empty-hint">${EMPTY_HINT}</p>
       <button class="tv-empty-cta">${lucideIcon(Plus, 14)}<span>Create your first terminal</span></button>
     `;
     empty.querySelector('.tv-empty-cta').addEventListener('click', () => {
@@ -601,4 +607,4 @@ class TerminalsView {
   }
 }
 
-module.exports = { TerminalsView };
+module.exports = { TerminalsView, EMPTY_TITLE, EMPTY_HINT };

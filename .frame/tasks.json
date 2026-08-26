@@ -5539,13 +5539,13 @@
       "title": "Finish the vocabulary sweep: add `Go to Home` to the palette, rename the",
       "description": "",
       "source": "spec:terminals-home-agents:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: terminals-home-agents",
       "createdAt": "2026-08-26T12:25:33.153Z",
-      "updatedAt": "2026-08-26T12:25:33.153Z",
-      "completedAt": null
+      "updatedAt": "2026-08-26T13:09:18.107Z",
+      "completedAt": "2026-08-26T13:09:18.107Z"
     }
   ],
   "metadata": {

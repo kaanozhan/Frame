@@ -4923,7 +4923,7 @@
   max-width: 92vw;
 }
 
-/* Spec detail modal — opened from the Mainframe spec cards. Same shell as
+/* Spec detail modal — opened from the Home spec cards. Same shell as
    the task-edit modal (centered, blurred backdrop), filled with the side
    panel's spec-detail-* markup so both surfaces look identical. */
 .spec-detail-modal {

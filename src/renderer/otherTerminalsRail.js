@@ -194,7 +194,7 @@ function _renderInto() {
       <div class="lane-rail-item-row">
         <span class="lane-status-dot ${s.status}"></span>
         <span class="lane-rail-item-title">${escapeHtml(t.customName || t.name)}</span>
-        ${s.agentName ? `<span class="lane-rail-agent-badge" title="Agent frame · ${escapeHtml(s.agentName)}">${lucideIcon(Bot, 10)}<span>Agent</span></span>` : ''}
+        ${s.agentName ? `<span class="lane-rail-agent-badge" title="Agent · ${escapeHtml(s.agentName)}">${lucideIcon(Bot, 10)}<span>Agent</span></span>` : ''}
       </div>
       <div class="lane-rail-item-row">
         <span class="lane-detail-item-status ${s.status}" title="${escapeHtml(s.commandLine || '')}">${escapeHtml(itemStatusText(s))}</span>

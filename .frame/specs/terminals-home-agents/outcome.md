@@ -178,3 +178,24 @@ The orchestrator card's running badge moved out of `orchestrator.css` into
 _Captured: 2026-08-26 · 5 file changes_
 
 ---
+
+## T10 — Finish the vocabulary sweep
+
+Renamed the command registry's entries to `Go to Home`, `New Terminal`,
+`Close Terminal`, `Next Terminal`, `Previous Terminal` and
+`Switch to Terminal N` under a `Terminals` category, and swept the last
+"Mainframe" / "Frames" / "Agent frame" strings out of the JS and the CSS
+comments — the words now appear nowhere in the codebase.
+`Go to Home` is the renamed `lane.home` command rather than a new
+`paletteSources` view item: both feed one registry search, so a second entry
+would put two identical rows in the palette. The shortcuts needed no
+rebinding — `switchTerminal`, `setActiveTerminalByIndex` and `terminal.new`
+all route through `enterLane`, which T04 redefined, so ⌘1–9, ⌘Tab and
+⌘⇧T open tabs already. The empty state the spec flagged as written twice was
+collapsed when T09 deleted `laneBoard._renderEmptyState`; `terminalsView` now
+exports `EMPTY_TITLE`/`EMPTY_HINT` and Home's Terminals card reads its
+one-line version from them, so it cannot drift back apart.
+
+_Captured: 2026-08-26 · 7 file changes_
+
+---

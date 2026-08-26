@@ -5555,7 +5555,7 @@
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 748,
+          "line": 751,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -5613,6 +5613,7 @@
         "lucide",
         "htmlUtils",
         "notify",
+        "terminalsView",
         "agentDispatch",
         "orchestrator",
         "specsDashboard",
@@ -5622,21 +5623,21 @@
       ],
       "functions": {
         "lucideIcon": {
-          "line": 43,
+          "line": 46,
           "params": [
             "data",
             "size = 14"
           ]
         },
         "_attentionRank": {
-          "line": 501,
+          "line": 504,
           "params": [
             "status"
           ],
           "purpose": "Waiting on the user first, then working, then everything else."
         },
         "_moreHtml": {
-          "line": 505,
+          "line": 508,
           "params": [
             "extra"
           ]
@@ -8932,7 +8933,9 @@
       "file": "src/renderer/terminalsView.js",
       "description": "Terminals View Module",
       "exports": [
-        "TerminalsView"
+        "TerminalsView",
+        "EMPTY_TITLE",
+        "EMPTY_HINT"
       ],
       "depends": [
         "laneStatus",
@@ -8942,17 +8945,17 @@
       ],
       "functions": {
         "lucideIcon": {
-          "line": 34,
+          "line": 40,
           "params": [
             "data",
             "size = 13"
           ]
         },
         "_loadAllPrefs": {
-          "line": 42
+          "line": 48
         },
         "_saveProjectPrefs": {
-          "line": 50,
+          "line": 56,
           "params": [
             "projectKey",
             "prefs"

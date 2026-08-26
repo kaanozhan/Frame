@@ -115,7 +115,7 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     }
   }
 
-  // Land the user inside the Frame so they watch the dispatch arrive. The
+  // Land the user in the terminal so they watch the dispatch arrive. The
   // orchestrator passes enter:false when fanning out several workers at once,
   // so the view doesn't jump into each spawned lane.
   if (enter) multiTerminalUI.enterLane(targetId);

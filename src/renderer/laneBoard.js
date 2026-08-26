@@ -34,6 +34,9 @@ const { statusLabel, attentionMark } = laneStatus;
 const { Plus, FolderOpen, Bot, FileText, CheckSquare, ArrowUpRight, Boxes } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
+// Home says the same thing about an empty project as the section does — from
+// the section's own definition, so it can only ever be said one way.
+const { EMPTY_TITLE, EMPTY_HINT } = require('./terminalsView');
 
 // A card is a teaser, not a list. Past this the dashboards take over.
 const MAX_ROWS = 3;
@@ -255,7 +258,7 @@ class LaneBoard {
     card.count.textContent = String(terminals.length);
 
     if (terminals.length === 0) {
-      card.body.innerHTML = '<div class="home-card-empty">No terminals yet — a terminal is where you run your shell or an AI session.</div>';
+      card.body.innerHTML = `<div class="home-card-empty">${EMPTY_TITLE} — ${EMPTY_HINT.charAt(0).toLowerCase()}${EMPTY_HINT.slice(1)}</div>`;
       return;
     }
 
