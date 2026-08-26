@@ -345,3 +345,41 @@ test('the returned report describes the state the pass leaves, not the one it fo
   assert.deepEqual(health.unreadable, []);
   assert.equal(health.ok, true);
 });
+
+// ─── What the pass puts on the record ─────────────────────────
+//
+// Lives here rather than in test/activityEvents.test.js because these two
+// events belong to this pass; the registry's own suite tests the registry.
+
+const activityEvents = require('../src/shared/activityEvents');
+
+test('the doc events are registered and their labels read as sentences', () => {
+  assert.equal(activityEvents.isRegistered('docs.repaired'), true);
+  assert.equal(activityEvents.isRegistered('docs.degraded'), true);
+  assert.equal(activityEvents.kindOf('docs.repaired'), 'action');
+  assert.equal(activityEvents.kindOf('docs.degraded'), 'action');
+
+  assert.equal(
+    activityEvents.formatLabel('docs.repaired', { docs: 1, created: 1 }),
+    'Brought 1 agent doc up to date (created 1)'
+  );
+  assert.equal(
+    activityEvents.formatLabel('docs.repaired', { docs: 2, appended: 1 }),
+    'Brought 2 agent docs up to date (added a section to 1)'
+  );
+  assert.equal(
+    activityEvents.formatLabel('docs.degraded', { reason: 'missing-path', path: '.frame/docs/REFERENCE.md', count: 1 }),
+    'An agent doc points at a file that is not there — .frame/docs/REFERENCE.md'
+  );
+  assert.equal(
+    activityEvents.formatLabel('docs.degraded', { reason: 'unmatched-section', count: 2 }),
+    'A doc carries its own spec section — left untouched'
+  );
+});
+
+test('a value outside the declared reasons is stripped rather than recorded', () => {
+  const record = activityEvents.buildRecord('docs.degraded', { reason: 'whatever-happened', count: 1 });
+  assert.equal(record.ev, 'docs.degraded');
+  assert.equal(record.reason, undefined);
+  assert.equal(record.count, 1);
+});

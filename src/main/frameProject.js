@@ -389,11 +389,20 @@ function ensureProjectArtifacts(projectPath) {
   ensureCodexWrapper(projectPath);
   const config = getFrameConfig(projectPath) || {};
   if (config.features && config.features.specDriven === true) {
+    const referencePath = path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md');
+    const had = fs.existsSync(referencePath);
     try {
       ensureSpecDrivenArtifacts(projectPath, config);
     } catch (err) {
       console.warn('[frame] could not re-ensure spec artifacts (non-fatal):', err.message);
       return false;
+    }
+    // Creating the document a pointer aims at is the repair for the most
+    // common broken state in the field, and it happens with nobody watching.
+    if (!had && fs.existsSync(referencePath)) {
+      try {
+        activityLog.record('docs.repaired', { docs: 1, created: 1 });
+      } catch (_) { /* bookkeeping never breaks an open */ }
     }
   }
   return true;
@@ -869,6 +878,8 @@ function upgradeSpecDocs(projectPath) {
   // raises to the user, and a popover complaining about a section this pass
   // just repaired would be worse than no popover at all.
   const before = survey();
+  let written = 0;
+  let appended = 0;
   const stateOf = (rel) => {
     const found = before.sections.find((s) => s.doc === rel);
     return found ? found.state : null;
@@ -902,6 +913,8 @@ function upgradeSpecDocs(projectPath) {
     if (upgraded !== null && upgraded !== text) {
       try {
         fs.writeFileSync(doc.file, upgraded, 'utf8');
+        written += 1;
+        if (stateOf(doc.rel) === 'absent') appended += 1;
       } catch (err) {
         console.warn(`[frame] spec docs upgrade failed for ${doc.file} (non-fatal):`, err.message);
       }
@@ -909,7 +922,43 @@ function upgradeSpecDocs(projectPath) {
   }
 
   syncClaudeRule(projectPath); // an upgraded AGENTS.md means a stale copy
-  return survey();
+
+  const after = survey();
+  recordDocsActivity(written, appended, after);
+  return after;
+}
+
+/**
+ * Put the pass's result on the record. This is the half that was missing when
+ * the delivery gap shipped: the repair and the failure both happened silently,
+ * so a month passed with nothing to look at.
+ *
+ * Degradations are one record per reason rather than one per finding — a
+ * project that stays broken is reopened every day, and three lines an open is
+ * a report, while thirty is noise nobody reads.
+ */
+function recordDocsActivity(written, appended, report) {
+  const emit = (name, fields) => {
+    try {
+      activityLog.record(name, fields);
+    } catch (_) { /* bookkeeping never breaks an open */ }
+  };
+
+  if (written > 0) emit('docs.repaired', { docs: written, appended });
+
+  const groups = [
+    ['missing-path', report.missingPaths.map((m) => m.path)],
+    ['unmatched-section', report.unmatchedSections.map((s) => s.doc)],
+    ['unreadable', report.unreadable.map((u) => u.doc)]
+  ];
+  for (const [reason, paths] of groups) {
+    if (paths.length === 0) continue;
+    // A single finding names itself; several are counted, because a path
+    // field holding one of five would read as the whole story.
+    emit('docs.degraded', paths.length === 1
+      ? { reason, path: paths[0], count: 1 }
+      : { reason, count: paths.length });
+  }
 }
 
 // ─── Remove Frame from a project ──────────────────────────

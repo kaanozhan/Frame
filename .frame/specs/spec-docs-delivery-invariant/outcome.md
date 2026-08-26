@@ -26,3 +26,10 @@ Extracted `ensureCodexWrapper` from `runProjectInit` as a synchronous create-if-
 _Captured: 2026-08-26 · 4 file change(s)_
 
 ---
+## T08 — Put the pass's result on the record
+
+Registered `docs.repaired` and `docs.degraded` with a three-value reason enum (`missing-path`, `unmatched-section`, `unreadable`) and their label text; `ensureProjectArtifacts` records a repair when it creates the reference, and `upgradeSpecDocs` records what it wrote plus one degradation per reason. Per reason rather than per finding, because a project that stays broken is reopened every day and three lines an open is a report while thirty is noise. This is the half that was missing when the delivery gap shipped: both the repair and the failure happened silently, so a month passed with nothing to look at. Divergence: the registry assertions went into this spec's own test file, since `test/activityEvents.test.js` is outside the footprint and widening it again for two asserts was not worth it.
+
+_Captured: 2026-08-26 · 3 file change(s)_
+
+---
