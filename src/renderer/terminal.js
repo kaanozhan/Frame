@@ -7,6 +7,7 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const { MultiTerminalUI } = require('./multiTerminalUI');
+const terminalInput = require('./terminalInput');
 
 let multiTerminalUI = null;
 
@@ -111,15 +112,9 @@ window.terminalSendPromptThenEnter = function(prompt, terminalId = null) {
   const manager = multiTerminalUI.getManager();
   const targetId = terminalId || (manager && manager.activeTerminalId);
   if (!targetId) return;
-  ipcRenderer.send(IPC.TERMINAL_INPUT_ID, {
-    terminalId: targetId,
-    data: prompt
-  });
+  terminalInput.send(targetId, prompt);
   setTimeout(() => {
-    ipcRenderer.send(IPC.TERMINAL_INPUT_ID, {
-      terminalId: targetId,
-      data: '\r'
-    });
+    terminalInput.send(targetId, '\r');
   }, 300);
 };
 
