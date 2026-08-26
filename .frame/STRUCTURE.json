@@ -5615,29 +5615,52 @@
         "notify",
         "terminalsView",
         "agentDispatch",
-        "orchestrator",
         "specsDashboard",
         "tasksDashboard",
         "specSection",
+        "taskSection",
+        "tasksPanel",
         "openProjectModal"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 46,
+          "line": 52,
           "params": [
             "data",
             "size = 14"
           ]
         },
+        "_projectName": {
+          "line": 736,
+          "params": [
+            "p"
+          ]
+        },
         "_attentionRank": {
-          "line": 504,
+          "line": 741,
           "params": [
             "status"
           ],
-          "purpose": "Waiting on the user first, then working, then everything else."
+          "purpose": "Waiting on the user first, then working, then busy, then idle."
+        },
+        "_statsHtml": {
+          "line": 749,
+          "params": [
+            "pairs",
+            "variant = ''"
+          ],
+          "purpose": "A compact \"12 feature · 6 fix\" strip. Counts lead, because the number is"
+        },
+        "_tally": {
+          "line": 758,
+          "params": [
+            "items",
+            "keyOf"
+          ],
+          "purpose": "Count by key, biggest first, with a tail past the fourth."
         },
         "_moreHtml": {
-          "line": 508,
+          "line": 771,
           "params": [
             "extra"
           ]
@@ -5645,6 +5668,7 @@
       },
       "ipc": {
         "listens": [
+          "GIT_STATUS_DATA",
           "SPEC_DATA",
           "TASKS_DATA"
         ],
@@ -6481,6 +6505,7 @@
         "shared/ipcChannels",
         "terminal",
         "laneStatus",
+        "orchestrator",
         "projectStatusBadges"
       ],
       "functions": {
@@ -6590,25 +6615,25 @@
           "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 275
+          "line": 276
         },
         "saveCollapsedGroups": {
-          "line": 284,
+          "line": 285,
           "params": [
             "state"
           ]
         },
         "buildWorkspaceNav": {
-          "line": 292
+          "line": 293
         },
         "placeWorkspaceNav": {
-          "line": 346
+          "line": 348
         },
         "refreshWorkspaceNav": {
-          "line": 358
+          "line": 360
         },
         "updateWorkspaceNav": {
-          "line": 424,
+          "line": 436,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -7915,10 +7940,10 @@
           "line": 140
         },
         "_renderMenu": {
-          "line": 173
+          "line": 175
         },
         "_focus": {
-          "line": 197,
+          "line": 199,
           "params": [
             "projectPath",
             "terminalId"
@@ -7926,29 +7951,29 @@
           "purpose": "A click switches project when the agent lives elsewhere, then opens its"
         },
         "_scheduleOpen": {
-          "line": 207
+          "line": 209
         },
         "_scheduleClose": {
-          "line": 213
+          "line": 215
         },
         "_openMenu": {
-          "line": 219
+          "line": 221
         },
         "_closeMenu": {
-          "line": 227,
+          "line": 229,
           "params": [
             "immediate = false"
           ]
         },
         "updateUsage": {
-          "line": 234,
+          "line": 236,
           "params": [
             "data"
           ],
           "purpose": "Paint both meters from a usage push."
         },
         "updateItem": {
-          "line": 263,
+          "line": 265,
           "params": [
             "item",
             "usage",
@@ -7957,7 +7982,7 @@
           ]
         },
         "formatResetTime": {
-          "line": 286,
+          "line": 288,
           "params": [
             "isoString"
           ],

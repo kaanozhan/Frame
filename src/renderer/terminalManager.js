@@ -100,7 +100,7 @@ class TerminalManager {
   constructor() {
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
     this.activeTerminalId = null;
-    this.viewMode = 'terminals'; // 'terminals' (default) | 'board' | 'specs' | 'tasks' | 'panel'
+    this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'panel'
     this.maxTerminals = 9;
     this.terminalCounter = 0;
     this.onStateChange = null;
@@ -125,10 +125,16 @@ class TerminalManager {
     // Restore session for new project (custom names)
     this.restoreProjectSession(projectPath);
 
-    // Selecting a project always lands on its terminals view (terminals-view
-    // spec) — the restored viewMode only survives within a session via the
-    // tab bar, never across a project switch.
-    this.viewMode = 'terminals';
+    // Land where the work is: a project with running terminals opens on its
+    // Terminals section, one with none opens on Home. This also settles the
+    // launch case without a first-run flag — PTYs die with the main process,
+    // so at startup no project has a terminal and a fresh window always opens
+    // on Home.
+    //
+    // Overturns the terminals-view spec's "selecting a project always lands on
+    // its terminals view" (2026-08-26): landing on an empty terminals grid
+    // says nothing about the project, and Home now does.
+    this.viewMode = this.getTerminalStates().length > 0 ? 'terminals' : 'board';
 
     this._notifyStateChange();
   }
