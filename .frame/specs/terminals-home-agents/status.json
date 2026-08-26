@@ -1,10 +1,21 @@
 {
   "slug": "terminals-home-agents",
-  "title": "Home, Terminals ve Agents — üç yüzeyin tek modele oturtulması",
-  "phase": "planned",
+  "title": "Home, Terminals and Agents — three surfaces folded into one model",
+  "phase": "tasks_generated",
   "ai_tool": "claude-code",
-  "generated_task_ids": [],
+  "generated_task_ids": [
+    "task-spec-terminals-home-agents-T01",
+    "task-spec-terminals-home-agents-T02",
+    "task-spec-terminals-home-agents-T03",
+    "task-spec-terminals-home-agents-T04",
+    "task-spec-terminals-home-agents-T05",
+    "task-spec-terminals-home-agents-T06",
+    "task-spec-terminals-home-agents-T07",
+    "task-spec-terminals-home-agents-T08",
+    "task-spec-terminals-home-agents-T09",
+    "task-spec-terminals-home-agents-T10"
+  ],
   "created_at": "2026-08-26T10:51:12Z",
-  "updated_at": "2026-08-26T12:23:20Z",
-  "last_phase_at": "2026-08-26T12:23:20Z"
+  "updated_at": "2026-08-26T12:25:33.153Z",
+  "last_phase_at": "2026-08-26T12:25:32Z"
 }
