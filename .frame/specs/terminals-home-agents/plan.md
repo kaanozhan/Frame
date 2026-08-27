@@ -1,5 +1,10 @@
 # Plan — Home, Terminals and Agents — three surfaces folded into one model
 
+> **Revised 2026-08-27, mid-implementation.** T01–T10 shipped, then the
+> definition changed — see `spec.md` §0. The Footprint below covers both passes;
+> `terminalChipNotice.js` and `projectSection.js` are new to the second, and
+> `index.html` and `layout.css` were reached by the top bar and sidebar work.
+
 ## Architecture
 
 ### Resolved plan-time decisions
@@ -229,6 +234,10 @@ an open delay and a forgiving close area.
 - src/renderer/styles/components/terminal.css
 - src/renderer/styles/components/orchestrator.css
 - src/renderer/styles/components/project-section.css
+- src/renderer/styles/layout.css
+- src/renderer/terminalChipNotice.js
+- src/renderer/projectSection.js
+- index.html
 
 ## Dependencies
 

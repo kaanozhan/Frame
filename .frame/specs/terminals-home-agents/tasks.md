@@ -34,3 +34,35 @@
 - T10 · Finish the vocabulary sweep: add `Go to Home` to the palette, rename the
   Frame and Mainframe commands to Terminal and Home, rebind the shortcuts to the
   new `enterLane`, and collapse the duplicated empty state into one definition.
+
+## Second pass (added 2026-08-27 — see `spec.md` §0)
+
+The definition changed after T01–T10 shipped. These are the tasks that carried
+the change; all are complete on the branch, none are merged.
+
+- T11 · Land on Home when a project has no running terminals — there is nothing
+  to return to, so the board is the honest destination. (`4256757`) — **done**
+- T12 · The status bar's other-projects slot says "in other projects", not
+  "elsewhere": the word has to name where, or the count means nothing.
+  (`027ed3b`) — **done**
+- T13 · The collapsed sidebar rail reads as an edge, not a broken sidebar.
+  (`226e3bc`) — **done**
+- T14 · Home becomes a dashboard: a header (project name + branch) and two
+  groups that split the window evenly. Orchestration leaves the board for the
+  sidebar's Work group, its live session announced by a running badge on that
+  row. Reverses §4's four-card model. (`8829c5a`) — **done**
+- T15 · Retire the Terminals section's tab strip; every live terminal becomes a
+  breadcrumb chip in the top bar beside Terminals itself. Prefs move from
+  `openTabs`/`activeTab` to `shownTerminal` + `hiddenFromBar`; the magnifier
+  returns to `⤢` meaning "enlarge"; `terminalChipNotice` teaches that a chip's
+  `×` drops the chip, not the terminal; the enlarged header gains the spec/task
+  assignment chip. Reverses §2 and T02/T03. (`f1cb8a3`) — **done**
+- T16 · The top bar's Terminals wears the sidebar's own `›_` mark and the mono
+  face of the chips it heads, so one destination does not look like two things.
+  (`9c47044`) — **done**
+- T17 · The Add Project CTA belongs to the empty sidebar only — with a project
+  selected the switcher already leads to the same modal. (`ca6ffdd`) — **done**
+
+**Remaining before this spec can close:** regenerate `outcome.md` (extend with
+T11–T17 and their actual files) and `digest.md` from it, then set
+`phase: done` — at branch end, with the PROJECT_NOTES write-up.

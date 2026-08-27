@@ -199,3 +199,133 @@ one-line version from them, so it cannot drift back apart.
 _Captured: 2026-08-26 · 7 file changes_
 
 ---
+# Second pass — the definition changed mid-flight
+
+T01–T10 shipped and the branch stayed local. In the conversation that followed,
+three of this spec's own decisions were overturned; `spec.md` §0 records which
+and why, and §2/§4 were rewritten to the model below. What follows is what the
+second pass actually did.
+
+---
+
+## T11 — Land on Home when a project has no running terminals
+
+`enterLane` is the only way into the Terminals section, and it needs a terminal
+to enter. With none, the old path landed on an empty grid — a screen whose only
+content is an invitation to create the thing you did not ask for. Home is the
+honest destination: it is the project's board and it has something to say about
+a project with nothing running.
+
+_Captured: 2026-08-26 · 2 file changes_
+
+---
+
+## T12 — The status bar says "in other projects"
+
+The other-projects slot read "3 waiting elsewhere". "Elsewhere" names no place,
+so the count had nothing to attach to — the reader cannot tell whether it means
+another project, another window, or another machine. "In other projects" is the
+only reading the data supports, so it is what the bar says.
+
+_Captured: 2026-08-26 · 1 file change_
+
+---
+
+## T13 — The collapsed rail is an edge, not a broken sidebar
+
+Collapsed, the sidebar rail kept its panel's border and background, so it read
+as a sidebar that had failed to render rather than a deliberate edge. It now
+presents as an edge of the window.
+
+_Captured: 2026-08-26 · 1 file change_
+
+---
+
+## T14 — Home becomes a dashboard; Orchestration moves to the sidebar
+
+Home gained a header (project name + branch — no path, the sidebar already
+carries it) and two groups, Work and Project planning, that split the window
+evenly so the board fills it instead of trailing off into empty space. Terminals
+became tiles rather than rows: nine per project at most, so boxes fill the width
+a list wasted, six per grid, and the last cell counts what is *not* shown rather
+than what is over the cap.
+
+Orchestration left the board. §4 listed four cards; there are three. It is a
+surface you open, not a state you read, and it already opened as a top-bar
+section tab — so its entry is the sidebar's Work group. The card was the only
+place a live conductor session announced itself, so that sidebar row carries a
+running badge now. **This reverses §4 of this spec.**
+
+_Captured: 2026-08-26 · 6 file changes_
+
+---
+
+## T15 — The tab strip becomes a breadcrumb in the top bar
+
+T02's tab strip shipped and put two rows of tabs directly above each other: the
+top bar is itself a strip of surfaces, and the section's own strip sat
+immediately under it, answering a different question with the same shape.
+
+The strip is gone. Every live terminal of the project is now a chip in the top
+bar beside Terminals itself, enlarged or not: Terminals is the grid of all of
+them, a chip is that one enlarged. Prefs stopped tracking `openTabs`/`activeTab`
+and now track `shownTerminal` + `hiddenFromBar` — what is *out* of the bar rather
+than what is in it, so a terminal created later shows up by default.
+
+The grid's magnifier became `⤢` again, since "enlarge this here" is what it now
+does; an enlarged pane carries no shrink control, because Terminals never leaves
+the top bar and is the way back. Chips are drawn in the grid's own order, so
+dragging a pane moves its chip with it, and each carries the live status dot —
+the whole point is seeing an agent go red while you look at something else.
+`×` on a chip means "drop from this bar", never "destroy", the same as it means
+on Terminals itself; `terminalChipNotice` teaches that until the user opts out.
+Terminals keeps its own `×` only while the project has no terminals — with
+terminals in it, the breadcrumb beside it would be orphaned.
+
+The enlarged header gained the spec or task chip. Filling the screen with one
+terminal is exactly when "what is this for" stops being answerable from anything
+else on screen; the grid's panes are narrow and already say it. The conductor's
+sentinel ref stays a label rather than becoming a link that leads nowhere.
+**This reverses §2 and tasks T02/T03 of this spec.**
+
+_Captured: 2026-08-26 · 8 file changes_
+
+---
+
+## T16 — Terminals wears the sidebar's own mark
+
+Two surfaces name the same destination — the top bar's Terminals chip and the
+sidebar's Work → Terminals row — and they looked like two different things. The
+sidebar's row carries a `›_` prompt glyph; the top bar drew lucide's Boxes beside
+a label in the UI sans, while the terminal chips that now sit right next to it
+are set in mono. Terminals took the `›_` mark and the mono face of the chips it
+heads, at the sidebar's own weight and size.
+
+_Captured: 2026-08-26 · 2 file changes_
+
+---
+
+## T17 — The Add Project CTA belongs to the empty sidebar only
+
+With a project selected, the Projects panel is that project's navigation, and an
+accent-filled "+ Add new Project" sat at its foot as the loudest thing in the
+sidebar — pulling toward the one action the user is demonstrably not taking. It
+now shows only while no project is selected. Nothing is lost: the switcher above
+leads to the same modal, and its entry says so more plainly now
+("+ Open a project…" became "+ Add a project…"). The button follows the project
+both ways — removing the last one hands `projectListUI` a null path and it comes
+back.
+
+_Captured: 2026-08-26 · 5 file changes_
+
+---
+
+## Status
+
+Complete on `feat/terminals-home-agents`; **not merged**. Files touched across
+both passes are the plan's `## Footprint`.
+
+Deliberately **not** in this spec, though they landed on the same branch:
+splitting Settings by scope (its own record, `settings-by-scope`) and the
+inline-panel cleanup — the `retire-rail-and-panels` spec that work belongs to
+has no folder in the archive.

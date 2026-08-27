@@ -1,5 +1,5 @@
 ---
-keywords: home, terminals, overview, tabs, other terminals rail, status bar, navigation, view modes, lane board, top bar, cross-project attention, presence, sidebar nav groups
+keywords: home, terminals, overview, breadcrumb chips, tabs, other terminals rail, status bar, navigation, view modes, lane board, top bar, dashboard, cross-project attention, presence, sidebar nav groups
 related: lane-orchestrator, decisions-view, agent-dispatch, agent-orchestration, sidebar-project-section, status-bar, sidebar-nav-groups
 ---
 
@@ -8,10 +8,15 @@ related: lane-orchestrator, decisions-view, agent-dispatch, agent-orchestration,
 > **What we're building:** Frame's centre is split across three surfaces onto
 > the same object — Home (a card board), Terminals (a live pane grid) and a
 > nameless third `detail` view. This spec folds them into one model: **Home**
-> becomes a project board, **Terminals** becomes a single section with its own
-> tab strip (Overview + the terminals you open), the `detail` view mode retires
-> entirely, and agent visibility is spread across four surfaces instead of
-> living in one right-hand panel.
+> becomes a project dashboard, **Terminals** becomes a single section with two
+> bodies (the grid, and one terminal enlarged) whose navigation lives in the
+> top bar, the `detail` view mode retires entirely, and agent visibility is
+> spread across four surfaces instead of living in one right-hand panel.
+
+> **Revised 2026-08-27, mid-implementation.** The first pass landed T01–T10 and
+> the definition then changed in conversation — see
+> [§0 Revision](#0-revision--what-changed-after-the-first-pass). §2 and §4 below
+> describe the **current** model; what they replaced is recorded in §0.
 
 ## User's request (original, Turkish)
 
@@ -60,6 +65,54 @@ The decisions the user made over the course of the conversation:
 > Olduğunda da agent sayısı ve durumları, approval vs bekleyen varsa o da daha
 > kapsamlı gösterilebilir." … "Ya da hover olsun, session kısmıyla tutarlı
 > olsun."
+
+## 0. Revision — what changed after the first pass
+
+T01–T10 shipped (commits `b339507`..`f2c7ee5`) and the branch stayed local. In
+the conversation that followed, three of this spec's own decisions were
+overturned. They are recorded here rather than quietly edited away, because a
+future session reading §2 needs to know the tab strip was **tried and removed**,
+not merely never built.
+
+**R1 — the tab strip became a breadcrumb in the top bar.** §2 specified a tab
+strip as the Terminals section's first row: `[Overview] [Terminal N] …`. It
+shipped (T02), and the result put two rows of tabs directly above each other —
+the top bar is itself a strip of surfaces, and the section's own strip sat
+immediately under it, answering a different question with the same shape.
+*Now:* every live terminal of the project is a chip in the top bar beside
+Terminals itself, and the section has no navigation of its own. Prefs moved
+from `openTabs`/`activeTab` to `shownTerminal` + `hiddenFromBar` — what is *out*
+of the bar rather than what is in it, so a terminal created later appears by
+default. Commit `f1cb8a3`.
+
+**R2 — the magnifier went back to being ⤢.** §2 turned `⤢` into `🔍` meaning
+"open in its own tab". With no tabs left, the gesture is once again "enlarge
+this terminal to fill the section", so the mark returns to `⤢`. `maximizedId`
+stays retired — enlarging is a body of the section, not a pane state. Commit
+`f1cb8a3`.
+
+**R3 — Home is a dashboard, and the fourth card left.** §4 specified four cards,
+Orchestration among them. Orchestration is a surface you open, not a state you
+read, so it moved to the sidebar's Work group; Home gained a header (project
+name + branch) and two groups — Work, and Project planning — that split the
+window evenly. Commit `8829c5a`.
+
+**Still true from the first pass:** the `viewMode` model, the retirement of
+`detail` and `terminalGrid.js`, `×` meaning *drop from this strip* at every
+level, the single status vocabulary in `laneStatus`, and agent visibility across
+four surfaces (§5). None of those were touched.
+
+**Scope taken on during the revision.** The navigation model reaches the sidebar,
+so three sidebar decisions belong to this spec rather than to a separate record:
+the collapsed rail reads as an edge instead of a broken sidebar (`226e3bc`), the
+Add Project CTA belongs to the empty sidebar only (`ca6ffdd`), and the status bar
+says "in other projects" rather than "elsewhere" (`027ed3b`). Landing on Home
+when a project has no running terminals (`4256757`) is §4's own rule, applied.
+
+**Deliberately not in this spec**, though it landed on the same branch: splitting
+Settings by scope (`320f572`) has its own record, and the inline-panel cleanup
+(`5760ab6`, `f46aebb`) is a PROJECT_NOTES entry — the `retire-rail-and-panels`
+spec it belongs to has no folder in the archive.
 
 ## Problem
 
@@ -144,33 +197,54 @@ This section is normative. The implementation must not drift from it.
   and the update notification. **The Claude usage meters have moved to the
   status bar and stay there** — they are not brought back.
 
-### 2. The Terminals section — the tab strip
+### 2. The Terminals section — two bodies, navigated from the top bar
 
-- The section's first row is a tab strip: `[Overview] [Terminal N] …`
-- **Overview** sits leftmost, always present, never closable.
-- **Overview's content is today's Terminals view**: 1/2/3 columns, drag a
-  header to reorder, drag the bottom edge to resize, and the `+ New terminal`
-  ghost pane. All of it is preserved.
-- The pane header's `⤢` **becomes a magnifier (🔍)** and changes meaning: no
-  longer "enlarge within this view" but **"open this terminal in its own tab"**.
-  The `maximizedId` preference disappears entirely.
+*Revised — see §0/R1. This replaces the tab strip the first pass shipped.*
 
-**Tab lifecycle (normative):**
+The section has **two bodies and no navigation of its own**:
+
+- **The grid** — today's Terminals view: 1/2/3 columns, drag a header to
+  reorder, drag the bottom edge to resize, the `+ New terminal` ghost pane. All
+  preserved.
+- **One terminal enlarged** — that terminal filling the section, with the Other
+  Terminals rail beside it (§5b).
+
+Navigation lives one level up. Every live terminal of the project is a chip in
+the top bar beside Terminals itself, **whether it has ever been enlarged or
+not**: Terminals is the grid of all of them, a chip is that one enlarged.
+
+- The pane header's `⤢` keeps its original meaning — **enlarge this terminal to
+  fill the section** — and lands on the same body as that terminal's chip.
+  `maximizedId` stays retired: enlarging is a body of the section, not a pane
+  state.
+- An enlarged pane carries **no shrink control**. Terminals never leaves the top
+  bar and is the way back to the grid.
+- Chips are drawn in the grid's own order, so dragging a pane moves its chip
+  with it, and each carries the live status dot.
+
+**Chip lifecycle (normative):**
 
 | Action | Result |
 |---|---|
-| A terminal is created (Home card, Overview's `+`, `Cmd+Shift+T`) | its tab opens **and is focused** |
-| The tab's `×` is clicked | **the tab closes, the terminal lives on** — it stays in Overview |
-| A pane's 🔍 is clicked in Overview | opens its tab; if already open, switches to it (never a second tab) |
-| A pane is clicked in Overview | **focuses in place, does not switch to the tab** — Overview's side-by-side purpose is preserved |
-| A terminal is closed (Overview pane's `×`, `Cmd+Shift+W`, the process dying) | the terminal and its tab go together |
-| The project is switched | **terminal tabs are not discarded** — they are stored per project and the same strip is there on return |
-| The app restarts | tabs are gone (terminal ids do not survive a restart); Overview opens |
+| A terminal is created (Home, the grid's `+`, `Cmd+Shift+T`) | its chip appears **and that terminal is enlarged** |
+| A chip's `×` is clicked | **the chip leaves the bar, the terminal lives on** — the grid still holds it |
+| A pane's `⤢` is clicked in the grid | that terminal is enlarged; same destination as its chip |
+| A pane is clicked in the grid | **focuses in place** — the grid's side-by-side purpose is preserved |
+| A terminal is closed (pane `×`, `Cmd+Shift+W`, the process dying) | terminal and chip go together |
+| Terminals' own `×` is clicked | offered **only while the project has no terminals** — with terminals in it the breadcrumb beside it would be orphaned |
+| The project is switched | the dropped-chip set is per project and survives the switch |
+| The app restarts | ids do not survive; the grid opens with every terminal back in the bar |
 
-- The strip can grow with the terminal count (at most 9 per project → Overview
-  plus 9 tabs). **The strip's horizontal overflow behaviour must be defined**
-  (scroll); silent truncation is not acceptable.
-- A tab's content is a single terminal — no cells, no layout choice.
+- Dropping a chip is explained by `terminalChipNotice` until the user opts out:
+  an `×` beside a terminal's name reads as "close" until told otherwise.
+- Going back to a terminal **puts its chip back** — you cannot be looking at a
+  terminal the breadcrumb refuses to name.
+- The bar scrolls rather than truncating; silent truncation is not acceptable.
+- The enlarged header carries the spec or task the terminal is working on, as a
+  chip. It belongs there and not in the grid: the grid's panes are narrow and
+  already say what they are doing, while filling the screen with one terminal is
+  exactly when "what is this for" stops being answerable from anything else on
+  screen.
 
 ### 3. The `detail` view mode retires
 
@@ -189,22 +263,35 @@ This section is normative. The implementation must not drift from it.
   `agentDispatch` never uses the focused terminal (`agentDispatch.js:251`).
   That is a bug and it is fixed here.
 
-### 4. Home — the project board
+### 4. Home — the project dashboard
 
-- Home is no longer a terminal list but a **card board**. The Specs/Tasks rail
-  on its right (`laneRail.js`) is removed and its content moves into cards.
-- The cards:
-  - **Terminals** — how many exist, the state of any running agents, and — **in
-    every state**, empty or full — a direct "new terminal" action. Creating one
-    goes to the Terminals section and opens that terminal's tab.
-  - **Orchestration** — today's orchestrator card behaviour is preserved
-    (reattach when a session is live, start when it is not).
-  - **Specs** — a summary of the active specs.
-  - **Tasks** — a summary of the pending tasks.
+*Revised — see §0/R3. Four cards became a header plus two groups.*
+
+- Home is no longer a terminal list. The Specs/Tasks rail on its right
+  (`laneRail.js`) is removed and its content moves into cards.
+- A **header** carries the project name and its branch — no path, the sidebar
+  already carries that.
+- Two **groups** split the window evenly, because the cards answer two different
+  questions and the split gives the board a reading order instead of a grid of
+  equals:
+  - **Work** — what is running right now.
+  - **Project planning** — what the project has planned: **Specs** (a summary of
+    the active specs) and **Tasks** (a summary of the pending ones, spec-owned
+    work excluded — that work is the spec's business).
+- **Orchestration is not a card.** It is a surface you open, not a state you
+  read, so its entry is the sidebar's Work group and it opens as a top-bar
+  section tab. The card was the only place a live conductor session announced
+  itself, so the sidebar row carries a running badge instead.
 - The rule: **a card is a summary and an entry point; the sidebar is the full
   surface.** Cards do not replace the dashboards, they lead to them.
 - **When no project is selected, Home is not shown** — project selection takes
   priority (today's `_renderNoProjectState` behaviour moves into that role).
+- **Home is the landing view when a project has no running terminals** — there
+  is nothing to return to, so the board is the honest destination.
+
+> **Open at revision time.** Terminals is leaving the Work group as well, which
+> empties it. What fills it is being decided separately and is **not** part of
+> this spec's acceptance.
 
 ### 5. Agent visibility — four surfaces
 
@@ -430,6 +517,11 @@ constraints, not design preferences.
   reversed by `terminals-view`; here Home's role is redefined (terminal board →
   project board) and the detail/grid surface retires completely.
 
+- **This spec's own §2 and §4 (2026-08-26)** — the tab strip and the four-card
+  board were built, then overturned mid-implementation. Recorded in §0 (R1–R3)
+  rather than edited away: the tab strip was *tried and removed*, which is a
+  different lesson from "never built".
+
 **Explicitly not reversed** — built upon instead:
 
 - **`sidebar-nav-groups` (2026-08-25)** — the Work/Context/Frame groups and
@@ -443,9 +535,14 @@ constraints, not design preferences.
 
 ## Alternatives considered and rejected
 
-- **A "multi mode / single mode" pair.** Rejected in favour of the tab strip:
-  it builds the model without a hidden mode flag and allows several terminals
-  to stay open at once.
+- **A tab strip inside the Terminals section.** Built (T02), then rejected: it
+  put two rows of tabs directly above each other, the top bar's and the
+  section's, answering different questions with the same shape. Replaced by the
+  top bar breadcrumb (§0/R1).
+- **A "multi mode / single mode" pair.** Rejected in favour of the tab strip
+  when the strip was still the model; the objection holds for the breadcrumb
+  too — it builds the model without a hidden mode flag and allows several
+  terminals to stay open at once.
 - **Removing the magnifier entirely** (every terminal gets a permanent tab).
   Rejected: it made closing a tab either destructive or irreversible.
 - **A pane click in Overview opening its tab.** Rejected: Overview exists so
