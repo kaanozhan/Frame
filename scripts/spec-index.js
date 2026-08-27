@@ -333,7 +333,14 @@ async function build(projectPath) {
       if (slugsSeen.slice(i + 1).some(sl => sl !== list[i].slug)) list[i].flags.laterSpecs = true;
       const closed = closeBySlug[list[i].slug];
       const touched = lastTouch.get(key);
-      if (closed && touched && touched > closed && !list[i].flags.inflight) list[i].flags.stale = true;
+      // Compare instants, not strings. `touched` is git's %cI and carries the
+      // committer's offset ("…T11:07:54+03:00"); `closed` comes from
+      // status.json and is always UTC ("…T09:32:28.999Z"). Lexically the local
+      // wall clock wins, so east of UTC every commit read as that many hours
+      // later than it was, and any spec closed within its offset of its own
+      // commits was flagged stale on the spot.
+      const t = Date.parse(touched), c = Date.parse(closed);
+      if (t && c && t > c && !list[i].flags.inflight) list[i].flags.stale = true;
     }
   }
 

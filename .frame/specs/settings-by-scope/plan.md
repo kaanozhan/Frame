@@ -54,8 +54,7 @@ so the existing CSS applies unchanged to both.
 - src/main/index.js
 - assets/frame-mark.svg
 - assets/icon.png
-- build/icon.icns
-- build/icon.png
+- assets/icon.icns
 - package.json
 - index.html
 
