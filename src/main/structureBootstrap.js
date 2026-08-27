@@ -39,7 +39,7 @@ const {
 // the repo root; under electron-builder's asar the same relative path holds
 // because the asar mirrors the source tree.
 const SCRIPTS_SOURCE_DIR = path.join(__dirname, '..', '..', 'scripts');
-const PARSER_FILES = ['update-structure.js', 'find-module.js', 'check-freshness.js', 'detect-project.js', 'intent-map.json', 'spec-index.js', 'spec-context.js', 'spec-hint.js', 'module-hint.js', 'docs-hint.js', 'redact.js', 'activity-log.js'];
+const PARSER_FILES = ['update-structure.js', 'find-module.js', 'check-freshness.js', 'detect-project.js', 'intent-map.json', 'spec-index.js', 'spec-context.js', 'spec-hint.js', 'module-hint.js', 'docs-hint.js', 'spec-command-hint.js', 'redact.js', 'activity-log.js'];
 
 /**
  * Copy parser scripts from Frame's bundled scripts/ into the project's

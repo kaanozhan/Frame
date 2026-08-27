@@ -915,6 +915,16 @@ const SPEC_HINT_HOOKS = {
         type: 'command',
         command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js prompt'"
       }]
+    },
+    // A spec command typed in a terminal, staged the way the button stages
+    // it. Without this the UI path's chain never fires for a CLI session and
+    // the flow is improvised — losing spec.plan's decision gate, which is
+    // the only place the user is asked about business forks.
+    {
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ ! -f .frame/bin/spec-command-hint.js ] || exec node .frame/bin/spec-command-hint.js prompt'"
+      }]
     }
   ],
   // REFERENCE.md every session. Between 2026-01-25 and 2026-07-06 these
