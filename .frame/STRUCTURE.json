@@ -760,6 +760,7 @@
       "exports": [
         "init",
         "isFrameProject",
+        "openProjectLayout",
         "getFrameConfig",
         "initializeFrameProject",
         "runProjectInit",
@@ -799,9 +800,9 @@
         "tasksManager",
         "electron",
         "aiToolManager",
-        "telemetry",
         "specManager",
-        "fileTree"
+        "fileTree",
+        "telemetry"
       ],
       "functions": {
         "init": {
@@ -1046,8 +1047,24 @@
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
+        "openProjectLayout": {
+          "line": 1188,
+          "params": [
+            "projectPath",
+            "hooks = {}"
+          ],
+          "purpose": "Everything a project open does to the project, in the order that makes the"
+        },
+        "rearmAfterMigration": {
+          "line": 1271,
+          "params": [
+            "projectPath",
+            "hooks = {}"
+          ],
+          "purpose": "Every meta file just changed address: the watchers are pointed at the"
+        },
         "setupIPC": {
-          "line": 1176,
+          "line": 1293,
           "params": [
             "ipcMain"
           ],
@@ -1067,16 +1084,13 @@
           "GET_GIT_SHARING_STATE",
           "SET_GIT_SHARING",
           "REMOVE_FRAME_FROM_PROJECT",
-          "GET_LAYOUT_MIGRATION_PLAN",
-          "RUN_LAYOUT_MIGRATION"
+          "GET_MIGRATION_DECISIONS",
+          "APPLY_MIGRATION_DECISIONS"
         ],
         "emits": [
-          "IS_FRAME_PROJECT_RESULT",
-          "WORKSPACE_UPDATED",
           "FRAME_PROJECT_INITIALIZED",
-          "FRAME_CONFIG_DATA",
-          "LAYOUT_MIGRATION_PROGRESS",
-          "FILE_TREE_DATA"
+          "WORKSPACE_UPDATED",
+          "FRAME_CONFIG_DATA"
         ]
       }
     },
@@ -2027,6 +2041,8 @@
         "init",
         "plan",
         "run",
+        "pendingDecisions",
+        "applyDecisions",
         "upgradeAgentsText",
         "isFramePlantedSymlink",
         "isUnusableCopy",
@@ -2047,77 +2063,83 @@
       ],
       "functions": {
         "init": {
-          "line": 43,
+          "line": 45,
           "params": [
             "{ activityLog"
           ]
         },
         "record": {
-          "line": 47,
+          "line": 49,
           "params": [
             "event",
             "fields"
           ]
         },
         "git": {
-          "line": 55,
+          "line": 57,
           "params": [
             "projectPath",
             "args"
           ]
         },
         "legacyNames": {
-          "line": 70,
+          "line": 72,
           "params": [
             "config"
           ],
           "purpose": "The meta names this project's config claims, in a stable order."
         },
         "sameBytes": {
-          "line": 77,
+          "line": 79,
           "params": [
             "a",
             "b"
           ]
         },
         "readRootAgents": {
-          "line": 92,
+          "line": 94,
           "params": [
             "projectPath"
           ],
           "purpose": "The AGENTS.md a *legacy* init wrote, which is the one at the project root —"
         },
         "isUnusableCopy": {
-          "line": 106,
+          "line": 108,
           "params": [
             "file"
           ],
           "purpose": "A `.frame/` counterpart that cannot be what the project meant to keep: an"
         },
         "isFramePlantedSymlink": {
-          "line": 128,
+          "line": 130,
           "params": [
             "file"
           ],
           "purpose": "Is this a Frame-planted symlink? Only when it is a symlink whose target's"
         },
         "extractClaudeBlock": {
-          "line": 142,
+          "line": 144,
           "params": [
             "agentsText"
           ],
           "purpose": "The `## Existing Instructions (from CLAUDE.md)` block old inits appended to"
         },
-        "dirtyAmong": {
-          "line": 166,
+        "isUnmergedCode": {
+          "line": 171,
+          "params": [
+            "code"
+          ],
+          "purpose": "Files in an unmerged state — the only dirtiness that can actually lose"
+        },
+        "unmergedAmong": {
+          "line": 177,
           "params": [
             "projectPath",
             "relPaths"
-          ],
-          "purpose": "Files with uncommitted changes, compared repo-root-relative so a project in"
+          ]
         },
         "trackedAmong": {
-          "line": 191,
+          "line": 202,
           "params": [
             "projectPath",
             "relPaths"
@@ -2125,27 +2147,27 @@
           "purpose": "Which of these paths git already tracks (decides the sharing posture)."
         },
         "plan": {
-          "line": 215,
+          "line": 226,
           "params": [
             "projectPath"
           ],
           "purpose": "Describe what migrating this project would do. Pure: no writes, no git"
         },
         "copyVerified": {
-          "line": 272,
+          "line": 283,
           "params": [
             "from",
             "to"
           ]
         },
         "upgradeAgentsText": {
-          "line": 306,
+          "line": 317,
           "params": [
             "text"
           ]
         },
         "execute": {
-          "line": 335,
+          "line": 346,
           "params": [
             "projectPath",
             "activePlan",
@@ -2155,13 +2177,28 @@
           "purpose": "The steps themselves, in order, writing what happened into `state`. Split"
         },
         "run": {
-          "line": 454,
+          "line": 458,
           "params": [
             "projectPath",
             "migrationPlan",
             "onProgress = ("
           ],
           "purpose": "Execute a plan. Reports progress through `onProgress({ step, detail })` and"
+        },
+        "pendingDecisions": {
+          "line": 524,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "What is left for the user to answer, derived rather than stored."
+        },
+        "applyDecisions": {
+          "line": 554,
+          "params": [
+            "projectPath",
+            "decisions = []"
+          ],
+          "purpose": "Apply the decisions the user clicked through — today exactly one, the"
         }
       }
     },
@@ -3619,22 +3656,22 @@
           ]
         },
         "stopWatching": {
-          "line": 1259
+          "line": 1267
         },
         "pushSpecData": {
-          "line": 1280,
+          "line": 1288,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1300,
+          "line": 1308,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1304,
+          "line": 1312,
           "params": [
             "ipcMain"
           ]
@@ -5645,7 +5682,8 @@
       "file": "src/renderer/healthNotice.js",
       "description": "Health Notice Banner",
       "exports": [
-        "init"
+        "init",
+        "showMigration"
       ],
       "depends": [
         "electron",
@@ -5653,17 +5691,24 @@
       ],
       "functions": {
         "init": {
-          "line": 18
+          "line": 25
         },
         "show": {
-          "line": 38,
+          "line": 45,
           "params": [
             "kind",
             "message"
           ]
         },
         "dismiss": {
-          "line": 70
+          "line": 81
+        },
+        "showMigration": {
+          "line": 102,
+          "params": [
+            "migration"
+          ],
+          "purpose": "The layout migration's one-liner: the receipt of a move the user never"
         }
       },
       "ipc": {
@@ -6430,11 +6475,12 @@
     },
     "renderer/migrationModal": {
       "file": "src/renderer/migrationModal.js",
-      "description": "Migration Modal",
+      "description": "Migration Decision Modal",
       "exports": [
         "init",
         "offer",
-        "close"
+        "close",
+        "hasPendingDecisions"
       ],
       "depends": [
         "electron",
@@ -6445,43 +6491,48 @@
         "init": {
           "line": 45
         },
-        "stepLabel": {
-          "line": 70,
+        "readDeferred": {
+          "line": 63
+        },
+        "markDeferred": {
+          "line": 72,
           "params": [
-            "step"
+            "projectPath"
           ]
         },
-        "offer": {
-          "line": 87,
+        "hasPendingDecisions": {
+          "line": 85,
           "params": [
             "projectPath"
           ],
-          "purpose": "Offer the migration for this project. Silent when there is nothing to"
+          "purpose": "Does this project still have something to be asked about?"
         },
-        "render": {
+        "offer": {
           "line": 104,
           "params": [
-            "plan"
+            "projectPath",
+            "{ force = false } = {}"
+          ],
+          "purpose": "Offer whatever decisions this project still carries. Silent when there are"
+        },
+        "render": {
+          "line": 123,
+          "params": [
+            "decisions"
           ]
         },
-        "runMigration": {
-          "line": 135
+        "applyDecisions": {
+          "line": 156
         },
         "renderReceipt": {
-          "line": 159,
+          "line": 185,
           "params": [
             "receipt"
           ]
         },
         "close": {
-          "line": 196
+          "line": 204
         }
-      },
-      "ipc": {
-        "listens": [
-          "LAYOUT_MIGRATION_PROGRESS"
-        ],
-        "emits": []
       }
     },
     "renderer/multiTerminalUI": {
@@ -7283,47 +7334,52 @@
         "state",
         "specDrivenHint",
         "projectListUI",
-        "settingsOverlay"
+        "settingsOverlay",
+        "migrationModal"
       ],
       "functions": {
         "init": {
-          "line": 40
+          "line": 42
         },
         "syncFromProject": {
-          "line": 172
+          "line": 188
+        },
+        "syncMigrationDecision": {
+          "line": 200,
+          "purpose": "Shown only while this project still has something to answer. The decision"
         },
         "syncDefaultProject": {
-          "line": 188,
+          "line": 220,
           "purpose": "The launch-project row. It is hidden outright below two projects: with one"
         },
         "syncSpecDrivenToggle": {
-          "line": 214,
+          "line": 246,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "renderGitSharing": {
-          "line": 239,
+          "line": 271,
           "params": [
             "stateObj"
           ],
           "purpose": "Paint the sharing row from main's state object. `error` means the project"
         },
         "syncGitSharing": {
-          "line": 255
+          "line": 287
         },
         "setRemoveFrameNote": {
-          "line": 269,
+          "line": 301,
           "params": [
             "message"
           ]
         },
         "setGitSharingWarning": {
-          "line": 275,
+          "line": 307,
           "params": [
             "message"
           ]
         },
         "setSpecDrivenNote": {
-          "line": 281,
+          "line": 313,
           "params": [
             "message"
           ]
@@ -8308,6 +8364,7 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
+        "healthNotice",
         "migrationModal"
       ],
       "functions": {
@@ -9699,32 +9756,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 316,
+          "line": 334,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 320,
+          "line": 338,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 324,
+          "line": 342,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 328,
+          "line": 346,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 351,
+          "line": 369,
           "params": [
             "name",
             "fields"
@@ -9732,7 +9789,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 368,
+          "line": 386,
           "params": [
             "name",
             "fields"
@@ -9740,7 +9797,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 389,
+          "line": 407,
           "params": [
             "name",
             "fields"
@@ -11300,6 +11357,20 @@
         "direction": "",
         "description": ""
       }
+    },
+    "migration": {
+      "GET_MIGRATION_DECISIONS": {
+        "name": "get-migration-decisions",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "apply": {
+      "APPLY_MIGRATION_DECISIONS": {
+        "name": "apply-migration-decisions",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -11599,7 +11670,7 @@
       {
         "module": "renderer/migrationModal",
         "file": "src/renderer/migrationModal.js",
-        "description": "Migration Modal"
+        "description": "Migration Decision Modal"
       }
     ],
     "modal": [
@@ -11616,7 +11687,7 @@
       {
         "module": "renderer/migrationModal",
         "file": "src/renderer/migrationModal.js",
-        "description": "Migration Modal"
+        "description": "Migration Decision Modal"
       },
       {
         "module": "renderer/openProjectModal",

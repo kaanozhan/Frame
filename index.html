@@ -647,26 +647,21 @@
       </div>
     </div>
 
-    <!-- Frame Layout Migration Modal (pre-overlay project → .frame/) -->
+    <!-- Migration Decision Modal — the half of the move that is the user's call -->
     <div id="migration-modal" class="modal-overlay">
       <div class="modal-container modal-container-wide">
         <div class="modal-header">
-          <h3>Move Frame's files into <code>.frame/</code>?</h3>
+          <h3>Update <code>AGENTS.md</code> to point at <code>.frame/</code>?</h3>
           <button class="modal-close" id="migration-modal-close">&#x2715;</button>
         </div>
         <div class="modal-body">
           <p class="init-modal-lead" id="migration-lead">
-            This project keeps Frame's files at its root. Frame can move them into
-            <code>.frame/</code> so your project root is yours again. Nothing is deleted:
-            every file is copied to a backup first.
+            Frame's own files have moved into <code>.frame/</code>. <code>AGENTS.md</code>
+            is yours, so its text is still exactly as you left it — and it still points
+            agents at the old paths. Frame can update those lines for you:
           </p>
           <ul class="init-modal-file-list" id="migration-file-list"></ul>
           <p class="init-modal-note" id="migration-backup-note"></p>
-          <div class="init-modal-warning" id="migration-dirty-warning" style="display:none;">
-            <p>These files have uncommitted changes, so migration is paused:</p>
-            <ul id="migration-dirty-list"></ul>
-            <p>Commit or stash them, then reopen this project.</p>
-          </div>
           <div id="migration-progress" class="migration-progress" style="display:none;">
             <p id="migration-progress-step">Working…</p>
           </div>
@@ -674,7 +669,7 @@
         </div>
         <div class="modal-footer">
           <button class="modal-btn modal-btn-cancel" id="migration-later">Later</button>
-          <button class="modal-btn modal-btn-primary" id="migration-run">Migrate</button>
+          <button class="modal-btn modal-btn-primary" id="migration-run">Update</button>
         </div>
       </div>
     </div>
@@ -1306,6 +1301,19 @@
             </div>
             <span class="settings-status-chip" id="settings-default-project-chip" style="display:none;">&#x2713; Default</span>
             <button type="button" class="settings-action-btn" id="settings-make-default">Make Default</button>
+          </div>
+
+          <!-- Hidden unless this project still carries a decision — a row that
+               can only say "nothing to do here" is furniture. -->
+          <div class="settings-row" id="settings-migration-decision-row" style="display:none;">
+            <div class="settings-row-text">
+              <label class="settings-row-label">Update AGENTS.md for the <code>.frame/</code> layout</label>
+              <p class="settings-row-desc">
+                Frame's files have moved, but <code>AGENTS.md</code> is yours — its text still
+                points agents at the old paths. Frame can update those lines; nothing else changes.
+              </p>
+            </div>
+            <button type="button" class="settings-action-btn" id="settings-migration-decision">Review</button>
           </div>
 
           <div class="settings-row">

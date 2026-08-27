@@ -190,12 +190,29 @@ const EVENTS = {
   // after that happens without them watching.
   'migration.completed': {
     kind: 'action',
-    fields: { moved: COUNT, backedUp: COUNT, review: COUNT, ms: MS },
-    label: (r) => `Moved ${r.moved ?? 0} Frame file${r.moved === 1 ? '' : 's'} into .frame/`
+    // `backupDir` is what makes this row answerable after the fact: a move
+    // nobody agreed to beforehand has to say where the copies went.
+    // `symlinks` is a count, not a list — the registry has no free-form
+    // string field on purpose, and the banner names the files from the
+    // receipt it already holds.
+    fields: { moved: COUNT, backedUp: COUNT, review: COUNT, symlinks: COUNT, backupDir: PATH, ms: MS },
+    label: (r) => {
+      const files = `Moved ${r.moved ?? 0} Frame file${r.moved === 1 ? '' : 's'} into .frame/`;
+      const where = r.backupDir ? ` — copies are in ${r.backupDir}` : '';
+      const links = r.symlinks > 0
+        ? `, and removed ${r.symlinks} Frame symlink${r.symlinks === 1 ? '' : 's'}`
+        : '';
+      return `${files}${where}${links}`;
+    }
   },
   'migration.skipped': {
     kind: 'suppression',
-    fields: { reason: enumOf(['dirty-tree', 'no-fingerprint', 'nothing-to-move']), repeats: REPEATS },
+    // `dirty-tree` stays in the enum for records already on disk, but nothing
+    // writes it any more: only an unmerged path defers a migration now.
+    fields: {
+      reason: enumOf(['unmerged', 'dirty-tree', 'no-fingerprint', 'nothing-to-move']),
+      repeats: REPEATS
+    },
     label: (r) => `Layout migration skipped — ${MIGRATION_SKIP_TEXT[r.reason] || r.reason}`
   },
   'migration.conflict': {
@@ -285,6 +302,7 @@ const DOCS_DEGRADED_TEXT = {
 };
 
 const MIGRATION_SKIP_TEXT = {
+  unmerged: 'a meta file is in an unresolved merge',
   'dirty-tree': 'the files have uncommitted changes',
   'no-fingerprint': 'this project already uses the .frame/ layout',
   'nothing-to-move': 'nothing was left at the project root'

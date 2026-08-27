@@ -1,10 +1,12 @@
 /**
  * layoutMigration — move a pre-overlay project's meta files into `.frame/`
  *
- * Only ever with consent: `plan()` is pure (it reads, it never writes) so the
- * modal can show exactly what will happen, and `run()` executes a plan the
- * user clicked through. "Later" leaves the project untouched and working —
- * frameStore's legacy fallback keeps reading the root files.
+ * Two halves, split by who owns the file. `plan()` / `run()` are the automatic
+ * half: Frame's own meta files relocate, backed up and byte-verified, and the
+ * user is told afterwards rather than asked beforehand. `applyDecisions()` is
+ * the asked half — the one thing that is genuinely the user's call, rewriting
+ * their `AGENTS.md` prose. `plan()` stays pure (it reads, it never writes) so
+ * the automatic half can be described before it runs.
  *
  * The fingerprint is deliberately narrow: `config.files` (Frame's own init
  * signature) **and** at least one listed file at the project root. A
@@ -155,36 +157,45 @@ function extractClaudeBlock(agentsText) {
 }
 
 /**
- * Files with uncommitted changes, compared repo-root-relative so a project in
- * a sub-directory is covered. Untracked entries (`??`) are not dirty: nothing
- * committed can be lost by moving a file git never knew about, and in an
- * unshared project every meta file is untracked — treating those as dirty
- * would make migration impossible exactly where it is safest.
+ * Files in an unmerged state — the only dirtiness that can actually lose
+ * something. Moving a modified or staged file loses nothing: the content
+ * travels into `.frame/`, and the pre-move blob stays readable in the index
+ * and in HEAD. An unmerged path is different — unlink the root copy and
+ * `git merge --continue` refuses to commit, and the merge itself is gone.
+ *
+ * Untracked entries (`??`) were never dirty for this purpose, and in an
+ * unshared project every meta file is untracked.
  *
  * Returns [] outside git (nothing to defer for).
  */
-function dirtyAmong(projectPath, relPaths) {
+function isUnmergedCode(code) {
+  // DD, AU, UD, UA, DU, AA, UU — every code carrying a `U`, plus the two
+  // both-sides codes that carry none.
+  return code.includes('U') || code === 'DD' || code === 'AA';
+}
+
+function unmergedAmong(projectPath, relPaths) {
   if (!gitExclude.isGitRepo(projectPath)) return [];
   const porcelain = git(projectPath, ['status', '--porcelain', '--', ...relPaths]);
   if (!porcelain) return [];
 
   const prefix = git(projectPath, ['rev-parse', '--show-prefix']) || '';
-  const dirty = new Set();
+  const unmerged = new Set();
   for (const raw of porcelain.split('\n')) {
     const line = raw.trimStart();
     if (!line) continue;
-    if (line.startsWith('??')) continue; // untracked — see above
-    // "XY <path>", and for renames "XY <old> -> <new>". Matched rather than
-    // sliced at a fixed column: a leading status space is easy to lose (the
-    // git helper trims), which would shift every path by one character.
-    const match = line.match(/^[A-Z?!]{1,2}\s+(.*)$/);
-    if (!match) continue;
-    const listed = match[1].split(' -> ').pop().replace(/^"|"$/g, '');
+    // "XY <path>". Every unmerged code is two letters with no space in it, so
+    // the trimming the git helper does above cannot have eaten half of one —
+    // which is why matching a two-letter code here is safe where slicing at a
+    // fixed column would not be.
+    const match = line.match(/^([A-Z?!]{2})\s+(.*)$/);
+    if (!match || !isUnmergedCode(match[1])) continue;
+    const listed = match[2].split(' -> ').pop().replace(/^"|"$/g, '');
     for (const rel of relPaths) {
-      if (listed === `${prefix}${rel}` || listed === rel) dirty.add(rel);
+      if (listed === `${prefix}${rel}` || listed === rel) unmerged.add(rel);
     }
   }
-  return [...dirty];
+  return [...unmerged];
 }
 
 /** Which of these paths git already tracks (decides the sharing posture). */
@@ -249,7 +260,7 @@ function plan(projectPath) {
     : null;
 
   const rels = artifacts.map((a) => a.name);
-  const dirty = dirtyAmong(projectPath, rels);
+  const unmerged = unmergedAmong(projectPath, rels);
   const tracked = trackedAmong(projectPath, rels);
 
   return {
@@ -257,13 +268,13 @@ function plan(projectPath) {
     artifacts,
     symlinks,
     restorableClaudeMd,
-    dirty,
+    unmerged,
     tracked,
     backupDir: `${FRAME_DIR}/${MIGRATION_BACKUP_DIR}`,
     // Derived, not asked: a project whose meta files are committed clearly
     // shares them; one where they were never tracked stays local.
     sharingMode: tracked.length > 0 ? 'repo' : 'local',
-    canRun: dirty.length === 0
+    canRun: unmerged.length === 0
   };
 }
 
@@ -396,18 +407,11 @@ function execute(projectPath, activePlan, onProgress, state) {
     }
   }
 
-  // 3. AGENTS.md now resolves to .frame/ — point its own prose there too.
-  state.step = 'agents';
-  const agentsText = frameStore.readAgents(projectPath);
-  const upgraded = upgradeAgentsText(agentsText);
-  if (upgraded.text && upgraded.text !== agentsText) {
-    frameStore.writeAgents(projectPath, upgraded.text);
-  }
-  for (const item of upgraded.review) {
-    review.push(`AGENTS.md: could not find ${item} — check it by hand`);
-  }
+  // AGENTS.md's own prose still points at the root paths, and it is the user's
+  // file — rewriting it is `applyDecisions`' job, behind a click. The move
+  // above carried its bytes across untouched.
 
-  // 4. The pointer, the identity, and the end of the fingerprint.
+  // 3. The pointer, the identity, and the end of the fingerprint.
   state.step = 'pointer';
   onProgress({ step: 'pointer', detail: CLAUDE_RULE_PATH });
   require('./frameProject').syncClaudeRule(projectPath);
@@ -419,7 +423,7 @@ function execute(projectPath, activePlan, onProgress, state) {
   config.settings.gitSharing = activePlan.sharingMode;
   frameStore.writeConfig(projectPath, config);
 
-  // 5. Hook entries: replace the old unguarded commands with the guarded ones
+  // 4. Hook entries: replace the old unguarded commands with the guarded ones
   //    in the file this sharing mode uses.
   state.step = 'hooks';
   onProgress({ step: 'hooks', detail: gitSharing.hookFileFor(activePlan.sharingMode) });
@@ -429,7 +433,7 @@ function execute(projectPath, activePlan, onProgress, state) {
   }
   frameProject.installSpecHintHook(projectPath, { file: gitSharing.hookFileFor(activePlan.sharingMode) });
 
-  // 6. Sharing posture + a refreshed set of staged scripts (the old copies
+  // 5. Sharing posture + a refreshed set of staged scripts (the old copies
   //    resolve their project as `.frame/`, which is the bug T03 fixed).
   state.step = 'sharing';
   onProgress({ step: 'sharing', detail: activePlan.sharingMode });
@@ -460,8 +464,8 @@ function run(projectPath, migrationPlan, onProgress = () => {}) {
     return { ran: false, reason: 'no-fingerprint', moved: [], backedUp: [], review: [] };
   }
   if (!activePlan.canRun) {
-    record('migration.skipped', { reason: 'dirty-tree' });
-    return { ran: false, reason: 'dirty-tree', dirty: activePlan.dirty, moved: [], backedUp: [], review: [] };
+    record('migration.skipped', { reason: 'unmerged' });
+    return { ran: false, reason: 'unmerged', unmerged: activePlan.unmerged, moved: [], backedUp: [], review: [] };
   }
 
   const state = { step: 'start', moved: [], backedUp: [], review: [], claudeMdRestored: false };
@@ -492,16 +496,96 @@ function run(projectPath, migrationPlan, onProgress = () => {}) {
     moved: state.moved.length,
     backedUp: state.backedUp.length,
     review: state.review.length,
+    symlinks: activePlan.symlinks.length,
+    backupDir: activePlan.backupDir,
     ms: Date.now() - started
   });
 
   return receipt();
 }
 
+// ─── Decisions (pure) ─────────────────────────────────────────
+
+/**
+ * What is left for the user to answer, derived rather than stored.
+ *
+ * Pure, and deliberately independent of the legacy fingerprint: after the
+ * automatic half runs, the `AGENTS.md` whose prose is stale lives in
+ * `.frame/`, and the fingerprint that would have found it is gone. So the
+ * question is asked of the text itself — a decision exists exactly when
+ * `upgradeAgentsText` would change bytes. Two things follow for free: a fresh
+ * or already-migrated project derives nothing (the current template matches
+ * none of the old lines), and applying the rewrite empties the derivation, so
+ * the offer cannot repeat and nothing has to be recorded to stop it.
+ *
+ * Returns [] while the project is still on the legacy layout: a project whose
+ * layout question is unsettled may not be asked to rewrite a root file.
+ */
+function pendingDecisions(projectPath) {
+  if (frameStore.isLegacyLayout(projectPath)) return [];
+
+  const agentsText = frameStore.readAgents(projectPath);
+  if (!agentsText) return [];
+
+  const upgraded = upgradeAgentsText(agentsText);
+  if (upgraded.text === agentsText) return [];
+
+  return [{
+    kind: 'agents-prose',
+    // What the rewrite would actually do, so the modal can name it rather
+    // than promising "some edits".
+    edits: AGENTS_LINE_EDITS
+      .filter(([from]) => agentsText.includes(from))
+      .map(([from, to]) => ({ from: from.trim(), to: to.trim() })),
+    symlinkNote: AGENTS_SYMLINK_NOTE.test(agentsText),
+    // The lines Frame cannot prove are its own; these are never rewritten.
+    review: upgraded.review
+  }];
+}
+
+/**
+ * Apply the decisions the user clicked through — today exactly one, the
+ * `AGENTS.md` prose rewrite that `execute()` deliberately does not do.
+ * `AGENTS.md` is the user's file: the automatic half moves its bytes, and
+ * nothing rewrites them without a yes.
+ *
+ * Returns a receipt in run()'s shape so one renderer path can show either.
+ */
+function applyDecisions(projectPath, decisions = []) {
+  const kinds = new Set(
+    (decisions || [])
+      .map((d) => (typeof d === 'string' ? d : d && d.kind))
+      .filter(Boolean)
+  );
+
+  const review = [];
+  const applied = [];
+
+  if (kinds.has('agents-prose')) {
+    const agentsText = frameStore.readAgents(projectPath);
+    const upgraded = upgradeAgentsText(agentsText);
+    if (upgraded.text && upgraded.text !== agentsText) {
+      frameStore.writeAgents(projectPath, upgraded.text);
+      applied.push('agents-prose');
+      // The generated copy Claude Code reads is stale the moment AGENTS.md
+      // changes, so it is refreshed here and nowhere else — a rewrite that
+      // did not happen leaves the copy alone.
+      require('./frameProject').syncClaudeRule(projectPath);
+    }
+    for (const item of upgraded.review) {
+      review.push(`AGENTS.md: could not find ${item} — check it by hand`);
+    }
+  }
+
+  return { ran: applied.length > 0, applied, review, moved: [], backedUp: [] };
+}
+
 module.exports = {
   init,
   plan,
   run,
+  pendingDecisions,
+  applyDecisions,
   // exported for tests and for the receipt's prose
   extractClaudeBlock,
   upgradeAgentsText,
