@@ -464,10 +464,7 @@ function run(projectPath, migrationPlan, onProgress = () => {}) {
     return { ran: false, reason: 'no-fingerprint', moved: [], backedUp: [], review: [] };
   }
   if (!activePlan.canRun) {
-    // The activity registry's reason enum does not carry `unmerged` yet — the
-    // reporting pass adds it. Until then the skip is still recorded truthfully
-    // under the code that exists.
-    record('migration.skipped', { reason: 'dirty-tree' });
+    record('migration.skipped', { reason: 'unmerged' });
     return { ran: false, reason: 'unmerged', unmerged: activePlan.unmerged, moved: [], backedUp: [], review: [] };
   }
 
@@ -499,6 +496,8 @@ function run(projectPath, migrationPlan, onProgress = () => {}) {
     moved: state.moved.length,
     backedUp: state.backedUp.length,
     review: state.review.length,
+    symlinks: activePlan.symlinks.length,
+    backupDir: activePlan.backupDir,
     ms: Date.now() - started
   });
 

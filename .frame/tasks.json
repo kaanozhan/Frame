@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T15:17:59.564Z",
+  "lastUpdated": "2026-08-27T15:19:50.708Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6046,13 +6046,13 @@
       "title": "Extend `src/shared/activityEvents.js`: add `backupDir` to `migration.completed` and name it plus the removed symlinks in its label, add the `unmerged` reason to `migration.skipped` while keeping `dirty-tree` for records already written, and cover both in `test/activityEvents.test.js`.",
       "description": "",
       "source": "spec:migration-consent-scope:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T15:19:50.708Z",
+      "completedAt": "2026-08-27T15:19:50.708Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T07",

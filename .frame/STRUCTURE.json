@@ -2188,14 +2188,14 @@
           "purpose": "Execute a plan. Reports progress through `onProgress({ step, detail })` and"
         },
         "pendingDecisions": {
-          "line": 525,
+          "line": 524,
           "params": [
             "projectPath"
           ],
           "purpose": "What is left for the user to answer, derived rather than stored."
         },
         "applyDecisions": {
-          "line": 555,
+          "line": 554,
           "params": [
             "projectPath",
             "decisions = []"
@@ -9738,32 +9738,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 280,
+          "line": 298,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 284,
+          "line": 302,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 288,
+          "line": 306,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 292,
+          "line": 310,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 315,
+          "line": 333,
           "params": [
             "name",
             "fields"
@@ -9771,7 +9771,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 332,
+          "line": 350,
           "params": [
             "name",
             "fields"
@@ -9779,7 +9779,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 353,
+          "line": 371,
           "params": [
             "name",
             "fields"

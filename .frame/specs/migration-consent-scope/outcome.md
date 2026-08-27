@@ -76,3 +76,17 @@ gated.
 _Captured: 2026-08-27 · 2 file change(s)_
 
 ---
+## T06 — The activity record says where the copies went
+
+`migration.completed` gained `backupDir` and a `symlinks` count, and its label
+now names the backup directory and the symlinks it removed; `migration.skipped`
+learned `unmerged` ("a meta file is in an unresolved merge") while keeping
+`dirty-tree` in the enum so rows already on disk still render.
+`layoutMigration` records the new reason and passes both new fields.
+Divergence from tasks.md: the removed symlinks are a count, not their names —
+the registry states outright that it carries no free-form string field, and the
+banner names the files from the receipt it already holds.
+
+_Captured: 2026-08-27 · 3 file change(s)_
+
+---
