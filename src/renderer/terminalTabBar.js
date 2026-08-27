@@ -139,13 +139,11 @@ class TerminalTabBar {
     this.element.innerHTML = `
       <div class="lane-bar-left"></div>
       <div class="terminal-tab-actions">
-        <!-- Default Agent launcher — moved from the retired sidebar Agent
-             tab; IDs preserved so aiToolSelector/index.js bindings survive -->
+        <!-- Default Agent launcher — a bare Start. The tool choice moved to
+             Home's Agents widget, where there is room for it; aiToolSelector
+             guards on a missing #ai-tool-selector, so nothing here breaks by
+             its absence. #sidebar-agent-launch keeps its id and its handler. -->
         <div class="lane-bar-launcher">
-          <select id="ai-tool-selector" class="ai-tool-select" tabindex="-1" title="Default agent">
-            <option value="claude">Claude</option>
-            <option value="codex">Codex</option>
-          </select>
           <button id="sidebar-agent-launch" class="sidebar-agent-launch" tabindex="-1" title="Start default agent">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
               <path d="M8 5v14l11-7z"/>

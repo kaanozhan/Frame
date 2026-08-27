@@ -106,3 +106,17 @@ and calls `notify.error` (C7).
 _Captured: 2026-08-27 · 3 file change(s)_
 
 ---
+## T08 — The tool select leaves the top bar
+
+Removed `<select id="ai-tool-selector">` from `terminalTabBar._render()`,
+leaving `#sidebar-agent-launch` a bare Start with its id, class and `index.js`
+handler untouched. Safe by D5 and checked rather than assumed:
+`aiToolSelector.setupSelector()` (`:42`) and `updateUI()` (`:77`) both guard on
+a missing element, so the module keeps `currentTool` fresh from
+`AI_TOOL_CHANGED` with no DOM to write to. Followup: the
+`.lane-bar-launcher .ai-tool-select` rule in `terminal.css` is now dead, but
+that file is outside this plan's Files list so it was left as is.
+
+_Captured: 2026-08-27 · 1 file change(s)_
+
+---

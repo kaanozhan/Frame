@@ -5851,13 +5851,13 @@
       "title": "Remove `<select id=\"ai-tool-selector\">` from `src/renderer/terminalTabBar.js`'s `_render()`, keeping `#sidebar-agent-launch` as a bare Start with its `index.js` handler unchanged",
       "description": "",
       "source": "spec:home-widget-board:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:42.934Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T12:04:22.115Z",
+      "completedAt": "2026-08-27T12:04:22.115Z"
     },
     {
       "id": "task-spec-home-widget-board-T09",
