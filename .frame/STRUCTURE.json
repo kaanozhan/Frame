@@ -760,6 +760,7 @@
       "exports": [
         "init",
         "isFrameProject",
+        "openProjectLayout",
         "getFrameConfig",
         "initializeFrameProject",
         "runProjectInit",
@@ -799,9 +800,9 @@
         "tasksManager",
         "electron",
         "aiToolManager",
-        "telemetry",
         "specManager",
-        "fileTree"
+        "fileTree",
+        "telemetry"
       ],
       "functions": {
         "init": {
@@ -1046,8 +1047,24 @@
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
+        "openProjectLayout": {
+          "line": 1188,
+          "params": [
+            "projectPath",
+            "hooks = {}"
+          ],
+          "purpose": "Everything a project open does to the project, in the order that makes the"
+        },
+        "rearmAfterMigration": {
+          "line": 1271,
+          "params": [
+            "projectPath",
+            "hooks = {}"
+          ],
+          "purpose": "Every meta file just changed address: the watchers are pointed at the"
+        },
         "setupIPC": {
-          "line": 1176,
+          "line": 1293,
           "params": [
             "ipcMain"
           ],
@@ -1071,9 +1088,8 @@
           "RUN_LAYOUT_MIGRATION"
         ],
         "emits": [
-          "IS_FRAME_PROJECT_RESULT",
-          "WORKSPACE_UPDATED",
           "FRAME_PROJECT_INITIALIZED",
+          "WORKSPACE_UPDATED",
           "FRAME_CONFIG_DATA",
           "LAYOUT_MIGRATION_PROGRESS",
           "FILE_TREE_DATA"

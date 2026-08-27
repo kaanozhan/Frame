@@ -43,3 +43,21 @@ project's listing unchanged.
 _Captured: 2026-08-27 · 2 file change(s)_
 
 ---
+## T04 — The open sequence migrates before anything else writes
+
+Extracted `CHECK_IS_FRAME_PROJECT`'s body into an exported
+`frameProject.openProjectLayout(projectPath, hooks)`: it plans the migration
+first and either writes nothing at all (`{ blocked: 'unmerged' }`) or moves,
+then lets the stagers, `ensureProjectArtifacts`, `upgradeSpecDocs` and
+`syncClaudeRule` run against a settled layout. The post-run re-arm left
+`RUN_LAYOUT_MIGRATION` for a shared `rearmAfterMigration` both callers use,
+and the receipt now rides on `IS_FRAME_PROJECT_RESULT`. New
+`test/frameProjectOpen.test.js` covers the byte-verified move, artifact parity
+with an already-migrated project, five opens producing one tree, and the
+fresh/migrated/not-a-project cases. Noted rather than asserted away: the open
+still writes AGENTS.md's managed spec section after the move — now onto the
+copy in `.frame/`, with the user's prose untouched.
+
+_Captured: 2026-08-27 · 3 file change(s)_
+
+---

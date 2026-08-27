@@ -44,6 +44,10 @@ const IPC = {
   INITIALIZE_FRAME_PROJECT: 'initialize-frame-project',
   FRAME_PROJECT_INITIALIZED: 'frame-project-initialized',
   CHECK_IS_FRAME_PROJECT: 'check-is-frame-project',
+  // main → renderer: { projectPath, isFrame, layout, migration }. `migration`
+  // is the automatic layout move's receipt, its blocked report
+  // (`{ blocked: 'unmerged', unmerged }`), or null when the open had
+  // nothing to migrate.
   IS_FRAME_PROJECT_RESULT: 'is-frame-project-result',
   GET_FRAME_CONFIG: 'get-frame-config',
   FRAME_CONFIG_DATA: 'frame-config-data',

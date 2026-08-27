@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T14:23:56.628Z",
+  "lastUpdated": "2026-08-27T15:16:26.206Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6020,13 +6020,13 @@
       "title": "Extract `CHECK_IS_FRAME_PROJECT`'s body into an exported `frameProject.openProjectLayout(projectPath)` that runs the automatic migration before any stager, inherits the post-run re-arm block from `RUN_LAYOUT_MIGRATION` (`src/main/frameProject.js:1321-1339`), adds `stageCommandFiles`, `ensureProjectArtifacts` and `upgradeSpecDocs` at the current `SPEC_SECTION_VERSION`, and carries the receipt on `IS_FRAME_PROJECT_RESULT`; prove in a new `test/frameProjectOpen.test.js` that an open moves every Frame-owned file byte-verified against its backup, ends with the artifacts an already-migrated project has, produces one tree over five opens, and leaves migrated and fresh projects unchanged.",
       "description": "",
       "source": "spec:migration-consent-scope:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T15:16:26.206Z",
+      "completedAt": "2026-08-27T15:16:26.206Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T05",
