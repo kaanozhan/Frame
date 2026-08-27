@@ -196,7 +196,11 @@ function toggle() {
 }
 
 /**
- * Set active tab
+ * Set active tab.
+ *
+ * Exported because Home's Last Sessions widget opens this panel *on* the
+ * Sessions tab — the same thing a click on the tab button does, performed
+ * from outside.
  */
 function setTab(tab) {
   currentTab = tab;
@@ -598,6 +602,8 @@ module.exports = {
   show,
   hide,
   toggle,
+  setTab,
+  getTab: () => currentTab,
   loadPlugins,
   isVisible: () => isVisible
 };

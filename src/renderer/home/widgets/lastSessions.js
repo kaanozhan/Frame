@@ -104,12 +104,26 @@ module.exports = {
   },
 
   /**
-   * The panel is the full list. `show()` takes no tab argument — it reopens
-   * on whichever tab was last active — so this opens the panel, not a tab.
+   * The panel is the full list, and this lands on it exactly where the left
+   * menu's Claude entry plus a click on the Sessions tab would: the panel
+   * mounted as the centre view (`showPanel`, not `togglePanel` — an action
+   * labelled "All sessions" must never close them), then the Sessions tab
+   * selected.
+   *
+   * The tab is only switched when it is not already Sessions. `showPanel`
+   * runs the panel's own `show()`, which reloads whichever tab is current,
+   * so switching unconditionally would load the same transcripts twice.
    */
   _openPanel() {
     try {
-      require('./../../pluginsPanel').show();
+      const ui = require('./../../terminal').getMultiTerminalUI();
+      if (!ui) {
+        notify.error('Terminal system is not ready yet');
+        return;
+      }
+      const panel = require('./../../pluginsPanel');
+      ui.showPanel('claude');
+      if (panel.getTab() !== 'sessions') panel.setTab('sessions');
     } catch (err) {
       notify.error(`Could not open the sessions panel: ${err.message || 'the panel did not open'}`);
     }

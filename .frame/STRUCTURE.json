@@ -5880,6 +5880,7 @@
         "../sessionRows",
         "../widgetShell",
         "../../agentDispatch",
+        "../../terminal",
         "../../pluginsPanel"
       ],
       "functions": {}
@@ -6734,6 +6735,8 @@
         "show",
         "hide",
         "toggle",
+        "setTab",
+        "getTab",
         "loadPlugins",
         "isVisible"
       ],
@@ -6779,90 +6782,90 @@
           "purpose": "Toggle plugins panel visibility"
         },
         "setTab": {
-          "line": 201,
+          "line": 205,
           "params": [
             "tab"
           ],
-          "purpose": "Set active tab"
+          "purpose": "Set active tab."
         },
         "setFilter": {
-          "line": 223,
+          "line": 227,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredPlugins": {
-          "line": 237,
+          "line": 241,
           "purpose": "Get filtered plugins"
         },
         "render": {
-          "line": 253,
+          "line": 257,
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 307,
+          "line": 311,
           "params": [
             "plugin"
           ],
           "purpose": "Render single plugin item"
         },
         "getPluginIcon": {
-          "line": 353,
+          "line": 357,
           "params": [
             "name"
           ],
           "purpose": "Get icon for plugin based on name"
         },
         "togglePlugin": {
-          "line": 392,
+          "line": 396,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled"
         },
         "installPlugin": {
-          "line": 404,
+          "line": 408,
           "params": [
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
         },
         "loadSessions": {
-          "line": 426,
+          "line": 430,
           "purpose": "Load sessions from Claude data"
         },
         "refreshSessions": {
-          "line": 455,
+          "line": 459,
           "purpose": "Refresh sessions with spinner animation"
         },
         "renderSessions": {
-          "line": 477,
+          "line": 481,
           "purpose": "Render sessions list"
         },
         "renderSessionItem": {
-          "line": 511,
+          "line": 515,
           "params": [
             "session"
           ],
           "purpose": "Render a single session item"
         },
         "renderSessionsEmpty": {
-          "line": 540,
+          "line": 544,
           "params": [
             "message"
           ],
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 567,
+          "line": 571,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a session in a terminal of its own."
         },
         "formatRelativeTime": {
-          "line": 575,
+          "line": 579,
           "params": [
             "dateString"
           ],
