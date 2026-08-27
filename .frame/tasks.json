@@ -5773,13 +5773,13 @@
       "title": "Create `src/renderer/home/registry.js` and `src/renderer/home/widgetShell.js` — the widget contract (`id`, `sources`, `defaultSpan`, `isAvailable`, `mount`, `update`, `dispose`), the ordered widget list, `resolveLayout()`, and the card shell extracted from `laneBoard._card()`",
       "description": "",
       "source": "spec:home-widget-board:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T10:59:37.812Z",
+      "completedAt": "2026-08-27T10:59:37.812Z"
     },
     {
       "id": "task-spec-home-widget-board-T03",

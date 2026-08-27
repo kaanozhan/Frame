@@ -5619,6 +5619,67 @@
         ]
       }
     },
+    "renderer/home/registry": {
+      "file": "src/renderer/home/registry.js",
+      "description": "Widget Registry — what Home shows, and in what order.",
+      "exports": [
+        "WIDGETS",
+        "resolveLayout",
+        "sourcesFor"
+      ],
+      "depends": [],
+      "functions": {
+        "resolveLayout": {
+          "line": 53,
+          "params": [
+            "ctx"
+          ],
+          "purpose": "Which widgets to mount, in which order, with the span each one gets."
+        },
+        "sourcesFor": {
+          "line": 61,
+          "params": [
+            "layout"
+          ],
+          "purpose": "Every source the resolved widgets read, deduplicated — what the board subscribes to."
+        }
+      }
+    },
+    "renderer/home/widgetShell": {
+      "file": "src/renderer/home/widgetShell.js",
+      "description": "Widget Shell — the one card every Home widget is drawn inside.",
+      "exports": [
+        "widgetShell",
+        "lucideIcon"
+      ],
+      "depends": [
+        "lucide"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 18,
+          "params": [
+            "data",
+            "size = 14"
+          ],
+          "purpose": "Local, like every other renderer module's copy — six of them exist and the"
+        },
+        "widgetShell": {
+          "line": 40,
+          "params": [
+            "{ id",
+            "icon",
+            "title",
+            "actionLabel",
+            "actionIcon = Plus",
+            "onOpen",
+            "onAction",
+            "onActionContext }"
+          ],
+          "purpose": "Build one widget's card."
+        }
+      }
+    },
     "renderer/htmlUtils": {
       "file": "src/renderer/htmlUtils.js",
       "description": "HTML Utils",
