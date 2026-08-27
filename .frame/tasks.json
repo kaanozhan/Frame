@@ -5864,13 +5864,13 @@
       "title": "Create `src/renderer/home/sessionRows.js` — pure, same no-require rule as `agentRows` — and cover it in `test/homeRows.test.js`: at most three, newest first, and the panel's existing fallback for a session with no title",
       "description": "",
       "source": "spec:home-widget-board:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T12:05:50.192Z",
+      "completedAt": "2026-08-27T12:05:50.192Z"
     },
     {
       "id": "task-spec-home-widget-board-T10",

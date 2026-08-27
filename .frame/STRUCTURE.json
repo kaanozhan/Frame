@@ -5666,6 +5666,47 @@
         }
       }
     },
+    "renderer/home/sessionRows": {
+      "file": "src/renderer/home/sessionRows.js",
+      "description": "Which Claude sessions Home offers to resume, and how they are labelled.",
+      "exports": [
+        "sessionRows",
+        "sessionTitle",
+        "relativeTime",
+        "MAX_SESSIONS"
+      ],
+      "depends": [],
+      "functions": {
+        "sessionTitle": {
+          "line": 22,
+          "params": [
+            "session"
+          ],
+          "purpose": "The panel's fallback chain, moved verbatim so Home and the panel never"
+        },
+        "relativeTime": {
+          "line": 33,
+          "params": [
+            "dateString",
+            "now = Date.now("
+          ],
+          "purpose": "Relative time, in the panel's own words. Kept here rather than imported"
+        },
+        "sessionRows": {
+          "line": 61,
+          "params": [
+            "sessions",
+            "now = Date.now("
+          ]
+        },
+        "_at": {
+          "line": 79,
+          "params": [
+            "s"
+          ]
+        }
+      }
+    },
     "renderer/home/widgetShell": {
       "file": "src/renderer/home/widgetShell.js",
       "description": "Widget Shell — the one card every Home widget is drawn inside.",
@@ -11270,6 +11311,18 @@
         "description": "Section Rail Module"
       }
     ],
+    "rows": [
+      {
+        "module": "renderer/home/agentRows",
+        "file": "src/renderer/home/agentRows.js",
+        "description": "Which agents Home lists, and in what order."
+      },
+      {
+        "module": "renderer/home/sessionRows",
+        "file": "src/renderer/home/sessionRows.js",
+        "description": "Which Claude sessions Home offers to resume, and how they are labelled."
+      }
+    ],
     "section": [
       {
         "module": "renderer/projectSection",
@@ -11280,6 +11333,18 @@
         "module": "renderer/sectionRail",
         "file": "src/renderer/sectionRail.js",
         "description": "Section Rail Module"
+      }
+    ],
+    "session": [
+      {
+        "module": "renderer/home/sessionRows",
+        "file": "src/renderer/home/sessionRows.js",
+        "description": "Which Claude sessions Home offers to resume, and how they are labelled."
+      },
+      {
+        "module": "templates/sample-project/src/auth/session",
+        "file": "src/templates/sample-project/src/auth/session.js",
+        "description": "Session middleware + requireAuth guard"
       }
     ],
     "settings": [

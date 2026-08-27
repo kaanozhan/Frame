@@ -120,3 +120,18 @@ that file is outside this plan's Files list so it was left as is.
 _Captured: 2026-08-27 · 1 file change(s)_
 
 ---
+## T09 — sessionRows.js, pure, with its tests
+
+Added `src/renderer/home/sessionRows.js` — top three by last activity, the
+panel's `summary → firstPrompt → "Untitled session"` fallback carried over
+verbatim, and the fields a row draws — plus seven cases in
+`test/homeRows.test.js`. Deviation from `plan.md`: the relative time is
+computed here rather than left to the widget, because neither existing
+formatter is reachable — `laneStatus`'s is banned by C8 and takes epoch
+millis, the panel's is private to `pluginsPanel` — so this module carries its
+own with an injectable `now`, which makes every time in the suite an assertion
+instead of a race with the clock.
+
+_Captured: 2026-08-27 · 2 file change(s)_
+
+---
