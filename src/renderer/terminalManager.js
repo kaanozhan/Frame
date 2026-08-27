@@ -101,8 +101,7 @@ class TerminalManager {
   constructor() {
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
     this.activeTerminalId = null;
-    this.viewMode = 'terminals'; // 'terminals' (default) | 'board' | 'detail'
-    this.gridLayout = '1x1'; // detail layout: 1x1 single, larger = cells
+    this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'panel'
     this.maxTerminals = 9;
     this.terminalCounter = 0;
     this.onStateChange = null;
@@ -124,13 +123,19 @@ class TerminalManager {
 
     this.currentProjectPath = projectPath;
 
-    // Restore session for new project (names, gridLayout)
+    // Restore session for new project (custom names)
     this.restoreProjectSession(projectPath);
 
-    // Selecting a project always lands on its terminals view (terminals-view
-    // spec) — the restored viewMode only survives within a session via the
-    // tab bar, never across a project switch.
-    this.viewMode = 'terminals';
+    // Land where the work is: a project with running terminals opens on its
+    // Terminals section, one with none opens on Home. This also settles the
+    // launch case without a first-run flag — PTYs die with the main process,
+    // so at startup no project has a terminal and a fresh window always opens
+    // on Home.
+    //
+    // Overturns the terminals-view spec's "selecting a project always lands on
+    // its terminals view" (2026-08-26): landing on an empty terminals grid
+    // says nothing about the project, and Home now does.
+    this.viewMode = this.getTerminalStates().length > 0 ? 'terminals' : 'board';
 
     this._notifyStateChange();
   }
@@ -167,8 +172,6 @@ class TerminalManager {
 
     const sessionData = {
       activeTerminalId: this.activeTerminalId,
-      viewMode: this.viewMode,
-      gridLayout: this.gridLayout,
       terminalNames: {}, // Map of terminalId -> customName
       savedAt: Date.now() // MRU pruning key
     };
@@ -219,20 +222,13 @@ class TerminalManager {
       const sessionData = allSessions[sessionKey];
 
       if (sessionData) {
-        // Restore view settings. Legacy 'tabs'/'grid' sessions (pre lane
-        // orchestrator) map to 'detail' — terminals existed, land inside.
-        // viewMode/gridLayout are the only entries that survive a restart:
-        // terminal ids never do (PTYs die with the main process), so id-keyed
-        // entries are only honored for terminals that still exist in this
-        // process and are pruned otherwise.
-        if (sessionData.viewMode) {
-          this.viewMode = (sessionData.viewMode === 'tabs' || sessionData.viewMode === 'grid')
-            ? 'detail'
-            : sessionData.viewMode;
-        }
-        if (sessionData.gridLayout) {
-          this.gridLayout = sessionData.gridLayout;
-        }
+        // Custom names are all a saved session carries now. The viewMode it
+        // used to restore was overwritten two lines later by setCurrentProject
+        // ("selecting a project always lands on its terminals view"), so it
+        // never took effect; gridLayout belonged to the retired detail view.
+        // Terminal ids never survive a restart (PTYs die with the main
+        // process), so id-keyed entries are only honored for terminals that
+        // still exist in this process and are pruned otherwise.
 
         // Restore custom names for existing terminals
         const projectTerminals = this.getTerminalsByProject(projectPath);
@@ -655,14 +651,6 @@ class TerminalManager {
   }
 
   /**
-   * Set grid layout
-   */
-  setGridLayout(layout) {
-    this.gridLayout = layout;
-    this._notifyStateChange();
-  }
-
-  /**
    * Get all terminal states (filtered by current project)
    * @param {boolean} allProjects - If true, return all terminals regardless of project
    */
@@ -765,7 +753,6 @@ class TerminalManager {
         terminals: this.getTerminalStates(),
         activeTerminalId: this.activeTerminalId,
         viewMode: this.viewMode,
-        gridLayout: this.gridLayout,
         currentProjectPath: this.currentProjectPath
       });
     }

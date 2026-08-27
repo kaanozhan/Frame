@@ -4,12 +4,12 @@
  * Projects initialized before the feature defaulted to on still carry
  * `features.specDriven: false`, which means specs their AI session writes
  * never surface in the Specs panel. This is the pointer to the fix: a small
- * popover anchored on the sidebar's Settings button — where the switch
- * lives — offering to turn it on right there.
+ * popover anchored on the sidebar's Project Settings button — where the
+ * switch lives — offering to turn it on right there.
  *
  * Deliberately quiet: only for Frame projects with the flag off, never for
  * new projects (they start enabled), and "Don't show again" is remembered
- * per project. Turning the feature off from Settings also silences it — a
+ * per project. Turning the feature off from Project Settings also silences it — a
  * choice the user just made is not something to nag about.
  */
 
@@ -18,7 +18,7 @@ const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 
 const DISMISSED_KEY = 'specDrivenHintDismissed';
-const ANCHOR_ID = 'sidebar-settings-btn';
+const ANCHOR_ID = 'project-settings-btn';
 // Let the app finish opening the project (loader fade, panels settling)
 // before something pops up in the corner.
 const SHOW_DELAY_MS = 900;
@@ -81,7 +81,7 @@ function schedule(projectPath) {
   }, SHOW_DELAY_MS);
 }
 
-/** Re-check after the Settings toggle changed the flag. */
+/** Re-check after the Project Settings toggle changed the flag. */
 function refresh() {
   hide();
   evaluate();
@@ -100,7 +100,7 @@ function render(projectPath) {
     <div class="spec-driven-hint-title">Spec-Driven Development is off</div>
     <p class="spec-driven-hint-text">
       Specs your AI writes stay hidden from the Specs panel while this is off.
-      New projects have it on — you can switch it here, in Settings &rarr; Workflow.
+      New projects have it on — you can switch it here, in Project Settings &rarr; Workflow.
     </p>
     <div class="spec-driven-hint-error" role="alert"></div>
     <div class="spec-driven-hint-actions">
@@ -126,12 +126,12 @@ function render(projectPath) {
 function onOutsideClick(e) {
   if (!popoverEl) return;
   if (popoverEl.contains(e.target)) return;
-  // Clicking the Settings button itself opens the modal, which supersedes
+  // Clicking the Project Settings button itself opens the modal, which supersedes
   // the hint — close it either way.
   hide();
 }
 
-/** Anchor to the Settings button: same baseline, just outboard of the rail. */
+/** Anchor to the Project Settings button: same baseline, just outboard of the rail. */
 function position() {
   if (!popoverEl) return;
   const anchor = document.getElementById(ANCHOR_ID);

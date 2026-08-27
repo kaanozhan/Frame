@@ -2026,3 +2026,168 @@ carries across chunks (a reply can be split between two writes). Arrow keys
 were polluting prompts the same way and are fixed by the same change.
 
 The existing polluted history files were left alone — user data, Kaan's call.
+### [2026-08-26] Home became the landing surface, and three of the terminals-home-agents decisions were overturned
+
+Visual review of the finished `terminals-home-agents` spec, with Kaan driving
+from the running app. Most of it was polish; three things were reversals of
+decisions that spec had recorded, and they belong here rather than only in a
+commit message.
+
+**Landing view.** `terminals-view` had it that "selecting a project always
+lands on its terminals view", and this spec's §1 kept Terminals as the
+launch surface. Now: **a project with running terminals opens on Terminals, a
+project with none opens on Home.** That also settles the app-launch case
+without a first-run flag, because PTYs die with the main process — at startup
+no project has a terminal, so a fresh window always lands on Home. The
+argument that won: an empty terminals grid says nothing about the project,
+and Home now does.
+
+**The rail's hover control (D13).** The spec asked for a control at the edge
+that "appears on hover". Built that way it was invisible until you happened to
+be over it — a control nobody can find is a control nobody uses. It is now
+permanently visible and merely quiet. D13's actual point (the rail is closed
+by default and opens only when asked) is untouched.
+
+**Orchestration left Home.** §4 listed four cards; there are three. It is a
+surface you *open*, not a state you *read*, and it already opened as a top-bar
+section tab — so the entry moved to the sidebar's Work group and Home stopped
+carrying a card for it. Watch out for the signal that nearly went with it: the
+card was the only place a live conductor session announced itself, so the
+sidebar row grew a `running` badge.
+
+Home itself became a project board with a header (name + branch, no path — the
+sidebar already carries the path), two groups (Work / Project planning), and
+terminal *tiles* rather than rows: a project holds nine at most, so boxes fill
+the width a list wasted, and each box carries what you would otherwise open the
+terminal to learn — status, assignment, last activity. Tasks became **Active
+Tasks** and stopped listing spec-owned work; that work is the spec's business,
+so it gets a warning line at the top instead of a second pile of the same
+items.
+
+**Two bugs the throwaway harnesses caught, both off-by-one-shaped.** The tile
+grid's overflow label counted what was over the cap, not what was hidden — the
+overflow tile itself costs a cell, so nine terminals showing seven said "+1
+more" when two were missing. And the Tasks card would have claimed "Nothing
+pending" while every open task sat inside a spec. Neither is visible in a
+screenshot; both came from driving the real update methods against a DOM stub.
+For renderer work with no DOM harness, that remains the cheapest real check
+available — `npm test` never touches `src/renderer/`.
+
+### [2026-08-27] The tab strip we built got removed, and why that is recorded rather than erased (spec: terminals-home-agents, second pass)
+
+The spec's §2 asked for a tab strip as the Terminals section's first row —
+`[Overview] [Terminal N] …`. It shipped as T02. Then we looked at it: the top
+bar is *itself* a strip of surfaces, and the section's own strip sat immediately
+underneath, two rows of tabs answering different questions with the same shape.
+
+So it came out. Every live terminal of the project is now a chip in the top bar
+beside Terminals itself, enlarged or not — Terminals is the grid of all of them,
+a chip is that one enlarged. The prefs flipped with it: `openTabs`/`activeTab`
+became `shownTerminal` + `hiddenFromBar`, storing what is *out* of the bar rather
+than what is in it, so a terminal created later shows up by default. The
+magnifier went back to `⤢` meaning "enlarge", since with no tabs there is nothing
+to open one *in*.
+
+The thing worth keeping from this: a spec that records only the final shape
+teaches the next session less than one that says **the tab strip was tried and
+removed**. "Never built" and "built, then rejected for this reason" are different
+lessons. That is why `spec.md` grew a §0 Revision section listing R1–R3 and the
+rejected-alternatives list now includes our own tab strip, with its reason.
+
+A small consistency fix rode along: the top bar's Terminals wore lucide's Boxes
+in the UI sans while the sidebar's Work → Terminals row wore a `›_` prompt glyph
+and the new chips were mono. Two surfaces naming the same destination looked
+like two different things. Terminals took the sidebar's mark and the chips' face.
+
+### [2026-08-27] Settings split by scope, and the icon that was never wired (spec: settings-by-scope)
+
+One gear at the foot of the sidebar opened one modal holding both kinds of
+setting, so "Remove Frame from this project" sat a scroll from "Send anonymous
+usage stats" as though they were the same kind of choice. They are not — one
+writes into the open project's `.frame/` and dies with it, the other is true of
+this machine whichever project is open.
+
+Two surfaces now, and **the marks had to differ or the split would only move the
+confusion**. The gear went *up* to the sidebar header, because a gear means
+application preferences in every other app the user has open; the project's scope
+took sliders. `settingsModal.js` became three modules, the third being the box
+they share — which also has to stop the two stacking, since the buttons are
+behind the backdrop while a dialog is up but `Cmd+,` is not.
+
+**The launch project.** Frame selects `projects[0]` when nothing is active and
+nothing restores a previous session, so the front of the workspace list *is* the
+default project — and there was no way to change it since the list became a
+switcher dropdown and its drag-to-reorder went with it. Project Settings gained
+a row for it. Two copy decisions worth keeping: the row never says the list
+cannot be reordered (the missing reorder is why the row exists, not something
+the user needs told — naming it makes a working control read as an apology), and
+the copy is state-dependent, because asking someone to make something the default
+it already is reads as a no-op row.
+
+**The icon.** Frame had shipped with Electron's default icon in the dock the
+whole time: `package.json` had no `icon` key at all. And the product already had
+a mark — `assets/logo.png` has always framed its bear in four corner brackets —
+that nothing was using; the sidebar header wore an anonymous green square
+instead. The brackets alone became `assets/frame-mark.svg`, feeding both the app
+icon and that header glyph, so the window and the dock now say the same thing.
+
+Two traps found on the way, both the same shape — *a path that exists here and
+nowhere else*. `build/` is gitignored, so an icon path under it is missing on any
+fresh clone and packaging would have failed away from this machine. And `build/`
+is electron-builder's *input*, not shipped inside the app, so a runtime
+`app.dock.setIcon` pointing there would find nothing in a packaged build. Both
+icons live in `assets/`, which is tracked and is in the `files` list.
+
+### [2026-08-27] Panels stopped pretending to be side panels (no spec — see below)
+
+Two small fixes with one cause. The Claude, GitHub and Prompts panels each
+carried a collapse chevron beside their title *and* an × at the other end, both
+calling `hide()` — two controls for one action, and the chevron's arrow promised
+a fold that never happened. And a panel hosted inline in the centre was capped at
+a 900px reading column with a border down each side, leaving the rest of the pane
+empty so it read as a side panel that had come loose rather than a view.
+
+Both are leftovers from when these were edge-docked panels. Now that they mount
+inline, there is no edge to fold back toward and no reason to leave the centre
+empty. The chevron is gone and the panel fills the width.
+
+This has no spec because the spec it belongs to — `retire-rail-and-panels`,
+which the code comments cite by name — **has no folder in the archive**. See the
+next entry.
+
+### [2026-08-27] The archive drifted mid-branch, and two spec folders are missing
+
+Twenty-four commits landed on this branch and only one spec covered them. Worse,
+that spec was marked `done` while the work was still local and its definition was
+still changing, so its `digest.md` — the text `spec-hint.js` injects into agent
+sessions — was actively describing a tab strip that no longer existed.
+
+The index's own safety net did fire: `spec-context.js` flagged the record
+`stale: file changed after this spec closed`. But a stale flag says *verify*; it
+does not say *the tab strip was removed*. An agent would have been handed a
+confident, wrong description with a warning attached.
+
+What we did instead of backfilling three retroactive specs: **reopened the spec**
+(`done` → `implementing`), on the grounds that an unmerged branch whose
+definition changed is one piece of work in flight, not a finished one plus
+follow-ups. That also settled a question about the knowledge layer —
+`outcome.md`'s file list is the index's source of *actuals*, so stuffing
+post-spec work into a closed spec's outcome would attribute files to a spec that
+never touched them. Reopening makes the attribution honest; editing a closed
+outcome would not.
+
+**The process lesson.** Nothing here broke a rule: the spec offer is made once
+and was declined, and PROJECT_NOTES is deliberately written at branch end rather
+than per commit. But those two habits together mean a long conversational branch
+drifts from its archive by default, and the drift is invisible until someone
+looks. Refreshing the spec chain belongs in the same branch-end pass as this
+file, not after it.
+
+**Two spec folders are missing from `.frame/specs/` while still being cited.**
+`retire-rail-and-panels` is referenced by name in code comments and in
+`sidebar-nav-groups`' `related:` front-matter, and has no directory at all.
+`project-settings` has a directory containing only `status.json.bak`. Both were
+`done` work whose reasoning is now unrecoverable except from the code — the
+`settings-by-scope` spec had to reconstruct which of `project-settings`'
+decisions it was overturning by reading `settingsModal.js` rather than that
+spec's outcome. Worth an audit of the whole archive for other holes.

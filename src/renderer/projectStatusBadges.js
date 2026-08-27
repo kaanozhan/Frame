@@ -12,6 +12,11 @@
  *
  * Other statuses (working / running / idle) are intentionally not surfaced —
  * the list only flags projects that need the user's attention.
+ *
+ * The tally itself is `computeCounts()`, exported because three surfaces want
+ * the same numbers: the project list's badges, the sidebar's ◆ chip (this
+ * project) and the status bar's left slot (the other projects). One
+ * implementation, no new IPC (D8).
  */
 
 const { ipcRenderer } = require('electron');
@@ -46,19 +51,14 @@ function schedule() {
 }
 
 /**
- * Tally attention-worthy agent statuses per project and push to the list.
+ * Tally attention-worthy agent statuses per project.
+ *
+ * @param {Array} states - terminal states across every project
+ * @returns {Map<string, {approval: number, input: number}>} - only projects
+ *   with something waiting appear; a project absent from the map is quiet.
  */
-function recompute() {
-  if (!getStates) return;
-
-  let states;
-  try {
-    states = getStates();
-  } catch (_) {
-    states = [];
-  }
-
-  const map = new Map(); // projectPath -> { approval, input }
+function computeCounts(states) {
+  const map = new Map();
   for (const s of states) {
     const projectPath = s.projectPath;
     if (!projectPath) continue; // global/unscoped terminals have no row
@@ -70,8 +70,29 @@ function recompute() {
     else counts.input += 1;
     map.set(projectPath, counts);
   }
-
-  projectListUI.applyAgentStatuses(map);
+  return map;
 }
 
-module.exports = { init, recompute };
+/**
+ * Recompute the tally and hand it to both surfaces that draw it. One pass,
+ * one rAF — a second traversal per surface is exactly the churn C2 warns
+ * about.
+ */
+function recompute() {
+  if (!getStates) return;
+
+  let states;
+  try {
+    states = getStates();
+  } catch (_) {
+    states = [];
+  }
+
+  const counts = computeCounts(states);
+  projectListUI.applyAgentStatuses(counts);
+  try {
+    require('./statusBar').updateAgents(states, counts);
+  } catch (_) { /* status bar not initialized yet */ }
+}
+
+module.exports = { init, recompute, computeCounts };

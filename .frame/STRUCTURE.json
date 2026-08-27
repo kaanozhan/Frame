@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-26",
+  "lastUpdated": "2026-08-27",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -1987,18 +1987,18 @@
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 161
+          "line": 166
         },
         "setupAllIPC": {
-          "line": 187,
+          "line": 192,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 265,
+          "line": 270,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 305,
+          "line": 310,
           "params": [
             "window"
           ],
@@ -4326,11 +4326,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 239,
+          "line": 240,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 274,
+          "line": 275,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -4338,17 +4338,17 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_startAgentInNewFrame": {
-          "line": 289
+          "line": 294
         },
         "resumeClaudeSession": {
-          "line": 315,
+          "line": 320,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a Claude Code session from the sessions list."
         },
         "_askNewOrRestart": {
-          "line": 358,
+          "line": 363,
           "params": [
             "frameName",
             "hasAgent"
@@ -4356,7 +4356,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 415,
+          "line": 420,
           "params": [
             "{ slug",
             "title = null",
@@ -4365,7 +4365,7 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "_dispatchImplement": {
-          "line": 482,
+          "line": 487,
           "params": [
             "{ slug",
             "title",
@@ -4375,79 +4375,79 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "getSpecLaneInfo": {
-          "line": 573,
+          "line": 578,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 597,
+          "line": 602,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 618,
+          "line": 623,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 622,
+          "line": 627,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 626,
+          "line": 631,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 643,
+          "line": 648,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 651,
+          "line": 656,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 674,
+          "line": 679,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 682,
+          "line": 687,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 700,
+          "line": 705,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 710,
+          "line": 715,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 719,
+          "line": 724,
           "params": [
             "frameName",
             "specName"
@@ -4455,14 +4455,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 760,
+          "line": 765,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 789,
+          "line": 794,
           "params": [
             "terminalId",
             "message"
@@ -5277,6 +5277,76 @@
         ]
       }
     },
+    "renderer/frameSettingsModal": {
+      "file": "src/renderer/frameSettingsModal.js",
+      "description": "Frame Settings",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "toggle"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "settingsOverlay",
+        "../package.json"
+      ],
+      "functions": {
+        "init": {
+          "line": 41
+        },
+        "initAboutSection": {
+          "line": 91
+        },
+        "runCheck": {
+          "line": 176,
+          "params": [
+            "userInitiated"
+          ]
+        },
+        "renderUpdateState": {
+          "line": 215,
+          "params": [
+            "{ checked",
+            "found",
+            "failed",
+            "failReason",
+            "info",
+            "checkedAt",
+            "userInitiated }"
+          ]
+        },
+        "showUpdateBanner": {
+          "line": 239,
+          "params": [
+            "info"
+          ]
+        },
+        "hideUpdateBanner": {
+          "line": 250
+        },
+        "hideSidebarDot": {
+          "line": 254
+        },
+        "formatRelative": {
+          "line": 261,
+          "params": [
+            "date"
+          ]
+        },
+        "syncToggleFromSettings": {
+          "line": 272
+        }
+      },
+      "ipc": {
+        "listens": [
+          "OPEN_SETTINGS",
+          "UPDATE_AVAILABLE"
+        ],
+        "emits": []
+      }
+    },
     "renderer/gitChangesPanel": {
       "file": "src/renderer/gitChangesPanel.js",
       "description": "Git Changes Panel (Changes sidebar tab)",
@@ -5381,99 +5451,99 @@
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 86,
+          "line": 80,
           "purpose": "Setup IPC listeners"
         },
         "loadIssues": {
-          "line": 95,
+          "line": 89,
           "purpose": "Load GitHub issues"
         },
         "refreshIssues": {
-          "line": 128,
+          "line": 122,
           "purpose": "Refresh issues"
         },
         "show": {
-          "line": 150,
+          "line": 144,
           "purpose": "Show GitHub panel"
         },
         "hide": {
-          "line": 161,
+          "line": 155,
           "purpose": "Hide GitHub panel"
         },
         "toggle": {
-          "line": 171,
+          "line": 165,
           "purpose": "Toggle GitHub panel visibility"
         },
         "setTab": {
-          "line": 182,
+          "line": 176,
           "params": [
             "tab"
           ],
           "purpose": "Set active tab"
         },
         "setFilter": {
-          "line": 215,
+          "line": 209,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "renderLoading": {
-          "line": 229,
+          "line": 223,
           "params": [
             "message = 'Loading...'"
           ],
           "purpose": "Render loading state"
         },
         "renderError": {
-          "line": 243,
+          "line": 237,
           "params": [
             "message"
           ],
           "purpose": "Render error state"
         },
         "renderComingSoon": {
-          "line": 271,
+          "line": 265,
           "params": [
             "tab"
           ],
           "purpose": "Render coming soon state for unimplemented tabs"
         },
         "render": {
-          "line": 296,
+          "line": 290,
           "purpose": "Render issues list"
         },
         "renderIssueItem": {
-          "line": 338,
+          "line": 332,
           "params": [
             "issue"
           ],
           "purpose": "Render single issue item"
         },
         "getContrastColor": {
-          "line": 377,
+          "line": 371,
           "params": [
             "hexColor"
           ],
           "purpose": "Get contrasting text color for a background color"
         },
         "formatRelativeTime": {
-          "line": 388,
+          "line": 382,
           "params": [
             "dateString"
           ],
           "purpose": "Format relative time"
         },
         "loadBranches": {
-          "line": 418,
+          "line": 412,
           "purpose": "Load git branches"
         },
         "renderBranches": {
-          "line": 447,
+          "line": 441,
           "purpose": "Render branches list"
         },
         "renderBranchItem": {
-          "line": 493,
+          "line": 487,
           "params": [
             "branch",
             "currentBranch"
@@ -5481,84 +5551,84 @@
           "purpose": "Render single branch item"
         },
         "attachBranchEventListeners": {
-          "line": 521,
+          "line": 515,
           "purpose": "Attach branch event listeners"
         },
         "handleSwitchBranch": {
-          "line": 544,
+          "line": 538,
           "params": [
             "branchName"
           ],
           "purpose": "Handle branch switch"
         },
         "handleDeleteBranch": {
-          "line": 571,
+          "line": 565,
           "params": [
             "branchName"
           ],
           "purpose": "Handle branch deletion"
         },
         "renderBranchesError": {
-          "line": 603,
+          "line": 597,
           "params": [
             "message"
           ],
           "purpose": "Render branches error"
         },
         "loadWorktrees": {
-          "line": 626,
+          "line": 620,
           "purpose": "Load git worktrees"
         },
         "renderWorktrees": {
-          "line": 655,
+          "line": 649,
           "purpose": "Render worktrees list"
         },
         "renderWorktreeItem": {
-          "line": 687,
+          "line": 681,
           "params": [
             "worktree"
           ],
           "purpose": "Render single worktree item"
         },
         "attachWorktreeEventListeners": {
-          "line": 716,
+          "line": 710,
           "purpose": "Attach worktree event listeners"
         },
         "handleRemoveWorktree": {
-          "line": 729,
+          "line": 723,
           "params": [
             "wtPath"
           ],
           "purpose": "Handle worktree removal"
         },
         "renderWorktreesError": {
-          "line": 757,
+          "line": 751,
           "params": [
             "message"
           ],
           "purpose": "Render worktrees error"
         },
         "setupModalListeners": {
-          "line": 777,
+          "line": 771,
           "purpose": "Setup modal event listeners"
         },
         "showCreateBranchModal": {
-          "line": 824,
+          "line": 818,
           "purpose": "Show create branch modal"
         },
         "populateBaseBranchSelect": {
-          "line": 850,
+          "line": 844,
           "params": [
             "select"
           ],
           "purpose": "Populate base branch select dropdown"
         },
         "hideCreateBranchModal": {
-          "line": 889,
+          "line": 883,
           "purpose": "Hide create branch modal"
         },
         "handleCreateBranch": {
-          "line": 899,
+          "line": 893,
           "purpose": "Handle create branch"
         }
       },
@@ -5603,6 +5673,412 @@
           "TASKS_FILE_ERROR"
         ],
         "emits": []
+      }
+    },
+    "renderer/home/agentRows": {
+      "file": "src/renderer/home/agentRows.js",
+      "description": "Which agents Home lists, and in what order.",
+      "exports": [
+        "agentRows",
+        "ATTENTION_ORDER"
+      ],
+      "depends": [],
+      "functions": {
+        "agentRows": {
+          "line": 34,
+          "params": [
+            "lanes"
+          ]
+        }
+      }
+    },
+    "renderer/home/homeData": {
+      "file": "src/renderer/home/homeData.js",
+      "description": "Home Data Layer — the board's one and only subscription set.",
+      "exports": [
+        "SOURCES",
+        "init",
+        "get",
+        "subscribe",
+        "refresh",
+        "setHostState",
+        "getProjectPath",
+        "reloadSessions",
+        "setAiTool"
+      ],
+      "depends": [
+        "electron",
+        "../shared/ipcChannels",
+        "../laneStatus",
+        "../agentDispatch"
+      ],
+      "functions": {
+        "assertSource": {
+          "line": 50,
+          "params": [
+            "source"
+          ]
+        },
+        "emit": {
+          "line": 54,
+          "params": [
+            "source"
+          ]
+        },
+        "recomputeLanes": {
+          "line": 66,
+          "purpose": "A terminal on its own says nothing about what it is doing; a status on its"
+        },
+        "init": {
+          "line": 76,
+          "purpose": "Install every subscription, once per renderer. Safe to call repeatedly —"
+        },
+        "filterSpecs": {
+          "line": 119,
+          "params": [
+            "specs"
+          ],
+          "purpose": "A spec whose folder cannot be read is not an active spec, it is a broken"
+        },
+        "setHostState": {
+          "line": 131,
+          "params": [
+            "state"
+          ],
+          "purpose": "The host's render state, pushed in on every board update. Only the board"
+        },
+        "getProjectPath": {
+          "line": 154,
+          "purpose": "The project every project-scoped source is currently reading."
+        },
+        "get": {
+          "line": 158,
+          "params": [
+            "source"
+          ]
+        },
+        "subscribe": {
+          "line": 164,
+          "params": [
+            "source",
+            "cb"
+          ],
+          "purpose": "Subscribe to one source. Returns the unsubscribe."
+        },
+        "refresh": {
+          "line": 175,
+          "params": [
+            "source"
+          ],
+          "purpose": "Ask a source to re-read. `lanes` and `git` are push-only — they arrive"
+        },
+        "reloadSessions": {
+          "line": 217,
+          "purpose": "Re-scan the transcripts rather than serving the cache — what the panel's"
+        },
+        "loadSessions": {
+          "line": 222,
+          "params": [
+            "channel"
+          ]
+        },
+        "setAiTool": {
+          "line": 245,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "Switch the active AI tool. Lives here rather than in the widget because a"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GIT_STATUS_DATA",
+          "SPEC_DATA",
+          "TASKS_DATA",
+          "AI_TOOL_CHANGED"
+        ],
+        "emits": [
+          "LOAD_TASKS"
+        ]
+      }
+    },
+    "renderer/home/registry": {
+      "file": "src/renderer/home/registry.js",
+      "description": "Widget Registry — what Home shows, and in what order.",
+      "exports": [
+        "WIDGETS",
+        "resolveLayout",
+        "sourcesFor"
+      ],
+      "depends": [
+        "widgets/agents",
+        "widgets/lastSessions",
+        "widgets/activeSpecs",
+        "widgets/activeTasks"
+      ],
+      "functions": {
+        "resolveLayout": {
+          "line": 57,
+          "params": [
+            "ctx"
+          ],
+          "purpose": "Which widgets to mount, in which order, with the span each one gets."
+        },
+        "sourcesFor": {
+          "line": 65,
+          "params": [
+            "layout"
+          ],
+          "purpose": "Every source the resolved widgets read, deduplicated — what the board subscribes to."
+        }
+      }
+    },
+    "renderer/home/sessionRows": {
+      "file": "src/renderer/home/sessionRows.js",
+      "description": "Which Claude sessions Home offers to resume, and how they are labelled.",
+      "exports": [
+        "sessionRows",
+        "sessionTitle",
+        "relativeTime",
+        "MAX_SESSIONS"
+      ],
+      "depends": [],
+      "functions": {
+        "sessionTitle": {
+          "line": 22,
+          "params": [
+            "session"
+          ],
+          "purpose": "The panel's fallback chain, moved verbatim so Home and the panel never"
+        },
+        "relativeTime": {
+          "line": 33,
+          "params": [
+            "dateString",
+            "now = Date.now("
+          ],
+          "purpose": "Relative time, in the panel's own words. Kept here rather than imported"
+        },
+        "sessionRows": {
+          "line": 61,
+          "params": [
+            "sessions",
+            "now = Date.now("
+          ]
+        },
+        "_at": {
+          "line": 79,
+          "params": [
+            "s"
+          ]
+        }
+      }
+    },
+    "renderer/home/widgetShell": {
+      "file": "src/renderer/home/widgetShell.js",
+      "description": "Widget Shell — the one card every Home widget is drawn inside.",
+      "exports": [
+        "widgetShell",
+        "lucideIcon",
+        "statsHtml",
+        "tally",
+        "moreHtml",
+        "MAX_ROWS"
+      ],
+      "depends": [
+        "lucide",
+        "../htmlUtils"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 23,
+          "params": [
+            "data",
+            "size = 14"
+          ],
+          "purpose": "Local, like every other renderer module's copy — six of them exist and the"
+        },
+        "widgetShell": {
+          "line": 45,
+          "params": [
+            "{ id",
+            "icon",
+            "title",
+            "actionLabel",
+            "actionIcon = Plus",
+            "onOpen",
+            "onAction",
+            "onActionContext }"
+          ],
+          "purpose": "Build one widget's card."
+        },
+        "statsHtml": {
+          "line": 83,
+          "params": [
+            "pairs",
+            "variant = ''"
+          ],
+          "purpose": "A compact \"12 feature · 6 fix\" strip. Counts lead, because the number is"
+        },
+        "tally": {
+          "line": 92,
+          "params": [
+            "items",
+            "keyOf"
+          ],
+          "purpose": "Count by key, biggest first, with a tail past the fourth."
+        },
+        "moreHtml": {
+          "line": 106,
+          "params": [
+            "extra"
+          ],
+          "purpose": "Never truncate a list silently — say how much is not shown."
+        }
+      }
+    },
+    "renderer/home/widgets/activeSpecs": {
+      "file": "src/renderer/home/widgets/activeSpecs.js",
+      "description": "Active Specs widget.",
+      "exports": [
+        "id",
+        "title",
+        "icon",
+        "sources",
+        "defaultSpan",
+        "defaultEnabled",
+        "isAvailable",
+        "mount(el) {\n    this.card = widgetShell({\n      id",
+        "icon",
+        "title",
+        "actionLabel",
+        "actionIcon",
+        "onOpen",
+        "onAction"
+      ],
+      "depends": [
+        "lucide",
+        "../../htmlUtils",
+        "../widgetShell",
+        "../../specsDashboard",
+        "../../agentDispatch",
+        "../../specSection"
+      ],
+      "functions": {}
+    },
+    "renderer/home/widgets/activeTasks": {
+      "file": "src/renderer/home/widgets/activeTasks.js",
+      "description": "Active Tasks widget.",
+      "exports": [
+        "id",
+        "title",
+        "icon",
+        "sources",
+        "defaultSpan",
+        "defaultEnabled",
+        "isAvailable",
+        "mount(el) {\n    this.card = widgetShell({\n      id",
+        "icon",
+        "title",
+        "actionLabel",
+        "actionIcon",
+        "onOpen",
+        "onAction"
+      ],
+      "depends": [
+        "lucide",
+        "../../htmlUtils",
+        "../widgetShell",
+        "../../tasksDashboard",
+        "../../taskSection",
+        "../../tasksPanel",
+        "../../specsDashboard"
+      ],
+      "functions": {}
+    },
+    "renderer/home/widgets/agents": {
+      "file": "src/renderer/home/widgets/agents.js",
+      "description": "Agents widget.",
+      "exports": [
+        "id",
+        "title",
+        "icon",
+        "sources",
+        "'aiTool']",
+        "defaultSpan",
+        "defaultEnabled",
+        "isAvailable",
+        "mount(el",
+        "ctx) {\n    this.ctx = ctx;\n    this.card = widgetShell({\n      id",
+        "icon",
+        "title",
+        "and\n      // a chevron that leads to the Terminals section would be a lie.\n      onOpen"
+      ],
+      "depends": [
+        "lucide",
+        "../../htmlUtils",
+        "../../notify",
+        "../../laneStatus",
+        "../homeData",
+        "../agentRows",
+        "../widgetShell",
+        "../../agentDispatch"
+      ],
+      "functions": {}
+    },
+    "renderer/home/widgets/lastSessions": {
+      "file": "src/renderer/home/widgets/lastSessions.js",
+      "description": "Last Sessions widget.",
+      "exports": [
+        "id",
+        "title",
+        "icon",
+        "sources",
+        "defaultSpan",
+        "defaultEnabled",
+        "/**\n   * Not mounted under a non-Claude default tool. When the config has not\n   * arrived yet the widget is shown"
+      ],
+      "depends": [
+        "lucide",
+        "../../htmlUtils",
+        "../../notify",
+        "../homeData",
+        "../sessionRows",
+        "../widgetShell",
+        "../../agentDispatch",
+        "../../terminal",
+        "../../pluginsPanel"
+      ],
+      "functions": {}
+    },
+    "renderer/homeBoard": {
+      "file": "src/renderer/homeBoard.js",
+      "description": "Home Board Module",
+      "exports": [
+        "HomeBoard"
+      ],
+      "depends": [
+        "lucide",
+        "htmlUtils",
+        "notify",
+        "home/homeData",
+        "home/registry",
+        "openProjectModal"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 35,
+          "params": [
+            "data",
+            "size = 14"
+          ]
+        },
+        "_projectName": {
+          "line": 374,
+          "params": [
+            "p"
+          ]
+        }
       }
     },
     "renderer/htmlUtils": {
@@ -5671,7 +6147,6 @@
         "openProjectModal",
         "projectSection",
         "projectStatusBadges",
-        "presenceBar",
         "orchestrator",
         "editor",
         "sidebarResize",
@@ -5681,7 +6156,8 @@
         "cheatSheet",
         "welcomeOverlay",
         "appLoader",
-        "settingsModal",
+        "projectSettingsModal",
+        "frameSettingsModal",
         "telemetryNotice",
         "healthNotice",
         "specDrivenHint",
@@ -5700,30 +6176,30 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 253,
+          "line": 254,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 318,
+          "line": 325,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 429,
+          "line": 436,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 460,
+          "line": 467,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 483,
+          "line": 490,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 753,
+          "line": 769,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -5776,262 +6252,6 @@
         }
       }
     },
-    "renderer/laneBoard": {
-      "file": "src/renderer/laneBoard.js",
-      "description": "Lane Board Module",
-      "exports": [
-        "LaneBoard",
-        "formatRelativeTime",
-        "STATUS_LABELS",
-        "cleanCommand",
-        "assignmentIcon",
-        "assignmentText"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "laneStatus",
-        "laneRail",
-        "lucide",
-        "htmlUtils",
-        "notify",
-        "orchestrator",
-        "openProjectModal"
-      ],
-      "functions": {
-        "statusLabel": {
-          "line": 37,
-          "params": [
-            "status",
-            "foreground",
-            "commandLine"
-          ],
-          "purpose": "\"Running · npm run dev\" beats a bare \"Running\" when we know what's"
-        },
-        "cleanCommand": {
-          "line": 48,
-          "params": [
-            "commandLine"
-          ],
-          "purpose": "\"/usr/local/bin/node /Users/x/proj/server.js --port 3000\""
-        },
-        "assignmentIcon": {
-          "line": 62,
-          "params": [
-            "assignment"
-          ],
-          "purpose": "Assignment chip (what the lane works on): the icon already says spec vs"
-        },
-        "assignmentText": {
-          "line": 66,
-          "params": [
-            "assignment"
-          ]
-        },
-        "lucideIcon": {
-          "line": 71,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        },
-        "formatRelativeTime": {
-          "line": 79,
-          "params": [
-            "ts"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "GIT_STATUS_DATA"
-        ],
-        "emits": []
-      }
-    },
-    "renderer/laneDetailRail": {
-      "file": "src/renderer/laneDetailRail.js",
-      "description": "Lane Detail Rail Module",
-      "exports": [
-        "render"
-      ],
-      "depends": [
-        "laneStatus",
-        "laneBoard",
-        "lucide",
-        "htmlUtils"
-      ],
-      "functions": {
-        "itemStatusText": {
-          "line": 38,
-          "params": [
-            "s"
-          ],
-          "purpose": "Same information as the Mainframe cards, compressed for the rail:"
-        },
-        "lucideIcon": {
-          "line": 52,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        },
-        "isHidden": {
-          "line": 60
-        },
-        "setHidden": {
-          "line": 68,
-          "params": [
-            "hidden"
-          ]
-        },
-        "render": {
-          "line": 78,
-          "params": [
-            "el",
-            "state",
-            "cbs"
-          ],
-          "purpose": "Render the rail. Called by multiTerminalUI on every detail render;"
-        },
-        "_renderInto": {
-          "line": 95
-        },
-        "_startTicker": {
-          "line": 188
-        }
-      }
-    },
-    "renderer/laneRail": {
-      "file": "src/renderer/laneRail.js",
-      "description": "Lane Rail Module",
-      "exports": [
-        "render"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "htmlUtils",
-        "lucide",
-        "agentDispatch",
-        "specsDashboard",
-        "specSection",
-        "tasksDashboard",
-        "taskSection"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 37,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        },
-        "getUIState": {
-          "line": 53
-        },
-        "setUIState": {
-          "line": 61,
-          "params": [
-            "partial"
-          ]
-        },
-        "_initOnce": {
-          "line": 70
-        },
-        "_fetchForProject": {
-          "line": 92,
-          "params": [
-            "projectPath"
-          ]
-        },
-        "_rerenderIfVisible": {
-          "line": 103
-        },
-        "render": {
-          "line": 115,
-          "params": [
-            "container",
-            "projectPath"
-          ],
-          "purpose": "Render the rail into the given container for the given project."
-        },
-        "_renderInto": {
-          "line": 131,
-          "params": [
-            "container"
-          ]
-        },
-        "_renderCollapsedStrip": {
-          "line": 156
-        },
-        "_sectionHeader": {
-          "line": 180,
-          "params": [
-            "{ title",
-            "count",
-            "collapsed",
-            "onToggle",
-            "onOpen",
-            "openTitle }"
-          ]
-        },
-        "_renderSpecsSection": {
-          "line": 199,
-          "params": [
-            "ui"
-          ]
-        },
-        "_specProgress": {
-          "line": 253,
-          "params": [
-            "spec"
-          ]
-        },
-        "_renderTasksSection": {
-          "line": 270,
-          "params": [
-            "ui"
-          ]
-        },
-        "_popoverOption": {
-          "line": 350,
-          "params": [
-            "name",
-            "value",
-            "label",
-            "checked"
-          ]
-        },
-        "_taskControls": {
-          "line": 362,
-          "params": [
-            "ui",
-            "categories"
-          ],
-          "purpose": "Filter + Sort as compact icon buttons opening dashboard-style popovers —"
-        },
-        "_closeRailPopovers": {
-          "line": 437
-        },
-        "_moreLink": {
-          "line": 441,
-          "params": [
-            "label",
-            "onClick"
-          ]
-        }
-      },
-      "ipc": {
-        "listens": [
-          "SPEC_DATA",
-          "TASKS_DATA"
-        ],
-        "emits": [
-          "LOAD_TASKS"
-        ]
-      }
-    },
     "renderer/laneStatus": {
       "file": "src/renderer/laneStatus.js",
       "description": "Lane Status Module",
@@ -6041,38 +6261,47 @@
         "getStatus",
         "remove",
         "detectAgentName",
+        "statusLabel",
+        "attentionMark",
+        "cleanCommand",
+        "formatRelativeTime",
+        "assignmentIcon",
+        "assignmentText",
         "KNOWN_AGENTS",
         "AGENT_PATTERNS",
-        "APPROVAL_PATTERNS"
+        "APPROVAL_PATTERNS",
+        "STATUS_LABELS",
+        "ATTENTION_MARKS"
       ],
       "depends": [
         "electron",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "lucide"
       ],
       "functions": {
         "init": {
-          "line": 66,
+          "line": 73,
           "params": [
             "terminalManager"
           ],
           "purpose": "Initialize with the TerminalManager (needed to read xterm buffers)."
         },
         "onChange": {
-          "line": 99,
+          "line": 106,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to status changes. Returns an unsubscribe function."
         },
         "getStatus": {
-          "line": 108,
+          "line": 115,
           "params": [
             "terminalId"
           ],
           "purpose": "Current status for a terminal."
         },
         "_agentNameFor": {
-          "line": 128,
+          "line": 135,
           "params": [
             "terminalId",
             "entry"
@@ -6080,7 +6309,7 @@
           "purpose": "Agent identity for a lane. Process name first (reliable on Unix). On Windows"
         },
         "detectAgentName": {
-          "line": 142,
+          "line": 149,
           "params": [
             "foreground",
             "commandLine"
@@ -6088,27 +6317,27 @@
           "purpose": "Which known agent (if any) the foreground process / command line names."
         },
         "remove": {
-          "line": 156,
+          "line": 163,
           "params": [
             "terminalId"
           ],
           "purpose": "Drop tracking for a closed terminal."
         },
         "_isShellProcess": {
-          "line": 181,
+          "line": 188,
           "params": [
             "processName",
             "shellName"
           ]
         },
         "_ensureEntry": {
-          "line": 188,
+          "line": 195,
           "params": [
             "terminalId"
           ]
         },
         "_isAgentMode": {
-          "line": 207,
+          "line": 214,
           "params": [
             "entry",
             "tail"
@@ -6116,13 +6345,13 @@
           "purpose": "Agent mode: the foreground process is a known agent, or (fallback)"
         },
         "_onOutput": {
-          "line": 218,
+          "line": 225,
           "params": [
             "terminalId"
           ]
         },
         "_armQuietTimer": {
-          "line": 246,
+          "line": 253,
           "params": [
             "terminalId",
             "entry"
@@ -6130,22 +6359,63 @@
           "purpose": "Quiet detection without per-chunk timer churn: `lastActivityAt` is the"
         },
         "_classifyQuiet": {
-          "line": 262,
+          "line": 269,
           "params": [
             "terminalId"
           ]
         },
         "_readBufferTail": {
-          "line": 288,
+          "line": 295,
           "params": [
             "terminalId"
           ]
         },
         "_emit": {
-          "line": 308,
+          "line": 315,
           "params": [
             "terminalId",
             "entry"
+          ]
+        },
+        "statusLabel": {
+          "line": 366,
+          "params": [
+            "status",
+            "opts = {}"
+          ],
+          "purpose": "The status in words."
+        },
+        "attentionMark": {
+          "line": 378,
+          "params": [
+            "status"
+          ],
+          "purpose": "The attention symbol for a status, or null when it wants no attention."
+        },
+        "cleanCommand": {
+          "line": 385,
+          "params": [
+            "commandLine"
+          ],
+          "purpose": "\"/usr/local/bin/node /Users/x/proj/server.js --port 3000\""
+        },
+        "formatRelativeTime": {
+          "line": 394,
+          "params": [
+            "ts"
+          ]
+        },
+        "assignmentIcon": {
+          "line": 408,
+          "params": [
+            "assignment"
+          ],
+          "purpose": "Assignment chip (what the terminal works on): the icon already says spec vs"
+        },
+        "assignmentText": {
+          "line": 412,
+          "params": [
+            "assignment"
           ]
         }
       },
@@ -6225,17 +6495,16 @@
         "shared/ipcChannels",
         "terminalManager",
         "terminalTabBar",
-        "terminalGrid",
         "terminalsView",
-        "laneBoard",
+        "homeBoard",
         "laneStatus",
         "agentDispatch",
-        "laneDetailRail",
         "decisionsView",
         "taskSection",
         "specSection",
         "diffSection",
         "notify",
+        "terminalChipNotice",
         "githubPanel",
         "pluginsPanel",
         "promptsPanel",
@@ -6495,6 +6764,66 @@
         ]
       }
     },
+    "renderer/otherTerminalsRail": {
+      "file": "src/renderer/otherTerminalsRail.js",
+      "description": "Other Terminals Rail Module",
+      "exports": [
+        "render"
+      ],
+      "depends": [
+        "laneStatus",
+        "lucide",
+        "htmlUtils"
+      ],
+      "functions": {
+        "itemStatusText": {
+          "line": 46,
+          "params": [
+            "s"
+          ],
+          "purpose": "Same information as the Home cards, compressed for the rail: agents read"
+        },
+        "lucideIcon": {
+          "line": 60,
+          "params": [
+            "data",
+            "size = 14"
+          ]
+        },
+        "isHidden": {
+          "line": 70,
+          "purpose": "Closed by default, and closed again whenever the stored value cannot be"
+        },
+        "setHidden": {
+          "line": 78,
+          "params": [
+            "hidden"
+          ]
+        },
+        "render": {
+          "line": 93,
+          "params": [
+            "el",
+            "state",
+            "cbs"
+          ],
+          "purpose": "Render the rail. Called by terminalsView on every single-terminal render;"
+        },
+        "_others": {
+          "line": 111,
+          "purpose": "The project's terminals minus the one filling the body."
+        },
+        "_open": {
+          "line": 115
+        },
+        "_renderInto": {
+          "line": 121
+        },
+        "_startTicker": {
+          "line": 235
+        }
+      }
+    },
     "renderer/paletteSources": {
       "file": "src/renderer/paletteSources.js",
       "description": "Palette Sources (palette-jump spec)",
@@ -6581,6 +6910,8 @@
         "show",
         "hide",
         "toggle",
+        "setTab",
+        "getTab",
         "loadPlugins",
         "isVisible"
       ],
@@ -6602,114 +6933,114 @@
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 93,
+          "line": 87,
           "purpose": "Setup IPC listeners"
         },
         "loadPlugins": {
-          "line": 116,
+          "line": 110,
           "purpose": "Load plugins"
         },
         "refreshPlugins": {
-          "line": 134,
+          "line": 128,
           "purpose": "Refresh plugins from marketplace"
         },
         "show": {
-          "line": 169,
+          "line": 163,
           "purpose": "Show plugins panel"
         },
         "hide": {
-          "line": 186,
+          "line": 180,
           "purpose": "Hide plugins panel"
         },
         "toggle": {
-          "line": 196,
+          "line": 190,
           "purpose": "Toggle plugins panel visibility"
         },
         "setTab": {
-          "line": 207,
+          "line": 205,
           "params": [
             "tab"
           ],
-          "purpose": "Set active tab"
+          "purpose": "Set active tab."
         },
         "setFilter": {
-          "line": 229,
+          "line": 227,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredPlugins": {
-          "line": 243,
+          "line": 241,
           "purpose": "Get filtered plugins"
         },
         "render": {
-          "line": 259,
+          "line": 257,
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 313,
+          "line": 311,
           "params": [
             "plugin"
           ],
           "purpose": "Render single plugin item"
         },
         "getPluginIcon": {
-          "line": 359,
+          "line": 357,
           "params": [
             "name"
           ],
           "purpose": "Get icon for plugin based on name"
         },
         "togglePlugin": {
-          "line": 398,
+          "line": 396,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled"
         },
         "installPlugin": {
-          "line": 410,
+          "line": 408,
           "params": [
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
         },
         "loadSessions": {
-          "line": 432,
+          "line": 430,
           "purpose": "Load sessions from Claude data"
         },
         "refreshSessions": {
-          "line": 461,
+          "line": 459,
           "purpose": "Refresh sessions with spinner animation"
         },
         "renderSessions": {
-          "line": 483,
+          "line": 481,
           "purpose": "Render sessions list"
         },
         "renderSessionItem": {
-          "line": 517,
+          "line": 515,
           "params": [
             "session"
           ],
           "purpose": "Render a single session item"
         },
         "renderSessionsEmpty": {
-          "line": 546,
+          "line": 544,
           "params": [
             "message"
           ],
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 573,
+          "line": 571,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a session in a terminal of its own."
         },
         "formatRelativeTime": {
-          "line": 581,
+          "line": 579,
           "params": [
             "dateString"
           ],
@@ -6720,49 +7051,6 @@
         "listens": [
           "PLUGIN_TOGGLED",
           "TOGGLE_PLUGINS_PANEL"
-        ],
-        "emits": []
-      }
-    },
-    "renderer/presenceBar": {
-      "file": "src/renderer/presenceBar.js",
-      "description": "Presence Bar (topbar-presence spec)",
-      "exports": [
-        "init",
-        "recompute"
-      ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "laneStatus",
-        "state",
-        "htmlUtils"
-      ],
-      "functions": {
-        "init": {
-          "line": 37,
-          "params": [
-            "ui",
-            "container"
-          ]
-        },
-        "schedule": {
-          "line": 47
-        },
-        "recompute": {
-          "line": 56
-        },
-        "_focus": {
-          "line": 109,
-          "params": [
-            "a"
-          ],
-          "purpose": "Focus the agent's terminal. When it lives in another project, switch to"
-        }
-      },
-      "ipc": {
-        "listens": [
-          "TERMINAL_DESTROYED"
         ],
         "emits": []
       }
@@ -6779,6 +7067,8 @@
         "setActiveProject",
         "getActiveProject",
         "getProjects",
+        "isDefaultProject",
+        "setDefaultProject",
         "getAgentStatus",
         "addProject",
         "removeProject",
@@ -6794,7 +7084,9 @@
         "electron",
         "shared/ipcChannels",
         "terminal",
-        "laneStatus"
+        "laneStatus",
+        "orchestrator",
+        "projectStatusBadges"
       ],
       "functions": {
         "init": {
@@ -6823,8 +7115,22 @@
           ],
           "purpose": "Workspace data arrived — refresh state (no rows to render anymore)."
         },
+        "isDefaultProject": {
+          "line": 73,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Is this the project Frame opens on launch?"
+        },
+        "setDefaultProject": {
+          "line": 90,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Make a project the one Frame opens on launch, by moving it to the front."
+        },
         "confirmRemoveProject": {
-          "line": 69,
+          "line": 103,
           "params": [
             "projectPath",
             "projectName"
@@ -6832,24 +7138,24 @@
           "purpose": "Confirmation + removal (also offered as the × in the switcher menu)."
         },
         "selectProject": {
-          "line": 95,
+          "line": 129,
           "params": [
             "projectPath"
           ],
           "purpose": "Select a project"
         },
         "setActiveProject": {
-          "line": 106,
+          "line": 140,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project (visual state lives in the switcher + workspace nav)"
         },
         "getActiveProject": {
-          "line": 112
+          "line": 146
         },
         "addProject": {
-          "line": 119,
+          "line": 153,
           "params": [
             "projectPath",
             "projectName",
@@ -6858,70 +7164,70 @@
           "purpose": "Add project to workspace"
         },
         "removeProject": {
-          "line": 130,
+          "line": 164,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove project from workspace"
         },
         "setupIPC": {
-          "line": 146,
+          "line": 180,
           "purpose": "Setup IPC listeners"
         },
         "applyAgentStatuses": {
-          "line": 177,
+          "line": 211,
           "params": [
             "map"
           ],
           "purpose": "Per-project agent status counts (from projectStatusBadges). Stored for the"
         },
         "getAgentStatus": {
-          "line": 183,
+          "line": 217,
           "params": [
             "projectPath"
           ],
           "purpose": "{ approval, input } counts for one project, or undefined."
         },
         "selectNextProject": {
-          "line": 190,
+          "line": 224,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 201,
+          "line": 235,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 212,
+          "line": 246,
           "purpose": "\"Focus Project List\" now means: open the switcher dropdown."
         },
         "blur": {
-          "line": 217,
+          "line": 251,
           "purpose": "No list rows to blur anymore — kept for callers."
         },
         "getProjects": {
-          "line": 223,
+          "line": 257,
           "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 275
+          "line": 310
         },
         "saveCollapsedGroups": {
-          "line": 284,
+          "line": 319,
           "params": [
             "state"
           ]
         },
         "buildWorkspaceNav": {
-          "line": 292
+          "line": 327
         },
         "placeWorkspaceNav": {
-          "line": 346
+          "line": 382
         },
         "refreshWorkspaceNav": {
-          "line": 358
+          "line": 394
         },
         "updateWorkspaceNav": {
-          "line": 405,
+          "line": 470,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -6934,6 +7240,7 @@
         ],
         "emits": [
           "LOAD_WORKSPACE",
+          "REORDER_WORKSPACE_PROJECTS",
           "ADD_PROJECT_TO_WORKSPACE",
           "REMOVE_PROJECT_FROM_WORKSPACE"
         ]
@@ -6948,15 +7255,78 @@
       ],
       "depends": [
         "openProjectModal",
-        "projectListUI"
+        "projectListUI",
+        "state"
       ],
       "functions": {
         "focusList": {
-          "line": 19,
+          "line": 26,
           "purpose": "Move keyboard focus into the project list. Used by the \"Focus Project List\""
         },
         "init": {
-          "line": 23
+          "line": 30
+        }
+      }
+    },
+    "renderer/projectSettingsModal": {
+      "file": "src/renderer/projectSettingsModal.js",
+      "description": "Project Settings",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "toggle"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "specDrivenHint",
+        "projectListUI",
+        "settingsOverlay"
+      ],
+      "functions": {
+        "init": {
+          "line": 40
+        },
+        "syncFromProject": {
+          "line": 172
+        },
+        "syncDefaultProject": {
+          "line": 188,
+          "purpose": "The launch-project row. It is hidden outright below two projects: with one"
+        },
+        "syncSpecDrivenToggle": {
+          "line": 214,
+          "purpose": "Reflect the current project's features.specDriven flag. With no project"
+        },
+        "renderGitSharing": {
+          "line": 239,
+          "params": [
+            "stateObj"
+          ],
+          "purpose": "Paint the sharing row from main's state object. `error` means the project"
+        },
+        "syncGitSharing": {
+          "line": 255
+        },
+        "setRemoveFrameNote": {
+          "line": 269,
+          "params": [
+            "message"
+          ]
+        },
+        "setGitSharingWarning": {
+          "line": 275,
+          "params": [
+            "message"
+          ]
+        },
+        "setSpecDrivenNote": {
+          "line": 281,
+          "params": [
+            "message"
+          ]
         }
       }
     },
@@ -6965,27 +7335,36 @@
       "description": "Project Status Badges",
       "exports": [
         "init",
-        "recompute"
+        "recompute",
+        "computeCounts"
       ],
       "depends": [
         "electron",
         "shared/ipcChannels",
         "laneStatus",
-        "projectListUI"
+        "projectListUI",
+        "statusBar"
       ],
       "functions": {
         "init": {
-          "line": 28,
+          "line": 33,
           "params": [
             "multiTerminalUI"
           ]
         },
         "schedule": {
-          "line": 39
+          "line": 44
+        },
+        "computeCounts": {
+          "line": 60,
+          "params": [
+            "states"
+          ],
+          "purpose": "Tally attention-worthy agent statuses per project."
         },
         "recompute": {
-          "line": 51,
-          "purpose": "Tally attention-worthy agent statuses per project and push to the list."
+          "line": 81,
+          "purpose": "Recompute the tally and hand it to both surfaces that draw it. One pass,"
         }
       },
       "ipc": {
@@ -7019,51 +7398,51 @@
           "purpose": "Setup DOM event listeners"
         },
         "setupIPC": {
-          "line": 49,
+          "line": 46,
           "purpose": "Setup IPC listeners"
         },
         "parseHistory": {
-          "line": 65,
+          "line": 62,
           "params": [
             "raw"
           ],
           "purpose": "Parse raw history text into prompt objects"
         },
         "renderList": {
-          "line": 86,
+          "line": 83,
           "params": [
             "query"
           ],
           "purpose": "Render prompt list with optional search filter"
         },
         "createCard": {
-          "line": 110,
+          "line": 107,
           "params": [
             "prompt"
           ],
           "purpose": "Create a single prompt card element"
         },
         "formatTimestamp": {
-          "line": 151,
+          "line": 148,
           "params": [
             "iso"
           ],
           "purpose": "Format ISO timestamp to readable string"
         },
         "toggle": {
-          "line": 166,
+          "line": 163,
           "purpose": "Toggle panel visibility"
         },
         "show": {
-          "line": 173,
+          "line": 170,
           "purpose": "Show the panel and load data"
         },
         "hide": {
-          "line": 183,
+          "line": 180,
           "purpose": "Hide the panel"
         },
         "getIsVisible": {
-          "line": 192,
+          "line": 189,
           "purpose": "Whether the panel is currently visible"
         }
       },
@@ -7171,116 +7550,21 @@
         }
       }
     },
-    "renderer/settingsModal": {
-      "file": "src/renderer/settingsModal.js",
-      "description": "Settings Modal",
+    "renderer/settingsOverlay": {
+      "file": "src/renderer/settingsOverlay.js",
+      "description": "Settings Overlay Plumbing",
       "exports": [
-        "init",
-        "open",
-        "close",
-        "toggle"
+        "create"
       ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "state",
-        "specDrivenHint",
-        "../package.json"
-      ],
+      "depends": [],
       "functions": {
-        "init": {
-          "line": 40
-        },
-        "initAboutSection": {
-          "line": 212
-        },
-        "runCheck": {
-          "line": 297,
+        "create": {
+          "line": 24,
           "params": [
-            "userInitiated"
+            "overlayId",
+            "onOpen"
           ]
-        },
-        "renderUpdateState": {
-          "line": 336,
-          "params": [
-            "{ checked",
-            "found",
-            "failed",
-            "failReason",
-            "info",
-            "checkedAt",
-            "userInitiated }"
-          ]
-        },
-        "showUpdateBanner": {
-          "line": 360,
-          "params": [
-            "info"
-          ]
-        },
-        "hideUpdateBanner": {
-          "line": 371
-        },
-        "hideSidebarDot": {
-          "line": 375
-        },
-        "formatRelative": {
-          "line": 382,
-          "params": [
-            "date"
-          ]
-        },
-        "syncToggleFromSettings": {
-          "line": 393
-        },
-        "syncSpecDrivenToggle": {
-          "line": 414,
-          "purpose": "Reflect the current project's features.specDriven flag. With no project"
-        },
-        "renderGitSharing": {
-          "line": 439,
-          "params": [
-            "stateObj"
-          ],
-          "purpose": "Paint the sharing row from main's state object. `error` means the project"
-        },
-        "syncGitSharing": {
-          "line": 455
-        },
-        "setRemoveFrameNote": {
-          "line": 469,
-          "params": [
-            "message"
-          ]
-        },
-        "setGitSharingWarning": {
-          "line": 475,
-          "params": [
-            "message"
-          ]
-        },
-        "setSpecDrivenNote": {
-          "line": 481,
-          "params": [
-            "message"
-          ]
-        },
-        "open": {
-          "line": 487
-        },
-        "close": {
-          "line": 494
-        },
-        "toggle": {
-          "line": 501
         }
-      },
-      "ipc": {
-        "listens": [
-          "OPEN_SETTINGS",
-          "UPDATE_AVAILABLE"
-        ],
-        "emits": []
       }
     },
     "renderer/sidebarResize": {
@@ -7388,7 +7672,7 @@
         },
         "refresh": {
           "line": 85,
-          "purpose": "Re-check after the Settings toggle changed the flag."
+          "purpose": "Re-check after the Project Settings toggle changed the flag."
         },
         "render": {
           "line": 90,
@@ -7404,7 +7688,7 @@
         },
         "position": {
           "line": 135,
-          "purpose": "Anchor to the Settings button: same baseline, just outboard of the rail."
+          "purpose": "Anchor to the Project Settings button: same baseline, just outboard of the rail."
         },
         "enable": {
           "line": 157,
@@ -8183,25 +8467,76 @@
       "file": "src/renderer/statusBar.js",
       "description": "Status Bar Module",
       "exports": [
-        "init"
+        "init",
+        "updateAgents"
       ],
       "depends": [
         "electron",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "laneStatus",
+        "state",
+        "htmlUtils",
+        "terminal"
       ],
       "functions": {
         "init": {
-          "line": 18
+          "line": 45
+        },
+        "_buildAgentSlot": {
+          "line": 69
+        },
+        "updateAgents": {
+          "line": 104,
+          "params": [
+            "states",
+            "counts"
+          ],
+          "purpose": "Fed by projectStatusBadges on every recompute — one traversal for every"
+        },
+        "_projectName": {
+          "line": 136,
+          "params": [
+            "path"
+          ]
+        },
+        "_renderAgents": {
+          "line": 140
+        },
+        "_renderMenu": {
+          "line": 175
+        },
+        "_focus": {
+          "line": 199,
+          "params": [
+            "projectPath",
+            "terminalId"
+          ],
+          "purpose": "A click switches project when the agent lives elsewhere, then opens its"
+        },
+        "_scheduleOpen": {
+          "line": 209
+        },
+        "_scheduleClose": {
+          "line": 215
+        },
+        "_openMenu": {
+          "line": 221
+        },
+        "_closeMenu": {
+          "line": 229,
+          "params": [
+            "immediate = false"
+          ]
         },
         "updateUsage": {
-          "line": 39,
+          "line": 236,
           "params": [
             "data"
           ],
           "purpose": "Paint both meters from a usage push."
         },
         "updateItem": {
-          "line": 68,
+          "line": 265,
           "params": [
             "item",
             "usage",
@@ -8210,7 +8545,7 @@
           ]
         },
         "formatResetTime": {
-          "line": 91,
+          "line": 288,
           "params": [
             "isoString"
           ],
@@ -9107,25 +9442,39 @@
         "emits": []
       }
     },
-    "renderer/terminalGrid": {
-      "file": "src/renderer/terminalGrid.js",
-      "description": "Terminal Grid Module",
+    "renderer/terminalChipNotice": {
+      "file": "src/renderer/terminalChipNotice.js",
+      "description": "\"Remove from the top bar\" notice.",
       "exports": [
-        "TerminalGrid",
-        "GRID_LAYOUTS"
+        "confirmRemoval"
       ],
-      "depends": [
-        "laneStatus",
-        "lucide",
-        "htmlUtils"
-      ],
+      "depends": [],
       "functions": {
-        "lucideIcon": {
-          "line": 28,
+        "_suppressed": {
+          "line": 26
+        },
+        "_persistSuppression": {
+          "line": 34
+        },
+        "_build": {
+          "line": 43
+        },
+        "_close": {
+          "line": 93
+        },
+        "_cancel": {
+          "line": 98
+        },
+        "_accept": {
+          "line": 105
+        },
+        "confirmRemoval": {
+          "line": 119,
           "params": [
-            "data",
-            "size = 13"
-          ]
+            "{ name",
+            "onConfirm }"
+          ],
+          "purpose": "Drop a chip, explaining what that means unless the user opted out."
         }
       }
     },
@@ -9213,11 +9562,12 @@
         "shared/ipcChannels",
         "lucide",
         "htmlUtils",
+        "laneStatus",
         "notify"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 23,
+          "line": 38,
           "params": [
             "data",
             "size = 18"
@@ -9235,26 +9585,31 @@
       "file": "src/renderer/terminalsView.js",
       "description": "Terminals View Module",
       "exports": [
-        "TerminalsView"
+        "TerminalsView",
+        "EMPTY_TITLE",
+        "EMPTY_HINT"
       ],
       "depends": [
         "laneStatus",
+        "otherTerminalsRail",
         "htmlUtils",
-        "lucide"
+        "lucide",
+        "specSection",
+        "taskSection"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 21,
+          "line": 47,
           "params": [
             "data",
             "size = 13"
           ]
         },
         "_loadAllPrefs": {
-          "line": 29
+          "line": 55
         },
         "_saveProjectPrefs": {
-          "line": 37,
+          "line": 63,
           "params": [
             "projectKey",
             "prefs"
@@ -10951,6 +11306,18 @@
   "files": {},
   "conventions": {},
   "intentIndex": {
+    "active": [
+      {
+        "module": "renderer/home/widgets/activeSpecs",
+        "file": "src/renderer/home/widgets/activeSpecs.js",
+        "description": "Active Specs widget."
+      },
+      {
+        "module": "renderer/home/widgets/activeTasks",
+        "file": "src/renderer/home/widgets/activeTasks.js",
+        "description": "Active Tasks widget."
+      }
+    ],
     "activity": [
       {
         "module": "main/activityLog",
@@ -10978,18 +11345,6 @@
         "module": "renderer/aiToolSelector",
         "file": "src/renderer/aiToolSelector.js",
         "description": "AI Tool Selector Module"
-      }
-    ],
-    "bar": [
-      {
-        "module": "renderer/presenceBar",
-        "file": "src/renderer/presenceBar.js",
-        "description": "Presence Bar (topbar-presence spec)"
-      },
-      {
-        "module": "renderer/statusBar",
-        "file": "src/renderer/statusBar.js",
-        "description": "Status Bar Module"
       }
     ],
     "claude-sessions": [
@@ -11086,6 +11441,18 @@
         "module": "renderer/fileTreeUI",
         "file": "src/renderer/fileTreeUI.js",
         "description": "File Tree UI Module"
+      }
+    ],
+    "frame": [
+      {
+        "module": "main/frameStore",
+        "file": "src/main/frameStore.js",
+        "description": "frameStore — the one module that knows where a project's meta files live."
+      },
+      {
+        "module": "renderer/frameSettingsModal",
+        "file": "src/renderer/frameSettingsModal.js",
+        "description": "Frame Settings"
       }
     ],
     "frame-config": [
@@ -11237,6 +11604,11 @@
     ],
     "modal": [
       {
+        "module": "renderer/frameSettingsModal",
+        "file": "src/renderer/frameSettingsModal.js",
+        "description": "Frame Settings"
+      },
+      {
         "module": "renderer/implementModeModal",
         "file": "src/renderer/implementModeModal.js",
         "description": "Implement Mode Modal"
@@ -11250,6 +11622,11 @@
         "module": "renderer/openProjectModal",
         "file": "src/renderer/openProjectModal.js",
         "description": "Open Project Modal"
+      },
+      {
+        "module": "renderer/projectSettingsModal",
+        "file": "src/renderer/projectSettingsModal.js",
+        "description": "Project Settings"
       }
     ],
     "orchestration": [
@@ -11264,19 +11641,9 @@
         "description": "Agent Dispatch Module"
       },
       {
-        "module": "renderer/laneBoard",
-        "file": "src/renderer/laneBoard.js",
-        "description": "Lane Board Module"
-      },
-      {
-        "module": "renderer/laneDetailRail",
-        "file": "src/renderer/laneDetailRail.js",
-        "description": "Lane Detail Rail Module"
-      },
-      {
-        "module": "renderer/laneRail",
-        "file": "src/renderer/laneRail.js",
-        "description": "Lane Rail Module"
+        "module": "renderer/homeBoard",
+        "file": "src/renderer/homeBoard.js",
+        "description": "Home Board Module"
       },
       {
         "module": "renderer/laneStatus",
@@ -11287,6 +11654,18 @@
         "module": "renderer/orchestrator",
         "file": "src/renderer/orchestrator.js",
         "description": "Orchestrator (renderer) — a section viewport"
+      }
+    ],
+    "overlay": [
+      {
+        "module": "renderer/settingsOverlay",
+        "file": "src/renderer/settingsOverlay.js",
+        "description": "Settings Overlay Plumbing"
+      },
+      {
+        "module": "renderer/welcomeOverlay",
+        "file": "src/renderer/welcomeOverlay.js",
+        "description": "Welcome Overlay (Launch Greeting)"
       }
     ],
     "panel": [
@@ -11330,9 +11709,38 @@
         "description": "Projects Section"
       },
       {
+        "module": "renderer/projectSettingsModal",
+        "file": "src/renderer/projectSettingsModal.js",
+        "description": "Project Settings"
+      },
+      {
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
+      }
+    ],
+    "rail": [
+      {
+        "module": "renderer/otherTerminalsRail",
+        "file": "src/renderer/otherTerminalsRail.js",
+        "description": "Other Terminals Rail Module"
+      },
+      {
+        "module": "renderer/sectionRail",
+        "file": "src/renderer/sectionRail.js",
+        "description": "Section Rail Module"
+      }
+    ],
+    "rows": [
+      {
+        "module": "renderer/home/agentRows",
+        "file": "src/renderer/home/agentRows.js",
+        "description": "Which agents Home lists, and in what order."
+      },
+      {
+        "module": "renderer/home/sessionRows",
+        "file": "src/renderer/home/sessionRows.js",
+        "description": "Which Claude sessions Home offers to resume, and how they are labelled."
       }
     ],
     "section": [
@@ -11347,16 +11755,23 @@
         "description": "Section Rail Module"
       }
     ],
+    "session": [
+      {
+        "module": "renderer/home/sessionRows",
+        "file": "src/renderer/home/sessionRows.js",
+        "description": "Which Claude sessions Home offers to resume, and how they are labelled."
+      },
+      {
+        "module": "templates/sample-project/src/auth/session",
+        "file": "src/templates/sample-project/src/auth/session.js",
+        "description": "Session middleware + requireAuth guard"
+      }
+    ],
     "settings": [
       {
         "module": "main/userSettings",
         "file": "src/main/userSettings.js",
         "description": "User Settings"
-      },
-      {
-        "module": "renderer/settingsModal",
-        "file": "src/renderer/settingsModal.js",
-        "description": "Settings Modal"
       }
     ],
     "sidebar": [
@@ -11493,11 +11908,6 @@
         "description": "Terminal UI Module"
       },
       {
-        "module": "renderer/terminalGrid",
-        "file": "src/renderer/terminalGrid.js",
-        "description": "Terminal Grid Module"
-      },
-      {
         "module": "renderer/terminalManager",
         "file": "src/renderer/terminalManager.js",
         "description": "Terminal Manager Module"
@@ -11506,6 +11916,18 @@
         "module": "renderer/terminalTabBar",
         "file": "src/renderer/terminalTabBar.js",
         "description": "Terminal Top Bar Module (historically the tab bar)"
+      }
+    ],
+    "terminals": [
+      {
+        "module": "renderer/otherTerminalsRail",
+        "file": "src/renderer/otherTerminalsRail.js",
+        "description": "Other Terminals Rail Module"
+      },
+      {
+        "module": "renderer/terminalsView",
+        "file": "src/renderer/terminalsView.js",
+        "description": "Terminals View Module"
       }
     ],
     "view": [

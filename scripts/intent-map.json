@@ -53,7 +53,7 @@
     "synonyms": ["issues", "gh", "pull-requests", "pr"]
   },
   "orchestration": {
-    "modules": ["main/orchestrationManager", "renderer/orchestrator", "renderer/laneBoard", "renderer/laneRail", "renderer/laneDetailRail", "renderer/laneStatus", "renderer/agentDispatch", "renderer/agentPanel"],
+    "modules": ["main/orchestrationManager", "renderer/orchestrator", "renderer/homeBoard", "renderer/laneRail", "renderer/laneDetailRail", "renderer/laneStatus", "renderer/agentDispatch", "renderer/agentPanel"],
     "synonyms": ["conductor", "worker", "lanes", "orchestrator", "agents", "dispatch"]
   },
   "specs": {

@@ -1,22 +1,36 @@
 /**
- * Lane Detail Rail Module
+ * Other Terminals Rail Module
  *
- * Collapsible right-side panel in the terminal detail view listing all the
- * project's lanes, priority-ordered by how much they need the user:
+ * The right-side panel of the Terminals section's enlarged body: every
+ * terminal in the project **except the one on screen**, priority-ordered by
+ * how much each needs the user:
  *
  *   waiting (input needed) → agent (working) → busy (command) → idle
  *
- * Same collapse mechanics as the board's specs/tasks rail: the panel can be
- * hidden to a slim strip and reopened any time; state persists in
- * localStorage. Clicking a lane enters it without going through the board.
+ * The rule that keeps it distinct from the top bar's breadcrumb chips: **the
+ * chips are navigation, this rail is state.** The chips say which terminals
+ * exist and carry a status dot; the rail says what each one is doing and in
+ * what order it needs you. It is therefore not agents-only — listing only
+ * agents would leave no path to a plain shell from here.
+ *
+ * It is **closed by default** (D13): looking at one terminal, the screen
+ * belongs to that terminal. A control at the edge appears on hover to open it
+ * and the open/closed state is remembered in localStorage. Closed it is quiet
+ * but not blind — an agent waiting on approval or input shows in the slim
+ * strip as an attention mark and an agent marker. Running and idle terminals
+ * never appear there.
  */
 
 const laneStatus = require('./laneStatus');
-const { formatRelativeTime, cleanCommand, assignmentIcon, assignmentText } = require('./laneBoard');
-const { PanelRightClose, PanelRightOpen, Terminal, Bot, Plus } = require('lucide');
+const { statusLabel, attentionMark, formatRelativeTime, assignmentIcon, assignmentText } = laneStatus;
+const { PanelRightClose, PanelRightOpen, Bot, Plus } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 
-const STORAGE_KEY = 'frame-detail-lanes-rail';
+const STORAGE_KEY = 'frame-other-terminals-rail';
+
+// The only two statuses that are waiting on the user, and the only ones the
+// collapsed strip is allowed to show.
+const ATTENTION_STATUSES = new Set(['agent-approval', 'agent-input']);
 
 const STATUS_PRIORITY = {
   'agent-approval': 0,  // blocked on the user — most urgent
@@ -25,23 +39,17 @@ const STATUS_PRIORITY = {
   'running': 3,
   'idle': 4
 };
-const STATUS_SHORT = {
-  'agent-approval': 'Needs approval',
-  'agent-input': 'Awaiting input',
-  'agent-working': 'Working',
-  'running': 'Running',
-  'idle': 'Idle'
-};
 
-// Same information as the Mainframe cards, compressed for the rail:
-// agents read "claude · Needs approval", commands read "Running · npm run dev".
+// Same information as the Home cards, compressed for the rail: agents read
+// "claude · Needs approval", commands read "Running · npm run dev". The words
+// come from laneStatus — the rail picks the short variant, nothing more.
 function itemStatusText(s) {
-  if (s.status === 'running') {
-    const what = cleanCommand(s.commandLine) || s.foreground;
-    return what ? `Running · ${what}` : 'Running';
-  }
-  if (s.agentName) return `${s.agentName} · ${STATUS_SHORT[s.status]}`;
-  return STATUS_SHORT[s.status];
+  return statusLabel(s.status, {
+    agentName: s.agentName,
+    foreground: s.foreground,
+    commandLine: s.commandLine,
+    short: true
+  });
 }
 
 let container = null;
@@ -57,11 +65,13 @@ function lucideIcon(data, size = 14) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${children}</svg>`;
 }
 
+// Closed by default, and closed again whenever the stored value cannot be
+// read — the quiet state is the safe one to fall back to.
 function isHidden() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').hidden === true;
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').hidden !== false;
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -72,8 +82,13 @@ function setHidden(hidden) {
 }
 
 /**
- * Render the rail. Called by multiTerminalUI on every detail render;
- * re-renders itself on lane status changes while visible.
+ * Render the rail. Called by terminalsView on every single-terminal render;
+ * re-renders itself on status changes while visible.
+ *
+ * @param {HTMLElement} el
+ * @param {{terminals: Array, currentId: string}} state - the project's
+ *   terminals and the one currently on screen (which the rail leaves out).
+ * @param {Object} cbs - onEnterLane, onNewLane, onLayoutChange
  */
 function render(el, state, cbs) {
   container = el;
@@ -92,24 +107,57 @@ function render(el, state, cbs) {
   _renderInto();
 }
 
+/** The project's terminals minus the one filling the body. */
+function _others() {
+  return lastState.terminals.filter(t => t.id !== lastState.currentId);
+}
+
+function _open() {
+  setHidden(false);
+  _renderInto();
+  if (callbacks.onLayoutChange) callbacks.onLayoutChange();
+}
+
 function _renderInto() {
+  const others = _others();
   const hidden = isHidden();
   container.innerHTML = '';
+
+  // Nothing to be blind to — the rail has no reason to exist.
+  if (others.length === 0) {
+    container.className = '';
+    return;
+  }
+
   container.className = hidden ? 'lane-rail lanes-rail collapsed' : 'lane-rail lanes-rail';
 
   if (hidden) {
+    // Quiet but not blind: the open control appears on hover (CSS), and only
+    // terminals actually waiting on the user get a mark.
     const strip = document.createElement('div');
     strip.className = 'lane-rail-strip';
-    strip.innerHTML = `
-      <button class="lane-rail-strip-btn" title="Show frames">${lucideIcon(PanelRightOpen, 15)}</button>
-      <button class="lane-rail-strip-btn" title="Terminals">${lucideIcon(Terminal, 15)}</button>
-    `;
-    strip.addEventListener('click', (e) => {
-      if (!e.target.closest('.lane-rail-strip-btn')) return;
-      setHidden(false);
-      _renderInto();
-      if (callbacks.onLayoutChange) callbacks.onLayoutChange();
-    });
+
+    const openBtn = document.createElement('button');
+    openBtn.className = 'lane-rail-strip-btn otr-open';
+    openBtn.title = 'Show the other terminals';
+    openBtn.innerHTML = lucideIcon(PanelRightOpen, 15);
+    openBtn.addEventListener('click', _open);
+    strip.appendChild(openBtn);
+
+    others
+      .map(t => ({ t, s: laneStatus.getStatus(t.id) }))
+      .filter(({ s }) => ATTENTION_STATUSES.has(s.status))
+      .forEach(({ t, s }) => {
+        const mark = document.createElement('button');
+        mark.className = `lane-rail-strip-btn otr-waiting ${s.status}`;
+        mark.title = `${t.customName || t.name} — ${statusLabel(s.status, { agentName: s.agentName, short: true })}`;
+        mark.innerHTML = `<span class="otr-waiting-mark">${attentionMark(s.status)}</span>${lucideIcon(Bot, 13)}`;
+        mark.addEventListener('click', () => {
+          if (callbacks.onEnterLane) callbacks.onEnterLane(t.id);
+        });
+        strip.appendChild(mark);
+      });
+
     container.appendChild(strip);
     return;
   }
@@ -117,8 +165,8 @@ function _renderInto() {
   const header = document.createElement('div');
   header.className = 'lane-rail-section-header lanes-rail-header';
   header.innerHTML = `
-    <span class="lane-rail-section-title">Terminals</span>
-    <span class="lane-rail-section-count">${lastState.terminals.length}</span>
+    <span class="lane-rail-section-title">Other terminals</span>
+    <span class="lane-rail-section-count">${others.length}</span>
     <button class="lane-rail-toggle" title="Hide panel">${lucideIcon(PanelRightClose, 15)}</button>
   `;
   header.querySelector('.lane-rail-toggle').addEventListener('click', () => {
@@ -131,7 +179,7 @@ function _renderInto() {
   const body = document.createElement('div');
   body.className = 'lane-rail-section-body lanes-rail-body';
 
-  const sorted = lastState.terminals
+  const sorted = others
     .map((t) => ({ t, s: laneStatus.getStatus(t.id) }))
     .sort((a, b) => {
       const pa = STATUS_PRIORITY[a.s.status] ?? 4;
@@ -143,12 +191,11 @@ function _renderInto() {
   sorted.forEach(({ t, s }) => {
     const item = document.createElement('div');
     item.className = 'lane-rail-item lane-detail-item';
-    if (t.id === lastState.activeTerminalId) item.classList.add('active-lane');
     item.innerHTML = `
       <div class="lane-rail-item-row">
         <span class="lane-status-dot ${s.status}"></span>
         <span class="lane-rail-item-title">${escapeHtml(t.customName || t.name)}</span>
-        ${s.agentName ? `<span class="lane-rail-agent-badge" title="Agent frame · ${escapeHtml(s.agentName)}">${lucideIcon(Bot, 10)}<span>Agent</span></span>` : ''}
+        ${s.agentName ? `<span class="lane-rail-agent-badge" title="Agent · ${escapeHtml(s.agentName)}">${lucideIcon(Bot, 10)}<span>Agent</span></span>` : ''}
       </div>
       <div class="lane-rail-item-row">
         <span class="lane-detail-item-status ${s.status}" title="${escapeHtml(s.commandLine || '')}">${escapeHtml(itemStatusText(s))}</span>
@@ -169,7 +216,7 @@ function _renderInto() {
 
   container.appendChild(body);
 
-  // New Frame — the top-bar "+" is retired; creating a Frame lives here, next
+  // New terminal — the top-bar "+" is retired; creating one lives here, next
   // to the list it adds to.
   const addBtn = document.createElement('button');
   addBtn.className = 'lane-rail-add-btn';

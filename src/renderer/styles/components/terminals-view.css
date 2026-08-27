@@ -15,6 +15,100 @@
   overflow: hidden;
 }
 
+/* ─── Enlarged body ─── */
+/* One terminal filling the section: no grid, no resize handle, no fixed pane
+   height to fight the flex box. Reached from the pane's ⤢ or from that
+   terminal's breadcrumb chip in the top bar; the way back out is Terminals,
+   which never leaves the top bar. */
+
+.tv-single {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.tv-pane.tv-pane-single {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  resize: none;
+}
+
+.tv-pane.tv-pane-single .tv-pane-header {
+  cursor: default;
+}
+
+/* One terminal filling the section is self-evidently the focused one. The
+   accent ring exists to pick a pane out from the panes beside it; alone, it
+   is just a bright box around the whole screen. */
+.tv-pane.tv-pane-single.active {
+  border-color: var(--border-default);
+  box-shadow: none;
+}
+
+.tv-pane.tv-pane-single:hover {
+  border-color: var(--border-default);
+}
+
+/* The Other Terminals rail sits beside the terminal, keeping its own width
+   (.lane-rail in home-board.css).
+
+   Collapsed it is an *edge*, not a second panel: it drops the panel's
+   background and left border, because 28px of filled slab beside a
+   full-height terminal reads as a sidebar that failed to load. It also sits
+   in the section's right padding rather than 14px inside it — an edge
+   affordance belongs at the edge. */
+
+.tv-single {
+  gap: var(--space-sm);
+}
+
+.tv-single .lane-rail {
+  flex: none;
+}
+
+.tv-single .lane-rail.collapsed {
+  width: 28px;
+  background: transparent;
+  border-left: none;
+  margin-right: calc(-1 * var(--space-sm));
+}
+
+/* Line the first control up with the pane header beside it. */
+.tv-single .lane-rail.collapsed .lane-rail-strip {
+  padding-top: 6px;
+  gap: 6px;
+}
+
+/* Always visible, only quiet. Hiding it until hover meant a control nobody
+   could find — a deliberate change from the spec's "appears on hover" (D13);
+   the rail still opens only when asked, which was the point of that decision. */
+.otr-open {
+  color: var(--text-tertiary);
+}
+
+.otr-open:hover {
+  color: var(--text-primary);
+}
+
+/* Waiting agents: the mark above the agent marker, because side by side in a
+   28px column they collide into one smudge. */
+.otr-waiting {
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 2px;
+  line-height: 1;
+}
+
+.otr-waiting-mark {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.otr-waiting.agent-approval { color: var(--error, #d45555); }
+.otr-waiting.agent-input    { color: var(--warning, #e5a50a); }
+
 /* ─── Layout bar ─── */
 
 .tv-bar {
@@ -74,12 +168,6 @@
   padding-bottom: var(--space-sm);
 }
 
-.tv-grid.maximized {
-  grid-template-rows: 1fr;
-  align-content: stretch;
-  overflow: hidden;
-}
-
 .tv-pane {
   display: flex;
   flex-direction: column;
@@ -115,11 +203,6 @@
   box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
-.tv-pane.maximized {
-  height: auto;
-  resize: none;
-}
-
 .tv-pane-header {
   display: flex;
   align-items: center;
@@ -144,10 +227,70 @@
   white-space: nowrap;
 }
 
-.tv-pane-agent {
+/* The pane header is this project's agent board — Overview carries no rail,
+   so the header itself has to say what the terminal is doing. The marker is
+   the loud part; approval is the strongest call in the vocabulary. */
+
+.tv-pane-status {
   color: var(--text-tertiary);
   font-size: 10px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tv-pane-status.agent-working  { color: var(--accent-primary); }
+.tv-pane-status.agent-approval { color: var(--error, #d45555); font-weight: 600; }
+.tv-pane-status.agent-input    { color: var(--warning, #e5a50a); }
+.tv-pane-status.running        { color: var(--success, #23d18b); }
+.tv-pane-status.idle           { color: var(--text-tertiary); }
+
+.tv-pane-attention {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tv-pane-attention:empty {
+  display: none;
+}
+
+.tv-pane-attention.agent-approval { color: var(--error, #d45555); }
+.tv-pane-attention.agent-input    { color: var(--warning, #e5a50a); }
+
+/* The spec or task the enlarged terminal is working on. It takes the header's
+   free space so it sits against the action buttons on the right; when it is
+   there, the actions stop claiming that space themselves (two `auto` margins
+   would split it and park the chip in the middle). */
+
+.tv-pane-assign {
+  margin-left: auto;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 280px;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* Only the chips that lead somewhere invite a click. */
+button.tv-pane-assign:hover {
+  border-color: var(--accent-primary);
+}
+
+span.tv-pane-assign {
+  cursor: default;
+}
+
+.tv-pane-assign:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.tv-pane-header.has-assign .tv-pane-actions {
+  margin-left: 8px;
 }
 
 .tv-pane-actions {
@@ -355,3 +498,20 @@
   font-size: 9px;
   font-weight: 700;
 }
+
+/* Orchestration's live session used to announce itself on Home's card; the
+   row carries it now that the card is gone. */
+.workspace-nav-running {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--success, #23d18b);
+  background: color-mix(in srgb, var(--success, #23d18b) 18%, transparent);
+  border-radius: 999px;
+  padding: 0 6px;
+  line-height: 14px;
+}
+
+/* Waiting on the user: the same two colours every other surface uses for
+   these two statuses (§7). */
+.workspace-nav-agents.agent-approval { color: var(--error, #d45555); }
+.workspace-nav-agents.agent-input    { color: var(--warning, #e5a50a); }

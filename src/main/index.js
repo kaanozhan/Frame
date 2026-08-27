@@ -77,7 +77,12 @@ function createWindow() {
       contextIsolation: false
     },
     backgroundColor: '#0c0b09',
-    title: 'Frame'
+    title: 'Frame',
+    // Windows and Linux read the window icon; macOS takes its icon from the
+    // bundle (assets/icon.icns) once packaged, and from app.dock below while
+    // running unpackaged. Icons live in assets/ because build/ is gitignored —
+    // an icon path under it is missing on any fresh clone.
+    icon: path.join(__dirname, '../../assets/icon.png')
   });
 
   mainWindow.loadFile('index.html');
@@ -329,6 +334,17 @@ telemetry.init();
 app.whenReady().then(() => {
   // macOS'ta menü bar'da "Frame" görünsün
   app.setName('Frame');
+
+  // Unpackaged, macOS shows Electron's own icon in the dock — the bundle's
+  // icns only applies once built. Set it explicitly so `npm start` looks like
+  // the product. Never fatal: a missing file just leaves the default.
+  if (process.platform === 'darwin' && app.dock) {
+    try {
+      app.dock.setIcon(path.join(__dirname, '../../assets/icon.png'));
+    } catch (err) {
+      console.error('Could not set the dock icon:', err.message);
+    }
+  }
 
   init();
   createWindow();

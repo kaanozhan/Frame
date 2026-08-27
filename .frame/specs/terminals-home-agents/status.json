@@ -1,0 +1,29 @@
+{
+  "slug": "terminals-home-agents",
+  "title": "Home, Terminals and Agents \u2014 three surfaces folded into one model",
+  "phase": "done",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [
+    "task-spec-terminals-home-agents-T01",
+    "task-spec-terminals-home-agents-T02",
+    "task-spec-terminals-home-agents-T03",
+    "task-spec-terminals-home-agents-T04",
+    "task-spec-terminals-home-agents-T05",
+    "task-spec-terminals-home-agents-T06",
+    "task-spec-terminals-home-agents-T07",
+    "task-spec-terminals-home-agents-T08",
+    "task-spec-terminals-home-agents-T09",
+    "task-spec-terminals-home-agents-T10",
+    "task-spec-terminals-home-agents-T11",
+    "task-spec-terminals-home-agents-T12",
+    "task-spec-terminals-home-agents-T13",
+    "task-spec-terminals-home-agents-T14",
+    "task-spec-terminals-home-agents-T15",
+    "task-spec-terminals-home-agents-T16",
+    "task-spec-terminals-home-agents-T17"
+  ],
+  "created_at": "2026-08-26T10:51:12Z",
+  "updated_at": "2026-08-27T00:00:00.000Z",
+  "last_phase_at": "2026-08-27T00:00:00.000Z",
+  "implement_mode": "autonomous"
+}

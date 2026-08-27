@@ -33,9 +33,6 @@ function setupEventListeners() {
   const closeBtn = document.getElementById('prompts-close');
   if (closeBtn) closeBtn.addEventListener('click', hide);
 
-  const collapseBtn = document.getElementById('prompts-collapse-btn');
-  if (collapseBtn) collapseBtn.addEventListener('click', hide);
-
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       renderList(searchInput.value.trim().toLowerCase());

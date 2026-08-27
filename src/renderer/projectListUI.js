@@ -64,6 +64,40 @@ function renderProjects(projectsList) {
 }
 
 /**
+ * Is this the project Frame opens on launch?
+ *
+ * There is no stored "default" flag: `renderProjects` selects `projects[0]`
+ * when nothing is active yet, and nothing restores a previous session's
+ * project — so the front of the list *is* the default, always.
+ */
+function isDefaultProject(projectPath) {
+  return projects.length > 0 && !!projectPath && projects[0].path === projectPath;
+}
+
+/**
+ * Make a project the one Frame opens on launch, by moving it to the front.
+ *
+ * Two things this has to know. The reorder channel keeps every path it is not
+ * told about in its existing relative order, so the whole message could be one
+ * path — the full list is sent anyway, because a partial order is harder to
+ * read in a log than a complete one. And main deliberately sends no
+ * WORKSPACE_UPDATED echo for a reorder (it was built for drag, where
+ * re-rendering mid-gesture fights the user), so the local order is updated
+ * here or the switcher keeps showing the old one until a reload.
+ *
+ * @returns {boolean} false when it was already first, or is not in the list.
+ */
+function setDefaultProject(projectPath) {
+  const index = projects.findIndex(p => p.path === projectPath);
+  if (index <= 0) return false;
+  const [moved] = projects.splice(index, 1);
+  projects.unshift(moved);
+  ipcRenderer.send(IPC.REORDER_WORKSPACE_PROJECTS, projects.map(p => p.path));
+  if (switcherHooks.refresh) switcherHooks.refresh();
+  return true;
+}
+
+/**
  * Confirmation + removal (also offered as the × in the switcher menu).
  */
 function confirmRemoveProject(projectPath, projectName) {
@@ -243,6 +277,7 @@ const WORKSPACE_NAV_GROUPS = [
     label: 'Work',
     items: [
       { view: 'terminals', icon: '›_', label: 'Terminals', open: ui => ui.showTerminals(), surfaces: ['terminals'] },
+      { view: 'orchestrator', icon: '⚙', label: 'Orchestration', open: () => require('./orchestrator').open(), surfaces: ['section:orchestrator'] },
       { view: 'github', icon: '◇', label: 'GitHub', open: ui => ui.togglePanel('github'), surfaces: ['panel:github'] },
       { view: 'claude', icon: '✦', label: 'Claude', open: ui => ui.togglePanel('claude'), surfaces: ['panel:claude'] }
     ]
@@ -306,6 +341,7 @@ function buildWorkspaceNav() {
             <span class="workspace-nav-label">${item.label}</span>
             <span class="workspace-nav-right">
               ${item.view === 'terminals' ? '<span class="workspace-nav-agents" style="display:none"></span>' : ''}
+              ${item.view === 'orchestrator' ? '<span class="workspace-nav-running" style="display:none" title="A conductor session is running">running</span>' : ''}
               ${item.view === 'terminals' || item.count ? `<span class="workspace-nav-count" data-count="${item.view}"></span>` : ''}
             </span>
           </div>`).join('')}
@@ -359,6 +395,7 @@ function refreshWorkspaceNav() {
   if (!workspaceNavEl || !workspaceNavEl.isConnected) return;
   let count = 0;
   let agents = 0;
+  let waiting = { approval: 0, input: 0 };
   let surface = '';
   try {
     const ui = require('./terminal').getMultiTerminalUI();
@@ -368,6 +405,11 @@ function refreshWorkspaceNav() {
       const terminals = manager.getTerminalsByProject(activeProjectPath);
       count = terminals.length;
       agents = terminals.filter(t => laneStatus.getStatus(t.id).agentName).length;
+      // Same tally the project badges and the status bar slot use (D8) —
+      // computed here rather than read from agentStatusMap so the chip is
+      // never a frame behind its own laneStatus.onChange.
+      waiting = require('./projectStatusBadges').computeCounts(terminals)
+        .get(activeProjectPath) || waiting;
       surface = ui.getActiveSurface ? ui.getActiveSurface() : manager.viewMode;
     }
   } catch (_) { /* terminal UI not initialized yet */ }
@@ -389,10 +431,33 @@ function refreshWorkspaceNav() {
     el.querySelector('.workspace-nav-group-header')
       .classList.toggle('on', holdsActive && el.classList.contains('collapsed'));
   });
+  // The ◆ chip counts this project's running agents and, from here on, says
+  // when one of them is waiting — the gap it closes is an agent blocked on
+  // approval while you are off on Specs, Tasks, Decisions or a panel. Colour
+  // and symbol come from the shared vocabulary, so the sidebar and the status
+  // bar say the same thing at two different scopes (§5c, §7).
+  const laneStatus = require('./laneStatus');
+  const attention = waiting.approval ? 'agent-approval' : waiting.input ? 'agent-input' : null;
+  const mark = attention ? laneStatus.attentionMark(attention) : '';
   const agentsEl = termItem.querySelector('.workspace-nav-agents');
   agentsEl.style.display = agents > 0 ? '' : 'none';
-  agentsEl.textContent = `◆ ${agents}`;
-  agentsEl.title = `${agents} agent${agents > 1 ? 's' : ''} running`;
+  agentsEl.className = `workspace-nav-agents${attention ? ` ${attention}` : ''}`;
+  agentsEl.textContent = `◆ ${agents}${mark ? ` ${mark}` : ''}`;
+  agentsEl.title = [
+    `${agents} agent${agents === 1 ? '' : 's'} running`,
+    waiting.approval ? `${waiting.approval} needs approval` : null,
+    waiting.input ? `${waiting.input} awaiting input` : null
+  ].filter(Boolean).join(' · ');
+
+  const orchEl = workspaceNavEl.querySelector('.workspace-nav-running');
+  if (orchEl) {
+    let orchActive = false;
+    try {
+      const orchestrator = require('./orchestrator');
+      orchActive = !!(orchestrator.isActive && orchestrator.isActive());
+    } catch (_) { /* orchestrator not loaded yet */ }
+    orchEl.style.display = orchActive ? '' : 'none';
+  }
 
   workspaceNavEl.querySelector('[data-count="specs"]').textContent = String(navSpecsCount);
   workspaceNavEl.querySelector('[data-count="tasks"]').textContent = String(navTasksCount);
@@ -419,6 +484,8 @@ module.exports = {
   setActiveProject,
   getActiveProject,
   getProjects,
+  isDefaultProject,
+  setDefaultProject,
   getAgentStatus,
   addProject,
   removeProject,
