@@ -5760,13 +5760,13 @@
       "title": "Create `src/renderer/home/homeData.js` — the single subscription layer owning all six sources (`lanes`, `specs`, `tasks`, `git`, `sessions`, `aiTool`) behind the init-once guard, exposing `subscribe`/`get`/`refresh`, with the `!malformed` spec filter living in the `specs` source",
       "description": "",
       "source": "spec:home-widget-board:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T10:57:40.968Z",
+      "completedAt": "2026-08-27T10:57:40.968Z"
     },
     {
       "id": "task-spec-home-widget-board-T02",

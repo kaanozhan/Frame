@@ -5509,6 +5509,116 @@
         "emits": []
       }
     },
+    "renderer/home/homeData": {
+      "file": "src/renderer/home/homeData.js",
+      "description": "Home Data Layer — the board's one and only subscription set.",
+      "exports": [
+        "SOURCES",
+        "init",
+        "get",
+        "subscribe",
+        "refresh",
+        "setHostState",
+        "getProjectPath",
+        "reloadSessions",
+        "setAiTool"
+      ],
+      "depends": [
+        "electron",
+        "../shared/ipcChannels",
+        "../laneStatus",
+        "../agentDispatch"
+      ],
+      "functions": {
+        "assertSource": {
+          "line": 50,
+          "params": [
+            "source"
+          ]
+        },
+        "emit": {
+          "line": 54,
+          "params": [
+            "source"
+          ]
+        },
+        "recomputeLanes": {
+          "line": 66,
+          "purpose": "A terminal on its own says nothing about what it is doing; a status on its"
+        },
+        "init": {
+          "line": 76,
+          "purpose": "Install every subscription, once per renderer. Safe to call repeatedly —"
+        },
+        "filterSpecs": {
+          "line": 119,
+          "params": [
+            "specs"
+          ],
+          "purpose": "A spec whose folder cannot be read is not an active spec, it is a broken"
+        },
+        "setHostState": {
+          "line": 131,
+          "params": [
+            "state"
+          ],
+          "purpose": "The host's render state, pushed in on every board update. Only the board"
+        },
+        "getProjectPath": {
+          "line": 154,
+          "purpose": "The project every project-scoped source is currently reading."
+        },
+        "get": {
+          "line": 158,
+          "params": [
+            "source"
+          ]
+        },
+        "subscribe": {
+          "line": 164,
+          "params": [
+            "source",
+            "cb"
+          ],
+          "purpose": "Subscribe to one source. Returns the unsubscribe."
+        },
+        "refresh": {
+          "line": 175,
+          "params": [
+            "source"
+          ],
+          "purpose": "Ask a source to re-read. `lanes` and `git` are push-only — they arrive"
+        },
+        "reloadSessions": {
+          "line": 217,
+          "purpose": "Re-scan the transcripts rather than serving the cache — what the panel's"
+        },
+        "loadSessions": {
+          "line": 222,
+          "params": [
+            "channel"
+          ]
+        },
+        "setAiTool": {
+          "line": 245,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "Switch the active AI tool. Lives here rather than in the widget because a"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GIT_STATUS_DATA",
+          "SPEC_DATA",
+          "TASKS_DATA",
+          "AI_TOOL_CHANGED"
+        ],
+        "emits": [
+          "LOAD_TASKS"
+        ]
+      }
+    },
     "renderer/htmlUtils": {
       "file": "src/renderer/htmlUtils.js",
       "description": "HTML Utils",
