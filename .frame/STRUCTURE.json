@@ -5684,7 +5684,8 @@
       "file": "src/renderer/healthNotice.js",
       "description": "Health Notice Banner",
       "exports": [
-        "init"
+        "init",
+        "showMigration"
       ],
       "depends": [
         "electron",
@@ -5692,17 +5693,24 @@
       ],
       "functions": {
         "init": {
-          "line": 18
+          "line": 25
         },
         "show": {
-          "line": 38,
+          "line": 45,
           "params": [
             "kind",
             "message"
           ]
         },
         "dismiss": {
-          "line": 70
+          "line": 81
+        },
+        "showMigration": {
+          "line": 102,
+          "params": [
+            "migration"
+          ],
+          "purpose": "The layout migration's one-liner: the receipt of a move the user never"
         }
       },
       "ipc": {
@@ -8347,6 +8355,7 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
+        "healthNotice",
         "migrationModal"
       ],
       "functions": {

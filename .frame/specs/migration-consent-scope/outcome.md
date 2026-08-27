@@ -90,3 +90,18 @@ banner names the files from the receipt it already holds.
 _Captured: 2026-08-27 · 3 file change(s)_
 
 ---
+## T07 — The move reports itself on the banner
+
+Added an informational variant to `health-notice.css` (the same banner in
+`--info`, with the text allowed to wrap) and `showMigration(migration)` to
+`healthNotice.js`, rendering the receipt — count, backup directory, the
+removed symlinks by name, a restored `CLAUDE.md`, a partial run's `failedAt`,
+the review count — or the blocked case naming the merge. The icon and ARIA
+role now follow the kind, so a receipt announces as `status`, not `alert`.
+`state.js` passes `migration` through from `IS_FRAME_PROJECT_RESULT`.
+Wrapping is enabled for this variant alone: the shared one-line ellipsis would
+hide the backup path, which is the one thing the receipt exists to carry.
+
+_Captured: 2026-08-27 · 3 file change(s)_
+
+---

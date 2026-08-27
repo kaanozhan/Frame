@@ -442,9 +442,13 @@ function setupIPC() {
     // Terminal session switching is now handled by setProjectPath via multiTerminalUI
   });
 
-  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame, layout }) => {
+  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame, layout, migration }) => {
     if (projectPath === currentProjectPath) {
       setIsFrameProject(isFrame);
+      // The open already moved this project's Frame-owned files, or decided
+      // it could not. Either way the user is told rather than asked — the
+      // banner is the receipt, and the activity panel keeps it.
+      require('./healthNotice').showMigration(migration);
       // A project still carrying Frame's old root layout gets the offer to
       // move it into .frame/ — once per session, and only for the project
       // the user is actually looking at.

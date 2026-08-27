@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T15:19:50.708Z",
+  "lastUpdated": "2026-08-27T15:21:34.114Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6059,13 +6059,13 @@
       "title": "Add an informational variant to `src/renderer/styles/components/health-notice.css` and a `showMigration()` export to `src/renderer/healthNotice.js` that renders the receipt (count, backup directory, removed symlinks, review count, and a partial run's `failedAt`) or the blocked case naming the merge, and call it from `state.js`'s `IS_FRAME_PROJECT_RESULT` handler.",
       "description": "",
       "source": "spec:migration-consent-scope:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T15:21:34.114Z",
+      "completedAt": "2026-08-27T15:21:34.114Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T08",
