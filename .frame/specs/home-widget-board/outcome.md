@@ -135,3 +135,18 @@ instead of a race with the clock.
 _Captured: 2026-08-27 · 2 file change(s)_
 
 ---
+## T10 — The Last Sessions widget
+
+Added `home/widgets/lastSessions.js`, registered second: three rows carrying
+title, relative time, message count and branch, each resuming through
+`agentDispatch.resumeClaudeSession` — which validates the UUID before it
+reaches a command line and opens its own terminal (C4) — with `notify.error`
+on anything it cannot report itself (C7). `isAvailable()` returns false under a
+non-Claude default tool, and true while the tool config is still in flight:
+hiding a card while waiting on IPC is worse than showing one the next visit
+removes. The footer calls `pluginsPanel.show()` with no argument, because that
+function takes no tab; the row carries no Claude chip, as the user asked.
+
+_Captured: 2026-08-27 · 3 file change(s)_
+
+---

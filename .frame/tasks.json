@@ -5877,13 +5877,13 @@
       "title": "Create `src/renderer/home/widgets/lastSessions.js` — title, relative time, message count and branch per row, resume routed through `resumeClaudeSession`, `isAvailable()` returning false under a non-Claude default tool, and failures routed to `notify.error(...)`",
       "description": "",
       "source": "spec:home-widget-board:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T12:07:30.350Z",
+      "completedAt": "2026-08-27T12:07:30.350Z"
     },
     {
       "id": "task-spec-home-widget-board-T11",

@@ -1378,3 +1378,31 @@
   border-color: var(--accent-primary);
   color: var(--accent-primary);
 }
+
+/* ─── Session rows ──────────────────────────────────────── */
+/* A session's title is the row; when it ran, how long it got and which
+   branch it was on are the quiet second line under it. */
+
+.session-row {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.session-row .home-card-row-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.home-session-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+}

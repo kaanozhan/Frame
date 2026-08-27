@@ -5646,6 +5646,7 @@
       ],
       "depends": [
         "widgets/agents",
+        "widgets/lastSessions",
         "widgets/activeSpecs",
         "widgets/activeTasks"
       ],
@@ -5856,6 +5857,30 @@
         "../agentRows",
         "../widgetShell",
         "../../agentDispatch"
+      ],
+      "functions": {}
+    },
+    "renderer/home/widgets/lastSessions": {
+      "file": "src/renderer/home/widgets/lastSessions.js",
+      "description": "Last Sessions widget.",
+      "exports": [
+        "id",
+        "title",
+        "icon",
+        "sources",
+        "defaultSpan",
+        "defaultEnabled",
+        "/**\n   * Not mounted under a non-Claude default tool. When the config has not\n   * arrived yet the widget is shown"
+      ],
+      "depends": [
+        "lucide",
+        "../../htmlUtils",
+        "../../notify",
+        "../homeData",
+        "../sessionRows",
+        "../widgetShell",
+        "../../agentDispatch",
+        "../../pluginsPanel"
       ],
       "functions": {}
     },
