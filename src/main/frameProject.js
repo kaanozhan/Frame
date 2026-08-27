@@ -1171,44 +1171,137 @@ function removeHookSnippet(projectPath) {
 }
 
 /**
+ * Everything a project open does to the project, in the order that makes the
+ * order safe.
+ *
+ * The rule the sequence enforces: nothing is written to a project whose
+ * layout question is still open. A legacy project used to be read, staged and
+ * doc-upgraded *before* anything asked whether it should move — which dirtied
+ * `AGENTS.md`, which then made the migration refuse to run, which is the
+ * deadlock this exists to end. So the migration goes first, and either it
+ * completes (and the stagers run against the new layout) or it is blocked
+ * (and nothing runs at all).
+ *
+ * Returns what `IS_FRAME_PROJECT_RESULT` carries: the layout after the open,
+ * and a `migration` field holding the receipt, the blocked report, or null.
+ */
+async function openProjectLayout(projectPath, hooks = {}) {
+  const isFrame = isFrameProject(projectPath);
+  if (!isFrame) return { isFrame: false, layout: 'none', migration: null };
+
+  let migration = null;
+
+  if (frameStore.isLegacyLayout(projectPath)) {
+    const migrationPlan = layoutMigration.plan(projectPath);
+
+    if (migrationPlan && !migrationPlan.canRun) {
+      // The one case that writes nothing: an unmerged path. No stager, no
+      // syncClaudeRule, no doc upgrade — the project comes out of the open
+      // byte-for-byte as it went in, and the reason names the merge.
+      return {
+        isFrame: true,
+        layout: 'legacy',
+        migration: { ran: false, blocked: 'unmerged', unmerged: migrationPlan.unmerged }
+      };
+    }
+
+    if (migrationPlan) {
+      try {
+        migration = layoutMigration.run(projectPath, migrationPlan, hooks.onProgress || (() => {}));
+      } catch (err) {
+        // run() contains its own failures; anything reaching here happened
+        // around them. An open never fails over it.
+        console.error('[frame] layout migration failed on open:', err);
+        migration = { ran: false, reason: 'error', error: err.message, moved: [], backedUp: [], review: [] };
+      }
+    }
+  }
+
+  // `.frame/bin` is committed, so a checkout can carry scripts older than
+  // the running Frame — a clone, a linked worktree, a teammate's commit.
+  // Both stagers are copy-if-changed, so an up-to-date project is read,
+  // compared and left alone. Non-fatal, all of it.
+  try {
+    structureBootstrap.copyParserScripts(projectPath);
+  } catch (err) {
+    console.warn('[frame] could not refresh .frame/bin (non-fatal):', err.message);
+  }
+  try {
+    commandStaging.stageCommandFiles(projectPath);
+  } catch (err) {
+    console.warn('[frame] could not refresh the staged commands (non-fatal):', err.message);
+  }
+  // Tracked state changes behind Frame's back (a teammate commits .frame/,
+  // the user runs `git rm --cached`), so the sharing mode's side effects
+  // are re-applied every time the project is opened.
+  try {
+    gitSharing.reconcile(projectPath);
+  } catch (err) {
+    console.warn('[frame] could not reconcile the sharing mode (non-fatal):', err.message);
+  }
+  // The artifacts an older Frame never wrote, then the managed sections at
+  // the current generation. 2 before 3: the pointer's target must exist
+  // before anything writes a pointer at it. WATCH_SPECS does this too — a
+  // project that just migrated cannot wait for that message, or it ends the
+  // open with fewer artifacts than an already-migrated one has.
+  try {
+    ensureProjectArtifacts(projectPath);
+    upgradeSpecDocs(projectPath);
+  } catch (err) {
+    console.warn('[frame] could not refresh the project artifacts (non-fatal):', err.message);
+  }
+  // The copy Claude Code reads follows .frame/AGENTS.md, which anything
+  // may have edited since this project was last open.
+  syncClaudeRule(projectPath);
+
+  if (migration && migration.ran) await rearmAfterMigration(projectPath, hooks);
+
+  return {
+    isFrame: true,
+    layout: frameStore.isLegacyLayout(projectPath) ? 'legacy' : 'overlay',
+    migration
+  };
+}
+
+/**
+ * Every meta file just changed address: the watchers are pointed at the
+ * directory they left, and the renderer is showing the old tree. Never
+ * fatal — a stale watcher is a worse open, not a broken project.
+ */
+async function rearmAfterMigration(projectPath, hooks = {}) {
+  try {
+    require('./tasksManager').restartWatching(projectPath);
+  } catch (err) {
+    console.warn('[frame] could not re-arm the tasks watcher after migration:', err.message);
+  }
+  try {
+    require('./specManager').startWatching(projectPath);
+  } catch (err) {
+    console.warn('[frame] could not re-arm the spec watcher after migration:', err.message);
+  }
+  if (typeof hooks.onFileTree !== 'function') return;
+  try {
+    hooks.onFileTree(await require('./fileTree').getFileTree(projectPath));
+  } catch (err) {
+    console.warn('[frame] could not refresh the file tree after migration:', err.message);
+  }
+}
+
+/**
  * Setup IPC handlers
  */
 function setupIPC(ipcMain) {
-  ipcMain.on(IPC.CHECK_IS_FRAME_PROJECT, (event, projectPath) => {
-    const isFrame = isFrameProject(projectPath);
+  ipcMain.on(IPC.CHECK_IS_FRAME_PROJECT, async (event, projectPath) => {
+    const send = (channel, payload) => {
+      if (!event.sender.isDestroyed()) event.sender.send(channel, payload);
+    };
+    const { isFrame, layout, migration } = await openProjectLayout(projectPath, {
+      onProgress: (progress) => send(IPC.LAYOUT_MIGRATION_PROGRESS, progress),
+      onFileTree: (files) => send(IPC.FILE_TREE_DATA, files)
+    });
     workspace.updateProjectFrameStatus(projectPath, isFrame);
-    // `layout` tells the renderer whether this project still carries the
-    // pre-overlay layout, which is what opens the migration modal.
-    const layout = !isFrame ? 'none' : (frameStore.isLegacyLayout(projectPath) ? 'legacy' : 'overlay');
-    if (isFrame) {
-      // `.frame/bin` is committed, so a checkout can carry scripts older than
-      // the running Frame — a clone, a linked worktree, a teammate's commit.
-      // Both stagers are copy-if-changed, so an up-to-date project is read,
-      // compared and left alone. Non-fatal, all of it.
-      try {
-        structureBootstrap.copyParserScripts(projectPath);
-      } catch (err) {
-        console.warn('[frame] could not refresh .frame/bin (non-fatal):', err.message);
-      }
-      try {
-        commandStaging.stageCommandFiles(projectPath);
-      } catch (err) {
-        console.warn('[frame] could not refresh the staged commands (non-fatal):', err.message);
-      }
-      // Tracked state changes behind Frame's back (a teammate commits .frame/,
-      // the user runs `git rm --cached`), so the sharing mode's side effects
-      // are re-applied every time the project is opened.
-      try {
-        gitSharing.reconcile(projectPath);
-      } catch (err) {
-        console.warn('[frame] could not reconcile the sharing mode (non-fatal):', err.message);
-      }
-      // The copy Claude Code reads follows .frame/AGENTS.md, which anything
-      // may have edited since this project was last open.
-      syncClaudeRule(projectPath);
-    }
-    event.sender.send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout });
-    event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
+    send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout, migration });
+    send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
   });
 
   ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed, gitSharing }) => {
@@ -1292,59 +1385,32 @@ function setupIPC(ipcMain) {
     return result;
   });
 
-  // ─── Layout migration ──────────────────────────────────────
-  ipcMain.handle(IPC.GET_LAYOUT_MIGRATION_PLAN, (event, projectPath) => {
-    if (!projectPath || !isFrameProject(projectPath)) return null;
-    return layoutMigration.plan(projectPath);
+  // ─── Migration decisions ───────────────────────────────────
+  //
+  // The move itself no longer has a handler: it happens inside the project
+  // open. What is left here is the half that is genuinely the user's call.
+  ipcMain.handle(IPC.GET_MIGRATION_DECISIONS, (event, projectPath) => {
+    if (!projectPath || !isFrameProject(projectPath)) return [];
+    return layoutMigration.pendingDecisions(projectPath);
   });
 
-  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, async (event, { projectPath }) => {
+  ipcMain.handle(IPC.APPLY_MIGRATION_DECISIONS, (event, { projectPath, decisions }) => {
     if (!projectPath || !isFrameProject(projectPath)) {
-      return { ran: false, reason: 'not a Frame project', moved: [], backedUp: [], review: [] };
+      return { ran: false, reason: 'not a Frame project', applied: [], review: [] };
     }
-
-    let receipt;
     try {
-      receipt = layoutMigration.run(projectPath, null, (progress) => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);
-        }
-      });
+      return layoutMigration.applyDecisions(projectPath, decisions);
     } catch (err) {
-      // run() contains its own failures; anything reaching here happened
-      // around them (planning, the activity log). Say so instead of letting
-      // the invoke reject into a modal that reads "migration did not run".
-      console.error('[frame] layout migration failed:', err);
-      return { ran: false, reason: 'error', error: err.message, moved: [], backedUp: [], review: [] };
+      console.error('[frame] could not apply the migration decisions:', err);
+      return { ran: false, reason: 'error', error: err.message, applied: [], review: [] };
     }
-
-    if (receipt.ran) {
-      // Every meta file just changed address. The watchers are pointed at the
-      // directory they left, and the renderer is showing the old tree.
-      try {
-        require('./tasksManager').restartWatching(projectPath);
-      } catch (err) {
-        console.warn('[frame] could not re-arm the tasks watcher after migration:', err.message);
-      }
-      try {
-        require('./specManager').startWatching(projectPath);
-      } catch (err) {
-        console.warn('[frame] could not re-arm the spec watcher after migration:', err.message);
-      }
-      try {
-        const files = await require('./fileTree').getFileTree(projectPath);
-        if (!event.sender.isDestroyed()) event.sender.send(IPC.FILE_TREE_DATA, files);
-      } catch (err) {
-        console.warn('[frame] could not refresh the file tree after migration:', err.message);
-      }
-    }
-    return receipt;
   });
 }
 
 module.exports = {
   init,
   isFrameProject,
+  openProjectLayout,
   getFrameConfig,
   initializeFrameProject,
   runProjectInit,

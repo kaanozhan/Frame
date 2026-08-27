@@ -126,3 +126,41 @@ test('a collapsed burst is reported with its true count, not as a single fire', 
   assert.match(label, /12 fires collapsed/);
   assert.ok(!events.formatLabel('watch.fired', { watcher: 'specs', changes: 2, collapsed: 1 }).includes('collapsed'));
 });
+
+// ─── layout migration ─────────────────────────────────────
+
+test('a completed migration says where the copies went', () => {
+  const fields = events.validateEvent('migration.completed', {
+    moved: 5, backedUp: 5, review: 0, symlinks: 2, backupDir: '.frame/migration-backup', ms: 42
+  });
+  assert.equal(fields.backupDir, '.frame/migration-backup');
+  assert.equal(fields.symlinks, 2);
+
+  const label = events.formatLabel('migration.completed', fields);
+  assert.match(label, /Moved 5 Frame files into \.frame\//);
+  assert.match(label, /copies are in \.frame\/migration-backup/, 'a move nobody agreed to must say where the backup is');
+  assert.match(label, /removed 2 Frame symlinks/);
+
+  // A run that removed nothing does not claim it did, and one with no backup
+  // directory recorded still reads as a sentence.
+  const noLinks = events.formatLabel('migration.completed', { moved: 1, symlinks: 0, backupDir: '.frame/migration-backup' });
+  assert.match(noLinks, /Moved 1 Frame file into/);
+  assert.ok(!noLinks.includes('symlink'));
+  assert.match(events.formatLabel('migration.completed', { moved: 2 }), /^Moved 2 Frame files into \.frame\/$/);
+});
+
+test('a skipped migration names the merge, and the old reason still reads', () => {
+  assert.equal(events.validateEvent('migration.skipped', { reason: 'unmerged' }).reason, 'unmerged');
+  assert.match(
+    events.formatLabel('migration.skipped', { reason: 'unmerged' }),
+    /unresolved merge/,
+    'the reason names the merge, not "commit or stash"'
+  );
+
+  // Records already on disk carry the reason this replaced; the enum keeps it
+  // so an old row still renders as a sentence rather than a bare code.
+  assert.equal(events.validateEvent('migration.skipped', { reason: 'dirty-tree' }).reason, 'dirty-tree');
+  assert.match(events.formatLabel('migration.skipped', { reason: 'dirty-tree' }), /uncommitted changes/);
+
+  assert.deepEqual(events.validateEvent('migration.skipped', { reason: 'invented' }), {}, 'an undeclared reason is stripped');
+});

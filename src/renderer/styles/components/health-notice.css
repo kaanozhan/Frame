@@ -26,6 +26,14 @@
   border-bottom-color: var(--error);
 }
 
+/* Informational: Frame reporting something it already did, not a degraded
+   state. Same banner, no alarm colour — a migration receipt is news, not a
+   warning. */
+.health-notice.health-notice-info {
+  background: color-mix(in srgb, var(--info) 14%, var(--bg-secondary));
+  border-bottom-color: var(--info);
+}
+
 .health-notice-icon {
   font-size: 13px;
   color: var(--warning);
@@ -36,6 +44,10 @@
   color: var(--error);
 }
 
+.health-notice-info .health-notice-icon {
+  color: var(--info);
+}
+
 .health-notice-text {
   flex: 1;
   min-width: 0;
@@ -43,6 +55,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The receipt names a backup path and possibly two removed symlinks, which
+   is longer than a one-line degraded-state notice. Ellipsising it would hide
+   the one thing the user needs from it. */
+.health-notice-info .health-notice-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .health-notice-close {

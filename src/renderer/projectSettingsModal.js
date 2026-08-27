@@ -36,6 +36,8 @@ let defaultProjectRowEl = null;
 let defaultProjectDescEl = null;
 let defaultProjectChipEl = null;
 let makeDefaultBtnEl = null;
+let migrationDecisionRowEl = null;
+let migrationDecisionBtnEl = null;
 
 function init() {
   specDrivenToggleEl = document.getElementById('settings-spec-driven-toggle');
@@ -48,9 +50,23 @@ function init() {
   defaultProjectDescEl = document.getElementById('settings-default-project-desc');
   defaultProjectChipEl = document.getElementById('settings-default-project-chip');
   makeDefaultBtnEl = document.getElementById('settings-make-default');
+  migrationDecisionRowEl = document.getElementById('settings-migration-decision-row');
+  migrationDecisionBtnEl = document.getElementById('settings-migration-decision');
 
   overlay = settingsOverlay.create('project-settings-overlay', syncFromProject);
   if (!overlay) return;
+
+  // The way back into a deferred decision. Nothing else reopens it — before
+  // this row, closing the modal made the question unreachable without
+  // restarting the app.
+  if (migrationDecisionBtnEl) {
+    migrationDecisionBtnEl.addEventListener('click', () => {
+      const projectPath = state.getProjectPath();
+      if (!projectPath) return;
+      overlay.close();
+      require('./migrationModal').offer(projectPath, { force: true });
+    });
+  }
 
   // Spec-Driven Development: per-project flag in .frame/config.json, not a
   // user preference — main writes the config and AGENTS.md section. On
@@ -173,6 +189,22 @@ async function syncFromProject() {
   syncDefaultProject();
   await syncSpecDrivenToggle();
   await syncGitSharing();
+  await syncMigrationDecision();
+}
+
+/**
+ * Shown only while this project still has something to answer. The decision
+ * derives itself from AGENTS.md's text, so applying it empties the row on the
+ * next open — nothing has to be cleared by hand.
+ */
+async function syncMigrationDecision() {
+  if (!migrationDecisionRowEl) return;
+  const projectPath = state.getProjectPath();
+  let pending = false;
+  if (projectPath) {
+    pending = await require('./migrationModal').hasPendingDecisions(projectPath);
+  }
+  migrationDecisionRowEl.style.display = pending ? '' : 'none';
 }
 
 /**

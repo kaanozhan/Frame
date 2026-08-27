@@ -1182,6 +1182,14 @@ function startWatching(projectPath) {
   // from scratch and re-sends it.
   lastSpecPayloadJson = '';
   busySpecSlugs.clear();
+  // A project whose layout question is still open gets nothing written to it,
+  // this directory included. `openProjectLayout` either settles the question
+  // or leaves the project alone; until it has, creating `.frame/specs/` here
+  // would be exactly the pre-consent write the overlay promised not to make —
+  // and it arrives by whichever IPC message the renderer happens to send
+  // first, which is why the gate lives here and not only in the open path.
+  if (frameStore.isLegacyLayout(projectPath)) return;
+
   const root = getSpecsRoot(projectPath);
   // Ensure the directory exists so fs.watch doesn't throw on a fresh project
   try {
@@ -1342,6 +1350,12 @@ function setupIPC(ipcMain) {
     // synchronous block instead of two IPC messages racing.
     //
     // Never breaks watching.
+    //
+    // Skipped entirely while the layout is unsettled: step 3 resolves its
+    // target through frameStore, which for an unmigrated project is the
+    // *root* AGENTS.md — writing there before the move is what dirtied the
+    // file and then made the migration refuse to run.
+    if (frameStore.isLegacyLayout(projectPath)) return;
     try {
       commandStaging.stageCommandFiles(projectPath);
       frameProject.ensureProjectArtifacts(projectPath);
