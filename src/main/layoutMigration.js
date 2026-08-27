@@ -1,10 +1,12 @@
 /**
  * layoutMigration — move a pre-overlay project's meta files into `.frame/`
  *
- * Only ever with consent: `plan()` is pure (it reads, it never writes) so the
- * modal can show exactly what will happen, and `run()` executes a plan the
- * user clicked through. "Later" leaves the project untouched and working —
- * frameStore's legacy fallback keeps reading the root files.
+ * Two halves, split by who owns the file. `plan()` / `run()` are the automatic
+ * half: Frame's own meta files relocate, backed up and byte-verified, and the
+ * user is told afterwards rather than asked beforehand. `applyDecisions()` is
+ * the asked half — the one thing that is genuinely the user's call, rewriting
+ * their `AGENTS.md` prose. `plan()` stays pure (it reads, it never writes) so
+ * the automatic half can be described before it runs.
  *
  * The fingerprint is deliberately narrow: `config.files` (Frame's own init
  * signature) **and** at least one listed file at the project root. A
@@ -405,18 +407,11 @@ function execute(projectPath, activePlan, onProgress, state) {
     }
   }
 
-  // 3. AGENTS.md now resolves to .frame/ — point its own prose there too.
-  state.step = 'agents';
-  const agentsText = frameStore.readAgents(projectPath);
-  const upgraded = upgradeAgentsText(agentsText);
-  if (upgraded.text && upgraded.text !== agentsText) {
-    frameStore.writeAgents(projectPath, upgraded.text);
-  }
-  for (const item of upgraded.review) {
-    review.push(`AGENTS.md: could not find ${item} — check it by hand`);
-  }
+  // AGENTS.md's own prose still points at the root paths, and it is the user's
+  // file — rewriting it is `applyDecisions`' job, behind a click. The move
+  // above carried its bytes across untouched.
 
-  // 4. The pointer, the identity, and the end of the fingerprint.
+  // 3. The pointer, the identity, and the end of the fingerprint.
   state.step = 'pointer';
   onProgress({ step: 'pointer', detail: CLAUDE_RULE_PATH });
   require('./frameProject').syncClaudeRule(projectPath);
@@ -428,7 +423,7 @@ function execute(projectPath, activePlan, onProgress, state) {
   config.settings.gitSharing = activePlan.sharingMode;
   frameStore.writeConfig(projectPath, config);
 
-  // 5. Hook entries: replace the old unguarded commands with the guarded ones
+  // 4. Hook entries: replace the old unguarded commands with the guarded ones
   //    in the file this sharing mode uses.
   state.step = 'hooks';
   onProgress({ step: 'hooks', detail: gitSharing.hookFileFor(activePlan.sharingMode) });
@@ -438,7 +433,7 @@ function execute(projectPath, activePlan, onProgress, state) {
   }
   frameProject.installSpecHintHook(projectPath, { file: gitSharing.hookFileFor(activePlan.sharingMode) });
 
-  // 6. Sharing posture + a refreshed set of staged scripts (the old copies
+  // 5. Sharing posture + a refreshed set of staged scripts (the old copies
   //    resolve their project as `.frame/`, which is the bug T03 fixed).
   state.step = 'sharing';
   onProgress({ step: 'sharing', detail: activePlan.sharingMode });
@@ -510,10 +505,48 @@ function run(projectPath, migrationPlan, onProgress = () => {}) {
   return receipt();
 }
 
+/**
+ * Apply the decisions the user clicked through — today exactly one, the
+ * `AGENTS.md` prose rewrite that `execute()` deliberately does not do.
+ * `AGENTS.md` is the user's file: the automatic half moves its bytes, and
+ * nothing rewrites them without a yes.
+ *
+ * Returns a receipt in run()'s shape so one renderer path can show either.
+ */
+function applyDecisions(projectPath, decisions = []) {
+  const kinds = new Set(
+    (decisions || [])
+      .map((d) => (typeof d === 'string' ? d : d && d.kind))
+      .filter(Boolean)
+  );
+
+  const review = [];
+  const applied = [];
+
+  if (kinds.has('agents-prose')) {
+    const agentsText = frameStore.readAgents(projectPath);
+    const upgraded = upgradeAgentsText(agentsText);
+    if (upgraded.text && upgraded.text !== agentsText) {
+      frameStore.writeAgents(projectPath, upgraded.text);
+      applied.push('agents-prose');
+      // The generated copy Claude Code reads is stale the moment AGENTS.md
+      // changes, so it is refreshed here and nowhere else — a rewrite that
+      // did not happen leaves the copy alone.
+      require('./frameProject').syncClaudeRule(projectPath);
+    }
+    for (const item of upgraded.review) {
+      review.push(`AGENTS.md: could not find ${item} — check it by hand`);
+    }
+  }
+
+  return { ran: applied.length > 0, applied, review, moved: [], backedUp: [] };
+}
+
 module.exports = {
   init,
   plan,
   run,
+  applyDecisions,
   // exported for tests and for the receipt's prose
   extractClaudeBlock,
   upgradeAgentsText,

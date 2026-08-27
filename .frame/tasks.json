@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T14:18:54.152Z",
+  "lastUpdated": "2026-08-27T14:21:56.535Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5994,13 +5994,13 @@
       "title": "Take the `AGENTS.md` prose rewrite out of `execute()` in `src/main/layoutMigration.js` so the automatic half moves the file byte-for-byte, add `applyDecisions(projectPath, decisions)` carrying that removed step alone (`upgradeAgentsText` → `frameStore.writeAgents` → `syncClaudeRule`), and test that the move leaves `AGENTS.md`'s bytes intact, the backup-verify-unlink order is unchanged, and a second run finds nothing to do.",
       "description": "",
       "source": "spec:migration-consent-scope:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T14:21:56.535Z",
+      "completedAt": "2026-08-27T14:21:56.535Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T03",

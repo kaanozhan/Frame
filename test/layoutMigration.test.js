@@ -243,11 +243,10 @@ test('a full run moves every file, backs it up byte-equal, and clears the finger
     assert.ok(!fs.existsSync(path.join(projectDir, name)), `${name} left the project root`);
     const backup = fs.readFileSync(path.join(projectDir, FRAME_DIR, 'migration-backup', name));
     assert.ok(backup.equals(content), `${name} backup is byte-equal`);
-    if (name !== 'AGENTS.md') {
-      // AGENTS.md is deliberately edited after the move; the rest are verbatim.
-      const moved = fs.readFileSync(path.join(projectDir, FRAME_DIR, name));
-      assert.ok(moved.equals(content), `${name} arrived byte-equal`);
-    }
+    // Every file, AGENTS.md included: the automatic half relocates bytes and
+    // rewrites nothing. The prose edit is a decision, not a move.
+    const moved = fs.readFileSync(path.join(projectDir, FRAME_DIR, name));
+    assert.ok(moved.equals(content), `${name} arrived byte-equal`);
   }
 
   assert.equal(frameStore.readConfig(projectDir).files, undefined, 'fingerprint cleared');
@@ -274,9 +273,16 @@ test('no consumed block means no CLAUDE.md is invented', () => {
   assert.ok(!fs.existsSync(path.join(projectDir, 'CLAUDE.md')), 'symlink removed, nothing put back');
 });
 
-test('AGENTS.md gets targeted line edits and reports what it could not find', () => {
+test('the move leaves AGENTS.md alone; applyDecisions is what rewrites it', () => {
   projectDir = makeLegacyProject({ commit: true });
+  const before = fs.readFileSync(path.join(projectDir, 'AGENTS.md'), 'utf8');
+
   layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
+  assert.equal(frameStore.readAgents(projectDir), before, 'the automatic half moved bytes, not prose');
+
+  const receipt = layoutMigration.applyDecisions(projectDir, [{ kind: 'agents-prose' }]);
+  assert.equal(receipt.ran, true);
+  assert.deepEqual(receipt.applied, ['agents-prose']);
 
   const agents = frameStore.readAgents(projectDir);
   assert.match(agents, /1\. \*\*`\.frame\/STRUCTURE\.json`\*\*/);
@@ -285,9 +291,25 @@ test('AGENTS.md gets targeted line edits and reports what it could not find', ()
   assert.ok(!/A `CLAUDE\.md` symlink is provided/.test(agents), 'symlink note replaced');
   assert.match(agents, /## Existing Instructions \(from CLAUDE\.md\)/, 'user content in AGENTS.md survives');
 
-  const custom = layoutMigration.upgradeAgentsText('# My own file\n\nNothing Frame wrote.\n');
-  assert.ok(custom.review.length > 0, 'a customised file is left alone and listed for review');
-  assert.equal(custom.text, '# My own file\n\nNothing Frame wrote.\n');
+  // Applying it twice changes nothing more — the second pass finds the text
+  // already upgraded and writes nothing.
+  const again = layoutMigration.applyDecisions(projectDir, ['agents-prose']);
+  assert.equal(again.ran, false);
+  assert.equal(frameStore.readAgents(projectDir), agents);
+});
+
+test('applyDecisions leaves a customised AGENTS.md alone and lists it for review', () => {
+  projectDir = makeLegacyProject({ commit: true });
+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
+  frameStore.writeAgents(projectDir, '# My own file\n\nNothing Frame wrote.\n');
+
+  const receipt = layoutMigration.applyDecisions(projectDir, [{ kind: 'agents-prose' }]);
+  assert.equal(receipt.ran, false, 'no line matched, so nothing was written');
+  assert.ok(receipt.review.length > 0, 'and every line it could not find is named');
+  assert.equal(frameStore.readAgents(projectDir), '# My own file\n\nNothing Frame wrote.\n');
+
+  // An empty decision list is a no-op, whatever the project looks like.
+  assert.deepEqual(layoutMigration.applyDecisions(projectDir, []).applied, []);
 });
 
 test('a conflicting .frame/ copy is backed up, never overwritten', () => {

@@ -2027,6 +2027,7 @@
         "init",
         "plan",
         "run",
+        "applyDecisions",
         "upgradeAgentsText",
         "isFramePlantedSymlink",
         "isUnusableCopy",
@@ -2047,83 +2048,83 @@
       ],
       "functions": {
         "init": {
-          "line": 43,
+          "line": 45,
           "params": [
             "{ activityLog"
           ]
         },
         "record": {
-          "line": 47,
+          "line": 49,
           "params": [
             "event",
             "fields"
           ]
         },
         "git": {
-          "line": 55,
+          "line": 57,
           "params": [
             "projectPath",
             "args"
           ]
         },
         "legacyNames": {
-          "line": 70,
+          "line": 72,
           "params": [
             "config"
           ],
           "purpose": "The meta names this project's config claims, in a stable order."
         },
         "sameBytes": {
-          "line": 77,
+          "line": 79,
           "params": [
             "a",
             "b"
           ]
         },
         "readRootAgents": {
-          "line": 92,
+          "line": 94,
           "params": [
             "projectPath"
           ],
           "purpose": "The AGENTS.md a *legacy* init wrote, which is the one at the project root —"
         },
         "isUnusableCopy": {
-          "line": 106,
+          "line": 108,
           "params": [
             "file"
           ],
           "purpose": "A `.frame/` counterpart that cannot be what the project meant to keep: an"
         },
         "isFramePlantedSymlink": {
-          "line": 128,
+          "line": 130,
           "params": [
             "file"
           ],
           "purpose": "Is this a Frame-planted symlink? Only when it is a symlink whose target's"
         },
         "extractClaudeBlock": {
-          "line": 142,
+          "line": 144,
           "params": [
             "agentsText"
           ],
           "purpose": "The `## Existing Instructions (from CLAUDE.md)` block old inits appended to"
         },
         "isUnmergedCode": {
-          "line": 169,
+          "line": 171,
           "params": [
             "code"
           ],
           "purpose": "Files in an unmerged state — the only dirtiness that can actually lose"
         },
         "unmergedAmong": {
-          "line": 175,
+          "line": 177,
           "params": [
             "projectPath",
             "relPaths"
           ]
         },
         "trackedAmong": {
-          "line": 200,
+          "line": 202,
           "params": [
             "projectPath",
             "relPaths"
@@ -2131,27 +2132,27 @@
           "purpose": "Which of these paths git already tracks (decides the sharing posture)."
         },
         "plan": {
-          "line": 224,
+          "line": 226,
           "params": [
             "projectPath"
           ],
           "purpose": "Describe what migrating this project would do. Pure: no writes, no git"
         },
         "copyVerified": {
-          "line": 281,
+          "line": 283,
           "params": [
             "from",
             "to"
           ]
         },
         "upgradeAgentsText": {
-          "line": 315,
+          "line": 317,
           "params": [
             "text"
           ]
         },
         "execute": {
-          "line": 344,
+          "line": 346,
           "params": [
             "projectPath",
             "activePlan",
@@ -2161,13 +2162,21 @@
           "purpose": "The steps themselves, in order, writing what happened into `state`. Split"
         },
         "run": {
-          "line": 463,
+          "line": 458,
           "params": [
             "projectPath",
             "migrationPlan",
             "onProgress = ("
           ],
           "purpose": "Execute a plan. Reports progress through `onProgress({ step, detail })` and"
+        },
+        "applyDecisions": {
+          "line": 516,
+          "params": [
+            "projectPath",
+            "decisions = []"
+          ],
+          "purpose": "Apply the decisions the user clicked through — today exactly one, the"
         }
       }
     },
