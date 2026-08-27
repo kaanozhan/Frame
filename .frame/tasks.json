@@ -5838,13 +5838,13 @@
       "title": "Create `src/renderer/home/widgets/agents.js` — rows enter their lane on click, the empty state is the launcher, the tool choice reads and writes through `aiToolSelector`'s existing exports plus `SET_AI_TOOL`, and every failure routes to `notify.error(...)`",
       "description": "",
       "source": "spec:home-widget-board:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T12:03:16.300Z",
+      "completedAt": "2026-08-27T12:03:16.300Z"
     },
     {
       "id": "task-spec-home-widget-board-T08",

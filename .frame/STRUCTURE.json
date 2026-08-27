@@ -5645,19 +5645,20 @@
         "sourcesFor"
       ],
       "depends": [
+        "widgets/agents",
         "widgets/activeSpecs",
         "widgets/activeTasks"
       ],
       "functions": {
         "resolveLayout": {
-          "line": 56,
+          "line": 57,
           "params": [
             "ctx"
           ],
           "purpose": "Which widgets to mount, in which order, with the span each one gets."
         },
         "sourcesFor": {
-          "line": 64,
+          "line": 65,
           "params": [
             "layout"
           ],
@@ -5784,6 +5785,36 @@
         "../../taskSection",
         "../../tasksPanel",
         "../../specsDashboard"
+      ],
+      "functions": {}
+    },
+    "renderer/home/widgets/agents": {
+      "file": "src/renderer/home/widgets/agents.js",
+      "description": "Agents widget.",
+      "exports": [
+        "id",
+        "title",
+        "icon",
+        "sources",
+        "'aiTool']",
+        "defaultSpan",
+        "defaultEnabled",
+        "isAvailable",
+        "mount(el",
+        "ctx) {\n    this.ctx = ctx;\n    this.card = widgetShell({\n      id",
+        "icon",
+        "title",
+        "and\n      // a chevron that leads to the Terminals section would be a lie.\n      onOpen"
+      ],
+      "depends": [
+        "lucide",
+        "../../htmlUtils",
+        "../../notify",
+        "../../laneStatus",
+        "../homeData",
+        "../agentRows",
+        "../widgetShell",
+        "../../agentDispatch"
       ],
       "functions": {}
     },

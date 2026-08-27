@@ -90,3 +90,19 @@ and the suite stops loading (C8).
 _Captured: 2026-08-27 · 2 file change(s)_
 
 ---
+## T07 — The Agents widget
+
+Added `home/widgets/agents.js`, registered first in the layout: rows from
+`agentRows` enter their lane on click, and the card footer carries the tool
+`<select>` plus Start — always, not only when empty, since the point of taking
+it off the top bar (G8) is that it stays reachable while agents run. Divergence
+from D5: the widget reads the tool from `homeData`'s `aiTool` source and writes
+through `homeData.setAiTool` instead of invoking `SET_AI_TOOL` itself, because
+D3/S6 forbid a widget touching `ipcRenderer` — `aiToolSelector` is still
+unchanged and still owns `currentTool`. Start reuses
+`agentDispatch.startDefaultAgent`; a rejected tool switch reverts the select
+and calls `notify.error` (C7).
+
+_Captured: 2026-08-27 · 3 file change(s)_
+
+---

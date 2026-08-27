@@ -1334,3 +1334,47 @@
   margin-left: 16px;
 }
 
+
+/* ─── Agents launcher ───────────────────────────────────── */
+/* The footer the top bar gave up: the tool choice next to Start, where the
+   card has the width for both. It replaces the single action button, so it
+   borrows .home-card-action's border and padding and only overrides the
+   parts that differ — two controls instead of one label. */
+
+.home-agent-launcher {
+  justify-content: stretch;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: default;
+}
+
+.home-agent-launcher:hover {
+  background: none;
+  color: var(--text-secondary);
+}
+
+.home-agent-launcher .home-agent-tool {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.home-agent-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-agent-start:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}

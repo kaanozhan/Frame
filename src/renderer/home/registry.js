@@ -39,10 +39,11 @@
 /**
  * The board's reading order, top-left to bottom-right.
  *
- * `agents` and `lastSessions` join ahead of these two as they land; a fifth
- * widget is one file plus one line here (S5).
+ * `lastSessions` joins as it lands; a fifth widget is one file plus one line
+ * here (S5).
  */
 const WIDGETS = [
+  require('./widgets/agents'),
   require('./widgets/activeSpecs'),
   require('./widgets/activeTasks')
 ];
