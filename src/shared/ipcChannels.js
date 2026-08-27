@@ -202,8 +202,8 @@ const IPC = {
   SET_GIT_SHARING: 'set-git-sharing',                // renderer → main (invoke): { projectPath, mode } → same state
 
   // Layout migration (pre-overlay project → .frame/), consented per project
-  GET_LAYOUT_MIGRATION_PLAN: 'get-layout-migration-plan',  // renderer → main (invoke): the plan, or null
-  RUN_LAYOUT_MIGRATION: 'run-layout-migration',            // renderer → main (invoke): the receipt
+  GET_MIGRATION_DECISIONS: 'get-migration-decisions',      // renderer → main (invoke): what is left to ask, or []
+  APPLY_MIGRATION_DECISIONS: 'apply-migration-decisions',  // renderer → main (invoke): the receipt
   LAYOUT_MIGRATION_PROGRESS: 'layout-migration-progress',  // main → renderer: { step, detail }
 
   // Detach Frame from a project (deletes everything Frame authored)

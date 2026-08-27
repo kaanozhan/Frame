@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T15:21:34.114Z",
+  "lastUpdated": "2026-08-27T15:24:30.529Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6072,13 +6072,13 @@
       "title": "Reduce the migration modal to the prose decision: rename `GET_LAYOUT_MIGRATION_PLAN` and `RUN_LAYOUT_MIGRATION` to `GET_MIGRATION_DECISIONS` and `APPLY_MIGRATION_DECISIONS`, rewire the `frameProject` handlers to `pendingDecisions`/`applyDecisions`, replace the file list and dirty-tree block in `index.html` with the named edits and what Frame will not touch, and offer the modal from `state.js` on every project rather than only a legacy one.",
       "description": "",
       "source": "spec:migration-consent-scope:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T15:24:30.529Z",
+      "completedAt": "2026-08-27T15:24:30.529Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T09",

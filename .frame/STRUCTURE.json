@@ -1084,15 +1084,13 @@
           "GET_GIT_SHARING_STATE",
           "SET_GIT_SHARING",
           "REMOVE_FRAME_FROM_PROJECT",
-          "GET_LAYOUT_MIGRATION_PLAN",
-          "RUN_LAYOUT_MIGRATION"
+          "GET_MIGRATION_DECISIONS",
+          "APPLY_MIGRATION_DECISIONS"
         ],
         "emits": [
           "FRAME_PROJECT_INITIALIZED",
           "WORKSPACE_UPDATED",
-          "FRAME_CONFIG_DATA",
-          "LAYOUT_MIGRATION_PROGRESS",
-          "FILE_TREE_DATA"
+          "FRAME_CONFIG_DATA"
         ]
       }
     },
@@ -6477,7 +6475,7 @@
     },
     "renderer/migrationModal": {
       "file": "src/renderer/migrationModal.js",
-      "description": "Migration Modal",
+      "description": "Migration Decision Modal",
       "exports": [
         "init",
         "offer",
@@ -6490,45 +6488,33 @@
       ],
       "functions": {
         "init": {
-          "line": 45
-        },
-        "stepLabel": {
-          "line": 70,
-          "params": [
-            "step"
-          ]
+          "line": 39
         },
         "offer": {
-          "line": 87,
+          "line": 62,
           "params": [
             "projectPath"
           ],
-          "purpose": "Offer the migration for this project. Silent when there is nothing to"
+          "purpose": "Offer whatever decisions this project still carries. Silent when there are"
         },
         "render": {
-          "line": 104,
+          "line": 79,
           "params": [
-            "plan"
+            "decisions"
           ]
         },
-        "runMigration": {
-          "line": 135
+        "applyDecisions": {
+          "line": 112
         },
         "renderReceipt": {
-          "line": 159,
+          "line": 140,
           "params": [
             "receipt"
           ]
         },
         "close": {
-          "line": 196
+          "line": 159
         }
-      },
-      "ipc": {
-        "listens": [
-          "LAYOUT_MIGRATION_PROGRESS"
-        ],
-        "emits": []
       }
     },
     "renderer/multiTerminalUI": {
@@ -11348,6 +11334,20 @@
         "direction": "",
         "description": ""
       }
+    },
+    "migration": {
+      "GET_MIGRATION_DECISIONS": {
+        "name": "get-migration-decisions",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "apply": {
+      "APPLY_MIGRATION_DECISIONS": {
+        "name": "apply-migration-decisions",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -11647,7 +11647,7 @@
       {
         "module": "renderer/migrationModal",
         "file": "src/renderer/migrationModal.js",
-        "description": "Migration Modal"
+        "description": "Migration Decision Modal"
       }
     ],
     "modal": [
@@ -11664,7 +11664,7 @@
       {
         "module": "renderer/migrationModal",
         "file": "src/renderer/migrationModal.js",
-        "description": "Migration Modal"
+        "description": "Migration Decision Modal"
       },
       {
         "module": "renderer/openProjectModal",

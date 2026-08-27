@@ -1385,40 +1385,25 @@ function setupIPC(ipcMain) {
     return result;
   });
 
-  // ─── Layout migration ──────────────────────────────────────
-  ipcMain.handle(IPC.GET_LAYOUT_MIGRATION_PLAN, (event, projectPath) => {
-    if (!projectPath || !isFrameProject(projectPath)) return null;
-    return layoutMigration.plan(projectPath);
+  // ─── Migration decisions ───────────────────────────────────
+  //
+  // The move itself no longer has a handler: it happens inside the project
+  // open. What is left here is the half that is genuinely the user's call.
+  ipcMain.handle(IPC.GET_MIGRATION_DECISIONS, (event, projectPath) => {
+    if (!projectPath || !isFrameProject(projectPath)) return [];
+    return layoutMigration.pendingDecisions(projectPath);
   });
 
-  ipcMain.handle(IPC.RUN_LAYOUT_MIGRATION, async (event, { projectPath }) => {
+  ipcMain.handle(IPC.APPLY_MIGRATION_DECISIONS, (event, { projectPath, decisions }) => {
     if (!projectPath || !isFrameProject(projectPath)) {
-      return { ran: false, reason: 'not a Frame project', moved: [], backedUp: [], review: [] };
+      return { ran: false, reason: 'not a Frame project', applied: [], review: [] };
     }
-
-    let receipt;
     try {
-      receipt = layoutMigration.run(projectPath, null, (progress) => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send(IPC.LAYOUT_MIGRATION_PROGRESS, progress);
-        }
-      });
+      return layoutMigration.applyDecisions(projectPath, decisions);
     } catch (err) {
-      // run() contains its own failures; anything reaching here happened
-      // around them (planning, the activity log). Say so instead of letting
-      // the invoke reject into a modal that reads "migration did not run".
-      console.error('[frame] layout migration failed:', err);
-      return { ran: false, reason: 'error', error: err.message, moved: [], backedUp: [], review: [] };
+      console.error('[frame] could not apply the migration decisions:', err);
+      return { ran: false, reason: 'error', error: err.message, applied: [], review: [] };
     }
-
-    if (receipt.ran) {
-      await rearmAfterMigration(projectPath, {
-        onFileTree: (files) => {
-          if (!event.sender.isDestroyed()) event.sender.send(IPC.FILE_TREE_DATA, files);
-        }
-      });
-    }
-    return receipt;
   });
 }
 

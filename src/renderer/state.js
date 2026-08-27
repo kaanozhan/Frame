@@ -442,17 +442,19 @@ function setupIPC() {
     // Terminal session switching is now handled by setProjectPath via multiTerminalUI
   });
 
-  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame, layout, migration }) => {
+  ipcRenderer.on(IPC.IS_FRAME_PROJECT_RESULT, (event, { projectPath, isFrame, migration }) => {
     if (projectPath === currentProjectPath) {
       setIsFrameProject(isFrame);
       // The open already moved this project's Frame-owned files, or decided
       // it could not. Either way the user is told rather than asked — the
       // banner is the receipt, and the activity panel keeps it.
       require('./healthNotice').showMigration(migration);
-      // A project still carrying Frame's old root layout gets the offer to
-      // move it into .frame/ — once per session, and only for the project
-      // the user is actually looking at.
-      if (layout === 'legacy') {
+      // Offered on every Frame project, not only a legacy one: a decision
+      // outlives the migration that created it — by the time anyone is asked
+      // about AGENTS.md's prose, the file has already moved into .frame/.
+      // The modal stays silent when there is nothing to decide, which is
+      // every project that was never on the old layout.
+      if (isFrame) {
         require('./migrationModal').offer(projectPath);
       }
     }

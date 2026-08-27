@@ -105,3 +105,22 @@ hide the backup path, which is the one thing the receipt exists to carry.
 _Captured: 2026-08-27 · 3 file change(s)_
 
 ---
+## T08 — The modal asks about the decision, not the move
+
+Renamed the two channels to `GET_MIGRATION_DECISIONS` /
+`APPLY_MIGRATION_DECISIONS` and rewired the `frameProject` handlers to
+`pendingDecisions` / `applyDecisions` — the move has no handler left, because
+it happens inside the open. Rewrote the modal in `index.html` and
+`migrationModal.js` around the named line edits, deleted the dirty-tree wall,
+and said in the body that anything Frame did not write is left alone.
+`state.js` offers it on every Frame project: gating on `layout === 'legacy'`
+would mean the question could never be asked, since the file has already moved
+by then. Every close now defers, not only a runnable one.
+
+Followup: `LAYOUT_MIGRATION_PROGRESS` is still emitted from
+`openProjectLayout` and no longer has a listener — either give the receipt a
+progress surface or drop the channel.
+
+_Captured: 2026-08-27 · 5 file change(s)_
+
+---
