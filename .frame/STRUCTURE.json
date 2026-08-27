@@ -5627,17 +5627,20 @@
         "resolveLayout",
         "sourcesFor"
       ],
-      "depends": [],
+      "depends": [
+        "widgets/activeSpecs",
+        "widgets/activeTasks"
+      ],
       "functions": {
         "resolveLayout": {
-          "line": 53,
+          "line": 56,
           "params": [
             "ctx"
           ],
           "purpose": "Which widgets to mount, in which order, with the span each one gets."
         },
         "sourcesFor": {
-          "line": 61,
+          "line": 64,
           "params": [
             "layout"
           ],
@@ -5650,14 +5653,19 @@
       "description": "Widget Shell — the one card every Home widget is drawn inside.",
       "exports": [
         "widgetShell",
-        "lucideIcon"
+        "lucideIcon",
+        "statsHtml",
+        "tally",
+        "moreHtml",
+        "MAX_ROWS"
       ],
       "depends": [
-        "lucide"
+        "lucide",
+        "../htmlUtils"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 18,
+          "line": 23,
           "params": [
             "data",
             "size = 14"
@@ -5665,7 +5673,7 @@
           "purpose": "Local, like every other renderer module's copy — six of them exist and the"
         },
         "widgetShell": {
-          "line": 40,
+          "line": 45,
           "params": [
             "{ id",
             "icon",
@@ -5677,8 +5685,90 @@
             "onActionContext }"
           ],
           "purpose": "Build one widget's card."
+        },
+        "statsHtml": {
+          "line": 83,
+          "params": [
+            "pairs",
+            "variant = ''"
+          ],
+          "purpose": "A compact \"12 feature · 6 fix\" strip. Counts lead, because the number is"
+        },
+        "tally": {
+          "line": 92,
+          "params": [
+            "items",
+            "keyOf"
+          ],
+          "purpose": "Count by key, biggest first, with a tail past the fourth."
+        },
+        "moreHtml": {
+          "line": 106,
+          "params": [
+            "extra"
+          ],
+          "purpose": "Never truncate a list silently — say how much is not shown."
         }
       }
+    },
+    "renderer/home/widgets/activeSpecs": {
+      "file": "src/renderer/home/widgets/activeSpecs.js",
+      "description": "Active Specs widget.",
+      "exports": [
+        "id",
+        "title",
+        "icon",
+        "sources",
+        "defaultSpan",
+        "defaultEnabled",
+        "isAvailable",
+        "mount(el) {\n    this.card = widgetShell({\n      id",
+        "icon",
+        "title",
+        "actionLabel",
+        "actionIcon",
+        "onOpen",
+        "onAction"
+      ],
+      "depends": [
+        "lucide",
+        "../../htmlUtils",
+        "../widgetShell",
+        "../../specsDashboard",
+        "../../agentDispatch",
+        "../../specSection"
+      ],
+      "functions": {}
+    },
+    "renderer/home/widgets/activeTasks": {
+      "file": "src/renderer/home/widgets/activeTasks.js",
+      "description": "Active Tasks widget.",
+      "exports": [
+        "id",
+        "title",
+        "icon",
+        "sources",
+        "defaultSpan",
+        "defaultEnabled",
+        "isAvailable",
+        "mount(el) {\n    this.card = widgetShell({\n      id",
+        "icon",
+        "title",
+        "actionLabel",
+        "actionIcon",
+        "onOpen",
+        "onAction"
+      ],
+      "depends": [
+        "lucide",
+        "../../htmlUtils",
+        "../widgetShell",
+        "../../tasksDashboard",
+        "../../taskSection",
+        "../../tasksPanel",
+        "../../specsDashboard"
+      ],
+      "functions": {}
     },
     "renderer/htmlUtils": {
       "file": "src/renderer/htmlUtils.js",
@@ -5849,74 +5939,39 @@
         "LaneBoard"
       ],
       "depends": [
-        "electron",
-        "shared/ipcChannels",
         "laneStatus",
         "lucide",
         "htmlUtils",
         "notify",
+        "home/homeData",
+        "home/registry",
+        "home/widgetShell",
         "terminalsView",
-        "agentDispatch",
-        "specsDashboard",
-        "tasksDashboard",
         "specSection",
         "taskSection",
-        "tasksPanel",
         "openProjectModal"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 52,
+          "line": 48,
           "params": [
             "data",
             "size = 14"
           ]
         },
         "_projectName": {
-          "line": 736,
+          "line": 548,
           "params": [
             "p"
           ]
         },
         "_attentionRank": {
-          "line": 741,
+          "line": 553,
           "params": [
             "status"
           ],
           "purpose": "Waiting on the user first, then working, then busy, then idle."
-        },
-        "_statsHtml": {
-          "line": 749,
-          "params": [
-            "pairs",
-            "variant = ''"
-          ],
-          "purpose": "A compact \"12 feature · 6 fix\" strip. Counts lead, because the number is"
-        },
-        "_tally": {
-          "line": 758,
-          "params": [
-            "items",
-            "keyOf"
-          ],
-          "purpose": "Count by key, biggest first, with a tail past the fourth."
-        },
-        "_moreHtml": {
-          "line": 771,
-          "params": [
-            "extra"
-          ]
         }
-      },
-      "ipc": {
-        "listens": [
-          "GIT_STATUS_DATA",
-          "SPEC_DATA",
-          "TASKS_DATA"
-        ],
-        "emits": [
-          "LOAD_TASKS"
-        ]
       }
     },
     "renderer/laneStatus": {
@@ -10795,6 +10850,18 @@
   "files": {},
   "conventions": {},
   "intentIndex": {
+    "active": [
+      {
+        "module": "renderer/home/widgets/activeSpecs",
+        "file": "src/renderer/home/widgets/activeSpecs.js",
+        "description": "Active Specs widget."
+      },
+      {
+        "module": "renderer/home/widgets/activeTasks",
+        "file": "src/renderer/home/widgets/activeTasks.js",
+        "description": "Active Tasks widget."
+      }
+    ],
     "activity": [
       {
         "module": "main/activityLog",

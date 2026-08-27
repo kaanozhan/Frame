@@ -12,6 +12,11 @@
  */
 
 const { Plus, ArrowUpRight } = require('lucide');
+const { escapeHtml } = require('./../htmlUtils');
+
+// A card is a teaser, not a list. Past this the dashboards take over — but a
+// card owns a whole grid cell, so the teaser can be worth the space.
+const MAX_ROWS = 6;
 
 // Local, like every other renderer module's copy — six of them exist and the
 // duplication is the project's idiom for keeping lucide out of the seams.
@@ -71,4 +76,35 @@ function widgetShell({ id, icon, title, actionLabel, actionIcon = Plus, onOpen, 
   };
 }
 
-module.exports = { widgetShell, lucideIcon };
+/**
+ * A compact "12 feature · 6 fix" strip. Counts lead, because the number is
+ * what the eye is here for; the label follows quietly.
+ */
+function statsHtml(pairs, variant = '') {
+  if (!pairs.length) return '';
+  return `<div class="home-card-stats ${variant}">`
+    + pairs.map(([n, label]) =>
+      `<span class="home-card-stat"><b>${n}</b>${escapeHtml(String(label))}</span>`).join('')
+    + '</div>';
+}
+
+/** Count by key, biggest first, with a tail past the fourth. */
+function tally(items, keyOf) {
+  const counts = new Map();
+  for (const it of items) {
+    const k = keyOf(it);
+    counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const head = sorted.slice(0, 4).map(([k, n]) => [n, k]);
+  const tail = sorted.slice(4).reduce((n, [, c]) => n + c, 0);
+  if (tail > 0) head.push([tail, 'other']);
+  return head;
+}
+
+/** Never truncate a list silently — say how much is not shown. */
+function moreHtml(extra) {
+  return extra > 0 ? `<div class="home-card-more">+${extra} more</div>` : '';
+}
+
+module.exports = { widgetShell, lucideIcon, statsHtml, tally, moreHtml, MAX_ROWS };

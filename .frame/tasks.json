@@ -5786,13 +5786,13 @@
       "title": "Move the Specs and Tasks cards onto the contract as `src/renderer/home/widgets/activeSpecs.js` and `activeTasks.js`, carrying `_updateSpecsCard` / `_updateTasksCard` over verbatim so their rendering is unchanged",
       "description": "",
       "source": "spec:home-widget-board:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T11:04:07.237Z",
+      "completedAt": "2026-08-27T11:04:07.237Z"
     },
     {
       "id": "task-spec-home-widget-board-T04",

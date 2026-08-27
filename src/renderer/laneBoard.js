@@ -29,25 +29,21 @@
  * code on the same rule — don't half-rename in either direction.
  */
 
-const { ipcRenderer } = require('electron');
-const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
 const { statusLabel, attentionMark, formatRelativeTime, assignmentIcon, assignmentText } = laneStatus;
-const { Plus, FolderOpen, Bot, FileText, CheckSquare, ArrowUpRight, ArrowRight, Play, AlertTriangle, Boxes, GitBranch } = require('lucide');
+const { Plus, FolderOpen, Bot, ArrowRight, Boxes, GitBranch } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
+const homeData = require('./home/homeData');
+const { resolveLayout, sourcesFor } = require('./home/registry');
+const { widgetShell } = require('./home/widgetShell');
 // Home says the same thing about an empty project as the section does — from
 // the section's own definition, so it can only ever be said one way.
 const { EMPTY_TITLE, EMPTY_HINT } = require('./terminalsView');
 
-// A card is a teaser, not a list. Past this the dashboards take over — but a
-// card now owns a quarter of the board, so the teaser can be worth the space.
-const MAX_ROWS = 6;
 // Six cells, 3×2. The cap is a legibility budget, not a data limit: past it
 // the last cell becomes "+N more" rather than nine boxes shrunk to fit.
 const MAX_TILES = 6;
-
-const SPEC_PHASE_ORDER = ['implementing', 'tasks_generated', 'planned', 'specified', 'draft', 'done'];
 
 function lucideIcon(data, size = 14) {
   const children = data.map(([tag, attrs]) => {
@@ -73,13 +69,11 @@ class LaneBoard {
     this.cards = null;
     this.shellMenu = null;
     this.availableShells = [];
-    this._specs = [];
-    this._tasks = [];
-    this._dataProject = null;
     this._lastState = null;
-    this._branch = null;
-    this._branchProject = null;
     this.headerEl = null;
+    // Resolved at mount: [{ widget, span }] plus the unsubscribes that feed them.
+    this._layout = null;
+    this._widgetUnsubs = [];
 
     this._createShellMenu();
     this._loadAvailableShells();
@@ -89,31 +83,16 @@ class LaneBoard {
       if (this._isVisible() && this._lastState) this._updateTerminalsCard(this._lastState);
     });
 
-    // Init-once across instances: LaneBoard is a singleton, and a second
-    // construction must not stack another set of listeners (C5). These are
-    // the subscriptions laneRail used to own.
+    // Every subscription the board used to install itself now lives in
+    // homeData, behind its own init-once guard (C1, C2). What is left here is
+    // the one source the board reads directly: the header's branch.
+    homeData.init();
     if (!LaneBoard._dataListenersBound) {
       LaneBoard._dataListenersBound = true;
-      // The branch comes from the git status watcher fileTreeUI already starts
-      // per project — no new IPC for the header either.
-      ipcRenderer.on(IPC.GIT_STATUS_DATA, (event, payload) => {
+      homeData.subscribe('git', () => {
         const b = LaneBoard._instance;
-        b._branch = payload.isRepo ? payload.branch : null;
-        b._branchProject = payload.projectPath;
-        if (b._isVisible()) b._updateHeader();
+        if (b && b._isVisible()) b._updateHeader();
       });
-      ipcRenderer.on(IPC.SPEC_DATA, (event, { specs }) => {
-        LaneBoard._instance._specs = specs || [];
-        LaneBoard._instance._refreshData();
-      });
-      ipcRenderer.on(IPC.TASKS_DATA, (event, { tasks }) => {
-        LaneBoard._instance._tasks = (tasks && Array.isArray(tasks.tasks)) ? tasks.tasks : [];
-        LaneBoard._instance._refreshData();
-      });
-      // The spec/task activity dots track the assigned terminals' agents.
-      const dispatch = require('./agentDispatch');
-      dispatch.onSpecLaneActivity(() => LaneBoard._instance._refreshData());
-      dispatch.onTaskLaneActivity(() => LaneBoard._instance._refreshData());
     }
     LaneBoard._instance = this;
   }
@@ -143,21 +122,23 @@ class LaneBoard {
     this.headerEl = this._buildHeader();
     this.boardEl.appendChild(this.headerEl);
 
-    this.cards = {
-      terminals: this._buildTerminalsCard(),
-      specs: this._buildSpecsCard(),
-      tasks: this._buildTasksCard()
-    };
+    this.cards = { terminals: this._buildTerminalsCard() };
 
     // Two groups, because the cards answer two different questions: what is
     // running right now, and what the project has planned. Splitting them
     // also gives the board a reading order instead of a grid of equals.
     // Orchestration is not here — it is a surface you open, and it opens as a
     // top-bar tab from the sidebar's Work group.
-    this.boardEl.appendChild(this._buildGroup('Work',
-      [this.cards.terminals]));
-    this.boardEl.appendChild(this._buildGroup('Project planning',
-      [this.cards.specs, this.cards.tasks]));
+    const work = this._buildGroup('Work', 1);
+    work.grid.appendChild(this.cards.terminals.el);
+    this.boardEl.appendChild(work.group);
+
+    // The planning cards are widgets now: the board owns the group, the
+    // registry decides what goes in it, and each widget owns its card.
+    this._layout = resolveLayout(this._widgetCtx());
+    const planning = this._buildGroup('Project planning', this._layout.length);
+    this._mountWidgets(planning.grid);
+    this.boardEl.appendChild(planning.group);
 
     this.update(state);
   }
@@ -165,19 +146,15 @@ class LaneBoard {
   /** Patch the cards in place. Never rebuilds the board. */
   update(state) {
     this._lastState = state;
+    // The data layer needs the host's state whether or not there is a board
+    // to draw it into — a project change has to invalidate its caches either
+    // way.
+    homeData.setHostState(state);
     if (!this.cards) return;
-
-    if (state.currentProjectPath !== this._dataProject) {
-      this._dataProject = state.currentProjectPath;
-      this._specs = [];
-      this._tasks = [];
-      this._fetchForProject(state.currentProjectPath);
-    }
 
     this._updateHeader();
     this._updateTerminalsCard(state);
-    this._updateSpecsCard();
-    this._updateTasksCard();
+    this._updateWidgets();
   }
 
   /** True when this container already holds a mounted board for this project. */
@@ -216,14 +193,19 @@ class LaneBoard {
 
     // The watcher reports per project — a branch from the project you just
     // left is not this project's branch.
-    const branch = this._branchProject === path ? this._branch : null;
+    const git = homeData.get('git');
+    const branch = (git && git.projectPath === path) ? git.branch : null;
     const chip = this.headerEl.querySelector('.home-header-branch');
     chip.style.display = branch ? '' : 'none';
     if (branch) this.headerEl.querySelector('.home-header-branch-name').textContent = branch;
   }
 
-  /** A titled row of cards. The two groups split the board's height evenly. */
-  _buildGroup(title, cards) {
+  /**
+   * A titled row of cards. The two groups split the board's height evenly.
+   * Returns the grid as well as the section, because a group whose contents
+   * are widgets is filled by them rather than by the board.
+   */
+  _buildGroup(title, count) {
     const group = document.createElement('section');
     group.className = 'home-group';
 
@@ -235,49 +217,83 @@ class LaneBoard {
     const grid = document.createElement('div');
     // A lone card takes the whole row — the Work group is Terminals only, and
     // half a row of card next to half a row of nothing is worse than either.
-    grid.className = cards.length === 1 ? 'home-cards home-cards-solo' : 'home-cards';
-    cards.forEach(c => grid.appendChild(c.el));
+    grid.className = count === 1 ? 'home-cards home-cards-solo' : 'home-cards';
     group.appendChild(grid);
 
-    return group;
+    return { group, grid };
+  }
+
+  // ─── Widgets ────────────────────────────────────────────
+
+  /**
+   * What a widget is handed besides its data: the host's affordances, never
+   * `ipcRenderer` (D3, S6).
+   */
+  _widgetCtx() {
+    return {
+      state: this._lastState,
+      enterLane: (id) => this.onEnterLane(id),
+      openTerminals: () => this.onOpenTerminals && this.onOpenTerminals(),
+      createLane: (shellPath) => this._createLane(shellPath)
+    };
+  }
+
+  /**
+   * Mount the resolved layout, then wire one subscription per source the
+   * layout actually reads — not one per widget. Ten widgets on `lanes` cost
+   * one listener, which is the property C1 turns on.
+   */
+  _mountWidgets(hostEl) {
+    this._disposeWidgets();
+
+    const ctx = this._widgetCtx();
+    for (const { widget } of this._layout) {
+      widget.mount(hostEl, ctx);
+    }
+
+    for (const source of sourcesFor(this._layout)) {
+      this._widgetUnsubs.push(homeData.subscribe(source, () => this._updateWidgets(source)));
+    }
+  }
+
+  /**
+   * Patch the widgets. With a source name, only the widgets that read it —
+   * a spec push must not repaint the ones that never asked for specs.
+   */
+  _updateWidgets(source) {
+    if (!this._layout || !this._isVisible()) return;
+
+    const ctx = this._widgetCtx();
+    for (const { widget } of this._layout) {
+      const sources = widget.sources || [];
+      if (source && !sources.includes(source)) continue;
+
+      const data = {};
+      for (const s of sources) data[s] = homeData.get(s);
+      // One widget throwing must not leave the rest of the board unpainted.
+      try {
+        widget.update(data, ctx);
+      } catch (err) {
+        console.error(`Home widget "${widget.id}" failed to update:`, err);
+      }
+    }
+  }
+
+  _disposeWidgets() {
+    this._widgetUnsubs.forEach(off => off());
+    this._widgetUnsubs = [];
+    if (this._layout) {
+      for (const { widget } of this._layout) {
+        if (typeof widget.dispose === 'function') widget.dispose();
+      }
+    }
   }
 
   // ─── Cards ──────────────────────────────────────────────
 
-  /**
-   * One card shell: a header that opens the surface, a body the update
-   * methods write into, and a footer action.
-   */
-  _card({ key, icon, title, actionLabel, actionIcon = Plus, onOpen, onAction, onActionContext }) {
-    const el = document.createElement('div');
-    el.className = `home-card home-card-${key}`;
-    el.innerHTML = `
-      <button class="home-card-header" type="button">
-        <span class="home-card-icon">${lucideIcon(icon, 15)}</span>
-        <span class="home-card-title">${title}</span>
-        <span class="home-card-count"></span>
-        <span class="home-card-open">${lucideIcon(ArrowUpRight, 13)}</span>
-      </button>
-      <div class="home-card-body"></div>
-      <button class="home-card-action" type="button">${lucideIcon(actionIcon, 13)}<span>${actionLabel}</span></button>
-    `;
-    el.querySelector('.home-card-header').addEventListener('click', onOpen);
-    const action = el.querySelector('.home-card-action');
-    action.addEventListener('click', (e) => { e.stopPropagation(); onAction(); });
-    if (onActionContext) {
-      action.addEventListener('contextmenu', (e) => { e.preventDefault(); onActionContext(e); });
-    }
-    return {
-      el,
-      count: el.querySelector('.home-card-count'),
-      body: el.querySelector('.home-card-body'),
-      action
-    };
-  }
-
   _buildTerminalsCard() {
-    const card = this._card({
-      key: 'terminals',
+    const card = widgetShell({
+      id: 'terminals',
       icon: Boxes,
       title: 'Terminals',
       // Creating a terminal lives in the grid now, as a tile in the first
@@ -289,30 +305,6 @@ class LaneBoard {
     });
     card.action.title = 'Open the Terminals section on Overview';
     return card;
-  }
-
-  _buildSpecsCard() {
-    return this._card({
-      key: 'specs',
-      icon: FileText,
-      title: 'Active Specs',
-      actionLabel: 'Open specs',
-      actionIcon: ArrowRight,
-      onOpen: () => require('./specsDashboard').show(),
-      onAction: () => require('./specsDashboard').show()
-    });
-  }
-
-  _buildTasksCard() {
-    return this._card({
-      key: 'tasks',
-      icon: CheckSquare,
-      title: 'Active Tasks',
-      actionLabel: 'Open tasks',
-      actionIcon: ArrowRight,
-      onOpen: () => require('./tasksDashboard').show(),
-      onAction: () => require('./tasksDashboard').show()
-    });
   }
 
   // ─── Card contents ──────────────────────────────────────
@@ -433,168 +425,6 @@ class LaneBoard {
     if (more) more.addEventListener('click', () => this.onOpenTerminals && this.onOpenTerminals());
   }
 
-  _updateSpecsCard() {
-    const card = this.cards && this.cards.specs;
-    if (!card) return;
-
-    // The !malformed filter travels with the subscription (C6) — a spec whose
-    // folder cannot be read is not an active spec, it is a broken one.
-    const active = this._specs
-      .filter(s => s.phase !== 'done' && !s.malformed)
-      .sort((a, b) => SPEC_PHASE_ORDER.indexOf(a.phase) - SPEC_PHASE_ORDER.indexOf(b.phase));
-
-    const done = this._specs.filter(s => s.phase === 'done' && !s.malformed).length;
-
-    card.count.textContent = String(active.length);
-    if (active.length === 0) {
-      // Nothing to summarise means the card has a better job: saying what a
-      // spec is for, to someone who has not written one yet.
-      card.body.innerHTML = `
-        <div class="home-card-onboard">
-          <p class="home-card-onboard-lead">No specs yet.</p>
-          <p>A spec is what you're building and why. Frame turns it into a plan,
-             then a task list, and keeps both in the repo so the next session
-             starts where this one stopped.</p>
-          <p class="home-card-onboard-how">Open specs below to write your first one.</p>
-        </div>
-      `;
-      return;
-    }
-
-    // What phase the active ones are in, and how much is already behind you.
-    const byPhase = SPEC_PHASE_ORDER
-      .filter(ph => ph !== 'done')
-      .map(ph => [active.filter(s => s.phase === ph).length, String(ph).replace('_', ' ')])
-      .filter(([n]) => n > 0);
-    if (done > 0) byPhase.push([done, 'done']);
-
-    const dispatch = require('./agentDispatch');
-    card.body.innerHTML = _statsHtml(byPhase) + active.slice(0, MAX_ROWS).map(s => `
-      <button type="button" class="home-card-row" data-slug="${escapeHtml(s.slug)}">
-        <span class="home-card-row-name">${dispatch.specStatusDotHtml(s.slug)}${escapeHtml(s.title || s.slug)}</span>
-        <span class="spec-phase-badge phase-${escapeHtml(s.phase)}">${escapeHtml(String(s.phase).replace('_', ' '))}</span>
-      </button>
-    `).join('') + _moreHtml(active.length - MAX_ROWS);
-
-    card.body.querySelectorAll('.home-card-row').forEach((row) => {
-      row.addEventListener('click', () => require('./specSection').openInNewTab(row.dataset.slug));
-    });
-  }
-
-  /**
-   * Active Tasks. The card answers "what is being worked on right now", in
-   * three states:
-   *
-   *   - work in progress  → list it, one click hands any row to a terminal
-   *   - none, but pending → say so plainly, then list what is queued
-   *   - nothing at all    → say what a task is for
-   *
-   * Above all three, when a spec is holding tasks that nobody has implemented
-   * yet, a warning: that work is real, it is just owned somewhere else, and
-   * it is the thing most likely to be forgotten.
-   */
-  _updateTasksCard() {
-    const card = this.cards && this.cards.tasks;
-    if (!card) return;
-
-    const allOpen = this._tasks.filter(t => t.status === 'in_progress' || t.status === 'pending');
-    // A spec's tasks are that spec's business — it tracks them, implements
-    // them and closes them. Listing them here too would make one pile of work
-    // look like two, and put a Run button next to something an implement run
-    // already owns.
-    const isSpecTask = (t) => String(t.source || '').startsWith('spec:');
-    const specWaiting = allOpen.filter(t => isSpecTask(t) && t.status === 'pending');
-    const specCount = new Set(specWaiting.map(t => String(t.source).split(':')[1])).size;
-
-    const open = allOpen.filter(t => !isSpecTask(t));
-    const active = open.filter(t => t.status === 'in_progress');
-    const pending = open.filter(t => t.status === 'pending');
-
-    card.count.textContent = String(active.length);
-
-    const warning = specWaiting.length
-      ? `<button type="button" class="home-card-warn">${lucideIcon(AlertTriangle, 12)}<span>${specWaiting.length} task${specWaiting.length === 1 ? '' : 's'} in ${specCount} spec${specCount === 1 ? '' : 's'} waiting to be implemented</span></button>`
-      : '';
-
-    // Nothing of our own in either state — the card explains itself instead.
-    if (open.length === 0) {
-      card.body.innerHTML = warning + (specWaiting.length ? `
-        <div class="home-card-onboard">
-          <p class="home-card-onboard-lead">Nothing outside the specs.</p>
-          <p>Every open task belongs to a spec, which tracks it through plan
-             and implementation.</p>
-        </div>
-      ` : `
-        <div class="home-card-onboard">
-          <p class="home-card-onboard-lead">Nothing pending.</p>
-          <p>Tasks are the small units of work Frame tracks between sessions —
-             written by hand, or generated from a spec's plan.</p>
-          <p class="home-card-onboard-how">Open tasks below to add one.</p>
-        </div>
-      `);
-      this._wireTaskCard(card);
-      return;
-    }
-
-    // What kind of work it is beats how urgent someone once said it was: a
-    // fix and a feature are different jobs, "medium" and "medium" are not.
-    const catOf = (t) => t.category || 'task';
-    const rowHtml = (t) => `
-      <div class="home-card-row task-row ${t.status === 'in_progress' ? 'running' : ''}" data-id="${escapeHtml(t.id)}">
-        <span class="home-card-row-name">${escapeHtml(t.title || '')}</span>
-        <span class="home-card-cat cat-${escapeHtml(catOf(t))}">${escapeHtml(catOf(t))}</span>
-        <button type="button" class="home-card-run" data-run="${escapeHtml(t.id)}"
-                title="Start this task in a terminal">${lucideIcon(Play, 11)}</button>
-      </div>
-    `;
-
-    const byStatus = [[active.length, 'in progress'], [pending.length, 'pending']]
-      .filter(([n]) => n > 0);
-
-    if (active.length > 0) {
-      // The active list is the card's job; the queue behind it is a number.
-      card.body.innerHTML = warning
-        + _statsHtml(byStatus)
-        + _statsHtml(_tally(active, catOf), 'subtle')
-        + active.slice(0, MAX_ROWS).map(rowHtml).join('')
-        + _moreHtml(active.length - MAX_ROWS);
-    } else {
-      // Nothing running. Saying only that would waste the card, so the queue
-      // takes over: what is waiting, and what kind of work it is.
-      card.body.innerHTML = warning
-        + _statsHtml(byStatus)
-        + _statsHtml(_tally(pending, catOf), 'subtle')
-        + '<div class="home-card-note">No active tasks — next up:</div>'
-        + pending.slice(0, MAX_ROWS).map(rowHtml).join('')
-        + _moreHtml(pending.length - MAX_ROWS);
-    }
-
-    this._wireTaskCard(card);
-  }
-
-  /**
-   * The row opens the task; the play button hands it to a terminal through
-   * the same modal + dispatch every other surface runs tasks through; the
-   * warning leads to the specs that own the work it names.
-   */
-  _wireTaskCard(card) {
-    card.body.querySelectorAll('.task-row').forEach((row) => {
-      row.addEventListener('click', (e) => {
-        if (e.target.closest('.home-card-run')) return;
-        require('./taskSection').openInNewTab(row.dataset.id);
-      });
-    });
-    card.body.querySelectorAll('.home-card-run').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const task = this._tasks.find(t => t.id === btn.dataset.run);
-        if (task) require('./tasksPanel').openRunFlow(task);
-      });
-    });
-    const warn = card.body.querySelector('.home-card-warn');
-    if (warn) warn.addEventListener('click', () => require('./specsDashboard').show());
-  }
-
   _renderNoProjectState() {
     const empty = document.createElement('div');
     empty.className = 'lane-board-empty';
@@ -614,24 +444,6 @@ class LaneBoard {
   }
 
   // ─── Data ───────────────────────────────────────────────
-
-  _fetchForProject(projectPath) {
-    ipcRenderer.send(IPC.LOAD_TASKS, projectPath);
-    ipcRenderer.invoke(IPC.LIST_SPECS, projectPath)
-      .then((fresh) => {
-        if (!Array.isArray(fresh)) return;
-        this._specs = fresh;
-        this._refreshData();
-      })
-      .catch(() => { /* the SPEC_DATA push will cover it */ });
-  }
-
-  /** A data push repaints only the two cards that read it. */
-  _refreshData() {
-    if (!this._isVisible() || !this.cards) return;
-    this._updateSpecsCard();
-    this._updateTasksCard();
-  }
 
   async _createLane(shellPath = null) {
     const options = shellPath ? { shell: shellPath } : {};
@@ -740,36 +552,6 @@ function _projectName(p) {
 // Waiting on the user first, then working, then busy, then idle.
 function _attentionRank(status) {
   return { 'agent-approval': 0, 'agent-input': 1, 'agent-working': 2, running: 3, idle: 4 }[status] ?? 4;
-}
-
-/**
- * A compact "12 feature · 6 fix" strip. Counts lead, because the number is
- * what the eye is here for; the label follows quietly.
- */
-function _statsHtml(pairs, variant = '') {
-  if (!pairs.length) return '';
-  return `<div class="home-card-stats ${variant}">`
-    + pairs.map(([n, label]) =>
-      `<span class="home-card-stat"><b>${n}</b>${escapeHtml(String(label))}</span>`).join('')
-    + '</div>';
-}
-
-/** Count by key, biggest first, with a tail past the fourth. */
-function _tally(items, keyOf) {
-  const counts = new Map();
-  for (const it of items) {
-    const k = keyOf(it);
-    counts.set(k, (counts.get(k) || 0) + 1);
-  }
-  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  const head = sorted.slice(0, 4).map(([k, n]) => [n, k]);
-  const tail = sorted.slice(4).reduce((n, [, c]) => n + c, 0);
-  if (tail > 0) head.push([tail, 'other']);
-  return head;
-}
-
-function _moreHtml(extra) {
-  return extra > 0 ? `<div class="home-card-more">+${extra} more</div>` : '';
 }
 
 module.exports = { LaneBoard };

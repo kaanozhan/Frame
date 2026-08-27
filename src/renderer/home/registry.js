@@ -24,9 +24,10 @@
  *     isAvailable(ctx):  false → not mounted at all, occupies no cell (D6).
  *                        Distinct from a mounted widget showing an empty state.
  *     mount(el, ctx):    build the DOM once, into the given element
- *     update(data, ctx): patch in place. The ONLY per-tick entry point (D4) —
- *                        a widget that rebuilds its subtree here is violating
- *                        the contract, not the style guide (C1).
+ *     update(data, ctx): patch in place, given `{ [source]: value }` for every
+ *                        source the widget declared. The ONLY per-tick entry
+ *                        point (D4) — a widget that rebuilds its subtree here
+ *                        is violating the contract, not the style guide (C1).
  *     dispose():         optional; drop listeners and timers
  *   }
  *
@@ -38,11 +39,13 @@
 /**
  * The board's reading order, top-left to bottom-right.
  *
- * Populated as each widget lands: `activeSpecs` and `activeTasks` carry over
- * the existing cards, then `agents` and `lastSessions` are added ahead of
- * them — a fifth widget is one file plus one line here (S5).
+ * `agents` and `lastSessions` join ahead of these two as they land; a fifth
+ * widget is one file plus one line here (S5).
  */
-const WIDGETS = [];
+const WIDGETS = [
+  require('./widgets/activeSpecs'),
+  require('./widgets/activeTasks')
+];
 
 /**
  * Which widgets to mount, in which order, with the span each one gets.

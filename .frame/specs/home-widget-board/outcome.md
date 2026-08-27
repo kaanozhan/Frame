@@ -27,3 +27,20 @@ stylesheet still carries the cards until T04.
 _Captured: 2026-08-27 · 2 file change(s)_
 
 ---
+## T03 — Specs and Tasks move onto the widget contract
+
+Added `home/widgets/activeSpecs.js` and `activeTasks.js` carrying
+`_updateSpecsCard` / `_updateTasksCard` / `_wireTaskCard` over verbatim,
+registered both, and rewired `laneBoard.js` to resolve a layout, mount widgets
+into the Project planning group and subscribe **once per source** instead of
+once per card — which cost the board every `ipcRenderer` listener it had, and
+with them the `electron` and `ipcChannels` imports. Two deviations from
+`plan.md`: the shared card furniture (`statsHtml`/`tally`/`moreHtml`/
+`MAX_ROWS`) went into `widgetShell.js` rather than a new module, keeping the
+plan's Files list intact; and `_buildTerminalsCard` now calls `widgetShell()`
+so `_card()` could be deleted here rather than shadow it until T05. Nothing
+user-visible changed — still two groups, still the Terminals card.
+
+_Captured: 2026-08-27 · 5 file change(s)_
+
+---
