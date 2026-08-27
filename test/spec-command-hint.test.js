@@ -141,25 +141,43 @@ test('the staged prompt is byte-identical to the one the button builds', () => {
   // .frame/bin/ and cannot require Electron main code. If the two ever
   // diverge, the terminal silently stops receiving the current flow — which
   // is the exact failure this hook was written to end.
+  //
+  // Built hermetically from the packaged templates rather than run against
+  // this repository: `.frame/runtime/` is gitignored, so a clean checkout has
+  // no staged commands and the comparison would be against nothing. That is
+  // not a hook bug — the protocol names exactly two locations and says to
+  // stop when neither exists — but it does mean the guard has to bring its
+  // own staged copy.
   const specManager = require('../src/main/specManager.js');
-  const cases = [
-    ['audit-q3-cross-platform', 'spec.plan'],
-    ['terminals-home-agents', 'spec.tasks'],
-    ['home-widget-board', 'spec.implement']
-  ];
-  let compared = 0;
-  for (const [slug, command] of cases) {
-    if (!fs.existsSync(path.join(REPO, '.frame', 'specs', slug, 'status.json'))) continue;
-    const expected = specManager.getCommandPrompt(REPO, slug, command, 'claude-code');
-    if (expected.error) continue;
+  const packaged = path.join(REPO, 'src', 'templates', 'commands', 'claude-code');
 
-    runHook({ session_id: 'drift', cwd: REPO, prompt: `${command} ${slug}` });
-    const staged = path.join(REPO, '.frame', 'runtime', 'prompts', `${slug}__${command}.md`);
-    assert.ok(fs.existsSync(staged), `${command}: the hook staged nothing`);
-    assert.equal(fs.readFileSync(staged, 'utf8'), expected.prompt, `${command}: drifted from specManager`);
-    compared += 1;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-drift-'));
+  const staged = path.join(root, '.frame', 'runtime', 'commands', 'claude-code');
+  fs.mkdirSync(staged, { recursive: true });
+  for (const file of fs.readdirSync(packaged)) {
+    fs.copyFileSync(path.join(packaged, file), path.join(staged, file));
   }
-  assert.ok(compared > 0, 'no spec in this repo could exercise the guard');
+
+  const cases = [
+    ['alpha', 'spec.plan', 'specified'],
+    ['beta', 'spec.tasks', 'planned'],
+    ['gamma', 'spec.implement', 'tasks_generated']
+  ];
+  for (const [slug, , phase] of cases) {
+    const dir = path.join(root, '.frame', 'specs', slug);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'status.json'), JSON.stringify({ slug, title: `Title of ${slug}`, phase }));
+  }
+
+  for (const [slug, command] of cases) {
+    const expected = specManager.getCommandPrompt(root, slug, command, 'claude-code');
+    assert.ok(!expected.error, `${command}: specManager said ${expected.error}`);
+
+    runHook({ session_id: 'drift', cwd: root, prompt: `${command} ${slug}` });
+    const file = path.join(root, '.frame', 'runtime', 'prompts', `${slug}__${command}.md`);
+    assert.ok(fs.existsSync(file), `${command}: the hook staged nothing`);
+    assert.equal(fs.readFileSync(file, 'utf8'), expected.prompt, `${command}: drifted from specManager`);
+  }
 });
 
 // ─── it never breaks ──────────────────────────────────────
