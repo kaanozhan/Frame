@@ -64,6 +64,40 @@ function renderProjects(projectsList) {
 }
 
 /**
+ * Is this the project Frame opens on launch?
+ *
+ * There is no stored "default" flag: `renderProjects` selects `projects[0]`
+ * when nothing is active yet, and nothing restores a previous session's
+ * project — so the front of the list *is* the default, always.
+ */
+function isDefaultProject(projectPath) {
+  return projects.length > 0 && !!projectPath && projects[0].path === projectPath;
+}
+
+/**
+ * Make a project the one Frame opens on launch, by moving it to the front.
+ *
+ * Two things this has to know. The reorder channel keeps every path it is not
+ * told about in its existing relative order, so the whole message could be one
+ * path — the full list is sent anyway, because a partial order is harder to
+ * read in a log than a complete one. And main deliberately sends no
+ * WORKSPACE_UPDATED echo for a reorder (it was built for drag, where
+ * re-rendering mid-gesture fights the user), so the local order is updated
+ * here or the switcher keeps showing the old one until a reload.
+ *
+ * @returns {boolean} false when it was already first, or is not in the list.
+ */
+function setDefaultProject(projectPath) {
+  const index = projects.findIndex(p => p.path === projectPath);
+  if (index <= 0) return false;
+  const [moved] = projects.splice(index, 1);
+  projects.unshift(moved);
+  ipcRenderer.send(IPC.REORDER_WORKSPACE_PROJECTS, projects.map(p => p.path));
+  if (switcherHooks.refresh) switcherHooks.refresh();
+  return true;
+}
+
+/**
  * Confirmation + removal (also offered as the × in the switcher menu).
  */
 function confirmRemoveProject(projectPath, projectName) {
@@ -450,6 +484,8 @@ module.exports = {
   setActiveProject,
   getActiveProject,
   getProjects,
+  isDefaultProject,
+  setDefaultProject,
   getAgentStatus,
   addProject,
   removeProject,

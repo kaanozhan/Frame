@@ -1291,6 +1291,17 @@
             </select>
           </div>
 
+          <div class="settings-row" id="settings-default-project-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label">Open this project on launch</label>
+              <!-- Copy is state-dependent (see syncDefaultProject): asking you to
+                   make something the default it already is reads as a no-op row. -->
+              <p class="settings-row-desc" id="settings-default-project-desc"></p>
+            </div>
+            <span class="settings-status-chip" id="settings-default-project-chip" style="display:none;">&#x2713; Default</span>
+            <button type="button" class="settings-action-btn" id="settings-make-default">Make Default</button>
+          </div>
+
           <div class="settings-row">
             <div class="settings-row-text">
               <label class="settings-row-label">Remove Frame from this project</label>

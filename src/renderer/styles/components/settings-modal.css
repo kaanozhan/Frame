@@ -183,6 +183,46 @@
   cursor: default;
 }
 
+/* Same shape as the danger button, without the meaning: a settings row action
+   that changes something benign. Only the hover colour separates them. */
+.settings-action-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.settings-action-btn:hover:not(:disabled) {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.settings-action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Standing state where an action button would sit: the row's control slot is
+   never empty, so "already the default" is something you can see at a glance
+   instead of a sentence you have to read. */
+.settings-status-chip {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
 /* iOS-style switch */
 .settings-switch {
   position: relative;

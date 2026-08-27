@@ -14,12 +14,15 @@
  *
  * With no project open the rows go inert and say why rather than
  * disappearing: the setting still exists, there is just nothing to write to.
+ * The launch-project row is the exception — it is hidden outright below two
+ * projects, because there is no choice to make and nothing to explain.
  */
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const specDrivenHint = require('./specDrivenHint');
+const projectListUI = require('./projectListUI');
 const settingsOverlay = require('./settingsOverlay');
 
 let overlay = null;
@@ -29,6 +32,10 @@ let gitSharingSelectEl = null;
 let gitSharingWarningEl = null;
 let removeFrameBtnEl = null;
 let removeFrameNoteEl = null;
+let defaultProjectRowEl = null;
+let defaultProjectDescEl = null;
+let defaultProjectChipEl = null;
+let makeDefaultBtnEl = null;
 
 function init() {
   specDrivenToggleEl = document.getElementById('settings-spec-driven-toggle');
@@ -37,6 +44,10 @@ function init() {
   gitSharingWarningEl = document.getElementById('settings-git-sharing-warning');
   removeFrameBtnEl = document.getElementById('settings-remove-frame');
   removeFrameNoteEl = document.getElementById('settings-remove-frame-note');
+  defaultProjectRowEl = document.getElementById('settings-default-project-row');
+  defaultProjectDescEl = document.getElementById('settings-default-project-desc');
+  defaultProjectChipEl = document.getElementById('settings-default-project-chip');
+  makeDefaultBtnEl = document.getElementById('settings-make-default');
 
   overlay = settingsOverlay.create('project-settings-overlay', syncFromProject);
   if (!overlay) return;
@@ -142,11 +153,57 @@ function init() {
       }
     });
   }
+
+  // Make Default: move this project to the front of the workspace list, which
+  // is the whole of what "default" means (see projectListUI.isDefaultProject).
+  if (makeDefaultBtnEl) {
+    makeDefaultBtnEl.addEventListener('click', () => {
+      const projectPath = state.getProjectPath();
+      if (!projectPath) return;
+      if (projectListUI.setDefaultProject(projectPath)) {
+        // Re-paint rather than just hiding the button: the row now has
+        // something different to say, and saying it is the confirmation.
+        syncDefaultProject();
+      }
+    });
+  }
 }
 
 async function syncFromProject() {
+  syncDefaultProject();
   await syncSpecDrivenToggle();
   await syncGitSharing();
+}
+
+/**
+ * The launch-project row. It is hidden outright below two projects: with one
+ * project there is no choice to make, and a control that can only confirm what
+ * is already true is furniture.
+ *
+ * Above that it has two states. Already first: the button is replaced by a
+ * standing "Default" chip and the copy switches to the settled reading —
+ * nothing else in Frame tells you which project launch will pick, so the row
+ * has to say it plainly. Not first: the button is offered, and the copy asks.
+ */
+function syncDefaultProject() {
+  if (!defaultProjectRowEl) return;
+  const projectPath = state.getProjectPath();
+  const projects = projectListUI.getProjects() || [];
+
+  if (!projectPath || projects.length < 2) {
+    defaultProjectRowEl.style.display = 'none';
+    return;
+  }
+  defaultProjectRowEl.style.display = '';
+
+  const isDefault = projectListUI.isDefaultProject(projectPath);
+  if (makeDefaultBtnEl) makeDefaultBtnEl.style.display = isDefault ? 'none' : '';
+  if (defaultProjectChipEl) defaultProjectChipEl.style.display = isDefault ? '' : 'none';
+  if (defaultProjectDescEl) {
+    defaultProjectDescEl.textContent = isDefault
+      ? 'This project is your default. Frame opens it every time it launches.'
+      : 'Frame opens your default project when it launches. Make this the default to land here every time.';
+  }
 }
 
 /**
