@@ -35,7 +35,8 @@ const commandPalette = require('./commandPalette');
 const cheatSheet = require('./cheatSheet');
 const welcomeOverlay = require('./welcomeOverlay');
 const appLoader = require('./appLoader');
-const settingsModal = require('./settingsModal');
+const projectSettingsModal = require('./projectSettingsModal');
+const frameSettingsModal = require('./frameSettingsModal');
 const telemetryNotice = require('./telemetryNotice');
 const healthNotice = require('./healthNotice');
 const specDrivenHint = require('./specDrivenHint');
@@ -219,8 +220,11 @@ function init() {
   require('./paletteSources').init(multiTerminalUI); // dynamic ⌘K jump targets
   cheatSheet.init();
   welcomeOverlay.init();
-  settingsModal.init();
-  telemetryNotice.init(() => settingsModal.open());
+  projectSettingsModal.init();
+  frameSettingsModal.init();
+  // The notice is about what Frame sends home — Privacy lives in Frame's
+  // own settings, not the project's.
+  telemetryNotice.init(() => frameSettingsModal.open());
   healthNotice.init();
   sampleBanner.init();
   specDrivenHint.init();
@@ -279,11 +283,17 @@ function setupButtonHandlers() {
     btn.addEventListener('click', () => revealSidebarTab(btn.dataset.sidebarTab));
   });
 
-  // Settings at the foot of the rail — same modal as the app menu entry and
-  // the Cmd+, command, so it toggles rather than re-opening on a second click.
-  const sidebarSettingsBtn = document.getElementById('sidebar-settings-btn');
-  if (sidebarSettingsBtn) {
-    sidebarSettingsBtn.addEventListener('click', () => settingsModal.toggle());
+  // The two settings surfaces, each from the control that names its scope:
+  // the project's from the sliders at the foot of the rail, Frame's own from
+  // the gear in the sidebar header (where the app menu entry and Cmd+, also
+  // land). Both toggle, so a second click on the same button closes it.
+  const projectSettingsBtn = document.getElementById('project-settings-btn');
+  if (projectSettingsBtn) {
+    projectSettingsBtn.addEventListener('click', () => projectSettingsModal.toggle());
+  }
+  const frameSettingsBtn = document.getElementById('frame-settings-btn');
+  if (frameSettingsBtn) {
+    frameSettingsBtn.addEventListener('click', () => frameSettingsModal.toggle());
   }
 
   // Theme toggle now lives in the top bar and is wired by terminalTabBar,
@@ -441,10 +451,10 @@ function setupUpdateDot() {
   });
 
   if (dot) {
-    dot.addEventListener('click', () => settingsModal.open());
+    dot.addEventListener('click', () => frameSettingsModal.open());
   }
   if (banner) {
-    banner.addEventListener('click', () => settingsModal.open());
+    banner.addEventListener('click', () => frameSettingsModal.open());
   }
 }
 
@@ -510,20 +520,26 @@ function registerCommands() {
   });
   r({
     id: 'settings.open',
-    title: 'Open Settings',
+    title: 'Frame Settings',
     category: 'Help',
     shortcut: 'CmdOrCtrl+,',
-    run: () => settingsModal.open()
+    run: () => frameSettingsModal.open()
+  });
+  r({
+    id: 'settings.openProject',
+    title: 'Project Settings',
+    category: 'Help',
+    run: () => projectSettingsModal.open()
   });
   r({
     id: 'app.checkForUpdate',
     title: 'Check for Updates',
     category: 'Help',
     run: async () => {
-      settingsModal.open();
-      // Settings modal's own check button can be triggered via the IPC handler
-      // that already exists; opening Settings is sufficient because the About
-      // section auto-runs a check if no cached status is available.
+      frameSettingsModal.open();
+      // The About panel's own check button can be triggered via the IPC handler
+      // that already exists; opening Frame Settings is sufficient because the
+      // About section auto-runs a check if no cached status is available.
       await ipcRenderer.invoke(IPC.CHECK_FOR_UPDATE);
     }
   });

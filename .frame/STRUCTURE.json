@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-26",
+  "lastUpdated": "2026-08-27",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -5111,6 +5111,76 @@
         ]
       }
     },
+    "renderer/frameSettingsModal": {
+      "file": "src/renderer/frameSettingsModal.js",
+      "description": "Frame Settings",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "toggle"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "settingsOverlay",
+        "../package.json"
+      ],
+      "functions": {
+        "init": {
+          "line": 41
+        },
+        "initAboutSection": {
+          "line": 91
+        },
+        "runCheck": {
+          "line": 176,
+          "params": [
+            "userInitiated"
+          ]
+        },
+        "renderUpdateState": {
+          "line": 215,
+          "params": [
+            "{ checked",
+            "found",
+            "failed",
+            "failReason",
+            "info",
+            "checkedAt",
+            "userInitiated }"
+          ]
+        },
+        "showUpdateBanner": {
+          "line": 239,
+          "params": [
+            "info"
+          ]
+        },
+        "hideUpdateBanner": {
+          "line": 250
+        },
+        "hideSidebarDot": {
+          "line": 254
+        },
+        "formatRelative": {
+          "line": 261,
+          "params": [
+            "date"
+          ]
+        },
+        "syncToggleFromSettings": {
+          "line": 272
+        }
+      },
+      "ipc": {
+        "listens": [
+          "OPEN_SETTINGS",
+          "UPDATE_AVAILABLE"
+        ],
+        "emits": []
+      }
+    },
     "renderer/gitChangesPanel": {
       "file": "src/renderer/gitChangesPanel.js",
       "description": "Git Changes Panel (Changes sidebar tab)",
@@ -5514,7 +5584,8 @@
         "cheatSheet",
         "welcomeOverlay",
         "appLoader",
-        "settingsModal",
+        "projectSettingsModal",
+        "frameSettingsModal",
         "telemetryNotice",
         "healthNotice",
         "specDrivenHint",
@@ -5528,34 +5599,34 @@
       ],
       "functions": {
         "init": {
-          "line": 48,
+          "line": 49,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 248,
+          "line": 252,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 313,
+          "line": 323,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 424,
+          "line": 434,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 455,
+          "line": 465,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 478,
+          "line": 488,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 751,
+          "line": 767,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -6674,6 +6745,63 @@
         }
       }
     },
+    "renderer/projectSettingsModal": {
+      "file": "src/renderer/projectSettingsModal.js",
+      "description": "Project Settings",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "toggle"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "specDrivenHint",
+        "settingsOverlay"
+      ],
+      "functions": {
+        "init": {
+          "line": 33
+        },
+        "syncFromProject": {
+          "line": 147
+        },
+        "syncSpecDrivenToggle": {
+          "line": 157,
+          "purpose": "Reflect the current project's features.specDriven flag. With no project"
+        },
+        "renderGitSharing": {
+          "line": 182,
+          "params": [
+            "stateObj"
+          ],
+          "purpose": "Paint the sharing row from main's state object. `error` means the project"
+        },
+        "syncGitSharing": {
+          "line": 198
+        },
+        "setRemoveFrameNote": {
+          "line": 212,
+          "params": [
+            "message"
+          ]
+        },
+        "setGitSharingWarning": {
+          "line": 218,
+          "params": [
+            "message"
+          ]
+        },
+        "setSpecDrivenNote": {
+          "line": 224,
+          "params": [
+            "message"
+          ]
+        }
+      }
+    },
     "renderer/projectStatusBadges": {
       "file": "src/renderer/projectStatusBadges.js",
       "description": "Project Status Badges",
@@ -6894,116 +7022,21 @@
         }
       }
     },
-    "renderer/settingsModal": {
-      "file": "src/renderer/settingsModal.js",
-      "description": "Settings Modal",
+    "renderer/settingsOverlay": {
+      "file": "src/renderer/settingsOverlay.js",
+      "description": "Settings Overlay Plumbing",
       "exports": [
-        "init",
-        "open",
-        "close",
-        "toggle"
+        "create"
       ],
-      "depends": [
-        "electron",
-        "shared/ipcChannels",
-        "state",
-        "specDrivenHint",
-        "../package.json"
-      ],
+      "depends": [],
       "functions": {
-        "init": {
-          "line": 40
-        },
-        "initAboutSection": {
-          "line": 212
-        },
-        "runCheck": {
-          "line": 297,
+        "create": {
+          "line": 24,
           "params": [
-            "userInitiated"
+            "overlayId",
+            "onOpen"
           ]
-        },
-        "renderUpdateState": {
-          "line": 336,
-          "params": [
-            "{ checked",
-            "found",
-            "failed",
-            "failReason",
-            "info",
-            "checkedAt",
-            "userInitiated }"
-          ]
-        },
-        "showUpdateBanner": {
-          "line": 360,
-          "params": [
-            "info"
-          ]
-        },
-        "hideUpdateBanner": {
-          "line": 371
-        },
-        "hideSidebarDot": {
-          "line": 375
-        },
-        "formatRelative": {
-          "line": 382,
-          "params": [
-            "date"
-          ]
-        },
-        "syncToggleFromSettings": {
-          "line": 393
-        },
-        "syncSpecDrivenToggle": {
-          "line": 414,
-          "purpose": "Reflect the current project's features.specDriven flag. With no project"
-        },
-        "renderGitSharing": {
-          "line": 439,
-          "params": [
-            "stateObj"
-          ],
-          "purpose": "Paint the sharing row from main's state object. `error` means the project"
-        },
-        "syncGitSharing": {
-          "line": 455
-        },
-        "setRemoveFrameNote": {
-          "line": 469,
-          "params": [
-            "message"
-          ]
-        },
-        "setGitSharingWarning": {
-          "line": 475,
-          "params": [
-            "message"
-          ]
-        },
-        "setSpecDrivenNote": {
-          "line": 481,
-          "params": [
-            "message"
-          ]
-        },
-        "open": {
-          "line": 487
-        },
-        "close": {
-          "line": 494
-        },
-        "toggle": {
-          "line": 501
         }
-      },
-      "ipc": {
-        "listens": [
-          "OPEN_SETTINGS",
-          "UPDATE_AVAILABLE"
-        ],
-        "emits": []
       }
     },
     "renderer/sidebarResize": {
@@ -7111,7 +7144,7 @@
         },
         "refresh": {
           "line": 85,
-          "purpose": "Re-check after the Settings toggle changed the flag."
+          "purpose": "Re-check after the Project Settings toggle changed the flag."
         },
         "render": {
           "line": 90,
@@ -7127,7 +7160,7 @@
         },
         "position": {
           "line": 135,
-          "purpose": "Anchor to the Settings button: same baseline, just outboard of the rail."
+          "purpose": "Anchor to the Project Settings button: same baseline, just outboard of the rail."
         },
         "enable": {
           "line": 157,
@@ -10699,6 +10732,18 @@
         "description": "File Tree UI Module"
       }
     ],
+    "frame": [
+      {
+        "module": "main/frameStore",
+        "file": "src/main/frameStore.js",
+        "description": "frameStore — the one module that knows where a project's meta files live."
+      },
+      {
+        "module": "renderer/frameSettingsModal",
+        "file": "src/renderer/frameSettingsModal.js",
+        "description": "Frame Settings"
+      }
+    ],
     "frame-config": [
       {
         "module": "main/frameProject",
@@ -10824,6 +10869,11 @@
     ],
     "modal": [
       {
+        "module": "renderer/frameSettingsModal",
+        "file": "src/renderer/frameSettingsModal.js",
+        "description": "Frame Settings"
+      },
+      {
         "module": "renderer/implementModeModal",
         "file": "src/renderer/implementModeModal.js",
         "description": "Implement Mode Modal"
@@ -10837,6 +10887,11 @@
         "module": "renderer/openProjectModal",
         "file": "src/renderer/openProjectModal.js",
         "description": "Open Project Modal"
+      },
+      {
+        "module": "renderer/projectSettingsModal",
+        "file": "src/renderer/projectSettingsModal.js",
+        "description": "Project Settings"
       }
     ],
     "orchestration": [
@@ -10864,6 +10919,18 @@
         "module": "renderer/orchestrator",
         "file": "src/renderer/orchestrator.js",
         "description": "Orchestrator (renderer) — a section viewport"
+      }
+    ],
+    "overlay": [
+      {
+        "module": "renderer/settingsOverlay",
+        "file": "src/renderer/settingsOverlay.js",
+        "description": "Settings Overlay Plumbing"
+      },
+      {
+        "module": "renderer/welcomeOverlay",
+        "file": "src/renderer/welcomeOverlay.js",
+        "description": "Welcome Overlay (Launch Greeting)"
       }
     ],
     "panel": [
@@ -10907,6 +10974,11 @@
         "description": "Projects Section"
       },
       {
+        "module": "renderer/projectSettingsModal",
+        "file": "src/renderer/projectSettingsModal.js",
+        "description": "Project Settings"
+      },
+      {
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
@@ -10941,11 +11013,6 @@
         "module": "main/userSettings",
         "file": "src/main/userSettings.js",
         "description": "User Settings"
-      },
-      {
-        "module": "renderer/settingsModal",
-        "file": "src/renderer/settingsModal.js",
-        "description": "Settings Modal"
       }
     ],
     "sidebar": [

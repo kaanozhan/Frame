@@ -122,6 +122,33 @@ body.sidebar-resizing * {
   50% { opacity: 0.45; }
 }
 
+/* Frame's own settings, at the right end of the sidebar header. Quiet by
+   default — it is a destination you go to occasionally, not a control you
+   work with, and the header's job is to say which app this is. */
+.sidebar-header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 3px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.sidebar-header-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.sidebar-header-btn:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
 /* Start button — the launch shortcut; accent-filled so the primary action
    reads clearly. */
 .sidebar-agent-launch {

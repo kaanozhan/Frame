@@ -66,6 +66,22 @@
         title="A new version is available — click for details"
         aria-label="Update available"
       ></button>
+      <!-- Frame's own settings: privacy and About/updates. The gear is the
+           app-preferences mark everywhere else, so it belongs to the app-wide
+           surface; the project's settings wear sliders at the rail's foot.
+           The update dot is its neighbour because it leads into About. -->
+      <button
+        type="button"
+        id="frame-settings-btn"
+        class="sidebar-header-btn"
+        title="Frame Settings (Cmd+,)"
+        aria-label="Frame Settings"
+        tabindex="-1"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Hover tooltip for Initialize Frame button (fixed position, escapes overflow) -->
@@ -109,13 +125,16 @@
             <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 10h6"/><path d="M12 13V7"/><path d="M9 17h6"/>
           </svg>
         </button>
-        <!-- Settings sits at the foot of the rail, below the view tabs: it
-             doesn't switch views — hence no .sidebar-tab-btn (that class
-             drives view switching). Theme moved to the top bar's right end
-             (status-bar spec), next to the other window-level controls. -->
-        <button id="sidebar-settings-btn" class="sidebar-rail-btn sidebar-rail-btn-foot" title="Settings (Cmd+,)" aria-label="Settings" tabindex="-1">
+        <!-- The project's settings sit at the foot of the rail, below the
+             view tabs: they don't switch views — hence no .sidebar-tab-btn
+             (that class drives view switching). Sliders, not a gear: the gear
+             in the sidebar header is Frame's own settings, and one mark for
+             two scopes is the confusion this split set out to end. Theme
+             moved to the top bar's right end (status-bar spec), next to the
+             other window-level controls. -->
+        <button id="project-settings-btn" class="sidebar-rail-btn sidebar-rail-btn-foot" title="Project Settings" aria-label="Project Settings" tabindex="-1">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+            <path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/>
           </svg>
         </button>
       </nav>
@@ -1222,11 +1241,18 @@
     <button class="context-menu-item" data-action="copy-path" type="button">Copy Filepath</button>
   </div>
 
-  <!-- Settings Modal -->
-  <div id="settings-overlay" class="settings-overlay">
-    <div class="settings-modal" role="dialog" aria-label="Settings">
+  <!-- Settings, in two surfaces. The split is the scope: what belongs to
+       the open project vs. what belongs to Frame on this machine. They were
+       one modal, and one gear reached both — so "Remove Frame from this
+       project" sat a scroll away from "Send anonymous usage stats" as if
+       they were the same kind of choice. -->
+
+  <!-- Project Settings — the rail's sliders button. Everything here writes
+       into the open project's .frame/, and nothing here outlives it. -->
+  <div id="project-settings-overlay" class="settings-overlay">
+    <div class="settings-modal" role="dialog" aria-label="Project Settings">
       <div class="settings-header">
-        <h3 class="settings-title">Settings</h3>
+        <h3 class="settings-title">Project Settings</h3>
         <button type="button" class="settings-close" data-settings-close aria-label="Close">&#x2715;</button>
       </div>
       <div class="settings-body">
@@ -1277,7 +1303,19 @@
             <button type="button" class="settings-danger-btn" id="settings-remove-frame">Remove Frame</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
 
+  <!-- Frame Settings — the sidebar header's gear, and Cmd+,. Machine-wide:
+       these outlive every project and are the same whichever one is open. -->
+  <div id="frame-settings-overlay" class="settings-overlay">
+    <div class="settings-modal" role="dialog" aria-label="Frame Settings">
+      <div class="settings-header">
+        <h3 class="settings-title">Frame Settings</h3>
+        <button type="button" class="settings-close" data-settings-close aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="settings-body">
         <div class="settings-section">
           <h4 class="settings-section-title">Privacy &amp; Analytics</h4>
           <div class="settings-row">
