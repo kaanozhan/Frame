@@ -25,6 +25,27 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
+// specManager reaches two packages transitively: telemetry.js requires
+// @aptabase/electron/main and userSettings.js requires electron. CI runs this
+// suite with no node_modules on purpose (see .github/workflows/ci.yml), so
+// both are stubbed before it loads — the same idiom specTasksSync.test.js
+// uses. Neither is exercised: getCommandPrompt emits no telemetry, and
+// app.getPath is only reached from userSettings.init(), which nothing calls.
+const Module = require('node:module');
+const EXTERNAL_STUBS = {
+  '@aptabase/electron/main': { initialize() {}, trackEvent() {} },
+  electron: { app: {}, ipcMain: { handle() {}, on() {} } }
+};
+const loadOriginal = Module._load;
+Module._load = function (request, ...rest) {
+  if (Object.prototype.hasOwnProperty.call(EXTERNAL_STUBS, request)) {
+    return EXTERNAL_STUBS[request];
+  }
+  return loadOriginal.call(this, request, ...rest);
+};
+
+const specManager = require('../src/main/specManager');
+
 const HOOK = path.join(__dirname, '..', 'scripts', 'spec-command-hint.js');
 const REPO = path.join(__dirname, '..');
 
@@ -148,7 +169,6 @@ test('the staged prompt is byte-identical to the one the button builds', () => {
   // not a hook bug — the protocol names exactly two locations and says to
   // stop when neither exists — but it does mean the guard has to bring its
   // own staged copy.
-  const specManager = require('../src/main/specManager.js');
   const packaged = path.join(REPO, 'src', 'templates', 'commands', 'claude-code');
 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-drift-'));
