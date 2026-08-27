@@ -87,16 +87,33 @@ const EVENTS = {
   // ─── spec-knowledge hook ────────────────────────────────
   'hint.injected': {
     kind: 'action',
-    fields: { host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt']), path: PATH, specs: COUNT },
-    label: (r) =>
-      r.mode === 'prompt'
+    fields: {
+      host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt', 'search', 'session-start', 'meta-write']),
+      path: PATH, specs: COUNT, concept: SLUG, modules: COUNT, bytes: COUNT
+    },
+    label: (r) => {
+      if (r.mode === 'session-start') {
+        return `Frame project rules delivered at session start${r.bytes ? ` (${r.bytes} chars)` : ''}`;
+      }
+      if (r.mode === 'meta-write') {
+        return `Frame's rules for this meta file delivered before the write${r.bytes ? ` (${r.bytes} chars)` : ''}`;
+      }
+      if (r.mode === 'search') {
+        return `Module map answered "${r.concept || 'a search'}"${r.modules ? ` (${r.modules} file${r.modules === 1 ? '' : 's'})` : ''}`;
+      }
+      return r.mode === 'prompt'
         ? `Surfaced ${r.specs ?? 0} related spec${r.specs === 1 ? '' : 's'} for this request`
-        : `Spec history injected for ${r.path || 'a file'}${r.specs ? ` (${r.specs} prior spec${r.specs === 1 ? '' : 's'})` : ''}`
+        : `Spec history injected for ${r.path || 'a file'}${r.specs ? ` (${r.specs} prior spec${r.specs === 1 ? '' : 's'})` : ''}`;
+    }
   },
   'hint.quiet': {
     kind: 'suppression',
-    fields: { host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt']), reason: enumOf(HINT_REASONS), path: PATH, repeats: REPEATS },
-    label: (r) => `Spec history skipped${r.path ? ` for ${r.path}` : ''} — ${HINT_REASON_TEXT[r.reason] || r.reason}`
+    fields: { host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt', 'search', 'session-start', 'meta-write']), reason: enumOf(HINT_REASONS), path: PATH, repeats: REPEATS },
+    label: (r) => (r.mode === 'session-start' || r.mode === 'meta-write'
+      ? `Frame rules not delivered — ${DOCS_HINT_REASON_TEXT[r.reason] || HINT_REASON_TEXT[r.reason] || r.reason}`
+      : r.mode === 'search'
+        ? `Module hint skipped — ${SEARCH_REASON_TEXT[r.reason] || HINT_REASON_TEXT[r.reason] || r.reason}`
+      : `Spec history skipped${r.path ? ` for ${r.path}` : ''} — ${HINT_REASON_TEXT[r.reason] || r.reason}`)
   },
 
   // ─── watchers ───────────────────────────────────────────
@@ -239,7 +256,7 @@ const EVENTS = {
   // ─── scripts running outside Frame's process ────────────
   'script.ran': {
     kind: 'action',
-    fields: { script: enumOf(['update-structure', 'check-freshness', 'spec-index']), host: enumOf(HOSTS), ms: MS, changes: COUNT },
+    fields: { script: enumOf(['update-structure', 'check-freshness', 'spec-index', 'find-module']), host: enumOf(HOSTS), ms: MS, changes: COUNT },
     label: (r) => `${SCRIPT_TEXT[r.script] || r.script} ran${r.host === 'git-precommit' ? ' on commit' : ''}`
   }
 };
@@ -258,6 +275,24 @@ const HINT_REASON_TEXT = {
   'no-match': 'no spec matched',
   'no-stale-free-match': 'matches were filtered out',
   'no-context': 'nothing to send'
+};
+
+// The same reason codes read differently for the module-map hook: "no index"
+// there means STRUCTURE.json has no intentIndex, not a missing spec index.
+// Only the reasons `module-hint.js` can emit are overridden; anything else
+// falls back to the spec wording.
+const SEARCH_REASON_TEXT = {
+  'no-index': 'no module map in STRUCTURE.json',
+  'no-words': 'no concept word in the search',
+  'no-match': 'no module matched the concept',
+  'session-dedup': 'already answered this session'
+};
+
+// And again for the session-start delivery of REFERENCE.md.
+const DOCS_HINT_REASON_TEXT = {
+  'no-index': 'this project has no .frame/docs/REFERENCE.md',
+  'no-match': 'REFERENCE.md carries no section for it',
+  'no-context': 'REFERENCE.md is empty'
 };
 
 const DOCS_DEGRADED_TEXT = {
@@ -292,7 +327,8 @@ const POLLER_TEXT = {
 const SCRIPT_TEXT = {
   'update-structure': 'Structure map update',
   'check-freshness': 'Freshness check',
-  'spec-index': 'Spec index build'
+  'spec-index': 'Spec index build',
+  'find-module': 'Module lookup'
 };
 
 function isRegistered(name) {

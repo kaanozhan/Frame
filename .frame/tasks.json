@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T15:27:31.207Z",
+  "lastUpdated": "2026-08-27T20:43:36.173Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6105,6 +6105,22 @@
       "createdAt": "2026-08-27T14:12:47.220Z",
       "updatedAt": "2026-08-27T15:27:31.207Z",
       "completedAt": "2026-08-27T15:27:31.207Z"
+    },
+    {
+      "id": "task-deterministic-orientation-hints",
+      "title": "Make the find-module/grep orientation step deterministic",
+      "description": "Frame ships two orientation tools an agent should reach for before cold grep — find-module.js (intent index) and graph-query.js (code graph). Both are wired as advisory text only, in .frame/AGENTS.md / .claude/rules/frame.md. Nothing enforces the step, so whether it runs depends on the agent honouring the instruction every session. The design that fixes this already exists as a written spec: audit-q3-deterministic-graph-hints (phase: specified, spec.md only — no plan.md, no tasks.md, no code). It calls for a PreToolUse hook on Grep|Glob running a fast local scripts/graph-hint.js that reads pre-parsed JSON, returns additionalContext on a hit, and stays silent otherwise — never blocking, never breaking, ~50ms budget. Blocked on a prerequisite: the spec assumes .frame/graph/ exists, but codebase-graph-onboarding (which builds it, plus scripts/graph-query.js and the tree-sitter wasm resources) sits unmerged on branch feat/codebase-graph-onboarding, commit 1357412 — not an ancestor of HEAD. A graph-free variant hinting only from STRUCTURE.json's intentIndex is the smaller path.",
+      "userRequest": "User said: pretooluse u kullanmamızın bir sebebi olmalı, şu an buna girmek istemiyorum. yani ikincisini neden yapmadık bilmiyorum. yaptık ve böyle çalıştırdık diye hatırlıyorum. ve hep çalıştığını gördüm, şimdilik bekletelim ya bunu task olarak ekler misin?",
+      "acceptanceCriteria": "A Grep/Glob in this repo receives intent/graph context in the same turn with no agent instruction involved; a project with no graph stays silent with zero errors; the hook never returns a blocking decision; hook overhead stays inside the speed budget; installing it into a project's .claude/settings.json preserves existing content; the tension with spec-knowledge-layer's 'exploration must stay injection-free' rule (spec-hint.js:11) is resolved explicitly rather than silently.",
+      "notes": "Parked deliberately by the user for now — not abandoned. Two open points to settle before building, both raised by the user and left unanswered on purpose: (1) there is likely a reason the existing hook uses PreToolUse specifically, which was not re-litigated in this session; (2) the user recalls this hook being built and working ('yaptık ve böyle çalıştırdık diye hatırlıyorum, hep çalıştığını gördüm'), while git shows .claude/settings.json has exactly one commit across all branches (e61d542, spec-hint Edit|Write + UserPromptSubmit) and no Grep/Glob matcher ever existed — that gap between recollection and history is worth understanding before assuming nothing was ever there. Verified this session that the .frame/ migration (non-invasive-overlay) did NOT break this: no leftover root meta files, find-module works end-to-end, freshness reports no path warnings. The advisory layer reached the agent correctly; it was simply not followed rigorously — which is the spec's own argument, 'an instruction is not a mechanism'. Related stuck task: 'Add reverse dependency analysis to intentIndex', in_progress 72 days.\n\nDONE 2026-08-27, without the graph. Built the STRUCTURE.json-only variant this task named as the smaller path: scripts/module-hint.js, a PreToolUse hook on Grep|Glob|Bash that answers a search from the intentIndex and stays silent otherwise. Two findings changed the shape from the spec sketch. (1) The matcher must include Bash: matchers test the tool name, and 934 of 937 real searches in this repo arrived as Bash with the pattern inside `command`, so a Grep|Glob matcher alone would never have fired. (2) find-module’s fourth tier (scan module descriptions/exports/IPC) is deliberately left out of the hook — replayed over 1011 real search commands it hit 136 times on noise (\"kill\" from a pkill search, \"process\", a half-typed \"rchestrator\") against 297 useful curated hits; it stays in the CLI where a human asked for it. Cost measured at ~45ms per call, dominated by node startup. The tension with spec-knowledge-layer’s “exploration must stay injection-free” rule is resolved explicitly: that rule protected against injecting spec *history* during exploration, which is unrelated to the concept being searched for; this injects the module map, which is the answer to the search itself. The recollection/history gap noted above was investigated again and stands — no Grep/Glob matcher ever existed in git; the likely explanation is the pre-split AGENTS.md, which explained find-module in twelve lines with three worked examples and was compressed to four terse lines by 32aafc2 on 2026-07-06. audit-q3-deterministic-graph-hints stays open for the graph-based variant. No spec: the offer was made once and the user chose to go direct — see PROJECT_NOTES [2026-08-27].",
+      "source": "user-request",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "Session 2026-08-26 — surfaced when find-module.js failed to lead to the Claude panel and the fallback to manual grep went unrecorded",
+      "createdAt": "2026-08-26T16:15:09.246Z",
+      "updatedAt": "2026-08-26T16:15:09.246Z",
+      "completedAt": "2026-08-27T20:43:36.173Z"
     }
   ],
   "metadata": {
