@@ -3658,22 +3658,22 @@
           ]
         },
         "stopWatching": {
-          "line": 1259
+          "line": 1267
         },
         "pushSpecData": {
-          "line": 1280,
+          "line": 1288,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1300,
+          "line": 1308,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1304,
+          "line": 1312,
           "params": [
             "ipcMain"
           ]

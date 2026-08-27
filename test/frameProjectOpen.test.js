@@ -51,6 +51,7 @@ aiToolManager.getActiveTool = () => ({ id: 'claude', name: 'Claude Code' });
 // past the last assertion. Counting the calls proves the same thing without
 // leaving a watcher behind.
 const rearmed = { tasks: 0, specs: 0 };
+const realStartWatching = specManager.startWatching;
 tasksManager.restartWatching = () => { rearmed.tasks += 1; };
 specManager.startWatching = () => { rearmed.specs += 1; };
 
@@ -236,6 +237,52 @@ test('an already-migrated project and a fresh one come out of an open unchanged'
   assert.equal(result.layout, 'overlay');
   assert.equal(result.migration, null, 'no migration is proposed, so nothing is reported');
   assert.deepEqual(snapshotTree(projectDir), before, 'the open is a read for a settled project');
+});
+
+test('an open blocked by a merge writes nothing at all', async () => {
+  projectDir = makeLegacyProject();
+
+  // A real conflict on one of the meta files: two branches edit it, then merge.
+  const notes = path.join(projectDir, 'PROJECT_NOTES.md');
+  git(projectDir, ['checkout', '-q', '-b', 'other']);
+  fs.appendFileSync(notes, '\n### [2026-02-02] Theirs\n');
+  git(projectDir, ['commit', '-q', '-a', '-m', 'theirs']);
+  git(projectDir, ['checkout', '-q', '-']);
+  fs.appendFileSync(notes, '\n### [2026-02-02] Ours\n');
+  git(projectDir, ['commit', '-q', '-a', '-m', 'ours']);
+  try {
+    git(projectDir, ['merge', '--no-edit', 'other']);
+  } catch (err) {
+    /* the conflict is the point */
+  }
+
+  const statusBefore = git(projectDir, ['status', '--porcelain']);
+  assert.ok(statusBefore.includes('UU '), 'the fixture really is mid-merge');
+  const before = snapshotTree(projectDir);
+
+  const result = await frameProject.openProjectLayout(projectDir);
+
+  assert.equal(result.layout, 'legacy', 'the project is left where it was');
+  assert.deepEqual(result.migration, {
+    ran: false,
+    blocked: 'unmerged',
+    unmerged: ['PROJECT_NOTES.md']
+  });
+
+  assert.deepEqual(snapshotTree(projectDir), before, 'not one byte was written');
+  assert.equal(git(projectDir, ['status', '--porcelain']), statusBefore, 'git sees the same tree');
+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_DIR, 'specs')), 'no .frame/specs/ was created');
+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_DIR, 'docs')), 'no stager ran');
+});
+
+test('the specs watcher does not create .frame/specs/ while the layout is unsettled', () => {
+  projectDir = makeLegacyProject();
+  const before = snapshotTree(projectDir);
+
+  realStartWatching(projectDir);
+
+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_DIR, 'specs')), 'the mkdirSync is gated');
+  assert.deepEqual(snapshotTree(projectDir), before, 'watching an unsettled project writes nothing');
 });
 
 test('a directory Frame never initialised is answered, not written to', async () => {

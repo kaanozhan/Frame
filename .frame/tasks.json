@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T15:16:26.206Z",
+  "lastUpdated": "2026-08-27T15:17:59.564Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6033,13 +6033,13 @@
       "title": "Gate `specManager.startWatching`'s `mkdirSync` and the `WATCH_SPECS` handler's three stagers on `frameStore.isLegacyLayout()`, and extend `test/frameProjectOpen.test.js` to prove a blocked open leaves `git status` and the untracked set byte-identical with no `.frame/specs/` created.",
       "description": "",
       "source": "spec:migration-consent-scope:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T15:17:59.564Z",
+      "completedAt": "2026-08-27T15:17:59.564Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T06",

@@ -61,3 +61,18 @@ copy in `.frame/`, with the user's prose untouched.
 _Captured: 2026-08-27 · 3 file change(s)_
 
 ---
+## T05 — The specs watcher stops writing to an unsettled project
+
+Gated `startWatching`'s `mkdirSync` of the specs root and the `WATCH_SPECS`
+handler's three stagers on `frameStore.isLegacyLayout()` in
+`src/main/specManager.js`. The open path alone could not hold the guard:
+`WATCH_SPECS` and `CHECK_IS_FRAME_PROJECT` are separate IPC messages and the
+renderer decides which arrives first. Extended `test/frameProjectOpen.test.js`
+with a mid-merge fixture proving a blocked open leaves the tree and `git
+status --porcelain` byte-identical with no `.frame/specs/` or `.frame/docs/`,
+plus a direct call to the real `startWatching` proving the `mkdirSync` is
+gated.
+
+_Captured: 2026-08-27 · 2 file change(s)_
+
+---
