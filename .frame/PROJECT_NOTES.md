@@ -1927,6 +1927,105 @@ looked like proof of persistence but is written fresh at boot. Read paths can
 be proven with `page.reload()` (same process, storage intact); disk survival
 has to be taken on the mechanism's track record.
 
+### [2026-08-26] AGENTS.md generations have different *shapes*, not just different text
+A user reported the symptom recorded in **[2026-07-23] Spec-flow delivery gap**
+all over again: asked in natural language to plan a spec, the agent never
+entered the deep `spec.plan` flow. Diagnosis this time went one layer down.
+The 07-23 fix broadened `AGENTS_SPEC_LEGACY_MATCHERS` so a pre-split AGENTS.md's
+full section would finally be replaced by the core pointer. It was — and the
+pointer aimed at `.frame/docs/REFERENCE.md`, which `upgradeSpecDocs` never
+creates (`catch (_) { continue; // missing file — never create it }`). The old
+bug was "the agent follows a stale flow"; the fix turned it into "the agent has
+no flow". Every project born v1.0.0–v2.4.0 with spec-driven on took that path
+on its next open. Fixed in `spec-docs-delivery-invariant` T01–T04: artifacts
+before docs on open, and the pointer written only once its target is read back
+and confirmed to carry the block.
+
+**The reusable finding, and a planning mistake worth not repeating.** While
+planning, one measurement — all seven `AGENTS_LINE_EDITS` targets miss on a
+genuine v2.4.0 AGENTS.md — was carried to the decision gate with its cause
+assumed rather than checked, and a whole navigation-managed-block workstream
+was decided on it. The measurement was right; the cause was not. Verified
+afterwards: every one of the seven **hits** the post-split (v2.5.0/v2.6.0)
+generation they were written for, so that population was never broken. They
+miss on pre-split documents because `## Project Navigation` and the pointer
+table **do not exist there**. Pre-split AGENTS.md is not the current document
+with different wording — it is a different document, carrying the whole
+maintenance ceremony inline (`## Task Management`, `## PROJECT_NOTES.md Rules`,
+`## Context Preservation`, `## STRUCTURE.json Rules`, `## General Rules`), 13
+root-relative meta mentions and no `.frame/` prefixes at all. So: when reasoning
+about an older generation of a Frame-written document, compare **headings
+first**; a matcher that misses may be pointing at a section that was never
+there. The pre-split document remains a real open problem — deliberately left
+to its own spec, to be diagnosed before it is decided.
+
+### [2026-08-26] The "98 IPC msg/s" warning was not a render loop — terminal stdin is chatty by nature
+
+Kaan reported the watchdog toast during ordinary use:
+`98 IPC msg/s sustained for 5s — top: out:terminal-input-id ×274,
+in:terminal-output-id ×217`, and asked what was causing it.
+
+It was not a loop in Frame. The evidence was sitting in
+`~/.frame/prompts/sample-project.log`, which records every byte that reaches
+a PTY's stdin. Parsing the last 2MB of it:
+
+| stdin traffic | count |
+| --- | --- |
+| `ESC[?<row>;<col>R` — cursor-position reply | 198,590 |
+| `ESC[<35;x;y M` — SGR mouse motion report | 9,261 |
+| `ESC[I` / `ESC[O` — focus in/out | 973 |
+| DA and other CSI replies | 11 |
+
+95% of "input" is xterm **answering the foreground TUI**. An agent TUI asks
+`ESC[?6n` on every render; the two most frequent answers were `row=39,col=3`
+(×87,527) and `row=36,col=3` (×66,050), alternating — two queries per frame.
+That explains both directions and the ratio: output is capped by ptyManager's
+16ms flush (~43/s observed), and the replies track it at ~1.26 each.
+
+Four things came out of that, all shipped together:
+
+1. **Input had never been coalesced.** Output was batched during
+   resize-storm-watchdog; stdin still cost one IPC per chunk. New
+   `src/renderer/terminalInput.js` is now the single renderer→stdin path
+   (also fixing ordering by construction, since `sendCommand` and
+   `terminalSendPromptThenEnter` used to race `onData` in principle). The
+   window is a **microtask, deliberately not a timer**: a TUI blocks its own
+   frame waiting for the answer, so holding replies for even one display
+   frame would slow the thing producing them. It merges what xterm emits
+   while parsing one output flush — the 274-vs-217 surplus — and nothing else.
+   Honest size: ~20%, not the fix.
+
+2. **The watchdog was miscalibrated, and that was the real fix.** Terminal
+   stdin/stdout are the one pair of channels whose legitimate rate is set by
+   something other than Frame. They now have their own threshold (1500/window
+   ≈ 300/s) while Frame's own channels keep the original 300/window that
+   caught the 2026-08-20 incident. Below the terminal bar the line is still
+   written to `main.log` — nothing is blinded — but no red toast. The toast
+   also stopped asserting "A render loop is the usual cause"; in this case it
+   sent the investigation the wrong way.
+
+3. **The report now names the payload, not just the channel.** This
+   investigation cost an afternoon because "out:terminal-input-id ×274" says
+   nothing about what those bytes were, and the answer was only recoverable
+   from the prompt history by accident. The line now reads
+   `— stdin: cursor-report ×274`.
+
+4. **`_sendResize` fired on unchanged geometry.** Fitting makes xterm rewrite
+   its own DOM, which re-fires the pane's ResizeObserver, which fits again —
+   a settled layout produced a steady stream of no-op resizes
+   (`out:terminal-resize-id ×30` in one window). It now sends only on change.
+
+**Separate bug found on the way in:** `promptLogger` was feeding these
+control replies into the prompt history. Dropping the bare ESC byte
+(`charCode < 32`) was not enough — the printable tail `[?39;3R` still landed
+in the buffer, so every real prompt was written prefixed with tens of
+thousands of junk characters. One line measured 48,886 characters holding 71
+characters of actual prompt, and `sample-project.log` had reached 1.5MB.
+`logInput` now consumes whole escape sequences with a scanner whose state
+carries across chunks (a reply can be split between two writes). Arrow keys
+were polluting prompts the same way and are fixed by the same change.
+
+The existing polluted history files were left alone — user data, Kaan's call.
 ### [2026-08-26] Home became the landing surface, and three of the terminals-home-agents decisions were overturned
 
 Visual review of the finished `terminals-home-agents` spec, with Kaan driving

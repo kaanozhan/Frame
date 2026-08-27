@@ -16,25 +16,53 @@
  *      A matching heading over a rewritten body means the user customized the
  *      section — the whole file is left alone.
  *
+ * Neither proof exists for a document that never carried the section at all,
+ * and "leave it alone" is the wrong answer there: it is how a pointer came to
+ * be written at a file nothing ever created. So there is a third, additive
+ * move — `appendBlock`, reachable through `upgradeDoc`'s `onAbsent: 'append'`
+ * — which adds the block without rewriting a byte of what is already there.
+ * Deciding that a document has nothing to conflict with is the caller's
+ * judgement, not this module's; the engine only carries it out.
+ *
  * Pure string surgery: no fs, no Electron. Every byte outside the replaced
  * span is preserved verbatim.
  */
 
-const BLOCK_NAME = 'frame:managed:spec-section';
-const BEGIN_MARKER_RE = new RegExp(`<!--\\s*${BLOCK_NAME}\\s+v=(\\d+)\\s*-->`);
-const END_MARKER_RE = new RegExp(`<!--\\s*/${BLOCK_NAME}\\s*-->`);
+// The engine carries more than one managed block (the spec section, and the
+// navigation prose the `.frame/` layout made stale), so every entry point
+// takes a block name and defaults to the spec section — the name every
+// existing caller and test means when it passes none. Blocks are independent:
+// a document may carry one, both, or neither, and each is versioned on its own.
+const SPEC_BLOCK_NAME = 'frame:managed:spec-section';
+const BLOCK_NAME = SPEC_BLOCK_NAME;
 
-function beginMarker(version) {
-  return `<!-- ${BLOCK_NAME} v=${version} -->`;
+function escapeRe(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-const END_MARKER = `<!-- /${BLOCK_NAME} -->`;
+function beginMarkerRe(blockName) {
+  return new RegExp(`<!--\\s*${escapeRe(blockName)}\\s+v=(\\d+)\\s*-->`);
+}
+
+function endMarkerRe(blockName) {
+  return new RegExp(`<!--\\s*/${escapeRe(blockName)}\\s*-->`);
+}
+
+function beginMarker(version, blockName) {
+  return `<!-- ${blockName} v=${version} -->`;
+}
+
+function endMarker(blockName) {
+  return `<!-- /${blockName} -->`;
+}
+
+const END_MARKER = endMarker(SPEC_BLOCK_NAME);
 
 /**
  * Wrap a section body in stamped markers — the canonical emitted form.
  */
-function renderBlock(body, version) {
-  return `${beginMarker(version)}\n${body}\n${END_MARKER}`;
+function renderBlock(body, version, blockName = SPEC_BLOCK_NAME) {
+  return `${beginMarker(version, blockName)}\n${body}\n${endMarker(blockName)}`;
 }
 
 /**
@@ -44,12 +72,12 @@ function renderBlock(body, version) {
  * markers are deliberately reported as "no block": the legacy gate below
  * cannot match a marker-polluted section, so a corrupted file is left alone.
  */
-function findBlock(text) {
+function findBlock(text, blockName = SPEC_BLOCK_NAME) {
   if (typeof text !== 'string') return null;
-  const begin = BEGIN_MARKER_RE.exec(text);
+  const begin = beginMarkerRe(blockName).exec(text);
   if (!begin) return null;
   const afterBegin = begin.index + begin[0].length;
-  const end = END_MARKER_RE.exec(text.slice(afterBegin));
+  const end = endMarkerRe(blockName).exec(text.slice(afterBegin));
   if (!end) return null;
   return {
     start: begin.index,
@@ -113,45 +141,110 @@ function findLegacySpan(text, matcher) {
 }
 
 /**
+ * Where a new block goes in a document that has none: before the trailing
+ * Frame footer when the caller names one, otherwise at the end. Mirrors the
+ * insertion `frameProject.ensureSpecDrivenArtifacts` has always used, so a
+ * document appended to here is shaped exactly like one Frame wrote itself.
+ */
+function firstFooterIndex(text, footerMarker) {
+  const markers = Array.isArray(footerMarker) ? footerMarker : [footerMarker];
+  let found = -1;
+  for (const marker of markers) {
+    if (typeof marker !== 'string' || !marker) continue;
+    const idx = text.indexOf(marker);
+    if (idx >= 0 && (found === -1 || idx < found)) found = idx;
+  }
+  return found;
+}
+
+/**
+ * Add a managed block to a document that carries none, rewriting nothing:
+ * every existing byte survives, the block is inserted before the footer (or
+ * appended), and it is stamped current so later upgrades take the marker path.
+ *
+ * This is the additive half of the engine's contract. `upgradeDoc` decides
+ * whether a document *may* be appended to; the judgement that there is nothing
+ * to conflict with belongs to the caller, because it needs knowledge of the
+ * document's own sections that pure string surgery cannot supply.
+ *
+ * Returns null on the same invalid inputs `upgradeDoc` rejects.
+ */
+function appendBlock(text, options) {
+  if (typeof text !== 'string' || !options || typeof options.body !== 'string') return null;
+  const version = options.version;
+  if (!Number.isInteger(version)) return null;
+
+  const blockName = options.blockName || SPEC_BLOCK_NAME;
+  const rendered = renderBlock(options.body, version, blockName);
+  const footerIdx = firstFooterIndex(text, options.footerMarker);
+
+  if (footerIdx >= 0) {
+    // Drop the separator that preceded the footer so the inserted block does
+    // not leave two rules stacked on each other.
+    const head = text.slice(0, footerIdx).replace(/\n*(-{3,}[ \t]*\n)?\s*$/, '');
+    const tail = text.slice(footerIdx);
+    return `${head}\n\n---\n\n${rendered}\n\n---\n\n${tail}`;
+  }
+  return `${text.replace(/\n*$/, '')}\n\n---\n\n${rendered}\n`;
+}
+
+/**
  * Compute the upgraded document text, or null when nothing may change.
  *
  *   - markers present, stamped >= version → null (current or newer)
  *   - markers present, stamped < version  → block replaced in place
  *   - no markers → one-time legacy migration when a matcher passes the
- *     confidence gate; otherwise null
+ *     confidence gate; otherwise `onAbsent`'s answer, which defaults to null
  *
- * options: { body, version, legacyMatchers } — body is the new section text
- * (unwrapped), legacyMatchers an array of full shipped section texts
- * (heading included).
+ * options: { body, version, legacyMatchers, blockName, onAbsent, footerMarker }
+ * — body is the new section text (unwrapped), legacyMatchers an array of full
+ * shipped section texts (heading included), blockName the managed block to
+ * act on (default: the spec section), and `onAbsent: 'append'` asks for the
+ * block to be added when no proof of an existing one was found.
+ *
+ * `onAbsent` reaches only the final arm. A block at the current version, a
+ * block stamped older, a marker fragment and a legacy match all behave exactly
+ * as they did before the option existed — which is what keeps a healthy
+ * document byte-identical across an upgrade.
  */
 function upgradeDoc(text, options) {
   if (typeof text !== 'string' || !options || typeof options.body !== 'string') return null;
   const version = options.version;
   if (!Number.isInteger(version)) return null;
+  const blockName = options.blockName || SPEC_BLOCK_NAME;
 
-  const block = findBlock(text);
+  const block = findBlock(text, blockName);
   if (block) {
     if (block.version >= version) return null;
-    return text.slice(0, block.start) + renderBlock(options.body, version) + text.slice(block.end);
+    return text.slice(0, block.start)
+      + renderBlock(options.body, version, blockName)
+      + text.slice(block.end);
   }
 
   // Any marker fragment without a well-formed block means corrupted Frame
-  // state or user surgery — never migrate around it.
-  if (BEGIN_MARKER_RE.test(text) || END_MARKER_RE.test(text)) return null;
+  // state or user surgery — never migrate around it, and never append a
+  // second block beside the wreckage of the first.
+  if (beginMarkerRe(blockName).test(text) || endMarkerRe(blockName).test(text)) return null;
 
   for (const matcher of options.legacyMatchers || []) {
     const span = findLegacySpan(text, matcher);
     if (span) {
-      return text.slice(0, span.start) + renderBlock(options.body, version) + text.slice(span.end);
+      return text.slice(0, span.start)
+        + renderBlock(options.body, version, blockName)
+        + text.slice(span.end);
     }
   }
+
+  if (options.onAbsent === 'append') return appendBlock(text, options);
   return null;
 }
 
 module.exports = {
   findBlock,
   upgradeDoc,
+  appendBlock,
   renderBlock,
   BLOCK_NAME,
+  SPEC_BLOCK_NAME,
   END_MARKER
 };

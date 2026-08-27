@@ -7,6 +7,7 @@ const { ipcRenderer, clipboard } = require('electron');
 const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { IPC } = require('../shared/ipcChannels');
+const terminalInput = require('./terminalInput');
 
 // Terminal theme based on current app theme
 function getTerminalTheme() {
@@ -512,9 +513,11 @@ class TerminalManager {
       terminal.paste(paths.join(' '));
     });
 
-    // Handle input
+    // Handle input. Routed through terminalInput so xterm's answers to the
+    // foreground TUI (cursor-position reports, mouse, focus) coalesce with
+    // whatever else this tick produced instead of costing one IPC each.
     terminal.onData((data) => {
-      ipcRenderer.send(IPC.TERMINAL_INPUT_ID, { terminalId, data });
+      terminalInput.send(terminalId, data);
     });
 
     // If first terminal or no active terminal, make it active
@@ -724,23 +727,24 @@ class TerminalManager {
     const targetId = terminalId || this.activeTerminalId;
     
     if (targetId) {
-      ipcRenderer.send(IPC.TERMINAL_INPUT_ID, {
-        terminalId: targetId,
-        data: command + '\r'
-      });
+      terminalInput.send(targetId, command + '\r');
     }
   }
 
   // Private methods
   _sendResize(terminalId) {
     const instance = this.terminals.get(terminalId);
-    if (instance) {
-      ipcRenderer.send(IPC.TERMINAL_RESIZE_ID, {
-        terminalId,
-        cols: instance.terminal.cols,
-        rows: instance.terminal.rows
-      });
-    }
+    if (!instance) return;
+    const { cols, rows } = instance.terminal;
+    // A fit that lands on the same grid is not a resize. Fitting makes xterm
+    // rewrite its own DOM, which re-fires the pane's ResizeObserver, which
+    // fits again — so an unguarded send turned a settled layout into a
+    // steady stream of no-op messages (seen as out:terminal-resize-id ×30
+    // in one 5s watchdog window). The PTY only cares about changes.
+    if (instance.lastSentCols === cols && instance.lastSentRows === rows) return;
+    instance.lastSentCols = cols;
+    instance.lastSentRows = rows;
+    ipcRenderer.send(IPC.TERMINAL_RESIZE_ID, { terminalId, cols, rows });
   }
 
   _notifyStateChange() {

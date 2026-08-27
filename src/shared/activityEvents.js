@@ -56,6 +56,15 @@ const HINT_REASONS = [
 
 const HOSTS = ['app', 'claude-hook', 'git-precommit', 'orch-bus', 'cli'];
 
+// Why the doc pass could not settle a document. Each is a distinct thing for
+// the user to do, which is why they are separate codes rather than one
+// "something is wrong".
+const DOCS_DEGRADED_REASONS = [
+  'missing-path', // the prose names a file that is not on disk
+  'unmatched-section', // a section Frame cannot prove is its own — never written over
+  'unreadable' // the document itself could not be read
+];
+
 // Field types. Kept deliberately narrow: enums, numbers, and the two string
 // shapes that are the point of the record (a project-relative path, a spec
 // slug). No free-form text field exists, so no call site can introduce one.
@@ -185,6 +194,31 @@ const EVENTS = {
       : 'Frame\'s files are now shared with the repo')
   },
 
+  // ─── the docs Frame keeps for the agent ─────────────────
+  //
+  // Project open rewrites the managed sections of AGENTS.md and REFERENCE.md
+  // without the user watching, which is the trigger rule exactly. The pair
+  // exists because the failure this records was invisible for a month: a
+  // pointer written at a file nothing created, every layer returning quietly.
+  // `docs.repaired` says the pass did something; `docs.degraded` says it
+  // could not, and why.
+  'docs.repaired': {
+    kind: 'action',
+    fields: { docs: COUNT, created: COUNT, appended: COUNT },
+    label: (r) => {
+      const parts = [];
+      if (r.created) parts.push(`created ${r.created}`);
+      if (r.appended) parts.push(`added a section to ${r.appended}`);
+      const detail = parts.length ? ` (${parts.join(', ')})` : '';
+      return `Brought ${r.docs ?? 0} agent doc${r.docs === 1 ? '' : 's'} up to date${detail}`;
+    }
+  },
+  'docs.degraded': {
+    kind: 'action',
+    fields: { reason: enumOf(DOCS_DEGRADED_REASONS), path: PATH, count: COUNT },
+    label: (r) => `${DOCS_DEGRADED_TEXT[r.reason] || r.reason}${r.path ? ` — ${r.path}` : ''}`
+  },
+
   // ─── scripts running outside Frame's process ────────────
   'script.ran': {
     kind: 'action',
@@ -207,6 +241,12 @@ const HINT_REASON_TEXT = {
   'no-match': 'no spec matched',
   'no-stale-free-match': 'matches were filtered out',
   'no-context': 'nothing to send'
+};
+
+const DOCS_DEGRADED_TEXT = {
+  'missing-path': 'An agent doc points at a file that is not there',
+  'unmatched-section': 'A doc carries its own spec section — left untouched',
+  unreadable: 'An agent doc could not be read'
 };
 
 const MIGRATION_SKIP_TEXT = {

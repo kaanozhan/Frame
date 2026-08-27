@@ -772,6 +772,10 @@
         "disableSpecDriven",
         "setSpecDrivenEnabled",
         "upgradeSpecDocs",
+        "ensureProjectArtifacts",
+        "ensureCodexWrapper",
+        "appendSpecSection",
+        "docsHealthFor",
         "setupIPC"
       ],
       "depends": [
@@ -788,6 +792,7 @@
         "structureBootstrap",
         "commandStaging",
         "shared/docsManagedBlock",
+        "shared/docsHealth",
         "perfMonitor",
         "activityLog",
         "../scripts/detect-project",
@@ -800,28 +805,28 @@
       ],
       "functions": {
         "init": {
-          "line": 29,
+          "line": 30,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 47,
+          "line": 48,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 55,
+          "line": 56,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 68,
+          "line": 69,
           "params": [
             "filePath",
             "content"
@@ -829,21 +834,21 @@
           "purpose": "Create file if it doesn't exist"
         },
         "checkExistingFrameFiles": {
-          "line": 82,
+          "line": 83,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 109,
+          "line": 110,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 154,
+          "line": 155,
           "params": [
             "projectPath",
             "projectName",
@@ -851,7 +856,7 @@
           ]
         },
         "doInitializeFrameProject": {
-          "line": 162,
+          "line": 163,
           "params": [
             "projectPath",
             "projectName",
@@ -859,22 +864,35 @@
           ]
         },
         "runProjectInit": {
-          "line": 174,
+          "line": 175,
           "params": [
             "projectPath",
             "projectName",
             "options = {}"
           ]
         },
-        "syncClaudeRule": {
-          "line": 351,
+        "ensureCodexWrapper": {
+          "line": 358,
           "params": [
             "projectPath"
           ],
-          "purpose": "`.frame/`. Claude Code loads `.claude/rules/*.md` natively at session start,"
+          "purpose": "The Codex CLI wrapper. Written at init and, since it is the kind of file a"
+        },
+        "ensureProjectArtifacts": {
+          "line": 387,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Re-ensure on open what a fresh init creates."
+        },
+        "syncClaudeRule": {
+          "line": 411,
+          "params": [
+            "projectPath"
+          ]
         },
         "detectJsonIndent": {
-          "line": 378,
+          "line": 438,
           "params": [
             "text",
             "fallback = 2"
@@ -882,18 +900,18 @@
           "purpose": "The indentation an existing settings file uses, so rewriting it preserves"
         },
         "hookCommandsIn": {
-          "line": 385,
+          "line": 445,
           "params": [
             "settings"
           ],
           "purpose": "Every hook command in a settings object, whatever shape the file is in."
         },
         "frameHookCommands": {
-          "line": 402,
+          "line": 462,
           "purpose": "The command strings Frame installs today."
         },
         "installSpecHintHook": {
-          "line": 426,
+          "line": 486,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -901,7 +919,7 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "removeSpecHintHook": {
-          "line": 512,
+          "line": 572,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -909,67 +927,105 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 568,
+          "line": 628,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 573,
+          "line": 633,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 602,
+          "line": 662,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 630,
+          "line": 690,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 634,
+          "line": 694,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 648,
+          "line": 708,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 658,
+          "line": 718,
           "params": [
             "projectPath",
             "config"
           ]
         },
-        "upgradeSpecDocs": {
-          "line": 730,
+        "specDocDescriptors": {
+          "line": 819,
           "params": [
             "projectPath"
+          ],
+          "purpose": "The spec-section descriptors, in the order they must be settled: the target"
+        },
+        "readTextOrNull": {
+          "line": 847,
+          "params": [
+            "file"
           ]
         },
+        "upgradeSpecDocs": {
+          "line": 861,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
+        },
+        "appendSpecSection": {
+          "line": 944,
+          "params": [
+            "projectPath",
+            "rel"
+          ],
+          "purpose": "Append the managed spec section to a document the pass deliberately refused"
+        },
+        "docsHealthFor": {
+          "line": 983,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The report on its own, without running the repair pass — what the UI asks"
+        },
+        "recordDocsActivity": {
+          "line": 1005,
+          "params": [
+            "written",
+            "appended",
+            "report"
+          ],
+          "purpose": "Put the pass's result on the record. This is the half that was missing when"
+        },
         "removeFrame": {
-          "line": 781,
+          "line": 1040,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "dropEmptySettingsFile": {
-          "line": 835,
+          "line": 1094,
           "params": [
             "projectPath",
             "file"
@@ -977,21 +1033,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 861,
+          "line": 1120,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 877,
+          "line": 1136,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "setupIPC": {
-          "line": 917,
+          "line": 1176,
           "params": [
             "ipcMain"
           ],
@@ -1006,6 +1062,8 @@
           "IS_SPEC_DRIVEN_ENABLED",
           "ENABLE_SPEC_DRIVEN",
           "SET_SPEC_DRIVEN",
+          "GET_DOCS_HEALTH",
+          "APPEND_DOCS_SECTION",
           "GET_GIT_SHARING_STATE",
           "SET_GIT_SHARING",
           "REMOVE_FRAME_FROM_PROJECT",
@@ -2850,32 +2908,40 @@
       ],
       "functions": {
         "init": {
-          "line": 29,
+          "line": 33,
           "params": [
             "app"
           ],
           "purpose": "Initialize prompt logger"
         },
         "setProject": {
-          "line": 44,
+          "line": 48,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project — switches log file to project-specific path"
         },
         "getLogFilePath": {
-          "line": 53,
+          "line": 57,
           "purpose": "Get log file path"
         },
         "logInput": {
-          "line": 61,
+          "line": 73,
           "params": [
             "data"
           ],
           "purpose": "Process and log input data"
         },
+        "_consumeEscape": {
+          "line": 112,
+          "params": [
+            "state",
+            "char"
+          ],
+          "purpose": "One step of the escape-sequence scanner. Returns the next state; 'text'"
+        },
         "appendAndRotate": {
-          "line": 89,
+          "line": 138,
           "params": [
             "filePath",
             "entry"
@@ -2883,18 +2949,18 @@
           "purpose": "Append a line, then rotate past the cap: the live file moves to"
         },
         "getHistory": {
-          "line": 102,
+          "line": 151,
           "purpose": "Get prompt history (live file only — bounded by MAX_LOG_SIZE)"
         },
         "setupIPC": {
-          "line": 116,
+          "line": 165,
           "params": [
             "ipcMain"
           ],
           "purpose": "Setup IPC handlers"
         },
         "flush": {
-          "line": 126,
+          "line": 175,
           "purpose": "Await all queued appends — tests and shutdown ordering."
         }
       },
@@ -4879,6 +4945,106 @@
         }
       }
     },
+    "renderer/docsHealthHint": {
+      "file": "src/renderer/docsHealthHint.js",
+      "description": "Doc-health hint",
+      "exports": [
+        "init"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 44
+        },
+        "evaluate": {
+          "line": 64,
+          "purpose": "Show the hint if this project has something only a person can settle. Safe"
+        },
+        "actionable": {
+          "line": 91,
+          "params": [
+            "health"
+          ],
+          "purpose": "What is worth interrupting for. `unreadable` is deliberately absent: a"
+        },
+        "schedule": {
+          "line": 99,
+          "params": [
+            "projectPath",
+            "findings"
+          ]
+        },
+        "escapeHtml": {
+          "line": 109,
+          "params": [
+            "text"
+          ]
+        },
+        "describe": {
+          "line": 116,
+          "params": [
+            "{ unmatched",
+            "missing }"
+          ],
+          "purpose": "The one-line explanation, chosen by which finding is the more actionable."
+        },
+        "render": {
+          "line": 130,
+          "params": [
+            "projectPath",
+            "findings"
+          ]
+        },
+        "onOutsideClick": {
+          "line": 167,
+          "params": [
+            "e"
+          ]
+        },
+        "position": {
+          "line": 175,
+          "purpose": "Anchor to the Settings button, the same way specDrivenHint does."
+        },
+        "appendSections": {
+          "line": 201,
+          "params": [
+            "projectPath",
+            "unmatched",
+            "btn"
+          ],
+          "purpose": "Carry out the one thing Frame would not do unasked. Each document is"
+        },
+        "dismissForever": {
+          "line": 227,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "markDismissed": {
+          "line": 236,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Remembered in user settings rather than the project's config: it is a"
+        },
+        "isDismissed": {
+          "line": 248,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "readDismissed": {
+          "line": 253
+        },
+        "hide": {
+          "line": 258
+        }
+      }
+    },
     "renderer/editor": {
       "file": "src/renderer/editor.js",
       "description": "File Editor Module",
@@ -5995,6 +6161,7 @@
         "telemetryNotice",
         "healthNotice",
         "specDrivenHint",
+        "docsHealthHint",
         "migrationModal",
         "sampleBanner",
         "ipcWatchdog",
@@ -6005,34 +6172,34 @@
       ],
       "functions": {
         "init": {
-          "line": 49,
+          "line": 50,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 252,
+          "line": 254,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 323,
+          "line": 325,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 434,
+          "line": 436,
           "purpose": "Show update indicators when a new version is available:"
         },
         "revealSidebarTab": {
-          "line": 465,
+          "line": 467,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 488,
+          "line": 490,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 767,
+          "line": 769,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         }
       },
@@ -6054,26 +6221,34 @@
       ],
       "depends": [
         "electron",
+        "shared/ipcChannels",
         "electron-log/renderer",
         "notify"
       ],
       "functions": {
         "toMainLog": {
-          "line": 29,
+          "line": 30,
           "params": [
             "message"
           ],
           "purpose": "electron-log's renderer entry forwards to the main process's file"
         },
         "bump": {
-          "line": 45,
+          "line": 75,
           "params": [
             "direction",
             "channel"
           ]
         },
+        "classifyInput": {
+          "line": 83,
+          "params": [
+            "args"
+          ],
+          "purpose": "Tally the escape sequences in one stdin payload. Never throws."
+        },
         "init": {
-          "line": 51
+          "line": 96
         }
       }
     },
@@ -9196,51 +9371,52 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "multiTerminalUI"
+        "multiTerminalUI",
+        "terminalInput"
       ],
       "functions": {
         "initTerminal": {
-          "line": 16,
+          "line": 17,
           "params": [
             "containerId"
           ],
           "purpose": "Initialize terminal (now creates MultiTerminalUI)"
         },
         "writeToTerminal": {
-          "line": 24,
+          "line": 25,
           "params": [
             "data"
           ],
           "purpose": "Write to active terminal"
         },
         "writelnToTerminal": {
-          "line": 33,
+          "line": 34,
           "params": [
             "data"
           ],
           "purpose": "Write line to active terminal"
         },
         "fitTerminal": {
-          "line": 42,
+          "line": 43,
           "purpose": "Fit all terminals"
         },
         "getTerminal": {
-          "line": 51,
+          "line": 52,
           "purpose": "Get terminal manager"
         },
         "startTerminal": {
-          "line": 61,
+          "line": 62,
           "purpose": "Start terminal (no longer needed - auto-starts)"
         },
         "restartTerminal": {
-          "line": 69,
+          "line": 70,
           "params": [
             "projectPath"
           ],
           "purpose": "Restart terminal with new path (creates new terminal in path for current project)"
         },
         "sendCommand": {
-          "line": 85,
+          "line": 86,
           "params": [
             "command",
             "terminalId = null"
@@ -9248,14 +9424,14 @@
           "purpose": "Send command to active terminal or specific terminal"
         },
         "setActiveTerminal": {
-          "line": 94,
+          "line": 95,
           "params": [
             "terminalId"
           ],
           "purpose": "Set active terminal"
         },
         "getMultiTerminalUI": {
-          "line": 149,
+          "line": 144,
           "purpose": "Get MultiTerminalUI instance"
         }
       },
@@ -9263,10 +9439,7 @@
         "listens": [
           "RUN_COMMAND"
         ],
-        "emits": [
-          "TERMINAL_INPUT_ID",
-          "TERMINAL_INPUT_ID"
-        ]
+        "emits": []
       }
     },
     "renderer/terminalChipNotice": {
@@ -9305,6 +9478,36 @@
         }
       }
     },
+    "renderer/terminalInput": {
+      "file": "src/renderer/terminalInput.js",
+      "description": "Terminal Input — the single renderer→PTY stdin path.",
+      "exports": [
+        "send"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "flush": {
+          "line": 35
+        },
+        "send": {
+          "line": 49,
+          "params": [
+            "terminalId",
+            "data"
+          ],
+          "purpose": "Queue input for a terminal. Chunks queued in the same tick are sent as"
+        }
+      },
+      "ipc": {
+        "listens": [],
+        "emits": [
+          "TERMINAL_INPUT_ID"
+        ]
+      }
+    },
     "renderer/terminalManager": {
       "file": "src/renderer/terminalManager.js",
       "description": "Terminal Manager Module",
@@ -9315,21 +9518,22 @@
         "electron",
         "xterm",
         "xterm-addon-fit",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "terminalInput"
       ],
       "functions": {
         "getTerminalTheme": {
-          "line": 12,
+          "line": 13,
           "purpose": "Terminal theme based on current app theme"
         },
         "escapePathForShell": {
-          "line": 74,
+          "line": 75,
           "params": [
             "p"
           ]
         },
         "installGlobalDropGuard": {
-          "line": 90
+          "line": 91
         }
       },
       "ipc": {
@@ -9342,9 +9546,7 @@
         "emits": [
           "TERMINAL_CREATE",
           "GET_AVAILABLE_SHELLS",
-          "TERMINAL_INPUT_ID",
           "TERMINAL_DESTROY",
-          "TERMINAL_INPUT_ID",
           "TERMINAL_RESIZE_ID"
         ]
       }
@@ -9497,32 +9699,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 240,
+          "line": 280,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 244,
+          "line": 284,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 248,
+          "line": 288,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 252,
+          "line": 292,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 275,
+          "line": 315,
           "params": [
             "name",
             "fields"
@@ -9530,7 +9732,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 292,
+          "line": 332,
           "params": [
             "name",
             "fields"
@@ -9538,12 +9740,80 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 313,
+          "line": 353,
           "params": [
             "name",
             "fields"
           ],
           "purpose": "Build the record the append contract writes: the validated fields plus the"
+        }
+      }
+    },
+    "shared/docsHealth": {
+      "file": "src/shared/docsHealth.js",
+      "description": "Doc health — does Frame's own prose still describe a project that exists?",
+      "exports": [
+        "report",
+        "namedPaths",
+        "hasSectionLike",
+        "headingStem",
+        "classifySection"
+      ],
+      "depends": [
+        "docsManagedBlock"
+      ],
+      "functions": {
+        "isPlaceholder": {
+          "line": 48,
+          "params": [
+            "path"
+          ],
+          "purpose": "Placeholders, not paths: `.frame/specs/<slug>/spec.md`,"
+        },
+        "trimTrailing": {
+          "line": 57,
+          "params": [
+            "path"
+          ],
+          "purpose": "Trim what sentence punctuation glued onto the end of a match. A trailing dot"
+        },
+        "namedPaths": {
+          "line": 68,
+          "params": [
+            "text"
+          ],
+          "purpose": "Every distinct `.frame/…` path a document names, placeholders dropped, in"
+        },
+        "headingStem": {
+          "line": 92,
+          "params": [
+            "line"
+          ],
+          "purpose": "A heading's comparable stem: the words, lowercased, with the decoration"
+        },
+        "hasSectionLike": {
+          "line": 108,
+          "params": [
+            "text",
+            "stems"
+          ],
+          "purpose": "Does this document carry a heading that reads like the block's own section,"
+        },
+        "classifySection": {
+          "line": 123,
+          "params": [
+            "text",
+            "block"
+          ],
+          "purpose": "Classify one managed block within one document. `block` is"
+        },
+        "report": {
+          "line": 155,
+          "params": [
+            "docs",
+            "exists"
+          ],
+          "purpose": "The whole report."
         }
       }
     },
@@ -9553,50 +9823,95 @@
       "exports": [
         "findBlock",
         "upgradeDoc",
+        "appendBlock",
         "renderBlock",
         "BLOCK_NAME",
+        "SPEC_BLOCK_NAME",
         "END_MARKER"
       ],
       "depends": [],
       "functions": {
-        "beginMarker": {
-          "line": 27,
+        "escapeRe": {
+          "line": 39,
           "params": [
-            "version"
+            "text"
+          ]
+        },
+        "beginMarkerRe": {
+          "line": 43,
+          "params": [
+            "blockName"
+          ]
+        },
+        "endMarkerRe": {
+          "line": 47,
+          "params": [
+            "blockName"
+          ]
+        },
+        "beginMarker": {
+          "line": 51,
+          "params": [
+            "version",
+            "blockName"
+          ]
+        },
+        "endMarker": {
+          "line": 55,
+          "params": [
+            "blockName"
           ]
         },
         "renderBlock": {
-          "line": 36,
+          "line": 64,
           "params": [
             "body",
-            "version"
+            "version",
+            "blockName = SPEC_BLOCK_NAME"
           ],
           "purpose": "Wrap a section body in stamped markers — the canonical emitted form."
         },
         "findBlock": {
-          "line": 47,
+          "line": 75,
           "params": [
-            "text"
+            "text",
+            "blockName = SPEC_BLOCK_NAME"
           ],
           "purpose": "Locate the managed block. Returns { start, end, version } — start/end are"
         },
         "normalize": {
-          "line": 66,
+          "line": 94,
           "params": [
             "text"
           ],
           "purpose": "Whitespace-normalized comparison basis. The shipped legacy sections were"
         },
         "findLegacySpan": {
-          "line": 77,
+          "line": 105,
           "params": [
             "text",
             "matcher"
           ],
           "purpose": "Find the heading-bounded span of a legacy section that passes the"
         },
+        "firstFooterIndex": {
+          "line": 149,
+          "params": [
+            "text",
+            "footerMarker"
+          ],
+          "purpose": "Where a new block goes in a document that has none: before the trailing"
+        },
+        "appendBlock": {
+          "line": 172,
+          "params": [
+            "text",
+            "options"
+          ],
+          "purpose": "Add a managed block to a document that carries none, rewriting nothing:"
+        },
         "upgradeDoc": {
-          "line": 127,
+          "line": 210,
           "params": [
             "text",
             "options"
@@ -10971,6 +11286,20 @@
         "direction": "",
         "description": ""
       }
+    },
+    "docs": {
+      "GET_DOCS_HEALTH": {
+        "name": "get-docs-health",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "append": {
+      "APPEND_DOCS_SECTION": {
+        "name": "append-docs-section",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -11059,6 +11388,23 @@
         "module": "renderer/healthNotice",
         "file": "src/renderer/healthNotice.js",
         "description": "Health Notice Banner"
+      }
+    ],
+    "docs": [
+      {
+        "module": "renderer/docsHealthHint",
+        "file": "src/renderer/docsHealthHint.js",
+        "description": "Doc-health hint"
+      },
+      {
+        "module": "shared/docsHealth",
+        "file": "src/shared/docsHealth.js",
+        "description": "Doc health — does Frame's own prose still describe a project that exists?"
+      },
+      {
+        "module": "shared/docsManagedBlock",
+        "file": "src/shared/docsManagedBlock.js",
+        "description": "Managed-block engine for Frame's spec docs sections."
       }
     ],
     "editor": [
@@ -11182,6 +11528,30 @@
         "module": "renderer/githubPanel",
         "file": "src/renderer/githubPanel.js",
         "description": "GitHub Panel Module"
+      }
+    ],
+    "health": [
+      {
+        "module": "renderer/docsHealthHint",
+        "file": "src/renderer/docsHealthHint.js",
+        "description": "Doc-health hint"
+      },
+      {
+        "module": "shared/docsHealth",
+        "file": "src/shared/docsHealth.js",
+        "description": "Doc health — does Frame's own prose still describe a project that exists?"
+      }
+    ],
+    "hint": [
+      {
+        "module": "renderer/docsHealthHint",
+        "file": "src/renderer/docsHealthHint.js",
+        "description": "Doc-health hint"
+      },
+      {
+        "module": "renderer/specDrivenHint",
+        "file": "src/renderer/specDrivenHint.js",
+        "description": "Spec-Driven Development hint"
       }
     ],
     "history": [
