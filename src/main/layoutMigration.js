@@ -505,6 +505,45 @@ function run(projectPath, migrationPlan, onProgress = () => {}) {
   return receipt();
 }
 
+// ─── Decisions (pure) ─────────────────────────────────────────
+
+/**
+ * What is left for the user to answer, derived rather than stored.
+ *
+ * Pure, and deliberately independent of the legacy fingerprint: after the
+ * automatic half runs, the `AGENTS.md` whose prose is stale lives in
+ * `.frame/`, and the fingerprint that would have found it is gone. So the
+ * question is asked of the text itself — a decision exists exactly when
+ * `upgradeAgentsText` would change bytes. Two things follow for free: a fresh
+ * or already-migrated project derives nothing (the current template matches
+ * none of the old lines), and applying the rewrite empties the derivation, so
+ * the offer cannot repeat and nothing has to be recorded to stop it.
+ *
+ * Returns [] while the project is still on the legacy layout: a project whose
+ * layout question is unsettled may not be asked to rewrite a root file.
+ */
+function pendingDecisions(projectPath) {
+  if (frameStore.isLegacyLayout(projectPath)) return [];
+
+  const agentsText = frameStore.readAgents(projectPath);
+  if (!agentsText) return [];
+
+  const upgraded = upgradeAgentsText(agentsText);
+  if (upgraded.text === agentsText) return [];
+
+  return [{
+    kind: 'agents-prose',
+    // What the rewrite would actually do, so the modal can name it rather
+    // than promising "some edits".
+    edits: AGENTS_LINE_EDITS
+      .filter(([from]) => agentsText.includes(from))
+      .map(([from, to]) => ({ from: from.trim(), to: to.trim() })),
+    symlinkNote: AGENTS_SYMLINK_NOTE.test(agentsText),
+    // The lines Frame cannot prove are its own; these are never rewritten.
+    review: upgraded.review
+  }];
+}
+
 /**
  * Apply the decisions the user clicked through — today exactly one, the
  * `AGENTS.md` prose rewrite that `execute()` deliberately does not do.
@@ -546,6 +585,7 @@ module.exports = {
   init,
   plan,
   run,
+  pendingDecisions,
   applyDecisions,
   // exported for tests and for the receipt's prose
   extractClaudeBlock,

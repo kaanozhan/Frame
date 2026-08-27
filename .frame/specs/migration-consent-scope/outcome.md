@@ -29,3 +29,17 @@ backup-verify-unlink tests hold unchanged.
 _Captured: 2026-08-27 · 2 file change(s)_
 
 ---
+## T03 — pendingDecisions derives the question from the text
+
+Added `pendingDecisions(projectPath)` to `src/main/layoutMigration.js`: pure,
+fingerprint-independent, `[]` while `frameStore.isLegacyLayout()` holds, and
+otherwise one `agents-prose` entry carrying the named line edits, whether the
+old symlink note is present, and the review list — returned only when
+`upgradeAgentsText` would change bytes. Reads through `frameStore.readAgents`,
+so `resolvePath`'s legacy fallback is untouched. Tests cover the legacy,
+stale-prose, applied and fresh cases, and assert the call leaves a fresh
+project's listing unchanged.
+
+_Captured: 2026-08-27 · 2 file change(s)_
+
+---

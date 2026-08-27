@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T14:21:56.535Z",
+  "lastUpdated": "2026-08-27T14:23:56.628Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6007,13 +6007,13 @@
       "title": "Add `pendingDecisions(projectPath)` to `src/main/layoutMigration.js` — pure, fingerprint-independent, reading through `frameStore` without altering `resolvePath`'s legacy fallback, empty while `isLegacyLayout()` is true, returning the `agents-prose` decision only when `upgradeAgentsText` would change bytes — with tests for the fresh, already-rewritten and stale-prose cases.",
       "description": "",
       "source": "spec:migration-consent-scope:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T14:23:56.628Z",
+      "completedAt": "2026-08-27T14:23:56.628Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T04",

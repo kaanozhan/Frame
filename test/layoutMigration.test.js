@@ -31,6 +31,7 @@ Module._load = function (request, ...rest) {
 const layoutMigration = require('../src/main/layoutMigration');
 const frameStore = require('../src/main/frameStore');
 const aiToolManager = require('../src/main/aiToolManager');
+const templates = require('../src/shared/frameTemplates');
 const { FRAME_DIR, FRAME_FILES } = require('../src/shared/frameConstants');
 
 aiToolManager.getActiveTool = () => ({ id: 'claude', name: 'Claude Code' });
@@ -310,6 +311,52 @@ test('applyDecisions leaves a customised AGENTS.md alone and lists it for review
 
   // An empty decision list is a no-op, whatever the project looks like.
   assert.deepEqual(layoutMigration.applyDecisions(projectDir, []).applied, []);
+});
+
+test('pendingDecisions derives the prose decision from the text, not the fingerprint', () => {
+  projectDir = makeLegacyProject({ commit: true });
+
+  // While the layout question is unsettled, nothing is asked — a project on
+  // the legacy layout may not be asked to rewrite a root file.
+  assert.deepEqual(layoutMigration.pendingDecisions(projectDir), []);
+
+  layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
+
+  // Stale prose: the file moved untouched, so its old paths are still there.
+  const pending = layoutMigration.pendingDecisions(projectDir);
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].kind, 'agents-prose');
+  assert.ok(pending[0].symlinkNote, 'the old symlink note is one of the edits');
+  assert.deepEqual(
+    pending[0].edits.map((e) => e.from).sort(),
+    ['1. **STRUCTURE.json**', '2. **PROJECT_NOTES.md**', '3. **tasks.json**',
+      '| PROJECT_NOTES.md', '| QUICKSTART.md', '| STRUCTURE.json', '| tasks.json'].sort()
+  );
+  assert.deepEqual(pending[0].review, [], 'this fixture matches every line Frame wrote');
+
+  // Deriving it twice does not write, so the answer is stable.
+  assert.equal(layoutMigration.pendingDecisions(projectDir).length, 1);
+
+  // Once applied, the derivation empties itself — nothing records the answer.
+  layoutMigration.applyDecisions(projectDir, pending);
+  assert.deepEqual(layoutMigration.pendingDecisions(projectDir), []);
+});
+
+test('a fresh project is asked nothing, and reading it writes nothing', () => {
+  projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-fresh-'));
+  frameStore.writeConfig(projectDir, { version: '2.0', name: 'fresh', projectId: 'x' });
+  frameStore.writeAgents(projectDir, templates.getAgentsTemplate('fresh', {}));
+
+  const before = fs.readdirSync(projectDir).sort();
+  const frameBefore = fs.readdirSync(path.join(projectDir, FRAME_DIR)).sort();
+
+  assert.deepEqual(layoutMigration.pendingDecisions(projectDir), [], 'the current template needs no edits');
+  assert.deepEqual(fs.readdirSync(projectDir).sort(), before, 'pendingDecisions wrote nothing');
+  assert.deepEqual(fs.readdirSync(path.join(projectDir, FRAME_DIR)).sort(), frameBefore);
+
+  // A project with no AGENTS.md at all is not a question either.
+  fs.rmSync(path.join(projectDir, FRAME_DIR, FRAME_FILES.AGENTS));
+  assert.deepEqual(layoutMigration.pendingDecisions(projectDir), []);
 });
 
 test('a conflicting .frame/ copy is backed up, never overwritten', () => {

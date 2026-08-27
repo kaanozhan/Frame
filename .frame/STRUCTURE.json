@@ -2027,6 +2027,7 @@
         "init",
         "plan",
         "run",
+        "pendingDecisions",
         "applyDecisions",
         "upgradeAgentsText",
         "isFramePlantedSymlink",
@@ -2170,8 +2171,15 @@
           ],
           "purpose": "Execute a plan. Reports progress through `onProgress({ step, detail })` and"
         },
+        "pendingDecisions": {
+          "line": 525,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "What is left for the user to answer, derived rather than stored."
+        },
         "applyDecisions": {
-          "line": 516,
+          "line": 555,
           "params": [
             "projectPath",
             "decisions = []"
