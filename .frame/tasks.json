@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T20:43:36.173Z",
+  "lastUpdated": "2026-08-27T20:56:58.788Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6121,6 +6121,21 @@
       "createdAt": "2026-08-26T16:15:09.246Z",
       "updatedAt": "2026-08-26T16:15:09.246Z",
       "completedAt": "2026-08-27T20:43:36.173Z"
+    },
+    {
+      "id": "task-spec-phase-guard-during-git-ops",
+      "title": "Guard spec phases from the watcher during git operations",
+      "description": "specManager's phase reconciliation derives a spec's phase from filesystem state, so a moment when that state is incomplete is read as a moment when the work is incomplete. During a `git merge` on 2026-08-27 five tracked specs — home-widget-board, migration-consent-scope, settings-by-scope, spec-docs-delivery-invariant, terminals-home-agents — were rewritten from `done` to `tasks_generated` while their `outcome.md` was present on disk the whole time; the checkout window was enough. The write is silent and lands in tracked files, so it reaches a teammate as a real phase change. Two guards to weigh, not necessarily both: refuse any backwards transition out of `done` while the artifact that justifies `done` (`outcome.md`) exists, and suppress reconciliation entirely while a git operation is in flight (`.git/MERGE_HEAD`, `.git/rebase-*`, `index.lock`). Touches src/main/specManager.js and whatever fsSafe watcher feeds it.",
+      "userRequest": "User said: \"task olarak kaydet\" — after being shown that the merge of PR #131 silently downgraded five spec phases, which had to be restored by hand.",
+      "acceptanceCriteria": "A merge or branch switch that momentarily hides spec artifacts leaves every status.json untouched; a spec holding outcome.md is never written back below `done`; a genuine forward transition still reconciles as before; a regression test drives the real reconciliation path over a directory whose files disappear and reappear, and asserts phase is unchanged.",
+      "notes": "Not a new failure mode — non-invasive-overlay's digest already records it: \"derived state is never rewritten from an unreadable source (an old Frame reading the root tasks.json of a migrated repo walked 21 specs back from done — absence of data is not data)\". The rule was written, the guard was applied only to that one path, and git operations were never covered. That is the reason to prefer the artifact-based guard over a git-state check alone: the git check fixes today's trigger, the `done`-is-sticky check fixes the class. Detected only because a phase diff happened to block a `git checkout`; nothing surfaced it otherwise, so an activity record on a backwards transition is worth considering.",
+      "status": "pending",
+      "priority": "high",
+      "category": "fix",
+      "context": "Session 2026-08-27, after merging PR #131 (deterministic context delivery). Restored the five phases by hand from origin/main.",
+      "createdAt": "2026-08-27T20:56:58.788Z",
+      "updatedAt": "2026-08-27T20:57:18.212Z",
+      "completedAt": null
     }
   ],
   "metadata": {
