@@ -1,5 +1,5 @@
 /**
- * Lane Board Module — Home
+ * Home Board Module
  *
  * The project board's **host**. It owns the header, the no-project state, the
  * shell menu and one flat grid; what goes in the grid is the registry's
@@ -7,6 +7,13 @@
  * belongs on a widget: **a widget is a summary and an entry point; the
  * sidebar is the full surface.** Widgets do not replace the dashboards, they
  * lead to them.
+ *
+ * Naming (D1, 2026-08-27). This module and its stylesheet say "home"; the
+ * lane vocabulary elsewhere — laneStatus, laneDetailRail, #btn-lane-home,
+ * the .lane-board DOM class — is untouched. That narrows the terminals-view
+ * convention of 2026-08-20 rather than reversing it: the convention governs
+ * *terminal* naming, and a board that no longer holds a terminal falls
+ * outside it.
  *
  * Rendered by MultiTerminalUI into its content container when
  * viewMode === 'board' — a view mode, not an overlay. Without a project there
@@ -17,12 +24,6 @@
  * round-trips/sec, 163% CPU), so `mount()` builds the DOM once and `update()`
  * patches in place. The host's `_renderBoardView` holds the matching guard,
  * and `homeData` holds the single subscription set feeding every widget.
- *
- * Naming convention (revised by the terminals-view spec, 2026-08-20;
- * overturns the 2026-06-11 rule): code, module names, and DOM ids still say
- * "lane" (laneBoard, btn-lane-home, _createLane); user-facing vocabulary
- * says "Terminal" for a work stream and "Home" for this board. Keep new
- * code on the same rule — don't half-rename in either direction.
  */
 
 const { FolderOpen, GitBranch } = require('lucide');
@@ -39,7 +40,7 @@ function lucideIcon(data, size = 14) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${children}</svg>`;
 }
 
-class LaneBoard {
+class HomeBoard {
   /**
    * @param {TerminalManager} manager
    * @param {Object} callbacks
@@ -68,14 +69,14 @@ class LaneBoard {
     // homeData, behind its own init-once guard (C1, C2). What is left here is
     // the one source the board reads directly: the header's branch.
     homeData.init();
-    if (!LaneBoard._dataListenersBound) {
-      LaneBoard._dataListenersBound = true;
+    if (!HomeBoard._dataListenersBound) {
+      HomeBoard._dataListenersBound = true;
       homeData.subscribe('git', () => {
-        const b = LaneBoard._instance;
+        const b = HomeBoard._instance;
         if (b && b._isVisible()) b._updateHeader();
       });
     }
-    LaneBoard._instance = this;
+    HomeBoard._instance = this;
   }
 
   // ─── Mount / update (C2) ────────────────────────────────
@@ -374,4 +375,4 @@ function _projectName(p) {
   return p.split(/[\\/]/).filter(Boolean).pop() || p;
 }
 
-module.exports = { LaneBoard };
+module.exports = { HomeBoard };

@@ -21,7 +21,7 @@ const { IPC } = require('../shared/ipcChannels');
 const { TerminalManager } = require('./terminalManager');
 const { TerminalTabBar } = require('./terminalTabBar');
 const { TerminalsView } = require('./terminalsView');
-const { LaneBoard } = require('./laneBoard');
+const { HomeBoard } = require('./homeBoard');
 const laneStatus = require('./laneStatus');
 const agentDispatch = require('./agentDispatch');
 const decisionsView = require('./decisionsView');
@@ -90,7 +90,7 @@ class MultiTerminalUI {
 
     // Initialize components
     this.tabBar = new TerminalTabBar(tabBarContainer, this.manager);
-    this.board = new LaneBoard(this.manager, {
+    this.board = new HomeBoard(this.manager, {
       onEnterLane: (terminalId) => this.enterLane(terminalId),
       onOpenTerminals: () => this.showTerminals()
     });

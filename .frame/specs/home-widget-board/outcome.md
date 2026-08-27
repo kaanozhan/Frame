@@ -150,3 +150,19 @@ function takes no tab; the row carries no Claude chip, as the user asked.
 _Captured: 2026-08-27 · 3 file change(s)_
 
 ---
+## T11 — laneBoard becomes homeBoard
+
+`git mv` on both files, plus the exported class: `LaneBoard` → `HomeBoard`,
+since a `homeBoard.js` exporting `LaneBoard` is the half-rename D1 warns
+against. Updated the require and construction in `multiTerminalUI.js`, the
+`@import` in `main.css`, the stale comment in `terminals-view.css` and the
+module id in `scripts/intent-map.json`; regenerated `STRUCTURE.json`, which
+now carries `renderer/homeBoard` with no phantom left behind. The
+`.lane-board*` DOM classes stayed — D1 narrows the terminals-view convention
+rather than reversing it, and the file header now records that in place of the
+superseded 2026-08-20 paragraph. `PROJECT_NOTES.md` was left for the end of
+the branch per the user's standing preference; T11's text does not name it.
+
+_Captured: 2026-08-27 · 6 file change(s)_
+
+---

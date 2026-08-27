@@ -1929,18 +1929,18 @@
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 161
+          "line": 166
         },
         "setupAllIPC": {
-          "line": 187,
+          "line": 192,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 265,
+          "line": 270,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 305,
+          "line": 310,
           "params": [
             "window"
           ],
@@ -5285,99 +5285,99 @@
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 86,
+          "line": 80,
           "purpose": "Setup IPC listeners"
         },
         "loadIssues": {
-          "line": 95,
+          "line": 89,
           "purpose": "Load GitHub issues"
         },
         "refreshIssues": {
-          "line": 128,
+          "line": 122,
           "purpose": "Refresh issues"
         },
         "show": {
-          "line": 150,
+          "line": 144,
           "purpose": "Show GitHub panel"
         },
         "hide": {
-          "line": 161,
+          "line": 155,
           "purpose": "Hide GitHub panel"
         },
         "toggle": {
-          "line": 171,
+          "line": 165,
           "purpose": "Toggle GitHub panel visibility"
         },
         "setTab": {
-          "line": 182,
+          "line": 176,
           "params": [
             "tab"
           ],
           "purpose": "Set active tab"
         },
         "setFilter": {
-          "line": 215,
+          "line": 209,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "renderLoading": {
-          "line": 229,
+          "line": 223,
           "params": [
             "message = 'Loading...'"
           ],
           "purpose": "Render loading state"
         },
         "renderError": {
-          "line": 243,
+          "line": 237,
           "params": [
             "message"
           ],
           "purpose": "Render error state"
         },
         "renderComingSoon": {
-          "line": 271,
+          "line": 265,
           "params": [
             "tab"
           ],
           "purpose": "Render coming soon state for unimplemented tabs"
         },
         "render": {
-          "line": 296,
+          "line": 290,
           "purpose": "Render issues list"
         },
         "renderIssueItem": {
-          "line": 338,
+          "line": 332,
           "params": [
             "issue"
           ],
           "purpose": "Render single issue item"
         },
         "getContrastColor": {
-          "line": 377,
+          "line": 371,
           "params": [
             "hexColor"
           ],
           "purpose": "Get contrasting text color for a background color"
         },
         "formatRelativeTime": {
-          "line": 388,
+          "line": 382,
           "params": [
             "dateString"
           ],
           "purpose": "Format relative time"
         },
         "loadBranches": {
-          "line": 418,
+          "line": 412,
           "purpose": "Load git branches"
         },
         "renderBranches": {
-          "line": 447,
+          "line": 441,
           "purpose": "Render branches list"
         },
         "renderBranchItem": {
-          "line": 493,
+          "line": 487,
           "params": [
             "branch",
             "currentBranch"
@@ -5385,84 +5385,84 @@
           "purpose": "Render single branch item"
         },
         "attachBranchEventListeners": {
-          "line": 521,
+          "line": 515,
           "purpose": "Attach branch event listeners"
         },
         "handleSwitchBranch": {
-          "line": 544,
+          "line": 538,
           "params": [
             "branchName"
           ],
           "purpose": "Handle branch switch"
         },
         "handleDeleteBranch": {
-          "line": 571,
+          "line": 565,
           "params": [
             "branchName"
           ],
           "purpose": "Handle branch deletion"
         },
         "renderBranchesError": {
-          "line": 603,
+          "line": 597,
           "params": [
             "message"
           ],
           "purpose": "Render branches error"
         },
         "loadWorktrees": {
-          "line": 626,
+          "line": 620,
           "purpose": "Load git worktrees"
         },
         "renderWorktrees": {
-          "line": 655,
+          "line": 649,
           "purpose": "Render worktrees list"
         },
         "renderWorktreeItem": {
-          "line": 687,
+          "line": 681,
           "params": [
             "worktree"
           ],
           "purpose": "Render single worktree item"
         },
         "attachWorktreeEventListeners": {
-          "line": 716,
+          "line": 710,
           "purpose": "Attach worktree event listeners"
         },
         "handleRemoveWorktree": {
-          "line": 729,
+          "line": 723,
           "params": [
             "wtPath"
           ],
           "purpose": "Handle worktree removal"
         },
         "renderWorktreesError": {
-          "line": 757,
+          "line": 751,
           "params": [
             "message"
           ],
           "purpose": "Render worktrees error"
         },
         "setupModalListeners": {
-          "line": 777,
+          "line": 771,
           "purpose": "Setup modal event listeners"
         },
         "showCreateBranchModal": {
-          "line": 824,
+          "line": 818,
           "purpose": "Show create branch modal"
         },
         "populateBaseBranchSelect": {
-          "line": 850,
+          "line": 844,
           "params": [
             "select"
           ],
           "purpose": "Populate base branch select dropdown"
         },
         "hideCreateBranchModal": {
-          "line": 889,
+          "line": 883,
           "purpose": "Hide create branch modal"
         },
         "handleCreateBranch": {
-          "line": 899,
+          "line": 893,
           "purpose": "Handle create branch"
         }
       },
@@ -5884,6 +5884,36 @@
       ],
       "functions": {}
     },
+    "renderer/homeBoard": {
+      "file": "src/renderer/homeBoard.js",
+      "description": "Home Board Module",
+      "exports": [
+        "HomeBoard"
+      ],
+      "depends": [
+        "lucide",
+        "htmlUtils",
+        "notify",
+        "home/homeData",
+        "home/registry",
+        "openProjectModal"
+      ],
+      "functions": {
+        "lucideIcon": {
+          "line": 35,
+          "params": [
+            "data",
+            "size = 14"
+          ]
+        },
+        "_projectName": {
+          "line": 374,
+          "params": [
+            "p"
+          ]
+        }
+      }
+    },
     "renderer/htmlUtils": {
       "file": "src/renderer/htmlUtils.js",
       "description": "HTML Utils",
@@ -6043,36 +6073,6 @@
         },
         "init": {
           "line": 51
-        }
-      }
-    },
-    "renderer/laneBoard": {
-      "file": "src/renderer/laneBoard.js",
-      "description": "Lane Board Module — Home",
-      "exports": [
-        "LaneBoard"
-      ],
-      "depends": [
-        "lucide",
-        "htmlUtils",
-        "notify",
-        "home/homeData",
-        "home/registry",
-        "openProjectModal"
-      ],
-      "functions": {
-        "lucideIcon": {
-          "line": 34,
-          "params": [
-            "data",
-            "size = 14"
-          ]
-        },
-        "_projectName": {
-          "line": 373,
-          "params": [
-            "p"
-          ]
         }
       }
     },
@@ -6320,7 +6320,7 @@
         "terminalManager",
         "terminalTabBar",
         "terminalsView",
-        "laneBoard",
+        "homeBoard",
         "laneStatus",
         "agentDispatch",
         "decisionsView",
@@ -6755,114 +6755,114 @@
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 93,
+          "line": 87,
           "purpose": "Setup IPC listeners"
         },
         "loadPlugins": {
-          "line": 116,
+          "line": 110,
           "purpose": "Load plugins"
         },
         "refreshPlugins": {
-          "line": 134,
+          "line": 128,
           "purpose": "Refresh plugins from marketplace"
         },
         "show": {
-          "line": 169,
+          "line": 163,
           "purpose": "Show plugins panel"
         },
         "hide": {
-          "line": 186,
+          "line": 180,
           "purpose": "Hide plugins panel"
         },
         "toggle": {
-          "line": 196,
+          "line": 190,
           "purpose": "Toggle plugins panel visibility"
         },
         "setTab": {
-          "line": 207,
+          "line": 201,
           "params": [
             "tab"
           ],
           "purpose": "Set active tab"
         },
         "setFilter": {
-          "line": 229,
+          "line": 223,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredPlugins": {
-          "line": 243,
+          "line": 237,
           "purpose": "Get filtered plugins"
         },
         "render": {
-          "line": 259,
+          "line": 253,
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 313,
+          "line": 307,
           "params": [
             "plugin"
           ],
           "purpose": "Render single plugin item"
         },
         "getPluginIcon": {
-          "line": 359,
+          "line": 353,
           "params": [
             "name"
           ],
           "purpose": "Get icon for plugin based on name"
         },
         "togglePlugin": {
-          "line": 398,
+          "line": 392,
           "params": [
             "pluginId"
           ],
           "purpose": "Toggle plugin enabled/disabled"
         },
         "installPlugin": {
-          "line": 410,
+          "line": 404,
           "params": [
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
         },
         "loadSessions": {
-          "line": 432,
+          "line": 426,
           "purpose": "Load sessions from Claude data"
         },
         "refreshSessions": {
-          "line": 461,
+          "line": 455,
           "purpose": "Refresh sessions with spinner animation"
         },
         "renderSessions": {
-          "line": 483,
+          "line": 477,
           "purpose": "Render sessions list"
         },
         "renderSessionItem": {
-          "line": 517,
+          "line": 511,
           "params": [
             "session"
           ],
           "purpose": "Render a single session item"
         },
         "renderSessionsEmpty": {
-          "line": 546,
+          "line": 540,
           "params": [
             "message"
           ],
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 573,
+          "line": 567,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a session in a terminal of its own."
         },
         "formatRelativeTime": {
-          "line": 581,
+          "line": 575,
           "params": [
             "dateString"
           ],
@@ -6889,6 +6889,8 @@
         "setActiveProject",
         "getActiveProject",
         "getProjects",
+        "isDefaultProject",
+        "setDefaultProject",
         "getAgentStatus",
         "addProject",
         "removeProject",
@@ -6935,8 +6937,22 @@
           ],
           "purpose": "Workspace data arrived — refresh state (no rows to render anymore)."
         },
+        "isDefaultProject": {
+          "line": 73,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Is this the project Frame opens on launch?"
+        },
+        "setDefaultProject": {
+          "line": 90,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Make a project the one Frame opens on launch, by moving it to the front."
+        },
         "confirmRemoveProject": {
-          "line": 69,
+          "line": 103,
           "params": [
             "projectPath",
             "projectName"
@@ -6944,24 +6960,24 @@
           "purpose": "Confirmation + removal (also offered as the × in the switcher menu)."
         },
         "selectProject": {
-          "line": 95,
+          "line": 129,
           "params": [
             "projectPath"
           ],
           "purpose": "Select a project"
         },
         "setActiveProject": {
-          "line": 106,
+          "line": 140,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project (visual state lives in the switcher + workspace nav)"
         },
         "getActiveProject": {
-          "line": 112
+          "line": 146
         },
         "addProject": {
-          "line": 119,
+          "line": 153,
           "params": [
             "projectPath",
             "projectName",
@@ -6970,70 +6986,70 @@
           "purpose": "Add project to workspace"
         },
         "removeProject": {
-          "line": 130,
+          "line": 164,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove project from workspace"
         },
         "setupIPC": {
-          "line": 146,
+          "line": 180,
           "purpose": "Setup IPC listeners"
         },
         "applyAgentStatuses": {
-          "line": 177,
+          "line": 211,
           "params": [
             "map"
           ],
           "purpose": "Per-project agent status counts (from projectStatusBadges). Stored for the"
         },
         "getAgentStatus": {
-          "line": 183,
+          "line": 217,
           "params": [
             "projectPath"
           ],
           "purpose": "{ approval, input } counts for one project, or undefined."
         },
         "selectNextProject": {
-          "line": 190,
+          "line": 224,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 201,
+          "line": 235,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 212,
+          "line": 246,
           "purpose": "\"Focus Project List\" now means: open the switcher dropdown."
         },
         "blur": {
-          "line": 217,
+          "line": 251,
           "purpose": "No list rows to blur anymore — kept for callers."
         },
         "getProjects": {
-          "line": 223,
+          "line": 257,
           "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 276
+          "line": 310
         },
         "saveCollapsedGroups": {
-          "line": 285,
+          "line": 319,
           "params": [
             "state"
           ]
         },
         "buildWorkspaceNav": {
-          "line": 293
+          "line": 327
         },
         "placeWorkspaceNav": {
-          "line": 348
+          "line": 382
         },
         "refreshWorkspaceNav": {
-          "line": 360
+          "line": 394
         },
         "updateWorkspaceNav": {
-          "line": 436,
+          "line": 470,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -7046,6 +7062,7 @@
         ],
         "emits": [
           "LOAD_WORKSPACE",
+          "REORDER_WORKSPACE_PROJECTS",
           "ADD_PROJECT_TO_WORKSPACE",
           "REMOVE_PROJECT_FROM_WORKSPACE"
         ]
@@ -7087,43 +7104,48 @@
         "shared/ipcChannels",
         "state",
         "specDrivenHint",
+        "projectListUI",
         "settingsOverlay"
       ],
       "functions": {
         "init": {
-          "line": 33
+          "line": 40
         },
         "syncFromProject": {
-          "line": 147
+          "line": 172
+        },
+        "syncDefaultProject": {
+          "line": 188,
+          "purpose": "The launch-project row. It is hidden outright below two projects: with one"
         },
         "syncSpecDrivenToggle": {
-          "line": 157,
+          "line": 214,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "renderGitSharing": {
-          "line": 182,
+          "line": 239,
           "params": [
             "stateObj"
           ],
           "purpose": "Paint the sharing row from main's state object. `error` means the project"
         },
         "syncGitSharing": {
-          "line": 198
+          "line": 255
         },
         "setRemoveFrameNote": {
-          "line": 212,
+          "line": 269,
           "params": [
             "message"
           ]
         },
         "setGitSharingWarning": {
-          "line": 218,
+          "line": 275,
           "params": [
             "message"
           ]
         },
         "setSpecDrivenNote": {
-          "line": 224,
+          "line": 281,
           "params": [
             "message"
           ]
@@ -7198,51 +7220,51 @@
           "purpose": "Setup DOM event listeners"
         },
         "setupIPC": {
-          "line": 49,
+          "line": 46,
           "purpose": "Setup IPC listeners"
         },
         "parseHistory": {
-          "line": 65,
+          "line": 62,
           "params": [
             "raw"
           ],
           "purpose": "Parse raw history text into prompt objects"
         },
         "renderList": {
-          "line": 86,
+          "line": 83,
           "params": [
             "query"
           ],
           "purpose": "Render prompt list with optional search filter"
         },
         "createCard": {
-          "line": 110,
+          "line": 107,
           "params": [
             "prompt"
           ],
           "purpose": "Create a single prompt card element"
         },
         "formatTimestamp": {
-          "line": 151,
+          "line": 148,
           "params": [
             "iso"
           ],
           "purpose": "Format ISO timestamp to readable string"
         },
         "toggle": {
-          "line": 166,
+          "line": 163,
           "purpose": "Toggle panel visibility"
         },
         "show": {
-          "line": 173,
+          "line": 170,
           "purpose": "Show the panel and load data"
         },
         "hide": {
-          "line": 183,
+          "line": 180,
           "purpose": "Hide the panel"
         },
         "getIsVisible": {
-          "line": 192,
+          "line": 189,
           "purpose": "Whether the panel is currently visible"
         }
       },
@@ -11246,9 +11268,9 @@
         "description": "Agent Dispatch Module"
       },
       {
-        "module": "renderer/laneBoard",
-        "file": "src/renderer/laneBoard.js",
-        "description": "Lane Board Module — Home"
+        "module": "renderer/homeBoard",
+        "file": "src/renderer/homeBoard.js",
+        "description": "Home Board Module"
       },
       {
         "module": "renderer/laneStatus",

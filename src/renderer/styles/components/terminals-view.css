@@ -51,7 +51,7 @@
 }
 
 /* The Other Terminals rail sits beside the terminal, keeping its own width
-   (.lane-rail in lane-board.css).
+   (.lane-rail in home-board.css).
 
    Collapsed it is an *edge*, not a second panel: it drops the panel's
    background and left border, because 28px of filled slab beside a

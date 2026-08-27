@@ -5890,13 +5890,13 @@
       "title": "Rename `laneBoard.js` to `homeBoard.js` and `lane-board.css` to `home-board.css`, updating the require in `multiTerminalUI.js`, the import in `styles/main.css` and the stale reference in the `terminals-view.css` comment",
       "description": "",
       "source": "spec:home-widget-board:T11",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T12:09:20.617Z",
+      "completedAt": "2026-08-27T12:09:20.617Z"
     }
   ],
   "metadata": {
