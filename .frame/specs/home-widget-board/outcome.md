@@ -59,3 +59,19 @@ no-project state.
 _Captured: 2026-08-27 · 2 file change(s)_
 
 ---
+## T05 — The Terminals card and its tile machinery are gone
+
+Deleted `_buildTerminalsCard` / `_updateTerminalsCard` / `_wireTerminalTiles` /
+`MAX_TILES` / `_attentionRank`, the `laneStatus.onChange` refresh, the
+`EMPTY_TITLE` / `EMPTY_HINT` borrow (C5) and 172 lines of `home-tile*` /
+`.home-card-terminals` CSS with its two container queries — `laneBoard.js`
+went 775 → 383 lines and now imports neither `laneStatus` nor `widgetShell`.
+Deviation from C6: with no board-owned card left, `this.cards` held nothing,
+so the mounted-with-a-project invariant is keyed on `this.gridEl` instead —
+same guarantee, expressed by the thing that still exists. The shell menu kept
+an opener by moving to the widget ctx as `showShellMenu()` rather than being
+left dead.
+
+_Captured: 2026-08-27 · 2 file change(s)_
+
+---

@@ -5939,38 +5939,26 @@
         "LaneBoard"
       ],
       "depends": [
-        "laneStatus",
         "lucide",
         "htmlUtils",
         "notify",
         "home/homeData",
         "home/registry",
-        "home/widgetShell",
-        "terminalsView",
-        "specSection",
-        "taskSection",
         "openProjectModal"
       ],
       "functions": {
         "lucideIcon": {
-          "line": 48,
+          "line": 34,
           "params": [
             "data",
             "size = 14"
           ]
         },
         "_projectName": {
-          "line": 533,
+          "line": 373,
           "params": [
             "p"
           ]
-        },
-        "_attentionRank": {
-          "line": 538,
-          "params": [
-            "status"
-          ],
-          "purpose": "Waiting on the user first, then working, then busy, then idle."
         }
       }
     },

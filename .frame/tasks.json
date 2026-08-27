@@ -5812,13 +5812,13 @@
       "title": "Delete the Terminals card and its tile machinery — `_buildTerminalsCard`, `_updateTerminalsCard`, `_wireTerminalTiles`, `MAX_TILES`, the `home-tile*` rules, and the now-orphaned `EMPTY_TITLE` / `EMPTY_HINT` import from `terminalsView`",
       "description": "",
       "source": "spec:home-widget-board:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T11:59:16.661Z",
+      "completedAt": "2026-08-27T11:59:16.661Z"
     },
     {
       "id": "task-spec-home-widget-board-T06",
