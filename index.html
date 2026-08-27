@@ -1303,6 +1303,19 @@
             <button type="button" class="settings-action-btn" id="settings-make-default">Make Default</button>
           </div>
 
+          <!-- Hidden unless this project still carries a decision — a row that
+               can only say "nothing to do here" is furniture. -->
+          <div class="settings-row" id="settings-migration-decision-row" style="display:none;">
+            <div class="settings-row-text">
+              <label class="settings-row-label">Update AGENTS.md for the <code>.frame/</code> layout</label>
+              <p class="settings-row-desc">
+                Frame's files have moved, but <code>AGENTS.md</code> is yours — its text still
+                points agents at the old paths. Frame can update those lines; nothing else changes.
+              </p>
+            </div>
+            <button type="button" class="settings-action-btn" id="settings-migration-decision">Review</button>
+          </div>
+
           <div class="settings-row">
             <div class="settings-row-text">
               <label class="settings-row-label">Remove Frame from this project</label>

@@ -139,3 +139,18 @@ close that follows a successful apply records nothing.
 _Captured: 2026-08-27 · 1 file change(s)_
 
 ---
+## T10 — Project Settings reopens a deferred decision
+
+Added the row to `index.html` and `projectSettingsModal.js`: a Review button
+that closes the settings overlay and calls `migrationModal.offer(projectPath,
+{ force: true })`, shown only while `hasPendingDecisions` is true via a new
+`syncMigrationDecision()` step in `syncFromProject`. A permanent no needed an
+entry point back in — before this, closing the modal made the question
+unreachable without restarting the app. The row hides rather than going inert
+when there is nothing to decide, following the launch-project row's precedent,
+and nothing clears it by hand: the decision derives itself from the text and
+empties on its own.
+
+_Captured: 2026-08-27 · 2 file change(s)_
+
+---

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T15:25:54.818Z",
+  "lastUpdated": "2026-08-27T15:27:31.207Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6098,13 +6098,13 @@
       "title": "Add the Project Settings row in `index.html` and `src/renderer/projectSettingsModal.js` that reopens a deferred decision through the forced-open path, shown only while `pendingDecisions` is non-empty.",
       "description": "",
       "source": "spec:migration-consent-scope:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T15:27:31.207Z",
+      "completedAt": "2026-08-27T15:27:31.207Z"
     }
   ],
   "metadata": {

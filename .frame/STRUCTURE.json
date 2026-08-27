@@ -7334,47 +7334,52 @@
         "state",
         "specDrivenHint",
         "projectListUI",
-        "settingsOverlay"
+        "settingsOverlay",
+        "migrationModal"
       ],
       "functions": {
         "init": {
-          "line": 40
+          "line": 42
         },
         "syncFromProject": {
-          "line": 172
+          "line": 188
+        },
+        "syncMigrationDecision": {
+          "line": 200,
+          "purpose": "Shown only while this project still has something to answer. The decision"
         },
         "syncDefaultProject": {
-          "line": 188,
+          "line": 220,
           "purpose": "The launch-project row. It is hidden outright below two projects: with one"
         },
         "syncSpecDrivenToggle": {
-          "line": 214,
+          "line": 246,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "renderGitSharing": {
-          "line": 239,
+          "line": 271,
           "params": [
             "stateObj"
           ],
           "purpose": "Paint the sharing row from main's state object. `error` means the project"
         },
         "syncGitSharing": {
-          "line": 255
+          "line": 287
         },
         "setRemoveFrameNote": {
-          "line": 269,
+          "line": 301,
           "params": [
             "message"
           ]
         },
         "setGitSharingWarning": {
-          "line": 275,
+          "line": 307,
           "params": [
             "message"
           ]
         },
         "setSpecDrivenNote": {
-          "line": 281,
+          "line": 313,
           "params": [
             "message"
           ]
