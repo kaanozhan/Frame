@@ -75,3 +75,18 @@ left dead.
 _Captured: 2026-08-27 · 2 file change(s)_
 
 ---
+## T06 — agentRows.js, pure, with its tests
+
+Added `src/renderer/home/agentRows.js` — filters `homeData`'s `lanes` to the
+three agent statuses, shapes each into a row and orders them approval → input
+→ working — and `test/homeRows.test.js` covering shell-lane exclusion, the
+three statuses kept, the ordering fed in reverse so a no-op sort cannot pass,
+empty in / empty out, and the row shape. Beyond the task: a recency tie-break
+inside a status, because ordering is this module's whole job and three lanes
+all working otherwise sat in arbitrary order. The test file's plain `require`
+is itself half the check — grow an `electron` or `laneStatus` dependency here
+and the suite stops loading (C8).
+
+_Captured: 2026-08-27 · 2 file change(s)_
+
+---

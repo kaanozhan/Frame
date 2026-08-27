@@ -5825,13 +5825,13 @@
       "title": "Create `src/renderer/home/agentRows.js` — pure, requiring neither `electron`, `lucide` nor `laneStatus` — and cover it in `test/homeRows.test.js`: shell lanes excluded, the three agent statuses kept, ordering approval → input → working, empty in / empty out",
       "description": "",
       "source": "spec:home-widget-board:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T12:00:49.695Z",
+      "completedAt": "2026-08-27T12:00:49.695Z"
     },
     {
       "id": "task-spec-home-widget-board-T07",

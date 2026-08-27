@@ -5509,6 +5509,23 @@
         "emits": []
       }
     },
+    "renderer/home/agentRows": {
+      "file": "src/renderer/home/agentRows.js",
+      "description": "Which agents Home lists, and in what order.",
+      "exports": [
+        "agentRows",
+        "ATTENTION_ORDER"
+      ],
+      "depends": [],
+      "functions": {
+        "agentRows": {
+          "line": 34,
+          "params": [
+            "lanes"
+          ]
+        }
+      }
+    },
     "renderer/home/homeData": {
       "file": "src/renderer/home/homeData.js",
       "description": "Home Data Layer — the board's one and only subscription set.",
