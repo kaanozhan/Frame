@@ -4,14 +4,48 @@
       {
         "matcher": "Edit|Write",
         "hooks": [
-          { "type": "command", "command": "node scripts/spec-hint.js pre-edit" }
+          {
+            "type": "command",
+            "command": "node scripts/spec-hint.js pre-edit"
+          }
+        ]
+      },
+      {
+        "matcher": "Grep|Glob|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/module-hint.js search"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/docs-hint.js pre-edit"
+          }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "node scripts/spec-hint.js prompt" }
+          {
+            "type": "command",
+            "command": "node scripts/spec-hint.js prompt"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/docs-hint.js session-start"
+          }
         ]
       }
     ]

@@ -286,3 +286,29 @@ test('quiet paths write nothing to stdout even while recording', () => {
     assert.ok(recordsFor(root).some((r) => r.ev === 'hint.quiet'), 'but it is recorded');
   });
 });
+
+test('a payload larger than the pipe buffer arrives whole', () => {
+  // Regression: `process.stdout.write()` followed by `process.exit(0)` tore
+  // the process down mid-write, truncating anything past roughly 8 KB and
+  // handing the host unparseable JSON rather than an error. Today's real
+  // payloads sit under that, but `digestLine` is whatever the first body
+  // line of a digest happens to be, so nothing bounds prompt mode.
+  const long = `Telemetry work. ${'It goes on at length. '.repeat(700)}`;
+  const root = mkProject({
+    version: 1,
+    generatedAt: 'x',
+    root: 'x',
+    topics: {
+      'perf-spec': {
+        title: 'Performance work', phase: 'done', keywords: ['telemetry'],
+        declared: true, related: [], supersedes: null, digestLine: long, paths: []
+      }
+    },
+    files: {}
+  });
+
+  const out = runHook('prompt', { session_id: 'big', cwd: root, prompt: 'telemetry' });
+  const ctx = out.hookSpecificOutput.additionalContext;
+  assert.ok(Buffer.byteLength(ctx, 'utf8') > 12 * 1024, `expected the whole payload, got ${ctx.length} chars`);
+  assert.match(ctx, /read the spec chain/); // the tail survived the write
+});

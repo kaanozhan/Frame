@@ -2191,3 +2191,63 @@ file, not after it.
 `settings-by-scope` spec had to reconstruct which of `project-settings`'
 decisions it was overturning by reading `settingsModal.js` rather than that
 spec's outcome. Worth an audit of the whole archive for other holes.
+
+### [2026-08-27] Frame's context reached the agent by advice, not by mechanism — measured, then fixed (no spec)
+
+The session started as an orchestrator bug report and turned into an audit of
+how Frame's own context actually reaches an agent. Replayed against this
+repository's Claude Code transcripts, the answer was uncomfortable: **what a
+hook delivers arrives ~100% of the time; what prose asks for arrives 1–44%.**
+`find-module.js` ran 18 times against 937 searches (~2%), and of nine sessions
+that wrote a Frame meta file, four read the matching REFERENCE.md section
+first, three read it only *after* writing, two never opened it.
+
+**The regression is dated 2026-07-06, not the `.frame/` move.** Commit
+`32aafc2` split AGENTS.md 327 → 94 lines and moved 257 lines of maintenance
+rules into `REFERENCE.md`, replacing them with "loaded only when an agent is
+about to write a meta file". Nothing was ever put behind that sentence. From
+2026-01-25 to that commit the rules rode in the always-on file and reached
+every session unconditionally. The user attributed the felt breakage to the
+`.frame/` migration seven weeks later; the archive says otherwise. `find-module`
+was not moved at all — its instruction was *compressed* in the same pass, from
+twelve explained lines with three worked examples to four terse ones.
+
+**Three hooks now carry what prose used to ask for.** `docs-hint.js` delivers
+the conversation-level rules at `SessionStart` and a meta file's own section at
+the moment it is written; `module-hint.js` answers a search from
+`STRUCTURE.json`'s intentIndex on `PreToolUse`. Nothing was removed from
+`REFERENCE.md` — delivery is sliced per section instead.
+
+**Why per section: the host inlines a hook's `additionalContext` up to exactly
+2000 characters**, then writes it to a file and hands the model a preview plus
+a path — which silently converts guaranteed delivery back into optional
+reading. Measured live by emitting numbered markers through a real hook and
+reading where the preview cut, reproduced twice. The first attempt injected all
+14.4 KB and delivered one and a half sections. The two sections that exceed the
+ceiling (`Spec Knowledge Layer`, `Activity Monitor`) turned out to be the two
+that contain no instruction to comply with, so they stay CLI-only. The size
+invariant lives in `test/docs-hint.test.js` against the real document: if a
+section outgrows the ceiling a test fails, rather than the rules quietly
+ceasing to arrive.
+
+**Two defects surfaced by using the thing, not by reviewing it.**
+`process.stdout.write()` followed by `process.exit(0)` truncates past ~8 KB, so
+the first `docs-hint` shipped unparseable JSON to the host; the same latent
+pattern was fixed in `spec-hint.js`. And the Bash write-detector fired on
+`diff … >/dev/null` in a block that merely *named* PROJECT_NOTES.md — a hint on
+a read. Both are now regression tests, each verified red before the fix.
+
+**Deliberately unchanged.** `AGENTS.md` still says to read STRUCTURE/NOTES/tasks
+at session start while the decision this session was that they stay on demand,
+and `REFERENCE.md`'s General Rules still carries the same instruction. Left as
+is on the user's call. Two design decisions are worth keeping: data
+(`STRUCTURE.json`, `tasks.json`) is pulled when needed, rules are pushed when
+they apply; and a wrong hint is worse than silence — `module-hint` drops
+`find-module`'s deep tier for that reason, after it hit 136 times on noise like
+`kill` and `process` against 297 useful curated hits.
+
+**No spec.** The offer was made once and the user chose to go direct. A parked
+task from an earlier session, *"Make the find-module/grep orientation step
+deterministic"*, describes this work and can now be closed; the older spec
+`audit-q3-deterministic-graph-hints` covers the graph-based variant and was
+deliberately left untouched.
