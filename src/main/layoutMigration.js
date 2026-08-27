@@ -155,36 +155,45 @@ function extractClaudeBlock(agentsText) {
 }
 
 /**
- * Files with uncommitted changes, compared repo-root-relative so a project in
- * a sub-directory is covered. Untracked entries (`??`) are not dirty: nothing
- * committed can be lost by moving a file git never knew about, and in an
- * unshared project every meta file is untracked — treating those as dirty
- * would make migration impossible exactly where it is safest.
+ * Files in an unmerged state — the only dirtiness that can actually lose
+ * something. Moving a modified or staged file loses nothing: the content
+ * travels into `.frame/`, and the pre-move blob stays readable in the index
+ * and in HEAD. An unmerged path is different — unlink the root copy and
+ * `git merge --continue` refuses to commit, and the merge itself is gone.
+ *
+ * Untracked entries (`??`) were never dirty for this purpose, and in an
+ * unshared project every meta file is untracked.
  *
  * Returns [] outside git (nothing to defer for).
  */
-function dirtyAmong(projectPath, relPaths) {
+function isUnmergedCode(code) {
+  // DD, AU, UD, UA, DU, AA, UU — every code carrying a `U`, plus the two
+  // both-sides codes that carry none.
+  return code.includes('U') || code === 'DD' || code === 'AA';
+}
+
+function unmergedAmong(projectPath, relPaths) {
   if (!gitExclude.isGitRepo(projectPath)) return [];
   const porcelain = git(projectPath, ['status', '--porcelain', '--', ...relPaths]);
   if (!porcelain) return [];
 
   const prefix = git(projectPath, ['rev-parse', '--show-prefix']) || '';
-  const dirty = new Set();
+  const unmerged = new Set();
   for (const raw of porcelain.split('\n')) {
     const line = raw.trimStart();
     if (!line) continue;
-    if (line.startsWith('??')) continue; // untracked — see above
-    // "XY <path>", and for renames "XY <old> -> <new>". Matched rather than
-    // sliced at a fixed column: a leading status space is easy to lose (the
-    // git helper trims), which would shift every path by one character.
-    const match = line.match(/^[A-Z?!]{1,2}\s+(.*)$/);
-    if (!match) continue;
-    const listed = match[1].split(' -> ').pop().replace(/^"|"$/g, '');
+    // "XY <path>". Every unmerged code is two letters with no space in it, so
+    // the trimming the git helper does above cannot have eaten half of one —
+    // which is why matching a two-letter code here is safe where slicing at a
+    // fixed column would not be.
+    const match = line.match(/^([A-Z?!]{2})\s+(.*)$/);
+    if (!match || !isUnmergedCode(match[1])) continue;
+    const listed = match[2].split(' -> ').pop().replace(/^"|"$/g, '');
     for (const rel of relPaths) {
-      if (listed === `${prefix}${rel}` || listed === rel) dirty.add(rel);
+      if (listed === `${prefix}${rel}` || listed === rel) unmerged.add(rel);
     }
   }
-  return [...dirty];
+  return [...unmerged];
 }
 
 /** Which of these paths git already tracks (decides the sharing posture). */
@@ -249,7 +258,7 @@ function plan(projectPath) {
     : null;
 
   const rels = artifacts.map((a) => a.name);
-  const dirty = dirtyAmong(projectPath, rels);
+  const unmerged = unmergedAmong(projectPath, rels);
   const tracked = trackedAmong(projectPath, rels);
 
   return {
@@ -257,13 +266,13 @@ function plan(projectPath) {
     artifacts,
     symlinks,
     restorableClaudeMd,
-    dirty,
+    unmerged,
     tracked,
     backupDir: `${FRAME_DIR}/${MIGRATION_BACKUP_DIR}`,
     // Derived, not asked: a project whose meta files are committed clearly
     // shares them; one where they were never tracked stays local.
     sharingMode: tracked.length > 0 ? 'repo' : 'local',
-    canRun: dirty.length === 0
+    canRun: unmerged.length === 0
   };
 }
 
@@ -460,8 +469,11 @@ function run(projectPath, migrationPlan, onProgress = () => {}) {
     return { ran: false, reason: 'no-fingerprint', moved: [], backedUp: [], review: [] };
   }
   if (!activePlan.canRun) {
+    // The activity registry's reason enum does not carry `unmerged` yet — the
+    // reporting pass adds it. Until then the skip is still recorded truthfully
+    // under the code that exists.
     record('migration.skipped', { reason: 'dirty-tree' });
-    return { ran: false, reason: 'dirty-tree', dirty: activePlan.dirty, moved: [], backedUp: [], review: [] };
+    return { ran: false, reason: 'unmerged', unmerged: activePlan.unmerged, moved: [], backedUp: [], review: [] };
   }
 
   const state = { step: 'start', moved: [], backedUp: [], review: [], claudeMdRestored: false };

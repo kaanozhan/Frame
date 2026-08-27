@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T14:12:47.221Z",
+  "lastUpdated": "2026-08-27T14:18:54.152Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -5981,13 +5981,13 @@
       "title": "Narrow `layoutMigration`'s guard to unmerged paths: replace `dirtyAmong` with a check for porcelain codes carrying `U` (plus `DD` and `AA`), rename the plan's `dirty` field to `unmerged`, derive `canRun` from it, leave the `config.files` fingerprint untouched, and test in `test/layoutMigration.test.js` that modified and staged meta files migrate with their uncommitted content while an unmerged one moves nothing.",
       "description": "",
       "source": "spec:migration-consent-scope:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T14:18:54.152Z",
+      "completedAt": "2026-08-27T14:18:54.152Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T02",

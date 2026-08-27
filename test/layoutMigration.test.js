@@ -3,7 +3,8 @@
  *
  * Migration touches a user's repository, so the properties worth pinning are
  * the conservative ones: the fingerprint is narrow enough that a repo Frame
- * never initialized is left alone, a dirty tree defers with zero writes, every
+ * never initialized is left alone, an unmerged path defers with zero writes
+ * while a merely modified one migrates with its content, every
  * moved file is byte-equal to its backup, a conflicting `.frame/` copy is
  * never overwritten, a consumed CLAUDE.md comes back verbatim, and a second
  * run finds nothing to do.
@@ -138,12 +139,47 @@ test('plan describes the move without writing anything', () => {
   assert.deepEqual(fs.readdirSync(projectDir).sort(), before, 'plan() wrote nothing');
 });
 
-test('a dirty tree defers with zero writes, including from a sub-directory project', () => {
+test('a modified meta file migrates, with the uncommitted content arriving in .frame/', () => {
+  projectDir = makeLegacyProject({ commit: true });
+  const edited = '# Notes\n\n### [2026-02-02] Uncommitted\n';
+  fs.writeFileSync(path.join(projectDir, 'PROJECT_NOTES.md'), edited, 'utf8');
+
+  const p = layoutMigration.plan(projectDir);
+  assert.deepEqual(p.unmerged, [], 'a worktree modification is not unmerged');
+  assert.equal(p.canRun, true);
+
+  const receipt = layoutMigration.run(projectDir, p);
+  assert.equal(receipt.ran, true);
+  assert.equal(
+    fs.readFileSync(path.join(projectDir, FRAME_DIR, 'PROJECT_NOTES.md'), 'utf8'),
+    edited,
+    'the version that moved is the one the user was editing'
+  );
+});
+
+test('a staged-and-modified meta file migrates too', () => {
+  projectDir = makeLegacyProject({ commit: true });
+  const notes = path.join(projectDir, 'PROJECT_NOTES.md');
+  fs.writeFileSync(notes, '# Notes\n\n### [2026-02-02] Staged\n', 'utf8');
+  git(projectDir, ['add', 'PROJECT_NOTES.md']);
+  const worktree = '# Notes\n\n### [2026-02-02] Staged\n### [2026-02-03] And then some\n';
+  fs.writeFileSync(notes, worktree, 'utf8');
+
+  const p = layoutMigration.plan(projectDir);
+  assert.deepEqual(p.unmerged, [], 'MM is not unmerged');
+  assert.equal(p.canRun, true);
+
+  layoutMigration.run(projectDir, p);
+  assert.equal(fs.readFileSync(path.join(projectDir, FRAME_DIR, 'PROJECT_NOTES.md'), 'utf8'), worktree);
+});
+
+test('an unmerged meta file moves nothing, including from a sub-directory project', () => {
   const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-monorepo-'));
   try {
     git(repoDir, ['init', '-q']);
     git(repoDir, ['config', 'user.email', 'test@example.com']);
     git(repoDir, ['config', 'user.name', 'Test']);
+    git(repoDir, ['config', 'commit.gpgsign', 'false']);
     const appDir = path.join(repoDir, 'apps', 'web');
     fs.mkdirSync(appDir, { recursive: true });
 
@@ -154,16 +190,34 @@ test('a dirty tree defers with zero writes, including from a sub-directory proje
 
     git(repoDir, ['add', '-A']);
     git(repoDir, ['commit', '-q', '-m', 'init']);
-    fs.appendFileSync(path.join(appDir, 'PROJECT_NOTES.md'), '\n### [2026-02-02] Uncommitted\n');
+
+    // A real conflict: two branches edit PROJECT_NOTES.md, then merge.
+    const notes = path.join(appDir, 'PROJECT_NOTES.md');
+    git(repoDir, ['checkout', '-q', '-b', 'other']);
+    fs.appendFileSync(notes, '\n### [2026-02-02] Theirs\n');
+    git(repoDir, ['commit', '-q', '-a', '-m', 'theirs']);
+    git(repoDir, ['checkout', '-q', '-']);
+    fs.appendFileSync(notes, '\n### [2026-02-02] Ours\n');
+    git(repoDir, ['commit', '-q', '-a', '-m', 'ours']);
+    try {
+      git(repoDir, ['merge', '--no-edit', 'other']);
+    } catch (err) {
+      /* the conflict is the point */
+    }
+    assert.ok(
+      execFileSync('git', ['status', '--porcelain'], { cwd: repoDir, encoding: 'utf8' }).includes('UU '),
+      'the fixture really is mid-merge'
+    );
 
     const p = layoutMigration.plan(appDir);
-    assert.deepEqual(p.dirty, ['PROJECT_NOTES.md'], 'porcelain paths compared against show-prefix + rel');
+    assert.deepEqual(p.unmerged, ['PROJECT_NOTES.md'], 'porcelain paths compared against show-prefix + rel');
     assert.equal(p.canRun, false);
 
     const before = fs.readdirSync(appDir).sort();
     const result = layoutMigration.run(appDir, p);
     assert.equal(result.ran, false);
-    assert.equal(result.reason, 'dirty-tree');
+    assert.equal(result.reason, 'unmerged');
+    assert.deepEqual(result.unmerged, ['PROJECT_NOTES.md']);
     assert.deepEqual(fs.readdirSync(appDir).sort(), before, 'a deferred run writes nothing');
     assert.ok(!fs.existsSync(path.join(appDir, FRAME_DIR, 'migration-backup')));
   } finally {
@@ -360,8 +414,8 @@ test('the plan payload has the shape the modal renders from', () => {
   const p = layoutMigration.plan(projectDir);
 
   assert.deepEqual(Object.keys(p).sort(), [
-    'artifacts', 'backupDir', 'canRun', 'dirty', 'projectPath',
-    'restorableClaudeMd', 'sharingMode', 'symlinks', 'tracked'
+    'artifacts', 'backupDir', 'canRun', 'projectPath',
+    'restorableClaudeMd', 'sharingMode', 'symlinks', 'tracked', 'unmerged'
   ]);
   for (const artifact of p.artifacts) {
     assert.deepEqual(Object.keys(artifact).sort(), ['disposition', 'name']);

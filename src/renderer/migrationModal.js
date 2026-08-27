@@ -125,7 +125,7 @@ function render(plan) {
     runBtn.disabled = false;
     laterBtn.textContent = 'Later';
   } else {
-    dirtyListEl.innerHTML = plan.dirty.map((f) => `<li>${escapeHtml(f)}</li>`).join('');
+    dirtyListEl.innerHTML = plan.unmerged.map((f) => `<li>${escapeHtml(f)}</li>`).join('');
     dirtyWarningEl.style.display = '';
     runBtn.style.display = 'none';
     laterBtn.textContent = 'Close';

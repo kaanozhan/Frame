@@ -2108,16 +2108,22 @@
           ],
           "purpose": "The `## Existing Instructions (from CLAUDE.md)` block old inits appended to"
         },
-        "dirtyAmong": {
-          "line": 166,
+        "isUnmergedCode": {
+          "line": 169,
+          "params": [
+            "code"
+          ],
+          "purpose": "Files in an unmerged state — the only dirtiness that can actually lose"
+        },
+        "unmergedAmong": {
+          "line": 175,
           "params": [
             "projectPath",
             "relPaths"
-          ],
-          "purpose": "Files with uncommitted changes, compared repo-root-relative so a project in"
+          ]
         },
         "trackedAmong": {
-          "line": 191,
+          "line": 200,
           "params": [
             "projectPath",
             "relPaths"
@@ -2125,27 +2131,27 @@
           "purpose": "Which of these paths git already tracks (decides the sharing posture)."
         },
         "plan": {
-          "line": 215,
+          "line": 224,
           "params": [
             "projectPath"
           ],
           "purpose": "Describe what migrating this project would do. Pure: no writes, no git"
         },
         "copyVerified": {
-          "line": 272,
+          "line": 281,
           "params": [
             "from",
             "to"
           ]
         },
         "upgradeAgentsText": {
-          "line": 306,
+          "line": 315,
           "params": [
             "text"
           ]
         },
         "execute": {
-          "line": 335,
+          "line": 344,
           "params": [
             "projectPath",
             "activePlan",
@@ -2155,7 +2161,7 @@
           "purpose": "The steps themselves, in order, writing what happened into `state`. Split"
         },
         "run": {
-          "line": 454,
+          "line": 463,
           "params": [
             "projectPath",
             "migrationPlan",
