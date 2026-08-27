@@ -44,3 +44,18 @@ user-visible changed — still two groups, still the Terminals card.
 _Captured: 2026-08-27 · 5 file change(s)_
 
 ---
+## T04 — Flat `.home-grid` replaces the two-group layout
+
+Replaced `.home-group` / `.home-group-title` / `.home-cards` /
+`.home-cards-solo` and the `@container (max-width: 699px)` override with one
+`.home-grid` on `repeat(auto-fill, minmax(320px, 1fr))`, moved the 232px floor
+onto `.home-card`, and rewrote `mount()` to build a single grid — `_buildGroup`
+is gone. `auto-fill` does what the container query did by hand, so the
+responsive branch disappeared rather than being ported. Beyond `plan.md`: the
+no-project branch now disposes the previous mount's widgets and clears
+`_layout`, otherwise they keep live subscriptions and detached DOM behind the
+no-project state.
+
+_Captured: 2026-08-27 · 2 file change(s)_
+
+---

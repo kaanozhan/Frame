@@ -66,6 +66,7 @@ class LaneBoard {
     this.onOpenTerminals = onOpenTerminals;
     this.container = null;
     this.boardEl = null;
+    this.gridEl = null;
     this.cards = null;
     this.shellMenu = null;
     this.availableShells = [];
@@ -113,8 +114,14 @@ class LaneBoard {
 
     if (!state.currentProjectPath) {
       // Terminals, specs and tasks are all project-scoped — asking for a
-      // project is the only thing Home can usefully do without one.
+      // project is the only thing Home can usefully do without one, and Home
+      // has no no-project widgets (C6).
       this.cards = null;
+      this.gridEl = null;
+      // The previous mount's widgets hold detached DOM and live
+      // subscriptions; without a grid to draw into they must go.
+      this._disposeWidgets();
+      this._layout = null;
       this.boardEl.appendChild(this._renderNoProjectState());
       return;
     }
@@ -122,23 +129,19 @@ class LaneBoard {
     this.headerEl = this._buildHeader();
     this.boardEl.appendChild(this.headerEl);
 
+    // One flat grid of independent widgets. The named groups are gone: they
+    // imposed a reading order the widgets do not have, and every new card
+    // meant deciding which group it belonged to. The registry decides what
+    // is shown and in what order; the grid decides how many fit per row.
+    this.gridEl = document.createElement('div');
+    this.gridEl.className = 'home-grid';
+    this.boardEl.appendChild(this.gridEl);
+
     this.cards = { terminals: this._buildTerminalsCard() };
+    this.gridEl.appendChild(this.cards.terminals.el);
 
-    // Two groups, because the cards answer two different questions: what is
-    // running right now, and what the project has planned. Splitting them
-    // also gives the board a reading order instead of a grid of equals.
-    // Orchestration is not here — it is a surface you open, and it opens as a
-    // top-bar tab from the sidebar's Work group.
-    const work = this._buildGroup('Work', 1);
-    work.grid.appendChild(this.cards.terminals.el);
-    this.boardEl.appendChild(work.group);
-
-    // The planning cards are widgets now: the board owns the group, the
-    // registry decides what goes in it, and each widget owns its card.
     this._layout = resolveLayout(this._widgetCtx());
-    const planning = this._buildGroup('Project planning', this._layout.length);
-    this._mountWidgets(planning.grid);
-    this.boardEl.appendChild(planning.group);
+    this._mountWidgets(this.gridEl);
 
     this.update(state);
   }
@@ -200,29 +203,6 @@ class LaneBoard {
     if (branch) this.headerEl.querySelector('.home-header-branch-name').textContent = branch;
   }
 
-  /**
-   * A titled row of cards. The two groups split the board's height evenly.
-   * Returns the grid as well as the section, because a group whose contents
-   * are widgets is filled by them rather than by the board.
-   */
-  _buildGroup(title, count) {
-    const group = document.createElement('section');
-    group.className = 'home-group';
-
-    const heading = document.createElement('h2');
-    heading.className = 'home-group-title';
-    heading.textContent = title;
-    group.appendChild(heading);
-
-    const grid = document.createElement('div');
-    // A lone card takes the whole row — the Work group is Terminals only, and
-    // half a row of card next to half a row of nothing is worse than either.
-    grid.className = count === 1 ? 'home-cards home-cards-solo' : 'home-cards';
-    group.appendChild(grid);
-
-    return { group, grid };
-  }
-
   // ─── Widgets ────────────────────────────────────────────
 
   /**
@@ -247,8 +227,13 @@ class LaneBoard {
     this._disposeWidgets();
 
     const ctx = this._widgetCtx();
-    for (const { widget } of this._layout) {
+    for (const { widget, span } of this._layout) {
       widget.mount(hostEl, ctx);
+      // A span wider than one is the grid's business, not the widget's — it
+      // never has to know how many columns it was given.
+      if (span > 1 && hostEl.lastElementChild) {
+        hostEl.lastElementChild.style.gridColumn = `span ${span}`;
+      }
     }
 
     for (const source of sourcesFor(this._layout)) {

@@ -5799,13 +5799,13 @@
       "title": "Replace the two-group layout with a flat `.home-grid` on `repeat(auto-fill, minmax(320px, 1fr))` — delete `.home-group`, `.home-group-title`, `.home-cards`, `.home-cards-solo` and the `@container (max-width: 699px)` override, move the `min-height: 232px` floor to the widget shell, and rewrite the board's mount loop to render widgets from the registry with the no-project state still ahead of the grid",
       "description": "",
       "source": "spec:home-widget-board:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: home-widget-board",
       "createdAt": "2026-08-27T10:51:19.657Z",
-      "updatedAt": "2026-08-27T10:51:19.657Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T11:56:01.753Z",
+      "completedAt": "2026-08-27T11:56:01.753Z"
     },
     {
       "id": "task-spec-home-widget-board-T05",

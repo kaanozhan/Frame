@@ -63,62 +63,31 @@
   opacity: 0.7;
 }
 
-/* ─── Home cards ────────────────────────────────────────── */
-/* Four cards: Terminals, Orchestration, Specs, Tasks. Each is a summary and
-   an entry point — the header opens the surface, the body teases at most a
-   few rows, the footer carries the one direct action. The sidebar is where
-   the full list lives; a card that grew into a list would be a second
-   dashboard nobody asked for. */
+/* ─── Home grid ─────────────────────────────────────────── */
+/* One flat grid of independent widgets — no named groups, no reading order
+   imposed from above. Each widget is a summary and an entry point: the
+   header opens the surface, the body teases at most a few rows, the footer
+   carries the one direct action. The sidebar is where the full list lives; a
+   widget that grew into a list would be a second dashboard nobody asked for.
 
-.home-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  /* Equal shares of whatever the window leaves, with a floor: past it the
-     board scrolls instead of squeezing four cards into nothing. */
-  flex: 1 1 0;
-  min-height: 232px;
-}
+   auto-fill does the responsive work the two-group layout needed a container
+   query for: four widgets read as 2×2 wide and one column narrow, and a
+   fifth costs nothing. Past four the board scrolls — intended. */
 
-.home-group-title {
-  margin: 0;
-  flex: none;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-
-.home-cards {
+.home-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--space-md);
-  flex: 1;
-  min-height: 0;
-}
-
-.home-cards-solo {
-  grid-template-columns: 1fr;
-}
-
-/* Narrow board: one card per row. The group's floor doubles with it, so the
-   cards keep their height and the board scrolls. */
-@container (max-width: 699px) {
-  .home-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .home-group {
-    min-height: 480px;
-  }
+  align-content: start;
 }
 
 .home-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
+  /* The floor the groups used to hold: past it the board scrolls instead of
+     squeezing widgets into nothing. */
+  min-height: 232px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
