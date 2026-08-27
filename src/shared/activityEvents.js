@@ -88,7 +88,7 @@ const EVENTS = {
   'hint.injected': {
     kind: 'action',
     fields: {
-      host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt', 'search', 'session-start', 'meta-write']),
+      host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt', 'search', 'session-start', 'meta-write', 'spec-command']),
       path: PATH, specs: COUNT, concept: SLUG, modules: COUNT, bytes: COUNT
     },
     label: (r) => {
@@ -97,6 +97,9 @@ const EVENTS = {
       }
       if (r.mode === 'meta-write') {
         return `Frame's rules for this meta file delivered before the write${r.bytes ? ` (${r.bytes} chars)` : ''}`;
+      }
+      if (r.mode === 'spec-command') {
+        return 'Spec command flow staged for a terminal session';
       }
       if (r.mode === 'search') {
         return `Module map answered "${r.concept || 'a search'}"${r.modules ? ` (${r.modules} file${r.modules === 1 ? '' : 's'})` : ''}`;
@@ -108,8 +111,10 @@ const EVENTS = {
   },
   'hint.quiet': {
     kind: 'suppression',
-    fields: { host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt', 'search', 'session-start', 'meta-write']), reason: enumOf(HINT_REASONS), path: PATH, repeats: REPEATS },
-    label: (r) => (r.mode === 'session-start' || r.mode === 'meta-write'
+    fields: { host: enumOf(HOSTS), mode: enumOf(['pre-edit', 'prompt', 'search', 'session-start', 'meta-write', 'spec-command']), reason: enumOf(HINT_REASONS), path: PATH, repeats: REPEATS },
+    label: (r) => (r.mode === 'spec-command'
+      ? `Spec command flow not staged — ${SPEC_COMMAND_REASON_TEXT[r.reason] || HINT_REASON_TEXT[r.reason] || r.reason}`
+      : r.mode === 'session-start' || r.mode === 'meta-write'
       ? `Frame rules not delivered — ${DOCS_HINT_REASON_TEXT[r.reason] || HINT_REASON_TEXT[r.reason] || r.reason}`
       : r.mode === 'search'
         ? `Module hint skipped — ${SEARCH_REASON_TEXT[r.reason] || HINT_REASON_TEXT[r.reason] || r.reason}`
@@ -293,6 +298,14 @@ const DOCS_HINT_REASON_TEXT = {
   'no-index': 'this project has no .frame/docs/REFERENCE.md',
   'no-match': 'REFERENCE.md carries no section for it',
   'no-context': 'REFERENCE.md is empty'
+};
+
+// And once more for the terminal-entry staging of a spec command.
+const SPEC_COMMAND_REASON_TEXT = {
+  'no-index': 'no command template is staged for this project',
+  'no-match': 'no spec is in a phase the command acts on',
+  'no-stale-free-match': 'several specs qualify — the agent was asked to pick',
+  'no-context': 'the template or the spec status could not be read'
 };
 
 const DOCS_DEGRADED_TEXT = {

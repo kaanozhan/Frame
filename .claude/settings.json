@@ -37,6 +37,14 @@
             "command": "node scripts/spec-hint.js prompt"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/spec-command-hint.js prompt"
+          }
+        ]
       }
     ],
     "SessionStart": [

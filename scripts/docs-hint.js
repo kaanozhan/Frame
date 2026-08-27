@@ -67,7 +67,19 @@ const CAP = 1980;
 
 // Delivered every session: the rules that govern conversation-level choices
 // and have no single moment of use.
-const SESSION_SECTIONS = ['Spec-driven development', 'General Rules'];
+//
+// The spec section carries both a conversation rule (when to offer a spec)
+// and the self-serve protocol for running a spec command — 2.5 KB of "find
+// the staged template and follow it exactly". Only the first belongs in
+// every session; the protocol belongs to the moment a command is invoked,
+// and sending it here would push the payload past the host's inline ceiling
+// and cost the session rules their delivery too. Until that moment has a
+// trigger of its own, the protocol stays reachable through
+// `docs-hint.js section "Spec-Driven"`.
+const SESSION_SECTIONS = [
+  { section: 'Spec-driven', subsections: ['When to suggest a spec'] },
+  { section: 'General Rules' }
+];
 
 // Delivered when the agent is about to write that file.
 const FILE_SECTIONS = [
@@ -221,9 +233,11 @@ function sessionStart(input) {
   if (!sections) return note(root, 'hint.quiet', 'session-start', { reason: 'no-index' });
 
   const bodies = SESSION_SECTIONS
-    .map((p) => byPrefix(sections, p))
-    .filter(Boolean)
-    .map((s) => renderSection(s));
+    .map((entry) => {
+      const found = byPrefix(sections, entry.section);
+      return found ? renderSection(found, entry.subsections) : null;
+    })
+    .filter(Boolean);
   if (!bodies.length) return note(root, 'hint.quiet', 'session-start', { reason: 'no-match' });
 
   const text = capped(root, SESSION_PREAMBLE, bodies);

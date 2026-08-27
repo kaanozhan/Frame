@@ -2409,3 +2409,42 @@ task from an earlier session, *"Make the find-module/grep orientation step
 deterministic"*, describes this work and can now be closed; the older spec
 `audit-q3-deterministic-graph-hints` covers the graph-based variant and was
 deliberately left untouched.
+
+### [2026-08-28] The spec decision gate never reached a terminal session, and why the protocol alone would not have fixed it
+
+**The symptom.** Spec-driven work started from the Frame button behaves as
+designed; the same command typed in a terminal produced a plan with no
+decision gate — the stage that resolves business and technical forks *with
+the user* through `AskUserQuestion` and records each answer under
+`### Resolved plan-time decisions`. Plans made that way also lack
+`## Footprint`, which is what orchestration's collision detection reads.
+
+**Two independent breaks, and one of them was self-inflicted.** The flow lives
+only in `spec.plan.md` (17 KB), never in REFERENCE.md. The button reaches it
+through `buildSpecCommandFile`, which interpolates the template and hands the
+agent one sentence. A terminal session was supposed to reach it through the
+self-serve protocol `cli-spec-command-parity` wrote into REFERENCE.md — but
+this repository's docs carry no managed-block marker, so Frame classifies them
+`unmatched` and, by design, refuses to write over them. The protocol shipped
+in 2026-07 and was never installed here. Frame's own repo had been outside its
+own upgrade path for a month; a fresh project was fine the whole time.
+
+**Fixed by installing the marker-wrapped section** (`renderSpecSection()`,
+v=2), which both closes the break and hands the section back to Frame so
+future upgrades land. That alone would still have left the flow depending on
+an agent reading five prose steps, which this codebase now has a number for:
+prose-delivered instructions run at 1–44%.
+
+**So the protocol got a mechanism.** `spec-command-hint.js` on
+`UserPromptSubmit` does what the button does — resolve the spec, interpolate
+the current template, write it to `.frame/runtime/prompts/`, inject the
+pointer. Two decisions worth keeping. Ambiguity is never guessed: one
+candidate is taken silently, several are listed for the agent to ask about
+with nothing staged, none is reported as none. And the hook duplicates
+`specManager`'s resolution because it ships to `.frame/bin/` and cannot
+require Electron main code — so a test asserts the staged prompt is
+byte-identical to `getCommandPrompt`'s, because a silent divergence there
+would return the terminal to exactly the state this fixes.
+
+**Untested link.** Everything above is asserted; that a real session then
+reads the staged file and runs the gate is not, and will be seen in use.

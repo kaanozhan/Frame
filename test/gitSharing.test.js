@@ -78,13 +78,13 @@ test('switching to local excludes, moves the hooks, and back again', () => {
 
   const localFile = path.join(projectDir, '.claude', 'settings.local.json');
   const sharedFile = path.join(projectDir, '.claude', 'settings.json');
-  assert.equal(hookCommands(localFile).length, 5, 'hooks live in settings.local.json');
+  assert.equal(hookCommands(localFile).length, 6, 'hooks live in settings.local.json');
   assert.equal(hookCommands(sharedFile).length, 0);
 
   const repo = gitSharing.setMode(projectDir, 'repo');
   assert.equal(repo.mode, 'repo');
   assert.equal(gitExclude.hasBlock(projectDir), false, 'exclude block withdrawn under repo');
-  assert.equal(hookCommands(sharedFile).length, 5, 'hooks moved to settings.json');
+  assert.equal(hookCommands(sharedFile).length, 6, 'hooks moved to settings.json');
   assert.equal(hookCommands(localFile).length, 0, 'and left the local file');
 });
 
