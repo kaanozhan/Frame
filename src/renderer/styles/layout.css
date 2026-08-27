@@ -254,13 +254,13 @@ body.sidebar-resizing * {
   50% { box-shadow: 0 0 14px 2px var(--accent-glow); }
 }
 
-#sidebar-header::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: var(--accent-primary);
-  border-radius: 2px;
-  box-shadow: 0 0 12px var(--accent-primary);
+/* The mark itself now stands where an anonymous green square used to — same
+   brackets as the app icon, so the window and the dock agree. No glow: the
+   shape carries the identity, and a halo on a 15px glyph only muddies it. */
+.sidebar-header-mark {
+  flex: none;
+  color: var(--accent-primary);
+  display: block;
 }
 
 /* Sidebar Tabs */

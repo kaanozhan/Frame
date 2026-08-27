@@ -57,6 +57,12 @@
   <div id="sidebar">
     <div id="sidebar-resize-handle"></div>
     <div id="sidebar-header">
+      <!-- Frame's mark (assets/frame-mark.svg): the four corner brackets that
+           frame a subject. It replaces the anonymous green square — the same
+           mark the app icon carries, so the window says what the dock says. -->
+      <svg class="sidebar-header-mark" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M2 2h9v2.6H4.6V11H2V2Z"/><path d="M22 2v9h-2.6V4.6H13V2h9Z"/><path d="M2 22v-9h2.6v6.4H11V22H2Z"/><path d="M22 22h-9v-2.6h6.4V13H22v9Z"/>
+      </svg>
       <span class="sidebar-header-text">Frame <span id="app-version"></span></span>
       <button
         type="button"

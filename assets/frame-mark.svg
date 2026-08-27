@@ -1,0 +1,12 @@
+<!--
+  Frame's mark: four corner brackets — the crop marks that frame a subject.
+  Drawn on a 24×24 grid with `currentColor`, so a caller sets the size and the
+  colour; the sidebar header takes it in the accent, the app icon renders it in
+  parchment on charcoal (see build/icon.png).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <path d="M2 2h9v2.6H4.6V11H2V2Z"/>
+  <path d="M22 2v9h-2.6V4.6H13V2h9Z"/>
+  <path d="M2 22v-9h2.6v6.4H11V22H2Z"/>
+  <path d="M22 22h-9v-2.6h6.4V13H22v9Z"/>
+</svg>
