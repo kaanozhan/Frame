@@ -12,8 +12,10 @@
  *
  * Three states in one modal: the decision (which lines change, and what Frame
  * will not touch), progress while it applies, and the receipt. "Later" writes
- * nothing at all — the project keeps working, its prose just keeps naming the
- * old paths.
+ * nothing to the project at all — it keeps working, its prose just keeps
+ * naming the old paths — and it is permanent: a "no" that came back every
+ * time the app restarted would be the endless asking this spec exists to
+ * end. Project Settings is the way back in.
  */
 
 const { ipcRenderer } = require('electron');
@@ -32,9 +34,13 @@ let runBtn = null;
 
 let currentProjectPath = null;
 let currentDecisions = null;
-// One offer per project per session: a user who clicks Later is not asked
-// again until they reopen the app.
-const deferred = new Set();
+let answered = false;
+
+// Persisted in user settings, not in the project's config: the deferral is a
+// person's answer on a machine, and `.frame/config.json` is committed in
+// `repo` mode — a teammate would inherit the "no" and never be offered the
+// fix.
+const DEFERRED_KEY = 'migrationDecisionsDeferred';
 
 function init() {
   modalEl = document.getElementById('migration-modal');
@@ -54,13 +60,50 @@ function init() {
   runBtn.addEventListener('click', applyDecisions);
 }
 
+async function readDeferred() {
+  try {
+    const stored = await ipcRenderer.invoke(IPC.GET_USER_SETTING, DEFERRED_KEY);
+    return Array.isArray(stored) ? stored.slice() : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+async function markDeferred(projectPath) {
+  if (!projectPath) return;
+  try {
+    const list = await readDeferred();
+    if (list.includes(projectPath)) return;
+    list.push(projectPath);
+    await ipcRenderer.invoke(IPC.SET_USER_SETTING, DEFERRED_KEY, list);
+  } catch (err) {
+    console.error('migrationModal: could not persist the deferral', err);
+  }
+}
+
+/** Does this project still have something to be asked about? */
+async function hasPendingDecisions(projectPath) {
+  if (!projectPath) return false;
+  try {
+    const decisions = await ipcRenderer.invoke(IPC.GET_MIGRATION_DECISIONS, projectPath);
+    return Array.isArray(decisions) && decisions.length > 0;
+  } catch (err) {
+    return false;
+  }
+}
+
 /**
  * Offer whatever decisions this project still carries. Silent when there are
- * none, when the user already said Later this session, or when main answers
- * with nothing — which is every project that was never on the old layout.
+ * none, when the user has deferred this project, or when main answers with
+ * nothing — which is every project that was never on the old layout.
+ *
+ * `force` is the way back in from Project Settings: it bypasses the deferral
+ * without clearing it, so a user who opens the question and closes it again
+ * has not accidentally re-armed the prompt.
  */
-async function offer(projectPath) {
-  if (!modalEl || !projectPath || deferred.has(projectPath)) return;
+async function offer(projectPath, { force = false } = {}) {
+  if (!modalEl || !projectPath) return;
+  if (!force && (await readDeferred()).includes(projectPath)) return;
 
   let decisions;
   try {
@@ -72,6 +115,7 @@ async function offer(projectPath) {
 
   currentProjectPath = projectPath;
   currentDecisions = decisions;
+  answered = false;
   render(decisions);
   modalEl.classList.add('visible');
 }
@@ -130,6 +174,7 @@ async function applyDecisions() {
     receipt = { ran: false, error: err.message };
   }
 
+  answered = Boolean(receipt && receipt.ran);
   progressEl.style.display = 'none';
   laterBtn.disabled = false;
   laterBtn.textContent = 'Close';
@@ -158,12 +203,14 @@ function renderReceipt(receipt) {
 
 function close() {
   if (!modalEl) return;
-  // Every close defers: the modal always presents a decision, so declining to
-  // answer it is itself an answer for this session.
-  if (currentProjectPath) deferred.add(currentProjectPath);
+  // Closing without answering defers: the modal always presents a decision,
+  // so declining to answer it is itself an answer — and a permanent one,
+  // reachable again from Project Settings. Closing *after* answering records
+  // nothing; the decision has emptied itself and cannot be offered again.
+  if (currentProjectPath && !answered) markDeferred(currentProjectPath);
   modalEl.classList.remove('visible');
   currentDecisions = null;
   currentProjectPath = null;
 }
 
-module.exports = { init, offer, close };
+module.exports = { init, offer, close, hasPendingDecisions };

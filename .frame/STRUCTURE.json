@@ -6479,7 +6479,8 @@
       "exports": [
         "init",
         "offer",
-        "close"
+        "close",
+        "hasPendingDecisions"
       ],
       "depends": [
         "electron",
@@ -6488,32 +6489,49 @@
       ],
       "functions": {
         "init": {
-          "line": 39
+          "line": 45
         },
-        "offer": {
-          "line": 62,
+        "readDeferred": {
+          "line": 63
+        },
+        "markDeferred": {
+          "line": 72,
           "params": [
             "projectPath"
+          ]
+        },
+        "hasPendingDecisions": {
+          "line": 85,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Does this project still have something to be asked about?"
+        },
+        "offer": {
+          "line": 104,
+          "params": [
+            "projectPath",
+            "{ force = false } = {}"
           ],
           "purpose": "Offer whatever decisions this project still carries. Silent when there are"
         },
         "render": {
-          "line": 79,
+          "line": 123,
           "params": [
             "decisions"
           ]
         },
         "applyDecisions": {
-          "line": 112
+          "line": 156
         },
         "renderReceipt": {
-          "line": 140,
+          "line": 185,
           "params": [
             "receipt"
           ]
         },
         "close": {
-          "line": 159
+          "line": 204
         }
       }
     },

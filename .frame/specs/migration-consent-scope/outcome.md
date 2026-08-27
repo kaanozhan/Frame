@@ -124,3 +124,18 @@ progress surface or drop the channel.
 _Captured: 2026-08-27 · 5 file change(s)_
 
 ---
+## T09 — The deferral survives a restart, and can be reopened
+
+Replaced the in-memory `deferred` Set with the `userSettings` key
+`migrationDecisionsDeferred`, read and written through `GET_USER_SETTING` /
+`SET_USER_SETTING` in docsHealthHint's shape, and added
+`offer(projectPath, { force: true })` plus a `hasPendingDecisions` export for
+the Settings entry point. User settings rather than `.frame/config.json`
+because the config is committed in `repo` mode — a teammate would inherit
+someone else's "no". `force` bypasses without clearing, so opening the
+question from Settings and closing it again does not re-arm the prompt, and a
+close that follows a successful apply records nothing.
+
+_Captured: 2026-08-27 · 1 file change(s)_
+
+---

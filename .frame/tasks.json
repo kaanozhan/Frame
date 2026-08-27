@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T15:24:30.529Z",
+  "lastUpdated": "2026-08-27T15:25:54.818Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6085,13 +6085,13 @@
       "title": "Replace `migrationModal`'s in-memory `deferred` Set with the `userSettings` key `migrationDecisionsDeferred`, read through `GET_USER_SETTING` and written through `SET_USER_SETTING` on Later, and add an `open(projectPath, { force: true })` path that bypasses it.",
       "description": "",
       "source": "spec:migration-consent-scope:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: migration-consent-scope",
       "createdAt": "2026-08-27T14:12:47.220Z",
-      "updatedAt": "2026-08-27T14:12:47.220Z",
-      "completedAt": null
+      "updatedAt": "2026-08-27T15:25:54.818Z",
+      "completedAt": "2026-08-27T15:25:54.818Z"
     },
     {
       "id": "task-spec-migration-consent-scope-T10",
