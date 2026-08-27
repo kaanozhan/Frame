@@ -2191,3 +2191,162 @@ file, not after it.
 `settings-by-scope` spec had to reconstruct which of `project-settings`'
 decisions it was overturning by reading `settingsModal.js` rather than that
 spec's outcome. Worth an audit of the whole archive for other holes.
+
+### [2026-08-27] Migration stopped asking about moves, and the dirty-tree deadlock is gone (spec: migration-consent-scope)
+
+Shipped on `feat/migration-consent-scope`: ten tasks, eleven commits, `npm test`
+green at 398 after every one.
+
+**The deadlock, and why it was an ordering bug rather than a policy one.** A
+legacy project opened, `CHECK_IS_FRAME_PROJECT` ran the stagers and
+`WATCH_SPECS` ran `upgradeSpecDocs` — which resolves through `frameStore`, so in
+an unmigrated project it rewrote the **root** `AGENTS.md`. Only then did the
+modal ask for the plan, `dirtyAmong` saw ` M AGENTS.md`, and `canRun` came back
+false with *"Commit or stash them, then reopen this project."* Stashing removed
+the change, reopening re-ran the doc upgrade, the file was dirty again. Frame
+dirtied the file and then refused to migrate because the file was dirty. The
+whole blocking diff was one version stamp, `v=1` → `v=2`.
+
+The fix is `frameProject.openProjectLayout()`: the migration plan is consulted
+first, and either the move runs before any stager touches the project, or —
+for the one genuinely unsafe state — nothing is written at all.
+`specManager.startWatching` and the `WATCH_SPECS` stagers carry the same gate,
+because those are separate IPC messages and the renderer decides which lands
+first; a gate in only one place is a race.
+
+**Decisions taken, with what they were taken against.**
+
+- *The guard narrowed to unmerged paths only.* The spec's own loss table
+  settled it: for every dirty state except an unmerged path, moving the file
+  loses nothing — the content travels into `.frame/` and the pre-move blob
+  stays in the index and in HEAD. Only `git merge --continue` can actually be
+  broken. So a modified or staged meta file now migrates with its uncommitted
+  content, and `dirty-tree` stops being a reason anything defers.
+- *The `AGENTS.md` move and its prose rewrite were split.* Fused, they meant no
+  legacy project could ever migrate silently — legacy init wrote an
+  `AGENTS.md` into every project — so the fingerprint never cleared. Split,
+  the file relocates byte-for-byte with everything else and only the prose
+  waits on a click.
+- *The pending decision is derived, never stored.* `pendingDecisions` asks the
+  text — does `upgradeAgentsText` change bytes? — because after the move the
+  stale file lives in `.frame/` and the fingerprint that would have found it is
+  gone. Applying the rewrite empties the derivation, so nothing has to be
+  recorded to stop the offer repeating.
+- *Frame-planted symlinks are removed silently, not asked about.* Legacy init
+  planted both in every project, so classing them as a decision puts a modal in
+  front of every user Frame has. The accepted cost: `GEMINI.md` has no
+  replacement, so Gemini CLI stops reading Frame's instructions there — named
+  on the banner rather than asked about.
+- *The deferral is permanent and lives in `userSettings`.* `.frame/config.json`
+  is committed in `repo` mode, so a teammate would inherit someone else's "no"
+  and never be offered the fix. Project Settings gained the way back in;
+  before it, closing the modal made migration unreachable without restarting
+  the app.
+
+**One divergence worth naming.** `tasks.md` asked for the removed symlinks to be
+named in the `migration.completed` label. They are recorded as a count instead:
+`activityEvents.js` states outright that it carries no free-form string field so
+no call site can introduce one, and that rule outranks the task's phrasing. The
+banner names the files from the receipt it already holds, which is where naming
+them belongs.
+
+**Left open:** `LAYOUT_MIGRATION_PROGRESS` is still emitted from
+`openProjectLayout` and no longer has a listener — the modal was its only
+consumer. Either give the receipt a progress surface or drop the channel.
+
+**What was and was not verified.** The main-process path was measured, not
+assumed: `openProjectLayout()` was run against copies of ten fixtures covering
+every branch, and every claim about migration, git state, moved files, symlinks
+and sharing mode comes from that run. The renderer was **not** exercised —
+the banner, the modal's rendering, the Project Settings row and the deferral
+surviving a restart are unverified, because this project still has no DOM
+harness. The fixtures and a checklist live at `~/Documents/frame-migration-test`.
+
+---
+
+### [2026-08-27] What verifying that migration turned up: init inverted file ownership, and it still is
+
+The migration bug above is fixed. Verifying it surfaced a **separate, older
+problem that is not fixed**, and the findings are written up in spec shape at
+`.frame/specs/migration-consent-scope/followup-agents-ownership.md`.
+
+**Read that document before changing anything under `.frame/` that touches
+`AGENTS.md`, the `.claude/` write surface, `runProjectInit`, or
+`layoutMigration`.** It is deliberately not registered as a spec — a teammate
+is working inside `.frame/` and a new spec folder would collide with them — so
+nothing in Frame's UI will surface it. It rides with the migration fix instead,
+and it is on whoever touches this area next to read it and weigh the findings
+rather than rediscover them.
+
+**The finding.** Frame's pre-overlay init did not add its instructions to the
+user's files. It did the reverse (`ee280c8`, "smart MD file merge on Frame
+init"): it read the user's instruction files, **deleted three of them**, and
+pasted their contents into a file it wrote itself, under
+`## Existing Instructions (from <label>)` headings.
+
+| Source | What init did |
+| --- | --- |
+| `CLAUDE.md` (root) | read → `unlinkSync` → replaced by a symlink to `AGENTS.md` |
+| `AGENTS.md` (root) | read → `unlinkSync` → replaced by Frame's template, user text appended below |
+| `GEMINI.md` (root) | read → appended → `unlinkSync` → replaced by a symlink |
+| `.claude/CLAUDE.md` | read → **left in place** |
+
+`non-invasive-overlay` had already established the rule this broke — *"a user's
+root file is never read, moved or replaced"* — and `migration-consent-scope`
+corrected exactly one quarter of it: a consumed `CLAUDE.md` is written back.
+The other three are still sitting inside `.frame/AGENTS.md` today.
+
+**What that costs, measured in `comeety` on 2026-08-27.** Every Claude Code
+session there loads 57,581 characters of instruction files. Of
+`.claude/rules/frame.md`'s 14,397 characters, **8,596 are a verbatim copy of
+`.claude/CLAUDE.md`** — a file the agent already loads from its own path. That
+is 14% of the project's entire instruction context, duplicated in every
+session, and it is what makes Frame's file the largest in a directory of the
+user's own rule files (Frame's actual content is ~5,800). The two are still
+byte-identical only because `.claude/CLAUDE.md` has not been edited since init;
+nothing re-syncs them, so the first edit turns exact duplication into two
+contradicting versions of the same document, both in context at once.
+
+**A second breakage, measured on a fixture.** `isFramePlantedSymlink()`
+recognises only a symlink. A *real* `CLAUDE.md` whose body imports the root
+`AGENTS.md` (`@AGENTS.md` — a documented Claude Code convention a user may
+write themselves) is correctly left alone while its target moves into
+`.frame/`. The receipt's review list comes back empty. End to end, Claude Code
+reports *"one instruction file failed to load: `CLAUDE.md:5` imports
+`@AGENTS.md`, but no `AGENTS.md` exists"* — the user's own instructions stop
+arriving and Frame never said a word.
+
+**Delivery paths, measured in isolated directories against Claude Code
+2.1.247.** `CLAUDE.md` (root), `.claude/CLAUDE.md` and `.claude/rules/frame.md`
+are each loaded, independently. A root `AGENTS.md` is **not** — alone in a
+directory it produced `FOUND NONE`. An `@AGENTS.md` line inside `CLAUDE.md`
+does pull it in. This is why handing a user's `AGENTS.md` back to the root
+restores the pre-Frame truth but removes a visibility that works today, and why
+that has to be reported rather than done quietly.
+
+**The init side, and why it bounds the problem.** Today's init is already
+clean: run against a project carrying all four files, it left every one
+untouched and wrote a `.frame/AGENTS.md` with no `Existing Instructions`
+heading and none of the user's text. So the only source of a mixed
+`.frame/AGENTS.md` is a project initialised before `non-invasive-overlay`. The
+concern is live at **both** stages, though, and for different reasons:
+migration still has three un-restored blocks to give back, and init still says
+nothing when a project already carries a user-owned `AGENTS.md` that Claude
+Code will never read.
+
+**Two questions left open on purpose**, at the end of the followup document:
+whether the decision modal, its persistent deferral and its Project Settings
+row (T08–T10, shipped in this same branch) should be retired once
+`.frame/AGENTS.md` provably carries no user content; and whether
+`.claude/CLAUDE.md`'s block is treated like the other three. In conversation
+the second leaned toward *the same rule as the other three* — the block comes
+out, the live file wins if it is still there, and it is written back only if
+the original was deleted — but it is kept as a question because that is where
+its consequences get weighed. The first is still genuinely undecided, and it
+matters because answering it retires a surface this branch just built.
+
+**Two recorded decisions would have to be reversed** and have not been:
+`migration-consent-scope` C4 (*"AGENTS.md is user-owned. No content rewrite
+without an explicit yes"*) and its Out of Scope entry declining to restore a
+`GEMINI.md` equivalent. Whoever picks this up reverses them explicitly, here,
+with the reason — not silently.
