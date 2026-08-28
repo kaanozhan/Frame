@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-27",
+  "lastUpdated": "2026-08-28",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -2160,14 +2160,31 @@
             "to"
           ]
         },
+        "hasSection": {
+          "line": 311,
+          "params": [
+            "text",
+            "stem"
+          ],
+          "purpose": "Does the document carry a heading like this one? Matched on a lowercase,"
+        },
+        "lineNeedsReview": {
+          "line": 334,
+          "params": [
+            "text",
+            "to",
+            "section"
+          ],
+          "purpose": "Is a line Frame could not find actually worth a human's attention?"
+        },
         "upgradeAgentsText": {
-          "line": 317,
+          "line": 353,
           "params": [
             "text"
           ]
         },
         "execute": {
-          "line": 346,
+          "line": 384,
           "params": [
             "projectPath",
             "activePlan",
@@ -2177,7 +2194,7 @@
           "purpose": "The steps themselves, in order, writing what happened into `state`. Split"
         },
         "run": {
-          "line": 458,
+          "line": 496,
           "params": [
             "projectPath",
             "migrationPlan",
@@ -2186,14 +2203,14 @@
           "purpose": "Execute a plan. Reports progress through `onProgress({ step, detail })` and"
         },
         "pendingDecisions": {
-          "line": 524,
+          "line": 562,
           "params": [
             "projectPath"
           ],
           "purpose": "What is left for the user to answer, derived rather than stored."
         },
         "applyDecisions": {
-          "line": 554,
+          "line": 592,
           "params": [
             "projectPath",
             "decisions = []"

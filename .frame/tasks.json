@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-27T20:56:58.788Z",
+  "lastUpdated": "2026-08-28T08:28:40.954Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6136,6 +6136,21 @@
       "createdAt": "2026-08-27T20:56:58.788Z",
       "updatedAt": "2026-08-27T20:57:18.212Z",
       "completedAt": null
+    },
+    {
+      "id": "task-agents-review-false-alarms",
+      "title": "Stop reporting AGENTS.md lines that were never in the file",
+      "description": "upgradeAgentsText's review list currently means 'one of Frame's seven known lines was not found', which conflates two unrelated cases: the user edited or removed the line, and the document is from a template generation that never carried it. Every real project hits the second case, so the list fires 7-8 times on documents where nothing is wrong. Replace the single includes() check with three: the line found in its old form is replaced; the line found in its upgraded form is already done and says nothing; a line whose section heading is absent from the document belongs to another generation and says nothing. Only a line whose section is present while neither form is counts as review-worthy. Section headings are matched by stem, tolerant of emoji and trailing words, following the SPEC_HEADING_STEMS pattern already in frameProject.js. Files: src/main/layoutMigration.js, test/layoutMigration.test.js.",
+      "userRequest": "User said: [comeety ekran goruntuleri] Hala daha Agents.md soruyor ve Update dedikten sonra boyle oluyor => bunlar neden oluyor / bir fix task'i acalim ve o task'a ait bir branch acalim oyle yapalim bu fix'i",
+      "acceptanceCriteria": "Measured against four real documents: comeety's pre-Update AGENTS.md (old full generation) goes 7 review items to 0; Frame's own AGENTS.md and the untouched current lean template both go 8 to 0; a lean template with one navigation line deleted by the user goes 8 to exactly 1, naming that line. The existing customised-AGENTS.md test is reshaped to keep Frame's section heading while changing the line, because that is the case the review list exists for. npm test green.",
+      "notes": "Found in the field on comeety after the migration-consent-scope modal shipped. upgradeAgentsText is byte-identical to main - the function dates from non-invasive-overlay T08 and was never touched by the migration branch; what that branch changed is that the list now reaches a user through a modal instead of sitting in a receipt nobody saw, because before it a legacy project could not migrate at all. This also violates a rule already recorded in spec-docs-delivery-invariant's digest: 'when reasoning about an older generation of a Frame-written doc, compare headings first - a matcher that misses may point at a section that was never there.' Branched off fix/migration-consent-scope rather than main: the bug is latent on main (no legacy project can migrate there), and test/layoutMigration.test.js differs too much between the two to fix it independently. Separate from the ownership-split work in .frame/specs/migration-consent-scope/followup-agents-ownership.md - this fix does not stop the modal appearing, it only stops it lying about what it left alone.",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "Session 2026-08-28 - field report from comeety after the migration modal shipped",
+      "createdAt": "2026-08-28T08:11:32.066Z",
+      "updatedAt": "2026-08-28T08:14:21.385Z",
+      "completedAt": "2026-08-28T08:14:21.385Z"
     }
   ],
   "metadata": {

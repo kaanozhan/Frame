@@ -299,14 +299,61 @@ test('the move leaves AGENTS.md alone; applyDecisions is what rewrites it', () =
   assert.equal(frameStore.readAgents(projectDir), agents);
 });
 
-test('applyDecisions leaves a customised AGENTS.md alone and lists it for review', () => {
+test('a line the user edited out of a section Frame wrote is named for review', () => {
+  // The case the review list exists for, and the only one that should reach a
+  // human: the section is right there, and the line inside it has been changed.
+  const edited = `# demo
+
+## Project Navigation
+
+1. **STRUCTURE.json** — module map
+2. **PROJECT_NOTES.md** — notes
+3. (my own third entry)
+
+**Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.
+`;
+  const upgraded = layoutMigration.upgradeAgentsText(edited);
+  assert.deepEqual(upgraded.review, ['3. **tasks.json**'], 'exactly the line that was changed');
+  assert.match(upgraded.text, /1\. \*\*`\.frame\/STRUCTURE\.json`\*\*/, 'the untouched lines still upgrade');
+  assert.match(upgraded.text, /3\. \(my own third entry\)/, "and the user's line is left alone");
+});
+
+test('a document from another generation reports nothing to review', () => {
+  // Frame's older full-generation AGENTS.md carried none of the lean core's
+  // navigation lines. Reporting seven "could not find" items for lines that
+  // were never in this generation is what made the list meaningless — the
+  // rule spec-docs-delivery-invariant recorded: compare headings first.
+  const olderGeneration = `# demo
+
+## Task Management (tasks.json)
+
+Rules live here.
+
+## 📝 Context Preservation
+
+More rules.
+
+**Note:** This file is named \`AGENTS.md\` to be AI-tool agnostic. A \`CLAUDE.md\` symlink is provided for Claude Code compatibility.
+`;
+  const upgraded = layoutMigration.upgradeAgentsText(olderGeneration);
+  assert.deepEqual(upgraded.review, [], 'no section, so no line was ever there');
+  assert.match(upgraded.text, /This file lives at `\.frame\/AGENTS\.md`/, 'the note still gets replaced');
+});
+
+test('an already-upgraded document reports nothing to review', () => {
+  const current = templates.getAgentsTemplate('demo', {});
+  const upgraded = layoutMigration.upgradeAgentsText(current);
+  assert.deepEqual(upgraded.review, [], 'every line is already in its .frame/ form');
+  assert.equal(upgraded.text, current, 'and nothing is rewritten');
+});
+
+test('applyDecisions leaves a customised AGENTS.md alone', () => {
   projectDir = makeLegacyProject({ commit: true });
   layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
   frameStore.writeAgents(projectDir, '# My own file\n\nNothing Frame wrote.\n');
 
   const receipt = layoutMigration.applyDecisions(projectDir, [{ kind: 'agents-prose' }]);
   assert.equal(receipt.ran, false, 'no line matched, so nothing was written');
-  assert.ok(receipt.review.length > 0, 'and every line it could not find is named');
   assert.equal(frameStore.readAgents(projectDir), '# My own file\n\nNothing Frame wrote.\n');
 
   // An empty decision list is a no-op, whatever the project looks like.
