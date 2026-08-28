@@ -287,19 +287,55 @@ function copyVerified(from, to) {
 }
 
 /**
- * The AGENTS.md lines the old templates wrote, and their `.frame/` forms. A
- * line that isn't found is left alone and named in the receipt's review list:
- * people customise AGENTS.md, and a full rewrite would be hostile.
+ * The AGENTS.md lines the old templates wrote, their `.frame/` forms, and the
+ * section each one lives in. A line that isn't found is left alone; whether
+ * that is worth *reporting* is a separate question, and the section is how it
+ * gets answered — see `lineNeedsReview`.
  */
 const AGENTS_LINE_EDITS = [
-  ['1. **STRUCTURE.json**', '1. **`.frame/STRUCTURE.json`**'],
-  ['2. **PROJECT_NOTES.md**', '2. **`.frame/PROJECT_NOTES.md`**'],
-  ['3. **tasks.json**', '3. **`.frame/tasks.json`**'],
-  ['| tasks.json  ', '| `.frame/tasks.json`  '],
-  ['| PROJECT_NOTES.md ', '| `.frame/PROJECT_NOTES.md` '],
-  ['| STRUCTURE.json ', '| `.frame/STRUCTURE.json` '],
-  ['| QUICKSTART.md ', '| `.frame/QUICKSTART.md` ']
+  ['1. **STRUCTURE.json**', '1. **`.frame/STRUCTURE.json`**', 'project navigation'],
+  ['2. **PROJECT_NOTES.md**', '2. **`.frame/PROJECT_NOTES.md`**', 'project navigation'],
+  ['3. **tasks.json**', '3. **`.frame/tasks.json`**', 'project navigation'],
+  ['| tasks.json  ', '| `.frame/tasks.json`  ', 'writing frame meta files'],
+  ['| PROJECT_NOTES.md ', '| `.frame/PROJECT_NOTES.md` ', 'writing frame meta files'],
+  ['| STRUCTURE.json ', '| `.frame/STRUCTURE.json` ', 'writing frame meta files'],
+  ['| QUICKSTART.md ', '| `.frame/QUICKSTART.md` ', 'writing frame meta files']
 ];
+
+/**
+ * Does the document carry a heading like this one? Matched on a lowercase,
+ * letters-only stem so a generation that wrote `## 📝 Project Navigation` or
+ * `## Writing Frame meta files — read the reference first` still counts —
+ * the `SPEC_HEADING_STEMS` approach in frameProject.js, applied here.
+ */
+function hasSection(text, stem) {
+  return text.split('\n').some((line) => {
+    const heading = line.match(/^#{1,3}\s+(.*)$/);
+    if (!heading) return false;
+    return heading[1].toLowerCase().replace(/[^a-z ]/g, '').trim().includes(stem);
+  });
+}
+
+/**
+ * Is a line Frame could not find actually worth a human's attention?
+ *
+ * Only when the user changed it. Three cases say nothing, and lumping them in
+ * is what made this list fire seven or eight times on documents where nothing
+ * was wrong: the line is already in its upgraded form; the section it belongs
+ * to is missing entirely, so this generation of the template never wrote it;
+ * or — the case that survives — the section is right there and neither form
+ * of the line is, which means somebody edited it.
+ *
+ * `spec-docs-delivery-invariant` recorded the rule this implements: when
+ * reasoning about an older generation of a Frame-written doc, compare headings
+ * first, because a matcher that misses may be pointing at a section that was
+ * never there.
+ */
+function lineNeedsReview(text, to, section) {
+  if (text.includes(to)) return false;
+  if (section && !hasSection(text, section)) return false;
+  return true;
+}
 
 // The whole note paragraph, however it is wrapped: templates have written it
 // as one long line, as several wrapped lines, and as a blockquote. Matching a
@@ -319,9 +355,9 @@ function upgradeAgentsText(text) {
   let next = text;
   const review = [];
 
-  for (const [from, to] of AGENTS_LINE_EDITS) {
+  for (const [from, to, section] of AGENTS_LINE_EDITS) {
     if (next.includes(from)) next = next.replace(from, to);
-    else review.push(from.trim());
+    else if (lineNeedsReview(next, to, section)) review.push(from.trim());
   }
 
   const match = next.match(AGENTS_SYMLINK_NOTE);
@@ -331,7 +367,9 @@ function upgradeAgentsText(text) {
     const prefix = match[2] || '';
     const quoted = AGENTS_POINTER_NOTE.map((line) => `${prefix}${line}`).join('\n');
     next = next.replace(AGENTS_SYMLINK_NOTE, `${match[1]}${quoted}`);
-  } else {
+  } else if (!next.includes(AGENTS_POINTER_NOTE[0])) {
+    // Neither the old note nor the one that replaces it — the paragraph is
+    // the user's now, or was never there.
     review.push('the CLAUDE.md symlink note');
   }
 
