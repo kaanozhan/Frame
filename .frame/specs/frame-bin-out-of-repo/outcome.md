@@ -85,3 +85,17 @@ occupy stay out of the commit. Verification only — no files changed.
 _Captured: 2026-08-28 · 0 file changes_
 
 ---
+
+## T08 — Verify a fresh `local`-mode init is unchanged
+
+Compared a `local`-mode init from a detached worktree at the pre-spec commit
+(4e47811) against one from the current tree: `.git/info/exclude` is byte-identical
+at 354 bytes and both scratch repos report an empty `git status --porcelain
+-uall`. The before-side first needed `node_modules` symlinked into the worktree —
+without it `require('electron')` failed inside the sharing path and the run
+skipped the exclude block entirely, which would have read as a false pass.
+Verification only — no files changed.
+
+_Captured: 2026-08-28 · 0 file changes_
+
+---

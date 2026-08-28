@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:48:57.615Z",
+  "lastUpdated": "2026-08-28T14:50:11.717Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6248,13 +6248,13 @@
       "title": "Verify a fresh `local`-mode init leaves the `.git/info/exclude` block and its contents byte-identical to today.",
       "description": "",
       "source": "spec:frame-bin-out-of-repo:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: frame-bin-out-of-repo",
       "createdAt": "2026-08-28T14:28:11.354Z",
-      "updatedAt": "2026-08-28T14:28:11.354Z",
-      "completedAt": null
+      "updatedAt": "2026-08-28T14:50:11.717Z",
+      "completedAt": "2026-08-28T14:50:11.717Z"
     },
     {
       "id": "task-spec-frame-bin-out-of-repo-T09",
