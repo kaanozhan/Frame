@@ -73,3 +73,15 @@ the accepted cost too: an untracked probe under `.frame/bin/` is invisible to
 _Captured: 2026-08-28 · 1 file change_
 
 ---
+
+## T07 — Verify a fresh `repo`-mode init
+
+Initialized a scratch git repo through `initializeFrameProject(..., { gitSharing:
+'repo' })`. `git status --porcelain -uall` shows 11 files / 24,927 bytes and no
+`.frame/bin/` entry, against the spec's target of roughly 11 files / 28 KB; the
+13 parsers and 5 `lang/*.js` files are all on disk, and the 169,702 bytes they
+occupy stay out of the commit. Verification only — no files changed.
+
+_Captured: 2026-08-28 · 0 file changes_
+
+---

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:48:07.687Z",
+  "lastUpdated": "2026-08-28T14:48:57.615Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6235,13 +6235,13 @@
       "title": "Verify a fresh `repo`-mode init in a scratch git repo: `git status --porcelain -uall` lists no `.frame/bin/` entry while `.frame/bin/` holds all 13 parser scripts plus `lang/*.js` on disk.",
       "description": "",
       "source": "spec:frame-bin-out-of-repo:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: frame-bin-out-of-repo",
       "createdAt": "2026-08-28T14:28:11.354Z",
-      "updatedAt": "2026-08-28T14:28:11.354Z",
-      "completedAt": null
+      "updatedAt": "2026-08-28T14:48:57.615Z",
+      "completedAt": "2026-08-28T14:48:57.615Z"
     },
     {
       "id": "task-spec-frame-bin-out-of-repo-T08",
