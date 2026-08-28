@@ -88,7 +88,7 @@ test('switching to local excludes, moves the hooks, and back again', () => {
   assert.equal(hookCommands(localFile).length, 0, 'and left the local file');
 });
 
-test('the managed .gitignore block lists runtime classes but not STRUCTURE.json or bin/', () => {
+test('the managed .gitignore block ignores bin/ with the runtime classes, but not STRUCTURE.json', () => {
   gitSharing.setMode(projectDir, 'repo');
 
   const ignoreFile = path.join(projectDir, '.frame', '.gitignore');
@@ -97,7 +97,7 @@ test('the managed .gitignore block lists runtime classes but not STRUCTURE.json 
     assert.ok(content.includes(entry), `${entry} is ignored`);
   }
   assert.ok(!/^STRUCTURE\.json$/m.test(content), 'STRUCTURE.json stays tracked');
-  assert.ok(!/^bin\/$/m.test(content), 'bin/ ships with the project — hooks and worktrees need it in the checkout');
+  assert.match(content, /^bin\/$/m, "bin/ is Frame's own machinery — machine-local, rewritten on every open, never the user's to commit");
 });
 
 test('user lines outside the managed block survive a rewrite', () => {

@@ -25,3 +25,14 @@ otherwise conclude the scripts stopped shipping. Comment only; no behaviour.
 _Captured: 2026-08-28 · 1 file change_
 
 ---
+
+## T03 — Invert the `bin/` assertion in the gitSharing test
+
+Flipped the `bin/` check in `test/gitSharing.test.js` to `assert.match(content,
+/^bin\/$/m)`, rewrote its message to name Frame's machinery as machine-local and
+renamed the test to match; the `STRUCTURE.json` assertion is byte-identical. This
+closes the transient red carried since T01 — `npm test` is 450/450.
+
+_Captured: 2026-08-28 · 1 file change_
+
+---
