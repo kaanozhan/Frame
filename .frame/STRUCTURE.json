@@ -9773,32 +9773,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 298,
+          "line": 347,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 302,
+          "line": 351,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 306,
+          "line": 355,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 310,
+          "line": 359,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 333,
+          "line": 382,
           "params": [
             "name",
             "fields"
@@ -9806,7 +9806,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 350,
+          "line": 399,
           "params": [
             "name",
             "fields"
@@ -9814,7 +9814,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 371,
+          "line": 420,
           "params": [
             "name",
             "fields"
@@ -10149,11 +10149,11 @@
           "line": 859
         },
         "getCodexWrapperTemplate": {
-          "line": 916,
+          "line": 964,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 953,
+          "line": 1001,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -10161,27 +10161,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 999
+          "line": 1047
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1038,
+          "line": 1086,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1061,
+          "line": 1109,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1073,
+          "line": 1121,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1093
+          "line": 1141
         },
         "getOrchBinScripts": {
-          "line": 1111,
+          "line": 1159,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

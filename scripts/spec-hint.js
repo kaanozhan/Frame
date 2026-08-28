@@ -287,4 +287,14 @@ try {
   if (mode === 'pre-edit') preEdit(input);
   else if (mode === 'prompt') promptMode(input);
 } catch { /* silence is the contract */ }
-process.exit(0);
+
+// Deliberately `exitCode`, not `process.exit(0)`: an explicit exit tears the
+// process down before a large stdout write has drained, and stdout here is a
+// pipe whose buffer is around 8 KB. Today's payloads sit well under that —
+// the widest file in this repo carries 15 records, and compact mode renders
+// them in under 1 KB — but `digestLine` is whatever the first body line of a
+// digest happens to be, so nothing bounds the prompt-mode payload. The same
+// pattern did truncate docs-hint.js mid-string, and the host receives the
+// result as unparseable JSON rather than as an error. Setting the code and
+// letting node flush is the same never-break guarantee without that edge;
+// nothing above holds the event loop open.

@@ -881,6 +881,32 @@ const SPEC_HINT_HOOKS = {
         type: 'command',
         command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js pre-edit'"
       }]
+    },
+    // The module map, delivered at the moment of search. `Bash` is in the
+    // matcher and is not optional: matchers test the tool *name*, and a
+    // shell `grep` arrives as Bash with the pattern buried in `command`.
+    // Counted over this repo's transcripts, 934 of 937 searches were Bash
+    // and 1 was the Grep tool — a `Grep|Glob` matcher alone would be a hook
+    // that never fires. module-hint.js returns before opening STRUCTURE.json
+    // when the command is not a search, which is most Bash calls.
+    {
+      matcher: 'Grep|Glob|Bash',
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ ! -f .frame/bin/module-hint.js ] || exec node .frame/bin/module-hint.js search'"
+      }]
+    },
+    // A meta file's own rules, at the moment it is written. `Bash` is here
+    // because Frame's meta files are as often written by a redirect or a
+    // generator as by the Edit tool, and a rule that only reaches one of
+    // those routes is the gap this hook exists to close; docs-hint stays
+    // silent unless a command explicitly redirects into a .frame/ meta path.
+    {
+      matcher: 'Edit|Write|NotebookEdit|Bash',
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ ! -f .frame/bin/docs-hint.js ] || exec node .frame/bin/docs-hint.js pre-edit'"
+      }]
     }
   ],
   UserPromptSubmit: [
@@ -888,6 +914,28 @@ const SPEC_HINT_HOOKS = {
       hooks: [{
         type: 'command',
         command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js prompt'"
+      }]
+    },
+    // A spec command typed in a terminal, staged the way the button stages
+    // it. Without this the UI path's chain never fires for a CLI session and
+    // the flow is improvised — losing spec.plan's decision gate, which is
+    // the only place the user is asked about business forks.
+    {
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ ! -f .frame/bin/spec-command-hint.js ] || exec node .frame/bin/spec-command-hint.js prompt'"
+      }]
+    }
+  ],
+  // REFERENCE.md every session. Between 2026-01-25 and 2026-07-06 these
+  // rules rode in AGENTS.md itself and reached every session; the docs split
+  // replaced them with a pointer and nothing enforced it. This restores the
+  // guarantee rather than the file layout.
+  SessionStart: [
+    {
+      hooks: [{
+        type: 'command',
+        command: "sh -c '[ ! -f .frame/bin/docs-hint.js ] || exec node .frame/bin/docs-hint.js session-start'"
       }]
     }
   ]

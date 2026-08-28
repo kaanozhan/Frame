@@ -163,9 +163,11 @@ test('hook entries are guarded and land in settings.json under repo sharing', as
 
   const settings = JSON.parse(fs.readFileSync(path.join(projectDir, '.claude', 'settings.json'), 'utf8'));
   const commands = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command));
-  assert.equal(commands.length, 2);
+  assert.equal(commands.length, 6); // spec-hint x2, module-hint, docs-hint x2, spec-command-hint
   for (const command of commands) {
-    assert.match(command, /^sh -c '\[ ! -f \.frame\/bin\/spec-hint\.js \] \|\| exec node \.frame\/bin\/spec-hint\.js (pre-edit|prompt)'$/);
+    // The backreference is the point: the file the guard tests must be the
+    // file the guard execs, so a new hook cannot be registered half-wired.
+    assert.match(command, /^sh -c '\[ ! -f \.frame\/bin\/(spec|module|docs|spec-command)-hint\.js \] \|\| exec node \.frame\/bin\/\1-hint\.js (pre-edit|prompt|search|session-start)'$/);
   }
   assert.ok(!fs.existsSync(path.join(projectDir, '.claude', 'settings.local.json')));
 });
@@ -199,7 +201,7 @@ test('a settings file Frame writes into keeps its own indentation', async () => 
   const text = fs.readFileSync(settingsPath, 'utf8');
   assert.match(text, /^ {4}"permissions": \{$/m, 'four-space indentation preserved');
   assert.ok(!/^ {2}"permissions"/m.test(text), 'not reflowed to Frame\'s two spaces');
-  assert.equal(Object.values(JSON.parse(text).hooks).flat().length, 2, 'and the hooks did land');
+  assert.equal(Object.values(JSON.parse(text).hooks).flat().length, 6, 'and the hooks did land');
 });
 
 test('a project already wired to spec-hint.js by hand keeps its own hooks', async () => {
@@ -244,7 +246,7 @@ test('Frame\'s own older hook command is upgraded in place, not left behind', as
 
   const after = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
   const commands = Object.values(after.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command));
-  assert.equal(commands.length, 2, 'today\'s two entries, and no duplicate of the old one');
+  assert.equal(commands.length, 6, 'today\'s six entries, and no duplicate of the old one');
   assert.ok(commands.every((c) => c.includes('! -f')), 'all on the exit-0 guard');
   assert.deepEqual(after.permissions, { allow: ['Bash(npm test)'] }, 'the rest of the file survives');
 
@@ -309,7 +311,7 @@ test('re-init is idempotent: same identity, no duplicate hook entries', async ()
   assert.deepEqual(snapshotTree(projectDir), userSnapshot, 'still nothing outside Frame\'s paths');
 
   const settings = JSON.parse(fs.readFileSync(path.join(projectDir, '.claude', 'settings.json'), 'utf8'));
-  assert.equal(Object.values(settings.hooks).flat().length, 2, 'hook entries not duplicated');
+  assert.equal(Object.values(settings.hooks).flat().length, 6, 'hook entries not duplicated');
 });
 
 test('a project that was never initialized gets nothing written to it', () => {

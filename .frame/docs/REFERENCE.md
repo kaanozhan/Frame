@@ -195,29 +195,91 @@ manual insight; it is preserved verbatim across regens).
 
 ---
 
-## Spec-driven development — how to suggest
+<!-- frame:managed:spec-section v=2 -->
+## Spec-Driven Development (.frame/specs/)
 
-When a significant request appears, ask once, in plain language, before coding:
+Frame supports a structured `spec → plan → tasks → implement` workflow. When the user asks you to define, plan, or implement a feature, prefer this workflow over ad-hoc edits — it preserves intent and keeps `.frame/tasks.json` in sync.
 
-> "This is a sizable feature. Want me to handle it as a **spec** — I'll draft
-> `spec.md`, then we plan it and generate tasks — or should I just implement it
-> directly?"
+### File layout
 
-- If the user agrees → start the spec flow (create the spec, then plan, then
-  tasks). If they have the slash commands set up, point them at `/spec` etc.;
-  otherwise scaffold `.frame/specs/<slug>/` per the existing structure.
-- If the user says "just do it" / declines → proceed directly and **don't ask
-  again for that same piece of work** in the session.
-- Never force it. The spec is an offer, not a gate. The user's stated
-  preference always wins.
+Each spec lives in its own folder:
 
-**Do NOT suggest a spec for:** typos, one-line fixes, small tweaks, renames,
-small discrete tracked work (that's a task), questions, debugging,
-explanations, experiments, or anything the user says to "just do".
+```
+.frame/specs/<slug>/
+  spec.md       — what we're building
+  plan.md       — how (architecture, files, footprint, sequencing)
+  tasks.md      — flat bullet list, "- T01 · description"
+  status.json   — phase + metadata
+```
 
-**For the plan step:** every `plan.md` must declare a `## Footprint` — a flat
-`- <path>` list of the source files the spec touches (meta files excluded).
-This is what the conductor and Frame use to schedule safely.
+`<slug>` is kebab-case, derived from the spec title.
+
+### Lifecycle phases
+
+`draft` → `specified` → `planned` → `tasks_generated` → `implementing` → `done`
+
+Frame auto-advances phase from filesystem state (file presence). The command templates below tell you exactly which `status.json` updates to make; Frame's watcher reconciles if anything is missed.
+
+### Running spec commands — the self-serve protocol
+
+The four spec commands are `spec.new`, `spec.plan`, `spec.tasks` and `spec.implement`. Whether the user types them as slash commands or asks conversationally ("plan the auth spec", "implement the tasks"), the flow is **never improvised from memory** — each command's current flow lives in a template file that Frame keeps staged in the project. Run one like this:
+
+**1. Resolve the target spec.** An explicitly named spec always wins. Otherwise list the specs (`.frame/specs/*/status.json`) whose phase the command acts on — `spec.plan` → `specified`, `spec.tasks` → `planned`, `spec.implement` → `tasks_generated` or `implementing`. Exactly one candidate → take it silently; zero or several → present the candidates and ask. `spec.new` creates a new spec: derive the kebab-case slug from the title.
+
+**2. Resolve the template.** Take the first that exists:
+
+1. `.frame/templates/commands/<tool>/<command>.md` — project override
+2. `.frame/runtime/commands/<tool>/<command>.md` — staged by Frame on project open
+
+`<tool>` is the directory matching your CLI (Claude Code → `claude-code`). If neither file exists, say so and ask the user to open this project in Frame once so it stages the current templates — then stop. **Do not reconstruct the flow from this file, from memory, or from an older prompt.**
+
+**3. Interpolate the placeholders.** Replace each `{placeholder}` token in the template:
+
+| Placeholder | Value |
+| --- | --- |
+| `{project_path}` | absolute path of the project root |
+| `{slug}` | the spec's slug |
+| `{title}` | the spec's title (from `status.json`; for `spec.new`, the new title) |
+| `{description}` | the user's description (`spec.new` only; empty otherwise) |
+| `{report_template_path}` | `.frame/runtime/commands/<tool>/plan-report-template.html` |
+| `{report_generator_path}` | `.frame/runtime/commands/<tool>/build-implement-report.mjs` |
+
+**4. Follow the interpolated template exactly**, including every `status.json` update it prescribes. The template is the flow; this section only tells you how to find it.
+
+**5. Autonomous implement ceiling.** `spec.implement`'s autonomous mode needs permission flags that only a fresh, flagged launch can carry — a running session cannot acquire them. If the user picks autonomous conversationally, do what the template says: record the choice in the spec's `status.json` and hand off — the user clicks Implement on the spec's page in Frame and picks Autonomous, or runs `node .frame/bin/implement-launch.js <slug>` in a fresh terminal. Never run a degraded imitation silently.
+
+### .frame/tasks.json linkage
+
+After `spec.tasks`, **do not** also write entries to `.frame/tasks.json` — Frame's watcher imports them automatically with `source: "spec:<slug>:T<n>"` markers. Spec-generated tasks carry that `source` field; treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from `tasks.md`.
+
+### When to suggest a spec (steer the conversation)
+
+Spec-driven is Frame's core way of working, so when a user describes meaningful
+new work **mid-conversation**, gently steer them toward a spec instead of
+silently diving into code. Suggest a spec only for **significant work** — don't
+make this a reflex on every message.
+
+**Suggest a spec for:**
+- A new **feature** or capability ("users should be able to …", "add a … system")
+- A change that will touch **multiple files / modules** or affect architecture
+- Anything that clearly benefits from a **plan and ordered tasks** before coding
+- Work the user describes vaguely/largely that would benefit from being scoped first
+
+**Do NOT suggest a spec for:**
+- Typos, one-line fixes, small tweaks, renames → just do it
+- Small, discrete tracked work → that's a task (`.frame/tasks.json`)
+- Questions, debugging, explanations, experiments
+- Anything the user explicitly says to "just do" / "do directly"
+
+Rough ladder: *trivial → just do it · small but worth tracking → task · sizable
+feature or multi-file change → spec.*
+
+Ask once, in plain language, before coding. If they agree, start the spec flow
+(`spec.new` → `spec.plan` → `spec.tasks`). If they decline or say "just do
+it", proceed directly and **don't ask again for that same piece of work** in the
+session. Never force it — the spec is an offer, not a gate; the user's stated
+preference always wins.
+<!-- /frame:managed:spec-section -->
 
 ---
 

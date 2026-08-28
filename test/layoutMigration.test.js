@@ -450,8 +450,8 @@ test('hook entries are replaced with the guarded form', () => {
 
   const settings = JSON.parse(fs.readFileSync(path.join(projectDir, '.claude', 'settings.json'), 'utf8'));
   const commands = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command));
-  assert.equal(commands.length, 2);
-  assert.ok(commands.every((c) => c.startsWith("sh -c '[ ! -f .frame/bin/spec-hint.js ] ||")), 'guard exits 0');
+  assert.equal(commands.length, 6);
+  assert.ok(commands.every((c) => /^sh -c '\[ ! -f \.frame\/bin\/(spec|module|docs|spec-command)-hint\.js \] \|\|/.test(c)), 'guard exits 0');
   assert.deepEqual(settings.permissions.allow, ['Bash(npm test)'], 'the rest of the file survives');
 });
 
