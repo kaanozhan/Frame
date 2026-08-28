@@ -618,13 +618,15 @@
             read, moved or replaced &mdash; your CLAUDE.md and AGENTS.md stay yours.</p>
           <fieldset class="init-modal-sharing">
             <legend>How should Frame's files relate to git?</legend>
-            <label>
+            <label class="init-sharing-option">
               <input type="radio" name="init-frame-sharing" value="repo" checked>
+              <span class="init-sharing-dot" aria-hidden="true"></span>
               <span class="init-sharing-title">Share with the repo</span>
               <span class="init-sharing-desc">Commit <code>.frame/</code> so teammates get the same context. Machine-local files are ignored by <code>.frame/.gitignore</code>.</span>
             </label>
-            <label>
+            <label class="init-sharing-option">
               <input type="radio" name="init-frame-sharing" value="local">
+              <span class="init-sharing-dot" aria-hidden="true"></span>
               <span class="init-sharing-title">Keep it local to me</span>
               <span class="init-sharing-desc">Excluded through <code>.git/info/exclude</code>, so <code>git status</code> shows nothing Frame made. Nothing is added to the tracked <code>.gitignore</code>.</span>
             </label>
