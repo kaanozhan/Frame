@@ -55,7 +55,6 @@ const FRAME_FILE_CLASSES = {
   data: ['tasks.json', 'PROJECT_NOTES.md', 'QUICKSTART.md', 'specs/'],
   derived: [
     'STRUCTURE.json',
-    'bin/',
     'index/',
     'specs/*/implement-report.html',
     'specs/*/plan-report.html',
@@ -66,6 +65,7 @@ const FRAME_FILE_CLASSES = {
     'worktrees/',
     'orchestration/',
     'migration-backup/',
+    'bin/',
     'implement-permissions.json',
     '*.bak',
     '*.tmp',
@@ -78,7 +78,7 @@ const FRAME_FILE_CLASSES = {
 // worktree all need the scripts to be *in the checkout*, not just on the
 // machine that ran Frame. Both are refreshed from the shipped copies on every
 // project open, so a stale committed copy heals itself.
-const FRAME_TRACKED_DERIVED = ['STRUCTURE.json', 'bin/'];
+const FRAME_TRACKED_DERIVED = ['STRUCTURE.json'];
 
 // ─── Orchestration (conductor / parallel spec execution) ──
 

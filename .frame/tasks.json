@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:28:11.354Z",
+  "lastUpdated": "2026-08-28T14:42:19.669Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6157,13 +6157,13 @@
       "title": "Move `'bin/'` out of `FRAME_FILE_CLASSES.derived` into `FRAME_FILE_CLASSES.runtime` in `src/shared/frameConstants.js` and reduce `FRAME_TRACKED_DERIVED` to `['STRUCTURE.json']`.",
       "description": "",
       "source": "spec:frame-bin-out-of-repo:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: frame-bin-out-of-repo",
       "createdAt": "2026-08-28T14:28:11.354Z",
-      "updatedAt": "2026-08-28T14:28:11.354Z",
-      "completedAt": null
+      "updatedAt": "2026-08-28T14:42:19.669Z",
+      "completedAt": "2026-08-28T14:42:19.669Z"
     },
     {
       "id": "task-spec-frame-bin-out-of-repo-T02",
