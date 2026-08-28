@@ -850,8 +850,8 @@ function getClaudeRuleTemplate(agentsText) {
 /**
  * The managed block of `.frame/.gitignore`, generated from the file classes:
  * derived and runtime entries are machine-local, except the ones listed in
- * FRAME_TRACKED_DERIVED (STRUCTURE.json and bin/) which the repository is
- * meant to carry. Lines outside the markers are the user's and never touched.
+ * FRAME_TRACKED_DERIVED (STRUCTURE.json) which the repository is meant to
+ * carry. Lines outside the markers are the user's and never touched.
  */
 const FRAME_GITIGNORE_MARKER_START = '# managed by Frame — machine-local; edit outside this block';
 const FRAME_GITIGNORE_MARKER_END = '# end managed by Frame';

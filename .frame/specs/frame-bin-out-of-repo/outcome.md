@@ -36,3 +36,14 @@ closes the transient red carried since T01 — `npm test` is 450/450.
 _Captured: 2026-08-28 · 1 file change_
 
 ---
+
+## T04 — Correct the generator's doc comment
+
+Cut `bin/` from the `FRAME_TRACKED_DERIVED` parenthetical above
+`getFrameGitignoreBlock` in `src/shared/frameTemplates.js` and reflowed the
+sentence across its two lines. Comment only — the generator's body already
+produced the right block from T01's inputs.
+
+_Captured: 2026-08-28 · 1 file change_
+
+---

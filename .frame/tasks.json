@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:45:01.003Z",
+  "lastUpdated": "2026-08-28T14:45:58.320Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6196,13 +6196,13 @@
       "title": "Update the doc comment above `getFrameGitignoreBlock` in `src/shared/frameTemplates.js` so its parenthetical names `STRUCTURE.json` alone instead of \"STRUCTURE.json and bin/\"; leave the function body unchanged.",
       "description": "",
       "source": "spec:frame-bin-out-of-repo:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: frame-bin-out-of-repo",
       "createdAt": "2026-08-28T14:28:11.354Z",
-      "updatedAt": "2026-08-28T14:28:11.354Z",
-      "completedAt": null
+      "updatedAt": "2026-08-28T14:45:58.320Z",
+      "completedAt": "2026-08-28T14:45:58.320Z"
     },
     {
       "id": "task-spec-frame-bin-out-of-repo-T05",
