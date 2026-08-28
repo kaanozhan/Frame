@@ -99,3 +99,17 @@ Verification only — no files changed.
 _Captured: 2026-08-28 · 0 file changes_
 
 ---
+
+## T09 — Verify the worktree pre-commit fallback
+
+Added a linked worktree to the T07 scratch repo; with `bin/` ignored it came up
+without any `.frame/bin/`. Committing a new JS file there ran the shared
+pre-commit hook, which resolved `update-structure.js` through the main worktree
+via `--git-common-dir` and wrote that checkout's own `.frame/STRUCTURE.json`
+(2 modules, staged into the commit) while the main worktree's copy stayed at 1.
+The fallback the spec relied on is now the normal path, and it works.
+Verification only — no files changed.
+
+_Captured: 2026-08-28 · 0 file changes_
+
+---

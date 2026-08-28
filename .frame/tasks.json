@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:50:11.717Z",
+  "lastUpdated": "2026-08-28T14:51:06.292Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6261,13 +6261,13 @@
       "title": "Verify that a pre-commit run in a linked worktree without its own `.frame/bin/` resolves the parser through the main worktree via the `--git-common-dir` fallback and writes that checkout's `STRUCTURE.json`.",
       "description": "",
       "source": "spec:frame-bin-out-of-repo:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: frame-bin-out-of-repo",
       "createdAt": "2026-08-28T14:28:11.354Z",
-      "updatedAt": "2026-08-28T14:28:11.354Z",
-      "completedAt": null
+      "updatedAt": "2026-08-28T14:51:06.292Z",
+      "completedAt": "2026-08-28T14:51:06.292Z"
     }
   ],
   "metadata": {
