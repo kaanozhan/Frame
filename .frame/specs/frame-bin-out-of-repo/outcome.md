@@ -12,3 +12,16 @@ pre-reversal behaviour, which T03 inverts.
 _Captured: 2026-08-28 · 1 file change_
 
 ---
+
+## T02 — Record the T15 reversal in the tracked-derived comment
+
+Rewrote the `FRAME_TRACKED_DERIVED` comment in `src/shared/frameConstants.js` so
+it explains `STRUCTURE.json` on its own terms, then names T15 of
+`non-invasive-overlay` as reversed with its three lapsed rationales and points at
+this spec. Added a closing line that `copyParserScripts` still writes the scripts
+into every checkout, since the comment's neighbourhood is where a reader would
+otherwise conclude the scripts stopped shipping. Comment only; no behaviour.
+
+_Captured: 2026-08-28 · 1 file change_
+
+---

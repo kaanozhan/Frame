@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:42:19.669Z",
+  "lastUpdated": "2026-08-28T14:43:56.003Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6170,13 +6170,13 @@
       "title": "Rewrite the tracked-derived comment in `src/shared/frameConstants.js` to name T15 of `non-invasive-overlay` as reversed and record why both of its rationales lapsed — no released build ships the tracking, the \"clone without Frame\" user does not exist while Frame ships only as the IDE, and both worktree paths already assume `bin/` may be absent.",
       "description": "",
       "source": "spec:frame-bin-out-of-repo:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: frame-bin-out-of-repo",
       "createdAt": "2026-08-28T14:28:11.354Z",
-      "updatedAt": "2026-08-28T14:28:11.354Z",
-      "completedAt": null
+      "updatedAt": "2026-08-28T14:43:56.003Z",
+      "completedAt": "2026-08-28T14:43:56.003Z"
     },
     {
       "id": "task-spec-frame-bin-out-of-repo-T03",

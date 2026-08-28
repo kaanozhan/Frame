@@ -74,10 +74,27 @@ const FRAME_FILE_CLASSES = {
 };
 
 // Derived, but committed anyway. STRUCTURE.json because teammates and
-// worktrees read it; bin/ because the hooks, the CLI commands and a linked
-// worktree all need the scripts to be *in the checkout*, not just on the
-// machine that ran Frame. Both are refreshed from the shipped copies on every
-// project open, so a stale committed copy heals itself.
+// worktrees read it; it is refreshed from the project's own sources on every
+// open, so a stale committed copy heals itself.
+//
+// bin/ used to be in this list too. T15 of the non-invasive-overlay spec put
+// it here so a teammate cloning a repo would get the scripts the tracked
+// .claude/settings.json hooks point at; that is reversed here, and bin/ is
+// back in the runtime class D6 of that same spec originally gave it. Both of
+// T15's rationales have since lapsed, and nothing shipped depends on them:
+//   - No released build ships the tracking. `git tag --contains a8c1c8c` is
+//     empty and v2.6.0 predates T15, so there is no installed base to repair.
+//   - The clone-without-Frame user does not exist while Frame ships only as
+//     the IDE (package.json declares no bin entry), and the hook guard
+//     `[ ! -f .frame/bin/x.js ] || exec node ...` already makes a script-less
+//     checkout silent rather than broken.
+//   - Both worktree paths already assume bin/ may be absent and fall back to
+//     an absolute path (orchestrationManager.js binDirFor, and the pre-commit
+//     snippet's --git-common-dir fallback), so that path is now the normal
+//     one rather than the exception.
+// The scripts are still copied into every checkout on every project open by
+// copyParserScripts; only git's view of them changed. See the
+// frame-bin-out-of-repo spec.
 const FRAME_TRACKED_DERIVED = ['STRUCTURE.json'];
 
 // ─── Orchestration (conductor / parallel spec execution) ──
