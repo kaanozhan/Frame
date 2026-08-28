@@ -21,10 +21,17 @@ Result: a fresh `repo`-mode install commits 11 files / 24.9 KB instead of 31 /
 197.6 KB; `local` mode is byte-identical; the linked-worktree `--git-common-dir`
 fallback is now the normal path and was verified end to end.
 
+A late T10 fixed a neighbour the switch exposed: `removeSpecHintHook` left a
+bare `{}` in `.claude/settings.json`, which `local` mode does not exclude (in
+`repo` mode it is the team's file). It now deletes that file when Frame's
+entries were all it held **and** it is untracked, via a new
+`gitExclude.isPathTracked`.
+
 Rules established: `copyParserScripts` still writes every script into every
-checkout on open — only git's view changed. Frame's own repo keeps its 24
-`.frame/bin/` files tracked deliberately, so a **new** script added there needs
-`git add -f`. The Git sharing setting governs the project's Frame context, not
+checkout on open — only git's view changed. Frame deletes a file it emptied
+only while that file is untracked; a committed one is the user's to remove.
+Frame's own repo keeps its 24 `.frame/bin/` files tracked deliberately, so a
+**new** script added there needs `git add -f`. The Git sharing setting governs the project's Frame context, not
 the `.frame/` folder.
 
 Chain: spec.md → plan.md → tasks.md → outcome.md

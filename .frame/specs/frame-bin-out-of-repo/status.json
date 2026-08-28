@@ -11,11 +11,12 @@
     "task-spec-frame-bin-out-of-repo-T06",
     "task-spec-frame-bin-out-of-repo-T07",
     "task-spec-frame-bin-out-of-repo-T08",
-    "task-spec-frame-bin-out-of-repo-T09"
+    "task-spec-frame-bin-out-of-repo-T09",
+    "task-spec-frame-bin-out-of-repo-T10"
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-08-28T13:52:50Z",
-  "updated_at": "2026-08-28T14:51:19.104Z",
-  "last_phase_at": "2026-08-28T14:51:19.105Z",
+  "updated_at": "2026-08-28T15:07:07.486Z",
+  "last_phase_at": "2026-08-28T15:07:07.486Z",
   "implement_mode": "autonomous"
 }

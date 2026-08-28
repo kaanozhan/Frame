@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:51:06.292Z",
+  "lastUpdated": "2026-08-28T15:06:57.202Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6268,10 +6268,23 @@
       "createdAt": "2026-08-28T14:28:11.354Z",
       "updatedAt": "2026-08-28T14:51:06.292Z",
       "completedAt": "2026-08-28T14:51:06.292Z"
+    },
+    {
+      "id": "task-spec-frame-bin-out-of-repo-T10",
+      "title": "When `removeSpecHintHook` leaves `.claude/settings.json` with no keys at all, delete the file instead of writing `{}` back — but only while it is untracked; add `isPathTracked` to `src/main/gitExclude.js` for the guard and cover both branches in `test/gitSharing.test.js`.",
+      "description": "",
+      "source": "spec:frame-bin-out-of-repo:T10",
+      "status": "completed",
+      "priority": "medium",
+      "category": "bug",
+      "context": "From spec: frame-bin-out-of-repo",
+      "createdAt": "2026-08-28T15:04:52.599Z",
+      "updatedAt": "2026-08-28T15:06:57.202Z",
+      "completedAt": "2026-08-28T15:06:57.202Z"
     }
   ],
   "metadata": {
-    "totalCreated": 467,
+    "totalCreated": 468,
     "totalCompleted": 28
   },
   "categories": {

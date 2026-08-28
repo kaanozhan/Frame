@@ -113,3 +113,17 @@ Verification only — no files changed.
 _Captured: 2026-08-28 · 0 file changes_
 
 ---
+
+## T10 — Stop leaving an empty `.claude/settings.json` behind
+
+Added late, from an observed `repo` → `local` switch: `removeSpecHintHook`
+stripped Frame's hook entries and wrote back a bare `{}`, which nothing excludes
+in `local` mode and so stayed in `git status`. It now deletes the file when
+nothing is left and the file is untracked — a tracked one is the user's to
+remove — via a new `gitExclude.isPathTracked`, with three tests in
+`test/gitSharing.test.js` that each fail against a different wrong answer.
+Extended `plan.md`'s Files and Footprint with the two `src/main/` files.
+
+_Captured: 2026-08-28 · 3 file changes_
+
+---

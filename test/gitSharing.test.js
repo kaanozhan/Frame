@@ -88,6 +88,38 @@ test('switching to local excludes, moves the hooks, and back again', () => {
   assert.equal(hookCommands(localFile).length, 0, 'and left the local file');
 });
 
+test('switching to local removes an untracked settings.json rather than leaving {}', () => {
+  gitSharing.setMode(projectDir, 'repo');
+  const sharedFile = path.join(projectDir, '.claude', 'settings.json');
+  assert.equal(hookCommands(sharedFile).length, 6, 'hooks start in the shared file');
+
+  gitSharing.setMode(projectDir, 'local');
+  assert.equal(fs.existsSync(sharedFile), false, "Frame's entries were the whole file — no empty shell left in git status");
+});
+
+test('a settings.json the user committed survives the switch, emptied but present', () => {
+  gitSharing.setMode(projectDir, 'repo');
+  const sharedFile = path.join(projectDir, '.claude', 'settings.json');
+  git(projectDir, ['add', '.claude/settings.json']);
+  git(projectDir, ['commit', '-q', '-m', 'share the hooks']);
+
+  gitSharing.setMode(projectDir, 'local');
+  assert.ok(fs.existsSync(sharedFile), 'a tracked file is the user\'s to remove, not ours');
+  assert.deepEqual(readJson(sharedFile), {}, 'but Frame still takes its own entries out');
+});
+
+test('settings.json the user also writes to keeps their keys and stays put', () => {
+  gitSharing.setMode(projectDir, 'repo');
+  const sharedFile = path.join(projectDir, '.claude', 'settings.json');
+  const settings = readJson(sharedFile);
+  settings.model = 'opus';
+  fs.writeFileSync(sharedFile, JSON.stringify(settings, null, 2) + '\n');
+
+  gitSharing.setMode(projectDir, 'local');
+  assert.ok(fs.existsSync(sharedFile), 'the file carries something that is not ours');
+  assert.deepEqual(readJson(sharedFile), { model: 'opus' });
+});
+
 test('the managed .gitignore block ignores bin/ with the runtime classes, but not STRUCTURE.json', () => {
   gitSharing.setMode(projectDir, 'repo');
 

@@ -609,6 +609,23 @@ function removeSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
 
   if (removed === 0) return { removed: 0 };
   if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+
+  // Frame's entries were the whole file. Writing back a bare `{}` leaves a
+  // shell that tells nobody anything and still shows in `git status` — in
+  // sharing mode `local` nothing excludes `.claude/settings.json`, deliberately,
+  // because in `repo` mode that file is the team's. Delete it instead, but only
+  // while it is untracked: removing a file the user committed is their call,
+  // the same line gitSharing draws around `git rm`.
+  if (Object.keys(settings).length === 0 && !gitExclude.isPathTracked(projectPath, `.claude/${file}`)) {
+    try {
+      fs.unlinkSync(settingsPath);
+      return { removed, file, deleted: true };
+    } catch (err) {
+      /* fall through to the write — a settings file we cannot remove is not
+         worth failing a mode switch over */
+    }
+  }
+
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + '\n');
   return { removed, file };
 }

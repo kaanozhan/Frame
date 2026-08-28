@@ -104,7 +104,16 @@ function entriesFor(projectPath) {
 
 /** True when any `.frame/` path in this project is tracked by git. */
 function isFrameTracked(projectPath) {
-  const listed = git(projectPath, ['ls-files', '--cached', '--', `${FRAME_DIR}/`]);
+  return isPathTracked(projectPath, `${FRAME_DIR}/`);
+}
+
+/**
+ * True when `relPath` (project-relative, forward slashes) is tracked by git.
+ * Outside a repository the query fails and this reads false — nothing is
+ * tracked when there is nothing to track.
+ */
+function isPathTracked(projectPath, relPath) {
+  const listed = git(projectPath, ['ls-files', '--cached', '--', relPath]);
   return Boolean(listed);
 }
 
@@ -209,6 +218,7 @@ module.exports = {
   removeExcluded,
   hasBlock,
   isFrameTracked,
+  isPathTracked,
   isGitRepo,
   excludeFilePath,
   entriesFor,
