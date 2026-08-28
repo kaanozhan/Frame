@@ -88,7 +88,39 @@ test('switching to local excludes, moves the hooks, and back again', () => {
   assert.equal(hookCommands(localFile).length, 0, 'and left the local file');
 });
 
-test('the managed .gitignore block lists runtime classes but not STRUCTURE.json or bin/', () => {
+test('switching to local removes an untracked settings.json rather than leaving {}', () => {
+  gitSharing.setMode(projectDir, 'repo');
+  const sharedFile = path.join(projectDir, '.claude', 'settings.json');
+  assert.equal(hookCommands(sharedFile).length, 6, 'hooks start in the shared file');
+
+  gitSharing.setMode(projectDir, 'local');
+  assert.equal(fs.existsSync(sharedFile), false, "Frame's entries were the whole file — no empty shell left in git status");
+});
+
+test('a settings.json the user committed survives the switch, emptied but present', () => {
+  gitSharing.setMode(projectDir, 'repo');
+  const sharedFile = path.join(projectDir, '.claude', 'settings.json');
+  git(projectDir, ['add', '.claude/settings.json']);
+  git(projectDir, ['commit', '-q', '-m', 'share the hooks']);
+
+  gitSharing.setMode(projectDir, 'local');
+  assert.ok(fs.existsSync(sharedFile), 'a tracked file is the user\'s to remove, not ours');
+  assert.deepEqual(readJson(sharedFile), {}, 'but Frame still takes its own entries out');
+});
+
+test('settings.json the user also writes to keeps their keys and stays put', () => {
+  gitSharing.setMode(projectDir, 'repo');
+  const sharedFile = path.join(projectDir, '.claude', 'settings.json');
+  const settings = readJson(sharedFile);
+  settings.model = 'opus';
+  fs.writeFileSync(sharedFile, JSON.stringify(settings, null, 2) + '\n');
+
+  gitSharing.setMode(projectDir, 'local');
+  assert.ok(fs.existsSync(sharedFile), 'the file carries something that is not ours');
+  assert.deepEqual(readJson(sharedFile), { model: 'opus' });
+});
+
+test('the managed .gitignore block ignores bin/ with the runtime classes, but not STRUCTURE.json', () => {
   gitSharing.setMode(projectDir, 'repo');
 
   const ignoreFile = path.join(projectDir, '.frame', '.gitignore');
@@ -97,7 +129,7 @@ test('the managed .gitignore block lists runtime classes but not STRUCTURE.json 
     assert.ok(content.includes(entry), `${entry} is ignored`);
   }
   assert.ok(!/^STRUCTURE\.json$/m.test(content), 'STRUCTURE.json stays tracked');
-  assert.ok(!/^bin\/$/m.test(content), 'bin/ ships with the project — hooks and worktrees need it in the checkout');
+  assert.match(content, /^bin\/$/m, "bin/ is Frame's own machinery — machine-local, rewritten on every open, never the user's to commit");
 });
 
 test('user lines outside the managed block survive a rewrite', () => {

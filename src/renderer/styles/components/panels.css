@@ -2308,37 +2308,107 @@
   margin-bottom: 0;
 }
 
-/* Sharing mode: two radios, `repo` pre-selected. Same visual family as the
-   file list above so the modal reads as one block. */
-.init-modal-sharing {
-  border: 1px solid var(--border-secondary, var(--border-primary));
-  border-radius: var(--radius-sm);
-  padding: var(--space-md);
+/* Sharing mode: two selectable cards, `repo` pre-selected. The whole card is
+   the control and both descriptions stay visible — this is a one-time choice
+   about the user's git history, so the two options have to be comparable at a
+   glance rather than swapped behind a toggle.
+
+   Every rule here is qualified with `.modal-body`. The generic
+   `.modal-body label` (display: block) and `.modal-body input` (width: 100%,
+   the text-input look) live further down this same file, so at equal
+   specificity they used to win on source order — that is what flattened this
+   fieldset into stacked text with a full-width radio. The extra class keeps
+   them off. The native radio is also taken out of the flow entirely and the
+   dot drawn beside it, the same way `.welcome-tool-option` does it; the input
+   still carries the value `state.js` reads. */
+.modal-body .init-modal-sharing {
+  border: 0;
+  padding: 0;
   margin: 0 0 var(--space-md) 0;
 }
 
-.init-modal-sharing legend {
-  padding: 0 var(--space-xs);
+.modal-body .init-modal-sharing legend {
+  padding: 0;
+  margin-bottom: var(--space-sm);
   font-size: 11px;
   color: var(--text-secondary);
 }
 
-.init-modal-sharing label {
+.modal-body .init-sharing-option {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2px var(--space-sm);
-  align-items: baseline;
-  padding: var(--space-xs) 0;
+  column-gap: var(--space-sm);
+  row-gap: 3px;
+  align-items: start;
+  margin: 0 0 var(--space-sm) 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
 }
 
-.init-modal-sharing input {
+.modal-body .init-sharing-option:last-of-type {
+  margin-bottom: 0;
+}
+
+.modal-body .init-sharing-option:hover {
+  background: var(--bg-hover);
+}
+
+.modal-body .init-sharing-option:has(input:checked) {
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+/* Hiding the radio hides its focus ring with it, so the card wears one. */
+.modal-body .init-sharing-option:has(input:focus-visible) {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+.modal-body .init-sharing-option input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.init-sharing-dot {
   grid-row: span 2;
-  cursor: pointer;
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  margin-top: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+}
+
+.init-sharing-dot::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  transform: scale(0);
+  transition: transform 0.12s;
+}
+
+.init-sharing-option input:checked ~ .init-sharing-dot {
+  border-color: var(--accent-primary);
+}
+
+.init-sharing-option input:checked ~ .init-sharing-dot::after {
+  transform: scale(0.5);
 }
 
 .init-sharing-title {
   font-size: 12px;
+  font-weight: 500;
   color: var(--text-primary);
 }
 

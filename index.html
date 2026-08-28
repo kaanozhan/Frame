@@ -618,13 +618,15 @@
             read, moved or replaced &mdash; your CLAUDE.md and AGENTS.md stay yours.</p>
           <fieldset class="init-modal-sharing">
             <legend>How should Frame's files relate to git?</legend>
-            <label>
+            <label class="init-sharing-option">
               <input type="radio" name="init-frame-sharing" value="repo" checked>
+              <span class="init-sharing-dot" aria-hidden="true"></span>
               <span class="init-sharing-title">Share with the repo</span>
               <span class="init-sharing-desc">Commit <code>.frame/</code> so teammates get the same context. Machine-local files are ignored by <code>.frame/.gitignore</code>.</span>
             </label>
-            <label>
+            <label class="init-sharing-option">
               <input type="radio" name="init-frame-sharing" value="local">
+              <span class="init-sharing-dot" aria-hidden="true"></span>
               <span class="init-sharing-title">Keep it local to me</span>
               <span class="init-sharing-desc">Excluded through <code>.git/info/exclude</code>, so <code>git status</code> shows nothing Frame made. Nothing is added to the tracked <code>.gitignore</code>.</span>
             </label>
@@ -1280,9 +1282,9 @@
             <div class="settings-row-text">
               <label class="settings-row-label" for="settings-git-sharing">Git sharing</label>
               <p class="settings-row-desc">
-                Whether <code>.frame/</code> is committed with the repo, or kept local to this
-                machine through <code>.git/info/exclude</code>. Frame never edits your tracked
-                <code>.gitignore</code> and never untracks files for you.
+                Whether this project's Frame context is committed with the repo, or kept
+                local to this machine through <code>.git/info/exclude</code>. Frame never edits
+                your tracked <code>.gitignore</code> and never untracks files for you.
               </p>
               <p class="settings-row-desc settings-row-warning" id="settings-git-sharing-warning" style="display:none;"></p>
             </div>
@@ -1316,15 +1318,21 @@
             <button type="button" class="settings-action-btn" id="settings-migration-decision">Review</button>
           </div>
 
+          <!-- One row, two states: a project that has Frame can remove it, one
+               that does not can set it up. Which of the two buttons is shown
+               is decided in syncFrameSetup() — a folder that was never
+               initialized has nothing to remove, and one just removed must
+               stop offering to remove it again. -->
           <div class="settings-row">
             <div class="settings-row-text">
-              <label class="settings-row-label">Remove Frame from this project</label>
-              <p class="settings-row-desc">
+              <label class="settings-row-label" id="settings-frame-setup-label">Remove Frame from this project</label>
+              <p class="settings-row-desc" id="settings-frame-setup-desc">
                 Deletes <code>.frame/</code>, <code>.claude/rules/frame.md</code> and Frame's hook
                 entries. Your own files are never touched.
               </p>
               <p class="settings-row-desc" id="settings-remove-frame-note" style="display:none;"></p>
             </div>
+            <button type="button" class="settings-action-btn" id="settings-init-frame" style="display:none;">Initialize</button>
             <button type="button" class="settings-danger-btn" id="settings-remove-frame">Remove Frame</button>
           </div>
         </div>
