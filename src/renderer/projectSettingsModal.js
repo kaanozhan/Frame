@@ -32,6 +32,9 @@ let gitSharingSelectEl = null;
 let gitSharingWarningEl = null;
 let removeFrameBtnEl = null;
 let removeFrameNoteEl = null;
+let initFrameBtnEl = null;
+let frameSetupLabelEl = null;
+let frameSetupDescEl = null;
 let defaultProjectRowEl = null;
 let defaultProjectDescEl = null;
 let defaultProjectChipEl = null;
@@ -46,6 +49,9 @@ function init() {
   gitSharingWarningEl = document.getElementById('settings-git-sharing-warning');
   removeFrameBtnEl = document.getElementById('settings-remove-frame');
   removeFrameNoteEl = document.getElementById('settings-remove-frame-note');
+  initFrameBtnEl = document.getElementById('settings-init-frame');
+  frameSetupLabelEl = document.getElementById('settings-frame-setup-label');
+  frameSetupDescEl = document.getElementById('settings-frame-setup-desc');
   defaultProjectRowEl = document.getElementById('settings-default-project-row');
   defaultProjectDescEl = document.getElementById('settings-default-project-desc');
   defaultProjectChipEl = document.getElementById('settings-default-project-chip');
@@ -160,6 +166,9 @@ function init() {
         // The project is no longer a Frame project: say so, or the spec
         // panel keeps offering to write into a .frame/ that is gone.
         state.noteFrameRemoved(projectPath);
+        // The row itself has to move too, or it goes on offering to remove a
+        // Frame that is already gone.
+        syncFrameSetup();
         await syncGitSharing();
         await syncSpecDrivenToggle();
       } catch (err) {
@@ -169,6 +178,23 @@ function init() {
       }
     });
   }
+
+  // Initialize: the same modal the project open offers, reached from here for
+  // a folder that declined it then. The overlay closes first — the init modal
+  // is a dialog of its own and two stacked dialogs is a state the user has to
+  // back out of twice (settingsOverlay's own reasoning).
+  if (initFrameBtnEl) {
+    initFrameBtnEl.addEventListener('click', () => {
+      const projectPath = state.getProjectPath();
+      if (!projectPath) return;
+      overlay.close();
+      state.initializeAsFrameProject();
+    });
+  }
+
+  // An init started from this row finishes in the init modal, and one can also
+  // land from the project open. Either way the row is stale until it is told.
+  state.onFrameInitialized(() => syncFrameSetup());
 
   // Make Default: move this project to the front of the workspace list, which
   // is the whole of what "default" means (see projectListUI.isDefaultProject).
@@ -187,9 +213,55 @@ function init() {
 
 async function syncFromProject() {
   syncDefaultProject();
+  syncFrameSetup();
   await syncSpecDrivenToggle();
   await syncGitSharing();
   await syncMigrationDecision();
+}
+
+/**
+ * The setup row's two states. A folder Frame was never initialized in has
+ * nothing to delete, so offering "Remove Frame" there described an action that
+ * could not happen; and a project just removed kept offering it again. The row
+ * follows `state.getIsFrameProject()`, which the open, an init and a removal
+ * all keep current.
+ *
+ * With no project open it stays on the remove wording and goes inert, the same
+ * way every other row in this modal does — the setting still exists, there is
+ * just nothing to write to.
+ */
+function syncFrameSetup() {
+  if (!removeFrameBtnEl || !initFrameBtnEl) return;
+  const projectPath = state.getProjectPath();
+  const isFrame = state.getIsFrameProject();
+
+  if (!projectPath) {
+    initFrameBtnEl.style.display = 'none';
+    removeFrameBtnEl.style.display = '';
+    removeFrameBtnEl.disabled = true;
+    setFrameSetupText(true);
+    return;
+  }
+
+  removeFrameBtnEl.disabled = false;
+  initFrameBtnEl.style.display = isFrame ? 'none' : '';
+  removeFrameBtnEl.style.display = isFrame ? '' : 'none';
+  setFrameSetupText(isFrame);
+}
+
+function setFrameSetupText(isFrame) {
+  if (frameSetupLabelEl) {
+    frameSetupLabelEl.textContent = isFrame
+      ? 'Remove Frame from this project'
+      : 'Set up Frame in this project';
+  }
+  if (frameSetupDescEl) {
+    frameSetupDescEl.innerHTML = isFrame
+      ? 'Deletes <code>.frame/</code>, <code>.claude/rules/frame.md</code> and Frame\'s hook '
+        + 'entries. Your own files are never touched.'
+      : 'This project isn\'t set up with Frame yet. Initializing adds <code>.frame/</code> for '
+        + 'AI context, task tracking and session notes. Nothing is added to your project root.';
+  }
 }
 
 /**

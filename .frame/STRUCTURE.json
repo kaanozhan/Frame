@@ -7365,47 +7365,57 @@
       ],
       "functions": {
         "init": {
-          "line": 42
+          "line": 45
         },
         "syncFromProject": {
-          "line": 188
+          "line": 214
+        },
+        "syncFrameSetup": {
+          "line": 233,
+          "purpose": "The setup row's two states. A folder Frame was never initialized in has"
+        },
+        "setFrameSetupText": {
+          "line": 252,
+          "params": [
+            "isFrame"
+          ]
         },
         "syncMigrationDecision": {
-          "line": 200,
+          "line": 272,
           "purpose": "Shown only while this project still has something to answer. The decision"
         },
         "syncDefaultProject": {
-          "line": 220,
+          "line": 292,
           "purpose": "The launch-project row. It is hidden outright below two projects: with one"
         },
         "syncSpecDrivenToggle": {
-          "line": 246,
+          "line": 318,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "renderGitSharing": {
-          "line": 271,
+          "line": 343,
           "params": [
             "stateObj"
           ],
           "purpose": "Paint the sharing row from main's state object. `error` means the project"
         },
         "syncGitSharing": {
-          "line": 287
+          "line": 359
         },
         "setRemoveFrameNote": {
-          "line": 301,
+          "line": 373,
           "params": [
             "message"
           ]
         },
         "setGitSharingWarning": {
-          "line": 307,
+          "line": 379,
           "params": [
             "message"
           ]
         },
         "setSpecDrivenNote": {
-          "line": 313,
+          "line": 385,
           "params": [
             "message"
           ]

@@ -1318,15 +1318,21 @@
             <button type="button" class="settings-action-btn" id="settings-migration-decision">Review</button>
           </div>
 
+          <!-- One row, two states: a project that has Frame can remove it, one
+               that does not can set it up. Which of the two buttons is shown
+               is decided in syncFrameSetup() — a folder that was never
+               initialized has nothing to remove, and one just removed must
+               stop offering to remove it again. -->
           <div class="settings-row">
             <div class="settings-row-text">
-              <label class="settings-row-label">Remove Frame from this project</label>
-              <p class="settings-row-desc">
+              <label class="settings-row-label" id="settings-frame-setup-label">Remove Frame from this project</label>
+              <p class="settings-row-desc" id="settings-frame-setup-desc">
                 Deletes <code>.frame/</code>, <code>.claude/rules/frame.md</code> and Frame's hook
                 entries. Your own files are never touched.
               </p>
               <p class="settings-row-desc" id="settings-remove-frame-note" style="display:none;"></p>
             </div>
+            <button type="button" class="settings-action-btn" id="settings-init-frame" style="display:none;">Initialize</button>
             <button type="button" class="settings-danger-btn" id="settings-remove-frame">Remove Frame</button>
           </div>
         </div>
