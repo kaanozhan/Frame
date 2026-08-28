@@ -59,3 +59,17 @@ specs/tasks/notes, and no new promise about Frame's scripts.
 _Captured: 2026-08-28 · 1 file change_
 
 ---
+
+## T06 — Regenerate and verify this repo's own managed block
+
+Regenerated `.frame/.gitignore` by calling `gitSharing.ensureFrameGitignore` on
+this project instead of launching the IDE — `frameProject.js` reaches the file
+only through `gitSharing.reconcile`, so the effect is identical. `bin/` now sits
+inside the managed markers, `STRUCTURE.json` does not, the 24 tracked
+`.frame/bin/` files stay tracked and an edit to one still reports ` M`. Confirmed
+the accepted cost too: an untracked probe under `.frame/bin/` is invisible to
+`git status --porcelain -uall`, so a new script here will need `git add -f`.
+
+_Captured: 2026-08-28 · 1 file change_
+
+---

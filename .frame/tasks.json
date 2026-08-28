@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:47:15.217Z",
+  "lastUpdated": "2026-08-28T14:48:07.687Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6222,13 +6222,13 @@
       "title": "Regenerate Frame's own `.frame/.gitignore` by opening this project in Frame, confirm `bin/` is inside the managed markers while `STRUCTURE.json` is not, that the 24 tracked `.frame/bin/` files stay tracked and still report edits in `git status`, then commit the regenerated file.",
       "description": "",
       "source": "spec:frame-bin-out-of-repo:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: frame-bin-out-of-repo",
       "createdAt": "2026-08-28T14:28:11.354Z",
-      "updatedAt": "2026-08-28T14:28:11.354Z",
-      "completedAt": null
+      "updatedAt": "2026-08-28T14:48:07.687Z",
+      "completedAt": "2026-08-28T14:48:07.687Z"
     },
     {
       "id": "task-spec-frame-bin-out-of-repo-T07",
