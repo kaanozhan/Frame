@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T14:45:58.320Z",
+  "lastUpdated": "2026-08-28T14:47:15.217Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6209,13 +6209,13 @@
       "title": "Replace the Git sharing row's description paragraph in `index.html` with the wording that names this project's Frame context rather than the `.frame/` folder, keeping the \"never edits your tracked `.gitignore`, never untracks files\" sentence.",
       "description": "",
       "source": "spec:frame-bin-out-of-repo:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: frame-bin-out-of-repo",
       "createdAt": "2026-08-28T14:28:11.354Z",
-      "updatedAt": "2026-08-28T14:28:11.354Z",
-      "completedAt": null
+      "updatedAt": "2026-08-28T14:47:15.217Z",
+      "completedAt": "2026-08-28T14:47:15.217Z"
     },
     {
       "id": "task-spec-frame-bin-out-of-repo-T06",

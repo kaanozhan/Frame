@@ -47,3 +47,15 @@ produced the right block from T01's inputs.
 _Captured: 2026-08-28 · 1 file change_
 
 ---
+
+## T05 — Correct the Git sharing row copy
+
+Reworded the Git sharing row's description in `index.html` to name this
+project's Frame context rather than the `.frame/` folder, keeping the
+`.git/info/exclude` clause and the never-edits/never-untracks sentence as they
+were. Narrowed per the plan's resolved decision — no enumeration of
+specs/tasks/notes, and no new promise about Frame's scripts.
+
+_Captured: 2026-08-28 · 1 file change_
+
+---
