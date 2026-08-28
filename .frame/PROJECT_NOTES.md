@@ -2448,3 +2448,111 @@ would return the terminal to exactly the state this fixes.
 
 **Untested link.** Everything above is asserted; that a real session then
 reads the staged file and runs the gate is not, and will be seen in use.
+
+### [2026-08-28] `.frame/bin/` left git: reversing non-invasive-overlay T15, and the shell it left behind
+
+**The number that started it.** Installing Frame into an empty Next.js project
+produced a 31-file, 197,631-byte working tree, and **169,702 of those bytes —
+86% — were `.frame/bin/`**: Frame's own parser and hook scripts, byte-identical
+in every project that installs Frame. The user's first "added Frame" commit was
+mostly a copy of Frame's source. Copying the scripts in is correct and was never
+in question — they run outside Frame's process and a packaged build keeps its
+code inside `app.asar` where no external process can reach it. The problem was
+only that git tracked them.
+
+**This reverses a recorded decision, and says so.** `non-invasive-overlay`
+spec.md D6 classified `bin/` as runtime → ignored. T15 of that same spec
+(`a8c1c8c`) reversed it *during implementation*, moved `bin/` to `derived` and
+introduced `FRAME_TRACKED_DERIVED` to hold it tracked — and wrote the reasoning
+into a code comment rather than back into the spec. It was solving something
+real: tracked `.claude/settings.json` hook entries point at `.frame/bin/*`, so a
+teammate cloning got hooks without scripts. Both of its rationales have since
+lapsed. No released build ships the tracking (`git tag --contains a8c1c8c` is
+empty, v2.6.0 predates it), the clone-without-Frame user does not exist while
+Frame ships only as the IDE, and both worktree paths already fall back to an
+absolute `bin/` path. Because a future reader meets the comment and not the spec
+archive, the reversal is recorded *there* — naming T15 and each lapsed rationale.
+
+**The mechanism changed nothing.** `getFrameGitignoreBlock` already builds the
+managed block as `runtime ∪ (derived − FRAME_TRACKED_DERIVED)`; only its inputs
+moved. Dropping `bin/` from the tracked list *alone* would have been actively
+wrong — an entry in neither list appears in neither side and is ignored nowhere.
+
+**Underneath sat a conflated question.** The Git sharing setting asked *"is
+`.frame/` committed?"* when what the user answers is *"is my Frame context
+shared with my team?"*. Sharing mode decides what **may** be shared; it should
+not decide what is **worth** sharing. The row's copy now names the Frame context.
+Deliberately nothing more: a promise about what is *not* committed is one the row
+would have to keep true forever.
+
+**Verified, not assumed.** A fresh `repo`-mode init is now 11 files / 24,927
+bytes. `local` mode's `.git/info/exclude` is byte-identical to the pre-change
+build — and getting that comparison honest took a second attempt, because the
+"before" worktree had no `node_modules`, `require('electron')` failed inside the
+sharing path, and the run silently skipped writing the block at all. A false
+pass that looked exactly like a real one. The linked-worktree `--git-common-dir`
+fallback, previously the exception, is now the normal path and was run end to
+end: it resolved the parser through the main worktree and wrote *that
+checkout's* `STRUCTURE.json`, leaving the main one alone.
+
+**Frame's own repo is the deliberate exception.** Its 24 committed
+`.frame/bin/` files stay tracked as a worked example of what Frame writes into a
+project. Accepted cost, verified rather than assumed: a tracked file under an
+ignored directory still reports ` M`, but an untracked sibling does not appear at
+all — so a *new* script added here later needs `git add -f`.
+
+**Then switching modes exposed a neighbour.** Going `repo` → `local` left
+`.claude/settings.json` holding a bare `{}`. `removeSpecHintHook` strips Frame's
+entries and writes back what is left, and in a Frame-initialised project Frame's
+hooks *were* the whole file; nothing excludes `.claude/settings.json` in `local`
+mode, deliberately, because in `repo` mode it is the team's shared file. It now
+deletes the file when nothing is left — but only while it is untracked, which is
+the same line `gitSharing` draws around `git rm`: untracking someone's committed
+files is their call. Three tests, each verified against a different wrong
+answer: disabling the guard fails one, making the deletion unconditional fails
+the other two. After it, a `repo` → `local` switch leaves `git status`
+completely empty, which is local mode's whole promise.
+
+### [2026-08-28] Two settings-surface bugs, found by using the thing, with unrelated causes
+
+Both turned up testing the footprint change on a scratch Next.js project — not
+by reviewing the diff. Neither is in the spec; they are recorded as their own
+tasks and committed separately on this branch.
+
+**The init modal's sharing choice was a cascade accident, not a design.** The
+two options rendered as a stretched radio with its glyph centred and the title
+running into the description as one paragraph. The design was written correctly
+— `.init-modal-sharing label { display: grid }` — but `.modal-body label
+{ display: block }` and `.modal-body input { width: 100% }` sit *further down
+the same file* at equal specificity (0,1,1) and won on source order. A rule can
+be right and still never run. Qualifying the sharing rules with `.modal-body`
+keeps them off, and the native radio is now out of the flow with a drawn dot
+beside it, reusing `.welcome-tool-option`'s existing pattern rather than
+inventing one.
+
+Three layouts were offered; **stacked cards won over side-by-side and over a
+segmented toggle**, because at 520px a side-by-side card is ~230px and the
+descriptions run 6-8 lines, and a toggle hides one option behind the other on a
+one-time, consequential choice about the user's git history — the two have to be
+comparable at a glance.
+
+**Project Settings lied about the project's state, in both directions.** The
+setup row always read "Remove Frame from this project": a folder Frame was never
+initialized in offered to remove nothing, and a project just removed went on
+offering to remove it again. One cause for both — `syncFromProject()` syncs four
+rows and never this one, and the removal handler re-syncs git sharing and the
+spec-driven toggle while leaving the row it lives in untouched. Worth keeping:
+every piece of plumbing needed already existed and was already exported —
+`getIsFrameProject`, `initializeAsFrameProject`, `onFrameInitialized` — so the
+fix added no IPC. The bug was never missing capability, only that nobody called
+it.
+
+**Left undone, on purpose.** Neither fix carries a test: renderer modules have
+no DOM harness in this repo and jsdom is not installed, so covering them means
+introducing the harness first. Said plainly rather than quietly skipped.
+
+**Branch.** `feat/frame-bin-out-of-repo` was renamed
+`fix/frame-footprint-and-settings-ui` rather than splitting the UI work off —
+the user's call, to avoid juggling branches. The name now covers what is
+actually there: Frame's footprint in the user's repo, and the two surfaces that
+describe it.

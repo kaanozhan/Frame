@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T15:06:57.202Z",
+  "lastUpdated": "2026-08-28T15:29:19.715Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6281,6 +6281,36 @@
       "createdAt": "2026-08-28T15:04:52.599Z",
       "updatedAt": "2026-08-28T15:06:57.202Z",
       "completedAt": "2026-08-28T15:06:57.202Z"
+    },
+    {
+      "id": "task-init-modal-sharing-cards",
+      "title": "Rebuild the init modal git sharing choice as selectable cards",
+      "description": "The two sharing options rendered as a flattened block: the radio stretched across the modal with its glyph centred, and each option`s title ran into its description as one paragraph. Root cause is CSS cascade, not markup — `.modal-body label { display: block }` (panels.css:2414) and `.modal-body input { width: 100% }` (:2419) sit *after* `.init-modal-sharing label { display: grid }` (:2326) in the same file at equal specificity (0,1,1), so they won on source order and the intended two-column grid never applied. Qualify the sharing rules with `.modal-body` so they cannot be clobbered, take the native radio out of the flow and draw a dot beside it (the pattern `.welcome-tool-option` already uses), and give each option a card: hover, accent border and fill when selected via `:has(input:checked)`, and a focus ring on the card since hiding the radio hides its own. Files: index.html, src/renderer/styles/components/panels.css.",
+      "userRequest": "User said: burada bu seçimler alt alta radio button gibi olması çok kötü bunun UI `ı da değiştirmek lazm belki toggle belki section ( card gibi ) ya da senin önerilerin",
+      "acceptanceCriteria": "Each option is a full-width clickable card with the radio dot on the left and title + description beside it; the selected card carries an accent border and subtle fill; hover changes the background; keyboard focus is visible on the card. Both descriptions stay readable at the same time. The radio inputs keep their name and value so state.js:238 reads the mode unchanged. npm test green.",
+      "notes": "Three layouts were put to the user: stacked cards, side-by-side cards, and a segmented toggle with a swapping description. Stacked won — at 520px a side-by-side card is ~230px and the descriptions run 6-8 lines, and the toggle hides one option behind the other on a one-time, consequential choice about the user`s git history, where the two have to be comparable at a glance. `:has()` is safe here: Electron 28 is Chromium 120 and the selector is already used elsewhere in this codebase, so the selected state needs no JS. Found while testing the frame-bin-out-of-repo change on a scratch Next.js project.",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "Session 2026-08-28 - found while dogfooding the frame-bin-out-of-repo init on a scratch Next.js repo",
+      "createdAt": "2026-08-28T15:29:19.715Z",
+      "updatedAt": "2026-08-28T15:29:19.715Z",
+      "completedAt": "2026-08-28T15:29:19.715Z"
+    },
+    {
+      "id": "task-project-settings-frame-setup-row",
+      "title": "Make the Project Settings setup row follow the real Frame state",
+      "description": "Project Settings always showed `Remove Frame from this project`, whatever the project was: a folder Frame was never initialized in offered to remove nothing, and a project just removed went on offering to remove it again. `syncFromProject()` (projectSettingsModal.js:188) syncs the default-project, spec-driven, git-sharing and migration rows but never this one, and the removal handler re-syncs git sharing and the spec-driven toggle while leaving the row it lives in untouched. Give the row two states behind a new `syncFrameSetup()` driven by `state.getIsFrameProject()`: no Frame yet gets `Set up Frame in this project` plus an Initialize button that closes the overlay and opens the same init modal the project open offers; with Frame it keeps the existing Remove. Re-sync it on modal open, straight after a removal, and from `state.onFrameInitialized`. Files: index.html, src/renderer/projectSettingsModal.js.",
+      "userRequest": "User said: Diyelim ben bir projeyi açtım ve frame ile initialize etmedim. Project settings`e geldiğmde hala daha \"Remove From Frame\" çıkıyor orada sanki Initialize olması lazım. Aynı şekilde İnitialize edilen projeyi de Remove diyince hala remove kalmaya devam ediyor.",
+      "acceptanceCriteria": "Opening Project Settings on a non-Frame folder shows Initialize and the setup wording; clicking it closes the overlay and opens the init modal. Opening it on a Frame project shows Remove Frame unchanged. Removing Frame while the modal is open flips the row to Initialize without reopening it, and the `Removed: ...` receipt stays visible. With no project open the row goes inert rather than disappearing, as the rest of the modal does. npm test green.",
+      "notes": "All the plumbing already existed — `state.getIsFrameProject()`, `state.initializeAsFrameProject()` and `state.onFrameInitialized()` are exported and kept current by the project open, an init and `noteFrameRemoved` — so no new IPC was needed. Two buttons in the markup with one hidden, rather than mutating className, because `.settings-action-btn` and `.settings-danger-btn` differ only in hover colour and swapping classes would fight both. The overlay is closed before the init modal opens, following settingsOverlay`s own reasoning that two stacked dialogs is a state the user has to back out of twice. No test: renderer modules have no DOM harness in this repo and jsdom is not installed, so covering this would mean introducing the harness first — worth its own task.",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "Session 2026-08-28 - reported straight after the init modal fix, same testing pass",
+      "createdAt": "2026-08-28T15:29:19.715Z",
+      "updatedAt": "2026-08-28T15:29:19.715Z",
+      "completedAt": "2026-08-28T15:29:19.715Z"
     }
   ],
   "metadata": {
