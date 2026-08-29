@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T12:37:14.653Z",
+  "lastUpdated": "2026-08-29T12:40:09.213Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6434,13 +6434,13 @@
       "title": "Carry the same shell into `src/templates/commands/claude-code/plan-report-template.html`: paste the marked block byte-for-byte, add the `.rpt-topbar` / `.rpt-head` markup filled from `{{SPEC_TITLE}}`, `{{SLUG}}`, `{{DATE}}` and the existing headline `{{N}}` pills, add the alias block mapping `--bg`, `--card`, `--ink`, `--muted`, `--primary`, `--accent`, `--line`, `--good`, `--goodbg`, `--warn`, `--code`, `--dim` onto the shell's tokens without touching a body rule, correct the head comment's \"Dark-only\" claim, and add the parity test asserting the two files' shell blocks are byte-identical.",
       "description": "",
       "source": "spec:spec-reports-one-shell-two-themes-in-app:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-reports-one-shell-two-themes-in-app",
       "createdAt": "2026-08-29T10:56:22.985Z",
-      "updatedAt": "2026-08-29T10:56:22.985Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T12:40:09.213Z",
+      "completedAt": "2026-08-29T12:40:09.213Z"
     },
     {
       "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T03",

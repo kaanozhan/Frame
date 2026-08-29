@@ -9,12 +9,25 @@
 
 const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const GENERATOR = path.join(
-  __dirname, '..', 'src', 'templates', 'commands', 'claude-code', 'build-implement-report.mjs'
-);
+const COMMANDS_DIR = path.join(__dirname, '..', 'src', 'templates', 'commands', 'claude-code');
+const GENERATOR = path.join(COMMANDS_DIR, 'build-implement-report.mjs');
+const PLAN_TEMPLATE = path.join(COMMANDS_DIR, 'plan-report-template.html');
+
+const SHELL_OPEN = '/* ── frame report shell v1 ── */';
+const SHELL_CLOSE = '/* ── end frame report shell v1 ── */';
+
+/** The shell block, markers included, as it literally sits in a file. */
+function shellBlock(file) {
+  const text = fs.readFileSync(file, 'utf8');
+  const from = text.indexOf(SHELL_OPEN);
+  const to = text.indexOf(SHELL_CLOSE);
+  assert.ok(from >= 0 && to > from, `no shell block in ${path.basename(file)}`);
+  return text.slice(from, to + SHELL_CLOSE.length);
+}
 
 let mod;
 before(async () => {
@@ -270,6 +283,61 @@ test('renderReport escapes a hostile slug before it reaches the header', () => {
   const html = mod.renderReport(data({ spec: { slug: '<img src=x>', title: 'T' } }));
   assert.doesNotMatch(html, /<img src=x>/);
   assert.match(html, /&lt;img src=x&gt;/);
+});
+
+// ─── shell parity across the two report assets ────────────────
+
+test('the two report assets carry byte-identical shell blocks', () => {
+  // The shell is duplicated on purpose (a third staged asset would have to be
+  // added to two staging lists, COMMAND_ASSETS and the docs table, and still
+  // be inlined by hand to keep the reports self-contained). This assertion is
+  // what makes the duplication safe: edit both copies, or edit neither.
+  assert.equal(shellBlock(GENERATOR), shellBlock(PLAN_TEMPLATE));
+});
+
+test('the emitted report carries the same shell bytes the template does', () => {
+  // Not just the two sources — what actually reaches the reader. Catches a
+  // shell that is interpolated rather than pasted through.
+  const html = mod.renderReport(data());
+  assert.ok(html.includes(shellBlock(PLAN_TEMPLATE)));
+});
+
+test('the plan template wears the shared header and no longer claims to be dark-only', () => {
+  const text = fs.readFileSync(PLAN_TEMPLATE, 'utf8');
+  assert.match(text, /class="rpt-topbar"/);
+  assert.match(text, /class="rpt-doc-type">Spec Plan Report</);
+  assert.match(text, /class="rpt-slug">\{\{SLUG\}\}</);
+  assert.match(text, /class="rpt-mark"/);
+  assert.match(text, /M2 2h9v2\.6H4\.6V11H2V2Z/);
+  assert.doesNotMatch(text, /Dark-only/);
+  assert.doesNotMatch(text, /color-scheme:dark/);
+});
+
+test('the plan template aliases its legacy token names onto the shell', () => {
+  // The alias block is what lets 250 lines of component CSS stay untouched.
+  const text = fs.readFileSync(PLAN_TEMPLATE, 'utf8');
+  for (const [legacy, shellToken] of [
+    ['--bg', '--bg-deep'], ['--card', '--bg-secondary'], ['--ink', '--text-primary'],
+    ['--muted', '--text-secondary'], ['--primary', '--accent-primary'], ['--accent', '--info'],
+    ['--line', '--border-default'], ['--good', '--success'], ['--goodbg', '--success-subtle'],
+    ['--warn', '--warning-ink'], ['--code', '--bg-tertiary'], ['--dim', '--bg-tertiary'],
+  ]) {
+    assert.ok(
+      text.includes(`${legacy}:var(${shellToken})`),
+      `${legacy} is not aliased onto ${shellToken}`
+    );
+  }
+});
+
+test('neither report asset keeps a hardcoded colour the light theme cannot reach', () => {
+  // A literal survives a theme switch as whatever it was — the old amber
+  // document palette, or ink chosen for a dark background.
+  for (const file of [GENERATOR, PLAN_TEMPLATE]) {
+    const css = fs.readFileSync(file, 'utf8').split(SHELL_CLOSE)[1] || '';
+    assert.doesNotMatch(css, /rgba\(212,\s*165,\s*116/, `amber literal in ${path.basename(file)}`);
+    assert.doesNotMatch(css, /rgba\(120,\s*165,\s*212/, `blue literal in ${path.basename(file)}`);
+    assert.doesNotMatch(css, /rgba\(124,\s*179,\s*130/, `green literal in ${path.basename(file)}`);
+  }
 });
 
 // ─── renderProgress ───────────────────────────────────────────

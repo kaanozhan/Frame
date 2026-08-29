@@ -2,8 +2,10 @@
 <!--
   Frame plan report template — project-agnostic; nothing here assumes a
   specific stack. Copy to .frame/specs/<slug>/plan-report.html and fill
-  every {{...}}. Produced by /spec.plan. Dark-only: styled to Frame's dark
-  design system (warm neutrals, amber accent).
+  every {{...}}. Produced by /spec.plan. Styled to Frame's design system in
+  both themes: the shared report shell below carries dark and light, so the
+  file follows the reader's system when opened from disk and the app's
+  data-theme when opened inside Frame.
   Component palette (use as many instances as the plan needs):
     .flowblock + .fd     -> flow DIAGRAM: rows of typed nodes joined by
                             labeled arrows; branch rows for alternate paths.
@@ -35,10 +37,123 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{SPEC_TITLE}} — Plan Overview</title>
 <style>
-  :root{--bg:#0f0f10;--card:#1a1a1c;--ink:#e8e6e3;--muted:#a09b94;--primary:#d4a574;--accent:#78a5d4;--line:rgba(255,255,255,0.08);--good:#7cb382;--goodbg:rgba(124,179,130,0.15);--warn:#e0a458;--code:#222225;--dim:#222225;--font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;color-scheme:dark;}
+/* ── frame report shell v1 ── */
+/* Frame's design tokens and report header, carried byte-for-byte by both
+   report assets: build-implement-report.mjs and plan-report-template.html.
+   test/implementReport.test.js asserts the two copies are identical — edit
+   both, or edit neither. The markers are load-bearing three times over: the
+   parity test finds the block by them, the in-app viewer detects a pre-shell
+   report by their absence, and a future revision bumps the version in one grep.
+
+   Values are copied from src/renderer/styles/variables.css, so a report
+   rendered inside Frame is the same colour as the window around it. Dark sits
+   on the bare :root; light arrives two ways — an explicit data-theme="light"
+   (what the in-app viewer stamps on this document) and the reader's own system
+   preference when the file is opened straight from disk. The light values are
+   written twice because CSS cannot share a declaration block between two
+   selectors and light-dark() is Chromium 123+, above the Electron 28 runtime
+   this has to render in.
+
+   Header classes are prefixed rpt- so they cannot collide with either
+   report's own body CSS. */
+:root{
+  color-scheme:light dark;
+  --bg-deep:#0c0b09;--bg-primary:#14120e;--bg-secondary:#1c1915;--bg-tertiary:#242019;
+  --bg-elevated:#2a2620;--bg-hover:#332e25;
+  --text-primary:#f2eee4;--text-secondary:#c4bcac;--text-tertiary:#948c7c;--text-muted:#5c564a;
+  --accent-primary:#8ff0ae;--accent-secondary:#6fd693;
+  --accent-subtle:rgba(143,240,174,0.15);--accent-glow:rgba(143,240,174,0.08);
+  --success:#9bdca8;--success-subtle:rgba(155,220,168,0.15);
+  --warning:#e5cd8e;--warning-ink:#e5cd8e;
+  --error:#e8938a;--error-subtle:rgba(232,147,138,0.15);--info:#a6c0f0;
+  --diff-ins-bg:rgba(63,185,80,0.15);--diff-ins-fg:#c9d1d9;
+  --diff-del-bg:rgba(248,81,73,0.15);--diff-del-fg:#c9d1d9;
+  --border-subtle:#221e18;--border-default:#2a2620;--border-strong:#3a342b;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.3);--shadow-md:0 4px 12px rgba(0,0,0,0.4);
+  --space-xs:4px;--space-sm:6px;--space-md:10px;--space-lg:14px;--space-xl:20px;
+  --radius-sm:4px;--radius-md:5px;--radius-lg:6px;--radius-xl:8px;
+  --font-sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'JetBrains Mono','SF Mono','Consolas',monospace;
+}
+:root[data-theme="light"]{
+  --bg-deep:#f0ede8;--bg-primary:#f7f5f2;--bg-secondary:#ede9e3;--bg-tertiary:#e5e0d8;
+  --bg-elevated:#dbd5cb;--bg-hover:#d4cdc2;
+  --text-primary:#1c1a18;--text-secondary:#5a5550;--text-tertiary:#8a8480;--text-muted:#b0aba5;
+  --accent-primary:#286b44;--accent-secondary:#1f5a37;
+  --accent-subtle:rgba(47,125,79,0.12);--accent-glow:rgba(47,125,79,0.08);
+  --success:#3e6843;--success-subtle:rgba(74,124,80,0.12);
+  --warning:#c07820;--warning-ink:#815015;
+  --error:#a43939;--error-subtle:rgba(184,64,64,0.12);--info:#376090;
+  --diff-ins-bg:#e6ffec;--diff-ins-fg:#24292f;
+  --diff-del-bg:#ffebe9;--diff-del-fg:#24292f;
+  --border-subtle:rgba(0,0,0,0.07);--border-default:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.15);
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.08);--shadow-md:0 4px 12px rgba(0,0,0,0.12);
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg-deep:#f0ede8;--bg-primary:#f7f5f2;--bg-secondary:#ede9e3;--bg-tertiary:#e5e0d8;
+    --bg-elevated:#dbd5cb;--bg-hover:#d4cdc2;
+    --text-primary:#1c1a18;--text-secondary:#5a5550;--text-tertiary:#8a8480;--text-muted:#b0aba5;
+    --accent-primary:#286b44;--accent-secondary:#1f5a37;
+    --accent-subtle:rgba(47,125,79,0.12);--accent-glow:rgba(47,125,79,0.08);
+    --success:#3e6843;--success-subtle:rgba(74,124,80,0.12);
+    --warning:#c07820;--warning-ink:#815015;
+    --error:#a43939;--error-subtle:rgba(184,64,64,0.12);--info:#376090;
+    --diff-ins-bg:#e6ffec;--diff-ins-fg:#24292f;
+    --diff-del-bg:#ffebe9;--diff-del-fg:#24292f;
+    --border-subtle:rgba(0,0,0,0.07);--border-default:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.15);
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.08);--shadow-md:0 4px 12px rgba(0,0,0,0.12);
+  }
+}
+
+/* Header — a stable brand strip (mark, wordmark, document type, slug) on the
+   left, the report's own headline pills on the right; the document title gets
+   its own scale below in .rpt-head rather than crowding the bar. */
+.rpt-topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-md);
+  flex-wrap:wrap;padding:var(--space-lg) var(--space-xl);
+  border-bottom:1px solid var(--border-subtle);
+  background:linear-gradient(180deg,var(--bg-secondary) 0%,var(--bg-primary) 100%);}
+.rpt-ident{display:flex;align-items:center;gap:var(--space-md);min-width:0;}
+.rpt-mark{width:26px;height:26px;display:block;flex-shrink:0;color:var(--accent-primary);}
+.rpt-brand{font-size:16px;font-weight:700;letter-spacing:-0.2px;color:var(--accent-primary);}
+.rpt-sep{width:1px;align-self:stretch;background:var(--border-strong);flex-shrink:0;}
+.rpt-doc{display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+.rpt-doc-type{font-size:14px;font-weight:600;color:var(--text-primary);
+  text-transform:uppercase;letter-spacing:.08em;}
+.rpt-slug{font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+  color:var(--accent-primary);background:var(--accent-subtle);
+  border:1px solid var(--accent-primary);padding:3px 10px;border-radius:999px;}
+.rpt-meta{display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;}
+.rpt-pill{display:inline-block;font-size:11px;color:var(--text-secondary);
+  background:var(--bg-tertiary);border:1px solid var(--border-default);
+  padding:3px 10px;border-radius:999px;}
+.rpt-pill.good{color:var(--success);border-color:var(--success);}
+.rpt-pill.warn{color:var(--warning-ink);border-color:var(--warning);}
+.rpt-pill.bad{color:var(--error);border-color:var(--error);}
+.rpt-chip{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);
+  background:var(--bg-tertiary);border:1px solid var(--border-subtle);
+  padding:3px 8px;border-radius:var(--radius-sm);}
+.rpt-head{padding:var(--space-md) 0 var(--space-xs);}
+.rpt-head h1{font-size:27px;font-weight:700;letter-spacing:-0.6px;line-height:1.25;
+  color:var(--text-primary);max-width:900px;}
+@media (max-width:560px){.rpt-head h1{font-size:20px;}}
+/* ── end frame report shell v1 ── */
+
+  /* This template's 250 lines of component CSS are written against its own
+     short token names. Rather than rename every rule — a large diff across
+     report *content* — the twelve legacy names alias onto the shell's. One
+     place to read, and both themes arrive for free. */
+  :root{
+    --bg:var(--bg-deep);--card:var(--bg-secondary);--ink:var(--text-primary);
+    --muted:var(--text-secondary);--primary:var(--accent-primary);--accent:var(--info);
+    --line:var(--border-default);--good:var(--success);--goodbg:var(--success-subtle);
+    /* --warn colours both borders and text here; --warning-ink is the pair
+       that clears AA as text on light, and equals --warning in dark. */
+    --warn:var(--warning-ink);--code:var(--bg-tertiary);--dim:var(--bg-tertiary);
+  }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;padding:32px 16px;}
-  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--ink);line-height:1.55;}
+  .wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;padding:32px 16px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;}
   h1{font-size:24px;color:var(--primary);margin-bottom:4px;}
   h2{font-size:18px;color:var(--primary);margin-bottom:10px;}
@@ -67,12 +182,12 @@
   .fd-node{position:relative;min-width:120px;max-width:230px;border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);display:flex;flex-direction:column;justify-content:center;}
   .fd-title{font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;}
   .fd-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;overflow-wrap:anywhere;}
-  .fd-node.actor{border-color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-node.actor{border-color:var(--primary);background:var(--accent-subtle);}
   .fd-node.actor .fd-title{color:var(--primary);}
   .fd-node.system{border-color:var(--line);}
   .fd-node.data{border-color:var(--line);background:var(--code);}
   .fd-node.data .fd-title{font-family:var(--font-mono);font-size:12px;}
-  .fd-node.decision{border-color:var(--accent);background:rgba(120,165,212,0.10);border-style:dashed;}
+  .fd-node.decision{border-color:var(--accent);background:var(--code);border-style:dashed;}
   .fd-node.decision .fd-title{color:var(--accent);}
   .fd-node.decision .fd-title::before{content:"◇ ";}
   .fd-node.outcome{border-color:var(--good);background:var(--goodbg);}
@@ -89,7 +204,7 @@
   .fd-branchlbl.err{color:var(--warn);border-color:var(--warn);}
   .fd-legend{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
   .fd-legend span{font-size:10.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;padding:2px 8px;}
-  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:rgba(212,165,116,0.12);}
+  .fd-legend .l-actor{border-color:var(--primary);color:var(--primary);background:var(--accent-subtle);}
   .fd-legend .l-data{background:var(--code);}
   .fd-legend .l-decision{border-color:var(--accent);color:var(--accent);border-style:dashed;}
   .fd-legend .l-outcome{border-color:var(--good);color:var(--good);background:var(--goodbg);}
@@ -110,7 +225,7 @@
   .opt.chosen .optname::before{content:"✓ ";}
   .opt.rejected{opacity:.62;}
   .badge{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;padding:2px 6px;}
-  .badge.chosenb{background:var(--good);color:#0f0f10;}
+  .badge.chosenb{background:var(--good);color:var(--bg-deep);}
   .dwhy{border-top:1px solid var(--line);background:var(--card);padding:9px 14px;font-size:12.5px;color:var(--muted);}
   .dwhy b{color:var(--ink);}
 
@@ -118,13 +233,30 @@
 </style>
 </head>
 <body>
+
+<header class="rpt-topbar">
+  <div class="rpt-ident">
+    <svg class="rpt-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 2h9v2.6H4.6V11H2V2Z"/><path d="M22 2v9h-2.6V4.6H13V2h9Z"/><path d="M2 22v-9h2.6v6.4H11V22H2Z"/><path d="M22 22h-9v-2.6h6.4V13H22v9Z"/></svg>
+    <span class="rpt-brand">Frame</span>
+    <span class="rpt-sep"></span>
+    <div class="rpt-doc">
+      <span class="rpt-doc-type">Spec Plan Report</span>
+      <span class="rpt-slug">{{SLUG}}</span>
+    </div>
+  </div>
+  <div class="rpt-meta">
+    <span class="rpt-pill good">{{N}} decisions taken</span>
+    <span class="rpt-pill">{{N}} loop iterations</span><!-- add headline pills: migrations, endpoints, notable facts -->
+    <span class="rpt-chip">{{DATE}}</span>
+  </div>
+</header>
+
 <div class="wrap">
 
-<div class="card">
-  <h1>{{SPEC_TITLE}} — Plan Overview</h1>
+<section class="rpt-head">
+  <h1>{{SPEC_TITLE}}</h1>
   <p class="muted">{{DATE}} · phase <b>specified → planned</b> · canonical artifact: <code>.frame/specs/{{SLUG}}/plan.md</code> · produced by <code>/spec.plan</code></p>
-  <p><span class="pill good">{{N}} decisions taken</span><span class="pill">{{N}} loop iterations</span><!-- add headline pills: migrations, endpoints, notable facts --></p>
-</div>
+</section>
 
 <div class="card">
   <h2>1 · What &amp; why</h2>
