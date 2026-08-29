@@ -67,32 +67,6 @@ function getSpecDir(projectPath, slug) {
   return path.join(getSpecsRoot(projectPath), slug);
 }
 
-// ─── Slug generation ──────────────────────────────────────
-//
-// Lowercase, kebab-case, [a-z0-9-] only, max 48 chars. Conflicts get
-// `-2`, `-3`, ... suffixes. See PROJECT_NOTES.md for the canonical rules.
-
-function generateSlug(title) {
-  if (!title || typeof title !== 'string') return '';
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, SLUG_MAX_LEN)
-    .replace(/^-+|-+$/g, '');
-}
-
-function uniqueSlug(projectPath, baseSlug) {
-  const root = getSpecsRoot(projectPath);
-  if (!fs.existsSync(path.join(root, baseSlug))) return baseSlug;
-  let n = 2;
-  while (fs.existsSync(path.join(root, `${baseSlug}-${n}`))) n++;
-  return `${baseSlug}-${n}`;
-}
-
 // ─── Validation ────────────────────────────────────────────
 //
 // Shape check only — phase enum, required fields, ISO date strings.
@@ -523,25 +497,43 @@ function interpolate(template, vars) {
   });
 }
 
-function getCommandPrompt(projectPath, slug, command, aiTool) {
+// `spec.new` is the one command that runs *before* a spec exists: the New Spec
+// launcher hands the agent the user's raw text and the agent derives the slug,
+// creates the folder and authors spec.md. So a slug-less call is legitimate for
+// that command only — every other command reads an existing status.json.
+const isSlugless = (slug, command) => !slug && command === 'spec.new';
+
+function getCommandPrompt(projectPath, slug, command, aiTool, description) {
   if (!SUPPORTED_COMMANDS.includes(command)) return { error: `unknown command: ${command}` };
   const tool = aiTool || 'claude-code';
-  const status = readStatus(projectPath, slug);
-  if (!status) return { error: 'spec not found' };
+  const slugless = isSlugless(slug, command);
+  // No slug means no status.json to read — the guard would reject the very
+  // call the launcher makes. Every other path still requires the spec to
+  // exist, and a slug-less call to one of them is a plain `spec not found`
+  // rather than the TypeError readStatus(…, null) used to raise.
+  const status = slug ? readStatus(projectPath, slug) : null;
+  if (!slugless && !status) return { error: 'spec not found' };
   const template = loadCommandTemplate(projectPath, tool, command);
   if (!template) return { error: `no ${tool} template for ${command}` };
-  const prompt = interpolate(template, {
+  const vars = {
     project_path: projectPath,
-    slug,
-    title: status.title,
-    description: '', // Slice 1.7: spec.new uses the seeded spec.md as input; description placeholder reserved for future use
+    // The user's free-form text, verbatim. Empty for every command whose
+    // template carries no {description} token.
+    description: description == null ? '' : String(description),
     report_template_path: REPORT_TEMPLATE_REL,
     report_generator_path: REPORT_GENERATOR_REL,
     // Full spec catalog only where it's consumed (spec.new's relatedness
-    // evaluation) — other templates carry no {spec_catalog} token.
+    // evaluation and slug disambiguation) — other templates carry no
+    // {spec_catalog} token.
     spec_catalog: command === 'spec.new' ? buildSpecCatalog(projectPath) : ''
-  });
-  return { prompt };
+  };
+  // Deliberately absent on the slug-less path rather than blanked: neither
+  // value exists yet, and the agent is the one that decides them.
+  if (!slugless) {
+    vars.slug = slug;
+    vars.title = status.title;
+  }
+  return { prompt: interpolate(template, vars) };
 }
 
 // ─── Prompt file writer ──────────────────────────────────────
@@ -737,12 +729,37 @@ function getImplementLaunchFlags(projectPath, slug) {
   return ['--settings', perms.absPath, '--permission-mode', 'auto'];
 }
 
-function buildSpecCommandFile(projectPath, slug, command, aiTool) {
-  const result = getCommandPrompt(projectPath, slug, command, aiTool);
+// A slug-less run has no stable name to key the prompt file on — `${slug}__`
+// would yield `null__spec.new.md` and let every run overwrite the last. The
+// prompt file *is* the recovery surface for the user's text when a run fails
+// or its terminal is closed, so each run keeps its own: a millisecond stamp,
+// disambiguated further if two land inside the same millisecond.
+function specNewPromptFilename(date) {
+  const ts = (date || new Date()).toISOString().replace(/[-:]/g, '').replace('.', '');
+  return `spec.new__${ts}.md`;
+}
+
+function uniquePromptFilename(promptsDir, filename) {
+  if (!fs.existsSync(path.join(promptsDir, filename))) return filename;
+  const base = filename.replace(/\.md$/, '');
+  for (let n = 2; ; n += 1) {
+    const candidate = `${base}-${n}.md`;
+    if (!fs.existsSync(path.join(promptsDir, candidate))) return candidate;
+  }
+}
+
+function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
+  const result = getCommandPrompt(projectPath, slug, command, aiTool, description);
   if (result.error) return result;
   const promptsDir = path.join(projectPath, RUNTIME_PROMPTS_DIR);
   fs.mkdirSync(promptsDir, { recursive: true });
-  const filename = `${slug}__${command}.md`;
+  const slugless = isSlugless(slug, command);
+  // Staging a slug-less spec.new prompt is the one thing only Frame's own New
+  // Spec launcher does — it is the origin signal for the telemetry below.
+  if (slugless) markSpecNewLaunch();
+  const filename = slugless
+    ? uniquePromptFilename(promptsDir, specNewPromptFilename())
+    : `${slug}__${command}.md`;
   const absPath = path.join(promptsDir, filename);
   fs.writeFileSync(absPath, result.prompt, 'utf8');
   stageCommandAssets(projectPath, command, aiTool);
@@ -976,49 +993,6 @@ function searchSpecs(projectPath, query) {
     if (body && body.toLowerCase().includes(q)) matches.push(ent.name);
   }
   return matches;
-}
-
-function createSpec(projectPath, opts) {
-  const { title, ai_tool, description } = opts || {};
-  if (!title || typeof title !== 'string') return { error: 'title required' };
-  const baseSlug = generateSlug(title);
-  if (!baseSlug) return { error: 'could not derive slug from title' };
-  const slug = uniqueSlug(projectPath, baseSlug);
-  const now = new Date().toISOString();
-
-  // If the user typed a description in the modal, seed spec.md with it so
-  // the panel has something to show right away. /spec.new (Slice 1.7) will
-  // later replace this draft with a proper template-driven spec authored
-  // by the active AI tool.
-  const trimmedDescription = typeof description === 'string' ? description.trim() : '';
-  const hasDescription = trimmedDescription.length > 0;
-
-  const status = {
-    slug,
-    title,
-    phase: hasDescription ? 'specified' : 'draft',
-    ai_tool: AI_TOOLS.includes(ai_tool) ? ai_tool : null,
-    generated_task_ids: [],
-    created_at: now,
-    updated_at: now,
-    last_phase_at: now
-  };
-  writeStatus(projectPath, slug, status);
-  telemetry.track('spec_created');
-
-  if (hasDescription) {
-    const dir = getSpecDir(projectPath, slug);
-    const seed = `# ${title}\n\n${trimmedDescription}\n`;
-    fs.writeFileSync(path.join(dir, SPEC_FILE), seed, 'utf8');
-  }
-
-  // Push fresh SPEC_DATA so the panel reflects the new spec immediately.
-  // The fs.watch on the specs root fires for new sub-directories on most
-  // platforms, but timing isn't reliable enough to depend on it — the user
-  // would otherwise see the spec only after switching views.
-  pushSpecData(projectPath);
-
-  return { slug, status };
 }
 
 function updateSpecStatus(projectPath, slug, partial) {
@@ -1275,6 +1249,9 @@ function stopWatching() {
   activeTasksWatcher = null;
   activeWatchedProject = null;
   busySpecSlugs.clear();
+  // Another project's specs are not this one's creations — the next push
+  // reseeds from whatever that project already has on disk.
+  authoredSpecSlugs = null;
   if (watchDebounce) {
     clearTimeout(watchDebounce);
     watchDebounce = null;
@@ -1282,6 +1259,78 @@ function stopWatching() {
   if (tasksWatchDebounce) {
     clearTimeout(tasksWatchDebounce);
     tasksWatchDebounce = null;
+  }
+}
+
+// ─── spec_created ─────────────────────────────────────────
+//
+// The event used to fire inside createSpec, which no longer exists — and it
+// fired *before* the write that produced spec.md, unconditionally, so every
+// empty-description creation counted a spec that was only a status.json.
+//
+// The trigger is now "this slug's spec.md exists and did not before", checked
+// on the watcher's own push. Keyed on spec.md rather than the folder or
+// status.json on purpose: a folder whose authoring failed is not a spec that
+// was created. Specs written by the CLI or the conductor now count too, which
+// is what PRIVACY.md already documents the event as meaning.
+//
+// null = no snapshot yet. The first push after a project opens seeds it from
+// what is already on disk, so nothing is backfilled and a deleted-then-
+// rewritten spec.md is not counted twice.
+let authoredSpecSlugs = null;
+
+// Outstanding New Spec launches — one timestamp per slug-less spec.new prompt
+// Frame staged, consumed by the spec it produces. A run the user abandoned
+// would otherwise sit here forever and attribute someone else's spec to the
+// button, so a marker expires; `button` may undercount, never overcount.
+const SPEC_NEW_LAUNCH_TTL_MS = 30 * 60 * 1000;
+let pendingSpecNewLaunches = [];
+
+function markSpecNewLaunch() {
+  pendingSpecNewLaunches.push(Date.now());
+}
+
+function consumeSpecNewLaunch() {
+  const cutoff = Date.now() - SPEC_NEW_LAUNCH_TTL_MS;
+  pendingSpecNewLaunches = pendingSpecNewLaunches.filter((at) => at >= cutoff);
+  return pendingSpecNewLaunches.length ? (pendingSpecNewLaunches.shift(), true) : false;
+}
+
+/**
+ * How this spec was started, from Frame's own state — never guessed from the
+ * agent. The launcher marker wins because it is the only positive evidence;
+ * `conductor` is read from the orchestration session; everything else is a
+ * user asking an agent directly, whether in a conversation or by typing the
+ * command. Required lazily: orchestrationManager requires this module.
+ */
+function resolveSpecOrigin(projectPath) {
+  if (consumeSpecNewLaunch()) return 'button';
+  try {
+    const orchState = require('./orchestrationManager').getState(projectPath);
+    if (orchState && orchState.active) return 'conductor';
+  } catch (err) {
+    console.error('specManager: orchestration state unreadable for spec origin', err.message);
+  }
+  return 'agent';
+}
+
+function trackNewlyAuthoredSpecs(projectPath, specs) {
+  const authored = new Set();
+  for (const spec of specs) {
+    if (fileExists(projectPath, spec.slug, SPEC_FILE)) authored.add(spec.slug);
+  }
+  const previous = authoredSpecSlugs;
+  authoredSpecSlugs = authored;
+  if (!previous) return;
+
+  const appeared = [...authored].filter((slug) => !previous.has(slug));
+  // Two specs in one push: nothing says which launch produced which, so
+  // neither is attributed. The event still fires — it is the origin that is
+  // unknown, not the creation.
+  const attributable = appeared.length === 1;
+  for (const _slug of appeared) {
+    const origin = attributable ? resolveSpecOrigin(projectPath) : null;
+    telemetry.track('spec_created', origin ? { origin } : undefined);
   }
 }
 
@@ -1295,6 +1344,9 @@ function pushSpecData(projectPath) {
   syncAllSpecTasks(projectPath);
   const specs = listSpecs(projectPath);
   perfMonitor.opEnd('spec-push');
+  // Before the skip-unchanged gate: a newly authored spec.md must be counted
+  // on the push that first sees it, whatever the payload comparison decides.
+  trackNewlyAuthoredSpecs(projectPath, specs);
   // Skip-unchanged: same channel, same payload shape — but only send when
   // the data actually changed since the last push.
   const payloadJson = JSON.stringify({ projectPath, specs });
@@ -1319,20 +1371,17 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.GET_SPEC, (event, { projectPath, slug }) =>
     getSpec(projectPath, slug)
   );
-  ipcMain.handle(IPC.CREATE_SPEC, (event, { projectPath, opts }) =>
-    createSpec(projectPath, opts)
-  );
   ipcMain.handle(IPC.UPDATE_SPEC_STATUS, (event, { projectPath, slug, partial }) =>
     updateSpecStatus(projectPath, slug, partial)
   );
   ipcMain.handle(IPC.RENAME_SPEC, (event, { projectPath, oldSlug, opts }) =>
     renameSpec(projectPath, oldSlug, opts)
   );
-  ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool }) =>
-    getCommandPrompt(projectPath, slug, command, aiTool)
+  ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool, description }) =>
+    getCommandPrompt(projectPath, slug, command, aiTool, description)
   );
-  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool }) =>
-    buildSpecCommandFile(projectPath, slug, command, aiTool)
+  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool, description }) =>
+    buildSpecCommandFile(projectPath, slug, command, aiTool, description)
   );
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
@@ -1382,14 +1431,12 @@ function setupIPC(ipcMain) {
 module.exports = {
   init,
   setupIPC,
-  // Exported for tests + future Slice 1.5 (project init) reuse
-  generateSlug,
+  // Exported for tests
   validateSpecStatus,
   repairSpecStatus,
   listSpecs,
   searchSpecs,
   getSpec,
-  createSpec,
   updateSpecStatus,
   renameSpec,
   deleteSpec,
@@ -1398,6 +1445,7 @@ module.exports = {
   startWatching,
   getCommandPrompt,
   buildSpecCommandFile,
+  specNewPromptFilename,
   buildImplementPermissions,
   resolveVerificationCommand,
   writeImplementPermissions,

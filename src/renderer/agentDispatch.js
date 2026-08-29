@@ -59,8 +59,10 @@ function init(ui) {
     const a = instance && instance.state.assignment;
     if (a && a.kind === 'task') _notifyTaskLane(a.ref);
   });
+  ipcRenderer.on(IPC.SPEC_DATA, (event, { specs }) => _onSpecData(specs));
   ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) => {
     launchedAutonomousLanes.delete(terminalId);
+    specCreatorLanes.delete(terminalId);
     for (const [slug, laneId] of specLanes) {
       if (laneId === terminalId) _notifySpecLane(slug);
     }
@@ -563,6 +565,177 @@ async function _dispatchImplement({ slug, title, projectPath, assignment }) {
   return result;
 }
 
+// ─── New Spec: the launcher path ────────────────────────────
+//
+// `spec.new` is the one command that runs before its spec exists, so it
+// cannot go through dispatchSpecCommand: there is no slug to stage against,
+// no assigned lane to look up, and nothing to label the lane after. The lane
+// carries this transient name until the agent writes the folder and the
+// SPEC_DATA subscription relabels it to the standard `spec: <slug>`.
+const SPEC_CREATOR_LANE_NAME = 'Spec Creator';
+
+// Lanes launched by dispatchSpecNew that have not yet produced a spec, with
+// the default name to restore once one appears. This is the outstanding-launch
+// marker: membership means "Frame started this run and is waiting for its
+// slug". Session-scoped, like specLanes.
+const specCreatorLanes = new Map(); // Map<terminalId, {defaultName: string}>
+
+// Slugs seen in the last SPEC_DATA push, and the project they belong to. The
+// diff against these is what identifies a newly created spec; the project is
+// tracked with them so switching projects reseeds rather than reporting every
+// spec in the new project as new.
+let knownSpecSlugs = null;
+let knownSpecProject = null;
+
+/** Still open, and still carrying the transient name we gave it. */
+function _isSpecCreatorLane(terminalId) {
+  const instance = multiTerminalUI.getManager().getTerminal(terminalId);
+  if (!instance) return false;
+  const s = instance.state;
+  return (s.customName || s.name) === SPEC_CREATOR_LANE_NAME;
+}
+
+/**
+ * A new slug appeared — attach it to the lane that produced it.
+ *
+ * The single-live-lane rule: bind only when exactly one spec appeared and
+ * exactly one Spec Creator lane is waiting. Zero or several on either side and
+ * the slug stays unbound, so "Generate Plan" opens a new Frame as it does for
+ * any first run. That degrades to the unbound behavior rather than to a wrong
+ * binding, which is the whole point — two concurrent creations must not guess.
+ */
+function _onSpecData(specs) {
+  const projectPath = state.getProjectPath();
+  const incoming = new Set((specs || []).map((s) => s && s.slug).filter(Boolean));
+  const previous = knownSpecProject === projectPath ? knownSpecSlugs : null;
+  knownSpecSlugs = incoming;
+  knownSpecProject = projectPath;
+
+  // The opening snapshot has nothing to diff against: every spec in it already
+  // existed, so none of them is "newly created".
+  if (!previous || !specCreatorLanes.size) return;
+
+  const appeared = [...incoming].filter((slug) => !previous.has(slug));
+  if (appeared.length !== 1) return;
+
+  const waiting = [...specCreatorLanes.keys()].filter(_isSpecCreatorLane);
+  if (waiting.length !== 1) return;
+
+  _bindSpecCreatorLane(waiting[0], appeared[0]);
+}
+
+function _bindSpecCreatorLane(terminalId, slug) {
+  const entry = specCreatorLanes.get(terminalId);
+  specCreatorLanes.delete(terminalId);
+
+  const manager = multiTerminalUI.getManager();
+  // "Spec Creator" names a transient state, not an identity: once status.json
+  // exists this is an ordinary spec lane, so the transient name comes off and
+  // the standard assignment chip goes on — exactly what dispatchSpecCommand
+  // leaves behind for every other spec.
+  const instance = manager.getTerminal(terminalId);
+  if (instance && entry) {
+    instance.state.customName = null;
+    instance.state.name = entry.defaultName;
+  }
+  manager.setAssignment(terminalId, { kind: 'spec', label: `spec: ${slug}`, ref: slug });
+
+  specLanes.set(slug, terminalId);
+  _notifySpecLane(slug);
+}
+
+/**
+ * Hand the user's free-form text to the standard `spec.new` flow.
+ *
+ * Creates no spec folder — the agent derives the slug, creates the directory
+ * and authors both files. The staged prompt under `.frame/runtime/prompts/`
+ * is what survives a failed or abandoned run, so the text is never lost even
+ * when nothing else is written.
+ *
+ * Resolves at the hand-off — the prompt is staged and the lane is open and
+ * named — not when the agent finishes booting. `success` therefore means "this
+ * run is the lane's now", which is what the caller needs in order to get out
+ * of the way.
+ *
+ * @param {string} description - the user's text, verbatim
+ * @returns {Promise<{success: boolean, terminalId: string|null, error: string|null}>}
+ */
+async function dispatchSpecNew(description) {
+  if (!multiTerminalUI) {
+    return _fail(null, 'Terminal system is not ready yet');
+  }
+  const projectPath = state.getProjectPath();
+  if (!projectPath) {
+    return _fail(null, 'Open a project first');
+  }
+  const text = String(description || '').trim();
+  if (!text) {
+    return _fail(null, 'Nothing to dispatch — describe the spec first');
+  }
+
+  let staged;
+  try {
+    staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
+      projectPath,
+      slug: null,
+      command: 'spec.new',
+      aiTool: 'claude-code',
+      description: text
+    });
+  } catch (err) {
+    console.error('agentDispatch: spec.new staging failed', err);
+    staged = null;
+  }
+  if (!staged || !staged.success) {
+    return _fail(null, 'Could not stage prompt: ' + ((staged && staged.error) || 'unknown error'));
+  }
+
+  // Always a new lane — with no slug there is nothing to reuse a lane by, and
+  // "continue where the last spec was written" is not a meaningful offer.
+  // Created here rather than via dispatch({ createNew: true }) so the name is
+  // in place before the CLI cold-start, instead of after up to 15s of "Frame 2".
+  let terminalId;
+  try {
+    terminalId = await multiTerminalUI.createTerminalForCurrentProject();
+  } catch (err) {
+    console.error('agentDispatch: terminal creation failed', err);
+    terminalId = null;
+  }
+  if (!terminalId) {
+    const max = multiTerminalUI.getManager().maxTerminals;
+    return _fail(null, `Could not create a new terminal — maximum (${max}) may be reached for this project`);
+  }
+  const manager = multiTerminalUI.getManager();
+  const created = manager.getTerminal(terminalId);
+  // Remember the name we are covering up: the lane goes back to it once the
+  // spec exists and the standard assignment chip takes over.
+  specCreatorLanes.set(terminalId, {
+    defaultName: (created && created.state.name) || null
+  });
+  manager.renameTerminal(terminalId, SPEC_CREATOR_LANE_NAME);
+
+  // Deliberately not awaited. dispatch() cold-starts the CLI and waits up to
+  // AGENT_READY_TIMEOUT_MS for it to answer; awaiting that here kept the New
+  // Spec modal on screen — covering the very lane the user should be watching
+  // — until the agent happened to come up, with nothing but a disabled button
+  // to explain the wait. The hand-off is done once the lane exists and carries
+  // the prompt's destination; the lane is the progress surface from there, and
+  // every downstream failure already toasts through _fail.
+  dispatch({ terminalId, prompt: staged.instruction })
+    .then((result) => {
+      // A dispatch that never reached an agent leaves nothing to wait for —
+      // drop the marker so it can't bind a spec someone else creates later.
+      if (!result.success) specCreatorLanes.delete(terminalId);
+    })
+    .catch((err) => {
+      console.error('agentDispatch: spec.new dispatch failed', err);
+      specCreatorLanes.delete(terminalId);
+      notify.error('Could not start the Spec Creator agent');
+    });
+
+  return { success: true, terminalId, error: null };
+}
+
 /**
  * Live info about the lane a spec is assigned to, or null when unassigned
  * (including: the lane was closed). Computed fresh on every call — never
@@ -802,6 +975,7 @@ module.exports = {
   startDefaultAgent,
   resumeClaudeSession,
   dispatchSpecCommand,
+  dispatchSpecNew,
   getSpecLaneInfo,
   getTaskLaneInfo,
   onSpecLaneActivity,

@@ -12,7 +12,7 @@ The complete event list:
 | --- | --- | --- |
 | `app_started` | — | the app was launched |
 | `project_initialized` | — | a Frame project was set up |
-| `spec_created` | — | a spec was created |
+| `spec_created` | `origin`: `button` / `agent` / `conductor` | a spec was created, and how it was started (Frame's New Spec launcher, asking an agent directly, or an orchestration run; absent when Frame cannot tell) |
 | `spec_phase_advanced` | `phase`: `draft` / `specified` / `planned` / `tasks_generated` / `implementing` / `done` | the spec workflow is being used |
 | `agent_run_started` | `tool`: `claude` / `codex` / `gemini` / `custom` | an AI CLI was launched (identity of custom tools is never sent — they all read as `custom`) |
 | `orchestrator_opened` | — | the orchestrator view was opened |

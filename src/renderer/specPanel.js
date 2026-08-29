@@ -536,13 +536,14 @@ function backToList() {
   renderList();
 }
 
-// ─── New Spec stub ──────────────────────────────────
+// ─── New Spec ───────────────────────────────────────
 //
-// Slice 1.7 replaces this with a proper modal + slash command flow that
-// hands off to the active AI tool. For now, this minimal modal lets users
-// seed a spec folder so the panel has something to show while we iterate
-// on the lifecycle. Built inline (no HTML edit) since it's temporary —
-// `window.prompt` is blocked in Electron's renderer.
+// A launcher, not a producer. The modal collects free-form text and hands it
+// to the standard `spec.new` flow in an agent lane; the agent derives the
+// title and slug, creates the folder and authors spec.md. Nothing here writes
+// spec content, and no directory appears under .frame/specs/ until the agent
+// makes one. Built inline (no HTML edit) — `window.prompt` is blocked in
+// Electron's renderer.
 
 function showNewSpecPrompt() {
   const projectPath = state.getProjectPath();
@@ -556,23 +557,13 @@ function showNewSpecPrompt() {
   overlay.innerHTML = `
     <div class="spec-modal spec-modal-wide" role="dialog" aria-modal="true" aria-labelledby="spec-modal-title">
       <h3 id="spec-modal-title">New Spec</h3>
-      <p>Give your spec a short, action-oriented title. Description is optional and seeds <code>spec.md</code> if provided.</p>
+      <p>Describe the work in your own words. An agent turns it into a spec — it picks the title and writes <code>spec.md</code>.</p>
 
-      <label class="spec-modal-field-label" for="spec-modal-title-input">Title</label>
-      <input
-        id="spec-modal-title-input"
-        type="text"
-        class="spec-modal-input"
-        placeholder="Add Share button to ProductPage"
-        autocomplete="off"
-        spellcheck="false"
-      />
-
-      <label class="spec-modal-field-label" for="spec-modal-desc-input">Description <span class="spec-modal-field-optional">(optional)</span></label>
       <textarea
         id="spec-modal-desc-input"
         class="spec-modal-textarea"
-        rows="6"
+        rows="7"
+        aria-labelledby="spec-modal-title"
         placeholder="Customers viewing a product page have no quick way to share it on social media. We want a Share button next to the cart CTA that opens a Twitter intent URL prefilled with the product title and canonical URL."
         autocomplete="off"
         spellcheck="false"
@@ -587,37 +578,28 @@ function showNewSpecPrompt() {
   `;
   document.body.appendChild(overlay);
 
-  const titleInput = overlay.querySelector('#spec-modal-title-input');
   const descInput = overlay.querySelector('#spec-modal-desc-input');
   const errorEl = overlay.querySelector('.spec-modal-error');
   const cancelBtn = overlay.querySelector('.spec-modal-cancel');
   const createBtn = overlay.querySelector('.spec-modal-create');
 
-  setTimeout(() => titleInput.focus(), 30);
+  setTimeout(() => descInput.focus(), 30);
 
   const close = () => overlay.remove();
   const submit = async () => {
-    const title = titleInput.value.trim();
     const description = descInput.value.trim();
-    if (!title) {
-      titleInput.focus();
-      return;
-    }
-    // If the title is all symbols / non-Latin characters, the auto-derived
-    // slug ends up empty. Surface that as a friendly message instead of
-    // exposing the word "slug" to the user.
-    if (!deriveSlugPreview(title)) {
-      errorEl.textContent = 'Title needs at least one letter or number.';
-      titleInput.focus();
+    if (!description) {
+      descInput.focus();
       return;
     }
     createBtn.disabled = true;
-    const result = await ipcRenderer.invoke(IPC.CREATE_SPEC, {
-      projectPath,
-      opts: { title, description }
-    });
-    if (result && result.error) {
-      errorEl.textContent = 'Could not create spec: ' + result.error;
+    // Resolves at the hand-off — the prompt is staged and the lane is open —
+    // not when the agent finishes booting, so the modal gets out of the way
+    // immediately and the lane shows the CLI coming up. Only failures before
+    // the hand-off land here; anything after it toasts from the dispatch.
+    const result = await require('./agentDispatch').dispatchSpecNew(description);
+    if (!result || !result.success) {
+      errorEl.textContent = 'Could not hand this to an agent: ' + ((result && result.error) || 'unknown error');
       createBtn.disabled = false;
       return;
     }
@@ -626,12 +608,8 @@ function showNewSpecPrompt() {
 
   cancelBtn.addEventListener('click', close);
   createBtn.addEventListener('click', submit);
-  // Title input: Enter submits
-  titleInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); submit(); }
-    if (e.key === 'Escape') close();
-  });
-  // Description: Cmd/Ctrl+Enter submits, bare Enter inserts newline
+  // Cmd/Ctrl+Enter submits, bare Enter inserts a newline — the field takes
+  // paragraphs now, so Enter can no longer mean "go".
   descInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
@@ -642,20 +620,6 @@ function showNewSpecPrompt() {
   overlay.addEventListener('click', e => {
     if (e.target === overlay) close();
   });
-}
-
-// Same shape as specManager.generateSlug — duplicated here so the renderer
-// can preview without a roundtrip. Keep in sync if the canonical changes.
-function deriveSlugPreview(title) {
-  return String(title || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 48)
-    .replace(/^-+|-+$/g, '');
 }
 
 // ─── Spec-Driven Development opt-in suggestion ─────────────

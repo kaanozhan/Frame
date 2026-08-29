@@ -17,7 +17,11 @@
 const EVENTS = {
   app_started: {},
   project_initialized: {},
-  spec_created: {},
+  // origin: how the spec was started. `button` is set only when Frame itself
+  // staged the spec.new prompt, so it can undercount but never overcount;
+  // `conductor` reads Frame's own orchestration state. Ambiguity resolves
+  // down to `agent`, or to no property at all.
+  spec_created: { origin: ['button', 'agent', 'conductor'] },
   spec_phase_advanced: {
     phase: ['draft', 'specified', 'planned', 'tasks_generated', 'implementing', 'done'],
   },
