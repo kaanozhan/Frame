@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T08:31:36.304Z",
+  "lastUpdated": "2026-08-29T08:33:48.936Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6395,18 +6395,18 @@
       "title": "Add `origin: ['button', 'agent', 'conductor']` to `spec_created` in `src/main/telemetryEvents.js`, tag the watcher's fire from the launch marker T04 maintains with `agent` as the fallback and no property when nothing can be established, update the `PRIVACY.md` event table in the same change, and extend `test/telemetry.test.js` for the new enum",
       "description": "",
       "source": "spec:new-spec-agent-handoff:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: new-spec-agent-handoff",
       "createdAt": "2026-08-29T08:10:30.782Z",
-      "updatedAt": "2026-08-29T08:10:30.782Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T08:33:48.936Z",
+      "completedAt": "2026-08-29T08:33:48.936Z"
     }
   ],
   "metadata": {
     "totalCreated": 475,
-    "totalCompleted": 421
+    "totalCompleted": 422
   },
   "categories": {
     "feature": "New features",

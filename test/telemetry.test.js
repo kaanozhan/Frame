@@ -69,6 +69,41 @@ test('out-of-enum values are stripped', () => {
   assert.deepEqual(validateEvent('error_occurred', { category: 'stack: at foo()' }), {});
 });
 
+// ─── spec_created origin (new-spec-agent-handoff T07) ─────
+//
+// The property is the difference between "specs are being created" and "the
+// New Spec launcher is being used". It degrades in one direction only: a
+// failed attribution must land on today's bare event, never on a wrong value.
+
+test('every spec_created origin the code can send is accepted', () => {
+  for (const origin of ['button', 'agent', 'conductor']) {
+    assert.deepEqual(validateEvent('spec_created', { origin }), { origin });
+  }
+});
+
+test('an unknown origin is dropped, leaving the bare event', () => {
+  assert.deepEqual(validateEvent('spec_created', { origin: 'modal' }), {});
+  assert.deepEqual(validateEvent('spec_created', { origin: '/Users/x/specs/secret' }), {});
+});
+
+test('an absent origin is still a valid spec_created', () => {
+  assert.deepEqual(validateEvent('spec_created', {}), {});
+  assert.deepEqual(validateEvent('spec_created', undefined), {});
+  assert.deepEqual(validateEvent('spec_created', { origin: undefined }), {});
+});
+
+test('the origin enum matches PRIVACY.md', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const row = fs.readFileSync(path.join(__dirname, '..', 'PRIVACY.md'), 'utf8')
+    .split('\n')
+    .find((line) => line.startsWith('| `spec_created`'));
+  assert.ok(row, 'PRIVACY.md must carry a spec_created row');
+  for (const origin of EVENTS.spec_created.origin) {
+    assert.ok(row.includes(`\`${origin}\``), `PRIVACY.md must document origin ${origin}`);
+  }
+});
+
 test('tool props are normalized before the enum check', () => {
   assert.deepEqual(validateEvent('agent_run_started', { tool: 'claude-code' }), { tool: 'claude' });
   assert.deepEqual(validateEvent('ai_tool_selected', { tool: 'my-secret-tool' }), { tool: 'custom' });

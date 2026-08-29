@@ -82,3 +82,19 @@ only specs created outside Frame. Files: `src/main/specManager.js`,
 _Captured: 2026-08-29 · 2 file change(s)_
 
 ---
+## T07 — `spec_created` carries its origin
+
+Added `origin: ['button', 'agent', 'conductor']` to the registry with the
+matching `PRIVACY.md` row in the same change, and resolved it in the watcher:
+an outstanding slug-less `spec.new` staging means `button`, an active
+orchestration session means `conductor`, otherwise `agent`; two specs in one
+push are sent with no origin. Attribution rides on staging rather than a
+renderer marker over IPC — only Frame's launcher stages a slug-less prompt, so
+the signal is already in main. Beyond the plan: launch markers expire after 30
+minutes, since an abandoned run would otherwise attribute a later CLI-created
+spec to the button. Files: `src/main/telemetryEvents.js`, `src/main/specManager.js`,
+`PRIVACY.md`, `test/telemetry.test.js`.
+
+_Captured: 2026-08-29 · 4 file change(s)_
+
+---

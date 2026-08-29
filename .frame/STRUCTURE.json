@@ -3332,7 +3332,8 @@
         "frameProject",
         "telemetry",
         "activityLog",
-        "perfMonitor"
+        "perfMonitor",
+        "orchestrationManager"
       ],
       "functions": {
         "getSpecsRoot": {
@@ -3593,53 +3594,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 789,
+          "line": 793,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 815,
+          "line": 819,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 834,
+          "line": 838,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 839,
+          "line": 843,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 919,
+          "line": 923,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 926,
+          "line": 930,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 943,
+          "line": 947,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 973,
+          "line": 977,
           "params": [
             "projectPath",
             "query"
@@ -3647,7 +3648,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 994,
+          "line": 998,
           "params": [
             "projectPath",
             "slug",
@@ -3655,14 +3656,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1017,
+          "line": 1021,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1034,
+          "line": 1038,
           "params": [
             "projectPath",
             "oldSlug",
@@ -3671,35 +3672,48 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1146,
+          "line": 1150,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1237
+          "line": 1241
+        },
+        "markSpecNewLaunch": {
+          "line": 1289
+        },
+        "consumeSpecNewLaunch": {
+          "line": 1293
+        },
+        "resolveSpecOrigin": {
+          "line": 1306,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackNewlyAuthoredSpecs": {
-          "line": 1278,
+          "line": 1317,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1291,
+          "line": 1337,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1314,
+          "line": 1360,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1318,
+          "line": 1364,
           "params": [
             "ipcMain"
           ]
@@ -4016,14 +4030,14 @@
       "depends": [],
       "functions": {
         "normalizeTool": {
-          "line": 54,
+          "line": 58,
           "params": [
             "id"
           ],
           "purpose": "Collapse a tool id to the fixed dashboard enum. User-defined custom tool"
         },
         "validateEvent": {
-          "line": 69,
+          "line": 73,
           "params": [
             "name",
             "props"
@@ -4031,7 +4045,7 @@
           "purpose": "Validate an (event, props) pair against the registry."
         },
         "effectiveEnabled": {
-          "line": 93,
+          "line": 97,
           "params": [
             "{ value",
             "loadFailed }"
@@ -4039,7 +4053,7 @@
           "purpose": "Effective telemetry state from the persisted setting plus settings-load"
         },
         "createRateLimiter": {
-          "line": 119,
+          "line": 123,
           "params": [
             "options"
           ],

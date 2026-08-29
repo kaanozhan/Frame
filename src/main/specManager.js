@@ -753,7 +753,11 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
   if (result.error) return result;
   const promptsDir = path.join(projectPath, RUNTIME_PROMPTS_DIR);
   fs.mkdirSync(promptsDir, { recursive: true });
-  const filename = isSlugless(slug, command)
+  const slugless = isSlugless(slug, command);
+  // Staging a slug-less spec.new prompt is the one thing only Frame's own New
+  // Spec launcher does — it is the origin signal for the telemetry below.
+  if (slugless) markSpecNewLaunch();
+  const filename = slugless
     ? uniquePromptFilename(promptsDir, specNewPromptFilename())
     : `${slug}__${command}.md`;
   const absPath = path.join(promptsDir, filename);
@@ -1275,6 +1279,41 @@ function stopWatching() {
 // rewritten spec.md is not counted twice.
 let authoredSpecSlugs = null;
 
+// Outstanding New Spec launches — one timestamp per slug-less spec.new prompt
+// Frame staged, consumed by the spec it produces. A run the user abandoned
+// would otherwise sit here forever and attribute someone else's spec to the
+// button, so a marker expires; `button` may undercount, never overcount.
+const SPEC_NEW_LAUNCH_TTL_MS = 30 * 60 * 1000;
+let pendingSpecNewLaunches = [];
+
+function markSpecNewLaunch() {
+  pendingSpecNewLaunches.push(Date.now());
+}
+
+function consumeSpecNewLaunch() {
+  const cutoff = Date.now() - SPEC_NEW_LAUNCH_TTL_MS;
+  pendingSpecNewLaunches = pendingSpecNewLaunches.filter((at) => at >= cutoff);
+  return pendingSpecNewLaunches.length ? (pendingSpecNewLaunches.shift(), true) : false;
+}
+
+/**
+ * How this spec was started, from Frame's own state — never guessed from the
+ * agent. The launcher marker wins because it is the only positive evidence;
+ * `conductor` is read from the orchestration session; everything else is a
+ * user asking an agent directly, whether in a conversation or by typing the
+ * command. Required lazily: orchestrationManager requires this module.
+ */
+function resolveSpecOrigin(projectPath) {
+  if (consumeSpecNewLaunch()) return 'button';
+  try {
+    const orchState = require('./orchestrationManager').getState(projectPath);
+    if (orchState && orchState.active) return 'conductor';
+  } catch (err) {
+    console.error('specManager: orchestration state unreadable for spec origin', err.message);
+  }
+  return 'agent';
+}
+
 function trackNewlyAuthoredSpecs(projectPath, specs) {
   const authored = new Set();
   for (const spec of specs) {
@@ -1283,8 +1322,15 @@ function trackNewlyAuthoredSpecs(projectPath, specs) {
   const previous = authoredSpecSlugs;
   authoredSpecSlugs = authored;
   if (!previous) return;
-  for (const slug of authored) {
-    if (!previous.has(slug)) telemetry.track('spec_created');
+
+  const appeared = [...authored].filter((slug) => !previous.has(slug));
+  // Two specs in one push: nothing says which launch produced which, so
+  // neither is attributed. The event still fires — it is the origin that is
+  // unknown, not the creation.
+  const attributable = appeared.length === 1;
+  for (const _slug of appeared) {
+    const origin = attributable ? resolveSpecOrigin(projectPath) : null;
+    telemetry.track('spec_created', origin ? { origin } : undefined);
   }
 }
 
