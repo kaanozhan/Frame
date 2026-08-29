@@ -44,6 +44,7 @@ function createViewport() {
   const key = `report-vp:${++seq}`;
   let cur = null;        // { projectPath, slug, title, kind }
   let reportHtml = '';
+  let reportPath = '';   // the file on disk, for the Open in browser hatch
   let mtimeMs = 0;
   let loading = false;
   let message = '';      // shown in place of the frame: not generated yet, or a read error
@@ -96,6 +97,7 @@ function createViewport() {
     if (id !== reqId) return; // superseded by a newer navigate
 
     loading = false;
+    reportPath = (result && result.path) || '';
     if (result && result.success) {
       reportHtml = result.html || '';
       mtimeMs = result.mtimeMs || 0;
@@ -120,6 +122,8 @@ function createViewport() {
         <div class="report-section-header">
           <span class="report-section-doctype">${_escape(docType)}</span>
           <span class="report-section-title">${_escape(cur ? cur.title : '')}</span>
+          <button class="btn btn-secondary report-section-open" ${reportPath ? '' : 'disabled'}
+            title="Open the file in the system browser">Open in browser</button>
         </div>
         <div class="report-section-body">
           ${loading
@@ -130,6 +134,13 @@ function createViewport() {
         </div>
       </div>
     `;
+
+    // Routing the six spec-surface buttons here took the browser away as the
+    // default, not as an option: a report is still a file, and sending it to
+    // the browser is how you print it, share it, or read it beside the app.
+    el.querySelector('.report-section-open')?.addEventListener('click', () => {
+      if (reportPath) require('electron').shell.openPath(reportPath);
+    });
 
     if (!loading && !message && reportHtml) {
       const frame = el.querySelector('.rpt-frame');

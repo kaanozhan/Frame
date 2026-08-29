@@ -17,6 +17,7 @@
 const { ipcRenderer } = require('electron');
 const { marked } = require('marked');
 const { IPC } = require('../shared/ipcChannels');
+const reportSection = require('./reportSection');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const specNextAction = require('./specNextAction');
@@ -535,8 +536,13 @@ function renderDetailBody() {
       : '';
     body.innerHTML = reportRow + renderTasksTabBody();
     body.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
-      const p = selectedSpec && selectedSpec.implementReportPath;
-      if (p) require('electron').shell.openPath(p);
+      if (!selectedSpec || !selectedSpec.implementReportPath) return;
+      reportSection.open({
+        projectPath: state.getProjectPath(),
+        slug: selectedSlug,
+        title: selectedSpec.status?.title || selectedSlug,
+        kind: 'implement'
+      });
     });
     return;
   }
@@ -544,14 +550,19 @@ function renderDetailBody() {
   const md = selectedSpec[selectedTab];
   if (md) {
     // "View Plan Report" — only when the spec folder holds a plan-report.html
-    // (getSpec exposes it as planReportPath). Opens in the system browser.
+    // (getSpec exposes it as planReportPath). Opens as a section tab.
     const reportRow = selectedTab === 'plan' && selectedSpec.planReportPath
       ? `<div class="spec-plan-report-row"><button class="btn btn-secondary spec-plan-report-btn">View Plan Report</button></div>`
       : '';
     body.innerHTML = reportRow + renderMarkdown(md);
     body.querySelector('.spec-plan-report-btn')?.addEventListener('click', () => {
-      const p = selectedSpec && selectedSpec.planReportPath;
-      if (p) require('electron').shell.openPath(p);
+      if (!selectedSpec || !selectedSpec.planReportPath) return;
+      reportSection.open({
+        projectPath: state.getProjectPath(),
+        slug: selectedSlug,
+        title: selectedSpec.status?.title || selectedSlug,
+        kind: 'plan'
+      });
     });
   } else if (selectedTab === 'outcome') {
     body.innerHTML = `<div class="spec-empty-tab">No outcomes yet — they're captured automatically as <code>/spec.implement</code> completes each task.</div>`;

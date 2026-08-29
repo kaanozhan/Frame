@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T12:44:07.116Z",
+  "lastUpdated": "2026-08-29T12:45:51.275Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6473,13 +6473,13 @@
       "title": "Route the six report buttons to the section instead of the browser: replace the `shell.openPath` handlers in `src/renderer/specPanel.js`, `src/renderer/specSection.js` and `src/renderer/specsDashboard.js` with `reportSection.open({ projectPath, slug, title, kind })`, and add an \"Open in browser\" button to the viewer header that keeps the old `shell.openPath` behavior available.",
       "description": "",
       "source": "spec:spec-reports-one-shell-two-themes-in-app:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-reports-one-shell-two-themes-in-app",
       "createdAt": "2026-08-29T10:56:22.985Z",
-      "updatedAt": "2026-08-29T10:56:22.985Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T12:45:51.275Z",
+      "completedAt": "2026-08-29T12:45:51.275Z"
     },
     {
       "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T06",

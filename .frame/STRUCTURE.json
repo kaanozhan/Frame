@@ -7631,7 +7631,7 @@
           "line": 43
         },
         "_escape": {
-          "line": 157,
+          "line": 168,
           "params": [
             "text"
           ]
@@ -7971,6 +7971,7 @@
         "electron",
         "marked",
         "shared/ipcChannels",
+        "reportSection",
         "state",
         "htmlUtils",
         "specNextAction",
@@ -7979,66 +7980,66 @@
       ],
       "functions": {
         "init": {
-          "line": 32
+          "line": 33
         },
         "setupEventListeners": {
-          "line": 43
+          "line": 44
         },
         "refresh": {
-          "line": 56,
+          "line": 57,
           "purpose": "Manual fallback for the rare case where the SPEC_DATA push from main"
         },
         "setupIPCListeners": {
-          "line": 71
+          "line": 72
         },
         "show": {
-          "line": 112
+          "line": 113
         },
         "hide": {
-          "line": 120
+          "line": 121
         },
         "toggle": {
-          "line": 130,
+          "line": 131,
           "purpose": "Public toggle. New projects have Spec-Driven Development on, so this just"
         },
         "startWatchingForProject": {
-          "line": 148,
+          "line": 149,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 157
+          "line": 158
         },
         "renderList": {
-          "line": 164
+          "line": 165
         },
         "renderSpecRow": {
-          "line": 195,
+          "line": 196,
           "params": [
             "spec"
           ]
         },
         "openDetail": {
-          "line": 218,
+          "line": 219,
           "params": [
             "slug"
           ]
         },
         "reloadDetail": {
-          "line": 224
+          "line": 225
         },
         "renderDetail": {
-          "line": 232
+          "line": 233
         },
         "runSpecCommand": {
-          "line": 305,
+          "line": 306,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 317,
+          "line": 318,
           "params": [
             "tab",
             "label",
@@ -8046,91 +8047,91 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 323
+          "line": 324
         },
         "tasksTabLabel": {
-          "line": 329,
+          "line": 330,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 338,
+          "line": 339,
           "params": [
             "tab"
           ]
         },
         "renderPlanReportRow": {
-          "line": 363,
+          "line": 366,
           "purpose": "\"View Plan Report\" — shown above the rendered plan only when the spec"
         },
         "attachPlanReportHandler": {
-          "line": 371
+          "line": 374
         },
         "renderImplementReportRow": {
-          "line": 382,
+          "line": 390,
           "purpose": "\"View Implementation Report\" — shown above the task list only when the spec"
         },
         "attachImplementReportHandler": {
-          "line": 390
+          "line": 398
         },
         "renderTasksTabBody": {
-          "line": 397
+          "line": 410
         },
         "renderSpecTaskRow": {
-          "line": 437,
+          "line": 450,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 486
+          "line": 499
         },
         "handleSpecTaskAction": {
-          "line": 499,
+          "line": 512,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 518,
+          "line": 531,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 532
+          "line": 545
         },
         "showNewSpecPrompt": {
-          "line": 548
+          "line": 561
         },
         "showSuggestionModal": {
-          "line": 631,
+          "line": 644,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 698,
+          "line": 711,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 791,
+          "line": 804,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 811,
+          "line": 824,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 821,
+          "line": 834,
           "params": [
             "iso"
           ]
@@ -8199,6 +8200,7 @@
         "electron",
         "marked",
         "shared/ipcChannels",
+        "reportSection",
         "state",
         "sectionRail",
         "lucide",
@@ -8209,56 +8211,56 @@
       ],
       "functions": {
         "setHost": {
-          "line": 33,
+          "line": 34,
           "params": [
             "h"
           ]
         },
         "open": {
-          "line": 38,
+          "line": 39,
           "params": [
             "slug"
           ],
           "purpose": "Open a spec — reuses the open spec viewport, or creates one if none."
         },
         "openInNewTab": {
-          "line": 44,
+          "line": 45,
           "params": [
             "slug"
           ],
           "purpose": "Open a spec in a brand-new viewport tab."
         },
         "createViewport": {
-          "line": 50,
+          "line": 51,
           "purpose": "Create a fresh spec viewport instance (the host calls this when needed)."
         },
         "stepIndexForPhase": {
-          "line": 409,
+          "line": 420,
           "params": [
             "phase"
           ]
         },
         "renderStepper": {
-          "line": 421,
+          "line": 432,
           "params": [
             "phase"
           ]
         },
         "renderSpecTaskRow": {
-          "line": 438,
+          "line": 449,
           "params": [
             "task"
           ]
         },
         "handleTaskAction": {
-          "line": 487,
+          "line": 498,
           "params": [
             "taskId",
             "action"
           ]
         },
         "renderMarkdown": {
-          "line": 496,
+          "line": 507,
           "params": [
             "md"
           ]
@@ -8292,6 +8294,7 @@
         "electron",
         "marked",
         "shared/ipcChannels",
+        "reportSection",
         "state",
         "htmlUtils",
         "specNextAction",
@@ -8301,93 +8304,93 @@
       ],
       "functions": {
         "init": {
-          "line": 56
+          "line": 57
         },
         "setupIPCListeners": {
-          "line": 92
+          "line": 93
         },
         "setInlineHost": {
-          "line": 143,
+          "line": 144,
           "params": [
             "host"
           ]
         },
         "mountInline": {
-          "line": 148,
+          "line": 149,
           "params": [
             "container"
           ],
           "purpose": "Mount into the center content area and load data. Called by the host."
         },
         "notifyDetached": {
-          "line": 158,
+          "line": 159,
           "purpose": "The host swapped the center to another view — reset without routing."
         },
         "_load": {
-          "line": 169
+          "line": 170
         },
         "show": {
-          "line": 199
+          "line": 200
         },
         "hide": {
-          "line": 209
+          "line": 210
         },
         "toggle": {
-          "line": 220
+          "line": 221
         },
         "renderFilters": {
-          "line": 230
+          "line": 231
         },
         "applyFilter": {
-          "line": 244,
+          "line": 245,
           "params": [
             "specsList"
           ]
         },
         "setupSearch": {
-          "line": 260
+          "line": 261
         },
         "runSearch": {
-          "line": 274,
+          "line": 275,
           "params": [
             "rawQuery"
           ]
         },
         "clearSearch": {
-          "line": 297
+          "line": 298
         },
         "renderGrid": {
-          "line": 308
+          "line": 309
         },
         "renderCard": {
-          "line": 339,
+          "line": 340,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 393,
+          "line": 394,
           "params": [
             "slug"
           ]
         },
         "clearSelection": {
-          "line": 401
+          "line": 402
         },
         "reloadDetail": {
-          "line": 409
+          "line": 410
         },
         "renderDetailHeader": {
-          "line": 425
+          "line": 426
         },
         "runSpecCommand": {
-          "line": 506,
+          "line": 507,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 517,
+          "line": 518,
           "params": [
             "tab",
             "label",
@@ -8395,50 +8398,50 @@
           ]
         },
         "renderDetailBody": {
-          "line": 523
+          "line": 524
         },
         "renderTasksTabBody": {
-          "line": 564
+          "line": 575
         },
         "renderSpecTaskRow": {
-          "line": 601,
+          "line": 612,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 650
+          "line": 661
         },
         "handleSpecTaskAction": {
-          "line": 663,
+          "line": 674,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 674
+          "line": 685
         },
         "tasksTabLabel": {
-          "line": 680,
+          "line": 691,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 689,
+          "line": 700,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 694,
+          "line": 705,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 705,
+          "line": 716,
           "params": [
             "projectPath"
           ]

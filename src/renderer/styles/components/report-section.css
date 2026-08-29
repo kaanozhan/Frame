@@ -81,3 +81,11 @@
   font-size: 13px;
   color: var(--text-tertiary);
 }
+
+/* The escape hatch: the browser is no longer where a report opens by default,
+   but it is still where you go to print or share one. */
+.report-section-open {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  padding: 3px 10px;
+}

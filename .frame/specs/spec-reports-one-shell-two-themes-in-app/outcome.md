@@ -67,3 +67,19 @@ Files: `reportSection.js`, `report-section.css`, `main.css`,
 _Captured: 2026-08-29 · 5 file changes_
 
 ---
+## T05 — The six buttons route to the section
+
+Replaced all six `shell.openPath` handlers in `specPanel.js`,
+`specSection.js` and `specsDashboard.js` with
+`reportSection.open({ projectPath, slug, title, kind })` — each surface already
+had the slug and `state.getProjectPath()`, so no call site learns a report
+path — and updated the three comments that promised the system browser. Added
+the "Open in browser" button to the viewer header, which keeps `shell.openPath`
+on the path `READ_SPEC_REPORT` returns and stays disabled until a read has
+produced one.
+Files: `specPanel.js`, `specSection.js`, `specsDashboard.js`,
+`reportSection.js`, `report-section.css`.
+
+_Captured: 2026-08-29 · 5 file changes_
+
+---
