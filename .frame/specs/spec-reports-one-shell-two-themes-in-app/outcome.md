@@ -98,3 +98,18 @@ Files: `reportSection.js`, `report-section.css`.
 _Captured: 2026-08-29 · 2 file changes_
 
 ---
+## T07 — Following a live report
+
+The viewport listens on `SPEC_DATA`, re-reads the file silently and re-renders
+only when `mtimeMs` or the error state moved — an autonomous run touches
+`tasks.json` every task, so the push arrives, but it says "this spec moved",
+not "the report was rewritten". Beyond plan.md: `_load` needed a `notify` flag,
+because it notified the host on every completion and would have redrawn the
+frame on each push regardless of mtime, defeating the gate. The Refresh button
+covers the regeneration nothing announces, and passes `quiet=false` so an
+explicit click always redraws.
+Files: `reportSection.js`, `report-section.css`.
+
+_Captured: 2026-08-29 · 2 file changes_
+
+---

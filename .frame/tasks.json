@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T12:47:25.476Z",
+  "lastUpdated": "2026-08-29T12:49:18.084Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6499,13 +6499,13 @@
       "title": "Follow a regenerating report: re-read on `SPEC_DATA` and swap the frame's `srcdoc` only when `mtimeMs` moved, re-stamping the theme on load, and add a Refresh button beside it for the run where no push arrives.",
       "description": "",
       "source": "spec:spec-reports-one-shell-two-themes-in-app:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-reports-one-shell-two-themes-in-app",
       "createdAt": "2026-08-29T10:56:22.985Z",
-      "updatedAt": "2026-08-29T10:56:22.985Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T12:49:18.084Z",
+      "completedAt": "2026-08-29T12:49:18.084Z"
     }
   ],
   "metadata": {

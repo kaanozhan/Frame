@@ -100,3 +100,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Refresh sits beside the escape hatch and matches it: this header is chrome,
+   not content, and neither button should compete with the report below. */
+.report-section-refresh {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  padding: 3px 10px;
+}

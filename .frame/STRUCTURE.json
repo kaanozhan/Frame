@@ -7635,11 +7635,17 @@
           "line": 59
         },
         "_escape": {
-          "line": 221,
+          "line": 261,
           "params": [
             "text"
           ]
         }
+      },
+      "ipc": {
+        "listens": [
+          "SPEC_DATA"
+        ],
+        "emits": []
       }
     },
     "renderer/sampleBanner": {
