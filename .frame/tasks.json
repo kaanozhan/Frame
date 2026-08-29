@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T08:30:09.913Z",
+  "lastUpdated": "2026-08-29T08:31:36.304Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6382,13 +6382,13 @@
       "title": "Delete `createSpec`, `uniqueSlug`, `generateSlug` and its export, the `CREATE_SPEC` channel and handler, and the renderer's `deriveSlugPreview`, leaving the `draft` phase and its \"Write the Spec\" action intact as the recovery path for specs created outside Frame",
       "description": "",
       "source": "spec:new-spec-agent-handoff:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: new-spec-agent-handoff",
       "createdAt": "2026-08-29T08:10:30.782Z",
-      "updatedAt": "2026-08-29T08:10:30.782Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T08:31:36.304Z",
+      "completedAt": "2026-08-29T08:31:36.304Z"
     },
     {
       "id": "task-spec-new-spec-agent-handoff-T07",
@@ -6406,7 +6406,7 @@
   ],
   "metadata": {
     "totalCreated": 475,
-    "totalCompleted": 420
+    "totalCompleted": 421
   },
   "categories": {
     "feature": "New features",

@@ -69,3 +69,16 @@ File: `src/main/specManager.js`.
 _Captured: 2026-08-29 · 1 file change(s)_
 
 ---
+## T06 — The bypass is deleted
+
+Removed `createSpec`, `uniqueSlug`, `generateSlug` and its export from
+`src/main/specManager.js`, plus the `CREATE_SPEC` handler and its channel in
+`src/shared/ipcChannels.js`; `deriveSlugPreview` went with the title field in
+T03. `SLUG_MAX_LEN` stays — `renameSpec` validates against it independently —
+and the `draft` phase with its "Write the Spec" action is untouched, now serving
+only specs created outside Frame. Files: `src/main/specManager.js`,
+`src/shared/ipcChannels.js`.
+
+_Captured: 2026-08-29 · 2 file change(s)_
+
+---

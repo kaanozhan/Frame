@@ -160,7 +160,6 @@ const IPC = {
   LIST_SPECS: 'list-specs',
   SEARCH_SPECS: 'search-specs',
   GET_SPEC: 'get-spec',
-  CREATE_SPEC: 'create-spec',
   UPDATE_SPEC_STATUS: 'update-spec-status',
   RENAME_SPEC: 'rename-spec',
   WATCH_SPECS: 'watch-specs',

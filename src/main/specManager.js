@@ -67,32 +67,6 @@ function getSpecDir(projectPath, slug) {
   return path.join(getSpecsRoot(projectPath), slug);
 }
 
-// ─── Slug generation ──────────────────────────────────────
-//
-// Lowercase, kebab-case, [a-z0-9-] only, max 48 chars. Conflicts get
-// `-2`, `-3`, ... suffixes. See PROJECT_NOTES.md for the canonical rules.
-
-function generateSlug(title) {
-  if (!title || typeof title !== 'string') return '';
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, SLUG_MAX_LEN)
-    .replace(/^-+|-+$/g, '');
-}
-
-function uniqueSlug(projectPath, baseSlug) {
-  const root = getSpecsRoot(projectPath);
-  if (!fs.existsSync(path.join(root, baseSlug))) return baseSlug;
-  let n = 2;
-  while (fs.existsSync(path.join(root, `${baseSlug}-${n}`))) n++;
-  return `${baseSlug}-${n}`;
-}
-
 // ─── Validation ────────────────────────────────────────────
 //
 // Shape check only — phase enum, required fields, ISO date strings.
@@ -1017,48 +991,6 @@ function searchSpecs(projectPath, query) {
   return matches;
 }
 
-function createSpec(projectPath, opts) {
-  const { title, ai_tool, description } = opts || {};
-  if (!title || typeof title !== 'string') return { error: 'title required' };
-  const baseSlug = generateSlug(title);
-  if (!baseSlug) return { error: 'could not derive slug from title' };
-  const slug = uniqueSlug(projectPath, baseSlug);
-  const now = new Date().toISOString();
-
-  // If the user typed a description in the modal, seed spec.md with it so
-  // the panel has something to show right away. /spec.new (Slice 1.7) will
-  // later replace this draft with a proper template-driven spec authored
-  // by the active AI tool.
-  const trimmedDescription = typeof description === 'string' ? description.trim() : '';
-  const hasDescription = trimmedDescription.length > 0;
-
-  const status = {
-    slug,
-    title,
-    phase: hasDescription ? 'specified' : 'draft',
-    ai_tool: AI_TOOLS.includes(ai_tool) ? ai_tool : null,
-    generated_task_ids: [],
-    created_at: now,
-    updated_at: now,
-    last_phase_at: now
-  };
-  writeStatus(projectPath, slug, status);
-
-  if (hasDescription) {
-    const dir = getSpecDir(projectPath, slug);
-    const seed = `# ${title}\n\n${trimmedDescription}\n`;
-    fs.writeFileSync(path.join(dir, SPEC_FILE), seed, 'utf8');
-  }
-
-  // Push fresh SPEC_DATA so the panel reflects the new spec immediately.
-  // The fs.watch on the specs root fires for new sub-directories on most
-  // platforms, but timing isn't reliable enough to depend on it — the user
-  // would otherwise see the spec only after switching views.
-  pushSpecData(projectPath);
-
-  return { slug, status };
-}
-
 function updateSpecStatus(projectPath, slug, partial) {
   const current = readStatus(projectPath, slug);
   if (!current) return { error: 'spec not found' };
@@ -1393,9 +1325,6 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.GET_SPEC, (event, { projectPath, slug }) =>
     getSpec(projectPath, slug)
   );
-  ipcMain.handle(IPC.CREATE_SPEC, (event, { projectPath, opts }) =>
-    createSpec(projectPath, opts)
-  );
   ipcMain.handle(IPC.UPDATE_SPEC_STATUS, (event, { projectPath, slug, partial }) =>
     updateSpecStatus(projectPath, slug, partial)
   );
@@ -1456,14 +1385,12 @@ function setupIPC(ipcMain) {
 module.exports = {
   init,
   setupIPC,
-  // Exported for tests + future Slice 1.5 (project init) reuse
-  generateSlug,
+  // Exported for tests
   validateSpecStatus,
   repairSpecStatus,
   listSpecs,
   searchSpecs,
   getSpec,
-  createSpec,
   updateSpecStatus,
   renameSpec,
   deleteSpec,
