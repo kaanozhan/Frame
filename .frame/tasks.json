@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T10:56:22.987Z",
+  "lastUpdated": "2026-08-29T12:37:14.653Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6421,13 +6421,13 @@
       "title": "Build the shared shell in `src/templates/commands/claude-code/build-implement-report.mjs`: emit the block between `/* ── frame report shell v1 ── */` markers carrying both palettes from `src/renderer/styles/variables.css` (dark on bare `:root`, light under `:root[data-theme=\"light\"]` and under `@media (prefers-color-scheme:light){:root:not([data-theme=\"dark\"])}`, `color-scheme:light dark`), replace `FRAME_LOGO_DATA_URI` with the four `assets/frame-mark.svg` paths inlined as `<svg fill=\"currentColor\">`, and re-render the header as `.rpt-topbar` (mark, brand, rule, doc type, slug chip, `.rpt-pill` meta) over `.rpt-head`; extend `test/implementReport.test.js` to assert the mark renders, no `data:image/png` survives, the doc type and slug chip appear, and both palette blocks are emitted.",
       "description": "",
       "source": "spec:spec-reports-one-shell-two-themes-in-app:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-reports-one-shell-two-themes-in-app",
       "createdAt": "2026-08-29T10:56:22.985Z",
-      "updatedAt": "2026-08-29T10:56:22.985Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T12:37:14.653Z",
+      "completedAt": "2026-08-29T12:37:14.653Z"
     },
     {
       "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T02",

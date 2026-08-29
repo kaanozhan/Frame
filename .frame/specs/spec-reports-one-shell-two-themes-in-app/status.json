@@ -1,7 +1,7 @@
 {
   "slug": "spec-reports-one-shell-two-themes-in-app",
   "title": "Spec Reports — one shell, two themes, in-app",
-  "phase": "tasks_generated",
+  "phase": "implementing",
   "generated_task_ids": [
     "task-spec-spec-reports-one-shell-two-themes-in-app-T01",
     "task-spec-spec-reports-one-shell-two-themes-in-app-T02",
@@ -13,7 +13,7 @@
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-08-29T09:08:01Z",
-  "updated_at": "2026-08-29T12:27:52.206Z",
-  "last_phase_at": "2026-08-29T10:56:22Z",
+  "updated_at": "2026-08-29T12:32:14.769Z",
+  "last_phase_at": "2026-08-29T12:32:14.770Z",
   "implement_mode": "autonomous"
 }

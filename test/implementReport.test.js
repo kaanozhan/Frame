@@ -214,6 +214,64 @@ test('renderReport is a pure function of its input', () => {
   assert.deepEqual(input, data(), 'input must not be mutated');
 });
 
+// ─── the shared shell ─────────────────────────────────────────
+
+test('renderReport emits the shell between its markers, once, opened and closed', () => {
+  // The markers are what the parity test and the in-app viewer both key on:
+  // the viewer treats their absence as "this report predates the shell".
+  const html = mod.renderReport(data());
+  assert.equal((html.match(/── frame report shell v1 ──/g) || []).length, 1);
+  assert.equal((html.match(/── end frame report shell v1 ──/g) || []).length, 1);
+  assert.ok(html.indexOf('── frame report shell v1 ──') < html.indexOf('── end frame report shell v1 ──'));
+});
+
+test('renderReport carries both palettes and defers to the reader when standalone', () => {
+  const html = mod.renderReport(data());
+  assert.match(html, /color-scheme:light dark/);
+  assert.match(html, /:root\[data-theme="light"\]\{/);           // the viewer stamps this
+  assert.match(html, /@media \(prefers-color-scheme:light\)/);    // opened from disk
+  assert.match(html, /:root:not\(\[data-theme="dark"\]\)/);      // an explicit dark still wins
+  assert.doesNotMatch(html, /color-scheme:dark;/);
+});
+
+test('renderReport takes its token values from the app, not the old amber document set', () => {
+  // A drift in variables.css should show up as a failure here, not as a
+  // report that quietly stops matching the window around it.
+  const html = mod.renderReport(data());
+  assert.match(html, /--accent-primary:#8ff0ae/);   // dark: the app's green
+  assert.match(html, /--accent-primary:#286b44/);   // light: its AA-safe pair
+  assert.match(html, /--bg-deep:#0c0b09/);
+  assert.match(html, /--bg-deep:#f0ede8/);
+  assert.doesNotMatch(html, /#d4a574/);             // the retired amber accent
+});
+
+test('renderReport wears the corner-bracket mark, not the raster logo', () => {
+  const html = mod.renderReport(data());
+  assert.match(html, /class="rpt-mark"/);
+  assert.match(html, /M2 2h9v2\.6H4\.6V11H2V2Z/);   // one of frame-mark.svg's paths
+  assert.match(html, /fill="currentColor"/);        // so it takes the accent per theme
+  assert.doesNotMatch(html, /data:image\/png/);     // the nine kilobytes are gone
+});
+
+test('renderReport names the document and the spec it belongs to in the header', () => {
+  const html = mod.renderReport(data());
+  assert.match(html, /class="rpt-doc-type">Spec Implementation Report</);
+  assert.match(html, /class="rpt-slug">implement-modes</);
+  assert.match(html, /class="rpt-brand">Frame</);
+});
+
+test('renderReport omits the slug chip when the spec has no slug', () => {
+  const html = mod.renderReport({ spec: { title: 'Untitled' }, tasks: [] });
+  assert.doesNotMatch(html, /class="rpt-slug"/);
+  assert.match(html, /class="rpt-doc-type"/);   // the rest of the header survives
+});
+
+test('renderReport escapes a hostile slug before it reaches the header', () => {
+  const html = mod.renderReport(data({ spec: { slug: '<img src=x>', title: 'T' } }));
+  assert.doesNotMatch(html, /<img src=x>/);
+  assert.match(html, /&lt;img src=x&gt;/);
+});
+
 // ─── renderProgress ───────────────────────────────────────────
 
 test('renderProgress shows count, next task and a reload note while a run is live', () => {
