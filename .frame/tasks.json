@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T08:33:48.936Z",
+  "lastUpdated": "2026-08-29T09:11:02.000Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6402,11 +6402,24 @@
       "createdAt": "2026-08-29T08:10:30.782Z",
       "updatedAt": "2026-08-29T08:33:48.936Z",
       "completedAt": "2026-08-29T08:33:48.936Z"
+    },
+    {
+      "id": "task-spec-new-spec-agent-handoff-T08",
+      "title": "Close the New Spec modal at the hand-off instead of awaiting the agent: `dispatchSpecNew` returns once the prompt is staged and the lane is open and named, and `dispatch()` runs unawaited so the CLI cold start is watched in the lane rather than behind a blocking overlay",
+      "description": "",
+      "source": "spec:new-spec-agent-handoff:T08",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "From spec: new-spec-agent-handoff",
+      "createdAt": "2026-08-29T09:11:02.000Z",
+      "updatedAt": "2026-08-29T09:11:02.000Z",
+      "completedAt": "2026-08-29T09:11:02.000Z"
     }
   ],
   "metadata": {
-    "totalCreated": 475,
-    "totalCompleted": 422
+    "totalCreated": 476,
+    "totalCompleted": 28
   },
   "categories": {
     "feature": "New features",

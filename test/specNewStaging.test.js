@@ -29,6 +29,26 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// CI runs this suite with no node_modules (see .github/workflows/ci.yml), and
+// specManager reaches two packages transitively: telemetry.js requires
+// @aptabase/electron/main and userSettings.js requires electron. Both are
+// stubbed before it loads — the same idiom specTasksSync.test.js and
+// spec-command-hint.test.js use. Neither is exercised here: getCommandPrompt
+// emits no telemetry, and app.getPath is only reached from
+// userSettings.init(), which nothing here calls.
+const Module = require('node:module');
+const EXTERNAL_STUBS = {
+  '@aptabase/electron/main': { initialize() {}, trackEvent() {} },
+  electron: { app: {}, ipcMain: { handle() {}, on() {} } }
+};
+const loadOriginal = Module._load;
+Module._load = function (request, ...rest) {
+  if (Object.prototype.hasOwnProperty.call(EXTERNAL_STUBS, request)) {
+    return EXTERNAL_STUBS[request];
+  }
+  return loadOriginal.call(this, request, ...rest);
+};
+
 const specManager = require('../src/main/specManager');
 
 const OVERRIDE_TEMPLATE = [

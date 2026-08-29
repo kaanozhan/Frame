@@ -652,6 +652,11 @@ function _bindSpecCreatorLane(terminalId, slug) {
  * is what survives a failed or abandoned run, so the text is never lost even
  * when nothing else is written.
  *
+ * Resolves at the hand-off — the prompt is staged and the lane is open and
+ * named — not when the agent finishes booting. `success` therefore means "this
+ * run is the lane's now", which is what the caller needs in order to get out
+ * of the way.
+ *
  * @param {string} description - the user's text, verbatim
  * @returns {Promise<{success: boolean, terminalId: string|null, error: string|null}>}
  */
@@ -709,11 +714,26 @@ async function dispatchSpecNew(description) {
   });
   manager.renameTerminal(terminalId, SPEC_CREATOR_LANE_NAME);
 
-  const result = await dispatch({ terminalId, prompt: staged.instruction });
-  // A dispatch that never reached an agent leaves nothing to wait for — drop
-  // the marker so it can't bind a spec someone else creates later.
-  if (!result.success) specCreatorLanes.delete(terminalId);
-  return result;
+  // Deliberately not awaited. dispatch() cold-starts the CLI and waits up to
+  // AGENT_READY_TIMEOUT_MS for it to answer; awaiting that here kept the New
+  // Spec modal on screen — covering the very lane the user should be watching
+  // — until the agent happened to come up, with nothing but a disabled button
+  // to explain the wait. The hand-off is done once the lane exists and carries
+  // the prompt's destination; the lane is the progress surface from there, and
+  // every downstream failure already toasts through _fail.
+  dispatch({ terminalId, prompt: staged.instruction })
+    .then((result) => {
+      // A dispatch that never reached an agent leaves nothing to wait for —
+      // drop the marker so it can't bind a spec someone else creates later.
+      if (!result.success) specCreatorLanes.delete(terminalId);
+    })
+    .catch((err) => {
+      console.error('agentDispatch: spec.new dispatch failed', err);
+      specCreatorLanes.delete(terminalId);
+      notify.error('Could not start the Spec Creator agent');
+    });
+
+  return { success: true, terminalId, error: null };
 }
 
 /**

@@ -98,3 +98,17 @@ spec to the button. Files: `src/main/telemetryEvents.js`, `src/main/specManager.
 _Captured: 2026-08-29 · 4 file change(s)_
 
 ---
+## T08 — The modal stops waiting for the agent
+
+`dispatchSpecNew` now resolves at the hand-off — prompt staged, lane open and
+named — and runs `dispatch()` unawaited, clearing the launch marker from a
+`.then`/`.catch`. Awaiting it held the New Spec overlay on screen through the
+CLI availability probe, the cold start and the 15s agent-ready wait, covering
+the very lane `dispatch()` had already entered, then closing by itself once the
+agent answered. Post-hand-off failures already toast through `_fail`; the added
+`.catch` stops a thrown dispatch from leaving a marker that could bind another
+spec. Files: `src/renderer/agentDispatch.js`, `src/renderer/specPanel.js`.
+
+_Captured: 2026-08-29 · 2 file change(s)_
+
+---

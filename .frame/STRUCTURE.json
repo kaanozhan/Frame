@@ -4475,86 +4475,86 @@
           ]
         },
         "dispatchSpecNew": {
-          "line": 658,
+          "line": 663,
           "params": [
             "description"
           ],
           "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
         },
         "getSpecLaneInfo": {
-          "line": 731,
+          "line": 751,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 755,
+          "line": 775,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 776,
+          "line": 796,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 780,
+          "line": 800,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 784,
+          "line": 804,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 801,
+          "line": 821,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 809,
+          "line": 829,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 832,
+          "line": 852,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 840,
+          "line": 860,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 858,
+          "line": 878,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 868,
+          "line": 888,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 877,
+          "line": 897,
           "params": [
             "frameName",
             "specName"
@@ -4562,14 +4562,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 918,
+          "line": 938,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 947,
+          "line": 967,
           "params": [
             "terminalId",
             "message"
@@ -8061,31 +8061,31 @@
           "line": 548
         },
         "showSuggestionModal": {
-          "line": 629,
+          "line": 631,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 696,
+          "line": 698,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 789,
+          "line": 791,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 809,
+          "line": 811,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 819,
+          "line": 821,
           "params": [
             "iso"
           ]

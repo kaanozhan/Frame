@@ -593,11 +593,13 @@ function showNewSpecPrompt() {
       return;
     }
     createBtn.disabled = true;
-    // The modal closes on a successful hand-off: from here the run is the
-    // lane's, and the spec appears in the panel when the agent writes it.
+    // Resolves at the hand-off — the prompt is staged and the lane is open —
+    // not when the agent finishes booting, so the modal gets out of the way
+    // immediately and the lane shows the CLI coming up. Only failures before
+    // the hand-off land here; anything after it toasts from the dispatch.
     const result = await require('./agentDispatch').dispatchSpecNew(description);
     if (!result || !result.success) {
-      errorEl.textContent = 'Could not start the agent: ' + ((result && result.error) || 'unknown error');
+      errorEl.textContent = 'Could not hand this to an agent: ' + ((result && result.error) || 'unknown error');
       createBtn.disabled = false;
       return;
     }

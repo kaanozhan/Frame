@@ -29,5 +29,8 @@ Rules established:
   folders created outside Frame.
 - `panels.css` was NOT changed, against plan.md: the title-field classes are
   shared with the rename modal.
+- A dispatch that cold-starts a CLI must never be awaited by a modal: hand off
+  once the lane exists and let the lane be the progress surface (T08, found in
+  real use — the overlay sat over the terminal for the whole 15s ready wait).
 
 Chain: spec.md → plan.md → tasks.md → outcome.md
