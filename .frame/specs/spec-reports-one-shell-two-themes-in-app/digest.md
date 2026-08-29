@@ -26,6 +26,10 @@ rejected — the reports open with `*{…}` and a bare `body{}` rule. An iframe 
 lets the theme be stamped onto the report's own `documentElement` while keeping
 the file inert. The ~23 pre-shell reports render untouched under a muted note.
 
+A report tab is keyed on `(projectPath, slug, kind)`, **not** reused per type
+the way a diff tab is — that was the shipped behaviour for a day and it meant
+every open overwrote the last.
+
 Rules for future work: edit both copies of the shell or neither; never add
 `allow-scripts` to `.rpt-frame`; a background re-read must pass `notify=false`
 to `_load` or the mtime gate does nothing.

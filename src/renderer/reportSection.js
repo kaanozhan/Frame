@@ -42,18 +42,44 @@ const DOC_TYPE = {
   implement: 'Implementation Report'
 };
 
+/**
+ * The chip's version of the same names. Two reports from different specs can
+ * be open at once, so the chip has to say *which* — and the doc type leads,
+ * because the label truncates from the right and the tooltip carries the rest.
+ */
+const CHIP_TYPE = {
+  plan: 'Plan',
+  implement: 'Implementation'
+};
+
 function setHost(h) {
   host = h;
 }
 
 /**
- * Open a spec's report — reuses the open report viewport (navigates it) or
- * creates one if none.
+ * Open a spec's report.
+ *
+ * A report is identified by the spec it belongs to *and* which of the two
+ * documents it is. Re-opening the same one returns to its tab; anything else
+ * gets its own. That is deliberately not diffSection's rule, which navigates
+ * one viewport in place: a diff tab browses one ordered set of files, whereas
+ * a plan report and an implementation report are two different documents about
+ * the same spec, and reports from two specs are unrelated entirely. Reusing one
+ * viewport for all of them meant every open overwrote the last.
+ *
  * @param {{ projectPath: string, slug: string, title?: string, kind: 'plan'|'implement' }} ref
  */
 function open(ref) {
   if (!host || !ref || !ref.slug || !DOC_TYPE[ref.kind]) return;
-  host.openSection('report', ref, api, { newTab: false });
+
+  const already = (host.sections || []).find(
+    (s) => s && s.type === 'report' && typeof s.matches === 'function' && s.matches(ref)
+  );
+  if (already) {
+    host.activateSection(already.key);
+    return;
+  }
+  host.openSection('report', ref, api, { newTab: true });
 }
 
 function createViewport() {
@@ -184,8 +210,17 @@ function createViewport() {
     if (host) host.notifySectionChanged();
   }
 
+  /** Is this viewport already showing that exact report? */
+  function matches(ref) {
+    return !!cur && !!ref
+      && cur.projectPath === ref.projectPath
+      && cur.slug === ref.slug
+      && cur.kind === ref.kind;
+  }
+
   function getChip() {
-    return { type: 'report', title: (cur && DOC_TYPE[cur.kind]) || 'Report' };
+    if (!cur) return { type: 'report', title: 'Report' };
+    return { type: 'report', title: `${CHIP_TYPE[cur.kind]} · ${cur.title}` };
   }
 
   function render(el) {
@@ -255,7 +290,7 @@ function createViewport() {
     return mtimeMs;
   }
 
-  return { type: 'report', key, viewClass: 'section-view', navigate, getChip, render, dispose, lastMtime };
+  return { type: 'report', key, viewClass: 'section-view', navigate, matches, getChip, render, dispose, lastMtime };
 }
 
 function _escape(text) {

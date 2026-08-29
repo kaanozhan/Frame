@@ -7619,23 +7619,23 @@
           "purpose": "The app's current theme. terminalTabBar always writes the attribute (it"
         },
         "setHost": {
-          "line": 45,
+          "line": 55,
           "params": [
             "h"
           ]
         },
         "open": {
-          "line": 54,
+          "line": 72,
           "params": [
             "ref"
           ],
-          "purpose": "Open a spec's report — reuses the open report viewport (navigates it) or"
+          "purpose": "Open a spec's report."
         },
         "createViewport": {
-          "line": 59
+          "line": 85
         },
         "_escape": {
-          "line": 261,
+          "line": 296,
           "params": [
             "text"
           ]

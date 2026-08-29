@@ -113,3 +113,20 @@ Files: `reportSection.js`, `report-section.css`.
 _Captured: 2026-08-29 · 2 file changes_
 
 ---
+## T04 · revision — a report tab is one report, not one viewport
+
+Reversed T04's inherited reuse rule after use showed it wrong: `open()` passed
+`{ newTab: false }`, so the host reused any open `report` viewport and every
+open overwrote the last — a plan report and an implementation report could not
+be on screen together, and neither could two specs'. A report is now identified
+by `(projectPath, slug, kind)`: the same one returns to its tab via
+`host.activateSection`, anything else opens its own. `diffSection`'s rule did
+not transfer — a diff tab browses one ordered set of files, these are separate
+documents. The chip leads with the doc type (`Plan · <title>`) because the label
+truncates from the right and two chips can now name different specs.
+Supersedes plan.md's *"one report viewport is reused and navigated in place"*.
+Files: `reportSection.js`.
+
+_Captured: 2026-08-29 · 1 file change_
+
+---
