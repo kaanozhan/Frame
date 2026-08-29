@@ -1043,7 +1043,6 @@ function createSpec(projectPath, opts) {
     last_phase_at: now
   };
   writeStatus(projectPath, slug, status);
-  telemetry.track('spec_created');
 
   if (hasDescription) {
     const dir = getSpecDir(projectPath, slug);
@@ -1314,6 +1313,9 @@ function stopWatching() {
   activeTasksWatcher = null;
   activeWatchedProject = null;
   busySpecSlugs.clear();
+  // Another project's specs are not this one's creations — the next push
+  // reseeds from whatever that project already has on disk.
+  authoredSpecSlugs = null;
   if (watchDebounce) {
     clearTimeout(watchDebounce);
     watchDebounce = null;
@@ -1321,6 +1323,36 @@ function stopWatching() {
   if (tasksWatchDebounce) {
     clearTimeout(tasksWatchDebounce);
     tasksWatchDebounce = null;
+  }
+}
+
+// ─── spec_created ─────────────────────────────────────────
+//
+// The event used to fire inside createSpec, which no longer exists — and it
+// fired *before* the write that produced spec.md, unconditionally, so every
+// empty-description creation counted a spec that was only a status.json.
+//
+// The trigger is now "this slug's spec.md exists and did not before", checked
+// on the watcher's own push. Keyed on spec.md rather than the folder or
+// status.json on purpose: a folder whose authoring failed is not a spec that
+// was created. Specs written by the CLI or the conductor now count too, which
+// is what PRIVACY.md already documents the event as meaning.
+//
+// null = no snapshot yet. The first push after a project opens seeds it from
+// what is already on disk, so nothing is backfilled and a deleted-then-
+// rewritten spec.md is not counted twice.
+let authoredSpecSlugs = null;
+
+function trackNewlyAuthoredSpecs(projectPath, specs) {
+  const authored = new Set();
+  for (const spec of specs) {
+    if (fileExists(projectPath, spec.slug, SPEC_FILE)) authored.add(spec.slug);
+  }
+  const previous = authoredSpecSlugs;
+  authoredSpecSlugs = authored;
+  if (!previous) return;
+  for (const slug of authored) {
+    if (!previous.has(slug)) telemetry.track('spec_created');
   }
 }
 
@@ -1334,6 +1366,9 @@ function pushSpecData(projectPath) {
   syncAllSpecTasks(projectPath);
   const specs = listSpecs(projectPath);
   perfMonitor.opEnd('spec-push');
+  // Before the skip-unchanged gate: a newly authored spec.md must be counted
+  // on the push that first sees it, whatever the payload comparison decides.
+  trackNewlyAuthoredSpecs(projectPath, specs);
   // Skip-unchanged: same channel, same payload shape — but only send when
   // the data actually changed since the last push.
   const payloadJson = JSON.stringify({ projectPath, specs });

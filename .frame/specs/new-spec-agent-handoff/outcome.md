@@ -55,3 +55,17 @@ than binding. File: `src/renderer/agentDispatch.js`.
 _Captured: 2026-08-29 · 1 file change(s)_
 
 ---
+## T05 — `spec_created` moves onto the watcher
+
+Dropped the `telemetry.track('spec_created')` call from `createSpec` and added
+`trackNewlyAuthoredSpecs` to `pushSpecData`: it diffs the slugs whose `spec.md`
+exists against the previous push and fires once per newly authored one, seeding
+from disk on the first push and resetting in `stopWatching` so a project switch
+reseeds. Keyed on `spec.md`, not the folder — which corrects the old
+fire-before-write ordering that counted every empty-description creation as a
+spec with no `spec.md` at all. The check runs before the skip-unchanged gate.
+File: `src/main/specManager.js`.
+
+_Captured: 2026-08-29 · 1 file change(s)_
+
+---

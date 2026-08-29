@@ -3669,7 +3669,7 @@
           ]
         },
         "updateSpecStatus": {
-          "line": 1063,
+          "line": 1062,
           "params": [
             "projectPath",
             "slug",
@@ -3677,14 +3677,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1086,
+          "line": 1085,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1103,
+          "line": 1102,
           "params": [
             "projectPath",
             "oldSlug",
@@ -3693,28 +3693,35 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1215,
+          "line": 1214,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1306
+          "line": 1305
+        },
+        "trackNewlyAuthoredSpecs": {
+          "line": 1346,
+          "params": [
+            "projectPath",
+            "specs"
+          ]
         },
         "pushSpecData": {
-          "line": 1327,
+          "line": 1359,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1347,
+          "line": 1382,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1351,
+          "line": 1386,
           "params": [
             "ipcMain"
           ]

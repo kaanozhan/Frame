@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T08:28:34.511Z",
+  "lastUpdated": "2026-08-29T08:30:09.913Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6369,13 +6369,13 @@
       "title": "Move `spec_created` from `createSpec` onto the specs watcher, firing when a slug's `spec.md` first exists and seeding the opening snapshot from the slugs that already have one, so the current fire-before-write ordering is corrected rather than carried forward",
       "description": "",
       "source": "spec:new-spec-agent-handoff:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: new-spec-agent-handoff",
       "createdAt": "2026-08-29T08:10:30.782Z",
-      "updatedAt": "2026-08-29T08:10:30.782Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T08:30:09.913Z",
+      "completedAt": "2026-08-29T08:30:09.913Z"
     },
     {
       "id": "task-spec-new-spec-agent-handoff-T06",
@@ -6406,7 +6406,7 @@
   ],
   "metadata": {
     "totalCreated": 475,
-    "totalCompleted": 419
+    "totalCompleted": 420
   },
   "categories": {
     "feature": "New features",
