@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T08:10:30.782Z",
+  "lastUpdated": "2026-08-29T08:21:07.722Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6317,13 +6317,13 @@
       "title": "Add a slug-less `spec.new` path to `getCommandPrompt` / `buildSpecCommandFile` in `src/main/specManager.js`: skip the `readStatus` guard, interpolate `{description}` with the caller's text and `{spec_catalog}` as today, emit no `{slug}`/`{title}`, and name the prompt file `spec.new__<ts>.md`; cover it with `test/specNewStaging.test.js`",
       "description": "",
       "source": "spec:new-spec-agent-handoff:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: new-spec-agent-handoff",
       "createdAt": "2026-08-29T08:10:30.782Z",
-      "updatedAt": "2026-08-29T08:10:30.782Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T08:21:07.722Z",
+      "completedAt": "2026-08-29T08:21:07.722Z"
     },
     {
       "id": "task-spec-new-spec-agent-handoff-T02",
@@ -6406,7 +6406,7 @@
   ],
   "metadata": {
     "totalCreated": 475,
-    "totalCompleted": 28
+    "totalCompleted": 416
   },
   "categories": {
     "feature": "New features",

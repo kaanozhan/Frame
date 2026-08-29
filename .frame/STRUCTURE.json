@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-28",
+  "lastUpdated": "2026-08-29",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -3311,6 +3311,7 @@
         "startWatching",
         "getCommandPrompt",
         "buildSpecCommandFile",
+        "specNewPromptFilename",
         "buildImplementPermissions",
         "resolveVerificationCommand",
         "writeImplementPermissions",
@@ -3521,16 +3522,17 @@
           ]
         },
         "getCommandPrompt": {
-          "line": 526,
+          "line": 532,
           "params": [
             "projectPath",
             "slug",
             "command",
-            "aiTool"
+            "aiTool",
+            "description"
           ]
         },
         "stageCommandAsset": {
-          "line": 575,
+          "line": 593,
           "params": [
             "projectPath",
             "aiTool",
@@ -3539,7 +3541,7 @@
           "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
         },
         "stageCommandAssets": {
-          "line": 596,
+          "line": 614,
           "params": [
             "projectPath",
             "command",
@@ -3547,97 +3549,112 @@
           ]
         },
         "resolveVerificationCommand": {
-          "line": 660,
+          "line": 678,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 675,
+          "line": 693,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 693,
+          "line": 711,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 717,
+          "line": 735,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 733,
+          "line": 751,
           "params": [
             "projectPath",
             "slug"
           ],
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
+        "specNewPromptFilename": {
+          "line": 763,
+          "params": [
+            "date"
+          ],
+          "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
+        },
+        "uniquePromptFilename": {
+          "line": 768,
+          "params": [
+            "promptsDir",
+            "filename"
+          ]
+        },
         "buildSpecCommandFile": {
-          "line": 740,
+          "line": 777,
           "params": [
             "projectPath",
             "slug",
             "command",
-            "aiTool"
+            "aiTool",
+            "description"
           ]
         },
         "parseTasksMarkdown": {
-          "line": 776,
+          "line": 815,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 802,
+          "line": 841,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 821,
+          "line": 860,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 826,
+          "line": 865,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 906,
+          "line": 945,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 913,
+          "line": 952,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 930,
+          "line": 969,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "searchSpecs": {
-          "line": 960,
+          "line": 999,
           "params": [
             "projectPath",
             "query"
@@ -3645,14 +3662,14 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "createSpec": {
-          "line": 981,
+          "line": 1020,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 1024,
+          "line": 1063,
           "params": [
             "projectPath",
             "slug",
@@ -3660,14 +3677,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1047,
+          "line": 1086,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1064,
+          "line": 1103,
           "params": [
             "projectPath",
             "oldSlug",
@@ -3676,28 +3693,28 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1176,
+          "line": 1215,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1267
+          "line": 1306
         },
         "pushSpecData": {
-          "line": 1288,
+          "line": 1327,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1308,
+          "line": 1347,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1312,
+          "line": 1351,
           "params": [
             "ipcMain"
           ]

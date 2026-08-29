@@ -523,25 +523,43 @@ function interpolate(template, vars) {
   });
 }
 
-function getCommandPrompt(projectPath, slug, command, aiTool) {
+// `spec.new` is the one command that runs *before* a spec exists: the New Spec
+// launcher hands the agent the user's raw text and the agent derives the slug,
+// creates the folder and authors spec.md. So a slug-less call is legitimate for
+// that command only — every other command reads an existing status.json.
+const isSlugless = (slug, command) => !slug && command === 'spec.new';
+
+function getCommandPrompt(projectPath, slug, command, aiTool, description) {
   if (!SUPPORTED_COMMANDS.includes(command)) return { error: `unknown command: ${command}` };
   const tool = aiTool || 'claude-code';
-  const status = readStatus(projectPath, slug);
-  if (!status) return { error: 'spec not found' };
+  const slugless = isSlugless(slug, command);
+  // No slug means no status.json to read — the guard would reject the very
+  // call the launcher makes. Every other path still requires the spec to
+  // exist, and a slug-less call to one of them is a plain `spec not found`
+  // rather than the TypeError readStatus(…, null) used to raise.
+  const status = slug ? readStatus(projectPath, slug) : null;
+  if (!slugless && !status) return { error: 'spec not found' };
   const template = loadCommandTemplate(projectPath, tool, command);
   if (!template) return { error: `no ${tool} template for ${command}` };
-  const prompt = interpolate(template, {
+  const vars = {
     project_path: projectPath,
-    slug,
-    title: status.title,
-    description: '', // Slice 1.7: spec.new uses the seeded spec.md as input; description placeholder reserved for future use
+    // The user's free-form text, verbatim. Empty for every command whose
+    // template carries no {description} token.
+    description: description == null ? '' : String(description),
     report_template_path: REPORT_TEMPLATE_REL,
     report_generator_path: REPORT_GENERATOR_REL,
     // Full spec catalog only where it's consumed (spec.new's relatedness
-    // evaluation) — other templates carry no {spec_catalog} token.
+    // evaluation and slug disambiguation) — other templates carry no
+    // {spec_catalog} token.
     spec_catalog: command === 'spec.new' ? buildSpecCatalog(projectPath) : ''
-  });
-  return { prompt };
+  };
+  // Deliberately absent on the slug-less path rather than blanked: neither
+  // value exists yet, and the agent is the one that decides them.
+  if (!slugless) {
+    vars.slug = slug;
+    vars.title = status.title;
+  }
+  return { prompt: interpolate(template, vars) };
 }
 
 // ─── Prompt file writer ──────────────────────────────────────
@@ -737,12 +755,33 @@ function getImplementLaunchFlags(projectPath, slug) {
   return ['--settings', perms.absPath, '--permission-mode', 'auto'];
 }
 
-function buildSpecCommandFile(projectPath, slug, command, aiTool) {
-  const result = getCommandPrompt(projectPath, slug, command, aiTool);
+// A slug-less run has no stable name to key the prompt file on — `${slug}__`
+// would yield `null__spec.new.md` and let every run overwrite the last. The
+// prompt file *is* the recovery surface for the user's text when a run fails
+// or its terminal is closed, so each run keeps its own: a millisecond stamp,
+// disambiguated further if two land inside the same millisecond.
+function specNewPromptFilename(date) {
+  const ts = (date || new Date()).toISOString().replace(/[-:]/g, '').replace('.', '');
+  return `spec.new__${ts}.md`;
+}
+
+function uniquePromptFilename(promptsDir, filename) {
+  if (!fs.existsSync(path.join(promptsDir, filename))) return filename;
+  const base = filename.replace(/\.md$/, '');
+  for (let n = 2; ; n += 1) {
+    const candidate = `${base}-${n}.md`;
+    if (!fs.existsSync(path.join(promptsDir, candidate))) return candidate;
+  }
+}
+
+function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
+  const result = getCommandPrompt(projectPath, slug, command, aiTool, description);
   if (result.error) return result;
   const promptsDir = path.join(projectPath, RUNTIME_PROMPTS_DIR);
   fs.mkdirSync(promptsDir, { recursive: true });
-  const filename = `${slug}__${command}.md`;
+  const filename = isSlugless(slug, command)
+    ? uniquePromptFilename(promptsDir, specNewPromptFilename())
+    : `${slug}__${command}.md`;
   const absPath = path.join(promptsDir, filename);
   fs.writeFileSync(absPath, result.prompt, 'utf8');
   stageCommandAssets(projectPath, command, aiTool);
@@ -1328,11 +1367,11 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.RENAME_SPEC, (event, { projectPath, oldSlug, opts }) =>
     renameSpec(projectPath, oldSlug, opts)
   );
-  ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool }) =>
-    getCommandPrompt(projectPath, slug, command, aiTool)
+  ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool, description }) =>
+    getCommandPrompt(projectPath, slug, command, aiTool, description)
   );
-  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool }) =>
-    buildSpecCommandFile(projectPath, slug, command, aiTool)
+  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool, description }) =>
+    buildSpecCommandFile(projectPath, slug, command, aiTool, description)
   );
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
@@ -1398,6 +1437,7 @@ module.exports = {
   startWatching,
   getCommandPrompt,
   buildSpecCommandFile,
+  specNewPromptFilename,
   buildImplementPermissions,
   resolveVerificationCommand,
   writeImplementPermissions,
