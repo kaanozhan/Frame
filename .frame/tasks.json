@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-28T15:29:19.715Z",
+  "lastUpdated": "2026-08-29T08:10:30.782Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6311,10 +6311,101 @@
       "createdAt": "2026-08-28T15:29:19.715Z",
       "updatedAt": "2026-08-28T15:29:19.715Z",
       "completedAt": "2026-08-28T15:29:19.715Z"
+    },
+    {
+      "id": "task-spec-new-spec-agent-handoff-T01",
+      "title": "Add a slug-less `spec.new` path to `getCommandPrompt` / `buildSpecCommandFile` in `src/main/specManager.js`: skip the `readStatus` guard, interpolate `{description}` with the caller's text and `{spec_catalog}` as today, emit no `{slug}`/`{title}`, and name the prompt file `spec.new__<ts>.md`; cover it with `test/specNewStaging.test.js`",
+      "description": "",
+      "source": "spec:new-spec-agent-handoff:T01",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: new-spec-agent-handoff",
+      "createdAt": "2026-08-29T08:10:30.782Z",
+      "updatedAt": "2026-08-29T08:10:30.782Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-new-spec-agent-handoff-T02",
+      "title": "Rewrite `src/templates/commands/claude-code/spec.new.md` for a folder that does not exist yet — derive the kebab-case slug from the description, disambiguate it against the embedded catalog, create `.frame/specs/<slug>/` and write `status.json` in the documented required shape — and align the placeholder table in `src/shared/frameTemplates.js` with the new contract",
+      "description": "",
+      "source": "spec:new-spec-agent-handoff:T02",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: new-spec-agent-handoff",
+      "createdAt": "2026-08-29T08:10:30.782Z",
+      "updatedAt": "2026-08-29T08:10:30.782Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-new-spec-agent-handoff-T03",
+      "title": "Collapse `showNewSpecPrompt` in `src/renderer/specPanel.js` to a single free-form textarea whose Create stages the prompt and calls a new `agentDispatch.dispatchSpecNew(text)` that opens a lane, renames it \"Spec Creator\" and injects, creating no spec folder anywhere; drop the title-field styling in `src/renderer/styles/components/panels.css`",
+      "description": "",
+      "source": "spec:new-spec-agent-handoff:T03",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: new-spec-agent-handoff",
+      "createdAt": "2026-08-29T08:10:30.782Z",
+      "updatedAt": "2026-08-29T08:10:30.782Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-new-spec-agent-handoff-T04",
+      "title": "Subscribe `src/renderer/agentDispatch.js` to `SPEC_DATA`, diff slugs against the previous push, and on a single new slug with exactly one live Spec Creator lane set `specLanes` and replace the label with the standard `spec: <slug>` assignment",
+      "description": "",
+      "source": "spec:new-spec-agent-handoff:T04",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: new-spec-agent-handoff",
+      "createdAt": "2026-08-29T08:10:30.782Z",
+      "updatedAt": "2026-08-29T08:10:30.782Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-new-spec-agent-handoff-T05",
+      "title": "Move `spec_created` from `createSpec` onto the specs watcher, firing when a slug's `spec.md` first exists and seeding the opening snapshot from the slugs that already have one, so the current fire-before-write ordering is corrected rather than carried forward",
+      "description": "",
+      "source": "spec:new-spec-agent-handoff:T05",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: new-spec-agent-handoff",
+      "createdAt": "2026-08-29T08:10:30.782Z",
+      "updatedAt": "2026-08-29T08:10:30.782Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-new-spec-agent-handoff-T06",
+      "title": "Delete `createSpec`, `uniqueSlug`, `generateSlug` and its export, the `CREATE_SPEC` channel and handler, and the renderer's `deriveSlugPreview`, leaving the `draft` phase and its \"Write the Spec\" action intact as the recovery path for specs created outside Frame",
+      "description": "",
+      "source": "spec:new-spec-agent-handoff:T06",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: new-spec-agent-handoff",
+      "createdAt": "2026-08-29T08:10:30.782Z",
+      "updatedAt": "2026-08-29T08:10:30.782Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-spec-new-spec-agent-handoff-T07",
+      "title": "Add `origin: ['button', 'agent', 'conductor']` to `spec_created` in `src/main/telemetryEvents.js`, tag the watcher's fire from the launch marker T04 maintains with `agent` as the fallback and no property when nothing can be established, update the `PRIVACY.md` event table in the same change, and extend `test/telemetry.test.js` for the new enum",
+      "description": "",
+      "source": "spec:new-spec-agent-handoff:T07",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: new-spec-agent-handoff",
+      "createdAt": "2026-08-29T08:10:30.782Z",
+      "updatedAt": "2026-08-29T08:10:30.782Z",
+      "completedAt": null
     }
   ],
   "metadata": {
-    "totalCreated": 468,
+    "totalCreated": 475,
     "totalCompleted": 28
   },
   "categories": {

@@ -1,0 +1,19 @@
+{
+  "slug": "new-spec-agent-handoff",
+  "title": "New Spec hands off to the agent",
+  "phase": "tasks_generated",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [
+    "task-spec-new-spec-agent-handoff-T01",
+    "task-spec-new-spec-agent-handoff-T02",
+    "task-spec-new-spec-agent-handoff-T03",
+    "task-spec-new-spec-agent-handoff-T04",
+    "task-spec-new-spec-agent-handoff-T05",
+    "task-spec-new-spec-agent-handoff-T06",
+    "task-spec-new-spec-agent-handoff-T07"
+  ],
+  "created_at": "2026-08-29T00:00:00Z",
+  "updated_at": "2026-08-29T08:16:26.391Z",
+  "last_phase_at": "2026-08-29T08:10:30.487Z",
+  "implement_mode": "autonomous"
+}
