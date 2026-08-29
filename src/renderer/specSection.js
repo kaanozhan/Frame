@@ -17,6 +17,7 @@
 const { ipcRenderer } = require('electron');
 const { marked } = require('marked');
 const { IPC } = require('../shared/ipcChannels');
+const reportSection = require('./reportSection');
 const state = require('./state');
 const sectionRail = require('./sectionRail');
 const { FileText } = require('lucide');
@@ -297,7 +298,7 @@ function createViewport() {
 
   // "View Plan Report" — shown above the rendered plan only when the spec
   // folder holds a plan-report.html (getSpec exposes it as planReportPath).
-  // Mirrors specPanel.js; opens in the system default browser.
+  // Mirrors specPanel.js; opens as a section tab, not in the system browser.
   function renderPlanReportRow() {
     return `
       <div class="spec-plan-report-row">
@@ -308,8 +309,13 @@ function createViewport() {
 
   function attachPlanReportHandler(contentEl) {
     contentEl.querySelector('.spec-plan-report-btn')?.addEventListener('click', () => {
-      const p = activeSpec?.planReportPath;
-      if (p) require('electron').shell.openPath(p);
+      if (!activeSpec?.planReportPath) return;
+      reportSection.open({
+        projectPath: state.getProjectPath(),
+        slug,
+        title: activeSpec?.status?.title || slug,
+        kind: 'plan'
+      });
     });
   }
 
@@ -327,8 +333,13 @@ function createViewport() {
 
   function attachImplementReportHandler(contentEl) {
     contentEl.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
-      const p = activeSpec?.implementReportPath;
-      if (p) require('electron').shell.openPath(p);
+      if (!activeSpec?.implementReportPath) return;
+      reportSection.open({
+        projectPath: state.getProjectPath(),
+        slug,
+        title: activeSpec?.status?.title || slug,
+        kind: 'implement'
+      });
     });
   }
 

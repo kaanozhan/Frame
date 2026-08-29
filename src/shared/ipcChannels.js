@@ -169,6 +169,7 @@ const IPC = {
   TOGGLE_SPECS_DASHBOARD: 'toggle-specs-dashboard',
   GET_SPEC_PROMPT: 'get-spec-prompt',
   BUILD_SPEC_COMMAND_FILE: 'build-spec-command-file',
+  READ_SPEC_REPORT: 'read-spec-report',              // renderer → main: { projectPath, slug, kind } — a spec's generated HTML report
   SPEC_AGENT_ACTIVITY: 'spec-agent-activity',        // renderer → main: { slug, busy } — live agent on this spec's lane
 
   // Spec-Driven Development feature flag (per project, .frame/config.json)

@@ -968,6 +968,44 @@ function getSpec(projectPath, slug) {
 }
 
 /**
+ * Read one of a spec's two generated HTML reports, for the in-app viewer.
+ *
+ * Resolution lives here rather than in the renderer for two reasons: this
+ * module already owns PLAN_REPORT_FILE / IMPLEMENT_REPORT_FILE and the
+ * spec-folder layout, so no second place learns where a report lives; and the
+ * renderer's standing rule is that it never touches fs.
+ *
+ * `mtimeMs` is what lets the viewer follow a regenerating report — an
+ * autonomous implement run rewrites implement-report.html after every task,
+ * and the spec payload carries no report timestamp of its own.
+ *
+ * A failure is a value, never a throw: the viewer renders the reason in place
+ * of the frame, and "no report yet" is the ordinary case for a spec that has
+ * not been planned or implemented.
+ */
+function readSpecReport(projectPath, slug, kind) {
+  const file = kind === 'plan' ? PLAN_REPORT_FILE
+    : kind === 'implement' ? IMPLEMENT_REPORT_FILE
+      : null;
+  if (!file) return { success: false, error: `Unknown report kind: ${kind}` };
+
+  const reportPath = path.join(getSpecDir(projectPath, slug), file);
+  try {
+    const html = fs.readFileSync(reportPath, 'utf8');
+    return { success: true, html, mtimeMs: fs.statSync(reportPath).mtimeMs, path: reportPath };
+  } catch (err) {
+    const command = kind === 'plan' ? '/spec.plan' : '/spec.implement';
+    return {
+      success: false,
+      path: reportPath,
+      error: err.code === 'ENOENT'
+        ? `No ${kind} report yet — run ${command} for this spec to generate it.`
+        : err.message
+    };
+  }
+}
+
+/**
  * Search specs by keyword over their spec.md content. Case-insensitive
  * substring match. Returns the array of matching slugs, or null for an
  * empty/whitespace query (meaning "no search active" — caller shows all).
@@ -1371,6 +1409,9 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.GET_SPEC, (event, { projectPath, slug }) =>
     getSpec(projectPath, slug)
   );
+  ipcMain.handle(IPC.READ_SPEC_REPORT, (event, { projectPath, slug, kind }) =>
+    readSpecReport(projectPath, slug, kind)
+  );
   ipcMain.handle(IPC.UPDATE_SPEC_STATUS, (event, { projectPath, slug, partial }) =>
     updateSpecStatus(projectPath, slug, partial)
   );
@@ -1437,6 +1478,7 @@ module.exports = {
   listSpecs,
   searchSpecs,
   getSpec,
+  readSpecReport,
   updateSpecStatus,
   renameSpec,
   deleteSpec,

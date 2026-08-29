@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T09:11:02.000Z",
+  "lastUpdated": "2026-08-29T12:49:18.084Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6415,10 +6415,101 @@
       "createdAt": "2026-08-29T09:11:02.000Z",
       "updatedAt": "2026-08-29T09:11:02.000Z",
       "completedAt": "2026-08-29T09:11:02.000Z"
+    },
+    {
+      "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T01",
+      "title": "Build the shared shell in `src/templates/commands/claude-code/build-implement-report.mjs`: emit the block between `/* ── frame report shell v1 ── */` markers carrying both palettes from `src/renderer/styles/variables.css` (dark on bare `:root`, light under `:root[data-theme=\"light\"]` and under `@media (prefers-color-scheme:light){:root:not([data-theme=\"dark\"])}`, `color-scheme:light dark`), replace `FRAME_LOGO_DATA_URI` with the four `assets/frame-mark.svg` paths inlined as `<svg fill=\"currentColor\">`, and re-render the header as `.rpt-topbar` (mark, brand, rule, doc type, slug chip, `.rpt-pill` meta) over `.rpt-head`; extend `test/implementReport.test.js` to assert the mark renders, no `data:image/png` survives, the doc type and slug chip appear, and both palette blocks are emitted.",
+      "description": "",
+      "source": "spec:spec-reports-one-shell-two-themes-in-app:T01",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: spec-reports-one-shell-two-themes-in-app",
+      "createdAt": "2026-08-29T10:56:22.985Z",
+      "updatedAt": "2026-08-29T12:37:14.653Z",
+      "completedAt": "2026-08-29T12:37:14.653Z"
+    },
+    {
+      "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T02",
+      "title": "Carry the same shell into `src/templates/commands/claude-code/plan-report-template.html`: paste the marked block byte-for-byte, add the `.rpt-topbar` / `.rpt-head` markup filled from `{{SPEC_TITLE}}`, `{{SLUG}}`, `{{DATE}}` and the existing headline `{{N}}` pills, add the alias block mapping `--bg`, `--card`, `--ink`, `--muted`, `--primary`, `--accent`, `--line`, `--good`, `--goodbg`, `--warn`, `--code`, `--dim` onto the shell's tokens without touching a body rule, correct the head comment's \"Dark-only\" claim, and add the parity test asserting the two files' shell blocks are byte-identical.",
+      "description": "",
+      "source": "spec:spec-reports-one-shell-two-themes-in-app:T02",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: spec-reports-one-shell-two-themes-in-app",
+      "createdAt": "2026-08-29T10:56:22.985Z",
+      "updatedAt": "2026-08-29T12:40:09.213Z",
+      "completedAt": "2026-08-29T12:40:09.213Z"
+    },
+    {
+      "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T03",
+      "title": "Add `READ_SPEC_REPORT` to `src/shared/ipcChannels.js` and its `ipcMain.handle` in `specManager.setupIPC`, taking `{ projectPath, slug, kind }` with `kind` of `'plan' | 'implement'`, resolving through the existing `PLAN_REPORT_FILE` / `IMPLEMENT_REPORT_FILE` constants, and returning `{ success, html, mtimeMs }` or a failure the viewer can render.",
+      "description": "",
+      "source": "spec:spec-reports-one-shell-two-themes-in-app:T03",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: spec-reports-one-shell-two-themes-in-app",
+      "createdAt": "2026-08-29T10:56:22.985Z",
+      "updatedAt": "2026-08-29T12:41:51.185Z",
+      "completedAt": "2026-08-29T12:41:51.185Z"
+    },
+    {
+      "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T04",
+      "title": "Create `src/renderer/reportSection.js` on `diffSection.js`'s contract — `{ setHost, open, createViewport }` with a viewport returning `{ type: 'report', key, viewClass: 'section-view', navigate, getChip, render, dispose }`, `open()` calling `host.openSection('report', ref, api, { newTab: false })`, and a render of doc type, spec title and an `<iframe class=\"rpt-frame\" sandbox=\"allow-same-origin\">` (no `allow-scripts`, with a comment naming what depends on the attribute) fed by `srcdoc`; add `src/renderer/styles/components/report-section.css` with its `@import` in `main.css`, `reportSection.setHost(this)` in `multiTerminalUI.js`, and the `report` chip icon (`FileBarChart`) in `terminalTabBar.js`.",
+      "description": "",
+      "source": "spec:spec-reports-one-shell-two-themes-in-app:T04",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: spec-reports-one-shell-two-themes-in-app",
+      "createdAt": "2026-08-29T10:56:22.985Z",
+      "updatedAt": "2026-08-29T12:44:07.116Z",
+      "completedAt": "2026-08-29T12:44:07.116Z"
+    },
+    {
+      "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T05",
+      "title": "Route the six report buttons to the section instead of the browser: replace the `shell.openPath` handlers in `src/renderer/specPanel.js`, `src/renderer/specSection.js` and `src/renderer/specsDashboard.js` with `reportSection.open({ projectPath, slug, title, kind })`, and add an \"Open in browser\" button to the viewer header that keeps the old `shell.openPath` behavior available.",
+      "description": "",
+      "source": "spec:spec-reports-one-shell-two-themes-in-app:T05",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: spec-reports-one-shell-two-themes-in-app",
+      "createdAt": "2026-08-29T10:56:22.985Z",
+      "updatedAt": "2026-08-29T12:45:51.275Z",
+      "completedAt": "2026-08-29T12:45:51.275Z"
+    },
+    {
+      "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T06",
+      "title": "Make the open report follow the theme: stamp the app's current `data-theme` onto the frame's `documentElement` on every load, re-stamp from a `MutationObserver` watching `document.documentElement`'s `data-theme` (the `terminalManager.js` pattern) so the toggle needs no reload, wrap the stamp so a cross-origin failure degrades to an unthemed report rather than a thrown render, and detect a missing shell marker to render pre-shell reports untouched under a muted note in the viewer header.",
+      "description": "",
+      "source": "spec:spec-reports-one-shell-two-themes-in-app:T06",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: spec-reports-one-shell-two-themes-in-app",
+      "createdAt": "2026-08-29T10:56:22.985Z",
+      "updatedAt": "2026-08-29T12:47:25.476Z",
+      "completedAt": "2026-08-29T12:47:25.476Z"
+    },
+    {
+      "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T07",
+      "title": "Follow a regenerating report: re-read on `SPEC_DATA` and swap the frame's `srcdoc` only when `mtimeMs` moved, re-stamping the theme on load, and add a Refresh button beside it for the run where no push arrives.",
+      "description": "",
+      "source": "spec:spec-reports-one-shell-two-themes-in-app:T07",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: spec-reports-one-shell-two-themes-in-app",
+      "createdAt": "2026-08-29T10:56:22.985Z",
+      "updatedAt": "2026-08-29T12:49:18.084Z",
+      "completedAt": "2026-08-29T12:49:18.084Z"
     }
   ],
   "metadata": {
-    "totalCreated": 476,
+    "totalCreated": 483,
     "totalCompleted": 28
   },
   "categories": {

@@ -9,12 +9,25 @@
 
 const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const GENERATOR = path.join(
-  __dirname, '..', 'src', 'templates', 'commands', 'claude-code', 'build-implement-report.mjs'
-);
+const COMMANDS_DIR = path.join(__dirname, '..', 'src', 'templates', 'commands', 'claude-code');
+const GENERATOR = path.join(COMMANDS_DIR, 'build-implement-report.mjs');
+const PLAN_TEMPLATE = path.join(COMMANDS_DIR, 'plan-report-template.html');
+
+const SHELL_OPEN = '/* ── frame report shell v1 ── */';
+const SHELL_CLOSE = '/* ── end frame report shell v1 ── */';
+
+/** The shell block, markers included, as it literally sits in a file. */
+function shellBlock(file) {
+  const text = fs.readFileSync(file, 'utf8');
+  const from = text.indexOf(SHELL_OPEN);
+  const to = text.indexOf(SHELL_CLOSE);
+  assert.ok(from >= 0 && to > from, `no shell block in ${path.basename(file)}`);
+  return text.slice(from, to + SHELL_CLOSE.length);
+}
 
 let mod;
 before(async () => {
@@ -212,6 +225,155 @@ test('renderReport is a pure function of its input', () => {
   const input = data();
   assert.equal(mod.renderReport(input), mod.renderReport(data()));
   assert.deepEqual(input, data(), 'input must not be mutated');
+});
+
+// ─── the shared shell ─────────────────────────────────────────
+
+test('renderReport emits the shell between its markers, once, opened and closed', () => {
+  // The markers are what the parity test and the in-app viewer both key on:
+  // the viewer treats their absence as "this report predates the shell".
+  const html = mod.renderReport(data());
+  assert.equal((html.match(/── frame report shell v1 ──/g) || []).length, 1);
+  assert.equal((html.match(/── end frame report shell v1 ──/g) || []).length, 1);
+  assert.ok(html.indexOf('── frame report shell v1 ──') < html.indexOf('── end frame report shell v1 ──'));
+});
+
+test('renderReport carries both palettes and defers to the reader when standalone', () => {
+  const html = mod.renderReport(data());
+  assert.match(html, /color-scheme:light dark/);
+  assert.match(html, /:root\[data-theme="light"\]\{/);           // the viewer stamps this
+  assert.match(html, /@media \(prefers-color-scheme:light\)/);    // opened from disk
+  assert.match(html, /:root:not\(\[data-theme="dark"\]\)/);      // an explicit dark still wins
+  assert.doesNotMatch(html, /color-scheme:dark;/);
+});
+
+test('renderReport takes its token values from the app, not the old amber document set', () => {
+  // A drift in variables.css should show up as a failure here, not as a
+  // report that quietly stops matching the window around it.
+  const html = mod.renderReport(data());
+  assert.match(html, /--accent-primary:#8ff0ae/);   // dark: the app's green
+  assert.match(html, /--accent-primary:#286b44/);   // light: its AA-safe pair
+  assert.match(html, /--bg-deep:#0c0b09/);
+  assert.match(html, /--bg-deep:#f0ede8/);
+  assert.doesNotMatch(html, /#d4a574/);             // the retired amber accent
+});
+
+test('renderReport wears the app icon as vector, not a raster logo', () => {
+  const html = mod.renderReport(data());
+  assert.match(html, /class="rpt-mark"/);
+  assert.match(html, /M2 2h9v2\.6H4\.6V11H2V2Z/);   // the bracket paths, inside the badge
+  assert.match(html, /rect x="1" y="1"[^>]*fill="#14120e"/);  // the badge, charcoal
+  assert.match(html, /fill="#f2eee4"/);             // the brackets, parchment
+  assert.doesNotMatch(html, /data:image\/png/);     // no raster, at any size
+});
+
+test('the mark is a logo: its colours do not answer to the theme', () => {
+  // Only the hairline edge is themed — the badge fill is exactly --bg-primary
+  // in dark and would otherwise vanish into the page behind it.
+  const html = mod.renderReport(data());
+  const mark = html.slice(html.indexOf('<svg class="rpt-mark"'), html.indexOf('</svg>'));
+  assert.doesNotMatch(mark, /var\(--/);
+  assert.match(mark, /stroke="currentColor"/);
+});
+
+test('both reports drop their brand strip when embedded, and only then', () => {
+  // data-host is stamped by the viewer, never written into the file — so the
+  // rules must be present but scoped, and nothing may key on them by default.
+  for (const file of [GENERATOR, PLAN_TEMPLATE]) {
+    const shell = shellBlock(file);
+    for (const hidden of ['.rpt-mark', '.rpt-brand', '.rpt-sep', '.rpt-doc-type']) {
+      assert.ok(
+        shell.includes(`:root[data-host="frame"] ${hidden}`),
+        `${hidden} is not dropped when embedded, in ${path.basename(file)}`
+      );
+    }
+    assert.match(shell, /:root\[data-host="frame"\] \.rpt-head h1\{display:none;\}/);
+  }
+  // The emitted file carries the rules but never the attribute.
+  const html = mod.renderReport(data());
+  assert.match(html, /data-host="frame"/);              // in the CSS
+  assert.doesNotMatch(html, /<html[^>]*data-host/);     // not on the document
+});
+
+test('the report drops its reload prompts when the viewer is doing the reloading', () => {
+  const html = mod.renderReport(data({ progress: { total: 3, completed: 1, current: { id: 'T02', title: 'x' } } }));
+  assert.match(html, /:root\[data-host="frame"\] \.rs-note/);
+  assert.match(html, /:root\[data-host="frame"\] \.es-note/);
+  assert.match(html, /Reload for the latest/);   // still true standalone
+});
+
+test('renderReport names the document and the spec it belongs to in the header', () => {
+  const html = mod.renderReport(data());
+  assert.match(html, /class="rpt-doc-type">Spec Implementation Report</);
+  assert.match(html, /class="rpt-slug">implement-modes</);
+  assert.match(html, /class="rpt-brand">Frame</);
+});
+
+test('renderReport omits the slug chip when the spec has no slug', () => {
+  const html = mod.renderReport({ spec: { title: 'Untitled' }, tasks: [] });
+  assert.doesNotMatch(html, /class="rpt-slug"/);
+  assert.match(html, /class="rpt-doc-type"/);   // the rest of the header survives
+});
+
+test('renderReport escapes a hostile slug before it reaches the header', () => {
+  const html = mod.renderReport(data({ spec: { slug: '<img src=x>', title: 'T' } }));
+  assert.doesNotMatch(html, /<img src=x>/);
+  assert.match(html, /&lt;img src=x&gt;/);
+});
+
+// ─── shell parity across the two report assets ────────────────
+
+test('the two report assets carry byte-identical shell blocks', () => {
+  // The shell is duplicated on purpose (a third staged asset would have to be
+  // added to two staging lists, COMMAND_ASSETS and the docs table, and still
+  // be inlined by hand to keep the reports self-contained). This assertion is
+  // what makes the duplication safe: edit both copies, or edit neither.
+  assert.equal(shellBlock(GENERATOR), shellBlock(PLAN_TEMPLATE));
+});
+
+test('the emitted report carries the same shell bytes the template does', () => {
+  // Not just the two sources — what actually reaches the reader. Catches a
+  // shell that is interpolated rather than pasted through.
+  const html = mod.renderReport(data());
+  assert.ok(html.includes(shellBlock(PLAN_TEMPLATE)));
+});
+
+test('the plan template wears the shared header and no longer claims to be dark-only', () => {
+  const text = fs.readFileSync(PLAN_TEMPLATE, 'utf8');
+  assert.match(text, /class="rpt-topbar"/);
+  assert.match(text, /class="rpt-doc-type">Spec Plan Report</);
+  assert.match(text, /class="rpt-slug">\{\{SLUG\}\}</);
+  assert.match(text, /class="rpt-mark"/);
+  assert.match(text, /M2 2h9v2\.6H4\.6V11H2V2Z/);
+  assert.doesNotMatch(text, /Dark-only/);
+  assert.doesNotMatch(text, /color-scheme:dark/);
+});
+
+test('the plan template aliases its legacy token names onto the shell', () => {
+  // The alias block is what lets 250 lines of component CSS stay untouched.
+  const text = fs.readFileSync(PLAN_TEMPLATE, 'utf8');
+  for (const [legacy, shellToken] of [
+    ['--bg', '--bg-deep'], ['--card', '--bg-secondary'], ['--ink', '--text-primary'],
+    ['--muted', '--text-secondary'], ['--primary', '--accent-primary'], ['--accent', '--info'],
+    ['--line', '--border-default'], ['--good', '--success'], ['--goodbg', '--success-subtle'],
+    ['--warn', '--warning-ink'], ['--code', '--bg-tertiary'], ['--dim', '--bg-tertiary'],
+  ]) {
+    assert.ok(
+      text.includes(`${legacy}:var(${shellToken})`),
+      `${legacy} is not aliased onto ${shellToken}`
+    );
+  }
+});
+
+test('neither report asset keeps a hardcoded colour the light theme cannot reach', () => {
+  // A literal survives a theme switch as whatever it was — the old amber
+  // document palette, or ink chosen for a dark background.
+  for (const file of [GENERATOR, PLAN_TEMPLATE]) {
+    const css = fs.readFileSync(file, 'utf8').split(SHELL_CLOSE)[1] || '';
+    assert.doesNotMatch(css, /rgba\(212,\s*165,\s*116/, `amber literal in ${path.basename(file)}`);
+    assert.doesNotMatch(css, /rgba\(120,\s*165,\s*212/, `blue literal in ${path.basename(file)}`);
+    assert.doesNotMatch(css, /rgba\(124,\s*179,\s*130/, `green literal in ${path.basename(file)}`);
+  }
 });
 
 // ─── renderProgress ───────────────────────────────────────────

@@ -61,25 +61,30 @@ IDE-style desktop application for Claude Code. Features a 3-panel layout with pr
 
 ## Testing
 
-- **Runner:** `npm test` → `node --test test/*.test.js` (Node's built-in
-  runner; no test framework dependency)
+- **Runner:** `npm test` → `FRAME_ACTIVITY_HOME=.frame/runtime/test-activity
+  node --test test/*.test.js` (Node's built-in runner; no test framework
+  dependency)
 - **Location & naming:** `test/*.test.js`, flat, one file per module under
   test. `test/fixtures/` holds sample repos as data — the glob deliberately
   excludes it, since Node would otherwise execute those files as tests.
-- **Covered:** `src/main/`, `src/shared/`, `scripts/` — 8 files. The
-  convention is to target the **pure** module and skip its Electron-coupled
-  wrapper (`telemetryEvents.js` is tested, `telemetry.js` is not); where a
-  test must load an Electron-coupled module, it stubs the external requires
-  (`specTasksSync.test.js`).
-- **Not covered:** `src/renderer/` — no DOM/UI harness present (`jsdom`,
-  `playwright`, `@testing-library`, `puppeteer` all absent). Renderer work
-  is not testable here today without first choosing and installing one.
+- **Covered:** `src/main/`, `src/shared/`, `scripts/`, `src/templates/`
+  (`build-implement-report.mjs` via dynamic import, `implement-launch.js`),
+  and the **pure** modules under `src/renderer/home/` (`agentRows`,
+  `sessionRows`) — 35 test files. The convention is to target the pure module
+  and skip its Electron-coupled wrapper (`telemetryEvents.js` is tested,
+  `telemetry.js` is not); where a test must load an Electron-coupled module,
+  it stubs the external requires (`specTasksSync.test.js`).
+- **Not covered:** DOM-coupled renderer code — every `src/renderer/*.js`
+  surface that touches the document. No DOM harness is present (`jsdom`,
+  `playwright`, `@testing-library`, `puppeteer` all absent), so a UI surface
+  is testable here only by first extracting its logic into a dependency-free
+  module, which is what `src/renderer/home/` did.
 - **CI:** `.github/workflows/ci.yml` — `npm test` on ubuntu + macos.
   Deliberately runs **no** `npm ci`: the suite must work from repo-local
   modules alone, so any test that reaches a package in `node_modules` will
   pass locally and fail in CI.
 
-- _Recorded 2026-07-20 by /spec.plan (test-aware-planning)_
+- _Recorded 2026-08-29 by /spec.plan (spec-reports-one-shell-two-themes-in-app)_
 
 ---
 

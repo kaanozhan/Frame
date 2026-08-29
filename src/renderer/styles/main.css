@@ -80,5 +80,8 @@
 /* Activity panel + right rail */
 @import 'components/activity.css';
 
+/* Report Section (a spec's plan / implementation report, opened as a tab) */
+@import 'components/report-section.css';
+
 /* 19. Orchestrator (conductor-led parallel spec execution overlay) */
 @import 'components/orchestrator.css';

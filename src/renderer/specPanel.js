@@ -16,6 +16,7 @@
 const { ipcRenderer } = require('electron');
 const { marked } = require('marked');
 const { IPC } = require('../shared/ipcChannels');
+const reportSection = require('./reportSection');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const specNextAction = require('./specNextAction');
@@ -359,7 +360,9 @@ function renderTabBody(tab) {
 
 // "View Plan Report" — shown above the rendered plan only when the spec
 // folder holds a plan-report.html (getSpec exposes it as planReportPath).
-// Opens in the system default browser; an in-app viewer is a follow-up spec.
+// The report opens as a section tab (reportSection.js) rather than in the
+// system browser, so it inherits the app's theme and stays beside the spec it
+// describes; the viewer's own header keeps an "Open in browser" escape hatch.
 function renderPlanReportRow() {
   return `
     <div class="spec-plan-report-row">
@@ -370,8 +373,13 @@ function renderPlanReportRow() {
 
 function attachPlanReportHandler() {
   contentEl.querySelector('.spec-plan-report-btn')?.addEventListener('click', () => {
-    const p = activeSpec?.planReportPath;
-    if (p) require('electron').shell.openPath(p);
+    if (!activeSpec?.planReportPath) return;
+    reportSection.open({
+      projectPath: state.getProjectPath(),
+      slug: activeSlug,
+      title: activeSpec?.status?.title || activeSlug,
+      kind: 'plan'
+    });
   });
 }
 
@@ -389,8 +397,13 @@ function renderImplementReportRow() {
 
 function attachImplementReportHandler() {
   contentEl.querySelector('.spec-implement-report-btn')?.addEventListener('click', () => {
-    const p = activeSpec?.implementReportPath;
-    if (p) require('electron').shell.openPath(p);
+    if (!activeSpec?.implementReportPath) return;
+    reportSection.open({
+      projectPath: state.getProjectPath(),
+      slug: activeSlug,
+      title: activeSpec?.status?.title || activeSlug,
+      kind: 'implement'
+    });
   });
 }
 
