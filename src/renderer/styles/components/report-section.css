@@ -89,3 +89,14 @@
   font-size: 11.5px;
   padding: 3px 10px;
 }
+
+/* Said once, quietly, for the reports generated before the shared shell: they
+   render as they are — dark, and deaf to the toggle — rather than erroring. */
+.report-section-note {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

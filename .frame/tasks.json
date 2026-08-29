@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T12:45:51.275Z",
+  "lastUpdated": "2026-08-29T12:47:25.476Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6486,13 +6486,13 @@
       "title": "Make the open report follow the theme: stamp the app's current `data-theme` onto the frame's `documentElement` on every load, re-stamp from a `MutationObserver` watching `document.documentElement`'s `data-theme` (the `terminalManager.js` pattern) so the toggle needs no reload, wrap the stamp so a cross-origin failure degrades to an unthemed report rather than a thrown render, and detect a missing shell marker to render pre-shell reports untouched under a muted note in the viewer header.",
       "description": "",
       "source": "spec:spec-reports-one-shell-two-themes-in-app:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-reports-one-shell-two-themes-in-app",
       "createdAt": "2026-08-29T10:56:22.985Z",
-      "updatedAt": "2026-08-29T10:56:22.985Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T12:47:25.476Z",
+      "completedAt": "2026-08-29T12:47:25.476Z"
     },
     {
       "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T07",

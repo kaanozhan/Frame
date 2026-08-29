@@ -83,3 +83,18 @@ Files: `specPanel.js`, `specSection.js`, `specsDashboard.js`,
 _Captured: 2026-08-29 · 5 file changes_
 
 ---
+## T06 — Theme
+
+The viewer stamps the app's `data-theme` onto the frame's own
+`documentElement` on the iframe's load event — not at `srcdoc` assignment,
+since srcdoc paints asynchronously — and re-stamps from a `MutationObserver`
+on `document.documentElement`, the pattern `terminalManager` already uses, so
+the top-bar toggle reaches an open report without a reload. The stamp is
+try/caught: an unthemed report is a fine outcome, a thrown render is not.
+Reports missing the `frame report shell v1` marker are shown untouched under a
+muted header note instead of being stamped at markup that cannot answer.
+Files: `reportSection.js`, `report-section.css`.
+
+_Captured: 2026-08-29 · 2 file changes_
+
+---

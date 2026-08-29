@@ -7614,24 +7614,28 @@
         "shared/ipcChannels"
       ],
       "functions": {
+        "appTheme": {
+          "line": 35,
+          "purpose": "The app's current theme. terminalTabBar always writes the attribute (it"
+        },
         "setHost": {
-          "line": 29,
+          "line": 45,
           "params": [
             "h"
           ]
         },
         "open": {
-          "line": 38,
+          "line": 54,
           "params": [
             "ref"
           ],
           "purpose": "Open a spec's report — reuses the open report viewport (navigates it) or"
         },
         "createViewport": {
-          "line": 43
+          "line": 59
         },
         "_escape": {
-          "line": 168,
+          "line": 221,
           "params": [
             "text"
           ]

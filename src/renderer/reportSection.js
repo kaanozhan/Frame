@@ -20,6 +20,22 @@ const { IPC } = require('../shared/ipcChannels');
 let host = null; // multiTerminalUI
 let seq = 0;
 
+/**
+ * The shared report shell's opening marker. Its presence is what says a report
+ * carries both palettes and will answer to a data-theme; the ~23 reports
+ * generated before this spec do not, and are shown as they are.
+ */
+const SHELL_MARKER = '── frame report shell v1 ──';
+
+/**
+ * The app's current theme. terminalTabBar always writes the attribute (it
+ * defaults to 'dark' on boot), so the fallback is belt-and-braces rather than
+ * a second source of truth.
+ */
+function appTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'dark';
+}
+
 /** The two report kinds, as the reader should see them named. */
 const DOC_TYPE = {
   plan: 'Plan Report',
@@ -50,6 +66,30 @@ function createViewport() {
   let message = '';      // shown in place of the frame: not generated yet, or a read error
   let reqId = 0;
   let container = null;
+  let frameEl = null;      // the live iframe, so the observer can re-stamp it
+  let hasShell = false;    // does this report answer to a data-theme at all?
+
+  /**
+   * Put the app's theme on the report's own documentElement.
+   *
+   * This is the whole reason the frame is same-origin. Guarded because the
+   * document may not be there yet (a frame torn down mid-load) and because a
+   * cross-origin read throws: a report that cannot be stamped should render
+   * unthemed, never take the section's render down with it.
+   */
+  function _stampTheme() {
+    if (!frameEl || !hasShell) return;
+    try {
+      const doc = frameEl.contentDocument;
+      if (doc && doc.documentElement) doc.documentElement.setAttribute('data-theme', appTheme());
+    } catch (_) { /* unthemed is a fine outcome; a thrown render is not */ }
+  }
+
+  // The toggle lives in the top bar and writes data-theme on the app's root —
+  // the same signal terminalManager watches for the xterm theme. Watching it
+  // means an open report follows the toggle with no reload of the file.
+  const themeObserver = new MutationObserver(_stampTheme);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   function navigate(ref) {
     if (!ref) return;
@@ -100,10 +140,12 @@ function createViewport() {
     reportPath = (result && result.path) || '';
     if (result && result.success) {
       reportHtml = result.html || '';
+      hasShell = reportHtml.includes(SHELL_MARKER);
       mtimeMs = result.mtimeMs || 0;
       message = reportHtml ? '' : 'The report file is empty.';
     } else {
       reportHtml = '';
+      hasShell = false;
       message = (result && result.error) || 'The report could not be read.';
     }
     if (host) host.notifySectionChanged();
@@ -122,6 +164,9 @@ function createViewport() {
         <div class="report-section-header">
           <span class="report-section-doctype">${_escape(docType)}</span>
           <span class="report-section-title">${_escape(cur ? cur.title : '')}</span>
+          ${!loading && !message && reportHtml && !hasShell
+            ? '<span class="report-section-note" title="Regenerate the report to pick up the current design">Generated before the shared report shell — shown as it is</span>'
+            : ''}
           <button class="btn btn-secondary report-section-open" ${reportPath ? '' : 'disabled'}
             title="Open the file in the system browser">Open in browser</button>
         </div>
@@ -149,11 +194,19 @@ function createViewport() {
       // the report's own documentElement from here, while nothing inside the
       // file can execute — reports carry no JavaScript today and this keeps
       // that true even if one ever grew some.
+      frameEl = frame;
+      // srcdoc paints asynchronously, so the stamp rides the load event rather
+      // than following the assignment; it fires again on every re-render.
+      frame.addEventListener('load', _stampTheme);
       frame.srcdoc = reportHtml;
+    } else {
+      frameEl = null;
     }
   }
 
   function dispose() {
+    themeObserver.disconnect();
+    frameEl = null;
     container = null;
   }
 
