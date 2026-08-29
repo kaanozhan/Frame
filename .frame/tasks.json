@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T12:40:09.213Z",
+  "lastUpdated": "2026-08-29T12:41:51.185Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6447,13 +6447,13 @@
       "title": "Add `READ_SPEC_REPORT` to `src/shared/ipcChannels.js` and its `ipcMain.handle` in `specManager.setupIPC`, taking `{ projectPath, slug, kind }` with `kind` of `'plan' | 'implement'`, resolving through the existing `PLAN_REPORT_FILE` / `IMPLEMENT_REPORT_FILE` constants, and returning `{ success, html, mtimeMs }` or a failure the viewer can render.",
       "description": "",
       "source": "spec:spec-reports-one-shell-two-themes-in-app:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: spec-reports-one-shell-two-themes-in-app",
       "createdAt": "2026-08-29T10:56:22.985Z",
-      "updatedAt": "2026-08-29T10:56:22.985Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T12:41:51.185Z",
+      "completedAt": "2026-08-29T12:41:51.185Z"
     },
     {
       "id": "task-spec-spec-reports-one-shell-two-themes-in-app-T04",

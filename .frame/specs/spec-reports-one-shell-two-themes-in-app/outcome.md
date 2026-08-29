@@ -32,3 +32,21 @@ Files: `plan-report-template.html`, `test/implementReport.test.js`.
 _Captured: 2026-08-29 · 2 file changes_
 
 ---
+## T03 — Reading a report
+
+Added `READ_SPEC_REPORT` to `ipcChannels.js` and `readSpecReport()` with its
+`ipcMain.handle` in `specManager.setupIPC`, resolving `kind` of `'plan'` /
+`'implement'` through the existing `PLAN_REPORT_FILE` / `IMPLEMENT_REPORT_FILE`
+constants and returning `{ success, html, mtimeMs, path }`. A failure is a
+value, never a throw — a missing report is the ordinary case for an unplanned
+spec, so the viewer can render the reason in place of the frame. Followed
+plan.md's T2 decision and added no test: `test/implementReport.test.js` is the
+only test file in the plan's Files.
+Files: `src/shared/ipcChannels.js`, `src/main/specManager.js`.
+
+Followup: `readSpecReport` is pure main-process code that the spec's
+generator-only test posture leaves uncovered — worth a `specManager` test.
+
+_Captured: 2026-08-29 · 2 file changes_
+
+---
