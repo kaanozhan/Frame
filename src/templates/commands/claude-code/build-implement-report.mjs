@@ -50,17 +50,15 @@ export const EXCLUDED_PATHS = ['.frame', 'tasks.json', 'STRUCTURE.json'];
 
 // ─── Pure: rendering ──────────────────────────────────────────
 
-// Frame's mark — the four corner brackets from assets/frame-mark.svg,
-// inlined as markup rather than referenced, because the report must stay a
-// single self-contained file: it is opened from disk and attached to PRs, so
-// a relative asset path would break the moment it leaves the repo. Inline SVG
-// in HTML needs no xmlns, and leaving it off keeps the "no external assets"
-// test honest. fill="currentColor" lets .rpt-mark colour it per theme.
-export const FRAME_MARK_SVG = '<svg class="rpt-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
-  + '<path d="M2 2h9v2.6H4.6V11H2V2Z"/>'
-  + '<path d="M22 2v9h-2.6V4.6H13V2h9Z"/>'
-  + '<path d="M2 22v-9h2.6v6.4H11V22H2Z"/>'
-  + '<path d="M22 22h-9v-2.6h6.4V13H22v9Z"/>'
+// Frame's app icon (assets/icon.png), inlined as vector rather than
+// referenced, because the report must stay a single self-contained file: it is
+// opened from disk and attached to PRs, so a relative asset path would break
+// the moment it leaves the repo. Vector rather than a downscaled raster so it
+// stays crisp on any display and costs ~700 bytes instead of nine kilobytes.
+// The badge's two colours are literal on purpose — a logo does not answer to
+// the theme. Regenerate the geometry from assets/icon.png if the icon changes.
+export const FRAME_MARK_SVG = '<svg class="rpt-mark" viewBox="0 0 24 24" aria-hidden="true">'
+  + '<rect x="1" y="1" width="22" height="22" rx="5" fill="#14120e" stroke="currentColor" stroke-width="0.75"/><g fill="#f2eee4" transform="translate(5.4 5.4) scale(0.55)"><path d="M2 2h9v2.6H4.6V11H2V2Z"/><path d="M22 2v9h-2.6V4.6H13V2h9Z"/><path d="M2 22v-9h2.6v6.4H11V22H2Z"/><path d="M22 22h-9v-2.6h6.4V13H22v9Z"/></g>'
   + '</svg>';
 
 /**
@@ -146,7 +144,11 @@ export const REPORT_SHELL_CSS = `/* ── frame report shell v1 ── */
   border-bottom:1px solid var(--border-subtle);
   background:linear-gradient(180deg,var(--bg-secondary) 0%,var(--bg-primary) 100%);}
 .rpt-ident{display:flex;align-items:center;gap:var(--space-md);min-width:0;}
-.rpt-mark{width:26px;height:26px;display:block;flex-shrink:0;color:var(--accent-primary);}
+/* The app icon (assets/icon.png), drawn as vector: a fixed charcoal badge
+   with parchment brackets — a logo, so it does not answer to the theme. Only
+   its hairline edge does, via currentColor, because the badge fill is exactly
+   --bg-primary in dark and would otherwise vanish into the page. */
+.rpt-mark{width:26px;height:26px;display:block;flex-shrink:0;color:var(--border-strong);}
 .rpt-brand{font-size:16px;font-weight:700;letter-spacing:-0.2px;color:var(--accent-primary);}
 .rpt-sep{width:1px;align-self:stretch;background:var(--border-strong);flex-shrink:0;}
 .rpt-doc{display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
@@ -169,6 +171,19 @@ export const REPORT_SHELL_CSS = `/* ── frame report shell v1 ── */
 .rpt-head h1{font-size:27px;font-weight:700;letter-spacing:-0.6px;line-height:1.25;
   color:var(--text-primary);max-width:900px;}
 @media (max-width:560px){.rpt-head h1{font-size:20px;}}
+/* Embedded in Frame (the viewer stamps data-host on this document, the same
+   way it stamps data-theme). The app already names the document in its chip
+   and its section header, so the report's own brand strip and headline would
+   be the second and third telling. The file on disk is untouched: opened
+   standalone, or attached to a PR, none of this applies. */
+:root[data-host="frame"] .rpt-mark,
+:root[data-host="frame"] .rpt-brand,
+:root[data-host="frame"] .rpt-sep,
+:root[data-host="frame"] .rpt-doc-type{display:none;}
+:root[data-host="frame"] .rpt-topbar{padding:var(--space-sm) var(--space-lg);}
+:root[data-host="frame"] .rpt-head h1{display:none;}
+:root[data-host="frame"] .rpt-head:empty,
+:root[data-host="frame"] .rpt-head{padding-top:0;}
 /* ── end frame report shell v1 ── */`;
 
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -427,6 +442,11 @@ ${REPORT_SHELL_CSS}
   .empty-state h2{font-size:16px;font-weight:600;letter-spacing:-0.2px;color:var(--text-primary);}
   .empty-state p{font-size:13.5px;color:var(--text-secondary);max-width:480px;line-height:1.6;}
   .empty-state .es-note{font-size:12px;color:var(--text-tertiary);}
+
+  /* Embedded, these two are not noise but wrong: the viewer follows the file
+     on its own and carries a Refresh button, so nobody reloads anything. */
+  :root[data-host="frame"] .rs-note,
+  :root[data-host="frame"] .es-note{display:none;}
 
   footer{color:var(--text-tertiary);font-size:11.5px;text-align:center;
     padding:var(--space-lg);border-top:1px solid var(--border-subtle);}

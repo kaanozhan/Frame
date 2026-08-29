@@ -258,12 +258,48 @@ test('renderReport takes its token values from the app, not the old amber docume
   assert.doesNotMatch(html, /#d4a574/);             // the retired amber accent
 });
 
-test('renderReport wears the corner-bracket mark, not the raster logo', () => {
+test('renderReport wears the app icon as vector, not a raster logo', () => {
   const html = mod.renderReport(data());
   assert.match(html, /class="rpt-mark"/);
-  assert.match(html, /M2 2h9v2\.6H4\.6V11H2V2Z/);   // one of frame-mark.svg's paths
-  assert.match(html, /fill="currentColor"/);        // so it takes the accent per theme
-  assert.doesNotMatch(html, /data:image\/png/);     // the nine kilobytes are gone
+  assert.match(html, /M2 2h9v2\.6H4\.6V11H2V2Z/);   // the bracket paths, inside the badge
+  assert.match(html, /rect x="1" y="1"[^>]*fill="#14120e"/);  // the badge, charcoal
+  assert.match(html, /fill="#f2eee4"/);             // the brackets, parchment
+  assert.doesNotMatch(html, /data:image\/png/);     // no raster, at any size
+});
+
+test('the mark is a logo: its colours do not answer to the theme', () => {
+  // Only the hairline edge is themed — the badge fill is exactly --bg-primary
+  // in dark and would otherwise vanish into the page behind it.
+  const html = mod.renderReport(data());
+  const mark = html.slice(html.indexOf('<svg class="rpt-mark"'), html.indexOf('</svg>'));
+  assert.doesNotMatch(mark, /var\(--/);
+  assert.match(mark, /stroke="currentColor"/);
+});
+
+test('both reports drop their brand strip when embedded, and only then', () => {
+  // data-host is stamped by the viewer, never written into the file — so the
+  // rules must be present but scoped, and nothing may key on them by default.
+  for (const file of [GENERATOR, PLAN_TEMPLATE]) {
+    const shell = shellBlock(file);
+    for (const hidden of ['.rpt-mark', '.rpt-brand', '.rpt-sep', '.rpt-doc-type']) {
+      assert.ok(
+        shell.includes(`:root[data-host="frame"] ${hidden}`),
+        `${hidden} is not dropped when embedded, in ${path.basename(file)}`
+      );
+    }
+    assert.match(shell, /:root\[data-host="frame"\] \.rpt-head h1\{display:none;\}/);
+  }
+  // The emitted file carries the rules but never the attribute.
+  const html = mod.renderReport(data());
+  assert.match(html, /data-host="frame"/);              // in the CSS
+  assert.doesNotMatch(html, /<html[^>]*data-host/);     // not on the document
+});
+
+test('the report drops its reload prompts when the viewer is doing the reloading', () => {
+  const html = mod.renderReport(data({ progress: { total: 3, completed: 1, current: { id: 'T02', title: 'x' } } }));
+  assert.match(html, /:root\[data-host="frame"\] \.rs-note/);
+  assert.match(html, /:root\[data-host="frame"\] \.es-note/);
+  assert.match(html, /Reload for the latest/);   // still true standalone
 });
 
 test('renderReport names the document and the spec it belongs to in the header', () => {

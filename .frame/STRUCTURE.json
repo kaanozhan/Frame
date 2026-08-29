@@ -7635,7 +7635,7 @@
           "line": 85
         },
         "_escape": {
-          "line": 296,
+          "line": 302,
           "params": [
             "text"
           ]
@@ -10423,6 +10423,8 @@
       "description": "",
       "exports": [
         "EXCLUDED_PATHS",
+        "FRAME_MARK_SVG",
+        "REPORT_SHELL_CSS",
         "escapeHtml",
         "diffLineClass",
         "renderDiff",
@@ -10446,33 +10448,33 @@
       ],
       "functions": {
         "escapeHtml": {
-          "line": 62,
+          "line": 191,
           "params": [
             "value"
           ]
         },
         "diffLineClass": {
-          "line": 70,
+          "line": 199,
           "params": [
             "line"
           ],
           "purpose": "Classify a unified-diff line so the reader can scan it. Order matters:"
         },
         "renderDiff": {
-          "line": 81,
+          "line": 210,
           "params": [
             "diffText"
           ]
         },
         "renderVerification": {
-          "line": 92,
+          "line": 221,
           "params": [
             "verification"
           ],
           "purpose": "A task is only as trustworthy as its check. \"not run\" is stated plainly"
         },
         "truncateTitle": {
-          "line": 124,
+          "line": 253,
           "params": [
             "title",
             "max = 72"
@@ -10480,29 +10482,29 @@
           "purpose": "Task titles can run long — a spec's tasks.json title is often a full"
         },
         "renderProgress": {
-          "line": 132,
+          "line": 261,
           "params": [
             "progress"
           ]
         },
         "renderEmptyState": {
-          "line": 172
+          "line": 301
         },
         "renderTask": {
-          "line": 183,
+          "line": 312,
           "params": [
             "task"
           ]
         },
         "renderReport": {
-          "line": 212,
+          "line": 341,
           "params": [
             "data"
           ],
           "purpose": "The whole transform: report data (each task carrying its already-fetched"
         },
         "computeProgress": {
-          "line": 410,
+          "line": 501,
           "params": [
             "tasks",
             "slug"
@@ -10510,21 +10512,21 @@
           "purpose": "Reduce a parsed tasks.json `tasks` array to the report's progress shape for"
         },
         "parseArgs": {
-          "line": 433,
+          "line": 524,
           "params": [
             "argv"
           ],
           "purpose": "Split argv into the two positionals (data path, optional out path) and the"
         },
         "openCommand": {
-          "line": 445,
+          "line": 536,
           "params": [
             "platform"
           ],
           "purpose": "The platform's \"open this file in its default app\" command. Pure so the"
         },
         "readCommitDiff": {
-          "line": 458,
+          "line": 549,
           "params": [
             "commit",
             "repoRoot"
@@ -10532,20 +10534,20 @@
           "purpose": "The commit's diff with Frame's bookkeeping excluded. A hash that git"
         },
         "repoRootFrom": {
-          "line": 473,
+          "line": 564,
           "params": [
             "dir"
           ]
         },
         "readTasks": {
-          "line": 485,
+          "line": 576,
           "params": [
             "repoRoot"
           ],
           "purpose": "The repo's tasks.json `tasks` array, or [] if it can't be read — the banner"
         },
         "openInBrowser": {
-          "line": 500,
+          "line": 591,
           "params": [
             "filePath",
             "platform = process.platform"
@@ -10553,7 +10555,7 @@
           "purpose": "Open the finished report in the default browser, detached so it never blocks"
         },
         "main": {
-          "line": 509,
+          "line": 600,
           "params": [
             "argv"
           ]

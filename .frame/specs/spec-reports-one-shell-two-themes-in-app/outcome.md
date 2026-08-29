@@ -130,3 +130,25 @@ Files: `reportSection.js`.
 _Captured: 2026-08-29 · 1 file change_
 
 ---
+## Post-spec — the app icon, and chrome that stands down when embedded
+
+Two corrections after seeing the reports rendered in the section pane. **The
+mark:** spec.md called `logo.png` the wrong logo and `frame-mark.svg` the right
+one, but the bare green brackets read as an accent glyph rather than the
+product; both reports now carry `assets/icon.png` — the charcoal badge with
+parchment brackets — inlined as vector (~700 bytes, crisp at any DPI) instead
+of a downscaled raster. Its two colours are literal: a logo does not answer to
+the theme, only its hairline edge does, because the badge fill is exactly
+`--bg-primary` and would vanish into a dark page. **The chrome:** the viewer now
+stamps `data-host="frame"` beside `data-theme`, and the shell drops the brand
+strip and the `h1` under it — the chip and the section header already name the
+document, so those were the second and third telling. The implement report also
+hides its "reload for the latest" lines there, which are not merely redundant
+in-app but wrong: the viewer follows the file itself and carries Refresh. The
+file on disk is unchanged; nothing applies standalone or in a PR.
+Files: `build-implement-report.mjs`, `plan-report-template.html`,
+`reportSection.js`, `test/implementReport.test.js`.
+
+_Captured: 2026-08-29 · 4 file changes_
+
+---

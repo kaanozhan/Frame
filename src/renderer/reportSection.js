@@ -107,7 +107,13 @@ function createViewport() {
     if (!frameEl || !hasShell) return;
     try {
       const doc = frameEl.contentDocument;
-      if (doc && doc.documentElement) doc.documentElement.setAttribute('data-theme', appTheme());
+      if (!doc || !doc.documentElement) return;
+      doc.documentElement.setAttribute('data-theme', appTheme());
+      // Says "you are embedded". The shell drops its brand strip and headline
+      // under this, because the chip and the section header already name the
+      // document — three tellings before a word of content. The file on disk
+      // never carries the attribute, so standalone and PR views are untouched.
+      doc.documentElement.setAttribute('data-host', 'frame');
     } catch (_) { /* unthemed is a fine outcome; a thrown render is not */ }
   }
 
