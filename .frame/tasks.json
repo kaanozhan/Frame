@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T08:21:07.722Z",
+  "lastUpdated": "2026-08-29T08:23:44.750Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6330,13 +6330,13 @@
       "title": "Rewrite `src/templates/commands/claude-code/spec.new.md` for a folder that does not exist yet — derive the kebab-case slug from the description, disambiguate it against the embedded catalog, create `.frame/specs/<slug>/` and write `status.json` in the documented required shape — and align the placeholder table in `src/shared/frameTemplates.js` with the new contract",
       "description": "",
       "source": "spec:new-spec-agent-handoff:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: new-spec-agent-handoff",
       "createdAt": "2026-08-29T08:10:30.782Z",
-      "updatedAt": "2026-08-29T08:10:30.782Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T08:23:44.750Z",
+      "completedAt": "2026-08-29T08:23:44.750Z"
     },
     {
       "id": "task-spec-new-spec-agent-handoff-T03",
@@ -6406,7 +6406,7 @@
   ],
   "metadata": {
     "totalCreated": 475,
-    "totalCompleted": 416
+    "totalCompleted": 417
   },
   "categories": {
     "feature": "New features",

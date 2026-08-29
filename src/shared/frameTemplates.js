@@ -33,7 +33,7 @@ function getISOTimestamp() {
  * rewritten on next open, docs stamped current are left alone (so user tweaks
  * inside the block survive between identical Frame versions).
  */
-const SPEC_SECTION_VERSION = 2;
+const SPEC_SECTION_VERSION = 3;
 
 /**
  * Previous shipped generations of the spec sections, preserved byte-for-byte
@@ -218,7 +218,7 @@ Frame auto-advances phase from filesystem state (file presence). The command tem
 
 The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spec.implement\`. Whether the user types them as slash commands or asks conversationally ("plan the auth spec", "implement the tasks"), the flow is **never improvised from memory** — each command's current flow lives in a template file that Frame keeps staged in the project. Run one like this:
 
-**1. Resolve the target spec.** An explicitly named spec always wins. Otherwise list the specs (\`.frame/specs/*/status.json\`) whose phase the command acts on — \`spec.plan\` → \`specified\`, \`spec.tasks\` → \`planned\`, \`spec.implement\` → \`tasks_generated\` or \`implementing\`. Exactly one candidate → take it silently; zero or several → present the candidates and ask. \`spec.new\` creates a new spec: derive the kebab-case slug from the title.
+**1. Resolve the target spec.** An explicitly named spec always wins. Otherwise list the specs (\`.frame/specs/*/status.json\`) whose phase the command acts on — \`spec.plan\` → \`specified\`, \`spec.tasks\` → \`planned\`, \`spec.implement\` → \`tasks_generated\` or \`implementing\`. Exactly one candidate → take it silently; zero or several → present the candidates and ask. \`spec.new\` is the exception: no spec exists yet, so there is nothing to resolve — its template has you derive the slug and title from the description and create the folder yourself.
 
 **2. Resolve the template.** Take the first that exists:
 
@@ -232,9 +232,9 @@ The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spe
 | Placeholder | Value |
 | --- | --- |
 | \`{project_path}\` | absolute path of the project root |
-| \`{slug}\` | the spec's slug |
-| \`{title}\` | the spec's title (from \`status.json\`; for \`spec.new\`, the new title) |
-| \`{description}\` | the user's description (\`spec.new\` only; empty otherwise) |
+| \`{slug}\` | the spec's slug — **omitted for \`spec.new\`**, which runs before the spec exists |
+| \`{title}\` | the spec's title (from \`status.json\`) — **omitted for \`spec.new\`** for the same reason |
+| \`{description}\` | the user's description, verbatim (\`spec.new\` only; empty otherwise) |
 | \`{report_template_path}\` | \`.frame/runtime/commands/<tool>/plan-report-template.html\` |
 | \`{report_generator_path}\` | \`.frame/runtime/commands/<tool>/build-implement-report.mjs\` |
 

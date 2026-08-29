@@ -12,3 +12,18 @@ plain `spec not found` — files: `src/main/specManager.js`, `test/specNewStagin
 _Captured: 2026-08-29 · 2 file change(s)_
 
 ---
+## T02 — `spec.new` authors the folder it used to be handed
+
+Rewrote `src/templates/commands/claude-code/spec.new.md` for a folder that does
+not exist yet: derive the title and slug, disambiguate against the embedded
+catalog, create `.frame/specs/<slug>/` and write both `status.json` (phase
+`"specified"`, never `draft`) and `spec.md`; the `{slug}`/`{title}` tokens are
+gone. Aligned the placeholder table and the resolve-the-spec step in
+`src/shared/frameTemplates.js`. Beyond the plan: bumped `SPEC_SECTION_VERSION`
+2 → 3, without which projects stamped at 2 keep the contradicted table.
+`spec-status-repair`'s required-shape block is preserved and restated as
+written-from-scratch rather than field-editing.
+
+_Captured: 2026-08-29 · 2 file change(s)_
+
+---
