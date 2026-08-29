@@ -27,3 +27,17 @@ written-from-scratch rather than field-editing.
 _Captured: 2026-08-29 · 2 file change(s)_
 
 ---
+## T03 — The modal becomes a launcher
+
+Collapsed `showNewSpecPrompt` to a single textarea whose Create calls the new
+`agentDispatch.dispatchSpecNew(text)`: it stages the slug-less `spec.new` prompt,
+creates a lane, renames it "Spec Creator" and injects — writing no spec folder
+anywhere. The lane is created directly rather than via `dispatch({createNew:true})`
+so the name lands before the CLI cold start, since T04 binds the new slug by that
+label. Divergence from plan.md: `panels.css` is untouched — the title-field and
+dual-label classes it expected to become dead are still used by the rename modal
+in the same file. Files: `src/renderer/specPanel.js`, `src/renderer/agentDispatch.js`.
+
+_Captured: 2026-08-29 · 2 file change(s)_
+
+---

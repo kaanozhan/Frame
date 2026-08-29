@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T08:23:44.750Z",
+  "lastUpdated": "2026-08-29T08:26:36.159Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6343,13 +6343,13 @@
       "title": "Collapse `showNewSpecPrompt` in `src/renderer/specPanel.js` to a single free-form textarea whose Create stages the prompt and calls a new `agentDispatch.dispatchSpecNew(text)` that opens a lane, renames it \"Spec Creator\" and injects, creating no spec folder anywhere; drop the title-field styling in `src/renderer/styles/components/panels.css`",
       "description": "",
       "source": "spec:new-spec-agent-handoff:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: new-spec-agent-handoff",
       "createdAt": "2026-08-29T08:10:30.782Z",
-      "updatedAt": "2026-08-29T08:10:30.782Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T08:26:36.159Z",
+      "completedAt": "2026-08-29T08:26:36.159Z"
     },
     {
       "id": "task-spec-new-spec-agent-handoff-T04",
@@ -6406,7 +6406,7 @@
   ],
   "metadata": {
     "totalCreated": 475,
-    "totalCompleted": 417
+    "totalCompleted": 418
   },
   "categories": {
     "feature": "New features",

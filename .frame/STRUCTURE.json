@@ -4366,6 +4366,7 @@
         "startDefaultAgent",
         "resumeClaudeSession",
         "dispatchSpecCommand",
+        "dispatchSpecNew",
         "getSpecLaneInfo",
         "getTaskLaneInfo",
         "onSpecLaneActivity",
@@ -4454,80 +4455,87 @@
           ],
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
+        "dispatchSpecNew": {
+          "line": 586,
+          "params": [
+            "description"
+          ],
+          "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
+        },
         "getSpecLaneInfo": {
-          "line": 578,
+          "line": 648,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 602,
+          "line": 672,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 623,
+          "line": 693,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 627,
+          "line": 697,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 631,
+          "line": 701,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 648,
+          "line": 718,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 656,
+          "line": 726,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 679,
+          "line": 749,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 687,
+          "line": 757,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 705,
+          "line": 775,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 715,
+          "line": 785,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 724,
+          "line": 794,
           "params": [
             "frameName",
             "specName"
@@ -4535,14 +4543,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 765,
+          "line": 835,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 794,
+          "line": 864,
           "params": [
             "terminalId",
             "message"
@@ -8030,41 +8038,34 @@
           "line": 532
         },
         "showNewSpecPrompt": {
-          "line": 547
-        },
-        "deriveSlugPreview": {
-          "line": 649,
-          "params": [
-            "title"
-          ],
-          "purpose": "Same shape as specManager.generateSlug — duplicated here so the renderer"
+          "line": 548
         },
         "showSuggestionModal": {
-          "line": 667,
+          "line": 629,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 734,
+          "line": 696,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 827,
+          "line": 789,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 847,
+          "line": 809,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 857,
+          "line": 819,
           "params": [
             "iso"
           ]

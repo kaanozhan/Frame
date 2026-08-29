@@ -563,6 +563,76 @@ async function _dispatchImplement({ slug, title, projectPath, assignment }) {
   return result;
 }
 
+// ─── New Spec: the launcher path ────────────────────────────
+//
+// `spec.new` is the one command that runs before its spec exists, so it
+// cannot go through dispatchSpecCommand: there is no slug to stage against,
+// no assigned lane to look up, and nothing to label the lane after. The lane
+// carries this transient name until the agent writes the folder and the
+// SPEC_DATA subscription relabels it to the standard `spec: <slug>`.
+const SPEC_CREATOR_LANE_NAME = 'Spec Creator';
+
+/**
+ * Hand the user's free-form text to the standard `spec.new` flow.
+ *
+ * Creates no spec folder — the agent derives the slug, creates the directory
+ * and authors both files. The staged prompt under `.frame/runtime/prompts/`
+ * is what survives a failed or abandoned run, so the text is never lost even
+ * when nothing else is written.
+ *
+ * @param {string} description - the user's text, verbatim
+ * @returns {Promise<{success: boolean, terminalId: string|null, error: string|null}>}
+ */
+async function dispatchSpecNew(description) {
+  if (!multiTerminalUI) {
+    return _fail(null, 'Terminal system is not ready yet');
+  }
+  const projectPath = state.getProjectPath();
+  if (!projectPath) {
+    return _fail(null, 'Open a project first');
+  }
+  const text = String(description || '').trim();
+  if (!text) {
+    return _fail(null, 'Nothing to dispatch — describe the spec first');
+  }
+
+  let staged;
+  try {
+    staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
+      projectPath,
+      slug: null,
+      command: 'spec.new',
+      aiTool: 'claude-code',
+      description: text
+    });
+  } catch (err) {
+    console.error('agentDispatch: spec.new staging failed', err);
+    staged = null;
+  }
+  if (!staged || !staged.success) {
+    return _fail(null, 'Could not stage prompt: ' + ((staged && staged.error) || 'unknown error'));
+  }
+
+  // Always a new lane — with no slug there is nothing to reuse a lane by, and
+  // "continue where the last spec was written" is not a meaningful offer.
+  // Created here rather than via dispatch({ createNew: true }) so the name is
+  // in place before the CLI cold-start, instead of after up to 15s of "Frame 2".
+  let terminalId;
+  try {
+    terminalId = await multiTerminalUI.createTerminalForCurrentProject();
+  } catch (err) {
+    console.error('agentDispatch: terminal creation failed', err);
+    terminalId = null;
+  }
+  if (!terminalId) {
+    const max = multiTerminalUI.getManager().maxTerminals;
+    return _fail(null, `Could not create a new terminal — maximum (${max}) may be reached for this project`);
+  }
+  multiTerminalUI.getManager().renameTerminal(terminalId, SPEC_CREATOR_LANE_NAME);
+
+  return dispatch({ terminalId, prompt: staged.instruction });
+}
+
 /**
  * Live info about the lane a spec is assigned to, or null when unassigned
  * (including: the lane was closed). Computed fresh on every call — never
@@ -802,6 +872,7 @@ module.exports = {
   startDefaultAgent,
   resumeClaudeSession,
   dispatchSpecCommand,
+  dispatchSpecNew,
   getSpecLaneInfo,
   getTaskLaneInfo,
   onSpecLaneActivity,
