@@ -28,6 +28,7 @@ const decisionsView = require('./decisionsView');
 const taskSection = require('./taskSection');
 const specSection = require('./specSection');
 const diffSection = require('./diffSection');
+const reportSection = require('./reportSection');
 const notify = require('./notify');
 const terminalChipNotice = require('./terminalChipNotice');
 
@@ -117,6 +118,7 @@ class MultiTerminalUI {
     taskSection.setHost(this);
     specSection.setHost(this);
     diffSection.setHost(this);
+    reportSection.setHost(this);
 
     // Dashboards render inline in the center; every legacy entry point
     // (show/toggle, deep links, palette) routes through these hosts.

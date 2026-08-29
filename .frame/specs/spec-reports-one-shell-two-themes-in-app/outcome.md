@@ -50,3 +50,20 @@ generator-only test posture leaves uncovered — worth a `specManager` test.
 _Captured: 2026-08-29 · 2 file changes_
 
 ---
+## T04 — The section
+
+Created `src/renderer/reportSection.js` on `diffSection.js`'s contract — one
+reused viewport, navigated in place — reading the file over `READ_SPEC_REPORT`
+and handing it to an `<iframe class="rpt-frame" sandbox="allow-same-origin">`
+as a `srcdoc` property, so the report is never parsed or rewritten. Added
+`report-section.css` with its `@import` in `main.css`, `setHost` in
+`multiTerminalUI.js` and the `FileBarChart` chip in `terminalTabBar.js`. Beyond
+plan.md: the viewport also exposes `lastMtime()`, the handle T07's live-follow
+needs. The header carries only the doc type and spec title here — Open in
+browser is T05's, Refresh is T07's.
+Files: `reportSection.js`, `report-section.css`, `main.css`,
+`multiTerminalUI.js`, `terminalTabBar.js`.
+
+_Captured: 2026-08-29 · 5 file changes_
+
+---

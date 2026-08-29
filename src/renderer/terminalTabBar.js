@@ -30,7 +30,7 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
-const { Plus, Bell, CheckSquare, Home, X, FileText, FileDiff, Bot } = require('lucide');
+const { Plus, Bell, CheckSquare, Home, X, FileText, FileDiff, FileBarChart, Bot } = require('lucide');
 const { escapeHtml } = require('./htmlUtils');
 const laneStatus = require('./laneStatus');
 const notify = require('./notify');
@@ -223,7 +223,7 @@ class TerminalTabBar {
       ` : ''}
       ${sections.map(sec => `
         <button class="lane-bar-section ${sec.key === activeKey ? 'current' : ''}" data-key="${escapeHtml(sec.key)}" title="${escapeHtml(sec.title)}">
-          ${lucideIcon(sec.type === 'spec' ? FileText : sec.type === 'diff' ? FileDiff : sec.type === 'orchestrator' ? Bot : CheckSquare, 13)}
+          ${lucideIcon(sec.type === 'spec' ? FileText : sec.type === 'diff' ? FileDiff : sec.type === 'report' ? FileBarChart : sec.type === 'orchestrator' ? Bot : CheckSquare, 13)}
           <span class="lane-bar-section-label">${escapeHtml(sec.title)}</span>
           <span class="lane-bar-section-close" title="Close tab">${lucideIcon(X, 12)}</span>
         </button>

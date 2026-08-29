@@ -6636,6 +6636,7 @@
         "taskSection",
         "specSection",
         "diffSection",
+        "reportSection",
         "notify",
         "terminalChipNotice",
         "githubPanel",
@@ -7602,6 +7603,39 @@
         "emits": [
           "LOAD_PROMPT_HISTORY"
         ]
+      }
+    },
+    "renderer/reportSection": {
+      "file": "src/renderer/reportSection.js",
+      "description": "Report Section Module",
+      "exports": [],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "setHost": {
+          "line": 29,
+          "params": [
+            "h"
+          ]
+        },
+        "open": {
+          "line": 38,
+          "params": [
+            "ref"
+          ],
+          "purpose": "Open a spec's report — reuses the open report viewport (navigates it) or"
+        },
+        "createViewport": {
+          "line": 43
+        },
+        "_escape": {
+          "line": 157,
+          "params": [
+            "text"
+          ]
+        }
       }
     },
     "renderer/sampleBanner": {
@@ -11894,6 +11928,18 @@
         "description": "Section Rail Module"
       }
     ],
+    "report": [
+      {
+        "module": "renderer/reportSection",
+        "file": "src/renderer/reportSection.js",
+        "description": "Report Section Module"
+      },
+      {
+        "module": "templates/commands/claude-code/build-implement-report",
+        "file": "src/templates/commands/claude-code/build-implement-report.mjs",
+        "description": ""
+      }
+    ],
     "rows": [
       {
         "module": "renderer/home/agentRows",
@@ -11911,6 +11957,11 @@
         "module": "renderer/projectSection",
         "file": "src/renderer/projectSection.js",
         "description": "Projects Section"
+      },
+      {
+        "module": "renderer/reportSection",
+        "file": "src/renderer/reportSection.js",
+        "description": "Report Section Module"
       },
       {
         "module": "renderer/sectionRail",
