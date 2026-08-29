@@ -41,3 +41,17 @@ in the same file. Files: `src/renderer/specPanel.js`, `src/renderer/agentDispatc
 _Captured: 2026-08-29 · 2 file change(s)_
 
 ---
+## T04 — The lane binds itself once the spec appears
+
+Subscribed `agentDispatch` to `SPEC_DATA` and diffed the slugs against the
+previous push; on a single new slug with a single waiting Spec Creator lane it
+sets `specLanes`, restores the lane's default name and applies the standard
+`spec: <slug>` assignment. Waiting lanes come from a launch-time marker map
+(`specCreatorLanes`) rather than a name search, so a hand-named lane can never be
+bound; the name is still checked, since a user rename means the lane was
+repurposed. The snapshot is keyed by project so switching projects reseeds rather
+than binding. File: `src/renderer/agentDispatch.js`.
+
+_Captured: 2026-08-29 · 1 file change(s)_
+
+---

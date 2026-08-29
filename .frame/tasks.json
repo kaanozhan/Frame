@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-29T08:26:36.159Z",
+  "lastUpdated": "2026-08-29T08:28:34.511Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6356,13 +6356,13 @@
       "title": "Subscribe `src/renderer/agentDispatch.js` to `SPEC_DATA`, diff slugs against the previous push, and on a single new slug with exactly one live Spec Creator lane set `specLanes` and replace the label with the standard `spec: <slug>` assignment",
       "description": "",
       "source": "spec:new-spec-agent-handoff:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: new-spec-agent-handoff",
       "createdAt": "2026-08-29T08:10:30.782Z",
-      "updatedAt": "2026-08-29T08:10:30.782Z",
-      "completedAt": null
+      "updatedAt": "2026-08-29T08:28:34.511Z",
+      "completedAt": "2026-08-29T08:28:34.511Z"
     },
     {
       "id": "task-spec-new-spec-agent-handoff-T05",
@@ -6406,7 +6406,7 @@
   ],
   "metadata": {
     "totalCreated": 475,
-    "totalCompleted": 418
+    "totalCompleted": 419
   },
   "categories": {
     "feature": "New features",
