@@ -1,0 +1,229 @@
+/* ==================== FEEDBACK PANEL ====================
+   The same container contract as #activity-panel (activity.css): a flex
+   sibling of #terminal-container that slides in from the right, `.visible`
+   toggled by the module itself. Wider than Activity because this one is a
+   form the user writes prose into, and a 380px column makes a description
+   field feel like a comment box. */
+
+#feedback-panel {
+  width: 440px;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-left: 1px solid var(--border-subtle);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
+}
+
+#feedback-panel:not(.visible) {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#feedback-panel.visible {
+  display: flex;
+  transform: translateX(0);
+  opacity: 1;
+}
+
+#feedback-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#feedback-header h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+#feedback-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 12px;
+  line-height: 1;
+  margin-left: auto;
+}
+
+#feedback-close:hover {
+  color: var(--text-primary);
+}
+
+/* ─── the two tabs ───
+   Issue and Reach us, in the panel-tab shape githubPanel already
+   established (.github-tabs in panels.css): a tertiary strip under the
+   header, the active one marked by a 2px underline rather than a fill. The
+   tab is not decoration here — it decides which channel the report leaves
+   through — so it sits above the form, before anything is typed. */
+
+.feedback-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.feedback-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-tertiary);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.feedback-tab-btn:hover {
+  color: var(--text-secondary);
+}
+
+.feedback-tab-btn.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+#feedback-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+/* ─── the form ─── */
+
+.feedback-field {
+  margin-bottom: var(--space-lg);
+}
+
+.feedback-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.feedback-types {
+  display: flex;
+  gap: 2px;
+}
+
+.feedback-type-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 3px 9px;
+}
+
+.feedback-type-btn:hover {
+  color: var(--text-primary);
+}
+
+.feedback-type-btn.active {
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.feedback-input,
+.feedback-textarea {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 7px 9px;
+}
+
+.feedback-input:focus,
+.feedback-textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary, var(--text-secondary));
+}
+
+.feedback-textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+
+.feedback-error {
+  display: none;
+  color: var(--danger, #e5534b);
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+.feedback-error.visible {
+  display: block;
+}
+
+/* ─── what we will attach ───
+   The preview is not decoration: it is the promise that the report carries
+   nothing the user has not seen, so it reads as a plain list rather than a
+   collapsed detail nobody opens. */
+
+.feedback-diagnostics {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md, 10px);
+  margin-bottom: var(--space-lg);
+}
+
+.feedback-diagnostics-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.feedback-diagnostics-line {
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  line-height: 1.6;
+}
+
+/* ─── sending ─── */
+
+/* One button, sized to its label rather than to the panel. A CTA stretched
+   edge to edge reads as a bar, not as something you press; the min-width is
+   there so File an issue and Send an email stay the same size as the tabs
+   swap one for the other in place. */
+
+.feedback-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.feedback-actions .btn {
+  min-width: 180px;
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
+}
+
+.feedback-note {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+  margin-top: var(--space-md, 10px);
+}

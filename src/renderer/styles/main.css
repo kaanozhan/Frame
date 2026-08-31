@@ -80,6 +80,9 @@
 /* Activity panel + right rail */
 @import 'components/activity.css';
 
+/* Feedback panel (an issue or an email, from inside Frame) */
+@import 'components/feedback.css';
+
 /* Report Section (a spec's plan / implementation report, opened as a tab) */
 @import 'components/report-section.css';
 
