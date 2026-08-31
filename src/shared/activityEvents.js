@@ -54,7 +54,7 @@ const HINT_REASONS = [
   'no-context' // emit: nothing composed to send
 ];
 
-const HOSTS = ['app', 'claude-hook', 'git-precommit', 'orch-bus', 'cli'];
+const HOSTS = ['app', 'claude-hook', 'codex-hook', 'git-precommit', 'orch-bus', 'cli'];
 
 // Why the doc pass could not settle a document. Each is a distinct thing for
 // the user to do, which is why they are separate codes rather than one
@@ -119,6 +119,17 @@ const EVENTS = {
       : r.mode === 'search'
         ? `Module hint skipped — ${SEARCH_REASON_TEXT[r.reason] || HINT_REASON_TEXT[r.reason] || r.reason}`
       : `Spec history skipped${r.path ? ` for ${r.path}` : ''} — ${HINT_REASON_TEXT[r.reason] || r.reason}`)
+  },
+
+  // Hooks registered but never seen to run. Codex requires the user to trust
+  // a hook in its TUI before it executes, and an untrusted hook does nothing
+  // and says nothing — a Frame update that changes a script's hash un-trusts
+  // them again, just as silently. Recorded so the quiet state is on the
+  // record rather than indistinguishable from "nothing needed doing".
+  'hooks.untrusted': {
+    kind: 'suppression',
+    fields: { tool: enumOf(['codex']), repeats: REPEATS },
+    label: (r) => `${r.tool === 'codex' ? 'Codex' : r.tool} hooks are installed but have never run — they need trusting`
   },
 
   // ─── watchers ───────────────────────────────────────────

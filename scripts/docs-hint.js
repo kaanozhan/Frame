@@ -60,6 +60,18 @@ const path = require('path');
 // or split its delivery — rather than a silent loss in production.
 const CAP = 1980;
 
+/**
+ * The cap for the CLI this payload came from. Claude Code inlines 2 000
+ * characters and spills past it; Codex showed no truncation at 20 000, so a
+ * section that must be trimmed for one can go whole to the other. The margin
+ * below each host's figure is the same 20 characters CAP keeps.
+ */
+function capFor(payload) {
+  if (!vocab) return CAP;
+  const ceiling = vocab.inlineCap(vocab.cliOf(payload, process.argv[3]));
+  return Math.max(0, ceiling - 20);
+}
+
 // ─── sections an agent must comply with, and when ─────────
 //
 // Matched on a stable prefix rather than the full heading, so an editorial
@@ -173,11 +185,11 @@ function renderSection(section, subsetTitles) {
  * trimmed body plus the command that prints the rest — visibly incomplete,
  * rather than handed whole to the host and silently spilled to a file.
  */
-function capped(root, preamble, bodies) {
+function capped(root, preamble, bodies, cap = CAP) {
   const full = `${preamble}\n\n${bodies.join('\n\n')}`;
-  if (full.length <= CAP) return full;
+  if (full.length <= cap) return full;
   const pointer = `\n\n[trimmed — full text: node ${cliPath(root)} section "<name>"]`;
-  return full.slice(0, Math.max(0, CAP - pointer.length)) + pointer;
+  return full.slice(0, Math.max(0, cap - pointer.length)) + pointer;
 }
 
 // ─── activity record ──────────────────────────────────────
@@ -203,13 +215,30 @@ try {
   /* older generation — the inline fallbacks below are the old behaviour */
 }
 
+/**
+ * Which host this record came from. The activity registry keeps one value per
+ * CLI so "Codex hooks are installed but nothing has ever run" is answerable
+ * from the log alone — which is how Frame detects an untrusted Codex hook,
+ * since Codex writes nothing to disk when it declines to run one.
+ */
+let hookCli = null;
+
+/** Called once, from the entry point, with the parsed payload. */
+function setHookCli(payload) {
+  hookCli = (vocab && vocab.cliOf(payload, process.argv[3])) || 'claude-code';
+}
+
+function hookHost() {
+  return hookCli === 'codex' ? 'codex-hook' : 'claude-hook';
+}
+
 function note(root, ev, mode, fields) {
   if (!activity || !root) return;
   try {
     activity.appendSync(activity.projectKey(root), {
       ev,
       kind: ev === 'hint.injected' ? 'action' : 'suppression',
-      host: 'claude-hook',
+      host: hookHost(),
       mode,
       ...fields
     });
@@ -250,7 +279,7 @@ function sessionStart(input) {
     .filter(Boolean);
   if (!bodies.length) return note(root, 'hint.quiet', 'session-start', { reason: 'no-match' });
 
-  const text = capped(root, SESSION_PREAMBLE, bodies);
+  const text = capped(root, SESSION_PREAMBLE, bodies, capFor(input));
   note(root, 'hint.injected', 'session-start', { bytes: text.length });
   emit('SessionStart', text);
 }
@@ -320,7 +349,7 @@ function preEdit(input) {
 
   // Kept terse on purpose: every character here is one the rules cannot use.
   const preamble = `Frame's rules for writing ${target.file} — follow them:`;
-  const text = capped(root, preamble, [renderSection(section, target.subsections)]);
+  const text = capped(root, preamble, [renderSection(section, target.subsections)], capFor(input));
   note(root, 'hint.injected', 'meta-write', { bytes: text.length });
   emit('PreToolUse', text);
 }
@@ -352,6 +381,7 @@ try {
     sectionCli(resolveRoot(process.cwd()), process.argv[3]);
   } else {
     const input = JSON.parse(readStdin() || '{}');
+    setHookCli(input);
     if (mode === 'session-start') sessionStart(input);
     else if (mode === 'pre-edit') preEdit(input);
   }

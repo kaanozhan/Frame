@@ -114,13 +114,30 @@ try {
   /* older generation — the inline fallback below is the old behaviour */
 }
 
+/**
+ * Which host this record came from. The activity registry keeps one value per
+ * CLI so "Codex hooks are installed but nothing has ever run" is answerable
+ * from the log alone — which is how Frame detects an untrusted Codex hook,
+ * since Codex writes nothing to disk when it declines to run one.
+ */
+let hookCli = null;
+
+/** Called once, from the entry point, with the parsed payload. */
+function setHookCli(payload) {
+  hookCli = (vocab && vocab.cliOf(payload, process.argv[3])) || 'claude-code';
+}
+
+function hookHost() {
+  return hookCli === 'codex' ? 'codex-hook' : 'claude-hook';
+}
+
 function note(root, ev, fields) {
   if (!activity || !root) return;
   try {
     activity.appendSync(activity.projectKey(root), {
       ev,
       kind: ev === 'hint.injected' ? 'action' : 'suppression',
-      host: 'claude-hook',
+      host: hookHost(),
       mode: 'spec-command',
       ...fields
     });
@@ -311,6 +328,7 @@ function promptMode(input) {
 
 try {
   const input = JSON.parse(readStdin() || '{}');
+  setHookCli(input);
   if (process.argv[2] === 'prompt') promptMode(input);
 } catch { /* silence is the contract */ }
 

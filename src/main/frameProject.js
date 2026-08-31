@@ -681,6 +681,60 @@ function removeCodexHintHook({ home = null } = {}) {
   return { removed, path: hooksPath };
 }
 
+/**
+ * Are Frame's Codex hooks installed, and have they ever actually run?
+ *
+ * Codex will not execute a hook until the user trusts it in its TUI, and an
+ * untrusted hook does nothing and says nothing — no error, no prompt, no file
+ * written. A Frame update that changes a hint script changes its hash and
+ * un-trusts them again, just as quietly. T01 looked for a readable trust
+ * flag and found none: nothing in `config.toml`, no `hooks.state`, no hook or
+ * trust table in Codex's `state_5.sqlite`.
+ *
+ * So the state is read behaviourally instead. Every hint script records what
+ * it did — an injection or the reason it stayed quiet — under a host of
+ * `codex-hook`. Hooks installed with not one such record means they have
+ * never run. This couples Frame to its own log rather than to Codex's
+ * internals, which is the point.
+ *
+ * `sinceMs` guards the other direction: a fresh install has not run yet
+ * either, and calling that "untrusted" the moment it lands would be noise.
+ */
+function codexHookTrustState(projectPath, { home = null, sinceMs = 0 } = {}) {
+  const hooksPath = path.join(home || codexHome(), 'hooks.json');
+  let installed = false;
+  try {
+    const config = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
+    const ours = new Set(codexHookCommands());
+    installed = hookCommandsIn(config).some((command) => ours.has(command));
+  } catch {
+    return { installed: false, seen: false, untrusted: false };
+  }
+  if (!installed) return { installed: false, seen: false, untrusted: false };
+
+  let seen = false;
+  try {
+    const activity = require('../../scripts/activity-log');
+    const file = activity.filePath(activity.projectKey(projectPath));
+    const text = fs.readFileSync(file, 'utf8');
+    for (const line of text.split('\n')) {
+      if (!line.includes('codex-hook')) continue;
+      try {
+        const rec = JSON.parse(line);
+        if (rec.host !== 'codex-hook') continue;
+        if (sinceMs && Date.parse(rec.t) < sinceMs) continue;
+        seen = true;
+        break;
+      } catch { /* a torn line is not evidence either way */ }
+    }
+  } catch {
+    // No log yet is not proof of anything — say installed, not untrusted.
+    return { installed: true, seen: false, untrusted: false };
+  }
+
+  return { installed: true, seen, untrusted: !seen };
+}
+
 /** Every command string Frame's Codex hook entries carry. */
 function codexHookCommands() {
   const out = [];
@@ -1563,6 +1617,7 @@ module.exports = {
   installSpecHintHook,
   installCodexHintHook,
   removeCodexHintHook,
+  codexHookTrustState,
   codexHome,
   removeSpecHintHook,
   removeFrame,

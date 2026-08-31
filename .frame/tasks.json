@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T19:17:45.146Z",
+  "lastUpdated": "2026-08-31T19:28:46.678Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6812,13 +6812,13 @@
       "title": "Detect untrusted Codex hooks, record the `hooks.untrusted` suppression, and surface the state through `healthNotice` so a silently disabled hook is visible.",
       "description": "",
       "source": "spec:codex-parity:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T19:28:46.678Z",
+      "completedAt": "2026-08-31T19:28:46.678Z"
     },
     {
       "id": "task-spec-codex-parity-T06",

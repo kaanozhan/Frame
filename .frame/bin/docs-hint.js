@@ -63,12 +63,12 @@ const CAP = 1980;
 /**
  * The cap for the CLI this payload came from. Claude Code inlines 2 000
  * characters and spills past it; Codex showed no truncation at 20 000, so a
- * section that has to be trimmed for Claude Code can go whole to Codex. The
- * margin below each host's figure is the same 20 characters CAP keeps.
+ * section that must be trimmed for one can go whole to the other. The margin
+ * below each host's figure is the same 20 characters CAP keeps.
  */
 function capFor(payload) {
   if (!vocab) return CAP;
-  const ceiling = vocab.inlineCap(vocab.cliOf(payload));
+  const ceiling = vocab.inlineCap(vocab.cliOf(payload, process.argv[3]));
   return Math.max(0, ceiling - 20);
 }
 
@@ -215,13 +215,30 @@ try {
   /* older generation — the inline fallbacks below are the old behaviour */
 }
 
+/**
+ * Which host this record came from. The activity registry keeps one value per
+ * CLI so "Codex hooks are installed but nothing has ever run" is answerable
+ * from the log alone — which is how Frame detects an untrusted Codex hook,
+ * since Codex writes nothing to disk when it declines to run one.
+ */
+let hookCli = null;
+
+/** Called once, from the entry point, with the parsed payload. */
+function setHookCli(payload) {
+  hookCli = (vocab && vocab.cliOf(payload, process.argv[3])) || 'claude-code';
+}
+
+function hookHost() {
+  return hookCli === 'codex' ? 'codex-hook' : 'claude-hook';
+}
+
 function note(root, ev, mode, fields) {
   if (!activity || !root) return;
   try {
     activity.appendSync(activity.projectKey(root), {
       ev,
       kind: ev === 'hint.injected' ? 'action' : 'suppression',
-      host: 'claude-hook',
+      host: hookHost(),
       mode,
       ...fields
     });
@@ -364,6 +381,7 @@ try {
     sectionCli(resolveRoot(process.cwd()), process.argv[3]);
   } else {
     const input = JSON.parse(readStdin() || '{}');
+    setHookCli(input);
     if (mode === 'session-start') sessionStart(input);
     else if (mode === 'pre-edit') preEdit(input);
   }

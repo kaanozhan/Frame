@@ -768,6 +768,7 @@
         "installSpecHintHook",
         "installCodexHintHook",
         "removeCodexHintHook",
+        "codexHookTrustState",
         "codexHome",
         "removeSpecHintHook",
         "removeFrame",
@@ -803,6 +804,7 @@
         "tasksManager",
         "electron",
         "aiToolManager",
+        "../scripts/activity-log",
         "specManager",
         "fileTree",
         "telemetry"
@@ -942,12 +944,21 @@
           ],
           "purpose": "Take Frame's Codex entries back out. Exact-match on the command string, so"
         },
+        "codexHookTrustState": {
+          "line": 703,
+          "params": [
+            "projectPath",
+            "{ home = null",
+            "sinceMs = 0 } = {}"
+          ],
+          "purpose": "Are Frame's Codex hooks installed, and have they ever actually run?"
+        },
         "codexHookCommands": {
-          "line": 685,
+          "line": 739,
           "purpose": "Every command string Frame's Codex hook entries carry."
         },
         "removeSpecHintHook": {
-          "line": 700,
+          "line": 754,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -955,74 +966,74 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 773,
+          "line": 827,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 778,
+          "line": 832,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 807,
+          "line": 861,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 835,
+          "line": 889,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 839,
+          "line": 893,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 853,
+          "line": 907,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 863,
+          "line": 917,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "specDocDescriptors": {
-          "line": 964,
+          "line": 1018,
           "params": [
             "projectPath"
           ],
           "purpose": "The spec-section descriptors, in the order they must be settled: the target"
         },
         "readTextOrNull": {
-          "line": 992,
+          "line": 1046,
           "params": [
             "file"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 1006,
+          "line": 1060,
           "params": [
             "projectPath"
           ],
           "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
         },
         "appendSpecSection": {
-          "line": 1089,
+          "line": 1143,
           "params": [
             "projectPath",
             "rel"
@@ -1030,14 +1041,14 @@
           "purpose": "Append the managed spec section to a document the pass deliberately refused"
         },
         "docsHealthFor": {
-          "line": 1128,
+          "line": 1182,
           "params": [
             "projectPath"
           ],
           "purpose": "The report on its own, without running the repair pass — what the UI asks"
         },
         "recordDocsActivity": {
-          "line": 1150,
+          "line": 1204,
           "params": [
             "written",
             "appended",
@@ -1046,14 +1057,14 @@
           "purpose": "Put the pass's result on the record. This is the half that was missing when"
         },
         "removeFrame": {
-          "line": 1185,
+          "line": 1239,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "dropEmptySettingsFile": {
-          "line": 1239,
+          "line": 1293,
           "params": [
             "projectPath",
             "file"
@@ -1061,21 +1072,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 1265,
+          "line": 1319,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 1281,
+          "line": 1335,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "openProjectLayout": {
-          "line": 1333,
+          "line": 1387,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1083,7 +1094,7 @@
           "purpose": "Everything a project open does to the project, in the order that makes the"
         },
         "rearmAfterMigration": {
-          "line": 1416,
+          "line": 1470,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1091,7 +1102,7 @@
           "purpose": "Every meta file just changed address: the watchers are pointed at the"
         },
         "setupIPC": {
-          "line": 1438,
+          "line": 1492,
           "params": [
             "ipcMain"
           ],
@@ -10045,32 +10056,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 347,
+          "line": 358,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 351,
+          "line": 362,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 355,
+          "line": 366,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 359,
+          "line": 370,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 382,
+          "line": 393,
           "params": [
             "name",
             "fields"
@@ -10078,7 +10089,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 399,
+          "line": 410,
           "params": [
             "name",
             "fields"
@@ -10086,7 +10097,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 420,
+          "line": 431,
           "params": [
             "name",
             "fields"
