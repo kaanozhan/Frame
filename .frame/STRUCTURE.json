@@ -6914,84 +6914,104 @@
           "line": 187
         },
         "stopSession": {
-          "line": 240,
+          "line": 248,
           "purpose": "Stop the whole session: teardown (worktrees removed, merged branches pruned,"
         },
+        "syncToolbar": {
+          "line": 260,
+          "params": [
+            "root"
+          ],
+          "purpose": "Stop & clean up only means something once a session exists."
+        },
         "renderConductorZone": {
-          "line": 251,
+          "line": 267,
           "params": [
             "root"
           ]
         },
+        "renderStartPanel": {
+          "line": 292,
+          "params": [
+            "zone"
+          ],
+          "purpose": "Idle state: the board is open but no conductor exists yet. The terminal zone"
+        },
+        "startFromPanel": {
+          "line": 308,
+          "params": [
+            "e"
+          ]
+        },
         "stageOf": {
-          "line": 285,
+          "line": 346,
           "params": [
             "w"
           ]
         },
         "renderPipeline": {
-          "line": 298,
+          "line": 359,
           "params": [
             "root"
           ]
         },
         "renderWorkerZone": {
-          "line": 341,
+          "line": 402,
           "params": [
             "root"
           ]
         },
         "mergeWorkerAction": {
-          "line": 391,
+          "line": 452,
           "params": [
             "slug"
           ]
         },
         "resumeWorkerAction": {
-          "line": 411,
+          "line": 472,
           "params": [
             "slug"
           ]
         },
         "removeWorkerAction": {
-          "line": 419,
+          "line": 480,
           "params": [
             "slug"
           ]
         },
         "_shortPath": {
-          "line": 428,
+          "line": 489,
           "params": [
             "p"
           ]
         },
         "_relTime": {
-          "line": 434,
+          "line": 495,
           "params": [
             "ts"
           ]
         },
         "loadSpecs": {
-          "line": 445,
+          "line": 506,
           "params": [
             "root"
           ]
         },
         "renderSpecRail": {
-          "line": 460,
+          "line": 521,
           "params": [
             "root",
             "specs"
           ]
         },
         "assignSpec": {
-          "line": 494,
+          "line": 556,
           "params": [
             "slug"
           ]
         },
         "nudgeConductor": {
-          "line": 508,
+          "line": 570,
           "params": [
             "projectPath"
           ]

@@ -212,6 +212,44 @@
   background: var(--bg-deep);
 }
 
+/* Idle conductor zone — the board opens without a session; this is where the
+   user starts one (nothing spawns until they click). */
+.orch-start-host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+.orch-start-panel {
+  max-width: 380px;
+  text-align: center;
+}
+.orch-start-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+.orch-start-sub {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  margin: 0 0 var(--space-lg);
+}
+.orch-start-btn {
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--transition-fast);
+}
+.orch-start-btn:hover { filter: brightness(1.08); }
+.orch-start-btn:disabled { opacity: 0.6; cursor: default; filter: none; }
+
 .orch-zone-title {
   font-size: 11px;
   text-transform: uppercase;
