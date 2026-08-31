@@ -47,3 +47,14 @@ describes the browser as the no-Frame-window fallback rather than the destinatio
 _Captured: 2026-08-31 · 3 file changes_
 
 ---
+## T05 — Carry a `reports` array in the `listSpecs` payload
+
+Added `listSpecReports()` to `src/main/specManager.js` and spread its result into each `listSpecs`
+entry only when the spec actually has a report, so `pushSpecData`'s serialized-payload comparison
+stops swallowing the push that a report's appearance triggers. Checked against this project: 37
+specs, 17 carrying the field. The array is deliberately stable across the implement run's per-task
+regenerations — it says a report exists, not that it changed.
+
+_Captured: 2026-08-31 · 1 file change_
+
+---

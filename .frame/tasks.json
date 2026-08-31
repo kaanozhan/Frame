@@ -6957,13 +6957,13 @@
       "title": "Carry a `reports` array in the `listSpecs` payload in `src/main/specManager.js`, emitted only when a spec has at least one report, so `pushSpecData`'s skip-unchanged gate fires when a report appears.",
       "description": "",
       "source": "spec:fix-report-staging-and-opening:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: fix-report-staging-and-opening",
       "createdAt": "2026-08-31T09:39:03.868Z",
-      "updatedAt": "2026-08-31T09:39:03.868Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T13:07:01.208Z",
+      "completedAt": "2026-08-31T13:07:01.208Z"
     },
     {
       "id": "task-spec-fix-report-staging-and-opening-T06",

@@ -295,6 +295,7 @@ function listSpecs(projectPath) {
       continue;
     }
     const status_ = repaired;
+    const reports = listSpecReports(projectPath, ent.name);
     const specTasks = collectSpecTasks(status_.slug, tasksData);
     const completedCount = specTasks.filter(t => t.status === 'completed').length;
     specs.push({
@@ -305,7 +306,13 @@ function listSpecs(projectPath) {
       task_count: specTasks.length || status_.generated_task_ids.length,
       completed_count: completedCount,
       created_at: status_.created_at || null,
-      updated_at: status_.updated_at || null
+      updated_at: status_.updated_at || null,
+      // Only when the spec has one. A report appearing has to change this
+      // payload or pushSpecData's skip-unchanged gate swallows it, and a
+      // spec without a report should cost the payload nothing — measured on
+      // this project, an always-present pair of booleans grows SPEC_DATA by
+      // ~22% where this grows it by ~4%.
+      ...(reports.length ? { reports } : {})
     });
   }
   // Malformed first: a spec Frame cannot read needs a human, and sorting it
@@ -315,6 +322,23 @@ function listSpecs(projectPath) {
     return (b.updated_at || '').localeCompare(a.updated_at || '');
   });
   return specs;
+}
+
+/**
+ * Which of a spec's two generated reports exist on disk, named as the viewer
+ * names them. Carried in the listSpecs payload so a report *appearing* is
+ * visible to the renderer: the existing `.frame/specs/` watcher already
+ * notices the file, but without this the payload is byte-identical and the
+ * push never leaves (fix-report-staging-and-opening). A path that stays the
+ * same across the implement run's per-task regenerations is deliberate — it
+ * signals appearance, not change, so it cannot re-open a tab.
+ */
+function listSpecReports(projectPath, slug) {
+  const dir = getSpecDir(projectPath, slug);
+  const kinds = [];
+  if (fs.existsSync(path.join(dir, PLAN_REPORT_FILE))) kinds.push('plan');
+  if (fs.existsSync(path.join(dir, IMPLEMENT_REPORT_FILE))) kinds.push('implement');
+  return kinds;
 }
 
 /** A folder is a spec if it carries at least one of the chain's artifacts. */
