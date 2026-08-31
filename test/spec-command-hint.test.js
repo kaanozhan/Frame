@@ -220,3 +220,22 @@ test('a project with no .frame/ at all exits 0 with no output', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-bare-'));
   assert.equal(runHook({ session_id: 'a', cwd: root, prompt: 'why is this failing' }), null);
 });
+
+// ─── Codex ────────────────────────────────────────────────
+
+test('a Codex session resolves its own template directory', () => {
+  // The project stages claude-code templates only, so a Codex session must
+  // report the missing Codex template rather than silently serving Claude's.
+  const root = mkProject();
+  const ctx = ctxOf(runHook({
+    session_id: 'cx', cwd: root, prompt: '/spec.plan', turn_id: 't', permission_mode: 'default'
+  }));
+  assert.match(ctx, /commands\/codex\/spec\.plan\.md/);
+  assert.match(ctx, /no template is staged/);
+});
+
+test('an unmarked session still resolves claude-code', () => {
+  const root = mkProject();
+  const ctx = ctxOf(runHook({ session_id: 'cc', cwd: root, prompt: '/spec.plan' }));
+  assert.match(ctx, /on spec `alpha`/);
+});

@@ -28,6 +28,12 @@
  *
  * Pure — no fs, no Electron — so it runs under `node --test` and can be
  * required by the dependency-free scripts that ship into `.frame/bin/`.
+ *
+ * It lives in `scripts/` rather than `src/shared/` for one reason: the hint
+ * scripts are copied into a project's `.frame/bin/` and cannot reach the app
+ * tree from there. `redact.js` set the pattern — a sibling `require('./x')`
+ * for the shipped scripts, `require('../../scripts/x')` for the app — and it
+ * ships through `PARSER_FILES` like the rest.
  */
 
 'use strict';

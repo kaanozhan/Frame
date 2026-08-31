@@ -18,7 +18,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const v = require('../src/shared/toolVocabulary.js');
+const v = require('../scripts/toolVocabulary.js');
 
 // ─── the Claude Code entry is today's behaviour ───────────
 

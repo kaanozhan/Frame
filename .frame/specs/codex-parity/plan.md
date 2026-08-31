@@ -99,11 +99,15 @@ contradicted this plan and are folded in throughout:
 
 ## Files
 
-- `src/shared/toolVocabulary.js` — **New**. Semantic roles (`edit`, `shell`,
+- `scripts/toolVocabulary.js` — **New**. Semantic roles (`edit`, `shell`,
   `search`) → per-CLI tool names, matcher strings, and a path extractor per
   edit tool (`tool_input.file_path` for Claude Code; the `*** Add|Update|Delete
   File:` envelope for Codex). Also the per-tool inline ceiling — 2 000 for
-  Claude Code, 20 000 for Codex. Pure, no fs.
+  Claude Code, 20 000 for Codex. Pure, no fs. **In `scripts/`, not
+  `src/shared/`** (T03): the hint scripts are copied into `.frame/bin/` and
+  cannot reach the app tree from there, so it follows `redact.js`'s pattern —
+  a sibling require for the shipped scripts, `../../scripts/…` for the app —
+  and ships through `PARSER_FILES`.
 - `src/shared/frameTemplates.js` — **Modified**. Add `CODEX_HINT_HOOKS` (the
   `hooks.json` shape); delete `getCodexWrapperTemplate` and its export.
 - `src/main/frameProject.js` — **Modified**. `installCodexHintHook` /
@@ -143,7 +147,8 @@ contradicted this plan and are folded in throughout:
 
 ## Footprint
 
-- src/shared/toolVocabulary.js
+- scripts/toolVocabulary.js
+- src/main/structureBootstrap.js
 - src/shared/frameTemplates.js
 - src/shared/activityEvents.js
 - src/main/frameProject.js

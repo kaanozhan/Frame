@@ -312,3 +312,23 @@ test('a payload larger than the pipe buffer arrives whole', () => {
   assert.ok(Buffer.byteLength(ctx, 'utf8') > 12 * 1024, `expected the whole payload, got ${ctx.length} chars`);
   assert.match(ctx, /read the spec chain/); // the tail survived the write
 });
+
+test('a Codex apply_patch gets the patched file\'s spec history', () => {
+  // T01: Codex's edit tool passes a patch envelope rather than file_path.
+  const root = mkProject(IDX_ONE);
+  const command = ['*** Begin Patch', '*** Update File: src/main/a.js', '+x', '*** End Patch'].join('\n');
+  const out = runHook('pre-edit', {
+    session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  });
+  assert.match(out.hookSpecificOutput.additionalContext, /src\/main\/a\.js/);
+});
+
+test('a payload carrying a path but no tool name still works', () => {
+  // This script read file_path without consulting tool_name for its whole
+  // life; the vocabulary must not turn tool_name into a precondition.
+  const root = mkProject(IDX_ONE);
+  const out = runHook('pre-edit', {
+    session_id: 'nameless', cwd: root, tool_input: { file_path: 'src/main/a.js' }
+  });
+  assert.ok(out, 'a nameless payload with a path must still inject');
+});

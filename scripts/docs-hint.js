@@ -193,6 +193,16 @@ try {
   /* older .frame/bin generation — no record, same behavior as before */
 }
 
+// Which CLI calls a tool what, and how to read a path out of its edit tool.
+// Guarded like activity-log: an older `.frame/bin/` generation degrades to the
+// Claude Code names this script used to hardcode, not to an exception.
+let vocab = null;
+try {
+  vocab = require('./toolVocabulary');
+} catch {
+  /* older generation — the inline fallbacks below are the old behaviour */
+}
+
 function note(root, ev, mode, fields) {
   if (!activity || !root) return;
   try {
@@ -277,10 +287,16 @@ function sectionForPath(p) {
 
 /** The meta file this write targets, or null. */
 function metaTargetOf(toolName, input) {
-  if (toolName === 'Edit' || toolName === 'Write' || toolName === 'NotebookEdit') {
-    return sectionForPath(input.file_path || input.notebook_path || '');
+  const role = vocab ? vocab.roleOf(toolName)
+    : (['Edit', 'Write', 'NotebookEdit'].includes(toolName) ? 'edit' : (toolName === 'Bash' ? 'shell' : null));
+  if (role === 'edit') {
+    // Claude Code hands over a path; Codex hands over a patch envelope that
+    // may name several. Either way this is the set of files about to change.
+    const paths = vocab ? vocab.editPaths(toolName, input)
+      : [input.file_path || input.notebook_path || ''].filter(Boolean);
+    return paths.map(sectionForPath).find(Boolean) || null;
   }
-  if (toolName === 'Bash') {
+  if (role === 'shell') {
     // The *target* of a write, never merely the presence of a write
     // operator. The looser form — "the command contains `>` and mentions a
     // meta file" — fired on `diff scripts/x .frame/bin/x >/dev/null` inside a

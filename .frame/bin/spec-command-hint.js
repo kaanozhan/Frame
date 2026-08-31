@@ -104,6 +104,16 @@ try {
   /* older .frame/bin generation — no record, same behavior as before */
 }
 
+// Which CLI this session is, so the right command templates are resolved.
+// Guarded like activity-log; an older generation resolves claude-code, which
+// is the only tool Frame shipped templates for before.
+let vocab = null;
+try {
+  vocab = require('./toolVocabulary');
+} catch {
+  /* older generation — the inline fallback below is the old behaviour */
+}
+
 function note(root, ev, fields) {
   if (!activity || !root) return;
   try {
@@ -234,7 +244,9 @@ function promptMode(input) {
   const command = commandOf(input.prompt);
   if (!command) return; // not a spec command — silent and unrecorded
 
-  const tool = 'claude-code';
+  // Which CLI is asking decides which template directory holds its flow.
+  // Without the vocabulary this is the single tool Frame shipped for before.
+  const tool = vocab ? vocab.cliOf(input, process.argv[3]) : 'claude-code';
   const tpl = templatePath(root, tool, command);
   if (!fs.existsSync(tpl)) {
     // The protocol's own instruction for this case: say so, and stop.

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T18:55:05.015Z",
+  "lastUpdated": "2026-08-31T19:02:34.864Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6786,13 +6786,13 @@
       "title": "Move `module-hint`, `docs-hint`, `spec-hint` and `spec-command-hint` onto the vocabulary, keeping the existing Claude suites passing unchanged and adding each script's Codex tool-name cases.",
       "description": "",
       "source": "spec:codex-parity:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T19:02:34.864Z",
+      "completedAt": "2026-08-31T19:02:34.864Z"
     },
     {
       "id": "task-spec-codex-parity-T04",

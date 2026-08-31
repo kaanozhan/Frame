@@ -236,3 +236,39 @@ test('a payload larger than the pipe buffer arrives whole', () => {
   const out = execFileSync('node', [HOOK, 'section', 'Activity Monitor'], { cwd: REPO, encoding: 'utf8' });
   assert.match(out, /\n$/, 'the tail survived the write');
 });
+
+// ─── Codex ────────────────────────────────────────────────
+
+test('a Codex apply_patch into a Frame meta file gets that file\'s rules', () => {
+  // Measured in T01: Codex's edit tool carries a patch envelope, not a path.
+  const root = mkProject();
+  const command = ['*** Begin Patch', '*** Update File: .frame/tasks.json', '+{}', '*** End Patch'].join('\n');
+  const ctx = ctxOf(runHook('pre-edit', {
+    session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  }));
+  assert.match(ctx, /The id\/title\/status shape/);
+});
+
+test('a Codex patch outside .frame/ is not a Frame meta write', () => {
+  const root = mkProject();
+  const command = ['*** Begin Patch', '*** Add File: src/tasks.json', '+{}', '*** End Patch'].join('\n');
+  assert.equal(runHook('pre-edit', {
+    session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  }), null);
+});
+
+test('a Codex patch touching several files finds the meta one among them', () => {
+  const root = mkProject();
+  const command = [
+    '*** Begin Patch',
+    '*** Update File: src/a.js',
+    '+x',
+    '*** Update File: .frame/PROJECT_NOTES.md',
+    '+y',
+    '*** End Patch'
+  ].join('\n');
+  const ctx = ctxOf(runHook('pre-edit', {
+    session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  }));
+  assert.match(ctx, /Append decisions as dated sections/);
+});
