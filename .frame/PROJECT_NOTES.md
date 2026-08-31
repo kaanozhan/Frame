@@ -2561,3 +2561,52 @@ introducing the harness first. Said plainly rather than quietly skipped.
 the user's call, to avoid juggling branches. The name now covers what is
 actually there: Frame's footprint in the user's repo, and the two surfaces that
 describe it.
+
+### [2026-08-31] Feedback from inside Frame — and four decisions reversed while building it
+
+**What shipped.** A Feedback row in the sidebar's Frame group opens a three-tab
+panel: **Bug** files a prefilled GitHub issue, **Feature idea** opens a
+prefilled discussion under Ideas, **Reach us** opens a mail draft to three
+personal inboxes. One table in `src/shared/feedbackReport.js` holds each kind's
+label, prompts, channel and diagnostics flag; `compose()` is the only code that
+builds a body, and the transports may only encode it.
+
+**The reversals, because they are the point.** The spec planned a `gh issue
+create` path with a fallback ladder, GitHub labels per type, and one form with
+two channel buttons. All of it was built (T01–T10) and then undone in the same
+branch:
+
+1. **`gh` removed.** It publishes the moment it is called, under whichever
+   account is signed in. The reporter never sees the rendered markdown, cannot
+   fix a sentence, and cannot drag in a screenshot — which the spec had already
+   conceded no transport could carry, and which a browser form carries for
+   free. Deleted `feedbackManager.js`, the IPC channel and the failure
+   classifier.
+2. **Labels gone with it.** GitHub ignores `labels=` from anyone without triage
+   permission, so the URL could not keep the promise argv had been keeping.
+3. **The channel stopped being the user's choice.** Two buttons on one form
+   asked a question nobody can answer — a reporter knows what they have, not
+   which transport suits it. Three tabs ask what they can answer, and split by
+   visibility at the same time: the GitHub tabs are public and signed with the
+   reporter's account, Reach us is not.
+4. **A feature request became a discussion.** In a tracker a proposal is an
+   unassigned task that reads as a rejection when closed; a discussion can be
+   argued, upvoted, and converted into an issue by GitHub the day the work is
+   committed to. It attaches no diagnostics — an idea does not depend on the
+   machine it occurred on.
+
+**Worth keeping.** None of this cost much, and the reason is the invariant the
+spec was built on: one composer, transports that can only encode. Every
+reversal changed *where a report goes*, never *what a report says*, so it
+touched routing and copy and left the tested core alone.
+
+**Left undone, on purpose.** No test covers the panel — renderer modules still
+have no DOM harness in this repo (D4). The panel was verified by the user in
+the running app, not by a test. `spec.md` and `plan.md` were corrected in place
+with a Revision history rather than rewritten to look like the plan was right;
+`tasks.md` is left as executed.
+
+**Documents drift when you change your mind mid-branch.** The habit that made
+this cheap to reconcile: an `outcome.md` entry per commit naming the divergence
+as it happened, so the closing pass was editing four known spots rather than
+re-deriving history.
