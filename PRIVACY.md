@@ -19,6 +19,7 @@ The complete event list:
 | `orchestration_run_started` | — | a parallel orchestration run began |
 | `plugin_toggled` | `action`: `enabled` / `disabled` | the plugin system is being used (never which plugin) |
 | `ai_tool_selected` | `tool`: `claude` / `codex` / `gemini` / `custom` | which AI tool is preferred |
+| `feedback_submitted` | `channel`: `github_issue` / `github_discussion` / `email` | which route carried an in-app feedback report — never its title, description, or the diagnostics shown in the form |
 | `error_occurred` | `category`: a fixed list of failure types (e.g. `agent_cli_not_found`, `orch_merge_failed`) | what breaks in the wild — counts only, never error messages, stack traces, or file paths |
 
 This list is enforced in code: events and property values outside this registry are dropped before anything is sent. Any addition to the list will be reflected here first.

@@ -30,6 +30,11 @@ const EVENTS = {
   orchestration_run_started: {},
   plugin_toggled: { action: ['enabled', 'disabled'] },
   ai_tool_selected: { tool: ['claude', 'codex', 'gemini', 'custom'] },
+  // Which channel actually carried a feedback report — the gh CLI, the
+  // prefilled browser page, or a mail draft. The channel is the whole event:
+  // no title, no description, no diagnostic value, and validateEvent strips
+  // anything outside the enum even if a call site tried.
+  feedback_submitted: { channel: ['github_issue', 'github_discussion', 'email'] },
   error_occurred: {
     category: [
       'agent_cli_not_found',

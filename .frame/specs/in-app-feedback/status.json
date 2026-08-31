@@ -1,0 +1,23 @@
+{
+  "slug": "in-app-feedback",
+  "title": "Feedback from inside Frame — an issue, an idea, or an email",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-in-app-feedback-T01",
+    "task-spec-in-app-feedback-T02",
+    "task-spec-in-app-feedback-T03",
+    "task-spec-in-app-feedback-T04",
+    "task-spec-in-app-feedback-T05",
+    "task-spec-in-app-feedback-T06",
+    "task-spec-in-app-feedback-T07",
+    "task-spec-in-app-feedback-T08",
+    "task-spec-in-app-feedback-T09",
+    "task-spec-in-app-feedback-T10",
+    "task-spec-in-app-feedback-T11"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-08-29T00:00:00Z",
+  "updated_at": "2026-08-31T07:15:18.472Z",
+  "last_phase_at": "2026-08-31T07:15:18.472Z",
+  "implement_mode": "autonomous"
+}

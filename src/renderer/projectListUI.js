@@ -297,7 +297,8 @@ const WORKSPACE_NAV_GROUPS = [
     key: 'frame',
     label: 'Frame',
     items: [
-      { view: 'activity', icon: '∿', label: 'Activity', open: ui => ui.togglePanel('activity'), surfaces: ['panel:activity'] }
+      { view: 'activity', icon: '∿', label: 'Activity', open: ui => ui.togglePanel('activity'), surfaces: ['panel:activity'] },
+      { view: 'feedback', icon: '✎', label: 'Feedback', open: ui => ui.togglePanel('feedback'), surfaces: ['panel:feedback'] }
     ]
   }
 ];
