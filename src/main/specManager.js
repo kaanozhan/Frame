@@ -584,11 +584,8 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
 // file directly — full prompt arrives intact.
 
 const RUNTIME_PROMPTS_DIR = path.join(FRAME_DIR, 'runtime', 'prompts');
-const RUNTIME_ASSETS_DIR = path.join(FRAME_DIR, 'runtime', 'assets');
 const REPORT_TEMPLATE_FILE = 'plan-report-template.html';
 const REPORT_GENERATOR_FILE = 'build-implement-report.mjs';
-
-const assetRelPath = (file) => path.posix.join(RUNTIME_ASSETS_DIR.replace(/\\/g, '/'), file);
 
 // The report assets the agent reads live beside the command templates they
 // belong to, under .frame/runtime/commands/<tool>/ — the location
@@ -601,50 +598,14 @@ const commandRelPath = (tool, file) => path.posix.join(
 const reportTemplateRel = (tool) => commandRelPath(tool, REPORT_TEMPLATE_FILE);
 const reportGeneratorRel = (tool) => commandRelPath(tool, REPORT_GENERATOR_FILE);
 
-// Which packaged assets each command needs on disk. Driven by the command
-// rather than hardcoded: spec.plan's agent fills a template, spec.implement's
-// runs a generator, and a terminal CLI can read neither from inside app.asar.
-const COMMAND_ASSETS = {
-  'spec.plan': [REPORT_TEMPLATE_FILE],
-  'spec.implement': [REPORT_GENERATOR_FILE]
-};
-
-// Copied into .frame/runtime/assets/ on every dispatch, so a project's own
-// override under .frame/templates/commands/<tool>/ is picked up as it changes.
-function stageCommandAsset(projectPath, aiTool, file) {
-  const tool = aiTool || 'claude-code';
-  const override = path.join(projectPath, FRAME_DIR, 'templates', 'commands', tool, file);
-  const fallback = path.join(FRAME_TEMPLATES_DIR, 'commands', tool, file);
-  const source = fs.existsSync(override) ? override : fallback;
-  let content;
-  try {
-    content = fs.readFileSync(source, 'utf8');
-  } catch (err) {
-    console.error(`specManager: command asset missing (${source}) — staging skipped`, err.message);
-    return;
-  }
-  try {
-    const assetsDir = path.join(projectPath, RUNTIME_ASSETS_DIR);
-    fs.mkdirSync(assetsDir, { recursive: true });
-    fs.writeFileSync(path.join(assetsDir, file), content, 'utf8');
-  } catch (err) {
-    console.error(`specManager: staging ${file} failed`, err);
-  }
-}
-
-function stageCommandAssets(projectPath, command, aiTool) {
-  for (const file of COMMAND_ASSETS[command] || []) {
-    stageCommandAsset(projectPath, aiTool, file);
-  }
-}
-
 // ─── Command file staging ─────────────────────────────────────
 //
 // The staging of raw command templates, report assets and the launch helper
 // into .frame/runtime/commands/<tool>/ and .frame/bin/ lives in
 // commandStaging.js (cli-spec-command-parity) — it covers all four spec
 // commands so a CLI session can self-serve the current flow. It runs on
-// project open (WATCH_SPECS), init/enable, and every implement dispatch.
+// project open (WATCH_SPECS), init/enable, and every spec dispatch — it is
+// the only mechanism that stages report assets.
 
 // ─── Implement-mode permissions ───────────────────────────────
 //
@@ -818,10 +779,12 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
     : `${slug}__${command}.md`;
   const absPath = path.join(promptsDir, filename);
   fs.writeFileSync(absPath, result.prompt, 'utf8');
-  stageCommandAssets(projectPath, command, aiTool);
-  // Implement dispatches also refresh the staged templates, assets and helper
-  // so an out-of-app helper launch always finds the latest on disk.
-  if (command === 'spec.implement') commandStaging.stageCommandFiles(projectPath);
+  // Every spec dispatch refreshes the staged templates, report assets and
+  // launch helper, so a project override edited between project opens still
+  // reaches the next run — the per-dispatch freshness the second, now deleted
+  // stager used to provide — and an out-of-app helper launch always finds the
+  // latest on disk.
+  commandStaging.stageCommandFiles(projectPath);
   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
   return {
     success: true,

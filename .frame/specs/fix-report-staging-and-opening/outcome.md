@@ -11,3 +11,15 @@ than keeping SCREAMING_CASE names that no longer denote constants. Files: `src/m
 _Captured: 2026-08-31 · 3 file changes_
 
 ---
+## T02 — Delete the second stager; stage on every spec dispatch
+
+Removed `stageCommandAsset`, `stageCommandAssets`, `COMMAND_ASSETS`, `RUNTIME_ASSETS_DIR` and
+`assetRelPath` from `src/main/specManager.js`, and made `commandStaging.stageCommandFiles()` run on
+every spec dispatch instead of only `spec.implement` — the deleted stager was what kept a project
+override fresh between project opens, so the call had to become unconditional in the same change.
+Added a `test/commandStaging.test.js` case asserting no staging-plan entry targets
+`.frame/runtime/assets/`, pinning the single location against a future split.
+
+_Captured: 2026-08-31 · 2 file changes_
+
+---

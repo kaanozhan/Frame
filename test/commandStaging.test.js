@@ -32,6 +32,22 @@ test('plan covers the four templates, both assets and the launch helper', () => 
   assert.equal(helper.executable, true);
 });
 
+test('nothing stages into the retired .frame/runtime/assets/ location', () => {
+  // The report assets used to be staged a second time, by specManager, into
+  // .frame/runtime/assets/ — a copy that drifted from this one. This plan is
+  // now the only thing that stages them (fix-report-staging-and-opening).
+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () => false);
+  const assetsDir = path.join(PROJECT, '.frame', 'runtime', 'assets');
+  for (const entry of plan) {
+    assert.ok(!entry.dst.startsWith(assetsDir), `${entry.dst} still targets runtime/assets`);
+  }
+
+  for (const file of staging.COMMAND_ASSET_FILES) {
+    const entry = plan.find((e) => path.basename(e.dst) === file);
+    assert.equal(entry.dst, path.join(PROJECT, '.frame', 'runtime', 'commands', TOOL, file));
+  }
+});
+
 test('sources fall back to the packaged copies when no override exists', () => {
   const plan = staging.resolveStagingPlan(PROJECT, TOOL, () => false);
   for (const file of ALL_FILES) {
