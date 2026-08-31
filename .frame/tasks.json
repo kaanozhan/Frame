@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T18:48:50.276Z",
+  "lastUpdated": "2026-08-31T18:55:05.015Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6773,13 +6773,13 @@
       "title": "Add `src/shared/toolVocabulary.js` mapping semantic roles (edit, shell, search) to each CLI's tool names, matcher strings and per-tool path extractor, with tests asserting the `claude-code` entry reproduces today's hardcoded behaviour.",
       "description": "",
       "source": "spec:codex-parity:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T18:55:05.015Z",
+      "completedAt": "2026-08-31T18:55:05.015Z"
     },
     {
       "id": "task-spec-codex-parity-T03",
