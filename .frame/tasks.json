@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T20:27:02.279Z",
+  "lastUpdated": "2026-08-31T20:38:06.233Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6877,13 +6877,13 @@
       "title": "Remove the Codex-launch decision from `audit-q3-cross-platform`'s plan and record the reversal there, naming this spec, so the archive holds one asked decision rather than two contradictory ones.",
       "description": "",
       "source": "spec:codex-parity:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T20:38:06.233Z",
+      "completedAt": "2026-08-31T20:38:06.233Z"
     }
   ],
   "metadata": {

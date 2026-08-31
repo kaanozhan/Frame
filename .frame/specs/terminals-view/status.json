@@ -1,0 +1,18 @@
+{
+  "slug": "terminals-view",
+  "title": "Terminals view — prototype-style navigation, terminals in the center",
+  "phase": "done",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [
+    "task-spec-terminals-view-T01",
+    "task-spec-terminals-view-T02",
+    "task-spec-terminals-view-T03",
+    "task-spec-terminals-view-T04",
+    "task-spec-terminals-view-T05",
+    "task-spec-terminals-view-T06",
+    "task-spec-terminals-view-T07"
+  ],
+  "created_at": "2026-08-20T00:00:00Z",
+  "updated_at": "2026-08-24T18:11:44.192Z",
+  "last_phase_at": "2026-08-24T18:11:44.192Z"
+}
