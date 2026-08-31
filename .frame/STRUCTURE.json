@@ -4439,18 +4439,19 @@
         "htmlUtils",
         "notify",
         "implementModeModal",
+        "reportSection",
         "aiToolSelector"
       ],
       "functions": {
         "init": {
-          "line": 46,
+          "line": 47,
           "params": [
             "ui"
           ],
           "purpose": "Initialize with the MultiTerminalUI instance."
         },
         "dispatch": {
-          "line": 93,
+          "line": 94,
           "params": [
             "{ terminalId = null",
             "createNew = false",
@@ -4464,11 +4465,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 242,
+          "line": 243,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 277,
+          "line": 278,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -4476,17 +4477,17 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_startAgentInNewFrame": {
-          "line": 296
+          "line": 297
         },
         "resumeClaudeSession": {
-          "line": 322,
+          "line": 323,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a Claude Code session from the sessions list."
         },
         "_askNewOrRestart": {
-          "line": 365,
+          "line": 366,
           "params": [
             "frameName",
             "hasAgent"
@@ -4494,7 +4495,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 422,
+          "line": 423,
           "params": [
             "{ slug",
             "title = null",
@@ -4503,7 +4504,7 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "_dispatchImplement": {
-          "line": 489,
+          "line": 498,
           "params": [
             "{ slug",
             "title",
@@ -4513,107 +4514,107 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "_isSpecCreatorLane": {
-          "line": 591,
+          "line": 600,
           "params": [
             "terminalId"
           ],
           "purpose": "Still open, and still carrying the transient name we gave it."
         },
         "_onSpecData": {
-          "line": 607,
+          "line": 616,
           "params": [
             "specs"
           ],
           "purpose": "A new slug appeared — attach it to the lane that produced it."
         },
         "_bindSpecCreatorLane": {
-          "line": 627,
+          "line": 636,
           "params": [
             "terminalId",
             "slug"
           ]
         },
         "dispatchSpecNew": {
-          "line": 663,
+          "line": 672,
           "params": [
             "description"
           ],
           "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
         },
         "getSpecLaneInfo": {
-          "line": 751,
+          "line": 760,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 775,
+          "line": 784,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 796,
+          "line": 805,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 800,
+          "line": 809,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 804,
+          "line": 813,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 821,
+          "line": 830,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 829,
+          "line": 838,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 852,
+          "line": 861,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 860,
+          "line": 869,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 878,
+          "line": 887,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 888,
+          "line": 897,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 897,
+          "line": 906,
           "params": [
             "frameName",
             "specName"
@@ -4621,14 +4622,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 938,
+          "line": 947,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 967,
+          "line": 976,
           "params": [
             "terminalId",
             "message"
@@ -7816,11 +7817,33 @@
           ],
           "purpose": "Open a spec's report."
         },
+        "expectReport": {
+          "line": 121,
+          "params": [
+            "slug",
+            "kind"
+          ],
+          "purpose": "Say that a report is coming for a run this window just started, so it opens"
+        },
+        "_kindsOf": {
+          "line": 126,
+          "params": [
+            "spec"
+          ],
+          "purpose": "Which report kinds a spec entry claims, as a Set."
+        },
+        "_onSpecDataPush": {
+          "line": 137,
+          "params": [
+            "payload"
+          ],
+          "purpose": "Diff one SPEC_DATA payload against the last, and open what just appeared."
+        },
         "createViewport": {
-          "line": 94
+          "line": 169
         },
         "_escape": {
-          "line": 311,
+          "line": 386,
           "params": [
             "text"
           ]
@@ -7828,6 +7851,7 @@
       },
       "ipc": {
         "listens": [
+          "SPEC_DATA",
           "SPEC_DATA"
         ],
         "emits": []

@@ -70,3 +70,16 @@ which the plan settled as the posture.
 _Captured: 2026-08-31 · 2 file changes_
 
 ---
+## T07 — Open the report when it appears
+
+Added a module-level `SPEC_DATA` listener to `src/renderer/reportSection.js`: it keeps a slug→kinds
+map, arms it silently on the first push (a reload must not read every existing report as new), and
+opens a tab on each absent→present transition — foreground when `expectReport()` armed that slug and
+kind, background chip otherwise. `src/renderer/agentDispatch.js` arms it after a *successful*
+`spec.plan` / `spec.implement` dispatch, so a cancelled implement modal arms nothing. Verified by
+hand against a stubbed host (baseline silent, unexpected → background, expected → foreground,
+regeneration → nothing); the suite does not reach renderer code.
+
+_Captured: 2026-08-31 · 2 file changes_
+
+---

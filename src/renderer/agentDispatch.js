@@ -26,6 +26,7 @@ const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
 const implementModeModal = require('./implementModeModal');
+const reportSection = require('./reportSection');
 
 let multiTerminalUI = null;
 
@@ -435,7 +436,12 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
   // getImplementLaunchFlags reads — a fresh autonomous dispatch carries its
   // flags on the first launch and the re-dispatch flow is unreachable.
   if (command === 'spec.implement') {
-    return _dispatchImplement({ slug, title, projectPath, assignment });
+    const implementResult = await _dispatchImplement({ slug, title, projectPath, assignment });
+    // A run this window started: its report comes to the front when it lands,
+    // the way clicking View Report does. Armed on success only — a cancelled
+    // modal has dispatched nothing to produce a report.
+    if (implementResult && implementResult.success) reportSection.expectReport(slug, 'implement');
+    return implementResult;
   }
 
   // Every other spec command keeps the stage-first + continue-or-new flow;
@@ -479,6 +485,9 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
     // New-Frame runs re-assign; the old lane is simply unassigned, not closed
     specLanes.set(slug, result.terminalId);
     _notifySpecLane(slug);
+    // /spec.plan writes plan-report.html at the end of its run. Say so now, so
+    // the report opens in the foreground rather than as a background chip.
+    if (command === 'spec.plan') reportSection.expectReport(slug, 'plan');
   }
   return result;
 }

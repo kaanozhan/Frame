@@ -6983,13 +6983,13 @@
       "title": "Open the report: add a module-level `SPEC_DATA` listener to `src/renderer/reportSection.js` that arms its baseline on the first push and opens a tab on an absent→present transition, plus an `expectReport()` armed by `src/renderer/agentDispatch.js` when it dispatches `spec.plan` or `spec.implement` — foreground when armed, background chip otherwise.",
       "description": "",
       "source": "spec:fix-report-staging-and-opening:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: fix-report-staging-and-opening",
       "createdAt": "2026-08-31T09:39:03.868Z",
-      "updatedAt": "2026-08-31T09:39:03.868Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T16:12:45.573Z",
+      "completedAt": "2026-08-31T16:12:45.573Z"
     }
   ],
   "metadata": {

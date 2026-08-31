@@ -91,6 +91,81 @@ function open(ref, opts) {
   host.openSection('report', ref, api, { newTab: true, activate: !background });
 }
 
+// ─── Auto-open: a report that appears reaches the reader ──────
+//
+// A report is written by an agent, not by the app, so nothing in the UI knows
+// it happened. The `.frame/specs/` watcher does: `listSpecs` carries which
+// reports exist, and a report appearing turns the next SPEC_DATA push into a
+// payload the skip-unchanged gate lets through. That transition — absent to
+// present, for one spec and one kind — is the whole signal.
+//
+// It is a *state* comparison rather than an event on purpose: the array says
+// the file exists, not that it changed, so the implement run's per-task
+// regenerations are invisible here and cannot open a second tab. The open
+// viewport follows those on its own, behind its mtime gate.
+
+/** slug → Set<kind> as of the last push, or null before the first one. */
+let seen = null;
+/** The project `seen` describes. A different one is a new baseline, not a diff. */
+let seenProject = '';
+/** `${slug}:${kind}` for runs this window dispatched — those come to the front. */
+const expecting = new Set();
+
+/**
+ * Say that a report is coming for a run this window just started, so it opens
+ * in the foreground when it lands. A report that appears without one — a
+ * conductor worker, another window, a hand-run CLI session — opens as a
+ * background chip instead. The absence of an expectation *is* the origin
+ * signal; no flag travels with the report itself.
+ */
+function expectReport(slug, kind) {
+  if (slug && DOC_TYPE[kind]) expecting.add(`${slug}:${kind}`);
+}
+
+/** Which report kinds a spec entry claims, as a Set. */
+function _kindsOf(spec) {
+  return new Set(Array.isArray(spec && spec.reports) ? spec.reports.filter((k) => DOC_TYPE[k]) : []);
+}
+
+/**
+ * Diff one SPEC_DATA payload against the last, and open what just appeared.
+ *
+ * The first push after a renderer mount only arms the baseline: every report
+ * already on disk would otherwise read as new, and a reload would bury the
+ * user in tabs.
+ */
+function _onSpecDataPush(payload) {
+  const projectPath = (payload && payload.projectPath) || '';
+  const specs = (payload && Array.isArray(payload.specs)) ? payload.specs : [];
+
+  const next = new Map();
+  for (const spec of specs) {
+    if (spec && spec.slug) next.set(spec.slug, _kindsOf(spec));
+  }
+
+  const arming = seen === null || projectPath !== seenProject;
+  const prev = seen;
+  seen = next;
+  seenProject = projectPath;
+  if (arming || !host) return;
+
+  for (const spec of specs) {
+    if (!spec || !spec.slug) continue;
+    const before = prev.get(spec.slug) || new Set();
+    for (const kind of next.get(spec.slug) || []) {
+      if (before.has(kind)) continue;
+      const key = `${spec.slug}:${kind}`;
+      const foreground = expecting.delete(key);
+      open(
+        { projectPath, slug: spec.slug, title: spec.title || spec.slug, kind },
+        { background: !foreground }
+      );
+    }
+  }
+}
+
+ipcRenderer.on(IPC.SPEC_DATA, (_event, payload) => _onSpecDataPush(payload));
+
 function createViewport() {
   const key = `report-vp:${++seq}`;
   let cur = null;        // { projectPath, slug, title, kind }
@@ -314,5 +389,5 @@ function _escape(text) {
   return div.innerHTML;
 }
 
-const api = { setHost, open, createViewport };
+const api = { setHost, open, expectReport, createViewport };
 module.exports = api;
