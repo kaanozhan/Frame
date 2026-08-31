@@ -23,3 +23,16 @@ Added a `test/commandStaging.test.js` case asserting no staging-plan entry targe
 _Captured: 2026-08-31 · 2 file changes_
 
 ---
+## T03 — Retire the legacy location and the bridge that hid it
+
+Repointed `REPORT_GENERATOR_REL` in `src/templates/bin/implement-launch.js` at the staged
+`commands/claude-code/` copy, dropped the now-duplicate `GENERATOR_STAGED_REL` constant, and deleted
+`ensureReportGenerator` with its call — the copy step existed only to bridge the two locations.
+`stageCommandFiles` now calls a best-effort `removeLegacyAssetsDir()`, so the retired directory goes
+wherever it exists rather than only here, because prompts staged earlier carry the interpolated old
+path. `.frame/runtime/assets/` deleted from this project (untracked — `.frame/.gitignore` covers
+`runtime/`). Files: `src/templates/bin/implement-launch.js`, `src/main/commandStaging.js`.
+
+_Captured: 2026-08-31 · 2 file changes_
+
+---

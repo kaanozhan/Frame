@@ -6931,13 +6931,13 @@
       "title": "Retire the legacy location: point `REPORT_GENERATOR_REL` in `src/templates/bin/implement-launch.js` at the staged `commands/<tool>/` copy, delete `ensureReportGenerator` and its call, add a best-effort removal of `.frame/runtime/assets/` to `stageCommandFiles` in `src/main/commandStaging.js`, and delete the directory from this repo.",
       "description": "",
       "source": "spec:fix-report-staging-and-opening:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: fix-report-staging-and-opening",
       "createdAt": "2026-08-31T09:39:03.868Z",
-      "updatedAt": "2026-08-31T09:39:03.868Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T12:45:30.421Z",
+      "completedAt": "2026-08-31T12:45:30.421Z"
     },
     {
       "id": "task-spec-fix-report-staging-and-opening-T04",

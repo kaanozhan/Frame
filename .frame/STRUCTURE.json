@@ -511,8 +511,15 @@
           "line": 105,
           "purpose": "List the tool directories that actually ship under the packaged commands"
         },
+        "removeLegacyAssetsDir": {
+          "line": 122,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Remove the retired .frame/runtime/assets/ staging directory"
+        },
         "stageCommandFiles": {
-          "line": 119,
+          "line": 132,
           "params": [
             "projectPath"
           ],
@@ -10602,7 +10609,7 @@
       ],
       "functions": {
         "interpolate": {
-          "line": 73,
+          "line": 72,
           "params": [
             "template",
             "vars"
@@ -10610,21 +10617,21 @@
           "purpose": "{key} → vars[key]; unknown placeholders are left intact (same contract as"
         },
         "resolveVerificationCommand": {
-          "line": 80,
+          "line": 79,
           "params": [
             "config"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildPermissions": {
-          "line": 92,
+          "line": 91,
           "params": [
             "verification"
           ],
           "purpose": "The implement-permissions.json body. When a verification command exists,"
         },
         "buildLaunchArgs": {
-          "line": 102,
+          "line": 101,
           "params": [
             "settingsAbsPath",
             "promptRelPath"
@@ -10632,7 +10639,7 @@
           "purpose": "The CLI launch line: the permission flags plus the short read-this-file"
         },
         "resolveRawTemplatePath": {
-          "line": 112,
+          "line": 111,
           "params": [
             "projectRoot",
             "existsFn = fs.existsSync"
@@ -10640,20 +10647,20 @@
           "purpose": "Raw template path: override → staged. `existsFn` is injectable for tests."
         },
         "findProjectRoot": {
-          "line": 124,
+          "line": 123,
           "params": [
             "startDir"
           ],
           "purpose": "Walk up from a starting dir to the nearest ancestor that holds a .frame/"
         },
         "readJson": {
-          "line": 134,
+          "line": 133,
           "params": [
             "absPath"
           ]
         },
         "recordAutonomousMode": {
-          "line": 144,
+          "line": 143,
           "params": [
             "projectRoot",
             "slug"
@@ -10661,26 +10668,19 @@
           "purpose": "Merge implement_mode: autonomous into the spec's status.json, preserving"
         },
         "writePermissions": {
-          "line": 154,
+          "line": 153,
           "params": [
             "projectRoot"
           ]
         },
-        "ensureReportGenerator": {
-          "line": 166,
-          "params": [
-            "projectRoot"
-          ],
-          "purpose": "Ensure the report generator sits at runtime/assets/, copying the staged"
-        },
         "fail": {
-          "line": 177,
+          "line": 162,
           "params": [
             "message"
           ]
         },
         "main": {
-          "line": 182,
+          "line": 167,
           "params": [
             "argv"
           ]
