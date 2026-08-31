@@ -190,10 +190,17 @@ function createViewport() {
   let container = null;
 
   function navigate() {
-    // Opened/focused — ensure the session, then refresh so the conductor mounts.
-    ensureSession()
-      .then((ok) => { if (ok && host) host.notifySectionChanged(); })
-      .catch((err) => console.error('orchestrator: ensureSession failed', err));
+    // Opening the board must NOT spin up a conductor — that is an explicit act
+    // (the Start panel). Only an already-running session is re-attached here,
+    // so returning to the tab/project remounts its live conductor terminal.
+    const s = _curSess();
+    if (s && s.started) {
+      ensureSession()
+        .then((ok) => { if (ok && host) host.notifySectionChanged(); })
+        .catch((err) => console.error('orchestrator: ensureSession failed', err));
+    } else if (host) {
+      host.notifySectionChanged(); // nothing to start yet — just draw the board
+    }
   }
 
   function getChip() {
@@ -220,6 +227,7 @@ function createViewport() {
       </div>
     `;
     el.querySelector('.orch-stop').addEventListener('click', stopSession);
+    syncToolbar(el);
     renderPipeline(el);
     renderConductorZone(el);
     renderWorkerZone(el);
@@ -248,10 +256,20 @@ async function stopSession() {
 
 // ─── zones ────────────────────────────────────────────────
 
+// Stop & clean up only means something once a session exists.
+function syncToolbar(root) {
+  const stop = root.querySelector('.orch-stop');
+  if (!stop) return;
+  const s = _curSess();
+  stop.hidden = !(s && s.started);
+}
+
 function renderConductorZone(root) {
   const zone = root.querySelector('[data-zone="conductor"]');
   if (!zone) return;
-  const conductorId = _curSess() && _curSess().conductorId;
+  const s = _curSess();
+  if (!s || !s.started) { renderStartPanel(zone); return; }
+  const conductorId = s.conductorId;
   zone.innerHTML = `
     <div class="orch-zone-head">
       <span class="orch-zone-title">Conductor</span>
@@ -266,6 +284,49 @@ function renderConductorZone(root) {
     if (expand) expand.addEventListener('click', () => host.enterLane(conductorId));
   } else {
     hostEl.innerHTML = '<div class="orch-empty">Starting conductor…</div>';
+  }
+}
+
+// Idle state: the board is open but no conductor exists yet. The terminal zone
+// holds the call to action instead of a terminal nobody asked for.
+function renderStartPanel(zone) {
+  zone.innerHTML = `
+    <div class="orch-zone-head">
+      <span class="orch-zone-title">Conductor</span>
+    </div>
+    <div class="orch-conductor-host orch-start-host">
+      <div class="orch-start-panel">
+        <div class="orch-start-title">Orchestration is not running</div>
+        <p class="orch-start-sub">Starting opens a conductor Frame that reads CONDUCTOR.md, then dispatches the specs you assign into their own worktrees.</p>
+        <button type="button" class="orch-start-btn">Start Orchestrator</button>
+      </div>
+    </div>
+  `;
+  zone.querySelector('.orch-start-btn').addEventListener('click', startFromPanel);
+}
+
+async function startFromPanel(e) {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'Starting…';
+  let ok = false;
+  try {
+    ok = await ensureSession();
+  } catch (err) {
+    console.error('orchestrator: ensureSession failed', err);
+  }
+  if (!ok) {
+    btn.disabled = false;
+    btn.textContent = 'Start Orchestrator';
+    return;
+  }
+  // The host re-renders the whole section (render() runs again), which mounts
+  // the conductor terminal and re-enables Assign — don't paint it twice here.
+  if (host) host.notifySectionChanged();
+  else if (liveContainer && document.body.contains(liveContainer)) {
+    syncToolbar(liveContainer);
+    renderConductorZone(liveContainer);
+    loadSpecs(liveContainer);
   }
 }
 
@@ -466,12 +527,13 @@ function renderSpecRail(root, specs) {
     return;
   }
   const cur = _curSess();
+  const started = !!(cur && cur.started);
   const assignedSet = (cur && cur.assigned) || new Set();
   for (const spec of specs) {
     const slug = specSlug(spec);
     if (!slug) continue;
     const phase = specPhase(spec);
-    const assignable = ASSIGNABLE_PHASES.includes(phase);
+    const assignable = started && ASSIGNABLE_PHASES.includes(phase);
     const isAssigned = assignedSet.has(slug);
     const row = document.createElement('div');
     row.className = 'orch-spec-row' + (assignable ? '' : ' disabled');
@@ -480,7 +542,7 @@ function renderSpecRail(root, specs) {
         <div class="orch-spec-title"></div>
         <div class="orch-spec-phase">${escapeHtml(phase)}</div>
       </div>
-      <button type="button" class="orch-spec-assign" ${assignable && !isAssigned ? '' : 'disabled'}>${isAssigned ? 'Assigned' : 'Assign'}</button>
+      <button type="button" class="orch-spec-assign" ${assignable && !isAssigned ? '' : 'disabled'}${started ? '' : ' title="Start the orchestrator first"'}>${isAssigned ? 'Assigned' : 'Assign'}</button>
     `;
     row.querySelector('.orch-spec-title').textContent = specTitle(spec);
     const btn = row.querySelector('.orch-spec-assign');
