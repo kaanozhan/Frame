@@ -60,12 +60,16 @@
   Frame's semantic roles — *edit*, *shell*, *search* — to each CLI's tool
   names, and the scripts ask it. One place to add the next CLI.
 
-- **D8 · Gating before spawn — resolved to the fallback (silent).** Codex's
-  hook schema carries an `if` field, but T01 ran it as `"if": "test -d
-  .frame"` both with and without `.frame/` present and **the hook executed
-  both times** — the condition, in that form, is ignored. The scripts' existing
-  early bail stands, and the ~40 ms of node startup per tool call in non-Frame
-  projects is a cost to disclose rather than one designed away.
+- **D8 · Gating before spawn — dissolved (silent).** Codex's hook schema
+  carries an `if` field, but T01 ran it as `"if": "test -d .frame"` both with
+  and without `.frame/` present and **the hook executed both times** — the
+  condition, in that form, is ignored. T04 then found the question moot: a
+  hook's cwd **is the project**, so the guard the commands already carry —
+  `sh -c '[ ! -f .frame/bin/… ] || exec node …'` — makes the global config
+  self-limiting. Verified by running one global config in a Frame project (it
+  ran) and a plain one (it did not). In a non-Frame project the cost is `sh`
+  plus a `test`, and node never starts, so **D2's footprint concern shrinks to
+  a file Frame merges into rather than a cost every project pays.**
 
 ### Shape
 

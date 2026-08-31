@@ -272,3 +272,28 @@ test('a Codex patch touching several files finds the meta one among them', () =>
   }));
   assert.match(ctx, /Append decisions as dated sections/);
 });
+
+test('Codex gets the whole section where Claude Code would be trimmed', () => {
+  // Claude Code inlines 2 000 characters; Codex showed no truncation at
+  // 20 000 (T01). A section too big for one is fine for the other, so the cap
+  // is per CLI rather than one shared number.
+  const bloated = REFERENCE.replace(
+    'Append decisions as dated sections.',
+    `Append decisions as dated sections.\n${'padding line to overflow the cap. '.repeat(120)}`
+  );
+  const root = mkProject(bloated);
+  const claude = ctxOf(runHook('pre-edit', {
+    session_id: 'cap', cwd: root, tool_name: 'Edit',
+    tool_input: { file_path: path.join(root, '.frame', 'PROJECT_NOTES.md') }
+  }));
+  assert.match(claude, /\[trimmed/, 'Claude Code trims it');
+
+  // A real Codex edit arrives as apply_patch — the tool name is what says
+  // which CLI this is, so a Claude tool name would (correctly) win.
+  const command = ['*** Begin Patch', '*** Update File: .frame/PROJECT_NOTES.md', '+x', '*** End Patch'].join('\n');
+  const codex = ctxOf(runHook('pre-edit', {
+    session_id: 'cap2', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  }));
+  assert.ok(!codex.includes('[trimmed'), 'Codex takes it whole');
+  assert.ok(codex.length > 2000, 'and it is bigger than Claude Code could inline');
+});

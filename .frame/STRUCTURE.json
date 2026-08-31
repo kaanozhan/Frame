@@ -766,6 +766,9 @@
         "runProjectInit",
         "syncClaudeRule",
         "installSpecHintHook",
+        "installCodexHintHook",
+        "removeCodexHintHook",
+        "codexHome",
         "removeSpecHintHook",
         "removeFrame",
         "isSpecDrivenEnabled",
@@ -919,8 +922,32 @@
           ],
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
+        "codexHome": {
+          "line": 570,
+          "purpose": "Where Codex keeps its configuration. `CODEX_HOME` wins so a test — or a"
+        },
+        "installCodexHintHook": {
+          "line": 588,
+          "params": [
+            "projectPath",
+            "{ enabled = true",
+            "home = null } = {}"
+          ],
+          "purpose": "Register Frame's hooks for Codex in `CODEX_HOME/hooks.json`."
+        },
+        "removeCodexHintHook": {
+          "line": 651,
+          "params": [
+            "{ home = null } = {}"
+          ],
+          "purpose": "Take Frame's Codex entries back out. Exact-match on the command string, so"
+        },
+        "codexHookCommands": {
+          "line": 685,
+          "purpose": "Every command string Frame's Codex hook entries carry."
+        },
         "removeSpecHintHook": {
-          "line": 572,
+          "line": 700,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -928,74 +955,74 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 645,
+          "line": 773,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 650,
+          "line": 778,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 679,
+          "line": 807,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 707,
+          "line": 835,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 711,
+          "line": 839,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 725,
+          "line": 853,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 735,
+          "line": 863,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "specDocDescriptors": {
-          "line": 836,
+          "line": 964,
           "params": [
             "projectPath"
           ],
           "purpose": "The spec-section descriptors, in the order they must be settled: the target"
         },
         "readTextOrNull": {
-          "line": 864,
+          "line": 992,
           "params": [
             "file"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 878,
+          "line": 1006,
           "params": [
             "projectPath"
           ],
           "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
         },
         "appendSpecSection": {
-          "line": 961,
+          "line": 1089,
           "params": [
             "projectPath",
             "rel"
@@ -1003,14 +1030,14 @@
           "purpose": "Append the managed spec section to a document the pass deliberately refused"
         },
         "docsHealthFor": {
-          "line": 1000,
+          "line": 1128,
           "params": [
             "projectPath"
           ],
           "purpose": "The report on its own, without running the repair pass — what the UI asks"
         },
         "recordDocsActivity": {
-          "line": 1022,
+          "line": 1150,
           "params": [
             "written",
             "appended",
@@ -1019,14 +1046,14 @@
           "purpose": "Put the pass's result on the record. This is the half that was missing when"
         },
         "removeFrame": {
-          "line": 1057,
+          "line": 1185,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "dropEmptySettingsFile": {
-          "line": 1111,
+          "line": 1239,
           "params": [
             "projectPath",
             "file"
@@ -1034,21 +1061,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 1137,
+          "line": 1265,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 1153,
+          "line": 1281,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "openProjectLayout": {
-          "line": 1205,
+          "line": 1333,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1056,7 +1083,7 @@
           "purpose": "Everything a project open does to the project, in the order that makes the"
         },
         "rearmAfterMigration": {
-          "line": 1288,
+          "line": 1416,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1064,7 +1091,7 @@
           "purpose": "Every meta file just changed address: the watchers are pointed at the"
         },
         "setupIPC": {
-          "line": 1310,
+          "line": 1438,
           "params": [
             "ipcMain"
           ],
@@ -10377,6 +10404,7 @@
         "FRAME_GITIGNORE_MARKER_START",
         "FRAME_GITIGNORE_MARKER_END",
         "SPEC_HINT_HOOKS",
+        "CODEX_HINT_HOOKS",
         "LEGACY_SPEC_HINT_COMMANDS",
         "SPEC_DRIVEN_SECTION",
         "SPEC_DRIVEN_CORE_SECTION",
@@ -10400,6 +10428,7 @@
         "crypto",
         "docsManagedBlock",
         "frameConstants",
+        "../scripts/toolVocabulary",
         "fs",
         "path"
       ],
@@ -10488,11 +10517,11 @@
           "line": 859
         },
         "getCodexWrapperTemplate": {
-          "line": 964,
+          "line": 1010,
           "purpose": "Codex CLI wrapper script"
         },
         "getGenericWrapperTemplate": {
-          "line": 1001,
+          "line": 1047,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -10500,27 +10529,27 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1047
+          "line": 1093
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1086,
+          "line": 1132,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1109,
+          "line": 1155,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1121,
+          "line": 1167,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1141
+          "line": 1187
         },
         "getOrchBinScripts": {
-          "line": 1159,
+          "line": 1205,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       }

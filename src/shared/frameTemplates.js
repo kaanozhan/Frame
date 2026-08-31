@@ -941,6 +941,52 @@ const SPEC_HINT_HOOKS = {
   ]
 };
 
+/**
+ * The same four deliveries, registered for Codex.
+ *
+ * Three things differ from `SPEC_HINT_HOOKS`, all measured in T01 against
+ * Codex CLI 0.149.1 (`.frame/specs/codex-parity/measurements.md`):
+ *
+ *  - **Where it lives.** Codex loads hooks from `CODEX_HOME/hooks.json`, a
+ *    global user file; a project-local `.codex/hooks.json` was tried and did
+ *    not fire. So one config serves every project the user opens.
+ *  - **What that costs.** Nothing, because the guard already handles it: a
+ *    hook's cwd is the project, so `[ ! -f .frame/bin/… ]` is false in a
+ *    non-Frame project and `sh` exits without ever starting node. Verified by
+ *    running the same global config in a Frame project and a plain one.
+ *  - **Tool names.** Codex calls its shell tool `Bash` like Claude Code does,
+ *    so only the edit matcher differs — `apply_patch` rather than
+ *    `Edit|Write|NotebookEdit`. Matchers come from `toolVocabulary` so the
+ *    two lists cannot drift apart by hand.
+ *
+ * The `codex` argument on each command names the CLI explicitly, so nothing
+ * about which host is running has to be inferred from the payload.
+ */
+const vocabulary = require('../../scripts/toolVocabulary');
+
+const codexHook = (script, mode) => ({
+  type: 'command',
+  command: `sh -c '[ ! -f .frame/bin/${script} ] || exec node .frame/bin/${script} ${mode} codex'`
+});
+
+const CODEX_HINT_HOOKS = {
+  PreToolUse: [
+    { matcher: vocabulary.matcherFor(vocabulary.CODEX, ['edit']),
+      hooks: [codexHook('spec-hint.js', 'pre-edit')] },
+    { matcher: vocabulary.matcherFor(vocabulary.CODEX, ['search', 'shell']),
+      hooks: [codexHook('module-hint.js', 'search')] },
+    { matcher: vocabulary.matcherFor(vocabulary.CODEX, ['edit', 'shell']),
+      hooks: [codexHook('docs-hint.js', 'pre-edit')] }
+  ],
+  UserPromptSubmit: [
+    { hooks: [codexHook('spec-hint.js', 'prompt')] },
+    { hooks: [codexHook('spec-command-hint.js', 'prompt')] }
+  ],
+  SessionStart: [
+    { hooks: [codexHook('docs-hint.js', 'session-start')] }
+  ]
+};
+
 // Forms Frame installed before: the unguarded pre-overlay commands, and the
 // `&&` guard that exited 1 when the file was missing. Removal matches these
 // too, so an upgrade takes Frame's older entries out cleanly; nothing else
@@ -1178,6 +1224,7 @@ module.exports = {
   FRAME_GITIGNORE_MARKER_START,
   FRAME_GITIGNORE_MARKER_END,
   SPEC_HINT_HOOKS,
+  CODEX_HINT_HOOKS,
   LEGACY_SPEC_HINT_COMMANDS,
   SPEC_DRIVEN_SECTION,
   SPEC_DRIVEN_CORE_SECTION,

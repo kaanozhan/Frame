@@ -563,6 +563,134 @@ function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
 }
 
 /**
+ * Where Codex keeps its configuration. `CODEX_HOME` wins so a test — or a
+ * user running more than one Codex profile — can point this somewhere else
+ * without touching the real one.
+ */
+function codexHome() {
+  return process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
+}
+
+/**
+ * Register Frame's hooks for Codex in `CODEX_HOME/hooks.json`.
+ *
+ * Same shape as `installSpecHintHook`, three differences forced by what T01
+ * measured. The file is **global**, not per project — Codex loads hooks only
+ * from there — so this writes a file Frame does not own, merging rather than
+ * replacing and touching nothing it did not add. That is a departure from
+ * `non-invasive-overlay`'s footprint rule, taken deliberately (plan D2) and
+ * bounded two ways: the guard in each command means a non-Frame project never
+ * starts node, and `removeCodexHintHook` takes every entry back out.
+ *
+ * The hooks do not run until the user trusts them in Codex's TUI, and Frame
+ * neither can nor should forge that — see the heartbeat detection in T05.
+ */
+function installCodexHintHook(projectPath, { enabled = true, home = null } = {}) {
+  const aiToolManager = require('./aiToolManager');
+  const active = aiToolManager.getActiveTool();
+  if (!active || active.id !== 'codex') {
+    return { installed: false, reason: `active tool is ${active ? active.id : 'none'} — advisory layer only` };
+  }
+  if (!enabled) return { installed: false, reason: 'codex hooks disabled by setting' };
+
+  const dir = home || codexHome();
+  const hooksPath = path.join(dir, 'hooks.json');
+
+  let config = {};
+  let indent = 2;
+  if (fs.existsSync(hooksPath)) {
+    const raw = fs.readFileSync(hooksPath, 'utf8');
+    try {
+      config = JSON.parse(raw);
+    } catch (err) {
+      return {
+        installed: false,
+        manual: true,
+        reason: `${hooksPath} is not valid JSON (${err.message}); add Frame's Codex hooks by hand`
+      };
+    }
+    indent = detectJsonIndent(raw);
+  }
+
+  // A hook the user wired themselves to the same script is the layer this
+  // install would provide; adding ours beside it would run each hint twice.
+  const ours = new Set(codexHookCommands());
+  const existing = hookCommandsIn(config)
+    .find((command) => /\b(spec-hint|module-hint|docs-hint|spec-command-hint)\.js\b/.test(command) && !ours.has(command));
+  if (existing) {
+    return { installed: false, existing: true, reason: `a hook already runs a Frame hint script (${existing})` };
+  }
+
+  config.hooks = config.hooks || {};
+  let added = 0;
+  for (const eventName of Object.keys(templates.CODEX_HINT_HOOKS)) {
+    const list = Array.isArray(config.hooks[eventName]) ? config.hooks[eventName] : [];
+    for (const entry of templates.CODEX_HINT_HOOKS[eventName]) {
+      const sig = JSON.stringify(entry);
+      if (!list.some((x) => JSON.stringify(x) === sig)) {
+        list.push(entry);
+        added++;
+      }
+    }
+    config.hooks[eventName] = list;
+  }
+
+  if (added > 0) {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(hooksPath, JSON.stringify(config, null, indent) + '\n');
+  }
+  return { installed: true, added, path: hooksPath };
+}
+
+/**
+ * Take Frame's Codex entries back out. Exact-match on the command string, so
+ * a hook the user wrote — even one calling the same script differently — is
+ * not ours to remove. Empty event arrays and an empty `hooks` object are
+ * cleaned up; every other key in the user's file survives untouched.
+ */
+function removeCodexHintHook({ home = null } = {}) {
+  const hooksPath = path.join(home || codexHome(), 'hooks.json');
+  if (!fs.existsSync(hooksPath)) return { removed: 0 };
+
+  const raw = fs.readFileSync(hooksPath, 'utf8');
+  const indent = detectJsonIndent(raw);
+  let config;
+  try {
+    config = JSON.parse(raw);
+  } catch {
+    return { removed: 0, manual: true, reason: `${hooksPath} is not valid JSON` };
+  }
+  if (!config.hooks || typeof config.hooks !== 'object') return { removed: 0 };
+
+  const ours = new Set(codexHookCommands());
+  let removed = 0;
+  for (const eventName of Object.keys(config.hooks)) {
+    const list = config.hooks[eventName];
+    if (!Array.isArray(list)) continue;
+    config.hooks[eventName] = list.filter((entry) => {
+      const isOurs = entry && Array.isArray(entry.hooks) && entry.hooks.length > 0
+        && entry.hooks.every((h) => h && ours.has(h.command));
+      if (isOurs) removed++;
+      return !isOurs;
+    });
+    if (config.hooks[eventName].length === 0) delete config.hooks[eventName];
+  }
+  if (Object.keys(config.hooks).length === 0) delete config.hooks;
+
+  if (removed > 0) fs.writeFileSync(hooksPath, JSON.stringify(config, null, indent) + '\n');
+  return { removed, path: hooksPath };
+}
+
+/** Every command string Frame's Codex hook entries carry. */
+function codexHookCommands() {
+  const out = [];
+  for (const list of Object.values(templates.CODEX_HINT_HOOKS)) {
+    for (const entry of list) for (const h of entry.hooks) out.push(h.command);
+  }
+  return out;
+}
+
+/**
  * Take Frame's hook entries back out of a Claude settings file. Exact-match on
  * the command string (today's guard, plus every form Frame shipped before) —
  * a hook the user wrote, even one that calls spec-hint.js differently, is not
@@ -1433,6 +1561,9 @@ module.exports = {
   runProjectInit,
   syncClaudeRule,
   installSpecHintHook,
+  installCodexHintHook,
+  removeCodexHintHook,
+  codexHome,
   removeSpecHintHook,
   removeFrame,
   isSpecDrivenEnabled,
