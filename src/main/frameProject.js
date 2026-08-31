@@ -271,9 +271,6 @@ async function runProjectInit(projectPath, projectName, options = {}) {
   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);
   await fsp.mkdir(binDirPath, { recursive: true });
 
-  // Create Codex CLI wrapper script
-  ensureCodexWrapper(projectPath);
-
   // Bootstrap STRUCTURE.json auto-fill: ship parser scripts to .frame/bin/,
   // install pre-commit hook (with safe detection for husky/lefthook/custom),
   // and run a one-time full scan if STRUCTURE.json was just created.
@@ -377,28 +374,6 @@ async function runProjectInit(projectPath, projectName, options = {}) {
  * a needless rewrite is a file-watcher event in someone else's editor.
  */
 /**
- * The Codex CLI wrapper. Written at init and, since it is the kind of file a
- * project upgraded from an older Frame simply never received, re-ensured on
- * every open. Only ever created when absent — a project that edited its own
- * wrapper keeps it.
- *
- * Deliberately not in `structureBootstrap.PARSER_FILES`: that module sits in
- * another spec's live footprint, and this file already owns the wrapper.
- */
-function ensureCodexWrapper(projectPath) {
-  const wrapperPath = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'codex');
-  if (fs.existsSync(wrapperPath)) return false;
-  try {
-    fs.mkdirSync(path.dirname(wrapperPath), { recursive: true });
-    fs.writeFileSync(wrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
-    return true;
-  } catch (err) {
-    console.warn('[frame] could not write .frame/bin/codex (non-fatal):', err.message);
-    return false;
-  }
-}
-
-/**
  * Re-ensure on open what a fresh init creates.
  *
  * `ensureSpecDrivenArtifacts` has always known how to produce
@@ -416,7 +391,6 @@ function ensureCodexWrapper(projectPath) {
  */
 function ensureProjectArtifacts(projectPath) {
   if (!projectPath || !isFrameProject(projectPath)) return false;
-  ensureCodexWrapper(projectPath);
   const config = getFrameConfig(projectPath) || {};
   if (config.features && config.features.specDriven === true) {
     const referencePath = path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md');
@@ -1657,7 +1631,6 @@ module.exports = {
   setSpecDrivenEnabled,
   upgradeSpecDocs,
   ensureProjectArtifacts,
-  ensureCodexWrapper,
   appendSpecSection,
   docsHealthFor,
   setupIPC

@@ -49,9 +49,13 @@ const AI_TOOLS = {
   codex: {
     id: 'codex',
     name: 'Codex CLI',
-    command: './.frame/bin/codex',
-    fallbackCommand: 'codex',
-    description: 'OpenAI Codex CLI (with AGENTS.md injection)',
+    // Was './.frame/bin/codex', a wrapper that prepended "read AGENTS.md" at
+    // launch. Frame's SessionStart hook now delivers the rules themselves, so
+    // there is nothing for a wrapper to do — and launch-time injection was
+    // best-effort where a hook is not (non-invasive-overlay). Existing
+    // wrappers are left on disk, unused.
+    command: 'codex',
+    description: 'OpenAI Codex CLI',
     commands: {
       review: '/review',
       model: '/model',
@@ -379,8 +383,10 @@ function setupIPC() {
 
     // When the primary is a path-based wrapper script and the tool
     // declares a fallback, the wrapper almost always `exec`s the
-    // fallback (see .frame/bin/codex). Treat the fallback as a hard
-    // dependency in that case — wrapper presence alone isn't enough.
+    // fallback. Treat the fallback as a hard dependency in that case —
+    // wrapper presence alone isn't enough. No built-in tool takes this
+    // branch since the Codex wrapper was retired; it stays for a custom
+    // tool defined that way.
     if (primary.found && tool.fallbackCommand && isPathLike(tool.command)) {
       const fallback = await isCommandAvailable(tool.fallbackCommand, projectPath);
       if (fallback.found) {

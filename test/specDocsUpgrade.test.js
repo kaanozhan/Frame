@@ -303,7 +303,10 @@ test('opening re-ensures the artifacts an upgraded project never received', () =
   open(dir);
 
   assert.equal(fs.existsSync(path.join(dir, '.frame', 'specs', '.gitkeep')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.frame', 'bin', 'codex')), true);
+  // The Codex wrapper is no longer among them: Frame's SessionStart hook
+  // delivers the rules a launch-time prompt used to ask an agent to go read,
+  // so there is nothing for a wrapper to do and none is written.
+  assert.equal(fs.existsSync(path.join(dir, '.frame', 'bin', 'codex')), false);
 });
 
 test('a reference the user keeps is never overwritten by the artifact pass', () => {
@@ -329,8 +332,8 @@ test('the artifact pass leaves a project with spec-driven off alone', () => {
   frameProject.ensureProjectArtifacts(dir);
 
   assert.equal(fs.existsSync(referencePath(dir)), false);
-  // The Codex wrapper is not a spec-driven artifact, so it is ensured either way.
-  assert.equal(fs.existsSync(path.join(dir, '.frame', 'bin', 'codex')), true);
+  // Nor is the retired Codex wrapper written on this path any more.
+  assert.equal(fs.existsSync(path.join(dir, '.frame', 'bin', 'codex')), false);
 });
 
 test('the returned report describes the state the pass leaves, not the one it found', () => {

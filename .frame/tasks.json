@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T20:21:17.604Z",
+  "lastUpdated": "2026-08-31T20:27:02.279Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6864,13 +6864,13 @@
       "title": "Retire the wrapper: point `aiToolManager`'s codex command at `'codex'`, delete `getCodexWrapperTemplate` and `.frame/bin/codex`, and prove AGENTS.md now arrives through the `SessionStart` hook.",
       "description": "",
       "source": "spec:codex-parity:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T20:27:02.279Z",
+      "completedAt": "2026-08-31T20:27:02.279Z"
     },
     {
       "id": "task-spec-codex-parity-T10",

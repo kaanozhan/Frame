@@ -1004,41 +1004,6 @@ const LEGACY_SPEC_HINT_COMMANDS = [
  */
 
 /**
- * Codex CLI wrapper script
- * Instructs Codex to read AGENTS.md as initial prompt
- */
-function getCodexWrapperTemplate() {
-  return `#!/usr/bin/env bash
-# Frame AI Tool Wrapper for Codex CLI
-# This script injects .frame/AGENTS.md as initial prompt
-
-AGENTS_FILE=".frame/AGENTS.md"
-
-# Find .frame/AGENTS.md in current directory or parent directories
-find_agents_file() {
-  local dir="$PWD"
-  while [ "$dir" != "/" ]; do
-    if [ -f "$dir/$AGENTS_FILE" ]; then
-      echo "$dir/$AGENTS_FILE"
-      return 0
-    fi
-    dir="$(dirname "$dir")"
-  done
-  return 1
-}
-
-AGENTS_PATH=$(find_agents_file)
-
-# Run codex with initial prompt to read AGENTS.md
-if [ -n "$AGENTS_PATH" ]; then
-  exec codex "Please read .frame/AGENTS.md and follow the project instructions. This file contains important rules for this project." "$@"
-else
-  exec codex "$@"
-fi
-`;
-}
-
-/**
  * Generic AI tool wrapper template
  * Can be customized for other AI tools in the future
  * @param {string} toolCommand - The CLI command to run
@@ -1236,7 +1201,6 @@ module.exports = {
   LEGACY_SPEC_DRIVEN_CORE_SECTION,
   REFERENCE_SPEC_LEGACY_MATCHERS,
   AGENTS_SPEC_LEGACY_MATCHERS,
-  getCodexWrapperTemplate,
   getGenericWrapperTemplate,
   getStructureHookSnippet,
   getStructurePreCommitHookTemplate,
