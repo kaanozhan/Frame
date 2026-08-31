@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T19:57:49.021Z",
+  "lastUpdated": "2026-08-31T20:09:36.944Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6838,13 +6838,13 @@
       "title": "Produce `spec.new.md`, `spec.tasks.md` and `spec.implement.md` for Codex by the strategy T06 settled, with tests asserting `getCommandPrompt` returns a prompt rather than an error for all four commands with `'codex'`.",
       "description": "",
       "source": "spec:codex-parity:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T20:09:36.944Z",
+      "completedAt": "2026-08-31T20:09:36.944Z"
     },
     {
       "id": "task-spec-codex-parity-T08",

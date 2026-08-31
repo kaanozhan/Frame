@@ -138,9 +138,47 @@ test('Codex and Claude Code prompts differ only in the dialect lines', () => {
     const b = specManager.getCommandPrompt(root, 'alpha', command, 'codex').prompt.split('\n');
     assert.equal(a.length, b.length, `${command}: line count drifted`);
     const differing = a.reduce((n, line, i) => (line === b[i] ? n : n + 1), 0);
-    // T06 measured about six CLI-specific lines across all four templates.
-    // A number much larger than that means the templates have started to
-    // diverge, which is the drift one source was chosen to prevent.
-    assert.ok(differing <= 3, `${command}: ${differing} lines differ — the templates are drifting apart`);
+    // The dialect is the only thing that may differ, and today that is one
+    // line per template except spec.implement, whose autonomous handoff wraps
+    // to four. The ceiling is the count of dialect lines, not a round number:
+    // a template that starts diverging beyond its dialect is the drift one
+    // source was chosen to prevent, and it should fail here.
+    const ceiling = command === 'spec.implement' ? 4 : 1;
+    assert.ok(differing <= ceiling,
+      `${command}: ${differing} lines differ, expected at most ${ceiling} — the templates are drifting apart`);
   }
+});
+
+// ─── autonomous is Claude Code's, and says so ─────────────
+
+test('a dialect value that names the spec is filled, not left literal', () => {
+  // Claude Code's handoff names the launcher and the slug. A `{slug}` inside
+  // a dialect value would otherwise reach the user as literal text, telling
+  // them to run the launcher against a spec called "{slug}".
+  const root = mkProject();
+  const { prompt } = specManager.getCommandPrompt(root, 'alpha', 'spec.implement', 'claude-code');
+  assert.match(prompt, /implement-launch\.js alpha`/);
+  assert.ok(!prompt.includes('implement-launch.js {slug}'));
+});
+
+test('Codex is told autonomous is unavailable, not sent to a launcher that cannot serve it', () => {
+  const root = mkProject();
+  const { prompt } = specManager.getCommandPrompt(root, 'alpha', 'spec.implement', 'codex');
+  assert.match(prompt, /available for Codex yet/, 'the handoff wraps, so match a single line of it');
+  assert.ok(!prompt.includes('implement-launch.js alpha'),
+    'pointing Codex at a Claude-only launcher would send the user in a circle');
+});
+
+test('autonomous launch flags are Claude Code\'s and go nowhere else', () => {
+  // `--settings` and `--permission-mode` are Claude Code flags; handing them
+  // to another CLI is an unparseable command line, not a degraded run.
+  const root = mkProject();
+  const dir = path.join(root, '.frame', 'specs', 'alpha');
+  const status = JSON.parse(fs.readFileSync(path.join(dir, 'status.json'), 'utf8'));
+  fs.writeFileSync(path.join(dir, 'status.json'),
+    JSON.stringify({ ...status, implement_mode: 'autonomous' }));
+
+  assert.deepEqual(specManager.getImplementLaunchFlags(root, 'alpha', 'codex'), []);
+  const claude = specManager.getImplementLaunchFlags(root, 'alpha', 'claude-code');
+  assert.ok(claude.includes('--permission-mode'), 'Claude Code still gets its flags');
 });

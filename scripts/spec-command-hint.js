@@ -250,10 +250,19 @@ function buildPrompt(root, slug, command, tool) {
   if (!template) return null;
   const status = readJson(path.join(root, '.frame', 'specs', slug, 'status.json'));
   if (!status) return null;
+  // The CLI-specific phrases, exactly as specManager supplies them — including
+  // its one-pass fill of tokens *inside* a dialect value, since a phrase may
+  // name the spec it is about. The drift guard compares the two prompts byte
+  // for byte, so anything specManager does here has to happen here too.
+  const phrases = vocab ? vocab.dialect(tool) : {};
+  for (const key of Object.keys(phrases)) {
+    if (typeof phrases[key] === 'string') {
+      phrases[key] = interpolate(phrases[key], { slug, project_path: root });
+    }
+  }
+
   return interpolate(template, {
-    // The CLI-specific phrases, exactly as specManager supplies them — the
-    // drift guard compares the two prompts byte for byte.
-    ...(vocab ? vocab.dialect(tool) : {}),
+    ...phrases,
     project_path: root,
     slug,
     title: status.title,

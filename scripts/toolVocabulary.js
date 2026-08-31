@@ -224,11 +224,25 @@ const DIALECT = {
   // it. Verified by rendering the prompt before and after and diffing.
   [CLAUDE]: {
     tool_id: CLAUDE,
-    ask_mechanism: 'the `AskUserQuestion` tool'
+    ask_mechanism: 'the `AskUserQuestion` tool',
+    // Line breaks are part of the value: the template's own wrapping is what
+    // shipped, and tokenising a sentence must not reflow the document.
+    autonomous_handoff: 'Click the\n   implement button on this spec\'s page in Frame and pick Autonomous, or run\n'
+      + '   `node .frame/bin/implement-launch.js {slug}` in a fresh terminal — either\n'
+      + '   one starts implementing with no further input.'
   },
   [CODEX]: {
     tool_id: CODEX,
-    ask_mechanism: 'a numbered list in your reply, then **waiting** for the answer'
+    ask_mechanism: 'a numbered list in your reply, then **waiting** for the answer',
+    // Codex has `--approve-for-me`, but the launcher that would pass it still
+    // resolves claude-code template paths. Saying "not yet" is honest; naming
+    // a launcher that cannot serve this CLI would send the user in a circle.
+    // Wrapped to the same four lines as Claude Code's, so the two rendered
+    // documents stay structurally identical and the drift guard can compare
+    // them line for line.
+    autonomous_handoff: 'Autonomous is not\n   available for Codex yet: Frame\'s launcher still resolves Claude Code\n'
+      + '   paths. Offer **guided** instead — the same task-by-task loop, paced by\n'
+      + '   Codex\'s own approval prompts.'
   }
 };
 

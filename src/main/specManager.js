@@ -509,6 +509,15 @@ function loadCommandTemplate(projectPath, aiTool, command) {
   return readFileSafe(getDefaultTemplatePath(BASE_TEMPLATE_TOOL, command));
 }
 
+/** Run `interpolate` over each value of an object. One pass, no recursion. */
+function interpolateValues(obj, vars) {
+  const out = {};
+  for (const [key, value] of Object.entries(obj)) {
+    out[key] = typeof value === 'string' ? interpolate(value, vars) : value;
+  }
+  return out;
+}
+
 function interpolate(template, vars) {
   if (!template) return '';
   return template.replace(/\{(\w+)\}/g, (m, key) => {
@@ -538,7 +547,13 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
     // Phrases a template cannot state tool-neutrally — one CLI's structured
     // question tool is another's numbered list. Spread first so a real
     // variable below always wins.
-    ...vocabulary.dialect(tool),
+    //
+    // Interpolated once themselves, because a phrase may name the spec it is
+    // about: `{slug}` inside a dialect value would otherwise survive into the
+    // prompt as literal text, telling the user to run a command against a
+    // spec called "{slug}". One pass, not recursion — a value that names a
+    // token is filled; a value that names itself is left alone.
+    ...interpolateValues(vocabulary.dialect(tool), { slug, project_path: projectPath }),
     project_path: projectPath,
     // The user's free-form text, verbatim. Empty for every command whose
     // template carries no {description} token.
@@ -745,8 +760,17 @@ function resolveImplementLaunchHint(projectPath, slug) {
 // The flags the lane's launch line needs for this dispatch. Only the
 // autonomous mode needs any: without them every edit stops on a permission
 // prompt, which is the exact thing that mode exists to avoid.
-function getImplementLaunchFlags(projectPath, slug) {
+function getImplementLaunchFlags(projectPath, slug, aiTool) {
   if (resolveImplementLaunchHint(projectPath, slug) !== IMPLEMENT_MODE_AUTONOMOUS) return [];
+  // `--settings` and `--permission-mode` are Claude Code's. Handing them to
+  // another CLI is not a degraded run, it is an unparseable command line, so
+  // a tool with no autonomous path of its own gets no flags — the template's
+  // own guided loop, paced by that CLI's approval prompts, is what runs.
+  // Codex has `--approve-for-me`, but reaching it needs implement-launch.js,
+  // whose template and generator paths are still claude-code only; until that
+  // is ported, autonomous stays a Claude Code capability and the dialect says
+  // so rather than pointing Codex at a launcher that cannot serve it.
+  if ((aiTool || 'claude-code') !== 'claude-code') return [];
   const perms = writeImplementPermissions(projectPath);
   if (!perms.success) return [];
   return ['--settings', perms.absPath, '--permission-mode', 'auto'];
@@ -796,7 +820,7 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
     // Empty for every command but spec.implement, and for spec.implement
     // unless the launch hint is autonomous. The renderer passes these
     // through to the CLI launch line without interpreting them.
-    launchFlags: command === 'spec.implement' ? getImplementLaunchFlags(projectPath, slug) : [],
+    launchFlags: command === 'spec.implement' ? getImplementLaunchFlags(projectPath, slug, aiTool) : [],
     instruction: `Read ${relPath} and follow its instructions exactly.`
   };
 }

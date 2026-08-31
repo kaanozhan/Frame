@@ -223,12 +223,15 @@ into `.frame/bin/`.
 6. ~~**Adapt `spec.plan.md` for Codex and measure the divergence.**~~ **Done.**
    0.18% — D5 settled to one source plus a dialect. `getCommandPrompt` now
    returns a prompt for all four commands under `codex`.
-7. **The remaining three commands** need no files of their own — step 6's
-   measurement made them fall out of the base plus the dialect.
-   `test/codexTemplates.test.js` covers all four for both CLIs; what is left
-   here is `spec.implement`'s autonomous mode, whose permission-flag language
-   is Claude Code's and needs Codex's equivalent or an explicit "not
-   available" path.
+7. ~~**The remaining three commands.**~~ **Done.** No files of their own were
+   needed. `spec.implement`'s autonomous mode took the explicit "not
+   available" path: Codex does have `--approve-for-me`, but reaching it needs
+   `implement-launch.js`, whose template and generator paths are still
+   `claude-code` only. So `getImplementLaunchFlags` returns nothing for a
+   non-Claude tool — those flags are Claude Code's and would be an
+   unparseable command line elsewhere — and the dialect tells Codex to use
+   guided rather than pointing it at a launcher that cannot serve it.
+   **Porting the launcher is the remaining gap**, deliberately not taken here.
 8. **Retire the wrapper.** `aiToolManager` command → `'codex'`, delete
    `getCodexWrapperTemplate` and `.frame/bin/codex`, and let the `SessionStart`
    hook carry AGENTS.md and the REFERENCE sections.

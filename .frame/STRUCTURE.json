@@ -3541,15 +3541,23 @@
             "command"
           ]
         },
+        "interpolateValues": {
+          "line": 513,
+          "params": [
+            "obj",
+            "vars"
+          ],
+          "purpose": "Run `interpolate` over each value of an object. One pass, no recursion."
+        },
         "interpolate": {
-          "line": 512,
+          "line": 521,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 525,
+          "line": 534,
           "params": [
             "projectPath",
             "slug",
@@ -3559,7 +3567,7 @@
           ]
         },
         "stageCommandAsset": {
-          "line": 590,
+          "line": 605,
           "params": [
             "projectPath",
             "aiTool",
@@ -3568,7 +3576,7 @@
           "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
         },
         "stageCommandAssets": {
-          "line": 611,
+          "line": 626,
           "params": [
             "projectPath",
             "command",
@@ -3576,56 +3584,57 @@
           ]
         },
         "resolveVerificationCommand": {
-          "line": 675,
+          "line": 690,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 690,
+          "line": 705,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 708,
+          "line": 723,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 732,
+          "line": 747,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 748,
+          "line": 763,
           "params": [
             "projectPath",
-            "slug"
+            "slug",
+            "aiTool"
           ],
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "specNewPromptFilename": {
-          "line": 760,
+          "line": 784,
           "params": [
             "date"
           ],
           "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
         },
         "uniquePromptFilename": {
-          "line": 765,
+          "line": 789,
           "params": [
             "promptsDir",
             "filename"
           ]
         },
         "buildSpecCommandFile": {
-          "line": 774,
+          "line": 798,
           "params": [
             "projectPath",
             "slug",
@@ -3635,53 +3644,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 816,
+          "line": 840,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 842,
+          "line": 866,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 861,
+          "line": 885,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 866,
+          "line": 890,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 946,
+          "line": 970,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 953,
+          "line": 977,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 970,
+          "line": 994,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1009,
+          "line": 1033,
           "params": [
             "projectPath",
             "slug",
@@ -3690,7 +3699,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1038,
+          "line": 1062,
           "params": [
             "projectPath",
             "query"
@@ -3698,7 +3707,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1059,
+          "line": 1083,
           "params": [
             "projectPath",
             "slug",
@@ -3706,14 +3715,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1082,
+          "line": 1106,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1099,
+          "line": 1123,
           "params": [
             "projectPath",
             "oldSlug",
@@ -3722,48 +3731,48 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1211,
+          "line": 1235,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1302
+          "line": 1326
         },
         "markSpecNewLaunch": {
-          "line": 1350
+          "line": 1374
         },
         "consumeSpecNewLaunch": {
-          "line": 1354
+          "line": 1378
         },
         "resolveSpecOrigin": {
-          "line": 1367,
+          "line": 1391,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackNewlyAuthoredSpecs": {
-          "line": 1378,
+          "line": 1402,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1398,
+          "line": 1422,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1421,
+          "line": 1445,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1425,
+          "line": 1449,
           "params": [
             "ipcMain"
           ]
