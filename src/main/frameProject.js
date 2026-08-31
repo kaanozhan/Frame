@@ -312,6 +312,36 @@ async function runProjectInit(projectPath, projectName, options = {}) {
     console.warn('[frame] spec-hint hook install failed (non-fatal):', err.message);
   }
 
+  // The same four deliveries for a Codex session. Returns without writing
+  // unless codex is the active tool, so both calls can stand side by side.
+  // Non-fatal like its sibling: a project must still initialize when the
+  // user's CODEX_HOME is unreadable.
+  let codexHintSummary = null;
+  try {
+    codexHintSummary = installCodexHintHook(projectPath);
+    if (codexHintSummary.manual) {
+      console.warn('[frame] codex hook needs manual install:', codexHintSummary.reason);
+    }
+  } catch (err) {
+    console.warn('[frame] codex hook install failed (non-fatal):', err.message);
+  }
+
+  // Say so when they are installed and have never run. Codex declines an
+  // untrusted hook in silence — no error, no prompt, nothing written — so
+  // without this the user sees a Frame that looks configured and delivers
+  // nothing. A fresh install genuinely has not run yet, and that is the
+  // moment the user can act on, so the notice belongs here rather than being
+  // held back to avoid looking noisy.
+  try {
+    const trust = codexHookTrustState(projectPath);
+    if (trust.untrusted && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC.CODEX_HOOKS_UNTRUSTED, {});
+      activityLog.record('hooks.untrusted', { tool: 'codex' });
+    }
+  } catch (err) {
+    console.warn('[frame] codex hook trust check failed (non-fatal):', err.message);
+  }
+
   // Apply the sharing mode's side effects: the managed .frame/.gitignore
   // block, and (mode `local`) the anchored exclude entries. Non-fatal — a
   // project without git still initializes fine.

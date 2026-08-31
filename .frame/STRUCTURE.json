@@ -878,27 +878,27 @@
           ]
         },
         "ensureCodexWrapper": {
-          "line": 358,
+          "line": 388,
           "params": [
             "projectPath"
           ],
           "purpose": "The Codex CLI wrapper. Written at init and, since it is the kind of file a"
         },
         "ensureProjectArtifacts": {
-          "line": 387,
+          "line": 417,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-ensure on open what a fresh init creates."
         },
         "syncClaudeRule": {
-          "line": 411,
+          "line": 441,
           "params": [
             "projectPath"
           ]
         },
         "detectJsonIndent": {
-          "line": 438,
+          "line": 468,
           "params": [
             "text",
             "fallback = 2"
@@ -906,18 +906,18 @@
           "purpose": "The indentation an existing settings file uses, so rewriting it preserves"
         },
         "hookCommandsIn": {
-          "line": 445,
+          "line": 475,
           "params": [
             "settings"
           ],
           "purpose": "Every hook command in a settings object, whatever shape the file is in."
         },
         "frameHookCommands": {
-          "line": 462,
+          "line": 492,
           "purpose": "The command strings Frame installs today."
         },
         "installSpecHintHook": {
-          "line": 486,
+          "line": 516,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -925,11 +925,11 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "codexHome": {
-          "line": 570,
+          "line": 600,
           "purpose": "Where Codex keeps its configuration. `CODEX_HOME` wins so a test — or a"
         },
         "installCodexHintHook": {
-          "line": 588,
+          "line": 618,
           "params": [
             "projectPath",
             "{ enabled = true",
@@ -938,14 +938,14 @@
           "purpose": "Register Frame's hooks for Codex in `CODEX_HOME/hooks.json`."
         },
         "removeCodexHintHook": {
-          "line": 651,
+          "line": 681,
           "params": [
             "{ home = null } = {}"
           ],
           "purpose": "Take Frame's Codex entries back out. Exact-match on the command string, so"
         },
         "codexHookTrustState": {
-          "line": 703,
+          "line": 733,
           "params": [
             "projectPath",
             "{ home = null",
@@ -954,11 +954,11 @@
           "purpose": "Are Frame's Codex hooks installed, and have they ever actually run?"
         },
         "codexHookCommands": {
-          "line": 739,
+          "line": 769,
           "purpose": "Every command string Frame's Codex hook entries carry."
         },
         "removeSpecHintHook": {
-          "line": 754,
+          "line": 784,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -966,74 +966,74 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "isSpecDrivenEnabled": {
-          "line": 827,
+          "line": 857,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 832,
+          "line": 862,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 861,
+          "line": 891,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 889,
+          "line": 919,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 893,
+          "line": 923,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 907,
+          "line": 937,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 917,
+          "line": 947,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "specDocDescriptors": {
-          "line": 1018,
+          "line": 1048,
           "params": [
             "projectPath"
           ],
           "purpose": "The spec-section descriptors, in the order they must be settled: the target"
         },
         "readTextOrNull": {
-          "line": 1046,
+          "line": 1076,
           "params": [
             "file"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 1060,
+          "line": 1090,
           "params": [
             "projectPath"
           ],
           "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
         },
         "appendSpecSection": {
-          "line": 1143,
+          "line": 1173,
           "params": [
             "projectPath",
             "rel"
@@ -1041,14 +1041,14 @@
           "purpose": "Append the managed spec section to a document the pass deliberately refused"
         },
         "docsHealthFor": {
-          "line": 1182,
+          "line": 1212,
           "params": [
             "projectPath"
           ],
           "purpose": "The report on its own, without running the repair pass — what the UI asks"
         },
         "recordDocsActivity": {
-          "line": 1204,
+          "line": 1234,
           "params": [
             "written",
             "appended",
@@ -1057,14 +1057,14 @@
           "purpose": "Put the pass's result on the record. This is the half that was missing when"
         },
         "removeFrame": {
-          "line": 1239,
+          "line": 1269,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "dropEmptySettingsFile": {
-          "line": 1293,
+          "line": 1323,
           "params": [
             "projectPath",
             "file"
@@ -1072,21 +1072,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 1319,
+          "line": 1349,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 1335,
+          "line": 1365,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "openProjectLayout": {
-          "line": 1387,
+          "line": 1417,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1094,7 +1094,7 @@
           "purpose": "Everything a project open does to the project, in the order that makes the"
         },
         "rearmAfterMigration": {
-          "line": 1470,
+          "line": 1500,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1102,7 +1102,7 @@
           "purpose": "Every meta file just changed address: the watchers are pointed at the"
         },
         "setupIPC": {
-          "line": 1492,
+          "line": 1522,
           "params": [
             "ipcMain"
           ],
@@ -1126,6 +1126,7 @@
           "APPLY_MIGRATION_DECISIONS"
         ],
         "emits": [
+          "CODEX_HOOKS_UNTRUSTED",
           "FRAME_PROJECT_INITIALIZED",
           "WORKSPACE_UPDATED",
           "FRAME_CONFIG_DATA"
@@ -3372,6 +3373,7 @@
         "telemetry",
         "activityLog",
         "perfMonitor",
+        "../scripts/toolVocabulary",
         "orchestrationManager"
       ],
       "functions": {
@@ -3424,33 +3426,33 @@
           ]
         },
         "indexStamp": {
-          "line": 179,
+          "line": 180,
           "params": [
             "projectPath"
           ],
           "purpose": "mtime of the derived index, or 0 — used to tell a rebuild from a no-op."
         },
         "scheduleIndexRefresh": {
-          "line": 188,
+          "line": 189,
           "params": [
             "projectPath"
           ]
         },
         "buildSpecCatalog": {
-          "line": 216,
+          "line": 217,
           "params": [
             "projectPath"
           ],
           "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
         },
         "listSpecs": {
-          "line": 236,
+          "line": 237,
           "params": [
             "projectPath"
           ]
         },
         "looksLikeSpecFolder": {
-          "line": 320,
+          "line": 321,
           "params": [
             "projectPath",
             "folderName"
@@ -3458,7 +3460,7 @@
           "purpose": "A folder is a spec if it carries at least one of the chain's artifacts."
         },
         "malformedSpec": {
-          "line": 332,
+          "line": 333,
           "params": [
             "folderName",
             "status",
@@ -3467,7 +3469,7 @@
           "purpose": "A spec folder Frame cannot read as a spec, rendered as itself rather than"
         },
         "fileExists": {
-          "line": 352,
+          "line": 353,
           "params": [
             "projectPath",
             "slug",
@@ -3475,7 +3477,7 @@
           ]
         },
         "derivePhase": {
-          "line": 356,
+          "line": 357,
           "params": [
             "projectPath",
             "slug",
@@ -3485,7 +3487,7 @@
           ]
         },
         "recordedTaskCount": {
-          "line": 397,
+          "line": 398,
           "params": [
             "projectPath",
             "slug",
@@ -3493,14 +3495,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 403,
+          "line": 404,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "countPhaseWrite": {
-          "line": 424,
+          "line": 425,
           "params": [
             "projectPath",
             "slug",
@@ -3509,7 +3511,7 @@
           ]
         },
         "reconcilePhase": {
-          "line": 432,
+          "line": 433,
           "params": [
             "projectPath",
             "slug",
@@ -3517,14 +3519,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 479,
+          "line": 480,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 483,
+          "line": 484,
           "params": [
             "projectPath",
             "aiTool",
@@ -3532,7 +3534,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 487,
+          "line": 504,
           "params": [
             "projectPath",
             "aiTool",
@@ -3540,14 +3542,14 @@
           ]
         },
         "interpolate": {
-          "line": 493,
+          "line": 512,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 506,
+          "line": 525,
           "params": [
             "projectPath",
             "slug",
@@ -3557,7 +3559,7 @@
           ]
         },
         "stageCommandAsset": {
-          "line": 567,
+          "line": 590,
           "params": [
             "projectPath",
             "aiTool",
@@ -3566,7 +3568,7 @@
           "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
         },
         "stageCommandAssets": {
-          "line": 588,
+          "line": 611,
           "params": [
             "projectPath",
             "command",
@@ -3574,34 +3576,34 @@
           ]
         },
         "resolveVerificationCommand": {
-          "line": 652,
+          "line": 675,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 667,
+          "line": 690,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 685,
+          "line": 708,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 709,
+          "line": 732,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 725,
+          "line": 748,
           "params": [
             "projectPath",
             "slug"
@@ -3609,21 +3611,21 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "specNewPromptFilename": {
-          "line": 737,
+          "line": 760,
           "params": [
             "date"
           ],
           "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
         },
         "uniquePromptFilename": {
-          "line": 742,
+          "line": 765,
           "params": [
             "promptsDir",
             "filename"
           ]
         },
         "buildSpecCommandFile": {
-          "line": 751,
+          "line": 774,
           "params": [
             "projectPath",
             "slug",
@@ -3633,53 +3635,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 793,
+          "line": 816,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 819,
+          "line": 842,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 838,
+          "line": 861,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 843,
+          "line": 866,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 923,
+          "line": 946,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 930,
+          "line": 953,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 947,
+          "line": 970,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 986,
+          "line": 1009,
           "params": [
             "projectPath",
             "slug",
@@ -3688,7 +3690,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1015,
+          "line": 1038,
           "params": [
             "projectPath",
             "query"
@@ -3696,7 +3698,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1036,
+          "line": 1059,
           "params": [
             "projectPath",
             "slug",
@@ -3704,14 +3706,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1059,
+          "line": 1082,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1076,
+          "line": 1099,
           "params": [
             "projectPath",
             "oldSlug",
@@ -3720,48 +3722,48 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1188,
+          "line": 1211,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1279
+          "line": 1302
         },
         "markSpecNewLaunch": {
-          "line": 1327
+          "line": 1350
         },
         "consumeSpecNewLaunch": {
-          "line": 1331
+          "line": 1354
         },
         "resolveSpecOrigin": {
-          "line": 1344,
+          "line": 1367,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackNewlyAuthoredSpecs": {
-          "line": 1355,
+          "line": 1378,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1375,
+          "line": 1398,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1398,
+          "line": 1421,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1402,
+          "line": 1425,
           "params": [
             "ipcMain"
           ]
@@ -5923,17 +5925,17 @@
           "line": 25
         },
         "show": {
-          "line": 45,
+          "line": 50,
           "params": [
             "kind",
             "message"
           ]
         },
         "dismiss": {
-          "line": 81
+          "line": 86
         },
         "showMigration": {
-          "line": 102,
+          "line": 107,
           "params": [
             "migration"
           ],
@@ -5944,6 +5946,7 @@
         "listens": [
           "MAIN_PROCESS_ERROR",
           "STATE_FILE_RECOVERED",
+          "CODEX_HOOKS_UNTRUSTED",
           "TASKS_FILE_ERROR"
         ],
         "emits": []
@@ -11780,6 +11783,13 @@
     "feedback": {
       "FEEDBACK_CREATE_ISSUE": {
         "name": "feedback-create-issue",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "codex": {
+      "CODEX_HOOKS_UNTRUSTED": {
+        "name": "codex-hooks-untrusted",
         "direction": "",
         "description": ""
       }

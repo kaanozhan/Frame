@@ -212,10 +212,17 @@ function candidates(root, command) {
 const RUNTIME_PROMPTS_REL = '.frame/runtime/prompts';
 const RUNTIME_ASSETS_REL = '.frame/runtime/assets';
 
+// Same resolution order specManager uses, including the base fallback: a CLI
+// with no templates of its own runs the base flow with its dialect filled in.
+// Keeping the order identical is what lets the drift guard compare the two.
+const BASE_TEMPLATE_TOOL = 'claude-code';
+
 function templatePath(root, tool, command) {
   const override = path.join(root, '.frame', 'templates', 'commands', tool, `${command}.md`);
   if (fs.existsSync(override)) return override;
-  return path.join(root, '.frame', 'runtime', 'commands', tool, `${command}.md`);
+  const own = path.join(root, '.frame', 'runtime', 'commands', tool, `${command}.md`);
+  if (fs.existsSync(own)) return own;
+  return path.join(root, '.frame', 'runtime', 'commands', BASE_TEMPLATE_TOOL, `${command}.md`);
 }
 
 function interpolate(template, vars) {
@@ -244,6 +251,9 @@ function buildPrompt(root, slug, command, tool) {
   const status = readJson(path.join(root, '.frame', 'specs', slug, 'status.json'));
   if (!status) return null;
   return interpolate(template, {
+    // The CLI-specific phrases, exactly as specManager supplies them — the
+    // drift guard compares the two prompts byte for byte.
+    ...(vocab ? vocab.dialect(tool) : {}),
     project_path: root,
     slug,
     title: status.title,

@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T19:28:46.678Z",
+  "lastUpdated": "2026-08-31T19:57:49.021Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6817,21 +6817,21 @@
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T19:28:46.678Z",
-      "completedAt": "2026-08-31T19:28:46.678Z"
+      "updatedAt": "2026-08-31T19:57:49.021Z",
+      "completedAt": "2026-08-31T19:57:49.021Z"
     },
     {
       "id": "task-spec-codex-parity-T06",
       "title": "Adapt `src/templates/commands/codex/spec.plan.md` to Codex's tools and approval semantics, and report what fraction genuinely diverges from the Claude version to settle the template strategy.",
       "description": "",
       "source": "spec:codex-parity:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T19:44:46.687Z",
+      "completedAt": "2026-08-31T19:44:46.687Z"
     },
     {
       "id": "task-spec-codex-parity-T07",

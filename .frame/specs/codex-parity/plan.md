@@ -41,12 +41,22 @@
   hooks are installed but no heartbeat has appeared. Schema-independent, and
   it does not couple Frame to Codex internals.
 
-- **D5 · Command template strategy (asked, technical).** Adapt
-  **`spec.plan.md` first**, measure how much genuinely diverges from the
-  Claude version, and let that number decide between four hand-written
-  templates and one source with a tool vocabulary. The spec forbids "the
-  Claude file with tool names swapped"; whether a vocabulary layer can clear
-  that bar is a measurement, not a guess.
+- **D5 · Command template strategy — settled by T06 (asked, technical).**
+  The measurement came back decisive: across the four rendered prompts,
+  **1 120 lines, 2 differ — 0.18%.** Four hand-written templates would copy
+  1 118 identical lines to change two, and drift the first time the flow
+  changed. **One source it is**, with the CLI-specific phrases supplied by
+  `toolVocabulary.dialect()` through the `{token}` interpolation the
+  templates already use, and a per-tool file only where a flow genuinely
+  differs (none yet). The spec's "not the Claude file with tool names
+  swapped" bar is cleared by there being almost nothing to swap — the
+  templates were already written tool-neutrally, `spec.implement.md` even
+  naming the fallback for a CLI without a question tool.
+
+  Guarded rather than trusted: a test renders every command for both CLIs and
+  fails if more than three lines differ, and another asserts Claude Code's
+  rendered prompt is byte-identical to the committed templates — tokenising a
+  line must not reword the flow for the CLI that already had it.
 
 - **D6 · Test posture (asked, technical).** **Everything testable.** All four
   areas this plan touches (`scripts/`, `src/main/`, `src/shared/`,
@@ -130,14 +140,23 @@ contradicted this plan and are folded in throughout:
 - `scripts/spec-hint.js` — **Modified**. Same for its pre-edit path.
 - `scripts/spec-command-hint.js` — **Modified**. Resolve the template
   directory from the running CLI rather than assuming `claude-code`.
-- `src/templates/commands/codex/spec.plan.md` — **New**. The plan flow in
-  Codex's terms; the measurement subject for D5.
-- `src/templates/commands/codex/spec.new.md` — **New**.
-- `src/templates/commands/codex/spec.tasks.md` — **New**.
-- `src/templates/commands/codex/spec.implement.md` — **New**.
+- `src/templates/commands/claude-code/spec.plan.md` — **Modified**. One line
+  tokenised (`{ask_mechanism}`); the flow itself is unchanged, asserted
+  byte-for-byte.
+- `src/templates/commands/claude-code/spec.new.md` — **Modified**. Same, for
+  `{tool_id}` in the status.json example.
+- `src/main/specManager.js` — **Modified**. Dialect values into the
+  interpolation, and the base-template fallback for a CLI with no files of
+  its own.
+- `src/shared/ipcChannels.js` — **Modified**. `CODEX_HOOKS_UNTRUSTED`.
+- ~~`src/templates/commands/codex/*`~~ — **not created.** D5's measurement
+  (0.18% divergence) replaced four new files with one source plus a dialect;
+  a Codex file appears only where a flow genuinely differs, and none does yet.
 - `.frame/bin/codex` — **Deleted**, with its template.
 - `test/toolVocabulary.test.js` — **New**. Role mapping per CLI; Claude's
   entry equals today's hardcoded behaviour.
+- `test/codexHookTrust.test.js` — **New**. The behavioural untrusted-hook
+  detection, and that the notice reaches the renderer.
 - `test/codexHookInstall.test.js` — **New**. Merge-safety against an existing
   `hooks.json`, idempotent re-install, clean removal, and the trust probe.
 - `test/codexTemplates.test.js` — **New**. `getCommandPrompt` returns a prompt
@@ -162,7 +181,10 @@ contradicted this plan and are folded in throughout:
 - scripts/docs-hint.js
 - scripts/spec-hint.js
 - scripts/spec-command-hint.js
-- src/templates/commands/codex/**
+- src/main/specManager.js
+- src/shared/ipcChannels.js
+- src/templates/commands/claude-code/spec.plan.md
+- src/templates/commands/claude-code/spec.new.md
 - test/toolVocabulary.test.js
 - test/codexHookInstall.test.js
 - test/codexTemplates.test.js
@@ -171,6 +193,7 @@ contradicted this plan and are folded in throughout:
 - test/docs-hint.test.js
 - test/spec-hint.test.js
 - test/frameProjectInit.test.js
+- test/codexHookTrust.test.js
 
 ## Dependencies
 
@@ -197,10 +220,15 @@ into `.frame/bin/`.
    the `hooks.untrusted` record when hooks are installed but no heartbeat has
    appeared, and the health-notice surface. Behavioural rather than reading
    Codex state — see D4.
-6. **Adapt `spec.plan.md` for Codex and measure the divergence.** Report what
-   fraction is genuinely tool-specific; settle D5 on that number.
-7. **The remaining three templates**, by whichever strategy step 6 settled.
-   `test/codexTemplates.test.js` covers all four.
+6. ~~**Adapt `spec.plan.md` for Codex and measure the divergence.**~~ **Done.**
+   0.18% — D5 settled to one source plus a dialect. `getCommandPrompt` now
+   returns a prompt for all four commands under `codex`.
+7. **The remaining three commands** need no files of their own — step 6's
+   measurement made them fall out of the base plus the dialect.
+   `test/codexTemplates.test.js` covers all four for both CLIs; what is left
+   here is `spec.implement`'s autonomous mode, whose permission-flag language
+   is Claude Code's and needs Codex's equivalent or an explicit "not
+   available" path.
 8. **Retire the wrapper.** `aiToolManager` command → `'codex'`, delete
    `getCodexWrapperTemplate` and `.frame/bin/codex`, and let the `SessionStart`
    hook carry AGENTS.md and the REFERENCE sections.

@@ -151,6 +151,10 @@ const IPC = {
   // Health / crash recovery (main → renderer notices)
   MAIN_PROCESS_ERROR: 'main-process-error',
   STATE_FILE_RECOVERED: 'state-file-recovered',
+  // Codex will not run a hook until the user trusts it in its TUI, and an
+  // untrusted hook does nothing and says nothing. Frame detects that state
+  // behaviourally and says so, rather than letting it pass for working.
+  CODEX_HOOKS_UNTRUSTED: 'codex-hooks-untrusted',
   GET_LOG_INFO: 'get-log-info',
 
   // Settings UI (open settings modal from menu)

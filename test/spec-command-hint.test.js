@@ -223,15 +223,22 @@ test('a project with no .frame/ at all exits 0 with no output', () => {
 
 // ─── Codex ────────────────────────────────────────────────
 
-test('a Codex session resolves its own template directory', () => {
-  // The project stages claude-code templates only, so a Codex session must
-  // report the missing Codex template rather than silently serving Claude's.
+test('a Codex session falls back to the base flow with its own dialect', () => {
+  // T06 settled this: across 1 120 rendered lines the two CLIs differ on two,
+  // so the flows are one source and a CLI without templates of its own runs
+  // the base one. What must not happen is Codex being handed Claude Code's
+  // phrasing — the dialect is the seam, and it is asserted here.
   const root = mkProject();
-  const ctx = ctxOf(runHook({
+  const out = runHook({
     session_id: 'cx', cwd: root, prompt: '/spec.plan', turn_id: 't', permission_mode: 'default'
-  }));
-  assert.match(ctx, /commands\/codex\/spec\.plan\.md/);
-  assert.match(ctx, /no template is staged/);
+  });
+  assert.ok(out, 'a Codex session gets the flow rather than a dead end');
+  assert.match(ctxOf(out), /on spec `alpha`/);
+
+  const staged = fs.readFileSync(
+    path.join(root, '.frame', 'runtime', 'prompts', 'alpha__spec.plan.md'), 'utf8');
+  assert.ok(!staged.includes('AskUserQuestion'),
+    'Codex must not be sent after a structured-question tool it does not have');
 });
 
 test('an unmarked session still resolves claude-code', () => {

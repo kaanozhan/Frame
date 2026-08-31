@@ -174,6 +174,7 @@ function writeStatus(projectPath, slug, status) {
 // Same bundled-scripts location contract as structureBootstrap.
 
 const specIndexLib = require(path.join(__dirname, '..', '..', 'scripts', 'spec-index.js'));
+const vocabulary = require('../../scripts/toolVocabulary');
 
 /** mtime of the derived index, or 0 — used to tell a rebuild from a no-op. */
 function indexStamp(projectPath) {
@@ -484,10 +485,28 @@ function getOverrideTemplatePath(projectPath, aiTool, command) {
   return path.join(projectPath, FRAME_DIR, 'templates', 'commands', aiTool, `${command}.md`);
 }
 
+/**
+ * The command flows are one source, not one per CLI.
+ *
+ * T06 measured the divergence: across 1 062 lines of template, about six are
+ * genuinely CLI-specific, and those are filled by `toolVocabulary.dialect()`
+ * through the same `{token}` interpolation as slug and title. A second copy
+ * would duplicate 1 056 identical lines and drift the first time the flow
+ * changed — which is what the spec's "not the Claude file with tool names
+ * swapped" constraint is really guarding against.
+ *
+ * So a tool gets a file of its own only where the flow genuinely differs;
+ * with none, it falls back to the base. `claude-code` is the base of record
+ * because that is where these templates were written and are maintained.
+ */
+const BASE_TEMPLATE_TOOL = 'claude-code';
+
 function loadCommandTemplate(projectPath, aiTool, command) {
   const override = readFileSafe(getOverrideTemplatePath(projectPath, aiTool, command));
   if (override) return override;
-  return readFileSafe(getDefaultTemplatePath(aiTool, command));
+  const own = readFileSafe(getDefaultTemplatePath(aiTool, command));
+  if (own) return own;
+  return readFileSafe(getDefaultTemplatePath(BASE_TEMPLATE_TOOL, command));
 }
 
 function interpolate(template, vars) {
@@ -516,6 +535,10 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
   const template = loadCommandTemplate(projectPath, tool, command);
   if (!template) return { error: `no ${tool} template for ${command}` };
   const vars = {
+    // Phrases a template cannot state tool-neutrally — one CLI's structured
+    // question tool is another's numbered list. Spread first so a real
+    // variable below always wins.
+    ...vocabulary.dialect(tool),
     project_path: projectPath,
     // The user's free-form text, verbatim. Empty for every command whose
     // template carries no {description} token.

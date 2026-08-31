@@ -203,6 +203,40 @@ function inlineCap(cli) {
   return INLINE_CAP[cli] != null ? INLINE_CAP[cli] : INLINE_CAP[CLAUDE];
 }
 
+/**
+ * The handful of phrases a command template cannot state tool-neutrally.
+ *
+ * Measured in T06: across all four templates — 1 062 lines — about six lines
+ * are genuinely CLI-specific. Hand-writing a second set would copy 1 056
+ * identical lines to change six, and the two would drift the first time the
+ * flow changed. So the templates stay one source and these values fill the
+ * gaps, delivered through the same `{token}` interpolation the templates
+ * already use for slug and title.
+ *
+ * `ask_mechanism` is the only substantive one. Claude Code has a structured
+ * question tool; the templates' own fallback for a CLI without one is to
+ * print a numbered list and wait, which is what Codex gets. Wording is kept
+ * close so a diff between the two rendered prompts stays small and readable.
+ */
+const DIALECT = {
+  // Claude Code's phrasing is the text that shipped, character for character:
+  // tokenising a line must not reword the flow for the CLI that already had
+  // it. Verified by rendering the prompt before and after and diffing.
+  [CLAUDE]: {
+    tool_id: CLAUDE,
+    ask_mechanism: 'the `AskUserQuestion` tool'
+  },
+  [CODEX]: {
+    tool_id: CODEX,
+    ask_mechanism: 'a numbered list in your reply, then **waiting** for the answer'
+  }
+};
+
+/** Phrase values for one CLI, falling back to Claude Code's. */
+function dialect(cli) {
+  return { ...DIALECT[CLAUDE], ...(DIALECT[cli] || {}) };
+}
+
 module.exports = {
   CLAUDE,
   CODEX,
@@ -216,5 +250,6 @@ module.exports = {
   shellCommand,
   matcherFor,
   inlineCap,
-  patchPaths
+  patchPaths,
+  dialect
 };

@@ -36,6 +36,7 @@ Module._load = function (request, ...rest) {
 };
 
 const frameProject = require('../src/main/frameProject');
+const { IPC } = require('../src/shared/ipcChannels');
 const activity = require('../scripts/activity-log');
 
 const PROJECT = '/tmp/frame-codex-trust-project';
@@ -144,4 +145,51 @@ test('a torn line in the log is skipped, not treated as evidence', () => {
   fs.writeFileSync(file, '{"host":"codex-hook"  <-- torn\n');
   assert.equal(frameProject.codexHookTrustState(PROJECT, { home }).untrusted, true);
   assert.ok(root);
+});
+
+// ─── the notice reaches the user ──────────────────────────
+
+test('project init sends the notice when hooks are installed but never run', async () => {
+  // The detection only matters if it surfaces. Codex declines an untrusted
+  // hook in silence, so without this the user sees a Frame that looks
+  // configured and delivers nothing.
+  const sent = [];
+  const win = { isDestroyed: () => false, webContents: { send: (ch, p) => sent.push([ch, p]) } };
+  frameProject.init(win);
+
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-notice-home-'));
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-notice-proj-'));
+  withActivity([]);
+  process.env.CODEX_HOME = home;
+  try {
+    await frameProject.runProjectInit(project, 'demo');
+  } finally {
+    delete process.env.CODEX_HOME;
+    frameProject.init(null);
+  }
+
+  const notice = sent.find(([ch]) => ch === IPC.CODEX_HOOKS_UNTRUSTED);
+  assert.ok(notice, 'the untrusted state must reach the renderer');
+});
+
+test('no notice when Codex is not the active tool', async () => {
+  const sent = [];
+  const win = { isDestroyed: () => false, webContents: { send: (ch, p) => sent.push([ch, p]) } };
+  frameProject.init(win);
+
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-notice2-home-'));
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-notice2-proj-'));
+  withActivity([]);
+  process.env.CODEX_HOME = home;
+  ACTIVE.id = 'claude';
+  try {
+    await frameProject.runProjectInit(project, 'demo');
+  } finally {
+    ACTIVE.id = 'codex';
+    delete process.env.CODEX_HOME;
+    frameProject.init(null);
+  }
+
+  assert.ok(!sent.some(([ch]) => ch === IPC.CODEX_HOOKS_UNTRUSTED),
+    'a Claude Code project must not be told about Codex hooks');
 });
