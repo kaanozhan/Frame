@@ -271,9 +271,6 @@ async function runProjectInit(projectPath, projectName, options = {}) {
   const binDirPath = path.join(frameDirPath, FRAME_BIN_DIR);
   await fsp.mkdir(binDirPath, { recursive: true });
 
-  // Create Codex CLI wrapper script
-  ensureCodexWrapper(projectPath);
-
   // Bootstrap STRUCTURE.json auto-fill: ship parser scripts to .frame/bin/,
   // install pre-commit hook (with safe detection for husky/lefthook/custom),
   // and run a one-time full scan if STRUCTURE.json was just created.
@@ -312,6 +309,36 @@ async function runProjectInit(projectPath, projectName, options = {}) {
     console.warn('[frame] spec-hint hook install failed (non-fatal):', err.message);
   }
 
+  // The same four deliveries for a Codex session. Returns without writing
+  // unless codex is the active tool, so both calls can stand side by side.
+  // Non-fatal like its sibling: a project must still initialize when the
+  // user's CODEX_HOME is unreadable.
+  let codexHintSummary = null;
+  try {
+    codexHintSummary = installCodexHintHook(projectPath);
+    if (codexHintSummary.manual) {
+      console.warn('[frame] codex hook needs manual install:', codexHintSummary.reason);
+    }
+  } catch (err) {
+    console.warn('[frame] codex hook install failed (non-fatal):', err.message);
+  }
+
+  // Say so when they are installed and have never run. Codex declines an
+  // untrusted hook in silence — no error, no prompt, nothing written — so
+  // without this the user sees a Frame that looks configured and delivers
+  // nothing. A fresh install genuinely has not run yet, and that is the
+  // moment the user can act on, so the notice belongs here rather than being
+  // held back to avoid looking noisy.
+  try {
+    const trust = codexHookTrustState(projectPath);
+    if (trust.untrusted && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC.CODEX_HOOKS_UNTRUSTED, {});
+      activityLog.record('hooks.untrusted', { tool: 'codex' });
+    }
+  } catch (err) {
+    console.warn('[frame] codex hook trust check failed (non-fatal):', err.message);
+  }
+
   // Apply the sharing mode's side effects: the managed .frame/.gitignore
   // block, and (mode `local`) the anchored exclude entries. Non-fatal — a
   // project without git still initializes fine.
@@ -347,28 +374,6 @@ async function runProjectInit(projectPath, projectName, options = {}) {
  * a needless rewrite is a file-watcher event in someone else's editor.
  */
 /**
- * The Codex CLI wrapper. Written at init and, since it is the kind of file a
- * project upgraded from an older Frame simply never received, re-ensured on
- * every open. Only ever created when absent — a project that edited its own
- * wrapper keeps it.
- *
- * Deliberately not in `structureBootstrap.PARSER_FILES`: that module sits in
- * another spec's live footprint, and this file already owns the wrapper.
- */
-function ensureCodexWrapper(projectPath) {
-  const wrapperPath = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'codex');
-  if (fs.existsSync(wrapperPath)) return false;
-  try {
-    fs.mkdirSync(path.dirname(wrapperPath), { recursive: true });
-    fs.writeFileSync(wrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
-    return true;
-  } catch (err) {
-    console.warn('[frame] could not write .frame/bin/codex (non-fatal):', err.message);
-    return false;
-  }
-}
-
-/**
  * Re-ensure on open what a fresh init creates.
  *
  * `ensureSpecDrivenArtifacts` has always known how to produce
@@ -386,7 +391,6 @@ function ensureCodexWrapper(projectPath) {
  */
 function ensureProjectArtifacts(projectPath) {
   if (!projectPath || !isFrameProject(projectPath)) return false;
-  ensureCodexWrapper(projectPath);
   const config = getFrameConfig(projectPath) || {};
   if (config.features && config.features.specDriven === true) {
     const referencePath = path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md');
@@ -560,6 +564,188 @@ function installSpecHintHook(projectPath, { file = 'settings.json' } = {}) {
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, indent) + '\n');
   }
   return { installed: true, added, upgraded, file };
+}
+
+/**
+ * Where Codex keeps its configuration. `CODEX_HOME` wins so a test — or a
+ * user running more than one Codex profile — can point this somewhere else
+ * without touching the real one.
+ */
+function codexHome() {
+  return process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
+}
+
+/**
+ * Register Frame's hooks for Codex in `CODEX_HOME/hooks.json`.
+ *
+ * Same shape as `installSpecHintHook`, three differences forced by what T01
+ * measured. The file is **global**, not per project — Codex loads hooks only
+ * from there — so this writes a file Frame does not own, merging rather than
+ * replacing and touching nothing it did not add. That is a departure from
+ * `non-invasive-overlay`'s footprint rule, taken deliberately (plan D2) and
+ * bounded two ways: the guard in each command means a non-Frame project never
+ * starts node, and `removeCodexHintHook` takes every entry back out.
+ *
+ * The hooks do not run until the user trusts them in Codex's TUI, and Frame
+ * neither can nor should forge that — see the heartbeat detection in T05.
+ */
+function installCodexHintHook(projectPath, { enabled = true, home = null } = {}) {
+  const aiToolManager = require('./aiToolManager');
+  const active = aiToolManager.getActiveTool();
+  if (!active || active.id !== 'codex') {
+    return { installed: false, reason: `active tool is ${active ? active.id : 'none'} — advisory layer only` };
+  }
+  if (!enabled) return { installed: false, reason: 'codex hooks disabled by setting' };
+
+  const dir = home || codexHome();
+  const hooksPath = path.join(dir, 'hooks.json');
+
+  let config = {};
+  let indent = 2;
+  if (fs.existsSync(hooksPath)) {
+    const raw = fs.readFileSync(hooksPath, 'utf8');
+    try {
+      config = JSON.parse(raw);
+    } catch (err) {
+      return {
+        installed: false,
+        manual: true,
+        reason: `${hooksPath} is not valid JSON (${err.message}); add Frame's Codex hooks by hand`
+      };
+    }
+    indent = detectJsonIndent(raw);
+  }
+
+  // A hook the user wired themselves to the same script is the layer this
+  // install would provide; adding ours beside it would run each hint twice.
+  const ours = new Set(codexHookCommands());
+  const existing = hookCommandsIn(config)
+    .find((command) => /\b(spec-hint|module-hint|docs-hint|spec-command-hint)\.js\b/.test(command) && !ours.has(command));
+  if (existing) {
+    return { installed: false, existing: true, reason: `a hook already runs a Frame hint script (${existing})` };
+  }
+
+  config.hooks = config.hooks || {};
+  let added = 0;
+  for (const eventName of Object.keys(templates.CODEX_HINT_HOOKS)) {
+    const list = Array.isArray(config.hooks[eventName]) ? config.hooks[eventName] : [];
+    for (const entry of templates.CODEX_HINT_HOOKS[eventName]) {
+      const sig = JSON.stringify(entry);
+      if (!list.some((x) => JSON.stringify(x) === sig)) {
+        list.push(entry);
+        added++;
+      }
+    }
+    config.hooks[eventName] = list;
+  }
+
+  if (added > 0) {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(hooksPath, JSON.stringify(config, null, indent) + '\n');
+  }
+  return { installed: true, added, path: hooksPath };
+}
+
+/**
+ * Take Frame's Codex entries back out. Exact-match on the command string, so
+ * a hook the user wrote — even one calling the same script differently — is
+ * not ours to remove. Empty event arrays and an empty `hooks` object are
+ * cleaned up; every other key in the user's file survives untouched.
+ */
+function removeCodexHintHook({ home = null } = {}) {
+  const hooksPath = path.join(home || codexHome(), 'hooks.json');
+  if (!fs.existsSync(hooksPath)) return { removed: 0 };
+
+  const raw = fs.readFileSync(hooksPath, 'utf8');
+  const indent = detectJsonIndent(raw);
+  let config;
+  try {
+    config = JSON.parse(raw);
+  } catch {
+    return { removed: 0, manual: true, reason: `${hooksPath} is not valid JSON` };
+  }
+  if (!config.hooks || typeof config.hooks !== 'object') return { removed: 0 };
+
+  const ours = new Set(codexHookCommands());
+  let removed = 0;
+  for (const eventName of Object.keys(config.hooks)) {
+    const list = config.hooks[eventName];
+    if (!Array.isArray(list)) continue;
+    config.hooks[eventName] = list.filter((entry) => {
+      const isOurs = entry && Array.isArray(entry.hooks) && entry.hooks.length > 0
+        && entry.hooks.every((h) => h && ours.has(h.command));
+      if (isOurs) removed++;
+      return !isOurs;
+    });
+    if (config.hooks[eventName].length === 0) delete config.hooks[eventName];
+  }
+  if (Object.keys(config.hooks).length === 0) delete config.hooks;
+
+  if (removed > 0) fs.writeFileSync(hooksPath, JSON.stringify(config, null, indent) + '\n');
+  return { removed, path: hooksPath };
+}
+
+/**
+ * Are Frame's Codex hooks installed, and have they ever actually run?
+ *
+ * Codex will not execute a hook until the user trusts it in its TUI, and an
+ * untrusted hook does nothing and says nothing — no error, no prompt, no file
+ * written. A Frame update that changes a hint script changes its hash and
+ * un-trusts them again, just as quietly. T01 looked for a readable trust
+ * flag and found none: nothing in `config.toml`, no `hooks.state`, no hook or
+ * trust table in Codex's `state_5.sqlite`.
+ *
+ * So the state is read behaviourally instead. Every hint script records what
+ * it did — an injection or the reason it stayed quiet — under a host of
+ * `codex-hook`. Hooks installed with not one such record means they have
+ * never run. This couples Frame to its own log rather than to Codex's
+ * internals, which is the point.
+ *
+ * `sinceMs` guards the other direction: a fresh install has not run yet
+ * either, and calling that "untrusted" the moment it lands would be noise.
+ */
+function codexHookTrustState(projectPath, { home = null, sinceMs = 0 } = {}) {
+  const hooksPath = path.join(home || codexHome(), 'hooks.json');
+  let installed = false;
+  try {
+    const config = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
+    const ours = new Set(codexHookCommands());
+    installed = hookCommandsIn(config).some((command) => ours.has(command));
+  } catch {
+    return { installed: false, seen: false, untrusted: false };
+  }
+  if (!installed) return { installed: false, seen: false, untrusted: false };
+
+  let seen = false;
+  try {
+    const activity = require('../../scripts/activity-log');
+    const file = activity.filePath(activity.projectKey(projectPath));
+    const text = fs.readFileSync(file, 'utf8');
+    for (const line of text.split('\n')) {
+      if (!line.includes('codex-hook')) continue;
+      try {
+        const rec = JSON.parse(line);
+        if (rec.host !== 'codex-hook') continue;
+        if (sinceMs && Date.parse(rec.t) < sinceMs) continue;
+        seen = true;
+        break;
+      } catch { /* a torn line is not evidence either way */ }
+    }
+  } catch {
+    // No log yet is not proof of anything — say installed, not untrusted.
+    return { installed: true, seen: false, untrusted: false };
+  }
+
+  return { installed: true, seen, untrusted: !seen };
+}
+
+/** Every command string Frame's Codex hook entries carry. */
+function codexHookCommands() {
+  const out = [];
+  for (const list of Object.values(templates.CODEX_HINT_HOOKS)) {
+    for (const entry of list) for (const h of entry.hooks) out.push(h.command);
+  }
+  return out;
 }
 
 /**
@@ -1433,6 +1619,10 @@ module.exports = {
   runProjectInit,
   syncClaudeRule,
   installSpecHintHook,
+  installCodexHintHook,
+  removeCodexHintHook,
+  codexHookTrustState,
+  codexHome,
   removeSpecHintHook,
   removeFrame,
   isSpecDrivenEnabled,
@@ -1441,7 +1631,6 @@ module.exports = {
   setSpecDrivenEnabled,
   upgradeSpecDocs,
   ensureProjectArtifacts,
-  ensureCodexWrapper,
   appendSpecSection,
   docsHealthFor,
   setupIPC

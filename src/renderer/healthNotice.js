@@ -33,6 +33,11 @@ function init() {
     show('warn', `${file} was corrupt and has been restored from its backup.`);
   });
 
+  ipcRenderer.on(IPC.CODEX_HOOKS_UNTRUSTED, () => {
+    show('warn', "Frame's Codex hooks are installed but have never run — open Codex and trust them, "
+      + 'or its sessions get none of this project\u2019s context.');
+  });
+
   ipcRenderer.on(IPC.TASKS_FILE_ERROR, (event, payload) => {
     if (payload && payload.recovered) {
       show('warn', 'tasks.json was corrupt and has been restored from its backup.');

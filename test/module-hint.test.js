@@ -149,3 +149,22 @@ test('a payload with no tool_input exits 0 with no output', () => {
   const root = mkProject();
   assert.equal(runHook({ session_id: 'x', cwd: root, tool_name: 'Bash' }), null);
 });
+
+// ─── Codex ────────────────────────────────────────────────
+
+test('a Codex shell search is answered — its shell tool is called Bash too', () => {
+  // T01: Codex sends tool_name "Bash" with tool_input.command, exactly as
+  // Claude Code does, so this path is shared rather than ported.
+  const root = mkProject();
+  const out = runHook({
+    session_id: 'cx', cwd: root, tool_name: 'Bash', turn_id: 't', permission_mode: 'default',
+    tool_input: { command: 'grep -rn "github" src/' }
+  });
+  assert.match(out.hookSpecificOutput.additionalContext, /githubManager/);
+});
+
+test('a Codex apply_patch is an edit, never a search', () => {
+  const root = mkProject();
+  const command = ['*** Begin Patch', '*** Add File: github.js', '+x', '*** End Patch'].join('\n');
+  assert.equal(runHook({ session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command } }), null);
+});

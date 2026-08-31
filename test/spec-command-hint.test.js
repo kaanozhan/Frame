@@ -49,8 +49,8 @@ const specManager = require('../src/main/specManager');
 const HOOK = path.join(__dirname, '..', 'scripts', 'spec-command-hint.js');
 const REPO = path.join(__dirname, '..');
 
-function runHook(input, { raw = null } = {}) {
-  const stdout = execFileSync('node', [HOOK, 'prompt'], {
+function runHook(input, { raw = null, cli = null } = {}) {
+  const stdout = execFileSync('node', cli ? [HOOK, 'prompt', cli] : [HOOK, 'prompt'], {
     input: raw !== null ? raw : JSON.stringify(input),
     encoding: 'utf8'
   }); // execFileSync throws on non-zero exit — reaching here asserts exit 0
@@ -189,14 +189,23 @@ test('the staged prompt is byte-identical to the one the button builds', () => {
     fs.writeFileSync(path.join(dir, 'status.json'), JSON.stringify({ slug, title: `Title of ${slug}`, phase }));
   }
 
-  for (const [slug, command] of cases) {
-    const expected = specManager.getCommandPrompt(root, slug, command, 'claude-code');
-    assert.ok(!expected.error, `${command}: specManager said ${expected.error}`);
+  // Both CLIs, because the two paths now differ by a dialect and each of them
+  // has already drifted once in this spec: specManager gained the dialect and
+  // the hook did not, then specManager gained the one-pass fill of tokens
+  // inside a dialect value and the hook did not. A guard that only watched
+  // Claude Code would have caught neither on the Codex side.
+  for (const cli of ['claude-code', 'codex']) {
+    for (const [slug, command] of cases) {
+      const expected = specManager.getCommandPrompt(root, slug, command, cli);
+      assert.ok(!expected.error, `${cli}/${command}: specManager said ${expected.error}`);
 
-    runHook({ session_id: 'drift', cwd: root, prompt: `${command} ${slug}` });
-    const file = path.join(root, '.frame', 'runtime', 'prompts', `${slug}__${command}.md`);
-    assert.ok(fs.existsSync(file), `${command}: the hook staged nothing`);
-    assert.equal(fs.readFileSync(file, 'utf8'), expected.prompt, `${command}: drifted from specManager`);
+      const file = path.join(root, '.frame', 'runtime', 'prompts', `${slug}__${command}.md`);
+      fs.rmSync(file, { force: true });
+      runHook({ session_id: `drift-${cli}`, cwd: root, prompt: `${command} ${slug}` }, { cli });
+      assert.ok(fs.existsSync(file), `${cli}/${command}: the hook staged nothing`);
+      assert.equal(fs.readFileSync(file, 'utf8'), expected.prompt,
+        `${cli}/${command}: the hook drifted from specManager`);
+    }
   }
 });
 
@@ -219,4 +228,30 @@ test('unparseable stdin exits 0 with no output', () => {
 test('a project with no .frame/ at all exits 0 with no output', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-bare-'));
   assert.equal(runHook({ session_id: 'a', cwd: root, prompt: 'why is this failing' }), null);
+});
+
+// ─── Codex ────────────────────────────────────────────────
+
+test('a Codex session falls back to the base flow with its own dialect', () => {
+  // T06 settled this: across 1 120 rendered lines the two CLIs differ on two,
+  // so the flows are one source and a CLI without templates of its own runs
+  // the base one. What must not happen is Codex being handed Claude Code's
+  // phrasing — the dialect is the seam, and it is asserted here.
+  const root = mkProject();
+  const out = runHook({
+    session_id: 'cx', cwd: root, prompt: '/spec.plan', turn_id: 't', permission_mode: 'default'
+  });
+  assert.ok(out, 'a Codex session gets the flow rather than a dead end');
+  assert.match(ctxOf(out), /on spec `alpha`/);
+
+  const staged = fs.readFileSync(
+    path.join(root, '.frame', 'runtime', 'prompts', 'alpha__spec.plan.md'), 'utf8');
+  assert.ok(!staged.includes('AskUserQuestion'),
+    'Codex must not be sent after a structured-question tool it does not have');
+});
+
+test('an unmarked session still resolves claude-code', () => {
+  const root = mkProject();
+  const ctx = ctxOf(runHook({ session_id: 'cc', cwd: root, prompt: '/spec.plan' }));
+  assert.match(ctx, /on spec `alpha`/);
 });

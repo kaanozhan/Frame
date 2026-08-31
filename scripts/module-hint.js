@@ -132,13 +132,40 @@ try {
   /* older .frame/bin generation — no record, same behavior as before */
 }
 
+// Which CLI calls a tool what. Guarded for the same reason activity-log is:
+// a `.frame/bin/` generation that predates it must degrade to the tool names
+// this script used to hardcode, not to an exception.
+let vocab = null;
+try {
+  vocab = require('./toolVocabulary');
+} catch {
+  /* older generation — the inline fallbacks below are the old behaviour */
+}
+
+/**
+ * Which host this record came from. The activity registry keeps one value per
+ * CLI so "Codex hooks are installed but nothing has ever run" is answerable
+ * from the log alone — which is how Frame detects an untrusted Codex hook,
+ * since Codex writes nothing to disk when it declines to run one.
+ */
+let hookCli = null;
+
+/** Called once, from the entry point, with the parsed payload. */
+function setHookCli(payload) {
+  hookCli = (vocab && vocab.cliOf(payload, process.argv[3])) || 'claude-code';
+}
+
+function hookHost() {
+  return hookCli === 'codex' ? 'codex-hook' : 'claude-hook';
+}
+
 function note(root, ev, fields) {
   if (!activity || !root) return;
   try {
     activity.appendSync(activity.projectKey(root), {
       ev,
       kind: ev === 'hint.injected' ? 'action' : 'suppression',
-      host: 'claude-hook',
+      host: hookHost(),
       mode: 'search',
       ...fields
     });
@@ -221,10 +248,12 @@ function candidates(raw) {
 }
 
 function keywordsFrom(toolName, input) {
-  if (toolName === 'Grep' || toolName === 'Glob') {
-    return candidates(input.pattern || input.glob || input.path || '');
+  const role = vocab ? vocab.roleOf(toolName) : (toolName === 'Grep' || toolName === 'Glob' ? 'search' : (toolName === 'Bash' ? 'shell' : null));
+  if (role === 'search') {
+    const pattern = vocab ? vocab.searchPattern(toolName, input) : (input.pattern || input.glob);
+    return candidates(pattern || input.path || '');
   }
-  if (toolName === 'Bash') {
+  if (role === 'shell') {
     const cmd = input.command || '';
     if (!SEARCH_CMD.test(cmd)) return null; // not a search — the fast bail
     const segs = searchSegments(cmd);
@@ -341,6 +370,7 @@ function searchMode(input) {
 
 try {
   const input = JSON.parse(readStdin() || '{}');
+  setHookCli(input);
   if (process.argv[2] === 'search') searchMode(input);
 } catch { /* silence is the contract */ }
 

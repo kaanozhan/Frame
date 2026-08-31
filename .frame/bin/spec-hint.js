@@ -133,13 +133,40 @@ try {
   /* older .frame/bin generation — no record, same behavior as before */
 }
 
+// How each CLI names its edit tool and where it puts the path. Guarded like
+// activity-log: an older `.frame/bin/` generation degrades to reading
+// `file_path`, which is what this script did before.
+let vocab = null;
+try {
+  vocab = require('./toolVocabulary');
+} catch {
+  /* older generation — the inline fallback below is the old behaviour */
+}
+
+/**
+ * Which host this record came from. The activity registry keeps one value per
+ * CLI so "Codex hooks are installed but nothing has ever run" is answerable
+ * from the log alone — which is how Frame detects an untrusted Codex hook,
+ * since Codex writes nothing to disk when it declines to run one.
+ */
+let hookCli = null;
+
+/** Called once, from the entry point, with the parsed payload. */
+function setHookCli(payload) {
+  hookCli = (vocab && vocab.cliOf(payload, process.argv[3])) || 'claude-code';
+}
+
+function hookHost() {
+  return hookCli === 'codex' ? 'codex-hook' : 'claude-hook';
+}
+
 function note(root, ev, fields) {
   if (!activity || !root) return;
   try {
     activity.appendSync(activity.projectKey(root), {
       ev,
       kind: ev === 'hint.injected' ? 'action' : 'suppression',
-      host: 'claude-hook',
+      host: hookHost(),
       ...fields
     });
   } catch {
@@ -186,7 +213,18 @@ function preEdit(input) {
   const index = readJson(path.join(root, '.frame', 'index', 'spec-index.json'));
   if (!index || !index.files) return quiet(root, 'pre-edit', 'no-index'); // no index → exactly today's behavior
 
-  const rawPath = input.tool_input && (input.tool_input.file_path || input.tool_input.notebook_path);
+  // Claude Code passes a path; Codex passes a patch envelope naming one or
+  // more. Spec history is per file, so the first target is the one to speak
+  // about — a patch touching several is rare and the rest still get their
+  // history the next time one of them is edited alone.
+  // A direct path field still wins: this script read `file_path` without ever
+  // consulting `tool_name`, and a payload that carries the path but no tool
+  // name — an older host, a hand-rolled hook — must keep working exactly as
+  // it did. The vocabulary is the fallback that adds Codex, not a new
+  // precondition on Claude Code's path.
+  const ti = input.tool_input || {};
+  const rawPath = ti.file_path || ti.notebook_path
+    || (vocab ? vocab.editPaths(input.tool_name, ti)[0] : null);
   if (!rawPath) return quiet(root, 'pre-edit', 'no-path');
   let rel = path.isAbsolute(rawPath) ? path.relative(root, rawPath) : rawPath;
   rel = toPosix(rel).replace(/^\.\//, '');
@@ -284,6 +322,7 @@ function promptMode(input) {
 try {
   const mode = process.argv[2];
   const input = JSON.parse(readStdin() || '{}');
+  setHookCli(input);
   if (mode === 'pre-edit') preEdit(input);
   else if (mode === 'prompt') promptMode(input);
 } catch { /* silence is the contract */ }

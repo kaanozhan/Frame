@@ -155,7 +155,7 @@ like any other Stage 1 claim.
 
 ## Stage 2 — Decision gate (before any plan text)
 
-Resolve open forks **with the user** via the `AskUserQuestion` tool. Inputs:
+Resolve open forks **with the user** via {ask_mechanism}. Inputs:
 the spec's `## Open Questions` section (when present) plus forks surfaced by
 the evidence pass. Run two sequential stages:
 

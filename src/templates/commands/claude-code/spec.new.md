@@ -71,7 +71,7 @@ present, or Frame cannot read the folder as a spec:
   "phase": "specified",              // required — draft | specified | planned |
                                      //            tasks_generated | implementing | done
   "generated_task_ids": [],          // required — [] until /spec.tasks fills it
-  "ai_tool": "claude-code",          // optional
+  "ai_tool": "{tool_id}",          // optional
   "created_at": "ISO-8601",          // optional — now
   "updated_at": "ISO-8601",          // optional — now
   "last_phase_at": "ISO-8601"        // optional — now

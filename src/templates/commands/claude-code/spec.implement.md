@@ -65,10 +65,7 @@ things and then stop:
 
 1. Write `implement_mode: "autonomous"` into `.frame/specs/{slug}/status.json`
    (merge; leave every other key untouched).
-2. Hand off in one message: *"Autonomous needs a flagged launch. Click the
-   implement button on this spec's page in Frame and pick Autonomous, or run
-   `node .frame/bin/implement-launch.js {slug}` in a fresh terminal — either
-   one starts implementing with no further input."*
+2. Hand off in one message: *"Autonomous needs a flagged launch. {autonomous_handoff}"*
 
 No re-dispatch negotiation, no second picker, no settings-file writes.
 

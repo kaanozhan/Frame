@@ -104,13 +104,40 @@ try {
   /* older .frame/bin generation — no record, same behavior as before */
 }
 
+// Which CLI this session is, so the right command templates are resolved.
+// Guarded like activity-log; an older generation resolves claude-code, which
+// is the only tool Frame shipped templates for before.
+let vocab = null;
+try {
+  vocab = require('./toolVocabulary');
+} catch {
+  /* older generation — the inline fallback below is the old behaviour */
+}
+
+/**
+ * Which host this record came from. The activity registry keeps one value per
+ * CLI so "Codex hooks are installed but nothing has ever run" is answerable
+ * from the log alone — which is how Frame detects an untrusted Codex hook,
+ * since Codex writes nothing to disk when it declines to run one.
+ */
+let hookCli = null;
+
+/** Called once, from the entry point, with the parsed payload. */
+function setHookCli(payload) {
+  hookCli = (vocab && vocab.cliOf(payload, process.argv[3])) || 'claude-code';
+}
+
+function hookHost() {
+  return hookCli === 'codex' ? 'codex-hook' : 'claude-hook';
+}
+
 function note(root, ev, fields) {
   if (!activity || !root) return;
   try {
     activity.appendSync(activity.projectKey(root), {
       ev,
       kind: ev === 'hint.injected' ? 'action' : 'suppression',
-      host: 'claude-hook',
+      host: hookHost(),
       mode: 'spec-command',
       ...fields
     });
@@ -185,10 +212,17 @@ function candidates(root, command) {
 const RUNTIME_PROMPTS_REL = '.frame/runtime/prompts';
 const RUNTIME_ASSETS_REL = '.frame/runtime/assets';
 
+// Same resolution order specManager uses, including the base fallback: a CLI
+// with no templates of its own runs the base flow with its dialect filled in.
+// Keeping the order identical is what lets the drift guard compare the two.
+const BASE_TEMPLATE_TOOL = 'claude-code';
+
 function templatePath(root, tool, command) {
   const override = path.join(root, '.frame', 'templates', 'commands', tool, `${command}.md`);
   if (fs.existsSync(override)) return override;
-  return path.join(root, '.frame', 'runtime', 'commands', tool, `${command}.md`);
+  const own = path.join(root, '.frame', 'runtime', 'commands', tool, `${command}.md`);
+  if (fs.existsSync(own)) return own;
+  return path.join(root, '.frame', 'runtime', 'commands', BASE_TEMPLATE_TOOL, `${command}.md`);
 }
 
 function interpolate(template, vars) {
@@ -216,7 +250,19 @@ function buildPrompt(root, slug, command, tool) {
   if (!template) return null;
   const status = readJson(path.join(root, '.frame', 'specs', slug, 'status.json'));
   if (!status) return null;
+  // The CLI-specific phrases, exactly as specManager supplies them — including
+  // its one-pass fill of tokens *inside* a dialect value, since a phrase may
+  // name the spec it is about. The drift guard compares the two prompts byte
+  // for byte, so anything specManager does here has to happen here too.
+  const phrases = vocab ? vocab.dialect(tool) : {};
+  for (const key of Object.keys(phrases)) {
+    if (typeof phrases[key] === 'string') {
+      phrases[key] = interpolate(phrases[key], { slug, project_path: root });
+    }
+  }
+
   return interpolate(template, {
+    ...phrases,
     project_path: root,
     slug,
     title: status.title,
@@ -234,7 +280,9 @@ function promptMode(input) {
   const command = commandOf(input.prompt);
   if (!command) return; // not a spec command — silent and unrecorded
 
-  const tool = 'claude-code';
+  // Which CLI is asking decides which template directory holds its flow.
+  // Without the vocabulary this is the single tool Frame shipped for before.
+  const tool = vocab ? vocab.cliOf(input, process.argv[3]) : 'claude-code';
   const tpl = templatePath(root, tool, command);
   if (!fs.existsSync(tpl)) {
     // The protocol's own instruction for this case: say so, and stop.
@@ -299,6 +347,7 @@ function promptMode(input) {
 
 try {
   const input = JSON.parse(readStdin() || '{}');
+  setHookCli(input);
   if (process.argv[2] === 'prompt') promptMode(input);
 } catch { /* silence is the contract */ }
 

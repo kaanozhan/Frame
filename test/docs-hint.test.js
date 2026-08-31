@@ -236,3 +236,64 @@ test('a payload larger than the pipe buffer arrives whole', () => {
   const out = execFileSync('node', [HOOK, 'section', 'Activity Monitor'], { cwd: REPO, encoding: 'utf8' });
   assert.match(out, /\n$/, 'the tail survived the write');
 });
+
+// ─── Codex ────────────────────────────────────────────────
+
+test('a Codex apply_patch into a Frame meta file gets that file\'s rules', () => {
+  // Measured in T01: Codex's edit tool carries a patch envelope, not a path.
+  const root = mkProject();
+  const command = ['*** Begin Patch', '*** Update File: .frame/tasks.json', '+{}', '*** End Patch'].join('\n');
+  const ctx = ctxOf(runHook('pre-edit', {
+    session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  }));
+  assert.match(ctx, /The id\/title\/status shape/);
+});
+
+test('a Codex patch outside .frame/ is not a Frame meta write', () => {
+  const root = mkProject();
+  const command = ['*** Begin Patch', '*** Add File: src/tasks.json', '+{}', '*** End Patch'].join('\n');
+  assert.equal(runHook('pre-edit', {
+    session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  }), null);
+});
+
+test('a Codex patch touching several files finds the meta one among them', () => {
+  const root = mkProject();
+  const command = [
+    '*** Begin Patch',
+    '*** Update File: src/a.js',
+    '+x',
+    '*** Update File: .frame/PROJECT_NOTES.md',
+    '+y',
+    '*** End Patch'
+  ].join('\n');
+  const ctx = ctxOf(runHook('pre-edit', {
+    session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  }));
+  assert.match(ctx, /Append decisions as dated sections/);
+});
+
+test('Codex gets the whole section where Claude Code would be trimmed', () => {
+  // Claude Code inlines 2 000 characters; Codex showed no truncation at
+  // 20 000 (T01). A section too big for one is fine for the other, so the cap
+  // is per CLI rather than one shared number.
+  const bloated = REFERENCE.replace(
+    'Append decisions as dated sections.',
+    `Append decisions as dated sections.\n${'padding line to overflow the cap. '.repeat(120)}`
+  );
+  const root = mkProject(bloated);
+  const claude = ctxOf(runHook('pre-edit', {
+    session_id: 'cap', cwd: root, tool_name: 'Edit',
+    tool_input: { file_path: path.join(root, '.frame', 'PROJECT_NOTES.md') }
+  }));
+  assert.match(claude, /\[trimmed/, 'Claude Code trims it');
+
+  // A real Codex edit arrives as apply_patch — the tool name is what says
+  // which CLI this is, so a Claude tool name would (correctly) win.
+  const command = ['*** Begin Patch', '*** Update File: .frame/PROJECT_NOTES.md', '+x', '*** End Patch'].join('\n');
+  const codex = ctxOf(runHook('pre-edit', {
+    session_id: 'cap2', cwd: root, tool_name: 'apply_patch', tool_input: { command }
+  }));
+  assert.ok(!codex.includes('[trimmed'), 'Codex takes it whole');
+  assert.ok(codex.length > 2000, 'and it is bigger than Claude Code could inline');
+});
