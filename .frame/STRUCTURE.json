@@ -4605,6 +4605,7 @@
       "description": "AI Tool Selector Module",
       "exports": [
         "init",
+        "mountSelector",
         "getCurrentTool",
         "getAvailableTools",
         "getStartCommand",
@@ -4656,6 +4657,10 @@
             "feature"
           ],
           "purpose": "Check if current tool supports a feature"
+        },
+        "mountSelector": {
+          "line": 155,
+          "purpose": "Wire a freshly rendered `#ai-tool-selector`."
         }
       },
       "ipc": {
@@ -9882,7 +9887,8 @@
         "lucide",
         "htmlUtils",
         "laneStatus",
-        "notify"
+        "notify",
+        "aiToolSelector"
       ],
       "functions": {
         "lucideIcon": {
