@@ -1,7 +1,7 @@
 {
   "slug": "fix-report-staging-and-opening",
   "title": "Report staging and opening — one staged copy, opened in Frame",
-  "phase": "tasks_generated",
+  "phase": "implementing",
   "generated_task_ids": [
     "task-spec-fix-report-staging-and-opening-T01",
     "task-spec-fix-report-staging-and-opening-T02",
@@ -13,6 +13,7 @@
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-08-31T08:52:11Z",
-  "updated_at": "2026-08-31T09:39:03.868Z",
-  "last_phase_at": "2026-08-31T09:39:03Z"
+  "updated_at": "2026-08-31T12:39:47.898Z",
+  "last_phase_at": "2026-08-31T12:39:47.899Z",
+  "implement_mode": "autonomous"
 }

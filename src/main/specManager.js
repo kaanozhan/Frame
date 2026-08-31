@@ -558,8 +558,8 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
     // The user's free-form text, verbatim. Empty for every command whose
     // template carries no {description} token.
     description: description == null ? '' : String(description),
-    report_template_path: REPORT_TEMPLATE_REL,
-    report_generator_path: REPORT_GENERATOR_REL,
+    report_template_path: reportTemplateRel(tool),
+    report_generator_path: reportGeneratorRel(tool),
     // Full spec catalog only where it's consumed (spec.new's relatedness
     // evaluation and slug disambiguation) — other templates carry no
     // {spec_catalog} token.
@@ -589,8 +589,17 @@ const REPORT_TEMPLATE_FILE = 'plan-report-template.html';
 const REPORT_GENERATOR_FILE = 'build-implement-report.mjs';
 
 const assetRelPath = (file) => path.posix.join(RUNTIME_ASSETS_DIR.replace(/\\/g, '/'), file);
-const REPORT_TEMPLATE_REL = assetRelPath(REPORT_TEMPLATE_FILE);
-const REPORT_GENERATOR_REL = assetRelPath(REPORT_GENERATOR_FILE);
+
+// The report assets the agent reads live beside the command templates they
+// belong to, under .frame/runtime/commands/<tool>/ — the location
+// commandStaging writes and frameTemplates.js already documents. That path
+// carries a tool segment where assets/ did not, so these are functions of the
+// tool rather than module-level strings.
+const commandRelPath = (tool, file) => path.posix.join(
+  FRAME_DIR.replace(/\\/g, '/'), 'runtime', 'commands', tool, file
+);
+const reportTemplateRel = (tool) => commandRelPath(tool, REPORT_TEMPLATE_FILE);
+const reportGeneratorRel = (tool) => commandRelPath(tool, REPORT_GENERATOR_FILE);
 
 // Which packaged assets each command needs on disk. Driven by the command
 // rather than hardcoded: spec.plan's agent fills a template, spec.implement's

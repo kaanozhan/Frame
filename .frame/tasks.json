@@ -6905,13 +6905,13 @@
       "title": "Point `report_template_path` and `report_generator_path` at `.frame/runtime/commands/<tool>/`: make `REPORT_TEMPLATE_REL`/`REPORT_GENERATOR_REL` tool-scoped in `src/main/specManager.js`, replace `RUNTIME_ASSETS_REL` in `scripts/spec-command-hint.js`, and update the interpolation fixture in `test/implementLaunch.test.js`.",
       "description": "",
       "source": "spec:fix-report-staging-and-opening:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: fix-report-staging-and-opening",
       "createdAt": "2026-08-31T09:39:03.868Z",
-      "updatedAt": "2026-08-31T09:39:03.868Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T12:41:40.366Z",
+      "completedAt": "2026-08-31T12:41:40.366Z"
     },
     {
       "id": "task-spec-fix-report-staging-and-opening-T02",

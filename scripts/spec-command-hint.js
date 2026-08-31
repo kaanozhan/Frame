@@ -210,7 +210,7 @@ function candidates(root, command) {
 // ─── the prompt the button would have built ───────────────
 
 const RUNTIME_PROMPTS_REL = '.frame/runtime/prompts';
-const RUNTIME_ASSETS_REL = '.frame/runtime/assets';
+const RUNTIME_COMMANDS_REL = '.frame/runtime/commands';
 
 // Same resolution order specManager uses, including the base fallback: a CLI
 // with no templates of its own runs the base flow with its dialect filled in.
@@ -267,8 +267,8 @@ function buildPrompt(root, slug, command, tool) {
     slug,
     title: status.title,
     description: '',
-    report_template_path: `${RUNTIME_ASSETS_REL}/plan-report-template.html`,
-    report_generator_path: `${RUNTIME_ASSETS_REL}/build-implement-report.mjs`,
+    report_template_path: `${RUNTIME_COMMANDS_REL}/${tool}/plan-report-template.html`,
+    report_generator_path: `${RUNTIME_COMMANDS_REL}/${tool}/build-implement-report.mjs`,
     spec_catalog: command === 'spec.new' ? specCatalog(root) : ''
   });
 }
