@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T20:09:36.944Z",
+  "lastUpdated": "2026-08-31T20:21:17.604Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6851,13 +6851,13 @@
       "title": "Extend the `spec-command-hint` drift guard to Codex so the staged prompt stays byte-identical to `getCommandPrompt`'s on both tools, and verify a live Codex `spec.plan` run reaches the decision gate.",
       "description": "",
       "source": "spec:codex-parity:T08",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T20:21:17.604Z",
+      "completedAt": "2026-08-31T20:21:17.604Z"
     },
     {
       "id": "task-spec-codex-parity-T09",
