@@ -36,3 +36,14 @@ path. `.frame/runtime/assets/` deleted from this project (untracked — `.frame/
 _Captured: 2026-08-31 · 2 file changes_
 
 ---
+## T04 — Stop the browser open inside Frame
+
+Added a pure `shouldOpenInBrowser(env)` above `main()` in
+`src/templates/commands/claude-code/build-implement-report.mjs` — false when `FRAME_NODE` is set —
+and gated the `--open` path on it, so the flag stays harmless in a prompt that always passes it.
+`test/implementReport.test.js` pins both branches; the `--open` prose in `spec.implement.md` now
+describes the browser as the no-Frame-window fallback rather than the destination.
+
+_Captured: 2026-08-31 · 3 file changes_
+
+---

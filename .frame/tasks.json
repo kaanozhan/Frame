@@ -6944,13 +6944,13 @@
       "title": "Add a pure `shouldOpenInBrowser(env)` above `main()` in `src/templates/commands/claude-code/build-implement-report.mjs` so `--open` is honoured only when `FRAME_NODE` is unset, assert both branches in `test/implementReport.test.js`, and update the `--open` prose in `src/templates/commands/claude-code/spec.implement.md` to describe the browser as the no-Frame-window fallback.",
       "description": "",
       "source": "spec:fix-report-staging-and-opening:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: fix-report-staging-and-opening",
       "createdAt": "2026-08-31T09:39:03.868Z",
-      "updatedAt": "2026-08-31T09:39:03.868Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T12:47:03.670Z",
+      "completedAt": "2026-08-31T12:47:03.670Z"
     },
     {
       "id": "task-spec-fix-report-staging-and-opening-T05",

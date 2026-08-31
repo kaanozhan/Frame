@@ -531,6 +531,16 @@ export function parseArgs(argv) {
   return { dataPath: positional[0], outPath: positional[1], open };
 }
 
+// Whether `--open` should reach the browser at all. Frame injects FRAME_NODE
+// into every PTY it spawns, so its presence means a Frame window is hosting
+// this session — and Frame opens the report as a report tab itself, in the
+// user's theme. A browser window on top of that is the behaviour
+// spec-reports-one-shell-two-themes-in-app set out to remove. With no Frame
+// window the variable is unset and `--open` behaves exactly as it always has.
+export function shouldOpenInBrowser(env) {
+  return !(env && env.FRAME_NODE);
+}
+
 // The platform's "open this file in its default app" command. Pure so the
 // per-platform mapping is testable without spawning anything.
 export function openCommand(platform) {
@@ -632,8 +642,9 @@ function main(argv) {
   console.log(outPath);
 
   // Opening is the last thing and never gates success — the report is already
-  // written and its path already printed by the time we try.
-  if (open) openInBrowser(outPath);
+  // written and its path already printed by the time we try. Inside Frame it
+  // is skipped entirely: the app opens the report as a tab.
+  if (open && shouldOpenInBrowser(process.env)) openInBrowser(outPath);
   return 0;
 }
 
