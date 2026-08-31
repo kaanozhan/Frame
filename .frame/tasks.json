@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T18:33:56.865Z",
+  "lastUpdated": "2026-08-31T18:48:50.276Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6760,13 +6760,13 @@
       "title": "Measure Codex's hook environment against a scratch `CODEX_HOME`: `apply_patch`'s `tool_input` shape, the `additionalContext` inline ceiling, whether `if` gates without spawning node, and whether trust state is readable from disk; record the findings in the spec folder.",
       "description": "",
       "source": "spec:codex-parity:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: codex-parity",
       "createdAt": "2026-08-31T18:33:56.865Z",
-      "updatedAt": "2026-08-31T18:33:56.865Z",
-      "completedAt": null
+      "updatedAt": "2026-08-31T18:48:50.276Z",
+      "completedAt": "2026-08-31T18:48:50.276Z"
     },
     {
       "id": "task-spec-codex-parity-T02",
