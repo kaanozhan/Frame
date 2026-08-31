@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-29",
+  "lastUpdated": "2026-08-31",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -4041,14 +4041,14 @@
       "depends": [],
       "functions": {
         "normalizeTool": {
-          "line": 58,
+          "line": 63,
           "params": [
             "id"
           ],
           "purpose": "Collapse a tool id to the fixed dashboard enum. User-defined custom tool"
         },
         "validateEvent": {
-          "line": 73,
+          "line": 78,
           "params": [
             "name",
             "props"
@@ -4056,7 +4056,7 @@
           "purpose": "Validate an (event, props) pair against the registry."
         },
         "effectiveEnabled": {
-          "line": 97,
+          "line": 102,
           "params": [
             "{ value",
             "loadFailed }"
@@ -4064,7 +4064,7 @@
           "purpose": "Effective telemetry state from the persisted setting plus settings-load"
         },
         "createRateLimiter": {
-          "line": 123,
+          "line": 128,
           "params": [
             "options"
           ],
@@ -5245,6 +5245,115 @@
         "emits": [
           "READ_FILE",
           "WRITE_FILE"
+        ]
+      }
+    },
+    "renderer/feedbackPanel": {
+      "file": "src/renderer/feedbackPanel.js",
+      "description": "Feedback Panel",
+      "exports": [
+        "show",
+        "hide",
+        "isVisible"
+      ],
+      "depends": [
+        "os",
+        "electron",
+        "shared/ipcChannels",
+        "htmlUtils",
+        "notify",
+        "shared/feedbackReport",
+        "../package.json"
+      ],
+      "functions": {
+        "blankDrafts": {
+          "line": 64
+        },
+        "diagnostics": {
+          "line": 76,
+          "purpose": "What Frame will attach — read fresh each render so the panel never shows a"
+        },
+        "el": {
+          "line": 86
+        },
+        "kind": {
+          "line": 91
+        },
+        "draft": {
+          "line": 95
+        },
+        "renderTabs": {
+          "line": 101
+        },
+        "diagnosticsBlock": {
+          "line": 113
+        },
+        "actionBlock": {
+          "line": 129,
+          "purpose": "What the button does, said plainly. The tail is the promise about what"
+        },
+        "render": {
+          "line": 141
+        },
+        "showErrors": {
+          "line": 171,
+          "params": [
+            "errors"
+          ],
+          "purpose": "Put each message beside the field it belongs to, never in one summary line."
+        },
+        "bindForm": {
+          "line": 183,
+          "params": [
+            "body"
+          ]
+        },
+        "selectKind": {
+          "line": 194,
+          "params": [
+            "id"
+          ]
+        },
+        "submit": {
+          "line": 208,
+          "purpose": "Validate the active tab's draft, then hand it to that kind's channel."
+        },
+        "deliver": {
+          "line": 236,
+          "params": [
+            "channel",
+            "report"
+          ],
+          "purpose": "Hand a finished report to a channel."
+        },
+        "track": {
+          "line": 279,
+          "params": [
+            "channel"
+          ],
+          "purpose": "One event, on the channel that actually carried the report."
+        },
+        "clearDraft": {
+          "line": 293,
+          "purpose": "Clear the tab that just delivered, and only that tab."
+        },
+        "bind": {
+          "line": 300
+        },
+        "show": {
+          "line": 309
+        },
+        "hide": {
+          "line": 318
+        },
+        "isVisible": {
+          "line": 323
+        }
+      },
+      "ipc": {
+        "listens": [],
+        "emits": [
+          "TELEMETRY_TRACK"
         ]
       }
     },
@@ -6643,6 +6752,7 @@
         "pluginsPanel",
         "promptsPanel",
         "activityPanel",
+        "feedbackPanel",
         "structureMap",
         "specsDashboard",
         "tasksDashboard",
@@ -7343,25 +7453,25 @@
           "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 310
+          "line": 311
         },
         "saveCollapsedGroups": {
-          "line": 319,
+          "line": 320,
           "params": [
             "state"
           ]
         },
         "buildWorkspaceNav": {
-          "line": 327
+          "line": 328
         },
         "placeWorkspaceNav": {
-          "line": 382
+          "line": 383
         },
         "refreshWorkspaceNav": {
-          "line": 394
+          "line": 395
         },
         "updateWorkspaceNav": {
-          "line": 470,
+          "line": 471,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -10109,6 +10219,100 @@
         }
       }
     },
+    "shared/feedbackReport": {
+      "file": "src/shared/feedbackReport.js",
+      "description": "Feedback report — the one composer.",
+      "exports": [
+        "FEEDBACK_TYPES",
+        "FEEDBACK_RECIPIENTS",
+        "FEEDBACK_REPO",
+        "FEEDBACK_DISCUSSION_CATEGORY",
+        "URL_LIMITS",
+        "DIAGNOSTICS_HEADING",
+        "typeById",
+        "validate",
+        "diagnosticsLines",
+        "compose",
+        "mailtoUrl",
+        "issueUrl",
+        "discussionUrl",
+        "deliveryFor"
+      ],
+      "depends": [],
+      "functions": {
+        "typeById": {
+          "line": 159,
+          "params": [
+            "id"
+          ],
+          "purpose": "The record for a kind, or `null` when the id is not one of ours."
+        },
+        "normalizeText": {
+          "line": 167,
+          "params": [
+            "value"
+          ],
+          "purpose": "Draft text arrives from a `<textarea>`, which on Windows yields CRLF. GitHub"
+        },
+        "validate": {
+          "line": 181,
+          "params": [
+            "draft"
+          ],
+          "purpose": "Is this draft sendable?"
+        },
+        "diagnosticsLines": {
+          "line": 199,
+          "params": [
+            "diagnostics"
+          ],
+          "purpose": "The diagnostics, as the exact lines the user sees and the body carries."
+        },
+        "compose": {
+          "line": 221,
+          "params": [
+            "draft",
+            "diagnostics"
+          ],
+          "purpose": "The one body builder."
+        },
+        "mailtoUrl": {
+          "line": 247,
+          "params": [
+            "subject",
+            "body",
+            "recipients"
+          ],
+          "purpose": "A `mailto:` draft for the user's own mail client."
+        },
+        "issueUrl": {
+          "line": 265,
+          "params": [
+            "subject",
+            "body"
+          ],
+          "purpose": "GitHub's prefilled new-issue page."
+        },
+        "discussionUrl": {
+          "line": 280,
+          "params": [
+            "subject",
+            "body"
+          ],
+          "purpose": "GitHub's prefilled new-discussion page, under the Ideas category."
+        },
+        "deliveryFor": {
+          "line": 302,
+          "params": [
+            "channel",
+            "subject",
+            "body",
+            "recipients"
+          ],
+          "purpose": "How a channel should actually deliver this report."
+        }
+      }
+    },
     "shared/frameConstants": {
       "file": "src/shared/frameConstants.js",
       "description": "Frame Constants",
@@ -11512,6 +11716,13 @@
         "direction": "",
         "description": ""
       }
+    },
+    "feedback": {
+      "FEEDBACK_CREATE_ISSUE": {
+        "name": "feedback-create-issue",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -11641,6 +11852,18 @@
         "module": "shared/activityEvents",
         "file": "src/shared/activityEvents.js",
         "description": "Activity events — pure policy module."
+      }
+    ],
+    "feedback": [
+      {
+        "module": "renderer/feedbackPanel",
+        "file": "src/renderer/feedbackPanel.js",
+        "description": "Feedback Panel"
+      },
+      {
+        "module": "shared/feedbackReport",
+        "file": "src/shared/feedbackReport.js",
+        "description": "Feedback report — the one composer."
       }
     ],
     "file-tree": [
@@ -11887,6 +12110,11 @@
         "description": "Activity Panel"
       },
       {
+        "module": "renderer/feedbackPanel",
+        "file": "src/renderer/feedbackPanel.js",
+        "description": "Feedback Panel"
+      },
+      {
         "module": "renderer/pluginsPanel",
         "file": "src/renderer/pluginsPanel.js",
         "description": "Plugins Panel Module"
@@ -11948,6 +12176,11 @@
         "module": "renderer/reportSection",
         "file": "src/renderer/reportSection.js",
         "description": "Report Section Module"
+      },
+      {
+        "module": "shared/feedbackReport",
+        "file": "src/shared/feedbackReport.js",
+        "description": "Feedback report — the one composer."
       },
       {
         "module": "templates/commands/claude-code/build-implement-report",
