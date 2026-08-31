@@ -166,3 +166,31 @@ the branch per the user's standing preference; T11's text does not name it.
 _Captured: 2026-08-27 · 6 file change(s)_
 
 ---
+## T08 — REVERSED (2026-09-01)
+
+The tool select is back beside Start in the top bar. T08 removed it on the
+grounds that "a rarely-changed default is not worth the top-bar width", with
+Home's Agents widget carrying it instead. In use that traded a cheap glance for
+a navigation: Start launches whatever the default is, and confirming which tool
+that was meant leaving the terminal for Home. The width argument still holds —
+it is simply the smaller cost of the two.
+
+What T08 said about the mechanism was right and is what made the reversal
+cheap: `aiToolSelector` guards on a missing `#ai-tool-selector`, and the
+`.lane-bar-launcher .ai-tool-select` rule T08 knowingly left behind in
+`terminal.css` was still there, so restoring the markup restored the styling
+with no CSS work.
+
+Home keeps its copy — this is a second view of one value, not a move back. Both
+write through `SET_AI_TOOL` and both redraw from `AI_TOOL_CHANGED`, so neither
+can show something the other contradicts.
+
+One thing T08 did not have to handle: `terminalTabBar._render()` can run either
+side of `init()`'s await on `GET_AI_TOOL_CONFIG`, so a select that exists only
+after `init()` finished would never be populated. `aiToolSelector` now exports
+`mountSelector()`, which `_render()` calls after appending — whichever of the
+two lands second, the dropdown ends up correct.
+
+_Reversed by: the user, 2026-09-01 · 2 file change(s)_
+
+---

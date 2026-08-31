@@ -139,11 +139,22 @@ class TerminalTabBar {
     this.element.innerHTML = `
       <div class="lane-bar-left"></div>
       <div class="terminal-tab-actions">
-        <!-- Default Agent launcher — a bare Start. The tool choice moved to
-             Home's Agents widget, where there is room for it; aiToolSelector
-             guards on a missing #ai-tool-selector, so nothing here breaks by
-             its absence. #sidebar-agent-launch keeps its id and its handler. -->
+        <!-- Default Agent launcher — the tool select sits beside Start again.
+             home-widget-board T08 removed it here on the grounds that a
+             rarely-changed default did not earn top-bar width; asked for back
+             on 2026-09-01 because Start launches whatever this says and
+             checking that meant leaving for Home. Home's Agents widget keeps
+             its copy — both write through SET_AI_TOOL and both redraw from
+             AI_TOOL_CHANGED, so neither can go stale.
+
+             The options below are a placeholder: setupSelector() repopulates
+             from the real tool list, which is why a third tool (gemini) is not
+             hardcoded here. #sidebar-agent-launch keeps its id and handler. -->
         <div class="lane-bar-launcher">
+          <select id="ai-tool-selector" class="ai-tool-select" tabindex="-1" title="Default agent">
+            <option value="claude">Claude</option>
+            <option value="codex">Codex</option>
+          </select>
           <button id="sidebar-agent-launch" class="sidebar-agent-launch" tabindex="-1" title="Start default agent">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
               <path d="M8 5v14l11-7z"/>
@@ -168,6 +179,12 @@ class TerminalTabBar {
     `;
 
     this.container.appendChild(this.element);
+    // The select exists only now. aiToolSelector.init() wires it too, but it
+    // does so after awaiting GET_AI_TOOL_CONFIG, so which of the two runs
+    // second is a race — whichever it is, this call leaves the dropdown
+    // populated and showing the active tool. Same reason the theme button is
+    // wired here rather than in index.js.
+    require('./aiToolSelector').mountSelector();
     this._setupEventHandlers();
   }
 

@@ -139,8 +139,28 @@ function supportsFeature(feature) {
   }
 }
 
+/**
+ * Wire a freshly rendered `#ai-tool-selector`.
+ *
+ * `init()` already populates the dropdown, but the top bar's select is created
+ * by `terminalTabBar._render()`, which can run either side of `init()`'s await
+ * on GET_AI_TOOL_CONFIG. Whichever of the two lands second calls this, so the
+ * dropdown ends up populated and showing the active tool under either
+ * ordering.
+ *
+ * A no-op before the config arrives: with no `currentTool` there is nothing
+ * truthful to draw, and the markup's placeholder options stand until `init()`
+ * finishes and calls `setupSelector()` itself.
+ */
+function mountSelector() {
+  if (!currentTool) return;
+  setupSelector();
+  updateUI();
+}
+
 module.exports = {
   init,
+  mountSelector,
   getCurrentTool,
   getAvailableTools,
   getStartCommand,
