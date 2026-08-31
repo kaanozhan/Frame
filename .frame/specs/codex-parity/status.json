@@ -1,0 +1,22 @@
+{
+  "slug": "codex-parity",
+  "title": "Codex reaches Frame the way Claude Code does",
+  "phase": "tasks_generated",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [
+    "task-spec-codex-parity-T01",
+    "task-spec-codex-parity-T02",
+    "task-spec-codex-parity-T03",
+    "task-spec-codex-parity-T04",
+    "task-spec-codex-parity-T05",
+    "task-spec-codex-parity-T06",
+    "task-spec-codex-parity-T07",
+    "task-spec-codex-parity-T08",
+    "task-spec-codex-parity-T09",
+    "task-spec-codex-parity-T10"
+  ],
+  "created_at": "2026-08-31T17:31:57.073Z",
+  "updated_at": "2026-08-31T18:42:14.083Z",
+  "last_phase_at": "2026-08-31T18:34:21.486Z",
+  "implement_mode": "step-by-step"
+}
