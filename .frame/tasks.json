@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-08-31T20:38:06.233Z",
+  "lastUpdated": "2026-08-31T21:33:41.054Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -6884,6 +6884,21 @@
       "createdAt": "2026-08-31T18:33:56.865Z",
       "updatedAt": "2026-08-31T20:38:06.233Z",
       "completedAt": "2026-08-31T20:38:06.233Z"
+    },
+    {
+      "id": "task-build-files-parser-scripts",
+      "title": "Ship every PARSER_FILES script in the packaged build",
+      "description": "package.json build.files whitelists scripts/ files one by one, and three entries structureBootstrap's PARSER_FILES copies are missing from it: module-hint.js, docs-hint.js and spec-command-hint.js. copyParserScripts fails soft (warns and continues), so in a packaged install these are never copied into a project's .frame/bin/, their [ ! -f ... ] hook guards stay true, and three of Frame's four context hooks silently deliver nothing — only spec-hint.js is whitelisted today. Fix by adding the three to build.files, or better, by deriving the scripts/ entries from PARSER_FILES so the two lists cannot drift again. Affects package.json and src/main/structureBootstrap.js.",
+      "userRequest": "User said: Sonra npm test (574 geçmeli) ve temiz checkout ta da (git archive + node_modules suz) koştur. Sorun yoksa PR aç; varsa önce onları konuşalım. — found during the pre-PR review of feat/codex-parity; user chose to fix only toolVocabulary.js in that PR and file the pre-existing gaps separately.",
+      "acceptanceCriteria": "Every filename in structureBootstrap.PARSER_FILES resolves inside a packaged build; a packaged install copies all four hint scripts into a project .frame/bin/; a test or check fails if PARSER_FILES gains an entry that build.files does not ship.",
+      "notes": "Pre-existing on main, not introduced by codex-parity. Discovered because codex-parity added a hard top-level require of scripts/toolVocabulary.js, which turned the same whitelist gap into a main-process startup crash; that one entry was fixed in the codex-parity PR. The remaining three fail soft, which is why the gap went unnoticed.",
+      "status": "pending",
+      "priority": "high",
+      "category": "fix",
+      "context": "2026-09-01 — pre-PR review of feat/codex-parity",
+      "createdAt": "2026-08-31T21:33:41.054Z",
+      "updatedAt": "2026-08-31T21:33:41.054Z",
+      "completedAt": null
     }
   ],
   "metadata": {
