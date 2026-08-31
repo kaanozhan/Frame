@@ -7809,17 +7809,18 @@
           ]
         },
         "open": {
-          "line": 72,
+          "line": 78,
           "params": [
-            "ref"
+            "ref",
+            "opts"
           ],
           "purpose": "Open a spec's report."
         },
         "createViewport": {
-          "line": 85
+          "line": 94
         },
         "_escape": {
-          "line": 302,
+          "line": 311,
           "params": [
             "text"
           ]

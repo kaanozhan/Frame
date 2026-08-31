@@ -260,11 +260,18 @@ class MultiTerminalUI {
    * Open a detail item (task/spec) in a section viewport. By default this
    * reuses an existing viewport of the same type — navigating it in place so
    * browsing doesn't spawn tabs. `newTab` forces a fresh viewport.
+   *
+   * `activate: false` opens the tab without taking the screen: the chip
+   * appears in the rail, the current view is untouched, and the user decides
+   * when to look. That is for a tab the user did not ask for in this moment —
+   * a report auto-opening from a run somewhere else, where four parallel
+   * workers must not throw four viewports over whatever is in front of them.
+   *
    * @param {'task'|'spec'} type
    * @param {*} itemRef   id (task) or slug (spec)
    * @param {object} factory  the section module ({ createViewport })
    */
-  openSection(type, itemRef, factory, { newTab = false } = {}) {
+  openSection(type, itemRef, factory, { newTab = false, activate = true } = {}) {
     let vp = null;
     if (!newTab) {
       // Prefer the active viewport if it's the right type, else the first one
@@ -277,8 +284,10 @@ class MultiTerminalUI {
       vp = factory.createViewport();
       this.sections.push(vp);
     }
-    this.activeSectionKey = vp.key;
-    this.isSectionVisible = true;
+    if (activate) {
+      this.activeSectionKey = vp.key;
+      this.isSectionVisible = true;
+    }
     vp.navigate(itemRef); // sets the item + triggers notifySectionChanged → re-render
   }
 

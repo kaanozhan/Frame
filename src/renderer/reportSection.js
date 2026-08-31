@@ -67,19 +67,28 @@ function setHost(h) {
  * the same spec, and reports from two specs are unrelated entirely. Reusing one
  * viewport for all of them meant every open overwrote the last.
  *
+ * `background: true` opens the tab without taking the foreground — the chip
+ * appears in the rail and the user's current view is left alone. A report the
+ * user asked for by clicking comes to the front; one that arrives because some
+ * run elsewhere finished does not.
+ *
  * @param {{ projectPath: string, slug: string, title?: string, kind: 'plan'|'implement' }} ref
+ * @param {{ background?: boolean }} [opts]
  */
-function open(ref) {
+function open(ref, opts) {
   if (!host || !ref || !ref.slug || !DOC_TYPE[ref.kind]) return;
+  const background = !!(opts && opts.background);
 
   const already = (host.sections || []).find(
     (s) => s && s.type === 'report' && typeof s.matches === 'function' && s.matches(ref)
   );
   if (already) {
-    host.activateSection(already.key);
+    // Already open: a background call leaves it exactly where it is rather
+    // than yanking the user to a tab they already have.
+    if (!background) host.activateSection(already.key);
     return;
   }
-  host.openSection('report', ref, api, { newTab: true });
+  host.openSection('report', ref, api, { newTab: true, activate: !background });
 }
 
 function createViewport() {

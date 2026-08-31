@@ -58,3 +58,15 @@ regenerations — it says a report exists, not that it changed.
 _Captured: 2026-08-31 · 1 file change_
 
 ---
+## T06 — Allow a background section tab
+
+Gave `openSection` an `activate` option (default `true`) in `src/renderer/multiTerminalUI.js`: when
+false the viewport is created and navigated but `activeSectionKey` / `isSectionVisible` are left
+alone, so the chip appears without the tab taking the screen. `reportSection.open` grew a
+`{ background }` option over it, and a background call now leaves an already-open tab where it is
+rather than activating it. Renderer code stays untested — no DOM harness exists in this project,
+which the plan settled as the posture.
+
+_Captured: 2026-08-31 · 2 file changes_
+
+---
