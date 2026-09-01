@@ -6990,6 +6990,21 @@
       "createdAt": "2026-08-31T09:39:03.868Z",
       "updatedAt": "2026-08-31T16:12:45.573Z",
       "completedAt": "2026-08-31T16:12:45.573Z"
+    },
+    {
+      "id": "task-untrack-frame-bin",
+      "title": "Finish untracking .frame/bin/ — 24 files are ignored but still in the index",
+      "description": "9e3f674 (2026-08-28) added bin/ to the managed .frame/.gitignore block, reversing non-invasive-overlay T15, but the 24 files under .frame/bin/ were never removed from the index — .gitignore does not apply to already-tracked files. They are staged copies that Frame regenerates (implement-launch.js from src/templates/bin/, spec-command-hint.js from scripts/, and the rest), so any change to a source dirties the working tree the next time staging runs, as a tracked modification nobody intends to commit. Run git rm --cached on .frame/bin/ (index only, files stay on disk), verify the tree is clean after a staging run, and check that nothing in the repo reads those paths expecting them to be versioned.",
+      "userRequest": "Geri al + task aç — /frame-tidy-branch sırasında yüzeye çıktı; iki dosya geri alındı, kalıcı çözüm ayrı bir işe bırakıldı.",
+      "acceptanceCriteria": "git ls-files .frame/bin/ returns nothing; the files still exist on disk and Frame still stages into them; a full npm test run followed by git status leaves a clean tree; .frame/.gitignore is unchanged (bin/ is already there).",
+      "notes": "Surfaced on fix/report-staging-and-opening: T01 and T03 edited the sources, npm test triggered staging, and the two staged copies showed up as tracked modifications. Deliberately kept off that branch — 24 index deletions are unrelated to report staging and would have made the PR read as two changes. The recorded decision is in PROJECT_NOTES [2026-08-28] \".frame/bin/ left git: reversing non-invasive-overlay T15\"; this only finishes executing it.",
+      "status": "pending",
+      "priority": "medium",
+      "category": "fix",
+      "context": "Session 2026-09-01 — /frame-tidy-branch on fix/report-staging-and-opening",
+      "createdAt": "2026-09-01T05:57:13.685Z",
+      "updatedAt": "2026-09-01T05:57:13.685Z",
+      "completedAt": null
     }
   ],
   "metadata": {
