@@ -72,6 +72,17 @@
   `@testing-library/dom`, `puppeteer` and `happy-dom` are all still absent from
   `package.json`.
 
+- **Tool-scoping resolves through the base tool** (added after the rebase onto
+  `codex-parity`) — the placeholder path carries a `<tool>` segment, but the two
+  report assets do not: an HTML template and a Node script with nothing
+  tool-specific in either, and only `claude-code`'s packaged directory ships
+  them (`codex/` and `gemini/` carry a `.gitkeep`). So `reportAssetRel` ends at
+  `BASE_TEMPLATE_TOOL`, the same chain `loadCommandTemplate` and the hint
+  script's `templatePath` already use. Without it a Codex run is handed a path
+  under its own directory that staging never wrote, and the two prompts diverge
+  on a line that is not dialect — which `codexTemplates.test.js` fails on. This
+  supersedes the plain tool-scoped form T01 originally shipped.
+
 ### Part 1 — one staged copy
 
 `commandStaging.resolveStagingPlan` already produces the correct plan: the four

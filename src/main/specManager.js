@@ -582,8 +582,8 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
     // The user's free-form text, verbatim. Empty for every command whose
     // template carries no {description} token.
     description: description == null ? '' : String(description),
-    report_template_path: reportTemplateRel(tool),
-    report_generator_path: reportGeneratorRel(tool),
+    report_template_path: reportAssetRel(projectPath, tool, REPORT_TEMPLATE_FILE),
+    report_generator_path: reportAssetRel(projectPath, tool, REPORT_GENERATOR_FILE),
     // Full spec catalog only where it's consumed (spec.new's relatedness
     // evaluation and slug disambiguation) — other templates carry no
     // {spec_catalog} token.
@@ -613,14 +613,33 @@ const REPORT_GENERATOR_FILE = 'build-implement-report.mjs';
 
 // The report assets the agent reads live beside the command templates they
 // belong to, under .frame/runtime/commands/<tool>/ — the location
-// commandStaging writes and frameTemplates.js already documents. That path
-// carries a tool segment where assets/ did not, so these are functions of the
-// tool rather than module-level strings.
+// commandStaging writes and frameTemplates.js already documents.
 const commandRelPath = (tool, file) => path.posix.join(
   FRAME_DIR.replace(/\\/g, '/'), 'runtime', 'commands', tool, file
 );
-const reportTemplateRel = (tool) => commandRelPath(tool, REPORT_TEMPLATE_FILE);
-const reportGeneratorRel = (tool) => commandRelPath(tool, REPORT_GENERATOR_FILE);
+
+/**
+ * Which staged report asset a tool's prompt should name.
+ *
+ * The path carries a tool segment, but the two assets do not: an HTML template
+ * and a Node script with nothing tool-specific in either, staged only for a
+ * tool whose packaged directory ships them — and only claude-code does
+ * (`codex/` and `gemini/` carry a .gitkeep). So this resolves the way
+ * loadCommandTemplate does, ending at BASE_TEMPLATE_TOOL: a Codex run is
+ * handed the generator that is actually on disk rather than a path under its
+ * own directory that nothing ever staged.
+ *
+ * Falling back also keeps the two prompts identical on this line, which is
+ * what `codexTemplates.test.js` pins — a template may differ from another
+ * tool's only in its dialect, and a report path is not dialect.
+ */
+function reportAssetRel(projectPath, tool, file) {
+  const own = commandRelPath(tool, file);
+  if (tool !== BASE_TEMPLATE_TOOL && !fs.existsSync(path.join(projectPath, own))) {
+    return commandRelPath(BASE_TEMPLATE_TOOL, file);
+  }
+  return own;
+}
 
 // ─── Command file staging ─────────────────────────────────────
 //

@@ -225,6 +225,20 @@ function templatePath(root, tool, command) {
   return path.join(root, '.frame', 'runtime', 'commands', BASE_TEMPLATE_TOOL, `${command}.md`);
 }
 
+/**
+ * Report assets resolve like templatePath and end at the base tool: only
+ * claude-code's packaged directory ships them, so a Codex session is pointed
+ * at the copy that exists rather than one under its own tool directory that
+ * staging never wrote.
+ */
+function reportAssetRel(root, tool, file) {
+  const own = `${RUNTIME_COMMANDS_REL}/${tool}/${file}`;
+  if (tool !== BASE_TEMPLATE_TOOL && !fs.existsSync(path.join(root, own))) {
+    return `${RUNTIME_COMMANDS_REL}/${BASE_TEMPLATE_TOOL}/${file}`;
+  }
+  return own;
+}
+
 function interpolate(template, vars) {
   if (!template) return '';
   return template.replace(/\{(\w+)\}/g, (m, key) => (vars[key] != null ? String(vars[key]) : m));
@@ -267,8 +281,8 @@ function buildPrompt(root, slug, command, tool) {
     slug,
     title: status.title,
     description: '',
-    report_template_path: `${RUNTIME_COMMANDS_REL}/${tool}/plan-report-template.html`,
-    report_generator_path: `${RUNTIME_COMMANDS_REL}/${tool}/build-implement-report.mjs`,
+    report_template_path: reportAssetRel(root, tool, 'plan-report-template.html'),
+    report_generator_path: reportAssetRel(root, tool, 'build-implement-report.mjs'),
     spec_catalog: command === 'spec.new' ? specCatalog(root) : ''
   });
 }

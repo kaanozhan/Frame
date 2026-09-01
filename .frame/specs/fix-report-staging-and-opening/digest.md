@@ -20,4 +20,10 @@ decides focus — `agentDispatch` arms `expectReport()` for runs this window sta
 anything else (conductor worker, CLI) gets a background chip. Rejected: a dedicated
 `SPEC_REPORT_READY` channel — an instruction the agent can skip is how this divergence arose.
 
+Rebased onto `codex-parity` after it landed: report asset paths now end at
+`BASE_TEMPLATE_TOOL` like every other template lookup, because only claude-code
+ships those two files and a tool-scoped path would send Codex at one nothing
+staged. Rule: **a report path is not dialect** — it must be identical across
+tools, which `codexTemplates.test.js` enforces.
+
 Chain: spec.md → plan.md → tasks.md → outcome.md

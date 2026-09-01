@@ -83,3 +83,16 @@ regeneration → nothing); the suite does not reach renderer code.
 _Captured: 2026-08-31 · 2 file changes_
 
 ---
+## Rebase onto `codex-parity` — report paths join the base-tool chain
+
+`codex-parity` (upstream #140) landed while this branch was open and gave every template lookup a
+three-step resolution ending at `BASE_TEMPLATE_TOOL`, with `codex/` and `gemini/` shipping only a
+`.gitkeep`. T01's plain tool-scoped report path contradicted that: a Codex run would have been sent
+to `commands/codex/plan-report-template.html`, which staging never writes, and the two prompts
+diverged on a non-dialect line — caught by `codexTemplates.test.js`, which failed on the rebase.
+Replaced `reportTemplateRel` / `reportGeneratorRel` with `reportAssetRel(projectPath, tool, file)` in
+`src/main/specManager.js` and the same fallback in `scripts/spec-command-hint.js`. 576/576 pass.
+
+_Captured: 2026-09-01 · 2 file changes_
+
+---

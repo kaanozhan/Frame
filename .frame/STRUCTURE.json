@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-08-31",
+  "lastUpdated": "2026-09-01",
   "architecture": {},
   "modules": {
     "main/activityLog": {
@@ -3450,8 +3450,16 @@
             "projectPath"
           ]
         },
+        "listSpecReports": {
+          "line": 336,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "Which of a spec's two generated reports exist on disk, named as the viewer"
+        },
         "looksLikeSpecFolder": {
-          "line": 321,
+          "line": 345,
           "params": [
             "projectPath",
             "folderName"
@@ -3459,7 +3467,7 @@
           "purpose": "A folder is a spec if it carries at least one of the chain's artifacts."
         },
         "malformedSpec": {
-          "line": 333,
+          "line": 357,
           "params": [
             "folderName",
             "status",
@@ -3468,7 +3476,7 @@
           "purpose": "A spec folder Frame cannot read as a spec, rendered as itself rather than"
         },
         "fileExists": {
-          "line": 353,
+          "line": 377,
           "params": [
             "projectPath",
             "slug",
@@ -3476,7 +3484,7 @@
           ]
         },
         "derivePhase": {
-          "line": 357,
+          "line": 381,
           "params": [
             "projectPath",
             "slug",
@@ -3486,7 +3494,7 @@
           ]
         },
         "recordedTaskCount": {
-          "line": 398,
+          "line": 422,
           "params": [
             "projectPath",
             "slug",
@@ -3494,14 +3502,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 404,
+          "line": 428,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "countPhaseWrite": {
-          "line": 425,
+          "line": 449,
           "params": [
             "projectPath",
             "slug",
@@ -3510,7 +3518,7 @@
           ]
         },
         "reconcilePhase": {
-          "line": 433,
+          "line": 457,
           "params": [
             "projectPath",
             "slug",
@@ -3518,14 +3526,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 480,
+          "line": 504,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 484,
+          "line": 508,
           "params": [
             "projectPath",
             "aiTool",
@@ -3533,7 +3541,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 504,
+          "line": 528,
           "params": [
             "projectPath",
             "aiTool",
@@ -3541,7 +3549,7 @@
           ]
         },
         "interpolateValues": {
-          "line": 513,
+          "line": 537,
           "params": [
             "obj",
             "vars"
@@ -3549,14 +3557,14 @@
           "purpose": "Run `interpolate` over each value of an object. One pass, no recursion."
         },
         "interpolate": {
-          "line": 521,
+          "line": 545,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 534,
+          "line": 558,
           "params": [
             "projectPath",
             "slug",
@@ -3565,52 +3573,44 @@
             "description"
           ]
         },
-        "stageCommandAsset": {
-          "line": 605,
+        "reportAssetRel": {
+          "line": 636,
           "params": [
             "projectPath",
-            "aiTool",
+            "tool",
             "file"
           ],
-          "purpose": "Copied into .frame/runtime/assets/ on every dispatch, so a project's own"
-        },
-        "stageCommandAssets": {
-          "line": 626,
-          "params": [
-            "projectPath",
-            "command",
-            "aiTool"
-          ]
+          "purpose": "Which staged report asset a tool's prompt should name."
         },
         "resolveVerificationCommand": {
-          "line": 690,
+          "line": 703,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 705,
+          "line": 718,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 723,
+          "line": 736,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 747,
+          "line": 760,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 763,
+          "line": 776,
           "params": [
             "projectPath",
             "slug",
@@ -3619,21 +3619,21 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "specNewPromptFilename": {
-          "line": 784,
+          "line": 797,
           "params": [
             "date"
           ],
           "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
         },
         "uniquePromptFilename": {
-          "line": 789,
+          "line": 802,
           "params": [
             "promptsDir",
             "filename"
           ]
         },
         "buildSpecCommandFile": {
-          "line": 798,
+          "line": 811,
           "params": [
             "projectPath",
             "slug",
@@ -3643,53 +3643,53 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 840,
+          "line": 855,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 866,
+          "line": 881,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 885,
+          "line": 900,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 890,
+          "line": 905,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 970,
+          "line": 985,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 977,
+          "line": 992,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 994,
+          "line": 1009,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1033,
+          "line": 1048,
           "params": [
             "projectPath",
             "slug",
@@ -3698,7 +3698,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1062,
+          "line": 1077,
           "params": [
             "projectPath",
             "query"
@@ -3706,7 +3706,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1083,
+          "line": 1098,
           "params": [
             "projectPath",
             "slug",
@@ -3714,14 +3714,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1106,
+          "line": 1121,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1123,
+          "line": 1138,
           "params": [
             "projectPath",
             "oldSlug",
@@ -3730,48 +3730,48 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1235,
+          "line": 1250,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1326
+          "line": 1341
         },
         "markSpecNewLaunch": {
-          "line": 1374
+          "line": 1389
         },
         "consumeSpecNewLaunch": {
-          "line": 1378
+          "line": 1393
         },
         "resolveSpecOrigin": {
-          "line": 1391,
+          "line": 1406,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackNewlyAuthoredSpecs": {
-          "line": 1402,
+          "line": 1417,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1422,
+          "line": 1437,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1445,
+          "line": 1460,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1449,
+          "line": 1464,
           "params": [
             "ipcMain"
           ]
@@ -10730,6 +10730,7 @@
         "renderReport",
         "computeProgress",
         "parseArgs",
+        "shouldOpenInBrowser",
         "openCommand",
         "readCommitDiff",
         "readTasks"
@@ -10812,15 +10813,22 @@
           ],
           "purpose": "Split argv into the two positionals (data path, optional out path) and the"
         },
+        "shouldOpenInBrowser": {
+          "line": 540,
+          "params": [
+            "env"
+          ],
+          "purpose": "Whether `--open` should reach the browser at all. Frame injects FRAME_NODE"
+        },
         "openCommand": {
-          "line": 536,
+          "line": 546,
           "params": [
             "platform"
           ],
           "purpose": "The platform's \"open this file in its default app\" command. Pure so the"
         },
         "readCommitDiff": {
-          "line": 549,
+          "line": 559,
           "params": [
             "commit",
             "repoRoot"
@@ -10828,20 +10836,20 @@
           "purpose": "The commit's diff with Frame's bookkeeping excluded. A hash that git"
         },
         "repoRootFrom": {
-          "line": 564,
+          "line": 574,
           "params": [
             "dir"
           ]
         },
         "readTasks": {
-          "line": 576,
+          "line": 586,
           "params": [
             "repoRoot"
           ],
           "purpose": "The repo's tasks.json `tasks` array, or [] if it can't be read — the banner"
         },
         "openInBrowser": {
-          "line": 591,
+          "line": 601,
           "params": [
             "filePath",
             "platform = process.platform"
@@ -10849,7 +10857,7 @@
           "purpose": "Open the finished report in the default browser, detached so it never blocks"
         },
         "main": {
-          "line": 600,
+          "line": 610,
           "params": [
             "argv"
           ]
