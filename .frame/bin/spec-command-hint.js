@@ -210,7 +210,7 @@ function candidates(root, command) {
 // ─── the prompt the button would have built ───────────────
 
 const RUNTIME_PROMPTS_REL = '.frame/runtime/prompts';
-const RUNTIME_ASSETS_REL = '.frame/runtime/assets';
+const RUNTIME_COMMANDS_REL = '.frame/runtime/commands';
 
 // Same resolution order specManager uses, including the base fallback: a CLI
 // with no templates of its own runs the base flow with its dialect filled in.
@@ -223,6 +223,20 @@ function templatePath(root, tool, command) {
   const own = path.join(root, '.frame', 'runtime', 'commands', tool, `${command}.md`);
   if (fs.existsSync(own)) return own;
   return path.join(root, '.frame', 'runtime', 'commands', BASE_TEMPLATE_TOOL, `${command}.md`);
+}
+
+/**
+ * Report assets resolve like templatePath and end at the base tool: only
+ * claude-code's packaged directory ships them, so a Codex session is pointed
+ * at the copy that exists rather than one under its own tool directory that
+ * staging never wrote.
+ */
+function reportAssetRel(root, tool, file) {
+  const own = `${RUNTIME_COMMANDS_REL}/${tool}/${file}`;
+  if (tool !== BASE_TEMPLATE_TOOL && !fs.existsSync(path.join(root, own))) {
+    return `${RUNTIME_COMMANDS_REL}/${BASE_TEMPLATE_TOOL}/${file}`;
+  }
+  return own;
 }
 
 function interpolate(template, vars) {
@@ -267,8 +281,8 @@ function buildPrompt(root, slug, command, tool) {
     slug,
     title: status.title,
     description: '',
-    report_template_path: `${RUNTIME_ASSETS_REL}/plan-report-template.html`,
-    report_generator_path: `${RUNTIME_ASSETS_REL}/build-implement-report.mjs`,
+    report_template_path: reportAssetRel(root, tool, 'plan-report-template.html'),
+    report_generator_path: reportAssetRel(root, tool, 'build-implement-report.mjs'),
     spec_catalog: command === 'spec.new' ? specCatalog(root) : ''
   });
 }

@@ -235,8 +235,8 @@ The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spe
 | \`{slug}\` | the spec's slug — **omitted for \`spec.new\`**, which runs before the spec exists |
 | \`{title}\` | the spec's title (from \`status.json\`) — **omitted for \`spec.new\`** for the same reason |
 | \`{description}\` | the user's description, verbatim (\`spec.new\` only; empty otherwise) |
-| \`{report_template_path}\` | \`.frame/runtime/commands/<tool>/plan-report-template.html\` |
-| \`{report_generator_path}\` | \`.frame/runtime/commands/<tool>/build-implement-report.mjs\` |
+| \`{report_template_path}\` | \`.frame/runtime/commands/<tool>/plan-report-template.html\` — falling back to \`claude-code\`'s copy, which is the only one staged, when the tool ships none |
+| \`{report_generator_path}\` | \`.frame/runtime/commands/<tool>/build-implement-report.mjs\` — same fallback |
 
 **4. Follow the interpolated template exactly**, including every \`status.json\` update it prescribes. The template is the flow; this section only tells you how to find it.
 
