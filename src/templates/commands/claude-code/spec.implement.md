@@ -300,20 +300,23 @@ missing-runtime order below). It writes `implement-report.html` next to the
 data file, openable as each task completes.
 
 **Add `--open` only on the very first generation** — the empty-report
-generation you run before the first task (above) — so the report opens in the
-browser once, at the start of the run:
+generation you run before the first task (above) — so the report reaches the
+reader once, at the start of the run:
 
 ```
 ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" {report_generator_path} --open \
   .frame/specs/{slug}/report-data.json
 ```
 
-This matters most for a terminal-launched autonomous run, where there's no
-Frame window to click the **View Implementation Report** button. Pass `--open`
+Inside Frame the flag costs nothing and opens no browser: the generator sees
+`$FRAME_NODE` and steps aside, because the app opens the report as a report
+tab of its own, in the user's theme. The browser is the fallback for a
+terminal-launched run with no Frame window, which is where `--open` earns its
+keep — there is no **View Implementation Report** button to click. Pass it
 **only on that first, empty generation** — every task afterwards regenerates the
 same file, and the reader follows the run by reloading the tab they already have
-open, so re-passing it would spawn a new tab per task. Opening is best-effort: on
-a box with no browser opener it silently does nothing and the run is unaffected.
+open. Opening is best-effort either way: on a box with no browser opener it
+silently does nothing and the run is unaffected.
 The report itself carries a live status banner (how many tasks are done, which
 is next, and a reload hint) plus, before the first task, an empty state naming
 what will appear — so the reader always knows whether the page in front of them

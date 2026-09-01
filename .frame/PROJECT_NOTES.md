@@ -2610,3 +2610,100 @@ with a Revision history rather than rewritten to look like the plan was right;
 this cheap to reconcile: an `outcome.md` entry per commit naming the divergence
 as it happened, so the closing pass was editing four known spots rather than
 re-deriving history.
+### [2026-09-01] The report pipeline leaked at both ends (spec: fix-report-staging-and-opening)
+
+Two failures that look unrelated and are the same failure: the file the agent
+*reads* and the window the result *lands in* were both decided somewhere other
+than where they are described.
+
+**Two staged copies, one of them stale.** `plan-report-template.html` and
+`build-implement-report.mjs` were staged into two directories by two
+mechanisms — `commandStaging.stageCommandFiles()` into
+`.frame/runtime/commands/<tool>/` on project open, and
+`specManager.stageCommandAsset()` into `.frame/runtime/assets/` on every
+dispatch. In this repo the first was 440 lines and the second 291, and
+`{report_template_path}` pointed at the 291-line one. So `/spec.plan` had been
+building its report from a template the in-app viewer classifies as *pre-shell*
+— the very report work we shipped two days earlier, invisible to the command
+that generates the report.
+
+Worth recording *how* that happened, because it is a failure mode we will hit
+again. `cli-spec-command-parity` T05 was titled "routed all staging through
+commandStaging" and it removed `stageImplementCommandFiles` — but not
+`stageCommandAsset`, which read as a separate concern (*asset* staging) rather
+than as the thing being superseded. The same day, the docs work wrote the
+placeholder table pointing at the new location. **Documentation moved, the
+substitution didn't, and nothing failed loudly.** A consolidation task that
+names its target by mechanism ("route all X through Y") should enumerate what
+it is deleting, or the second implementation survives by not matching the
+description.
+
+**This deliberately reverses a constraint we recorded ourselves.**
+`spec-reports-one-shell-two-themes-in-app` names `.frame/runtime/assets/` as
+the staging location a shared shell must survive. That is the location this
+spec retires. The constraint's *reason* — the CLI cannot read inside
+`app.asar`, so the asset must reach disk — is untouched;
+`commands/<tool>/` is equally outside the archive and is tool-scoped besides.
+Overturned explicitly rather than silently, which is what the spec layer is
+for.
+
+Deleting the second stager had a cost that was not obvious: it was the thing
+providing *per-dispatch freshness*, so a project override edited between
+project opens reached the next run. `stageCommandFiles` therefore stopped
+being an implement-only call and now runs on every spec dispatch. And the
+directory is *removed*, not merely orphaned — prompts staged before the change
+carry the interpolated old path, so a leftover file stays reachable, and
+stale, by re-running an old prompt.
+
+**Plan-time decisions worth keeping.**
+
+- *Both* reports auto-open, not just the implement one. The plan report was the
+  half that opened nowhere at all, which is where the request started.
+- **Foreground by origin.** A run dispatched from this window brings its report
+  to the front, matching what clicking **View Report** does. Anything else — a
+  conductor worker, another window, a hand-run CLI session — gets a background
+  chip. Four parallel workers must not throw four tabs over the user's work.
+  The *absence* of an expectation is the origin signal; no flag travels with
+  the report.
+- **The app notices; the agent says nothing.** `listSpecs` carries a `reports`
+  array and the existing `.frame/specs/` watcher does the rest. Chosen over a
+  dedicated `SPEC_REPORT_READY` channel because what is being detected is a
+  *state change, not an event*: an array that stays identical across the
+  implement run's per-task regenerations cannot open a second tab, and a push
+  dropped by the self-write guard is recovered by the next one. Rejected
+  explicitly: having the agent announce it — an instruction the agent can skip
+  is exactly how the staging divergence arose.
+- **Emitted only when non-empty.** Measured on this project (45 specs, 17 with
+  a report): always-present booleans grow the SPEC_DATA payload 21.9%,
+  `reports`-when-present grows it 4.1%.
+- **`$FRAME_NODE` is the marker for "a Frame window is hosting this session".**
+  `ptyManager` injects it into every PTY Frame spawns, so one condition in the
+  generator covers both the UI dispatch and the CLI hint path. The alternative
+  — making `--open` conditional in the template — needs a new placeholder
+  filled correctly on two interpolation paths.
+
+**Left untested, again, and on purpose.** T06 and T07 are renderer modules and
+this repo still has no DOM harness — no jsdom, playwright, testing-library,
+puppeteer or happy-dom in `package.json`, re-verified during planning. The
+plan settled that as the posture rather than smuggling a harness in mid-spec.
+T07's diff logic was checked by hand against a stubbed host instead (baseline
+arms silently, unexpected report → background, expected → foreground,
+regeneration → nothing). This is the third branch in a row to say this; the
+harness is a real decision someone has to make deliberately.
+
+**A dogfooding artifact, clarified at the end of the session.** After the run,
+the staged copy in this repo's `.frame/runtime/commands/claude-code/` was still
+the pre-T04 generator, because nothing had re-run staging since the edit. That
+drift is specific to developing Frame inside Frame: in a user's project
+`src/templates/` lives inside the installed app, so the only thing that can
+change the source is a Frame update, and project open restages it. The
+user-facing analogue is a project's own override under
+`.frame/templates/commands/<tool>/` — and that is precisely the freshness the
+unconditional `stageCommandFiles` call preserves.
+
+**Branch.** `fix/report-staging-and-opening`, seven tasks run in autonomous
+mode, one commit each, `npm test` green throughout (484 → 486). Two earlier
+branches merged on 2026-08-29 — `new-spec-agent-handoff` and
+`spec-reports-one-shell-two-themes-in-app` — are still unrecorded here; their
+sessions are not in this conversation, and reconstructing their reasoning from
+commit messages would be invention rather than context.

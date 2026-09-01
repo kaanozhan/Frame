@@ -17,9 +17,9 @@ const helper = require('../src/templates/bin/implement-launch.js');
 test('interpolate fills the three implement placeholders', () => {
   const out = helper.interpolate(
     'root={project_path} slug={slug} gen={report_generator_path}',
-    { project_path: '/p', slug: 'my-spec', report_generator_path: '.frame/runtime/assets/build-implement-report.mjs' }
+    { project_path: '/p', slug: 'my-spec', report_generator_path: '.frame/runtime/commands/claude-code/build-implement-report.mjs' }
   );
-  assert.equal(out, 'root=/p slug=my-spec gen=.frame/runtime/assets/build-implement-report.mjs');
+  assert.equal(out, 'root=/p slug=my-spec gen=.frame/runtime/commands/claude-code/build-implement-report.mjs');
 });
 
 test('interpolate leaves unknown placeholders intact', () => {

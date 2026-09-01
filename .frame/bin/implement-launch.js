@@ -33,13 +33,12 @@ const CONFIG_FILE = 'config.json';
 const STATUS_REL = (slug) => path.posix.join(FRAME_DIR, 'specs', slug, 'status.json');
 const PERMISSIONS_REL = path.posix.join(FRAME_DIR, 'implement-permissions.json');
 const PROMPT_REL = (slug) => path.posix.join(FRAME_DIR, 'runtime', 'prompts', `${slug}__spec.implement.md`);
-const REPORT_GENERATOR_REL = path.posix.join(FRAME_DIR, 'runtime', 'assets', 'build-implement-report.mjs');
+const REPORT_GENERATOR_REL = path.posix.join(FRAME_DIR, 'runtime', 'commands', 'claude-code', 'build-implement-report.mjs');
 
 // Template resolution order: the project's own override first, then the copy
 // Frame staged into runtime/commands/ on project open / implement dispatch.
 const TEMPLATE_OVERRIDE_REL = path.posix.join(FRAME_DIR, 'templates', 'commands', 'claude-code', 'spec.implement.md');
 const TEMPLATE_STAGED_REL = path.posix.join(FRAME_DIR, 'runtime', 'commands', 'claude-code', 'spec.implement.md');
-const GENERATOR_STAGED_REL = path.posix.join(FRAME_DIR, 'runtime', 'commands', 'claude-code', 'build-implement-report.mjs');
 
 // Pushing and history rewrites other than the mode's own `commit --amend`.
 const IMPLEMENT_DENY = [
@@ -160,20 +159,6 @@ function writePermissions(projectRoot) {
   return absPath;
 }
 
-// Ensure the report generator sits at runtime/assets/, copying the staged
-// runtime/commands/ copy if Frame hasn't put it there yet. Best-effort — a
-// missing generator only costs the report, never the run.
-function ensureReportGenerator(projectRoot) {
-  const dst = path.join(projectRoot, REPORT_GENERATOR_REL);
-  if (fs.existsSync(dst)) return;
-  const staged = path.join(projectRoot, GENERATOR_STAGED_REL);
-  if (!fs.existsSync(staged)) return;
-  try {
-    fs.mkdirSync(path.dirname(dst), { recursive: true });
-    fs.copyFileSync(staged, dst);
-  } catch (_) { /* best effort */ }
-}
-
 function fail(message) {
   process.stderr.write(`implement-launch: ${message}\n`);
   return 1;
@@ -211,8 +196,6 @@ function main(argv) {
   const promptAbs = path.join(projectRoot, PROMPT_REL(slug));
   fs.mkdirSync(path.dirname(promptAbs), { recursive: true });
   fs.writeFileSync(promptAbs, prompt, 'utf8');
-
-  ensureReportGenerator(projectRoot);
 
   const args = buildLaunchArgs(settingsAbsPath, PROMPT_REL(slug));
   const result = spawnSync('claude', args, { cwd: projectRoot, stdio: 'inherit' });

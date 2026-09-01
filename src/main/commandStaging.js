@@ -113,6 +113,19 @@ function availableTools() {
 }
 
 /**
+ * Remove the retired .frame/runtime/assets/ staging directory
+ * (fix-report-staging-and-opening). Nothing writes it any more, but a prompt
+ * staged before this change carries the *interpolated* old path, so a leftover
+ * copy stays reachable — and stale — by re-running that prompt. Best-effort:
+ * a directory that will not delete is not worth failing project open over.
+ */
+function removeLegacyAssetsDir(projectPath) {
+  try {
+    fs.rmSync(path.join(projectPath, FRAME_DIR, 'runtime', 'assets'), { recursive: true, force: true });
+  } catch (_) { /* best effort */ }
+}
+
+/**
  * Stage the command templates, assets and launch helper for every available
  * tool. Never throws — a staging failure must not break project open.
  */
@@ -125,6 +138,7 @@ function stageCommandFiles(projectPath) {
       }
     }
   }
+  removeLegacyAssetsDir(projectPath);
 }
 
 module.exports = {

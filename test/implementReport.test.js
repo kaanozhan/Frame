@@ -497,6 +497,17 @@ test('openCommand maps each platform to its file opener', () => {
   assert.deepEqual(mod.openCommand('linux'), { cmd: 'xdg-open', args: [] });
 });
 
+test('shouldOpenInBrowser defers to Frame when FRAME_NODE is set', () => {
+  // Frame injects FRAME_NODE into every PTY it spawns, so its presence means
+  // a window is hosting the run and will open the report as a tab itself.
+  assert.equal(mod.shouldOpenInBrowser({ FRAME_NODE: '/path/to/Electron' }), false);
+
+  // No Frame window: --open keeps its original browser behaviour.
+  assert.equal(mod.shouldOpenInBrowser({}), true);
+  assert.equal(mod.shouldOpenInBrowser({ FRAME_NODE: '' }), true);
+  assert.equal(mod.shouldOpenInBrowser(undefined), true);
+});
+
 // ─── contract ─────────────────────────────────────────────────
 
 test('EXCLUDED_PATHS keeps Frame bookkeeping out of every diff', () => {

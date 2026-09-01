@@ -295,6 +295,7 @@ function listSpecs(projectPath) {
       continue;
     }
     const status_ = repaired;
+    const reports = listSpecReports(projectPath, ent.name);
     const specTasks = collectSpecTasks(status_.slug, tasksData);
     const completedCount = specTasks.filter(t => t.status === 'completed').length;
     specs.push({
@@ -305,7 +306,13 @@ function listSpecs(projectPath) {
       task_count: specTasks.length || status_.generated_task_ids.length,
       completed_count: completedCount,
       created_at: status_.created_at || null,
-      updated_at: status_.updated_at || null
+      updated_at: status_.updated_at || null,
+      // Only when the spec has one. A report appearing has to change this
+      // payload or pushSpecData's skip-unchanged gate swallows it, and a
+      // spec without a report should cost the payload nothing — measured on
+      // this project, an always-present pair of booleans grows SPEC_DATA by
+      // ~22% where this grows it by ~4%.
+      ...(reports.length ? { reports } : {})
     });
   }
   // Malformed first: a spec Frame cannot read needs a human, and sorting it
@@ -315,6 +322,23 @@ function listSpecs(projectPath) {
     return (b.updated_at || '').localeCompare(a.updated_at || '');
   });
   return specs;
+}
+
+/**
+ * Which of a spec's two generated reports exist on disk, named as the viewer
+ * names them. Carried in the listSpecs payload so a report *appearing* is
+ * visible to the renderer: the existing `.frame/specs/` watcher already
+ * notices the file, but without this the payload is byte-identical and the
+ * push never leaves (fix-report-staging-and-opening). A path that stays the
+ * same across the implement run's per-task regenerations is deliberate — it
+ * signals appearance, not change, so it cannot re-open a tab.
+ */
+function listSpecReports(projectPath, slug) {
+  const dir = getSpecDir(projectPath, slug);
+  const kinds = [];
+  if (fs.existsSync(path.join(dir, PLAN_REPORT_FILE))) kinds.push('plan');
+  if (fs.existsSync(path.join(dir, IMPLEMENT_REPORT_FILE))) kinds.push('implement');
+  return kinds;
 }
 
 /** A folder is a spec if it carries at least one of the chain's artifacts. */
@@ -558,8 +582,8 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
     // The user's free-form text, verbatim. Empty for every command whose
     // template carries no {description} token.
     description: description == null ? '' : String(description),
-    report_template_path: REPORT_TEMPLATE_REL,
-    report_generator_path: REPORT_GENERATOR_REL,
+    report_template_path: reportAssetRel(projectPath, tool, REPORT_TEMPLATE_FILE),
+    report_generator_path: reportAssetRel(projectPath, tool, REPORT_GENERATOR_FILE),
     // Full spec catalog only where it's consumed (spec.new's relatedness
     // evaluation and slug disambiguation) — other templates carry no
     // {spec_catalog} token.
@@ -584,49 +608,37 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
 // file directly — full prompt arrives intact.
 
 const RUNTIME_PROMPTS_DIR = path.join(FRAME_DIR, 'runtime', 'prompts');
-const RUNTIME_ASSETS_DIR = path.join(FRAME_DIR, 'runtime', 'assets');
 const REPORT_TEMPLATE_FILE = 'plan-report-template.html';
 const REPORT_GENERATOR_FILE = 'build-implement-report.mjs';
 
-const assetRelPath = (file) => path.posix.join(RUNTIME_ASSETS_DIR.replace(/\\/g, '/'), file);
-const REPORT_TEMPLATE_REL = assetRelPath(REPORT_TEMPLATE_FILE);
-const REPORT_GENERATOR_REL = assetRelPath(REPORT_GENERATOR_FILE);
+// The report assets the agent reads live beside the command templates they
+// belong to, under .frame/runtime/commands/<tool>/ — the location
+// commandStaging writes and frameTemplates.js already documents.
+const commandRelPath = (tool, file) => path.posix.join(
+  FRAME_DIR.replace(/\\/g, '/'), 'runtime', 'commands', tool, file
+);
 
-// Which packaged assets each command needs on disk. Driven by the command
-// rather than hardcoded: spec.plan's agent fills a template, spec.implement's
-// runs a generator, and a terminal CLI can read neither from inside app.asar.
-const COMMAND_ASSETS = {
-  'spec.plan': [REPORT_TEMPLATE_FILE],
-  'spec.implement': [REPORT_GENERATOR_FILE]
-};
-
-// Copied into .frame/runtime/assets/ on every dispatch, so a project's own
-// override under .frame/templates/commands/<tool>/ is picked up as it changes.
-function stageCommandAsset(projectPath, aiTool, file) {
-  const tool = aiTool || 'claude-code';
-  const override = path.join(projectPath, FRAME_DIR, 'templates', 'commands', tool, file);
-  const fallback = path.join(FRAME_TEMPLATES_DIR, 'commands', tool, file);
-  const source = fs.existsSync(override) ? override : fallback;
-  let content;
-  try {
-    content = fs.readFileSync(source, 'utf8');
-  } catch (err) {
-    console.error(`specManager: command asset missing (${source}) — staging skipped`, err.message);
-    return;
+/**
+ * Which staged report asset a tool's prompt should name.
+ *
+ * The path carries a tool segment, but the two assets do not: an HTML template
+ * and a Node script with nothing tool-specific in either, staged only for a
+ * tool whose packaged directory ships them — and only claude-code does
+ * (`codex/` and `gemini/` carry a .gitkeep). So this resolves the way
+ * loadCommandTemplate does, ending at BASE_TEMPLATE_TOOL: a Codex run is
+ * handed the generator that is actually on disk rather than a path under its
+ * own directory that nothing ever staged.
+ *
+ * Falling back also keeps the two prompts identical on this line, which is
+ * what `codexTemplates.test.js` pins — a template may differ from another
+ * tool's only in its dialect, and a report path is not dialect.
+ */
+function reportAssetRel(projectPath, tool, file) {
+  const own = commandRelPath(tool, file);
+  if (tool !== BASE_TEMPLATE_TOOL && !fs.existsSync(path.join(projectPath, own))) {
+    return commandRelPath(BASE_TEMPLATE_TOOL, file);
   }
-  try {
-    const assetsDir = path.join(projectPath, RUNTIME_ASSETS_DIR);
-    fs.mkdirSync(assetsDir, { recursive: true });
-    fs.writeFileSync(path.join(assetsDir, file), content, 'utf8');
-  } catch (err) {
-    console.error(`specManager: staging ${file} failed`, err);
-  }
-}
-
-function stageCommandAssets(projectPath, command, aiTool) {
-  for (const file of COMMAND_ASSETS[command] || []) {
-    stageCommandAsset(projectPath, aiTool, file);
-  }
+  return own;
 }
 
 // ─── Command file staging ─────────────────────────────────────
@@ -635,7 +647,8 @@ function stageCommandAssets(projectPath, command, aiTool) {
 // into .frame/runtime/commands/<tool>/ and .frame/bin/ lives in
 // commandStaging.js (cli-spec-command-parity) — it covers all four spec
 // commands so a CLI session can self-serve the current flow. It runs on
-// project open (WATCH_SPECS), init/enable, and every implement dispatch.
+// project open (WATCH_SPECS), init/enable, and every spec dispatch — it is
+// the only mechanism that stages report assets.
 
 // ─── Implement-mode permissions ───────────────────────────────
 //
@@ -809,10 +822,12 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
     : `${slug}__${command}.md`;
   const absPath = path.join(promptsDir, filename);
   fs.writeFileSync(absPath, result.prompt, 'utf8');
-  stageCommandAssets(projectPath, command, aiTool);
-  // Implement dispatches also refresh the staged templates, assets and helper
-  // so an out-of-app helper launch always finds the latest on disk.
-  if (command === 'spec.implement') commandStaging.stageCommandFiles(projectPath);
+  // Every spec dispatch refreshes the staged templates, report assets and
+  // launch helper, so a project override edited between project opens still
+  // reaches the next run — the per-dispatch freshness the second, now deleted
+  // stager used to provide — and an out-of-app helper launch always finds the
+  // latest on disk.
+  commandStaging.stageCommandFiles(projectPath);
   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
   return {
     success: true,
