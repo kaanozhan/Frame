@@ -29,7 +29,9 @@ Built on Claude Code. Codex CLI and Gemini CLI work too — and because your
 context lives in plain, git-versioned files, it stays yours and stays readable
 by any tool.
 
-https://github.com/user-attachments/assets/6fe108d1-70c8-441e-a913-b34583c803b0
+<p align="center">
+  <img src="assets/demo.gif" alt="Frame: four terminal lanes with Claude and Codex running, then sessions, specs and tasks" width="760" />
+</p>
 
 ---
 
