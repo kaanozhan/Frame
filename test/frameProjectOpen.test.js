@@ -301,9 +301,51 @@ test('a directory Frame never initialised is answered, not written to', async ()
   assert.deepEqual(snapshotTree(projectDir), before);
 });
 
+
+/* ---------------- STR-02: the lifecycle worker is attached ---------------- */
+
+const { EventEmitter } = require('events');
+const structureLifecycle = require('../src/main/structureLifecycle');
+
+/** A fake `--supervised` child that records what the supervisor sends. */
+function fakeWorkers() {
+  const spawned = [];
+  structureLifecycle.configure({
+    enabled: true,
+    ticker: () => ({ dispose() {} }),
+    spawn: (execPath, args, options) => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stdout.setEncoding = () => {};
+      child.stderr = { resume() {} };
+      child.messages = [];
+      child.stdin = {
+        destroyed: false,
+        on() {},
+        write: (line) => { child.messages.push(JSON.parse(line)); return true; },
+        end: () => setImmediate(() => child.emit('close', 0, null))
+      };
+      child.kill = () => child.emit('close', null, 'SIGKILL');
+      spawned.push({ args, cwd: options.cwd, env: options.env, child, scanRecordAtSpawn: fs.existsSync(path.join(options.cwd, '.frame', 'runtime', 'structure', 'scan.json')) });
+      return child;
+    }
+  });
+  return spawned;
+}
+
+async function resetWorkers() {
+  await structureLifecycle.disposeAll();
+  structureLifecycle.configure({ enabled: false, spawn: require('child_process').spawn, ticker: null });
+}
+
 /* ------------------------ STR-01: opens never scan ------------------------ */
 
-test('an open refreshes tools only: the map and scan record stay byte-identical', async () => {
+// STR-02 D10 overturns STR-01's "an open never asks for a scan": the open
+// now asks the lifecycle worker to reconcile. The open itself still scans
+// nothing and invalidates nothing — the worker does the work, off-thread.
+test('an open refreshes tools and requests reconciliation, but itself scans nothing', async (t) => {
+  const spawned = fakeWorkers();
+  t.after(resetWorkers);
   projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-open-tools-'));
   fs.writeFileSync(path.join(projectDir, 'a.js'), '// A\n');
   await frameProject.runProjectInit(projectDir, 'demo');
@@ -317,7 +359,9 @@ test('an open refreshes tools only: the map and scan record stay byte-identical'
   await frameProject.openProjectLayout(projectDir);
 
   assert.notEqual(fs.readFileSync(path.join(projectDir, FRAME_DIR, 'bin', 'update-structure.js'), 'utf8'), '// stale generation\n', 'tools refreshed');
-  assert.deepEqual([fs.readFileSync(map, 'utf8'), fs.readFileSync(record, 'utf8')], before, 'no scan, no invalidation');
+  assert.deepEqual([fs.readFileSync(map, 'utf8'), fs.readFileSync(record, 'utf8')], before, 'the open wrote no map and no scan record');
+  assert.equal(spawned.length, 1, 'the worker started at init is reused');
+  assert.deepEqual(spawned[0].child.messages, [{ cmd: 'reconcile', reason: 'reopen' }]);
 });
 
 test('a re-init blocked by a merge writes nothing at all', async () => {
@@ -338,4 +382,65 @@ test('a re-init blocked by a merge writes nothing at all', async () => {
 
   await assert.rejects(frameProject.runProjectInit(projectDir, 'demo'), (err) => err.code === 'E_LAYOUT_UNMERGED');
   assert.deepEqual(snapshotTree(projectDir), before, 'no config, staging, scan state or map writes');
+});
+
+test('repeated opens drive one worker; an open of a project without one starts it', async (t) => {
+  const spawned = fakeWorkers();
+  t.after(resetWorkers);
+  projectDir = makeLegacyProject();
+  for (let i = 0; i < 3; i++) await frameProject.openProjectLayout(projectDir);
+  assert.equal(spawned.length, 1);
+  assert.deepEqual(spawned[0].child.messages.map((m) => m.reason), ['reopen', 'reopen']);
+});
+
+test('a blocked open and a blocked re-init start no worker', async (t) => {
+  const spawned = fakeWorkers();
+  t.after(resetWorkers);
+  projectDir = makeLegacyProject();
+  const notes = path.join(projectDir, 'PROJECT_NOTES.md');
+  git(projectDir, ['checkout', '-q', '-b', 'other']);
+  fs.appendFileSync(notes, '\n### [2026-02-02] Theirs\n');
+  git(projectDir, ['commit', '-q', '-a', '-m', 'theirs']);
+  git(projectDir, ['checkout', '-q', '-']);
+  fs.appendFileSync(notes, '\n### [2026-02-02] Ours\n');
+  git(projectDir, ['commit', '-q', '-a', '-m', 'ours']);
+  try {
+    git(projectDir, ['merge', '--no-edit', 'other']);
+  } catch (err) {
+    /* the conflict is the point */
+  }
+  await frameProject.openProjectLayout(projectDir);
+  await assert.rejects(frameProject.runProjectInit(projectDir, 'demo'));
+  assert.equal(spawned.length, 0);
+});
+
+test('removing a project from the workspace stops its worker', { skip: process.platform === 'win32' && 'HOME redirection is POSIX-only' }, async (t) => {
+  const spawned = fakeWorkers();
+  t.after(resetWorkers);
+  // workspace.init resolves ~/.frame from HOME: point it at a scratch home so
+  // the user's real workspace file is never read or written.
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-open-home-'));
+  const previousHome = process.env.HOME;
+  process.env.HOME = home;
+  t.after(() => {
+    process.env.HOME = previousHome;
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+  const workspace = require('../src/main/workspace');
+  const { IPC: CHANNELS } = require('../src/shared/ipcChannels');
+  workspace.init({}, null);
+  const handlers = {};
+  workspace.setupIPC({ on: (channel, fn) => { handlers[channel] = fn; }, handle() {} });
+
+  projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-open-ws-'));
+  await frameProject.runProjectInit(projectDir, 'demo');
+  workspace.addProject(projectDir, 'demo', true);
+  assert.equal(spawned.length, 1);
+
+  handlers[CHANNELS.REMOVE_PROJECT_FROM_WORKSPACE]({ sender: { send() {} } }, projectDir);
+  assert.deepEqual(spawned[0].child.messages.map((m) => m.cmd), ['stop']);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(structureLifecycle.list(), []);
+  assert.ok(!workspace.getProjects().some((p) => p.path === projectDir));
+  assert.ok(fs.existsSync(path.join(home, '.frame')), 'the scratch home was used');
 });

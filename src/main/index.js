@@ -43,6 +43,9 @@ const specManager = require('./specManager');
 const orchestrationManager = require('./orchestrationManager');
 const structureLifecycle = require('./structureLifecycle');
 
+// The running app keeps each open Frame checkout's STRUCTURE.json current.
+structureLifecycle.configure({ enabled: true });
+
 let mainWindow = null;
 let quitConfirmed = false;
 

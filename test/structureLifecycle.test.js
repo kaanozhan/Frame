@@ -617,12 +617,13 @@ function supervised(t) {
   let tickFn = null;
   let tickerDisposed = 0;
   supervisor.configure({
+    enabled: true,
     onReport: (r) => reports.push(r),
     ticker: (fn) => { tickFn = fn; return { dispose: () => { tickerDisposed++; tickFn = null; } }; }
   });
   t.after(async () => {
     await supervisor.disposeAll();
-    supervisor.configure({ onReport: null, ticker: null });
+    supervisor.configure({ enabled: false, onReport: null, ticker: null });
   });
   return { reports, tick: () => tickFn && tickFn(), ticker: () => ({ active: Boolean(tickFn), disposed: tickerDisposed }) };
 }
@@ -731,5 +732,13 @@ test('disposeAll stops every worker', async (t) => {
   const rb = supervisor.attach(b);
   await supervisor.disposeAll();
   await Promise.all([ra.exited, rb.exited]);
+  assert.deepEqual(supervisor.list(), []);
+});
+
+test('the supervisor is off until the app enables it', (t) => {
+  const dir = stagedProject();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  assert.equal(supervisor.attach(dir), null);
+  assert.equal(supervisor.requestReconcile(dir), false);
   assert.deepEqual(supervisor.list(), []);
 });

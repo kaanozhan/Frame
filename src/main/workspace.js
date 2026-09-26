@@ -210,6 +210,13 @@ function setupIPC(ipcMain) {
   });
 
   ipcMain.on(IPC.REMOVE_PROJECT_FROM_WORKSPACE, (event, projectPath) => {
+    // A project that leaves the workspace stops being maintained (STR-02).
+    // Lazily required: workspace loads before the structure modules.
+    try {
+      require('./structureLifecycle').detach(projectPath);
+    } catch (err) {
+      console.warn('[frame] could not stop the structure lifecycle worker:', err.message);
+    }
     removeProject(projectPath);
     const projects = getProjects();
     event.sender.send(IPC.WORKSPACE_UPDATED, projects);

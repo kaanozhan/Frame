@@ -12,7 +12,8 @@
  *   detach(projectPath)            stop it (workspace removal, Remove Frame)
  *   disposeAll()                   stop every worker (app shutdown)
  *
- * Workers are keyed by real path, so two routes to one checkout share one
+ * Disabled until `configure({ enabled: true })` — the app does that at
+ * startup. Workers are keyed by real path, so two routes to one checkout share one
  * child. Periodic reconciliation ticks go to every worker through one
  * pollGate interval: hidden windows pause them (freshness then expires
  * honestly) and showing a window ticks immediately. File-change handling
@@ -34,6 +35,9 @@ const PERIODIC_MS = 60000;
 const STOP_GRACE_MS = 3000;
 
 const settings = {
+  // Off until the app turns it on (index.js): library users and tests that
+  // initialize projects must not spawn long-lived children by accident.
+  enabled: false,
   spawn: childProcess.spawn,
   execPath: process.execPath,
   ticker: null, // (fn, ms) → { dispose() } — defaults to pollGate.gatedInterval
@@ -112,6 +116,7 @@ function stopTicksIfIdle() {
  * process cannot be started.
  */
 function attach(projectPath) {
+  if (!settings.enabled) return null;
   const key = realPath(projectPath);
   const existing = workers.get(key);
   if (existing && !existing.closed) return existing;

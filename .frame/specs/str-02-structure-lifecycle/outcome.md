@@ -63,3 +63,11 @@ Added `src/main/structureLifecycle.js` (`attach`, `detach`, `requestReconcile`, 
 _Captured: 2026-09-26 · 3 file change(s)_
 
 ---
+
+## T09 — Wire the supervisor into init, open, Remove Frame and the workspace
+
+`runProjectInit` attaches the worker after the bootstrap (and its initial scan) has finished; `openProjectLayout` asks for a `reopen` reconciliation after tools are refreshed on the non-blocked path, starting the worker if needed; Remove Frame's IPC handler now awaits `detachThenRemoveFrame`, stopping the worker while `.frame/` still exists; `REMOVE_PROJECT_FROM_WORKSPACE` detaches. Deviation: the supervisor is disabled by default and enabled by `index.js` at startup, so tests and library callers that initialize projects never spawn long-lived children by accident; the init/open suites drive it with a fake spawn. The STR-01 "an open refreshes tools only" test was rewritten (D10) to assert the open still writes no map or scan record while sending one reconcile request; a blocked open or re-init starts no worker, and the workspace-removal test runs against a scratch HOME. Files touched: `src/main/frameProject.js`, `src/main/workspace.js`, `src/main/structureLifecycle.js`, `src/main/index.js`, `test/frameProjectInit.test.js`, `test/frameProjectOpen.test.js`, `test/structureLifecycle.test.js`.
+
+_Captured: 2026-09-26 · 7 file change(s)_
+
+---

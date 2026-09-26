@@ -16,6 +16,7 @@ const { normalizeDoneWindow, WINDOW_OPTIONS, BOARDS } = require('../shared/doneW
 const layoutMigration = require('./layoutMigration');
 const workspace = require('./workspace');
 const structureBootstrap = require('./structureBootstrap');
+const structureLifecycle = require('./structureLifecycle');
 const commandStaging = require('./commandStaging');
 const docsManagedBlock = require('../shared/docsManagedBlock');
 const docsHealth = require('../shared/docsHealth');
@@ -327,6 +328,15 @@ async function runProjectInit(projectPath, projectName, options = {}) {
         repairCommand: 'node .frame/bin/update-structure.js --full'
       }
     };
+  }
+
+  // Keep the map current from here on (STR-02). Only after the bootstrap
+  // above has finished, so the initial scan and the worker's first
+  // reconciliation never run at the same time. Non-fatal.
+  try {
+    structureLifecycle.attach(projectPath);
+  } catch (err) {
+    console.warn('[frame] structure lifecycle attach failed (non-fatal):', err.message);
   }
 
   // Stage the spec command templates, report assets and launch helper so a
@@ -1309,6 +1319,19 @@ function recordDocsActivity(written, appended, report) {
  * an AGENTS.md they wrote, not their own hooks. What Frame did not write, it
  * does not remove.
  */
+/**
+ * Remove Frame after its lifecycle worker has stopped, so no child is still
+ * writing under `.frame/runtime/` while the directory is deleted.
+ */
+async function detachThenRemoveFrame(projectPath) {
+  try {
+    await structureLifecycle.detach(projectPath);
+  } catch (err) {
+    console.warn('[frame] could not stop the structure lifecycle worker:', err.message);
+  }
+  return removeFrame(projectPath);
+}
+
 function removeFrame(projectPath) {
   const removed = [];
   const errors = [];
@@ -1526,6 +1549,15 @@ async function openProjectLayout(projectPath, hooks = {}) {
   // may have edited since this project was last open.
   syncClaudeRule(projectPath);
 
+  // Offline edits, branch switches while Frame was closed: ask the lifecycle
+  // worker (STR-02) to reconcile — starting it if needed. The open itself
+  // scans nothing; the blocked-layout return above never gets here.
+  try {
+    structureLifecycle.requestReconcile(projectPath, 'reopen');
+  } catch (err) {
+    console.warn('[frame] structure lifecycle reconcile request failed (non-fatal):', err.message);
+  }
+
   if (migration && migration.ran) await rearmAfterMigration(projectPath, hooks);
 
   return {
@@ -1661,9 +1693,9 @@ function setupIPC(ipcMain) {
     return setDoneWindow(projectPath, board, days);
   });
 
-  ipcMain.handle(IPC.REMOVE_FRAME_FROM_PROJECT, (event, projectPath) => {
+  ipcMain.handle(IPC.REMOVE_FRAME_FROM_PROJECT, async (event, projectPath) => {
     if (!projectPath) return { removed: [], errors: ['no project'] };
-    const result = removeFrame(projectPath);
+    const result = await detachThenRemoveFrame(projectPath);
     event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
     return result;
   });
@@ -1692,6 +1724,7 @@ function setupIPC(ipcMain) {
 
 module.exports = {
   init,
+  detachThenRemoveFrame,
   isFrameProject,
   getDoneWindow,
   setDoneWindow,
