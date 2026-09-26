@@ -31,3 +31,11 @@ Added an optional `precondition()` to `runAttempt` in `scripts/structure-state.j
 _Captured: 2026-09-26 · 2 file change(s)_
 
 ---
+
+## T05 — Add the clock-injected lifecycle scheduler
+
+Added `createScheduler` in `scripts/structure-lifecycle.js`: 300 ms coalescing with a 2 s max wait, serialized jobs with exactly one follow-up for events during a run, coalesced full-hash requests (structural signals, attach/periodic/resume), bounded retries for mixed observations and a busy writer, missed-bound reports for failures, timeouts and over-budget jobs, pause/resume and `idle`/`dispose`. Interpretation of plan A2: a job's consistent result is published even when newer events arrived (the pending epoch keeps readers from calling it fresh) — superseding every job with newer events would publish nothing during continuous editing; only a job older than the applied epoch is superseded. Fake-clock tests include the 1,000-events-over-100-files replay (one job). Files touched: `scripts/structure-lifecycle.js` (new), `test/structureLifecycle.test.js` (new).
+
+_Captured: 2026-09-26 · 2 file change(s)_
+
+---
