@@ -30,6 +30,9 @@
   ],
   "author": "",
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "devDependencies": {
     "@electron/rebuild": "^3.6.0",
     "electron": "^28.0.0",
