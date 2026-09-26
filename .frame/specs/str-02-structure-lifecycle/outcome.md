@@ -71,3 +71,11 @@ _Captured: 2026-09-26 · 3 file change(s)_
 _Captured: 2026-09-26 · 7 file change(s)_
 
 ---
+
+## T10 — Move the readers onto the freshness contract
+
+`find-module`, `check-freshness` and `module-hint` dropped their STR-01 mirrors and import `structure-read`: `find-module` prints the map's freshness when a receipt exists (fresh/dirty/stale/unverified) and keeps its date/`--check` banner only when freshness is unknown; `check-freshness` adds `structure-freshness` findings (dirty, stale, receipt mismatch, missed bound) and skips the date heuristic once freshness is known; `module-hint` stays quiet with reason `map-dirty` while changes are being applied. Beyond the plan: `generationNotes` moved into `structure-read` (it was duplicated in two readers); the worker now persists `missedBound` in `lifecycle.json` (cleared by the next successful receipt) so the freshness checker can report it; `module-hint` guards its import so an older `.frame/bin/` stays quiet instead of failing; the three readers joined bootstrap's `ENTRY_REQUIRES` so they are activated only after `structure-read.js`. The import-pin test was updated as planned (D10). Files touched: `scripts/find-module.js`, `scripts/check-freshness.js`, `scripts/module-hint.js`, `scripts/structure-read.js`, `scripts/structure-lifecycle.js`, `src/main/structureBootstrap.js`, `test/module-hint.test.js`, `test/scriptsProjectRoot.test.js`, `test/structureRead.test.js`, `test/structureBootstrap.test.js`.
+
+_Captured: 2026-09-26 · 10 file change(s)_
+
+---

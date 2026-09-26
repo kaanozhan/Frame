@@ -4206,7 +4206,7 @@
       ],
       "functions": {
         "stageFile": {
-          "line": 85,
+          "line": 89,
           "params": [
             "fsImpl",
             "src",
@@ -4215,7 +4215,7 @@
           "purpose": "Write `src` to `dst` only when the bytes differ, through a temporary file"
         },
         "stageParserScripts": {
-          "line": 118,
+          "line": 122,
           "params": [
             "projectPath",
             "options = {}"
@@ -4223,41 +4223,41 @@
           "purpose": "Stage Frame's bundled scripts into the project's .frame/bin/."
         },
         "copyParserScripts": {
-          "line": 199,
+          "line": 203,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "detectHookSetup": {
-          "line": 213,
+          "line": 217,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "installPreCommitHook": {
-          "line": 280,
+          "line": 284,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook, but only where there is no hook to damage."
         },
         "scanTimeoutMs": {
-          "line": 347,
+          "line": 351,
           "params": [
             "projectPath"
           ]
         },
         "parseEnvelope": {
-          "line": 360,
+          "line": 364,
           "params": [
             "stdout"
           ],
           "purpose": "The single JSON envelope a `--json` run prints, or null."
         },
         "summarizeEnvelope": {
-          "line": 372,
+          "line": 376,
           "params": [
             "envelope",
             "code"
@@ -4265,7 +4265,7 @@
           "purpose": "Map a child result envelope onto the bootstrap's initialScan summary."
         },
         "runInitialFullScan": {
-          "line": 431,
+          "line": 435,
           "params": [
             "projectPath",
             "options = {}"
@@ -4273,7 +4273,7 @@
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 549,
+          "line": 553,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -4281,7 +4281,7 @@
           "purpose": "Top-level bootstrap orchestrator. Called from frameProject.js after the"
         }
       },
-      "sizeBytes": 23953,
+      "sizeBytes": 24135,
       "extraction": {
         "status": "parsed"
       },
@@ -12934,96 +12934,88 @@
         "fs",
         "path",
         "child_process",
+        "structure-read",
         "activity-log"
       ],
       "functions": {
         "resolveProjectRoot": {
-          "line": 24,
+          "line": 26,
           "purpose": "Which project this run is about. `__dirname/..` was wrong for the shipped"
         },
         "resolveMetaPath": {
-          "line": 42,
+          "line": 44,
           "params": [
             "name"
           ],
           "purpose": "Where a meta file lives: `.frame/<name>` for a migrated project, the root"
         },
-        "resolveStructurePath": {
-          "line": 57,
-          "purpose": "STRUCTURE.json's owner: the overlay first; the root copy only when"
-        },
-        "generationNotes": {
-          "line": 78,
-          "params": [
-            "root",
-            "structure"
-          ],
-          "purpose": "Generation-status notes for the map (read-only; never repairs). The map's"
-        },
         "repairCommand": {
-          "line": 101,
+          "line": 52,
           "params": [
             "root"
           ]
         },
         "warn": {
-          "line": 113,
+          "line": 64,
           "params": [
             "check",
             "message"
           ]
         },
         "git": {
-          "line": 117,
+          "line": 68,
           "params": [
             "cmd"
           ]
         },
         "readJSON": {
-          "line": 129,
+          "line": 80,
           "params": [
             "name"
           ]
         },
         "checkPhantomModules": {
-          "line": 141,
+          "line": 92,
           "params": [
             "structure"
           ],
           "purpose": "1. Phantom modules — STRUCTURE.json entries whose file is missing on disk"
         },
         "confirmContentDrift": {
-          "line": 154,
+          "line": 105,
           "purpose": "Ask update-structure.js --check whether a regen would actually change"
         },
         "checkStructureDrift": {
-          "line": 179,
+          "line": 130,
           "params": [
             "structure"
           ],
           "purpose": "2. STRUCTURE drift — the date heuristic (lastUpdated older than the last"
         },
         "checkStructureGeneration": {
-          "line": 197,
+          "line": 148,
           "params": [
             "structure"
           ],
           "purpose": "2b. Generation status — a partial or unverified map, or a latest scan that"
         },
+        "checkStructureFreshness": {
+          "line": 162
+        },
         "checkNotesStaleness": {
-          "line": 207,
+          "line": 182,
           "purpose": "3. Notes staleness — commits landed since the last dated PROJECT_NOTES entry"
         },
         "checkStuckTasks": {
-          "line": 225,
+          "line": 200,
           "purpose": "4. Stuck tasks — in_progress for more than STALE_TASK_DAYS"
         },
         "checkQuickstartStaleness": {
-          "line": 246,
+          "line": 221,
           "purpose": "5. QUICKSTART staleness — commits landed since QUICKSTART.md was last touched"
         }
       },
-      "sizeBytes": 11609,
+      "sizeBytes": 10408,
       "extraction": {
         "status": "parsed"
       },
@@ -13036,10 +13028,8 @@
           "checkStructureGeneration": "0348ebab53cef17e",
           "checkStuckTasks": "1f5e1836816e0dbd",
           "confirmContentDrift": "c2c5c559d55b8faf",
-          "generationNotes": "efd6a4bbd171f44c",
           "resolveMetaPath": "246df3924894a319",
-          "resolveProjectRoot": "bdaf2016db7ccaef",
-          "resolveStructurePath": "f63d3b2fc11bb99f"
+          "resolveProjectRoot": "bdaf2016db7ccaef"
         }
       }
     },
@@ -13050,47 +13040,36 @@
       "depends": [
         "fs",
         "path",
-        "child_process"
+        "child_process",
+        "structure-read"
       ],
       "functions": {
         "resolveProjectRoot": {
-          "line": 24,
+          "line": 26,
           "purpose": "Which project this run is about. `__dirname/..` was wrong for the shipped"
         },
-        "resolveStructurePath": {
-          "line": 42,
-          "purpose": "STRUCTURE.json's owner: the overlay first; the root copy only when"
-        },
-        "generationNotes": {
-          "line": 63,
-          "params": [
-            "root",
-            "structure"
-          ],
-          "purpose": "Generation-status notes for the map (read-only; never repairs). The map's"
-        },
         "repairCommand": {
-          "line": 86,
+          "line": 37,
           "params": [
             "root"
           ]
         },
         "loadStructure": {
-          "line": 95
+          "line": 46
         },
         "loadIntentMap": {
-          "line": 108,
+          "line": 59,
           "purpose": "Load the curated concept map (synonyms live here). Sits next to this"
         },
         "stalenessBanner": {
-          "line": 125,
+          "line": 76,
           "params": [
             "structure"
           ],
           "purpose": "One-line warning when STRUCTURE.json is stale. The date comparison is a"
         },
         "searchIntentIndex": {
-          "line": 159,
+          "line": 110,
           "params": [
             "structure",
             "keyword"
@@ -13098,14 +13077,14 @@
           "purpose": "Search intentIndex for matching features"
         },
         "listFeatures": {
-          "line": 227,
+          "line": 178,
           "params": [
             "structure"
           ],
           "purpose": "List all features in intentIndex"
         },
         "printResults": {
-          "line": 245,
+          "line": 196,
           "params": [
             "structure",
             "results",
@@ -13114,18 +13093,16 @@
           "purpose": "Format and print results"
         }
       },
-      "sizeBytes": 10528,
+      "sizeBytes": 9251,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "purposes": {
-          "generationNotes": "efd6a4bbd171f44c",
           "listFeatures": "abee8c0e66184dfd",
           "loadIntentMap": "97c2e373d690a85c",
           "printResults": "92ba06a56754bee9",
           "resolveProjectRoot": "bdaf2016db7ccaef",
-          "resolveStructurePath": "f63d3b2fc11bb99f",
           "searchIntentIndex": "331ec57f0459ec19",
           "stalenessBanner": "ef7f87ea90f30ceb"
         }
@@ -13138,6 +13115,7 @@
       "depends": [
         "fs",
         "path",
+        "structure-read",
         "activity-log",
         "toolVocabulary"
       ],
@@ -13163,35 +13141,28 @@
             "hookCwd"
           ]
         },
-        "resolveStructurePath": {
-          "line": 80,
-          "params": [
-            "root"
-          ],
-          "purpose": "STRUCTURE.json's owner: the overlay first; the root copy only when"
-        },
         "finderCliPath": {
-          "line": 95,
+          "line": 81,
           "params": [
             "root"
           ]
         },
         "stateFile": {
-          "line": 103,
+          "line": 89,
           "params": [
             "root",
             "sessionId"
           ]
         },
         "loadState": {
-          "line": 108,
+          "line": 94,
           "params": [
             "root",
             "sessionId"
           ]
         },
         "saveState": {
-          "line": 113,
+          "line": 99,
           "params": [
             "root",
             "sessionId",
@@ -13199,23 +13170,23 @@
           ]
         },
         "cleanupState": {
-          "line": 121,
+          "line": 107,
           "params": [
             "root"
           ]
         },
         "setHookCli": {
-          "line": 167,
+          "line": 153,
           "params": [
             "payload"
           ],
           "purpose": "Called once, from the entry point, with the parsed payload."
         },
         "hookHost": {
-          "line": 171
+          "line": 157
         },
         "note": {
-          "line": 175,
+          "line": 161,
           "params": [
             "root",
             "ev",
@@ -13223,7 +13194,7 @@
           ]
         },
         "quiet": {
-          "line": 191,
+          "line": 177,
           "params": [
             "root",
             "reason"
@@ -13231,50 +13202,50 @@
           "purpose": "Record a quiet path and return, so call sites stay single-expression."
         },
         "emit": {
-          "line": 195,
+          "line": 181,
           "params": [
             "context"
           ]
         },
         "searchSegments": {
-          "line": 217,
+          "line": 203,
           "params": [
             "cmd"
           ]
         },
         "extractPattern": {
-          "line": 236,
+          "line": 222,
           "params": [
             "seg"
           ],
           "purpose": "Pull the pattern operand out of one search segment (already known to start"
         },
         "candidates": {
-          "line": 252,
+          "line": 238,
           "params": [
             "raw"
           ],
           "purpose": "A raw pattern (regex, glob, or plain word) → the concept words worth"
         },
         "keywordsFrom": {
-          "line": 263,
+          "line": 249,
           "params": [
             "toolName",
             "input"
           ]
         },
         "loadIntentMap": {
-          "line": 300
+          "line": 286
         },
         "lookup": {
-          "line": 307,
+          "line": 293,
           "params": [
             "structure",
             "keyword"
           ]
         },
         "render": {
-          "line": 329,
+          "line": 315,
           "params": [
             "root",
             "structure",
@@ -13283,13 +13254,13 @@
           ]
         },
         "searchMode": {
-          "line": 354,
+          "line": 340,
           "params": [
             "input"
           ]
         }
       },
-      "sizeBytes": 16184,
+      "sizeBytes": 15867,
       "extraction": {
         "status": "parsed"
       },
@@ -13298,7 +13269,6 @@
           "candidates": "a9ed75e60ec11d73",
           "extractPattern": "2c7cae15c16d94d2",
           "quiet": "3e8f4a1504407442",
-          "resolveStructurePath": "f63d3b2fc11bb99f",
           "setHookCli": "c07ecdee8595a6cf"
         }
       }
@@ -13959,6 +13929,321 @@
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
+      }
+    },
+    "scripts/structure-lifecycle": {
+      "file": "scripts/structure-lifecycle.js",
+      "description": "",
+      "exports": [
+        "createScheduler",
+        "SCHEDULER_DEFAULTS",
+        "reconcile",
+        "startWorker",
+        "createWatcher",
+        "classify",
+        "resolveGitDirs",
+        "readLifecycle",
+        "writeLifecycle",
+        "acquireOwner",
+        "releaseOwner",
+        "PERIODIC_MS",
+        "MAX_DIRECTORY_WATCHERS"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "structure-discovery",
+        "structure-generation",
+        "structure-state",
+        "structure-snapshot",
+        "structure-read"
+      ],
+      "functions": {
+        "createScheduler": {
+          "line": 63,
+          "params": [
+            "options"
+          ],
+          "purpose": "createScheduler({ clock, run, onReport, ...DEFAULTS })"
+        },
+        "helpers": {
+          "line": 242,
+          "purpose": "Loaded lazily so the scheduler above stays importable on its own."
+        },
+        "sha256": {
+          "line": 261,
+          "params": [
+            "data"
+          ]
+        },
+        "runtimeDir": {
+          "line": 265,
+          "params": [
+            "root"
+          ]
+        },
+        "writeJsonAtomic": {
+          "line": 269,
+          "params": [
+            "file",
+            "value"
+          ]
+        },
+        "readJson": {
+          "line": 276,
+          "params": [
+            "file"
+          ]
+        },
+        "readLifecycle": {
+          "line": 286,
+          "params": [
+            "root"
+          ]
+        },
+        "writeLifecycle": {
+          "line": 294,
+          "params": [
+            "root",
+            "patch"
+          ],
+          "purpose": "Merge `patch` into lifecycle.json. Only the worker writes it; the receipt"
+        },
+        "curationDigest": {
+          "line": 303
+        },
+        "projectBlock": {
+          "line": 311,
+          "params": [
+            "root"
+          ]
+        },
+        "reconcile": {
+          "line": 326,
+          "params": [
+            "root",
+            "job = {}"
+          ],
+          "purpose": "One full reconciliation of the working tree: discover, observe content"
+        },
+        "ownerPaths": {
+          "line": 424,
+          "params": [
+            "root"
+          ]
+        },
+        "acquireOwner": {
+          "line": 429,
+          "params": [
+            "root",
+            "options = {}"
+          ],
+          "purpose": "One coordinator per checkout; reclaimed only from a demonstrably dead owner."
+        },
+        "releaseOwner": {
+          "line": 433,
+          "params": [
+            "root",
+            "token"
+          ]
+        },
+        "resolveGitDirs": {
+          "line": 440,
+          "params": [
+            "root"
+          ],
+          "purpose": "Git directories of a checkout, from `.git` or a `gitdir:` file. No Git process."
+        },
+        "classify": {
+          "line": 460,
+          "params": [
+            "rel",
+            "ownedRootMap"
+          ],
+          "purpose": "Classify one notification (root-relative POSIX path, or null) into a"
+        },
+        "ownsRootMap": {
+          "line": 474,
+          "params": [
+            "root"
+          ]
+        },
+        "createWatcher": {
+          "line": 485,
+          "params": [
+            "root",
+            "onEvent",
+            "options = {}"
+          ],
+          "purpose": "Watch a checkout. Recursive watching where the runtime supports it,"
+        },
+        "directoriesOf": {
+          "line": 586,
+          "params": [
+            "root"
+          ],
+          "purpose": "Directories to watch in per-directory mode: parents of eligible files."
+        },
+        "startWorker": {
+          "line": 618,
+          "params": [
+            "root",
+            "options = {}"
+          ],
+          "purpose": "Run the lifecycle for one checkout until stopped."
+        },
+        "resolveProjectRoot": {
+          "line": 732
+        },
+        "writeLine": {
+          "line": 741,
+          "params": [
+            "stream",
+            "value"
+          ]
+        },
+        "runOnce": {
+          "line": 745,
+          "params": [
+            "root",
+            "json"
+          ]
+        },
+        "runLongLived": {
+          "line": 767,
+          "params": [
+            "root",
+            "supervised"
+          ],
+          "purpose": "--watch: foreground coordinator with its own timer until SIGINT/SIGTERM."
+        },
+        "main": {
+          "line": 809
+        }
+      },
+      "sizeBytes": 28642,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "acquireOwner": "057c37550ecade5a",
+          "classify": "fab506a64aaaa26c",
+          "createScheduler": "2cb19877db0d80f1",
+          "createWatcher": "7719f8c650334775",
+          "directoriesOf": "6a1aae1a9fcf589e",
+          "helpers": "70afdad8c9208ee6",
+          "reconcile": "eb06502300c7b411",
+          "resolveGitDirs": "bc24c5fffc5a0032",
+          "runLongLived": "b1f7d3c740156dce",
+          "startWorker": "d32dcd9da1f83cb2",
+          "writeLifecycle": "8b41315bf3542a50"
+        }
+      }
+    },
+    "scripts/structure-read": {
+      "file": "scripts/structure-read.js",
+      "description": "STRUCTURE read contract — how current is the map, and which map is it?",
+      "exports": [
+        "readDescriptor",
+        "generationNotes",
+        "readStructure",
+        "resolveStructurePath",
+        "artifactSignature",
+        "lifecyclePath",
+        "DEFAULT_LEASE_MS"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "crypto"
+      ],
+      "functions": {
+        "readJson": {
+          "line": 50,
+          "params": [
+            "file"
+          ]
+        },
+        "isPlainObject": {
+          "line": 58,
+          "params": [
+            "value"
+          ]
+        },
+        "resolveStructurePath": {
+          "line": 63,
+          "params": [
+            "root"
+          ],
+          "purpose": "The owned STRUCTURE.json path (overlay first; root only when recorded)."
+        },
+        "lifecyclePath": {
+          "line": 74,
+          "params": [
+            "root"
+          ]
+        },
+        "artifactSignature": {
+          "line": 79,
+          "params": [
+            "stat"
+          ],
+          "purpose": "The comparable identity of a file on disk (what a writer records)."
+        },
+        "sameSignature": {
+          "line": 83,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "nowMs": {
+          "line": 88,
+          "params": [
+            "options"
+          ]
+        },
+        "readDescriptor": {
+          "line": 96,
+          "params": [
+            "root",
+            "options = {}"
+          ],
+          "purpose": "Status of the owned map without parsing it."
+        },
+        "readStructure": {
+          "line": 171,
+          "params": [
+            "root",
+            "options = {}"
+          ],
+          "purpose": "The parsed map plus its status. A map that cannot be parsed is returned as"
+        },
+        "generationNotes": {
+          "line": 216,
+          "params": [
+            "root",
+            "structure"
+          ],
+          "purpose": "Generation-status notes for a parsed map (STR-01's contract): whether the"
+        }
+      },
+      "sizeBytes": 9039,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "5f2cba1c79968e6f",
+        "purposes": {
+          "artifactSignature": "c22bf116c2ff263f",
+          "generationNotes": "3c8d4d4272992f05",
+          "readDescriptor": "8ad3b754162c00c3",
+          "readStructure": "fbe6bcce1cf41386",
+          "resolveStructurePath": "e992531cd7f94ef1"
+        }
       }
     },
     "scripts/structure-state": {
@@ -15630,7 +15915,8 @@
         "fs",
         "os",
         "path",
-        "child_process"
+        "child_process",
+        "crypto"
       ],
       "functions": {
         "runHook": {
@@ -15645,9 +15931,18 @@
           "params": [
             "structure = STRUCTURE"
           ]
+        },
+        "withReceipt": {
+          "line": 223,
+          "params": [
+            "root",
+            "{ dirty = []",
+            "epoch = { requested",
+            "applied"
+          ]
         }
       },
-      "sizeBytes": 9378,
+      "sizeBytes": 11651,
       "extraction": {
         "status": "parsed"
       },
@@ -15740,7 +16035,8 @@
         "child_process",
         "src/main/structureBootstrap",
         "src/shared/frameTemplates",
-        "scripts/structure-state"
+        "scripts/structure-state",
+        "scripts/structure-read"
       ],
       "functions": {
         "run": {
@@ -15765,9 +16061,15 @@
             "dir"
           ],
           "purpose": "Which copy each reader used: find-module prints files, freshness flags phantoms."
+        },
+        "lifecycleState": {
+          "line": 454,
+          "params": [
+            "dir"
+          ]
         }
       },
-      "sizeBytes": 23751,
+      "sizeBytes": 28961,
       "extraction": {
         "status": "parsed"
       },
@@ -15833,7 +16135,7 @@
           "purpose": "The last parser generation before STR-01, read from history."
         }
       },
-      "sizeBytes": 17260,
+      "sizeBytes": 17826,
       "extraction": {
         "status": "parsed"
       },
@@ -16073,6 +16375,48 @@
       },
       "provenance": {
         "description": "f92a3b8724568995"
+      }
+    },
+    "test/structureRead.test": {
+      "file": "test/structureRead.test.js",
+      "description": "structure-read tests (STR-02 T02): the freshness contract every consumer",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "scripts/structure-read"
+      ],
+      "functions": {
+        "writeMap": {
+          "line": 31,
+          "params": [
+            "content = MAP"
+          ]
+        },
+        "writeReceipt": {
+          "line": 36,
+          "params": [
+            "{ receipt = {}",
+            "epoch = { requested",
+            "applied",
+            "dirty = [] } = {}"
+          ],
+          "purpose": "A receipt matching the map currently on disk, with optional overrides."
+        }
+      },
+      "sizeBytes": 8866,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cbaa9e4c2b6bb6c1",
+        "purposes": {
+          "writeReceipt": "763c201ec8132000"
+        }
       }
     },
     "test/structureState.test": {
@@ -17909,13 +18253,13 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 26,
+        "parsed": 29,
         "unsupported": 5,
         "partial": 0
       }
     },
     "counts": {
-      "indexedFiles": 186,
+      "indexedFiles": 189,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -17923,6 +18267,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "60c745aafffb196b1d7b175352e10cb08474a3aaea2e90554b602e885212b923"
+    "revision": "0607c9def5a771acc25824e84aa70a7194b155cd5f36a926e85d4d17dc629010"
   }
 }

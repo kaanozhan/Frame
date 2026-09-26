@@ -199,3 +199,17 @@ test('reading writes nothing and the module uses built-ins only', () => {
   const requires = [...source.matchAll(/require\(\s*['"]([^'"]+)['"]\s*\)/g)].map((m) => m[1]).sort();
   assert.deepEqual(requires, ['crypto', 'fs', 'path']);
 });
+
+test('a missed bound is exposed; generation notes come from the map and the attempt record', () => {
+  const { generationNotes } = require('../scripts/structure-read');
+  writeMap();
+  writeReceipt();
+  const state = JSON.parse(fs.readFileSync(lifecyclePath(root), 'utf8'));
+  state.missedBound = { reason: 'changing-files', at: '2026-09-26T12:00:00.000Z' };
+  fs.writeFileSync(lifecyclePath(root), JSON.stringify(state));
+  assert.deepEqual(readDescriptor(root, at(0)).missedBound, { reason: 'changing-files', at: '2026-09-26T12:00:00.000Z' });
+
+  assert.deepEqual(generationNotes(root, { generation: { inventory: { coverage: 'partial', reasons: ['timeout'] } } }), ['covers only part of the project (timeout)']);
+  fs.writeFileSync(path.join(root, '.frame', 'runtime', 'structure', 'scan.json'), JSON.stringify({ state: 'failed', reason: 'E_BOOM' }));
+  assert.deepEqual(generationNotes(root, MAP), ['is from an earlier scan — the latest one failed (E_BOOM)']);
+});

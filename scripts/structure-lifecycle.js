@@ -645,6 +645,13 @@ function startWorker(root, options = {}) {
     clock: { now: Date.now, setTimeout, clearTimeout },
     onReport: (r) => {
       report(r);
+      if (r.type === 'missed-bound') {
+        try {
+          writeLifecycle(root, { missedBound: { reason: r.reason, at: new Date().toISOString() } });
+        } catch (e) {
+          /* ignore */
+        }
+      }
       persistPending();
     },
     run: async (job) => {
@@ -656,6 +663,7 @@ function startWorker(root, options = {}) {
           writeLifecycle(root, {
             epoch: { requested: status.requestedEpoch, applied: job.epoch },
             dirty: pendingAfter ? status.dirty : [],
+            missedBound: null,
             receipt: result.receipt
           });
           persisted = pendingAfter ? persisted : 'clean';

@@ -28,6 +28,7 @@
  *   { version: 1, checkout,
  *     epoch: { requested, applied },     pending when requested > applied
  *     dirty: [reason, …],                observed, not yet applied
+ *     missedBound: { reason, at } | null last update that missed its bound
  *     receipt: { view: 'working-tree', revision, artifactDigest,
  *                artifactStat: { ino, size, mtimeMs, ctimeMs },
  *                sourceDigest, policyDigest, curationDigest,
@@ -103,7 +104,8 @@ function readDescriptor(root, options = {}) {
     freshness: 'unknown',
     observedAt: null,
     reasons: [],
-    artifact: null
+    artifact: null,
+    missedBound: null
   };
 
   let stat;
@@ -116,6 +118,7 @@ function readDescriptor(root, options = {}) {
   }
 
   const state = readJson(lifecyclePath(root));
+  if (state && isPlainObject(state.missedBound)) out.missedBound = state.missedBound;
   const receipt = state && isPlainObject(state.receipt) ? state.receipt : null;
   if (!receipt) {
     out.reasons.push('no-receipt');
@@ -205,8 +208,32 @@ function readStructure(root, options = {}) {
   return out;
 }
 
+/**
+ * Generation-status notes for a parsed map (STR-01's contract): whether the
+ * map covers the whole project, and whether the latest scan attempt
+ * replaced it. A missing attempt record (fresh clone) says nothing.
+ */
+function generationNotes(root, structure) {
+  const notes = [];
+  const inventory = structure && structure.generation && structure.generation.inventory;
+  const reasons = inventory && Array.isArray(inventory.reasons) ? inventory.reasons : [];
+  if (inventory && inventory.coverage === 'partial') {
+    notes.push(`covers only part of the project (${reasons.join(', ') || 'incomplete scan'})`);
+  } else if (inventory && inventory.coverage === 'unknown' && reasons.includes('no-baseline')) {
+    notes.push('was built from changed files only and has not been verified by a full scan');
+  }
+  const attempt = readJson(path.join(root, '.frame', 'runtime', 'structure', 'scan.json'));
+  if (attempt && attempt.state === 'interrupted' && attempt.published && attempt.acknowledged === false) {
+    notes.push('comes from a scan that was interrupted right after publishing (unconfirmed)');
+  } else if (attempt && (attempt.state === 'failed' || attempt.state === 'interrupted' || (attempt.state === 'partial' && attempt.retainedPrevious))) {
+    notes.push(`is from an earlier scan — the latest one ${attempt.state === 'partial' ? 'was incomplete' : attempt.state}${attempt.reason ? ` (${attempt.reason})` : ''}`);
+  }
+  return notes;
+}
+
 module.exports = {
   readDescriptor,
+  generationNotes,
   readStructure,
   resolveStructurePath,
   artifactSignature,

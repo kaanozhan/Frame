@@ -364,3 +364,15 @@ test('a missing lifecycle helper withholds only the lifecycle entry', () => {
     fs.rmSync(source, { recursive: true, force: true });
   }
 });
+
+test('freshness readers are activated only after the read contract they import', () => {
+  const source = scriptsCopy();
+  try {
+    fs.rmSync(path.join(source, 'structure-read.js'));
+    const report = stageParserScripts(project, { sourceDir: source });
+    assert.deepEqual(report.unavailable.sort(), ['check-freshness.js', 'find-module.js', 'module-hint.js', 'structure-lifecycle.js']);
+    assert.ok(fs.existsSync(bin('update-structure.js')), 'the parser itself does not need it');
+  } finally {
+    fs.rmSync(source, { recursive: true, force: true });
+  }
+});

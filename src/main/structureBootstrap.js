@@ -68,7 +68,11 @@ const LIFECYCLE_REQUIRES = [...PARSER_REQUIRES, 'structure-snapshot.js', 'struct
 // Entry scripts activated only when every helper they need staged.
 const ENTRY_REQUIRES = {
   'update-structure.js': PARSER_REQUIRES,
-  'structure-lifecycle.js': LIFECYCLE_REQUIRES
+  'structure-lifecycle.js': LIFECYCLE_REQUIRES,
+  // Readers of the freshness contract (STR-02).
+  'find-module.js': ['structure-read.js'],
+  'check-freshness.js': ['structure-read.js'],
+  'module-hint.js': ['structure-read.js']
 };
 // Historical name list, kept for readers of this module's exports.
 const PARSER_FILES = [...ENTRY_FILES, 'intent-map.json', ...HELPER_FILES];

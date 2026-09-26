@@ -210,7 +210,52 @@ test('an unowned root STRUCTURE.json is never read as Frame\'s map', () => {
 test('the hook never loads builder or state code', () => {
   const source = fs.readFileSync(HOOK, 'utf8');
   const requires = [...source.matchAll(/require\(\s*['"]([^'"]+)['"]\s*\)/g)].map((m) => m[1]);
-  // only the long-standing record/vocabulary helpers; never a builder
-  assert.deepEqual(requires.filter((r) => r.startsWith('.')).sort(), ['./activity-log', './toolVocabulary']);
-  assert.ok(!requires.some((r) => /structure-|update-structure|child_process/.test(r)), requires.join(', '));
+  // the long-standing record/vocabulary helpers plus the read-only freshness
+  // contract (STR-02 D10); never a builder, the state writer or a process
+  assert.deepEqual(requires.filter((r) => r.startsWith('.')).sort(), ['./activity-log', './structure-read', './toolVocabulary']);
+  assert.ok(!requires.some((r) => /structure-(discovery|generation|state|snapshot|lifecycle)|update-structure|child_process/.test(r)), requires.join(', '));
+});
+
+// ─── STR-02: freshness ────────────────────────────────────
+
+const crypto = require('crypto');
+
+function withReceipt(root, { dirty = [], epoch = { requested: 1, applied: 1 } } = {}) {
+  const map = path.join(root, '.frame', 'STRUCTURE.json');
+  const bytes = fs.readFileSync(map);
+  const stat = fs.lstatSync(map);
+  fs.mkdirSync(path.join(root, '.frame', 'runtime', 'structure'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.frame', 'runtime', 'structure', 'lifecycle.json'), JSON.stringify({
+    version: 1, epoch, dirty,
+    receipt: {
+      view: 'working-tree', revision: 'r', artifactDigest: crypto.createHash('sha256').update(bytes).digest('hex'),
+      artifactStat: { ino: stat.ino, size: stat.size, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs },
+      observedAt: new Date().toISOString(), leaseMs: 90000, coverage: 'complete', extraction: 'complete'
+    }
+  }));
+}
+
+test('a map with changes still being applied gets no hint', () => {
+  const root = mkProject();
+  withReceipt(root, { dirty: ['file-event'], epoch: { requested: 2, applied: 1 } });
+  assert.equal(runHook(bash(root, 'grep -rn github src/')), null);
+});
+
+test('a fresh map, and a map with no receipt yet, still answer', () => {
+  const fresh = mkProject();
+  withReceipt(fresh);
+  assert.match(runHook(bash(fresh, 'grep -rn github src/')).hookSpecificOutput.additionalContext, /githubManager/);
+  const unknown = mkProject();
+  assert.match(runHook(bash(unknown, 'grep -rn github src/')).hookSpecificOutput.additionalContext, /githubManager/);
+});
+
+test('a hook copied without the read contract stays quiet instead of failing', () => {
+  const root = mkProject();
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-hint-bin-'));
+  fs.copyFileSync(HOOK, path.join(bin, 'module-hint.js'));
+  const out = execFileSync('node', [path.join(bin, 'module-hint.js'), 'search'], {
+    input: JSON.stringify(bash(root, 'grep -rn github src/')), encoding: 'utf8'
+  });
+  assert.equal(out.trim(), '');
+  fs.rmSync(bin, { recursive: true, force: true });
 });
