@@ -65,6 +65,7 @@ Frame does a lot of work on its own — watching files, reconciling spec phases,
 - **Location:** `~/.frame/activity/<project>/activity.jsonl`, outside your repository — Frame never edits your project's `.gitignore`, so keeping it in the repo would dirty your `git status`. Work that belongs to no project goes to an `app` bucket.
 - **Retention:** the live file rotates at 2 MB into a single archived generation, and any project's record untouched for 7 days is deleted.
 - **What a line contains:** an event name, a timestamp, and low-cardinality fields — counts, durations, enum reason codes, a spec slug, and project-relative file paths. There is **no free-form text field**, so no prompt, no file content, no command output and no error message can be recorded. Values still pass through the same redaction the log file uses.
+- **Structure map upkeep:** while Frame keeps a project's `STRUCTURE.json` current, the record notes when that upkeep starts and stops, each update that changed the map (a reason code such as "files changed" or "periodic check", the duration, how many files changed, and whether coverage was complete), and any update that missed its time bound (a reason code). No file names, paths or contents are recorded for these. A module-map hint skipped because the map was mid-update is recorded with the reason code `map-dirty`.
 - **Turning it off:** delete the directory at any time. Frame recreates only what happens next, and nothing depends on the old contents.
 
 ## Crash dumps (local only)

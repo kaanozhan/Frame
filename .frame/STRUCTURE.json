@@ -16,6 +16,20 @@
         "reason": "no-extractor"
       }
     },
+    "PRIVACY": {
+      "file": "PRIVACY.md",
+      "description": "Privacy",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 6928,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "54a57c3147c49f33"
+      }
+    },
     "main/activityLog": {
       "file": "src/main/activityLog.js",
       "description": "Activity log — the main-process side.",
@@ -13958,7 +13972,8 @@
         "structure-generation",
         "structure-state",
         "structure-snapshot",
-        "structure-read"
+        "structure-read",
+        "activity-log"
       ],
       "functions": {
         "createScheduler": {
@@ -13969,42 +13984,42 @@
           "purpose": "createScheduler({ clock, run, onReport, ...DEFAULTS })"
         },
         "helpers": {
-          "line": 242,
+          "line": 246,
           "purpose": "Loaded lazily so the scheduler above stays importable on its own."
         },
         "sha256": {
-          "line": 261,
+          "line": 265,
           "params": [
             "data"
           ]
         },
         "runtimeDir": {
-          "line": 265,
+          "line": 269,
           "params": [
             "root"
           ]
         },
         "writeJsonAtomic": {
-          "line": 269,
+          "line": 273,
           "params": [
             "file",
             "value"
           ]
         },
         "readJson": {
-          "line": 276,
+          "line": 280,
           "params": [
             "file"
           ]
         },
         "readLifecycle": {
-          "line": 286,
+          "line": 290,
           "params": [
             "root"
           ]
         },
         "writeLifecycle": {
-          "line": 294,
+          "line": 298,
           "params": [
             "root",
             "patch"
@@ -14012,16 +14027,16 @@
           "purpose": "Merge `patch` into lifecycle.json. Only the worker writes it; the receipt"
         },
         "curationDigest": {
-          "line": 303
+          "line": 307
         },
         "projectBlock": {
-          "line": 311,
+          "line": 315,
           "params": [
             "root"
           ]
         },
         "reconcile": {
-          "line": 326,
+          "line": 330,
           "params": [
             "root",
             "job = {}"
@@ -14029,13 +14044,13 @@
           "purpose": "One full reconciliation of the working tree: discover, observe content"
         },
         "ownerPaths": {
-          "line": 424,
+          "line": 428,
           "params": [
             "root"
           ]
         },
         "acquireOwner": {
-          "line": 429,
+          "line": 433,
           "params": [
             "root",
             "options = {}"
@@ -14043,21 +14058,21 @@
           "purpose": "One coordinator per checkout; reclaimed only from a demonstrably dead owner."
         },
         "releaseOwner": {
-          "line": 433,
+          "line": 437,
           "params": [
             "root",
             "token"
           ]
         },
         "resolveGitDirs": {
-          "line": 440,
+          "line": 444,
           "params": [
             "root"
           ],
           "purpose": "Git directories of a checkout, from `.git` or a `gitdir:` file. No Git process."
         },
         "classify": {
-          "line": 460,
+          "line": 464,
           "params": [
             "rel",
             "ownedRootMap"
@@ -14065,13 +14080,13 @@
           "purpose": "Classify one notification (root-relative POSIX path, or null) into a"
         },
         "ownsRootMap": {
-          "line": 474,
+          "line": 478,
           "params": [
             "root"
           ]
         },
         "createWatcher": {
-          "line": 485,
+          "line": 489,
           "params": [
             "root",
             "onEvent",
@@ -14080,14 +14095,14 @@
           "purpose": "Watch a checkout. Recursive watching where the runtime supports it,"
         },
         "directoriesOf": {
-          "line": 586,
+          "line": 590,
           "params": [
             "root"
           ],
           "purpose": "Directories to watch in per-directory mode: parents of eligible files."
         },
         "startWorker": {
-          "line": 618,
+          "line": 622,
           "params": [
             "root",
             "options = {}"
@@ -14095,24 +14110,24 @@
           "purpose": "Run the lifecycle for one checkout until stopped."
         },
         "resolveProjectRoot": {
-          "line": 732
+          "line": 764
         },
         "writeLine": {
-          "line": 741,
+          "line": 773,
           "params": [
             "stream",
             "value"
           ]
         },
         "runOnce": {
-          "line": 745,
+          "line": 777,
           "params": [
             "root",
             "json"
           ]
         },
         "runLongLived": {
-          "line": 767,
+          "line": 799,
           "params": [
             "root",
             "supervised"
@@ -14120,10 +14135,10 @@
           "purpose": "--watch: foreground coordinator with its own timer until SIGINT/SIGTERM."
         },
         "main": {
-          "line": 809
+          "line": 841
         }
       },
-      "sizeBytes": 28642,
+      "sizeBytes": 29952,
       "extraction": {
         "status": "parsed"
       },
@@ -14652,6 +14667,8 @@
         "WATCHERS",
         "POLLERS",
         "HINT_REASONS",
+        "LIFECYCLE_REASONS",
+        "MISSED_BOUND_REASONS",
         "HOSTS",
         "isRegistered",
         "kindOf",
@@ -14663,32 +14680,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 358,
+          "line": 420,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 362,
+          "line": 424,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 366,
+          "line": 428,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 370,
+          "line": 432,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 393,
+          "line": 455,
           "params": [
             "name",
             "fields"
@@ -14696,7 +14713,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 410,
+          "line": 472,
           "params": [
             "name",
             "fields"
@@ -14704,12 +14721,24 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 431,
+          "line": 493,
           "params": [
             "name",
             "fields"
           ],
           "purpose": "Build the record the append contract writes: the validated fields plus the"
+        }
+      },
+      "sizeBytes": 22204,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "db03beda6930a8ec",
+        "purposes": {
+          "buildRecord": "2518074af8b460fe",
+          "formatLabel": "a461593a6caf854b",
+          "validateEvent": "d1d14b24d13d08ec"
         }
       }
     },
@@ -15747,6 +15776,24 @@
         }
       }
     },
+    "test/activityEvents.test": {
+      "file": "test/activityEvents.test.js",
+      "description": "Activity event registry — the gate between a call site and the record.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/activityEvents"
+      ],
+      "functions": {},
+      "sizeBytes": 11100,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "2d69c798aa2db56f"
+      }
+    },
     "test/fixtures/js-src-app/STRUCTURE.json": {
       "file": "test/fixtures/js-src-app/STRUCTURE.json",
       "description": "",
@@ -16272,7 +16319,8 @@
         "scripts/structure-read",
         "scripts/structure-state",
         "src/main/structureLifecycle",
-        "src/main/structureBootstrap"
+        "src/main/structureBootstrap",
+        "scripts/activity-log"
       ],
       "functions": {
         "fakeClock": {
@@ -16336,7 +16384,7 @@
           ]
         }
       },
-      "sizeBytes": 31446,
+      "sizeBytes": 33299,
       "extraction": {
         "status": "parsed"
       },
@@ -18253,13 +18301,13 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 29,
+        "parsed": 32,
         "unsupported": 5,
         "partial": 0
       }
     },
     "counts": {
-      "indexedFiles": 189,
+      "indexedFiles": 191,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -18267,6 +18315,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "0607c9def5a771acc25824e84aa70a7194b155cd5f36a926e85d4d17dc629010"
+    "revision": "af015c0d63a24a86761e60f1862c6593e9216ab8b48cbedea0489d3ee9f90925"
   }
 }

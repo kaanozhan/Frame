@@ -79,3 +79,11 @@ _Captured: 2026-09-26 · 7 file change(s)_
 _Captured: 2026-09-26 · 10 file change(s)_
 
 ---
+
+## T11 — Register lifecycle activity and document it
+
+Registered `structure.reconciled` (host, reason, ms, changes, coverage) and `structure.lifecycle` (host, state attached/detached/missed-bound, reason) plus the `map-dirty` hint reason in `src/shared/activityEvents.js`, and documented the upkeep fields in `PRIVACY.md`. Deviations: the worker writes these records itself through the shipped `activity-log.js` into its own project's bucket (the app's `activityLog.record` can only file under the project on screen, which would misattribute background projects); periodic checks that changed nothing are not recorded (one per minute per project would bury the panel); `paused`/`resumed` states were dropped because nothing pauses the workers — only periodic ticks are gated, and pollGate already records those pauses. Files touched: `src/shared/activityEvents.js`, `PRIVACY.md`, `scripts/structure-lifecycle.js`, `test/activityEvents.test.js`, `test/structureLifecycle.test.js`.
+
+_Captured: 2026-09-26 · 5 file change(s)_
+
+---

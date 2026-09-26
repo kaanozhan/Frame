@@ -159,7 +159,11 @@ function createScheduler(options) {
       if (job.epoch > state.appliedEpoch) state.appliedEpoch = job.epoch;
       if (state.appliedEpoch >= state.requestedEpoch) state.dirty.clear();
     }
-    report({ type: 'job', epoch: job.epoch, fullHash: job.fullHash, status, ms: duration, reasons: job.reasons });
+    report({
+      type: 'job', epoch: job.epoch, fullHash: job.fullHash, status, ms: duration, reasons: job.reasons,
+      ...(result && typeof result.changed === 'number' ? { changes: result.changed + (result.removed || 0) } : {}),
+      ...(result && result.receipt ? { coverage: result.receipt.coverage } : {})
+    });
 
     if (APPLIED.has(status)) {
       state.retries = 0;
@@ -620,6 +624,23 @@ function startWorker(root, options = {}) {
   if (!owner.ok) return { ok: false, reason: owner.reason, owner: owner.owner };
 
   const report = typeof options.onReport === 'function' ? options.onReport : () => {};
+  // Activity is written by the worker into its own project's record, so it
+  // is attributed correctly whichever project the app has on screen.
+  // Guarded: an older .frame/bin generation may lack the module.
+  let activity = null;
+  try {
+    activity = require('./activity-log');
+  } catch (e) {
+    activity = null;
+  }
+  const noteActivity = (ev, fields) => {
+    if (!activity) return;
+    try {
+      activity.appendSync(activity.projectKey(root), { ev, kind: 'action', host: options.supervised ? 'app' : 'cli', ...fields });
+    } catch (e) {
+      /* the record is never worth a failed update */
+    }
+  };
   let stopped = false;
   let persisted = '';
   let watcher = null;
@@ -645,7 +666,16 @@ function startWorker(root, options = {}) {
     clock: { now: Date.now, setTimeout, clearTimeout },
     onReport: (r) => {
       report(r);
+      if (r.type === 'job' && r.status === 'published') {
+        noteActivity('structure.reconciled', {
+          reason: (r.reasons && r.reasons[0]) || 'reconcile',
+          ms: r.ms,
+          changes: r.changes,
+          coverage: r.coverage
+        });
+      }
       if (r.type === 'missed-bound') {
+        noteActivity('structure.lifecycle', { state: 'missed-bound', reason: r.reason });
         try {
           writeLifecycle(root, { missedBound: { reason: r.reason, at: new Date().toISOString() } });
         } catch (e) {
@@ -698,6 +728,7 @@ function startWorker(root, options = {}) {
   }
 
   armWatcher();
+  noteActivity('structure.lifecycle', { state: 'attached' });
   scheduler.requestReconcile('attach');
 
   let timer = null;
@@ -713,6 +744,7 @@ function startWorker(root, options = {}) {
     if (watcher) watcher.close();
     scheduler.dispose();
     releaseOwner(root, owner.token);
+    noteActivity('structure.lifecycle', { state: 'detached' });
   }
 
   return {

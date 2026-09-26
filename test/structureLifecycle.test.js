@@ -742,3 +742,45 @@ test('the supervisor is off until the app enables it', (t) => {
   assert.equal(supervisor.requestReconcile(dir), false);
   assert.deepEqual(supervisor.list(), []);
 });
+
+/* ---------------------- activity (STR-02 T11) ---------------------- */
+
+test('the worker records start, map-changing updates and stop in its own project\'s record', async (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-lifecycle-activity-'));
+  const previous = process.env.FRAME_ACTIVITY_HOME;
+  process.env.FRAME_ACTIVITY_HOME = home;
+  const dir = project({ 'src/a.js': '// A' });
+  t.after(() => {
+    if (previous === undefined) delete process.env.FRAME_ACTIVITY_HOME;
+    else process.env.FRAME_ACTIVITY_HOME = previous;
+    fs.rmSync(home, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const activity = require('../scripts/activity-log');
+  const lines = () => {
+    try {
+      return fs.readFileSync(activity.filePath(activity.projectKey(dir)), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const worker = lifecycle.startWorker(dir, { supervised: true, forcePerDirectory: true });
+  assert.ok(await waitFor(() => readDescriptor(dir).freshness === 'fresh'));
+  worker.tick(); // a periodic check that changes nothing
+  await waitFor(() => worker.status().jobs === 2);
+  await worker.idle();
+  worker.stop();
+
+  const records = lines().map((l) => [l.ev, l.state || l.reason, l.host]);
+  assert.deepEqual(records, [
+    ['structure.lifecycle', 'attached', 'app'],
+    ['structure.reconciled', 'attach', 'app'],
+    ['structure.lifecycle', 'detached', 'app']
+  ], 'the no-op periodic check is not recorded');
+  const reconciled = lines().find((l) => l.ev === 'structure.reconciled');
+  assert.equal(reconciled.coverage, 'complete');
+  assert.equal(reconciled.changes, 1);
+  assert.equal(typeof reconciled.ms, 'number');
+  assert.ok(!JSON.stringify(lines()).includes('src/a.js'), 'no file names in the record');
+});

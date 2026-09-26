@@ -51,7 +51,8 @@ const HINT_REASONS = [
   'no-words', // prompt: nothing searchable in the prompt
   'no-match', // prompt: no spec scored
   'no-stale-free-match', // prompt: matches existed but none survived filtering
-  'no-context' // emit: nothing composed to send
+  'no-context', // emit: nothing composed to send
+  'map-dirty' // search: STRUCTURE.json changes are still being applied (STR-02)
 ];
 
 const HOSTS = ['app', 'claude-hook', 'codex-hook', 'git-precommit', 'orch-bus', 'cli'];
@@ -64,6 +65,16 @@ const DOCS_DEGRADED_REASONS = [
   'unmatched-section', // a section Frame cannot prove is its own — never written over
   'unreadable' // the document itself could not be read
 ];
+
+// Why the structure lifecycle worker reconciled (STR-02): the first reason
+// recorded for the job — a notification kind or an explicit request.
+const LIFECYCLE_REASONS = [
+  'attach', 'periodic', 'reopen', 'resume', 'reconcile', 'file-event', 'directory',
+  'gitignore', 'config', 'curation', 'git-state', 'watcher-error', 'unknown-change'
+];
+
+// Why a structure update did not land within its bound.
+const MISSED_BOUND_REASONS = ['changing-files', 'writer-busy', 'failed', 'timeout', 'scan-budget'];
 
 // Field types. Kept deliberately narrow: enums, numbers, and the two string
 // shapes that are the point of the record (a project-relative path, a spec
@@ -269,6 +280,32 @@ const EVENTS = {
     label: (r) => `${DOCS_DEGRADED_TEXT[r.reason] || r.reason}${r.path ? ` — ${r.path}` : ''}`
   },
 
+  // ─── structure lifecycle (STR-02) ───────────────────────
+  //
+  // Written by the lifecycle worker itself (a child process, or a foreground
+  // `--watch`) into its own project's record, so a worker for a project
+  // that is not the one on screen still files under the right project.
+  // A periodic check that changed nothing is not recorded: it runs every
+  // minute and would bury everything else.
+  'structure.reconciled': {
+    kind: 'action',
+    fields: { host: enumOf(HOSTS), reason: enumOf(LIFECYCLE_REASONS), ms: MS, changes: COUNT, coverage: enumOf(['complete', 'partial']) },
+    label: (r) => {
+      const changed = r.changes ? ` — ${r.changes} file${r.changes === 1 ? '' : 's'} changed` : '';
+      const partial = r.coverage === 'partial' ? ' (partial coverage)' : '';
+      return `Structure map updated${changed}${partial}${r.reason ? `, ${LIFECYCLE_REASON_TEXT[r.reason] || r.reason}` : ''}`;
+    }
+  },
+  'structure.lifecycle': {
+    kind: 'action',
+    fields: { host: enumOf(HOSTS), state: enumOf(['attached', 'detached', 'missed-bound']), reason: enumOf(MISSED_BOUND_REASONS) },
+    label: (r) => {
+      if (r.state === 'attached') return 'Started keeping the structure map current';
+      if (r.state === 'detached') return 'Stopped keeping the structure map current';
+      return `A structure map update missed its time bound — ${MISSED_BOUND_TEXT[r.reason] || r.reason || 'unknown reason'}`;
+    }
+  },
+
   // ─── scripts running outside Frame's process ────────────
   'script.ran': {
     kind: 'action',
@@ -298,6 +335,7 @@ const HINT_REASON_TEXT = {
 // Only the reasons `module-hint.js` can emit are overridden; anything else
 // falls back to the spec wording.
 const SEARCH_REASON_TEXT = {
+  'map-dirty': 'the module map is being updated',
   'no-index': 'no module map in STRUCTURE.json',
   'no-words': 'no concept word in the search',
   'no-match': 'no module matched the concept',
@@ -317,6 +355,30 @@ const SPEC_COMMAND_REASON_TEXT = {
   'no-match': 'no spec is in a phase the command acts on',
   'no-stale-free-match': 'several specs qualify — the agent was asked to pick',
   'no-context': 'the template or the spec status could not be read'
+};
+
+const LIFECYCLE_REASON_TEXT = {
+  attach: 'first check after opening',
+  periodic: 'periodic check',
+  reopen: 'project reopened',
+  resume: 'window shown again',
+  reconcile: 'requested',
+  'file-event': 'files changed',
+  directory: 'a folder changed',
+  gitignore: 'ignore rules changed',
+  config: 'project settings changed',
+  curation: 'the concept map changed',
+  'git-state': 'the checkout changed (branch, merge or rebase)',
+  'watcher-error': 'file watching failed',
+  'unknown-change': 'an unidentified change'
+};
+
+const MISSED_BOUND_TEXT = {
+  'changing-files': 'files kept changing while being read',
+  'writer-busy': 'another update held the map',
+  failed: 'the update failed',
+  timeout: 'the scan ran out of time',
+  'scan-budget': 'the update took longer than the scan budget'
 };
 
 const DOCS_DEGRADED_TEXT = {
@@ -439,6 +501,8 @@ module.exports = {
   WATCHERS,
   POLLERS,
   HINT_REASONS,
+  LIFECYCLE_REASONS,
+  MISSED_BOUND_REASONS,
   HOSTS,
   isRegistered,
   kindOf,
