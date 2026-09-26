@@ -442,7 +442,7 @@ test('the generation block is version 1.1 metadata with no timestamps or duratio
   scaffold({ 'a.js': 'x' });
   const { map } = full();
   assert.equal(map.version, '1.1');
-  assert.deepEqual(Object.keys(map.generation), ['schema', 'mode', 'inventory', 'extraction', 'policy', 'counts', 'diagnostics']);
+  assert.deepEqual(Object.keys(map.generation), ['schema', 'mode', 'inventory', 'extraction', 'policy', 'counts', 'diagnostics', 'revision']);
   const flat = JSON.stringify(map.generation);
   assert.ok(!/"(startedAt|finishedAt|timestamp|durationMs|attemptId|lastUpdated)"/.test(flat), flat);
 });
@@ -545,4 +545,54 @@ test('the js-src-app golden keeps its module keys and extracted facts under 1.1'
       assert.deepEqual(now[field], entry[field], `${key}.${field}`);
     }
   }
+});
+
+/* ------------------------- STR-02: revision identity ------------------------ */
+
+const crypto = require('crypto');
+const { revisionOf } = require('../scripts/structure-generation');
+
+test('generation.revision is the hash of the checkView payload and matches the written bytes', () => {
+  scaffold({ 'src/a.js': '// A\nfunction f() {}\nmodule.exports = { f };' });
+  const { map } = full();
+  const expected = crypto.createHash('sha256').update(JSON.stringify(checkView(map))).digest('hex');
+  assert.equal(map.generation.revision, expected);
+  assert.equal(revisionOf(map), expected, 'the revision never refers to itself');
+});
+
+test('a no-op rebuild keeps the revision; a fact change moves it; audit-only changes do not', () => {
+  scaffold({ 'src/a.js': '// A', 'logo.png': Buffer.from([0x89, 0x50]) });
+  const first = full(null, { today: '2026-01-01' });
+  const again = full(first.map, { today: '2026-09-26' });
+  assert.equal(again.map.generation.revision, first.map.generation.revision);
+  assert.equal(again.text, first.text);
+
+  // a binary file changes discovery counts (audit-only) but no fact
+  scaffold({ 'icon.png': Buffer.from([0x89, 0x50]) });
+  const counted = full(again.map);
+  assert.notDeepEqual(counted.map.generation.counts, again.map.generation.counts);
+  assert.equal(counted.map.generation.revision, again.map.generation.revision);
+
+  scaffold({ 'src/a.js': '// A changed' });
+  assert.notEqual(full(counted.map).map.generation.revision, again.map.generation.revision);
+});
+
+test('buildFull uses an injected extractor and merges annotations the same way', () => {
+  scaffold({ 'src/a.js': '// real', 'src/b.js': '// real b' });
+  const calls = [];
+  const discovery = discover(root);
+  const { structure } = buildFull({
+    rootDir: root,
+    discovery,
+    prior: { modules: { a: { file: 'src/a.js', description: 'authored', owner: 'me' } } },
+    extract: (record, options) => {
+      calls.push([record.path, typeof options.maxParseBytes, options.rootDir === root]);
+      return { facts: { description: `cached ${record.path}`, exports: ['x'], depends: [], functions: {} }, extraction: { status: 'parsed' } };
+    }
+  });
+  assert.deepEqual(calls, [['src/a.js', 'number', true], ['src/b.js', 'number', true]]);
+  assert.equal(structure.modules.a.description, 'authored');
+  assert.equal(structure.modules.a.owner, 'me');
+  assert.deepEqual(structure.modules.a.exports, ['x']);
+  assert.equal(structure.modules.b.description, 'cached src/b.js');
 });
