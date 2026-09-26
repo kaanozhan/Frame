@@ -70,27 +70,13 @@ function resolveRoot(hookCwd) {
   return process.cwd();
 }
 
-/**
- * STRUCTURE.json's owner: the overlay first; the root copy only when
- * `.frame/config.json`'s `files` record names it (Frame's legacy init
- * fingerprint); otherwise the overlay. A user's own root STRUCTURE.json is
- * never read as Frame's map. Read-only mirror of structure-state.js and
- * frameStore.resolvePath — kept tiny on purpose, pinned by parity tests.
- */
-function resolveStructurePath(root) {
-  const overlay = path.join(root, '.frame', 'STRUCTURE.json');
-  if (fs.existsSync(overlay)) return overlay;
-  const legacy = path.join(root, 'STRUCTURE.json');
-  if (fs.existsSync(legacy)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(path.join(root, '.frame', 'config.json'), 'utf8'));
-      if (config && config.files && Object.values(config.files).includes('STRUCTURE.json')) return legacy;
-    } catch (e) {
-      /* no record → not Frame's file */
-    }
-  }
-  return overlay;
-}
+// Ownership and freshness come from the shared read contract (built-ins
+// only, never writes). Guarded: a .frame/bin/ from before STR-02 lacks it,
+// and a hook must never break over a missing sibling.
+let structureRead = null;
+try {
+  structureRead = require('./structure-read');
+} catch { /* older tooling: stay quiet */ }
 
 function finderCliPath(root) {
   const local = path.join(__dirname, 'find-module.js');
@@ -358,8 +344,11 @@ function searchMode(input) {
   if (words === null) return;               // not a search: silent, unrecorded
   if (!words.length) return quiet(root, 'no-words');
 
-  const structureFile = resolveStructurePath(root);
-  const structure = readJson(structureFile);
+  if (!structureRead) return quiet(root, 'no-index');
+  // Changes are being applied: an answer from the old map could point at
+  // files that just moved. Stay quiet until the worker catches up.
+  if (structureRead.readDescriptor(root).freshness === 'dirty') return quiet(root, 'map-dirty');
+  const structure = readJson(structureRead.resolveStructurePath(root));
   if (!structure || !structure.intentIndex) return quiet(root, 'no-index');
 
   let hit = null;

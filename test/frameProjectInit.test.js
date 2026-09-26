@@ -655,3 +655,68 @@ test('re-init never rewrites user-authored REFERENCE or QUICKSTART text to refre
   assert.ok(!after.includes('STRUCTURE.json Rules'));
   assert.equal(fs.readFileSync(quickstart, 'utf8'), '# Our quickstart\n');
 });
+
+/* ---------------- STR-02: the lifecycle worker is attached ---------------- */
+
+const { EventEmitter } = require('events');
+const structureLifecycle = require('../src/main/structureLifecycle');
+
+/** A fake `--supervised` child that records what the supervisor sends. */
+function fakeWorkers() {
+  const spawned = [];
+  structureLifecycle.configure({
+    enabled: true,
+    ticker: () => ({ dispose() {} }),
+    spawn: (execPath, args, options) => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stdout.setEncoding = () => {};
+      child.stderr = { resume() {} };
+      child.messages = [];
+      child.stdin = {
+        destroyed: false,
+        on() {},
+        write: (line) => { child.messages.push(JSON.parse(line)); return true; },
+        end: () => setImmediate(() => child.emit('close', 0, null))
+      };
+      child.kill = () => child.emit('close', null, 'SIGKILL');
+      spawned.push({ args, cwd: options.cwd, env: options.env, child, scanRecordAtSpawn: fs.existsSync(path.join(options.cwd, '.frame', 'runtime', 'structure', 'scan.json')) });
+      return child;
+    }
+  });
+  return spawned;
+}
+
+async function resetWorkers() {
+  await structureLifecycle.disposeAll();
+  structureLifecycle.configure({ enabled: false, spawn: require('child_process').spawn, ticker: null });
+}
+
+test('init attaches one lifecycle worker after the initial scan has finished', async (t) => {
+  const spawned = fakeWorkers();
+  t.after(resetWorkers);
+  await frameProject.runProjectInit(projectDir, 'demo');
+  assert.equal(spawned.length, 1);
+  assert.equal(spawned[0].cwd, fs.realpathSync(projectDir));
+  assert.deepEqual(spawned[0].args.slice(-1), ['--supervised']);
+  assert.match(spawned[0].args[0], /\.frame[\\/]bin[\\/]structure-lifecycle\.js$/);
+  assert.equal(spawned[0].env.ELECTRON_RUN_AS_NODE, '1');
+  assert.equal(spawned[0].scanRecordAtSpawn, true, 'the initial scan completed before the worker started');
+
+  await frameProject.runProjectInit(projectDir, 'demo');
+  assert.equal(spawned.length, 1, 're-init reuses the running worker');
+});
+
+test('Remove Frame stops the worker before deleting .frame/', async (t) => {
+  const spawned = fakeWorkers();
+  t.after(resetWorkers);
+  await frameProject.runProjectInit(projectDir, 'demo');
+  let frameDirWhenStopped = null;
+  spawned[0].child.on('close', () => { frameDirWhenStopped = fs.existsSync(path.join(projectDir, FRAME_DIR)); });
+  const result = await frameProject.detachThenRemoveFrame(projectDir);
+  assert.deepEqual(spawned[0].child.messages.map((m) => m.cmd), ['stop']);
+  assert.equal(frameDirWhenStopped, true, 'the worker stopped while .frame/ still existed');
+  assert.ok(!fs.existsSync(path.join(projectDir, FRAME_DIR)));
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(structureLifecycle.list(), []);
+});

@@ -613,6 +613,21 @@ No problem, continue. The user can also say what they consider important themsel
 - Hand-written content a rebuild could not keep, and malformed maps, are
   preserved in \`.frame/runtime/structure/recovery/\`.
 
+### Staying Current
+- While Frame has the project open, a background worker keeps the map in
+  step with the working tree — including files that are not committed yet:
+  edits land within a few seconds, and a full check every minute catches
+  anything the file notifications missed. With Frame closed, run
+  \`structure-lifecycle.js --watch\` from \`.frame/bin/\` (stop it with
+  Ctrl-C), or \`--once\` for a single check.
+- How current the map is: \`fresh\` (verified against the working tree
+  within the last minute or so), \`dirty\` (changes seen, update pending),
+  \`stale\` (not verified recently, or the last scan was incomplete),
+  \`unknown\` (no record — a fresh clone, or Frame has not run here). The
+  lookup and freshness scripts report it; it is never guessed from dates.
+- The map committed with your changes still describes the working tree at
+  commit time, not only what you staged.
+
 ### What to Edit
 - Enrich entries in place: \`description\`, function \`purpose\`, fields of
   your own, and \`architectureNotes\`. They survive rebuilds, matched by the

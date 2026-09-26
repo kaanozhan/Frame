@@ -210,6 +210,7 @@ test('shipped scripts carry no Frame-specific vocabulary (spec success criterion
   const shipped = [
     'update-structure.js', 'detect-project.js', 'find-module.js', 'check-freshness.js',
     'structure-discovery.js', 'structure-generation.js', 'structure-state.js',
+    'structure-snapshot.js', 'structure-read.js', 'structure-lifecycle.js',
     ...fs.readdirSync(path.join(scriptsDir, 'lang')).map(f => path.join('lang', f))
   ];
   for (const file of shipped) {
@@ -517,4 +518,13 @@ test('templates: the maintenance reference documents policy, results, limits and
 
   const quickstart = templates.getQuickstartTemplate('demo', null);
   assert.ok(quickstart.includes('node .frame/bin/update-structure.js --full'));
+});
+
+test('templates: the maintenance reference explains freshness and how to keep the map current', () => {
+  const reference = templates.getReferenceTemplate('demo');
+  const section = reference.slice(reference.indexOf('## STRUCTURE.json Rules'), reference.indexOf('## QUICKSTART.md Rules'));
+  for (const needle of ['structure-lifecycle.js --watch', '--once', '`fresh`', '`dirty`', '`stale`', '`unknown`', 'not only what you staged']) {
+    assert.ok(section.includes(needle), `reference mentions ${needle}`);
+  }
+  assert.deepEqual(require('../src/shared/docsHealth').namedPaths(section), ['.frame/config.json']);
 });

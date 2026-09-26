@@ -445,3 +445,90 @@ test('a linked worktree borrowing the main parser leaves the main checkout\'s ma
     fs.rmSync(mainDir, { recursive: true, force: true });
   }
 });
+
+/* ---------------- STR-02: readers on the freshness contract ---------------- */
+
+const lifecycleScript = path.join(SCRIPTS, 'structure-lifecycle.js');
+const { readDescriptor } = require('../scripts/structure-read');
+
+function lifecycleState(dir) {
+  return JSON.parse(fs.readFileSync(path.join(dir, '.frame', 'runtime', 'structure', 'lifecycle.json'), 'utf8'));
+}
+
+test('readers report the lifecycle freshness and skip the date heuristic once it is known', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-fresh-readers-'));
+  fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.frame'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'src', 'widgetMaker.js'), '// Widget maker\n');
+  fs.writeFileSync(path.join(dir, 'src', 'widgetStore.js'), '// Widget store\n');
+  const env = { ...process.env, FRAME_PROJECT_ROOT: dir };
+  const find = () => spawnSync('node', [path.join(SCRIPTS, 'find-module.js'), 'widget'], { encoding: 'utf8', env }).stdout;
+  const findings = () => JSON.parse(spawnSync('node', [path.join(SCRIPTS, 'check-freshness.js'), '--json'], { encoding: 'utf8', env }).stdout)
+    .findings.filter((f) => f.check.startsWith('structure-')).map((f) => `${f.check}: ${f.message}`);
+  try {
+    assert.equal(spawnSync('node', [lifecycleScript, '--once'], { env }).status, 0);
+    assert.match(find(), /^Map: fresh · working tree/);
+    assert.deepEqual(findings(), []);
+
+    const state = lifecycleState(dir);
+    state.epoch = { requested: 5, applied: 4 };
+    state.dirty = ['file-event'];
+    state.missedBound = { reason: 'changing-files', at: new Date().toISOString() };
+    fs.writeFileSync(path.join(dir, '.frame', 'runtime', 'structure', 'lifecycle.json'), JSON.stringify(state));
+    assert.match(find(), /^⚠ Map: dirty \(file-event\)/);
+    assert.deepEqual(findings(), [
+      'structure-freshness: STRUCTURE.json is dirty (file-event) — changes are waiting to be applied',
+      'structure-freshness: the last STRUCTURE update missed its time bound (changing-files)'
+    ]);
+
+    state.dirty = [];
+    state.epoch = { requested: 5, applied: 5 };
+    state.missedBound = null;
+    state.receipt.observedAt = '2020-01-01T00:00:00.000Z';
+    fs.writeFileSync(path.join(dir, '.frame', 'runtime', 'structure', 'lifecycle.json'), JSON.stringify(state));
+    assert.match(find(), /^⚠ Map: stale \(lease-expired\) — run: node .*structure-lifecycle\.js --once/);
+    assert.match(findings()[0], /is stale \(lease-expired\)/);
+
+    const mapFile = path.join(dir, '.frame', 'STRUCTURE.json');
+    fs.writeFileSync(mapFile, fs.readFileSync(mapFile, 'utf8').replace('Widget maker', 'Edited by hand'));
+    assert.match(find(), /^⚠ Map: unverified \(artifact-changed\)/);
+    assert.match(findings()[0], /changed since it was last verified \(artifact-changed\)/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a linked worktree keeps its own map, receipt and lease when it borrows the main parser', () => {
+  const git = (cwd, args) => spawnSync('git', args, { cwd, encoding: 'utf8' });
+  const mainDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-life-main-'));
+  const worktreeDir = path.join(os.tmpdir(), `frame-life-wt-${process.pid}-${Date.now()}`);
+  try {
+    git(mainDir, ['init', '-q']);
+    git(mainDir, ['config', 'user.email', 'test@example.com']);
+    git(mainDir, ['config', 'user.name', 'Test']);
+    fs.mkdirSync(path.join(mainDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(mainDir, 'src', 'mainOnly.js'), '// Main\n');
+    fs.writeFileSync(path.join(mainDir, '.gitignore'), '.frame/\n');
+    git(mainDir, ['add', '.']);
+    git(mainDir, ['commit', '-q', '-m', 'init']);
+    structureBootstrap.copyParserScripts(mainDir);
+    const mainBin = path.join(mainDir, '.frame', 'bin', 'structure-lifecycle.js');
+    assert.equal(spawnSync('node', [mainBin, '--once'], { env: { ...process.env, FRAME_PROJECT_ROOT: undefined } }).status, 0);
+    const mainState = fs.readFileSync(path.join(mainDir, '.frame', 'runtime', 'structure', 'lifecycle.json'), 'utf8');
+
+    git(mainDir, ['worktree', 'add', '-q', '-b', 'wt', worktreeDir]);
+    fs.writeFileSync(path.join(worktreeDir, 'src', 'worktreeOnly.js'), '// Worktree\n');
+    assert.equal(spawnSync('node', [mainBin, '--once'], { env: { ...process.env, FRAME_PROJECT_ROOT: worktreeDir } }).status, 0);
+
+    const wtMap = JSON.parse(fs.readFileSync(path.join(worktreeDir, '.frame', 'STRUCTURE.json'), 'utf8'));
+    assert.ok(wtMap.modules.worktreeOnly);
+    assert.equal(readDescriptor(worktreeDir).freshness, 'fresh');
+    assert.equal(lifecycleState(worktreeDir).checkout, fs.realpathSync(worktreeDir));
+    assert.equal(fs.readFileSync(path.join(mainDir, '.frame', 'runtime', 'structure', 'lifecycle.json'), 'utf8'), mainState, 'main receipt untouched');
+    assert.ok(!JSON.parse(fs.readFileSync(path.join(mainDir, '.frame', 'STRUCTURE.json'), 'utf8')).modules.worktreeOnly);
+  } finally {
+    spawnSync('git', ['worktree', 'remove', '--force', worktreeDir], { cwd: mainDir });
+    fs.rmSync(worktreeDir, { recursive: true, force: true });
+    fs.rmSync(mainDir, { recursive: true, force: true });
+  }
+});

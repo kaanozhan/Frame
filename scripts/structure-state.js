@@ -426,6 +426,9 @@ function relative(paths, file) {
  *     counts, diagnostics
  *     discardsAuthored: boolean       (authored content will not survive)
  *   }  — may throw (fatal: nothing is published)
+ *   precondition() → boolean          optional; evaluated under the lock
+ *                                     before any archive or write — false
+ *                                     ends the attempt as `superseded`
  *   fs, isAlive, now, pid             injection points
  *   hooks: { beforePublish, afterPublish }  test-only interruption points
  *
@@ -575,6 +578,20 @@ function runAttempt(options) {
     const candidateCheck = parseMap(candidate);
     if (!candidateCheck.data) {
       return finish({ ...common, state: 'failed', reason: `invalid-candidate-${candidateCheck.reason}`, artifactDigest: baseline.liveDigest || null, retainedPrevious: Boolean(baseline.liveDigest), artifact: baseline.liveDigest ? 'retained' : 'none' });
+    }
+
+    // A newer epoch or changed inputs make this job's result stale. Checked
+    // under the writer lock, before anything is archived or written.
+    if (typeof options.precondition === 'function') {
+      let current;
+      try {
+        current = options.precondition();
+      } catch (err) {
+        return finish({ ...common, state: 'failed', reason: 'precondition-error', message: err && err.message, artifactDigest: baseline.liveDigest || null, retainedPrevious: Boolean(baseline.liveDigest), artifact: baseline.liveDigest ? 'retained' : 'none' });
+      }
+      if (!current) {
+        return finish({ ...common, state: 'superseded', reason: 'superseded', artifactDigest: baseline.liveDigest || null, retainedPrevious: Boolean(baseline.liveDigest), artifact: baseline.liveDigest ? 'retained' : 'none' });
+      }
     }
 
     // Incomplete inventory: keep a usable live map byte-for-byte.

@@ -665,7 +665,9 @@ function sortModules(modules) {
  * Full rebuild from a discovery result.
  *
  * input: { rootDir, discovery, prior (validated map object or null),
- *          curation, projectConfig, fs }
+ *          curation, projectConfig, fs, extract? }
+ * `extract(record, { rootDir, fs, maxParseBytes })` defaults to
+ * extractFacts and must return the same `{ facts, extraction }` shape.
  * returns { structure, report } where report carries extraction coverage,
  * diagnostics and `discarded` — authored content this build cannot keep,
  * which the caller must archive before publishing.
@@ -681,6 +683,11 @@ function buildFull(input) {
   const files = [...discovered.keys()];
   const keys = allocateKeys(files, analysis);
   const maxParseBytes = discovery.policy && discovery.policy.limits ? discovery.policy.limits.maxParseBytes : undefined;
+  // Callers may supply cached extraction (STR-02 lifecycle); annotation
+  // merging below is the same either way.
+  const extract = typeof input.extract === 'function'
+    ? input.extract
+    : (record, options) => extractFacts(options.rootDir, record, options);
 
   const modules = {};
   const discarded = [...analysis.discarded];
@@ -688,7 +695,7 @@ function buildFull(input) {
     const key = keys.get(file);
     const record = discovered.get(file);
     const priorEntry = analysis.byFile.has(file) ? analysis.byFile.get(file).entry : null;
-    const extracted = extractFacts(rootDir, record, { fs: fsImpl, maxParseBytes });
+    const extracted = extract(record, { rootDir, fs: fsImpl, maxParseBytes });
     if (extracted.extraction.status === 'partial') {
       diagnostics.push({ path: file, reason: `extraction-${extracted.extraction.reason}` });
     }
@@ -899,16 +906,38 @@ function checkView(structure) {
 }
 
 /**
- * Final bytes for a candidate. `lastUpdated` keeps the prior date when
+ * The map's content revision (STR-02): SHA-256 of the `checkView` payload —
+ * the facts, annotations, intents and effective policy a consumer relies on.
+ * Timestamps, audit counts and the revision itself are outside that view, so
+ * a no-op rebuild keeps the same revision and the value never refers to
+ * itself. Input identities (source/policy/curation digests) live in the
+ * runtime receipt, not here, so an edit that changes no fact does not
+ * rewrite the tracked map.
+ */
+function revisionOf(structure) {
+  return crypto.createHash('sha256').update(canonical(checkView(structure))).digest('hex');
+}
+
+/**
+ * Final bytes for a candidate. `generation.revision` is stamped here so it
+ * always matches what is written. `lastUpdated` keeps the prior date when
  * nothing but the timestamp would change, so an unchanged tree regenerates
  * byte-identical output; `today` is injectable for tests.
  */
 function serializeStructure(candidate, prior, today = new Date().toISOString().split('T')[0]) {
   const out = {};
   for (const key of Object.keys(candidate)) setOwn(out, key, candidate[key]);
+  if (isPlainObject(out.generation)) {
+    const generation = {};
+    for (const key of Object.keys(out.generation)) {
+      if (key !== 'revision') setOwn(generation, key, out.generation[key]);
+    }
+    setOwn(generation, 'revision', revisionOf(out));
+    setOwn(out, 'generation', generation);
+  }
   const unchanged = prior && isPlainObject(prior)
     && canonical({ ...contentView(prior), g: prior.generation, v: prior.version })
-      === canonical({ ...contentView(candidate), g: candidate.generation, v: candidate.version });
+      === canonical({ ...contentView(out), g: out.generation, v: out.version });
   setOwn(out, 'lastUpdated', unchanged && typeof prior.lastUpdated === 'string' ? prior.lastUpdated : today);
   return JSON.stringify(out, null, 2) + '\n';
 }
@@ -917,6 +946,7 @@ module.exports = {
   buildFull,
   buildDelta,
   serializeStructure,
+  revisionOf,
   contentView,
   checkView,
   extractFacts,

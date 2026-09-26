@@ -415,3 +415,48 @@ test('snapshot is read-only and reports instability when a writer is active or t
   assert.equal(busy.stable(), false);
   state.releaseLock(state.statePaths(root), held.token);
 });
+
+/* ---------------------- STR-02: superseded publication ---------------------- */
+
+test('a job whose precondition fails publishes nothing, archives nothing and ends superseded', () => {
+  const good = map({ a: { file: 'a.js', owner: 'me' } });
+  write('.frame/STRUCTURE.json', good);
+  const checks = [];
+  const result = state.runAttempt({
+    rootDir: root, mode: 'full', isAlive,
+    build: () => ({ candidate: map({ b: { file: 'b.js' } }), ...COMPLETE, discardsAuthored: true }),
+    precondition: () => {
+      checks.push(fs.existsSync(runtime('lock')));
+      return false;
+    }
+  });
+  assert.deepEqual(checks, [true], 'evaluated once, under the writer lock');
+  assert.equal(result.state, 'superseded');
+  assert.equal(result.reason, 'superseded');
+  assert.equal(result.artifact, 'retained');
+  assert.equal(result.published, false);
+  assert.deepEqual(result.recoveryPaths, []);
+  assert.equal(fs.readFileSync(overlay(), 'utf8'), good);
+  assert.ok(!fs.existsSync(runtime('recovery')));
+  assert.equal(JSON.parse(fs.readFileSync(runtime('scan.json'), 'utf8')).state, 'superseded');
+  assert.ok(!fs.existsSync(runtime('lock')));
+});
+
+test('a passing precondition publishes as usual; a throwing one fails without writing', () => {
+  write('.frame/STRUCTURE.json', map());
+  const ok = run(map({ a: { file: 'a.js' } }), { options: { precondition: () => true } });
+  assert.equal(ok.artifact, 'written');
+
+  const before = fs.readFileSync(overlay(), 'utf8');
+  const boom = run(map({ z: { file: 'z.js' } }), { options: { precondition: () => { throw new Error('epoch store unreadable'); } } });
+  assert.equal(boom.state, 'failed');
+  assert.equal(boom.reason, 'precondition-error');
+  assert.equal(fs.readFileSync(overlay(), 'utf8'), before);
+});
+
+test('an identical-bytes result from a stale job is superseded, not reported unchanged', () => {
+  const current = map({ a: { file: 'a.js' } });
+  write('.frame/STRUCTURE.json', current);
+  const result = run(current, { options: { precondition: () => false } });
+  assert.equal(result.state, 'superseded');
+});

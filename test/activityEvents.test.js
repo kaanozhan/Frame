@@ -66,8 +66,9 @@ test('the guard events are classified as suppressions, not actions', () => {
 // ─── the hook's quiet paths ───────────────────────────────
 
 test('every spec-hint quiet path has its own reason code', () => {
-  assert.equal(events.HINT_REASONS.length, 11, 'one code per quiet return in spec-hint.js');
-  assert.equal(new Set(events.HINT_REASONS).size, 11, 'codes are distinct');
+  // eleven quiet returns in spec-hint.js, plus module-hint's `map-dirty` (STR-02)
+  assert.equal(events.HINT_REASONS.length, 12, 'one code per quiet return in the hint hooks');
+  assert.equal(new Set(events.HINT_REASONS).size, 12, 'codes are distinct');
   for (const reason of events.HINT_REASONS) {
     const out = events.validateEvent('hint.quiet', { reason });
     assert.equal(out.reason, reason, `${reason} must pass the enum`);
@@ -163,4 +164,33 @@ test('a skipped migration names the merge, and the old reason still reads', () =
   assert.match(events.formatLabel('migration.skipped', { reason: 'dirty-tree' }), /uncommitted changes/);
 
   assert.deepEqual(events.validateEvent('migration.skipped', { reason: 'invented' }), {}, 'an undeclared reason is stripped');
+});
+
+// ─── STR-02: structure lifecycle ──────────────────────────
+
+test('structure lifecycle events carry enums and counts only', () => {
+  assert.deepEqual(events.validateEvent('structure.reconciled', {
+    host: 'app', reason: 'file-event', ms: 840, changes: 3, coverage: 'complete',
+    path: 'src/secret.js', file: 'src/secret.js', message: 'free text'
+  }), { host: 'app', reason: 'file-event', ms: 840, changes: 3, coverage: 'complete' });
+  assert.deepEqual(events.validateEvent('structure.reconciled', { reason: 'made-up', coverage: 'mostly' }), {});
+  assert.deepEqual(events.validateEvent('structure.lifecycle', { state: 'missed-bound', reason: 'changing-files', path: 'x' }), { state: 'missed-bound', reason: 'changing-files' });
+  assert.deepEqual(events.validateEvent('structure.lifecycle', { state: 'exploded' }), {});
+  assert.equal(events.kindOf('structure.reconciled'), 'action');
+  assert.equal(events.kindOf('structure.lifecycle'), 'action');
+});
+
+test('structure lifecycle labels read plainly and never throw', () => {
+  assert.equal(events.formatLabel('structure.reconciled', { reason: 'git-state', changes: 1 }), 'Structure map updated — 1 file changed, the checkout changed (branch, merge or rebase)');
+  assert.equal(events.formatLabel('structure.reconciled', { coverage: 'partial' }), 'Structure map updated (partial coverage)');
+  assert.equal(events.formatLabel('structure.lifecycle', { state: 'attached' }), 'Started keeping the structure map current');
+  assert.equal(events.formatLabel('structure.lifecycle', { state: 'detached' }), 'Stopped keeping the structure map current');
+  assert.match(events.formatLabel('structure.lifecycle', { state: 'missed-bound' }), /missed its time bound — unknown reason/);
+  for (const reason of events.LIFECYCLE_REASONS) assert.ok(events.formatLabel('structure.reconciled', { reason }));
+  for (const reason of events.MISSED_BOUND_REASONS) assert.ok(!events.formatLabel('structure.lifecycle', { state: 'missed-bound', reason }).includes('undefined'));
+});
+
+test('a module hint skipped while the map is being updated is a recorded reason', () => {
+  assert.deepEqual(events.validateEvent('hint.quiet', { mode: 'search', reason: 'map-dirty' }), { mode: 'search', reason: 'map-dirty' });
+  assert.equal(events.formatLabel('hint.quiet', { mode: 'search', reason: 'map-dirty' }), 'Module hint skipped — the module map is being updated');
 });
