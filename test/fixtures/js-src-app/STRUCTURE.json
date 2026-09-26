@@ -1,7 +1,7 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-07-12",
+  "lastUpdated": "2026-09-26",
   "architecture": {},
   "modules": {
     "index": {
@@ -25,6 +25,17 @@
         "run": {
           "line": 17,
           "purpose": "Run the app"
+        }
+      },
+      "sizeBytes": 376,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "08439ceac994159e",
+        "purposes": {
+          "greet": "f18c7e954e867c1b",
+          "run": "472feada8e7eba95"
         }
       }
     },
@@ -53,6 +64,41 @@
           ],
           "purpose": "Multiply two numbers"
         }
+      },
+      "sizeBytes": 225,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "2f1b2c4ece8166a7",
+        "purposes": {
+          "add": "bfbfd9dc072bc0ec",
+          "multiply": "0432c2f0129fca59"
+        }
+      }
+    },
+    "package-lock.json": {
+      "file": "package-lock.json",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 51,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
+    "package.json": {
+      "file": "package.json",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 154,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
       }
     }
   },
@@ -60,5 +106,85 @@
   "dataFlow": [],
   "files": {},
   "conventions": {},
-  "intentIndex": {}
+  "intentIndex": {},
+  "generation": {
+    "schema": 1,
+    "mode": "full",
+    "inventory": {
+      "coverage": "complete",
+      "reasons": []
+    },
+    "extraction": {
+      "coverage": "complete",
+      "counts": {
+        "parsed": 2,
+        "unsupported": 2,
+        "partial": 0
+      }
+    },
+    "policy": {
+      "version": 1,
+      "caseSensitive": true,
+      "hardExclusions": [
+        "**/.git",
+        "**/.frame",
+        ".claude/rules/frame.md",
+        "STRUCTURE.json",
+        "STRUCTURE.json.bak",
+        "STRUCTURE.json.tmp",
+        "STRUCTURE.json.corrupt-*"
+      ],
+      "ignoredDirectories": [
+        ".next",
+        ".turbo",
+        ".venv",
+        "__pycache__",
+        "build",
+        "coverage",
+        "dist",
+        "node_modules",
+        "target",
+        "vendor",
+        "venv"
+      ],
+      "ignoredDirectoriesSource": "default",
+      "ignoreFiles": [],
+      "exclude": [],
+      "limits": {
+        "maxEntries": 100000,
+        "maxFiles": 50000,
+        "maxDepth": 128,
+        "timeoutMs": 30000,
+        "maxParseBytes": 2097152
+      }
+    },
+    "counts": {
+      "visitedEntries": 7,
+      "traversedDirectories": 2,
+      "eligibleFiles": 4,
+      "unreadable": 0,
+      "binaryFiles": 0,
+      "symlinks": 0,
+      "specialFiles": 0,
+      "excludedFiles": {
+        "hard": 0,
+        "gitignore": 0,
+        "config": 0
+      },
+      "prunedDirectories": {
+        "hard": 1,
+        "default": 0,
+        "gitignore": 0,
+        "config": 0,
+        "depth": 0
+      },
+      "indexedFiles": 4,
+      "legacyGroups": 0
+    },
+    "diagnostics": {
+      "total": 0,
+      "truncated": false,
+      "samples": []
+    }
+  }
 }

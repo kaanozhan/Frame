@@ -70,12 +70,25 @@ function resolveRoot(hookCwd) {
   return process.cwd();
 }
 
-/** `.frame/<name>` for a migrated project, the root while one is unmigrated. */
-function resolveMetaPath(root, name) {
-  const overlay = path.join(root, '.frame', name);
+/**
+ * STRUCTURE.json's owner: the overlay first; the root copy only when
+ * `.frame/config.json`'s `files` record names it (Frame's legacy init
+ * fingerprint); otherwise the overlay. A user's own root STRUCTURE.json is
+ * never read as Frame's map. Read-only mirror of structure-state.js and
+ * frameStore.resolvePath — kept tiny on purpose, pinned by parity tests.
+ */
+function resolveStructurePath(root) {
+  const overlay = path.join(root, '.frame', 'STRUCTURE.json');
   if (fs.existsSync(overlay)) return overlay;
-  const legacy = path.join(root, name);
-  if (fs.existsSync(legacy)) return legacy;
+  const legacy = path.join(root, 'STRUCTURE.json');
+  if (fs.existsSync(legacy)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(path.join(root, '.frame', 'config.json'), 'utf8'));
+      if (config && config.files && Object.values(config.files).includes('STRUCTURE.json')) return legacy;
+    } catch (e) {
+      /* no record → not Frame's file */
+    }
+  }
   return overlay;
 }
 
@@ -345,7 +358,7 @@ function searchMode(input) {
   if (words === null) return;               // not a search: silent, unrecorded
   if (!words.length) return quiet(root, 'no-words');
 
-  const structureFile = resolveMetaPath(root, 'STRUCTURE.json');
+  const structureFile = resolveStructurePath(root);
   const structure = readJson(structureFile);
   if (!structure || !structure.intentIndex) return quiet(root, 'no-index');
 

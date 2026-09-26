@@ -19,7 +19,8 @@
  *   3. Run one full-mode parse so .frame/STRUCTURE.json is populated
  *      immediately after init, not on the next commit. Only runs when
  *      STRUCTURE.json was just created by Frame (we don't touch a
- *      pre-existing one, wherever it lives).
+ *      pre-existing one, wherever it lives). The outcome comes from the
+ *      parser's `--json` result envelope: ok, partial, or error.
  *
  * Failures in any step are non-fatal: a project must successfully initialize
  * even if hook install fails (no git, permission issues, etc.).
@@ -27,9 +28,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { exec, spawn } = require('child_process');
 const { FRAME_DIR, FRAME_BIN_DIR } = require('../shared/frameConstants');
-const { copyIfChanged } = require('./commandStaging');
 const {
   getStructureHookSnippet,
   getStructurePreCommitHookTemplate
@@ -39,77 +40,156 @@ const {
 // the repo root; under electron-builder's asar the same relative path holds
 // because the asar mirrors the source tree.
 const SCRIPTS_SOURCE_DIR = path.join(__dirname, '..', '..', 'scripts');
-const PARSER_FILES = ['update-structure.js', 'find-module.js', 'check-freshness.js', 'detect-project.js', 'intent-map.json', 'spec-index.js', 'spec-context.js', 'spec-hint.js', 'module-hint.js', 'docs-hint.js', 'spec-command-hint.js', 'toolVocabulary.js', 'redact.js', 'activity-log.js'];
+
+// Shipped files, in activation order. Helpers first: an entry script is only
+// activated after everything it requires is in place, so an interrupted
+// refresh leaves the previous entry runnable with the helpers it knew.
+const HELPER_FILES = [
+  'structure-ignore.js', 'structure-ignore.LICENSE', 'structure-discovery.js',
+  'structure-generation.js', 'structure-state.js', 'toolVocabulary.js',
+  'redact.js', 'activity-log.js'
+];
+const ENTRY_FILES = [
+  'update-structure.js', 'find-module.js', 'check-freshness.js', 'detect-project.js',
+  'spec-index.js', 'spec-context.js', 'spec-hint.js', 'module-hint.js',
+  'docs-hint.js', 'spec-command-hint.js'
+];
+// The app's own atomic writer, shipped beside the structure helpers so the
+// project's parser publishes with the same implementation (not a copy of it).
+const FS_SAFE_SOURCE = path.join(__dirname, 'fsSafe.js');
+// What update-structure.js cannot run without.
+const PARSER_REQUIRES = [
+  'structure-ignore.js', 'structure-ignore.LICENSE', 'structure-discovery.js',
+  'structure-generation.js', 'structure-state.js', 'fsSafe.js',
+  'lang/javascript.js', 'lang/python.js', 'lang/go.js', 'lang/rust.js', 'lang/markdown.js'
+];
+// Historical name list, kept for readers of this module's exports.
+const PARSER_FILES = [...ENTRY_FILES, 'intent-map.json', ...HELPER_FILES];
+
+const INTENT_MAP_SEED = {
+  _comment: 'Curated concept → modules map for STRUCTURE.json\'s intentIndex. Agent-editable: add a concept when a feature spans files whose names don\'t say what they do, and synonyms for the words people actually search. Format: { "<concept>": { "modules": ["main/fooManager", ...], "synonyms": ["bar", ...] } }. Module keys must match STRUCTURE.json (missing ones are skipped at generation).'
+};
 
 /**
- * Copy parser scripts from Frame's bundled scripts/ into the project's
- * .frame/bin/ folder. Overwrites prior copies (so updates to Frame ship the
- * latest parser to all projects on their next init) — but only the ones that
- * actually differ: this also runs on every project open, and rewriting
- * identical files would churn mtimes, watchers and `git status`.
+ * Write `src` to `dst` only when the bytes differ, through a temporary file
+ * and an atomic rename, so a reader never sees a half-written script.
+ * Returns true when `dst` changed. Throws on failure.
  */
-function copyParserScripts(projectPath) {
+function stageFile(fsImpl, src, dst) {
+  const content = fsImpl.readFileSync(src);
+  let existing = null;
+  try { existing = fsImpl.readFileSync(dst); } catch (_) { /* new file */ }
+  if (existing && existing.equals(content)) return false;
+  fsImpl.mkdirSync(path.dirname(dst), { recursive: true });
+  const tmp = `${dst}.tmp-${process.pid}`;
+  try {
+    fsImpl.writeFileSync(tmp, content);
+    if (dst.endsWith('.js')) fsImpl.chmodSync(tmp, 0o755);
+    fsImpl.renameSync(tmp, dst);
+  } catch (err) {
+    try { fsImpl.unlinkSync(tmp); } catch (_) { /* never created */ }
+    throw err;
+  }
+  return true;
+}
+
+/**
+ * Stage Frame's bundled scripts into the project's .frame/bin/.
+ *
+ * Only files that actually differ are rewritten — this runs on every project
+ * open, and rewriting identical files would churn mtimes, watchers and
+ * `git status`. It never runs the parser: refreshing tools must not rebuild
+ * or invalidate the map.
+ *
+ * Returns { copied, failed, unavailable }:
+ *   copied       names written this run (the historical return value)
+ *   failed       [{ file, error }] for files that could not be staged
+ *   unavailable  entry scripts left un-activated because a required helper
+ *                is missing — an older entry stays runnable; on a first
+ *                install the parser is reported unavailable
+ */
+function stageParserScripts(projectPath, options = {}) {
+  const fsImpl = options.fs || fs;
+  const sourceDir = options.sourceDir || SCRIPTS_SOURCE_DIR;
+  const fsSafeSource = options.fsSafeSource || FS_SAFE_SOURCE;
   const binDir = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR);
-  if (!fs.existsSync(binDir)) {
-    fs.mkdirSync(binDir, { recursive: true });
+  const report = { copied: [], failed: [], unavailable: [] };
+  fsImpl.mkdirSync(binDir, { recursive: true });
+
+  const sources = new Map();
+  for (const file of HELPER_FILES) sources.set(file, path.join(sourceDir, file));
+  sources.set('fsSafe.js', fsSafeSource);
+  const langSrcDir = path.join(sourceDir, 'lang');
+  let langFiles = [];
+  try {
+    langFiles = fsImpl.readdirSync(langSrcDir).filter((f) => f.endsWith('.js')).sort();
+  } catch (_) { /* preflight reports the missing extractors */ }
+  for (const file of langFiles) sources.set(`lang/${file}`, path.join(langSrcDir, file));
+
+  // Preflight: every required source asset must exist before anything the
+  // parser depends on is replaced.
+  const missing = PARSER_REQUIRES.filter((rel) => !sources.has(rel) || !fsImpl.existsSync(sources.get(rel)));
+  for (const rel of missing) {
+    console.warn(`[frame] bundled asset missing: ${rel}`);
+    report.failed.push({ file: rel, error: 'missing from Frame installation' });
   }
 
-  const copied = [];
-  for (const file of PARSER_FILES) {
-    const src = path.join(SCRIPTS_SOURCE_DIR, file);
-    const dst = path.join(binDir, file);
-    if (!fs.existsSync(src)) {
+  // 1. Helpers and extractors.
+  const helpersOk = new Set();
+  for (const [rel, src] of sources) {
+    if (missing.includes(rel)) continue;
+    if (!fsImpl.existsSync(src)) {
+      console.warn(`[frame] parser script missing at ${src}, skipping`);
+      continue;
+    }
+    try {
+      if (stageFile(fsImpl, src, path.join(binDir, rel))) report.copied.push(rel);
+      helpersOk.add(rel);
+    } catch (err) {
+      console.warn(`[frame] failed to copy ${rel}: ${err.message}`);
+      report.failed.push({ file: rel, error: err.message });
+    }
+  }
+  const parserReady = PARSER_REQUIRES.every((rel) => helpersOk.has(rel));
+
+  // 2. Curation: agent-editable per project — seeded once, never overwritten
+  // (Frame's own curation would list modules the project doesn't have).
+  const intentMap = path.join(binDir, 'intent-map.json');
+  if (!fsImpl.existsSync(intentMap)) {
+    try {
+      fsImpl.writeFileSync(intentMap, JSON.stringify(INTENT_MAP_SEED, null, 2) + '\n');
+      report.copied.push('intent-map.json');
+    } catch (err) {
+      console.warn(`[frame] failed to seed intent-map.json: ${err.message}`);
+      report.failed.push({ file: 'intent-map.json', error: err.message });
+    }
+  }
+
+  // 3. Entry scripts, last.
+  for (const file of ENTRY_FILES) {
+    if (file === 'update-structure.js' && !parserReady) {
+      report.unavailable.push(file);
+      continue;
+    }
+    const src = path.join(sourceDir, file);
+    if (!fsImpl.existsSync(src)) {
       // Bundled script missing — log and continue. Not fatal.
       console.warn(`[frame] parser script missing at ${src}, skipping`);
       continue;
     }
-    // intent-map.json is agent-editable per-project curation: seed a skeleton
-    // once (Frame's own curation would list modules the project doesn't
-    // have), never overwrite an existing copy. Scripts always ship the latest.
-    if (file === 'intent-map.json') {
-      if (!fs.existsSync(dst)) {
-        try {
-          fs.writeFileSync(dst, JSON.stringify({
-            _comment: 'Curated concept → modules map for STRUCTURE.json\'s intentIndex. Agent-editable: add a concept when a feature spans files whose names don\'t say what they do, and synonyms for the words people actually search. Format: { "<concept>": { "modules": ["main/fooManager", ...], "synonyms": ["bar", ...] } }. Module keys must match STRUCTURE.json (missing ones are skipped at generation).'
-          }, null, 2) + '\n');
-          copied.push(file);
-        } catch (err) {
-          console.warn(`[frame] failed to seed ${file}: ${err.message}`);
-        }
-      }
-      continue;
-    }
     try {
-      if (!copyIfChanged(src, dst)) continue;
-      if (file.endsWith('.js')) {
-        // Make executable so `./` invocation works, though we always call via `node`.
-        fs.chmodSync(dst, 0o755);
-      }
-      copied.push(file);
+      if (stageFile(fsImpl, src, path.join(binDir, file))) report.copied.push(file);
     } catch (err) {
       console.warn(`[frame] failed to copy ${file}: ${err.message}`);
+      report.failed.push({ file, error: err.message });
     }
   }
+  return report;
+}
 
-  // Ship the per-language extractors (scripts/lang/*) alongside the parser —
-  // update-structure.js requires them relative to its own location.
-  const langSrcDir = path.join(SCRIPTS_SOURCE_DIR, 'lang');
-  if (fs.existsSync(langSrcDir)) {
-    const langDstDir = path.join(binDir, 'lang');
-    if (!fs.existsSync(langDstDir)) {
-      fs.mkdirSync(langDstDir, { recursive: true });
-    }
-    for (const file of fs.readdirSync(langSrcDir).filter((f) => f.endsWith('.js'))) {
-      try {
-        if (copyIfChanged(path.join(langSrcDir, file), path.join(langDstDir, file))) {
-          copied.push(`lang/${file}`);
-        }
-      } catch (err) {
-        console.warn(`[frame] failed to copy lang/${file}: ${err.message}`);
-      }
-    }
-  }
-  return copied;
+/** The historical API: the list of files written this run. */
+function copyParserScripts(projectPath) {
+  return stageParserScripts(projectPath).copied;
 }
 
 /**
@@ -247,43 +327,206 @@ async function installPreCommitHook(projectPath) {
   }
 }
 
+// The scan's own budget comes from the project's validated policy; the
+// parent waits that long plus a grace for the child to report and exit.
+const SHUTDOWN_GRACE_MS = 5000;
+const KILL_GRACE_MS = 2000;
+const STDOUT_CAP = 256 * 1024;
+const STDERR_CAP = 4096;
+const RESULT_SCHEMA = 'frame.structure.result/1';
+const REPAIR_COMMAND = 'node .frame/bin/update-structure.js --full';
+
+function scanTimeoutMs(projectPath) {
+  try {
+    const { resolvePolicy } = require(path.join(SCRIPTS_SOURCE_DIR, 'structure-discovery'));
+    const config = JSON.parse(fs.readFileSync(path.join(projectPath, FRAME_DIR, 'config.json'), 'utf8'));
+    return resolvePolicy(config && config.project && config.project.structure).limits.timeoutMs + SHUTDOWN_GRACE_MS;
+  } catch (_) {
+    // No config or an invalid policy: the child reports the policy error
+    // itself; the parent only needs a finite wait.
+    return 30000 + SHUTDOWN_GRACE_MS;
+  }
+}
+
+/** The single JSON envelope a `--json` run prints, or null. */
+function parseEnvelope(stdout) {
+  const lines = stdout.split('\n').filter((line) => line.trim());
+  if (lines.length !== 1) return null;
+  try {
+    const envelope = JSON.parse(lines[0]);
+    return envelope && envelope.schema === RESULT_SCHEMA && envelope.command === 'full' ? envelope : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Map a child result envelope onto the bootstrap's initialScan summary. */
+function summarizeEnvelope(envelope, code) {
+  const counts = envelope.counts || {};
+  const fields = {
+    attemptId: envelope.attemptId || null,
+    state: envelope.state,
+    published: Boolean(envelope.published),
+    artifact: envelope.artifact || null,
+    coverage: envelope.coverage || null,
+    extraction: envelope.extraction || null,
+    counts: { indexedFiles: counts.indexedFiles ?? null, eligibleFiles: counts.eligibleFiles ?? null },
+    reason: envelope.reason || null,
+    recoveryPaths: envelope.recoveryPaths || [],
+    repairCommand: REPAIR_COMMAND
+  };
+  if (envelope.exitCode !== code) {
+    return { status: 'error', message: `Initial scan reported exit ${envelope.exitCode} but exited ${code}`, ...fields };
+  }
+  if (envelope.state === 'complete' && code === 0) {
+    const empty = counts.indexedFiles === 0;
+    return {
+      status: 'ok',
+      message: empty ? 'Initial STRUCTURE.json scan complete — no eligible files yet' : 'Initial STRUCTURE.json scan complete',
+      empty,
+      ...fields
+    };
+  }
+  if (envelope.state === 'partial' && code === 1) {
+    const incomplete = envelope.coverage && envelope.coverage.coverage === 'partial';
+    return {
+      status: 'partial',
+      message: incomplete
+        ? `Initial scan covered only part of the project (${(envelope.coverage.reasons || []).join(', ')})`
+        : 'Initial scan complete, but some files could not be parsed',
+      ...fields
+    };
+  }
+  return {
+    status: 'error',
+    message: envelope.busy ? 'Initial scan skipped: another STRUCTURE update is running' : `Initial scan failed: ${envelope.reason || `exit ${code}`}`,
+    ...fields
+  };
+}
+
 /**
  * Run the parser in full mode once so STRUCTURE.json gets populated with
- * the project's existing files. Spawns node asynchronously (same 30s kill
- * timeout as before) with the FRAME_PROJECT_ROOT env var so the bundled
- * script targets the right repo — the main event loop stays free while the
- * child scans.
+ * the project's existing files. The child runs asynchronously (the main
+ * event loop stays free) with FRAME_PROJECT_ROOT targeting this project.
  *
- * Returns: Promise<{ status, message }>
+ * The result is taken from the child's `--json` envelope, never from the
+ * exit code alone: a missing, malformed or partial result is not success.
+ * Both output streams are drained with bounded capture. The promise settles
+ * exactly once. On timeout the child is terminated and, after it has
+ * exited, only the attempt this call started is reconciled — a newer
+ * attempt wins, and an artifact the child already published is kept, never
+ * rolled back. A child that cannot be terminated keeps its lock.
+ *
+ * options (tests): parserPath, nodePath, timeoutMs, env, onChildExit
+ * Returns: Promise<{ status: 'ok'|'partial'|'error', message, … }>
  */
-function runInitialFullScan(projectPath) {
-  const parserPath = path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'update-structure.js');
+function runInitialFullScan(projectPath, options = {}) {
+  const parserPath = options.parserPath || path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'update-structure.js');
   if (!fs.existsSync(parserPath)) {
-    return Promise.resolve({ status: 'error', message: 'Parser script not found at .frame/bin/update-structure.js' });
+    return Promise.resolve({
+      status: 'error',
+      message: 'Parser script not found at .frame/bin/update-structure.js',
+      repairCommand: REPAIR_COMMAND
+    });
   }
+  const attemptId = crypto.randomUUID();
+  const timeoutMs = options.timeoutMs || scanTimeoutMs(projectPath);
 
   return new Promise((resolve) => {
+    let settled = false;
+    let stdout = '';
+    let stdoutOverflow = false;
     let stderr = '';
-    const child = spawn('node', [parserPath], {
-      cwd: projectPath,
-      env: { ...process.env, FRAME_PROJECT_ROOT: projectPath },
-      timeout: 30000
+    let timedOut = false;
+    let timer = null;
+    let killTimer = null;
+    let abandonTimer = null;
+
+    const settle = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      clearTimeout(killTimer);
+      clearTimeout(abandonTimer);
+      resolve({ attemptId, ...result });
+    };
+
+    let child;
+    try {
+      child = spawn(options.nodePath || 'node', [parserPath, '--full', '--json'], {
+        cwd: projectPath,
+        env: { ...process.env, ...(options.env || {}), FRAME_PROJECT_ROOT: projectPath, FRAME_STRUCTURE_ATTEMPT_ID: attemptId },
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+    } catch (err) {
+      resolve({ attemptId, status: 'error', message: `Initial scan failed to start: ${err.message}`, repairCommand: REPAIR_COMMAND });
+      return;
+    }
+
+    child.stdout.on('data', (chunk) => {
+      if (stdout.length + chunk.length <= STDOUT_CAP) stdout += chunk.toString();
+      else stdoutOverflow = true; // keep draining; the result is now invalid
     });
     child.stderr.on('data', (chunk) => {
-      if (stderr.length < 4096) stderr += chunk.toString();
+      if (stderr.length < STDERR_CAP) stderr += chunk.toString().slice(0, STDERR_CAP - stderr.length);
     });
+
+    timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+      killTimer = setTimeout(() => {
+        child.kill('SIGKILL');
+        abandonTimer = setTimeout(() => {
+          // Still alive after SIGKILL: its lock stays; nothing is reconciled.
+          settle({ status: 'error', reason: 'child-unresponsive', message: 'Initial scan did not stop; its update lock is left in place', repairCommand: REPAIR_COMMAND });
+        }, KILL_GRACE_MS);
+      }, KILL_GRACE_MS);
+    }, timeoutMs);
+
     child.on('error', (err) => {
-      resolve({ status: 'error', message: `Initial scan failed: ${err.message}` });
-    });
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve({ status: 'ok', message: 'Initial STRUCTURE.json scan complete' });
-      } else {
-        resolve({
-          status: 'error',
-          message: `Initial scan exited with code ${code}: ${stderr.slice(0, 200)}`
-        });
+      // Never started (e.g. no node binary): there is no close to wait for.
+      if (child.pid === undefined) {
+        settle({ status: 'error', message: `Initial scan failed: ${err.message}`, repairCommand: REPAIR_COMMAND });
       }
+    });
+
+    child.on('close', async (code, signal) => {
+      if (settled) return;
+      if (options.onChildExit) {
+        try { await options.onChildExit({ code, signal, timedOut }); } catch (_) { /* test hook */ }
+      }
+      if (timedOut || signal) {
+        let outcome = null;
+        try {
+          const structureState = require(path.join(SCRIPTS_SOURCE_DIR, 'structure-state'));
+          outcome = structureState.reconcileAttempt(projectPath, attemptId);
+        } catch (err) {
+          outcome = { outcome: 'error', error: err };
+        }
+        const record = outcome && outcome.record;
+        const ours = outcome && (outcome.outcome === 'reconciled' || outcome.outcome === 'finished');
+        settle({
+          status: 'error',
+          reason: timedOut ? 'timeout' : `signal-${signal}`,
+          message: timedOut ? `Initial scan timed out after ${Math.round(timeoutMs / 1000)}s` : `Initial scan was terminated (${signal})`,
+          reconciliation: outcome ? outcome.outcome : 'error',
+          published: ours ? Boolean(record && record.published) : undefined,
+          acknowledged: ours ? false : undefined,
+          repairCommand: REPAIR_COMMAND
+        });
+        return;
+      }
+      const envelope = stdoutOverflow ? null : parseEnvelope(stdout);
+      if (!envelope) {
+        settle({
+          status: 'error',
+          reason: 'invalid-result',
+          message: `Initial scan returned no valid result (exit ${code})${stderr ? `: ${stderr.slice(0, 200)}` : ''}`,
+          repairCommand: REPAIR_COMMAND
+        });
+        return;
+      }
+      settle(summarizeEnvelope(envelope, code));
     });
   });
 }
@@ -293,6 +536,7 @@ function runInitialFullScan(projectPath) {
  * standard init steps. structureWasCreated tells us whether THIS init run
  * created STRUCTURE.json (vs. preserving an existing one) — we only do the
  * initial scan when we created the file, never overwriting user content.
+ * Summary shape is stable: { copied, hook, initialScan }.
  */
 async function bootstrapStructure(projectPath, structureWasCreated) {
   const summary = {
@@ -301,15 +545,26 @@ async function bootstrapStructure(projectPath, structureWasCreated) {
     initialScan: null
   };
 
-  summary.copied = copyParserScripts(projectPath);
+  const staged = stageParserScripts(projectPath);
+  summary.copied = staged.copied;
   summary.hook = await installPreCommitHook(projectPath);
 
-  if (structureWasCreated) {
+  const parserPresent = fs.existsSync(path.join(projectPath, FRAME_DIR, FRAME_BIN_DIR, 'update-structure.js'));
+  if (structureWasCreated && staged.unavailable.includes('update-structure.js') && !parserPresent) {
+    summary.initialScan = {
+      status: 'error',
+      reason: 'tooling-unavailable',
+      message: `STRUCTURE tooling could not be installed: ${staged.failed.map((f) => f.file).join(', ')}`,
+      repairCommand: REPAIR_COMMAND
+    };
+  } else if (structureWasCreated) {
     summary.initialScan = await runInitialFullScan(projectPath);
   } else {
     summary.initialScan = {
       status: 'skipped-existing',
-      message: 'STRUCTURE.json existed before init — preserved as-is, no auto-scan'
+      verified: false,
+      message: 'STRUCTURE.json existed before init — preserved as-is, not rescanned. To rebuild it: node .frame/bin/update-structure.js --full',
+      repairCommand: REPAIR_COMMAND
     };
   }
 
@@ -319,6 +574,9 @@ async function bootstrapStructure(projectPath, structureWasCreated) {
 module.exports = {
   bootstrapStructure,
   copyParserScripts,
+  stageParserScripts,
+  PARSER_FILES,
+  PARSER_REQUIRES,
   detectHookSetup,
   installPreCommitHook,
   runInitialFullScan
