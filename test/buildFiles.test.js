@@ -36,9 +36,12 @@ test('every script copied into .frame/bin/ is in build.files', () => {
   try {
     const copied = structureBootstrap.copyParserScripts(project);
     assert.ok(copied.length > 0, 'the staging copied something to check');
+    // Where each copied name comes from: scripts/ in general, except the
+    // app's own atomic writer, which is shipped from src/main (STR-01).
+    const SOURCES = { 'fsSafe.js': 'src/main/fsSafe.js' };
     const shipped = copied
       .filter((name) => name !== 'intent-map.json') // seeded per project, not copied
-      .map((name) => `scripts/${name}`);
+      .map((name) => SOURCES[name] || `scripts/${name}`);
     const missing = shipped.filter((rel) => !packaged(rel));
     assert.deepEqual(missing, [], `add these to package.json build.files: ${missing.join(', ')}`);
   } finally {
