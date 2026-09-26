@@ -14,7 +14,7 @@ const { spawnSync, execFileSync } = require('child_process');
 
 const REPO_ROOT = path.join(__dirname, '..');
 const structureBootstrap = require('../src/main/structureBootstrap');
-const { stageParserScripts, PARSER_REQUIRES } = structureBootstrap;
+const { stageParserScripts, PARSER_REQUIRES, LIFECYCLE_REQUIRES } = structureBootstrap;
 
 let project;
 
@@ -112,7 +112,7 @@ test('a missing bundled helper keeps the previous entry runnable', { skip: NO_HI
   try {
     fs.rmSync(path.join(source, 'structure-state.js'));
     const report = stageParserScripts(project, { sourceDir: source });
-    assert.deepEqual(report.unavailable, ['update-structure.js']);
+    assert.deepEqual(report.unavailable, ['update-structure.js', 'structure-lifecycle.js']);
     assert.ok(report.failed.some((f) => f.file === 'structure-state.js'));
     assert.equal(fs.readFileSync(bin('update-structure.js'), 'utf8'), previous, 'entry not replaced');
     const run = runBinParser();
@@ -129,7 +129,7 @@ test('a mid-copy failure never activates the new entry; a first install reports 
     return fs.renameSync(from, to);
   } };
   const first = stageParserScripts(project, { fs: failing });
-  assert.deepEqual(first.unavailable, ['update-structure.js']);
+  assert.deepEqual(first.unavailable, ['update-structure.js', 'structure-lifecycle.js']);
   assert.ok(!fs.existsSync(bin('update-structure.js')), 'first install: no half-installed parser');
   assert.ok(!fs.readdirSync(bin()).some((f) => f.includes('.tmp-')), 'no temporary files left behind');
 
@@ -183,6 +183,13 @@ test('a packaged tree with only declared files stages a parser that runs without
     assert.equal(JSON.parse(run.stdout).state, 'complete');
     const map = JSON.parse(fs.readFileSync(path.join(project, '.frame', 'STRUCTURE.json'), 'utf8'));
     assert.ok(map.modules.widget);
+
+    // the lifecycle worker's closure is packaged too (STR-02)
+    const once = spawnSync('node', [bin('structure-lifecycle.js'), '--once', '--json'], {
+      cwd: os.tmpdir(), encoding: 'utf8', env: { ...process.env, NODE_PATH: '', FRAME_PROJECT_ROOT: project }
+    });
+    assert.equal(once.status, 0, once.stderr);
+    assert.equal(JSON.parse(once.stdout).status, 'unchanged');
   } finally {
     fs.rmSync(app, { recursive: true, force: true });
   }
@@ -329,4 +336,31 @@ test('bootstrap: summary shape is stable; a pre-existing map is skipped and unve
   assert.equal(existing.initialScan.status, 'skipped-existing');
   assert.equal(existing.initialScan.verified, false);
   assert.match(existing.initialScan.message, /--full/);
+});
+
+
+/* ------------------------ STR-02: lifecycle delivery ------------------------ */
+
+test('the lifecycle worker ships with its helpers and is activated after them', () => {
+  const order = [];
+  const recording = { ...fs, renameSync: (from, to) => { order.push(path.relative(bin(), to)); return fs.renameSync(from, to); } };
+  const report = stageParserScripts(project, { fs: recording });
+  assert.deepEqual(report.unavailable, []);
+  for (const rel of LIFECYCLE_REQUIRES) assert.ok(fs.existsSync(bin(rel)), rel);
+  const entry = order.indexOf('structure-lifecycle.js');
+  assert.ok(entry > 0);
+  for (const rel of LIFECYCLE_REQUIRES) assert.ok(order.indexOf(rel) < entry, `${rel} before structure-lifecycle.js`);
+});
+
+test('a missing lifecycle helper withholds only the lifecycle entry', () => {
+  const source = scriptsCopy();
+  try {
+    fs.rmSync(path.join(source, 'structure-snapshot.js'));
+    const report = stageParserScripts(project, { sourceDir: source });
+    assert.deepEqual(report.unavailable, ['structure-lifecycle.js']);
+    assert.ok(fs.existsSync(bin('update-structure.js')), 'the parser does not depend on it');
+    assert.ok(!fs.existsSync(bin('structure-lifecycle.js')));
+  } finally {
+    fs.rmSync(source, { recursive: true, force: true });
+  }
 });

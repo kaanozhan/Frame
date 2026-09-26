@@ -4168,6 +4168,7 @@
         "stageParserScripts",
         "PARSER_FILES",
         "PARSER_REQUIRES",
+        "LIFECYCLE_REQUIRES",
         "detectHookSetup",
         "installPreCommitHook",
         "runInitialFullScan"
@@ -4182,7 +4183,7 @@
       ],
       "functions": {
         "stageFile": {
-          "line": 78,
+          "line": 85,
           "params": [
             "fsImpl",
             "src",
@@ -4191,7 +4192,7 @@
           "purpose": "Write `src` to `dst` only when the bytes differ, through a temporary file"
         },
         "stageParserScripts": {
-          "line": 111,
+          "line": 118,
           "params": [
             "projectPath",
             "options = {}"
@@ -4199,41 +4200,41 @@
           "purpose": "Stage Frame's bundled scripts into the project's .frame/bin/."
         },
         "copyParserScripts": {
-          "line": 191,
+          "line": 199,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "detectHookSetup": {
-          "line": 205,
+          "line": 213,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "installPreCommitHook": {
-          "line": 272,
+          "line": 280,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook, but only where there is no hook to damage."
         },
         "scanTimeoutMs": {
-          "line": 339,
+          "line": 347,
           "params": [
             "projectPath"
           ]
         },
         "parseEnvelope": {
-          "line": 352,
+          "line": 360,
           "params": [
             "stdout"
           ],
           "purpose": "The single JSON envelope a `--json` run prints, or null."
         },
         "summarizeEnvelope": {
-          "line": 364,
+          "line": 372,
           "params": [
             "envelope",
             "code"
@@ -4241,7 +4242,7 @@
           "purpose": "Map a child result envelope onto the bootstrap's initialScan summary."
         },
         "runInitialFullScan": {
-          "line": 423,
+          "line": 431,
           "params": [
             "projectPath",
             "options = {}"
@@ -4249,7 +4250,7 @@
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 541,
+          "line": 549,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -4257,7 +4258,7 @@
           "purpose": "Top-level bootstrap orchestrator. Called from frameProject.js after the"
         }
       },
-      "sizeBytes": 23472,
+      "sizeBytes": 23953,
       "extraction": {
         "status": "parsed"
       },
@@ -4856,7 +4857,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3456,
+      "sizeBytes": 3670,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -14693,7 +14694,7 @@
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 676,
+          "line": 691,
           "params": [
             "projectName",
             "project"
@@ -14701,21 +14702,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 704,
+          "line": 719,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 724,
+          "line": 739,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 770,
+          "line": 785,
           "params": [
             "projectName",
             "project"
@@ -14723,24 +14724,24 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 853,
+          "line": 868,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getClaudeRuleTemplate": {
-          "line": 896,
+          "line": 911,
           "params": [
             "agentsText"
           ],
           "purpose": "`.claude/rules/frame.md` — the file Claude Code loads at session start."
         },
         "getFrameGitignoreBlock": {
-          "line": 911
+          "line": 926
         },
         "getGenericWrapperTemplate": {
-          "line": 1064,
+          "line": 1079,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -14748,31 +14749,31 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1110
+          "line": 1125
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1149,
+          "line": 1164,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1172,
+          "line": 1187,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1184,
+          "line": 1199,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1204
+          "line": 1219
         },
         "getOrchBinScripts": {
-          "line": 1222,
+          "line": 1237,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       },
-      "sizeBytes": 51234,
+      "sizeBytes": 52141,
       "extraction": {
         "status": "parsed"
       },
@@ -15513,27 +15514,27 @@
           "purpose": "Copy a fixture to a tmp dir, run detect-project --write, then a full"
         },
         "tmpProject": {
-          "line": 269,
+          "line": 270,
           "params": [
             "files = {}",
             "config = null"
           ]
         },
         "treeState": {
-          "line": 283,
+          "line": 284,
           "params": [
             "dir"
           ],
           "purpose": "Every path under `dir` with size and mtime — proves a run wrote nothing."
         },
         "envelopeOf": {
-          "line": 298,
+          "line": 299,
           "params": [
             "res"
           ]
         }
       },
-      "sizeBytes": 23170,
+      "sizeBytes": 23864,
       "extraction": {
         "status": "parsed"
       },
@@ -15636,14 +15637,14 @@
           "purpose": "Stage the app the way electron-builder would: only `build.files`."
         },
         "fakeParser": {
-          "line": 196,
+          "line": 203,
           "params": [
             "body"
           ],
           "purpose": "A stand-in parser: `body` runs with the real env the bootstrap passes."
         },
         "hangingAfterPublish": {
-          "line": 275,
+          "line": 282,
           "purpose": "A parser that publishes through the real state layer, then hangs."
         },
         "PREVIOUS_GENERATION": {
@@ -15654,7 +15655,7 @@
           "purpose": "The last parser generation before STR-01, read from history."
         }
       },
-      "sizeBytes": 15532,
+      "sizeBytes": 17260,
       "extraction": {
         "status": "parsed"
       },
@@ -17649,6 +17650,7 @@
       "total": 0,
       "truncated": false,
       "samples": []
-    }
+    },
+    "revision": "edf3dd12b57840c67888503bae0c757ce2f566f9416c81ac54188182253782ac"
   }
 }

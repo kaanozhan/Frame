@@ -46,12 +46,12 @@ const SCRIPTS_SOURCE_DIR = path.join(__dirname, '..', '..', 'scripts');
 // refresh leaves the previous entry runnable with the helpers it knew.
 const HELPER_FILES = [
   'structure-ignore.js', 'structure-ignore.LICENSE', 'structure-discovery.js',
-  'structure-generation.js', 'structure-state.js', 'toolVocabulary.js',
-  'redact.js', 'activity-log.js'
+  'structure-generation.js', 'structure-state.js', 'structure-snapshot.js',
+  'structure-read.js', 'toolVocabulary.js', 'redact.js', 'activity-log.js'
 ];
 const ENTRY_FILES = [
-  'update-structure.js', 'find-module.js', 'check-freshness.js', 'detect-project.js',
-  'spec-index.js', 'spec-context.js', 'spec-hint.js', 'module-hint.js',
+  'update-structure.js', 'structure-lifecycle.js', 'find-module.js', 'check-freshness.js',
+  'detect-project.js', 'spec-index.js', 'spec-context.js', 'spec-hint.js', 'module-hint.js',
   'docs-hint.js', 'spec-command-hint.js'
 ];
 // The app's own atomic writer, shipped beside the structure helpers so the
@@ -63,6 +63,13 @@ const PARSER_REQUIRES = [
   'structure-generation.js', 'structure-state.js', 'fsSafe.js',
   'lang/javascript.js', 'lang/python.js', 'lang/go.js', 'lang/rust.js', 'lang/markdown.js'
 ];
+// What the lifecycle worker (STR-02) cannot run without.
+const LIFECYCLE_REQUIRES = [...PARSER_REQUIRES, 'structure-snapshot.js', 'structure-read.js'];
+// Entry scripts activated only when every helper they need staged.
+const ENTRY_REQUIRES = {
+  'update-structure.js': PARSER_REQUIRES,
+  'structure-lifecycle.js': LIFECYCLE_REQUIRES
+};
 // Historical name list, kept for readers of this module's exports.
 const PARSER_FILES = [...ENTRY_FILES, 'intent-map.json', ...HELPER_FILES];
 
@@ -128,7 +135,8 @@ function stageParserScripts(projectPath, options = {}) {
 
   // Preflight: every required source asset must exist before anything the
   // parser depends on is replaced.
-  const missing = PARSER_REQUIRES.filter((rel) => !sources.has(rel) || !fsImpl.existsSync(sources.get(rel)));
+  const required = [...new Set(Object.values(ENTRY_REQUIRES).flat())];
+  const missing = required.filter((rel) => !sources.has(rel) || !fsImpl.existsSync(sources.get(rel)));
   for (const rel of missing) {
     console.warn(`[frame] bundled asset missing: ${rel}`);
     report.failed.push({ file: rel, error: 'missing from Frame installation' });
@@ -150,7 +158,7 @@ function stageParserScripts(projectPath, options = {}) {
       report.failed.push({ file: rel, error: err.message });
     }
   }
-  const parserReady = PARSER_REQUIRES.every((rel) => helpersOk.has(rel));
+  const ready = (entry) => (ENTRY_REQUIRES[entry] || []).every((rel) => helpersOk.has(rel));
 
   // 2. Curation: agent-editable per project — seeded once, never overwritten
   // (Frame's own curation would list modules the project doesn't have).
@@ -167,7 +175,7 @@ function stageParserScripts(projectPath, options = {}) {
 
   // 3. Entry scripts, last.
   for (const file of ENTRY_FILES) {
-    if (file === 'update-structure.js' && !parserReady) {
+    if (!ready(file)) {
       report.unavailable.push(file);
       continue;
     }
@@ -577,6 +585,7 @@ module.exports = {
   stageParserScripts,
   PARSER_FILES,
   PARSER_REQUIRES,
+  LIFECYCLE_REQUIRES,
   detectHookSetup,
   installPreCommitHook,
   runInitialFullScan

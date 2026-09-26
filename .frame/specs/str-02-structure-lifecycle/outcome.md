@@ -47,3 +47,11 @@ Added the worker to `scripts/structure-lifecycle.js`: `reconcile()` (discover, s
 _Captured: 2026-09-26 · 2 file change(s)_
 
 ---
+
+## T07 — Ship the lifecycle closure and document freshness
+
+`structureBootstrap` now ships `structure-snapshot.js` and `structure-read.js` as helpers and `structure-lifecycle.js` as an entry; activation gating moved from a single `update-structure.js` check to a per-entry `ENTRY_REQUIRES` table (new `LIFECYCLE_REQUIRES` export), so a missing lifecycle helper withholds only the lifecycle entry while a missing parser helper withholds both. The three scripts joined `build.files`, and the packaged-tree test now also runs `structure-lifecycle.js --once` without `node_modules`. The generated REFERENCE gained a "Staying Current" subsection (background worker, `--watch`/`--once`, the four freshness states, the commit-map limitation of D2), phrased so docsHealth still names only `.frame/config.json`. Files touched: `src/main/structureBootstrap.js`, `package.json`, `src/shared/frameTemplates.js`, `test/structureBootstrap.test.js`, `test/projectAgnostic.test.js`.
+
+_Captured: 2026-09-26 · 5 file change(s)_
+
+---
