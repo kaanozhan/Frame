@@ -228,3 +228,381 @@ test('idle() resolves when work drains; dispose stops everything', async () => {
   assert.equal(jobs.length, 1);
   await scheduler.idle();
 });
+
+/* ====================== the worker (STR-02 T06) ====================== */
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawn, spawnSync } = require('child_process');
+
+const lifecycle = require('../scripts/structure-lifecycle');
+const { readDescriptor } = require('../scripts/structure-read');
+const structureState = require('../scripts/structure-state');
+
+const SCRIPTS = path.join(__dirname, '..', 'scripts');
+
+function project(files = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-lifecycle-'));
+  fs.mkdirSync(path.join(dir, '.frame'), { recursive: true });
+  for (const [rel, content] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), content);
+  }
+  return dir;
+}
+
+const mapOf = (dir) => JSON.parse(fs.readFileSync(path.join(dir, '.frame', 'STRUCTURE.json'), 'utf8'));
+const filesOf = (dir) => Object.values(mapOf(dir).modules).map((m) => m.file).sort();
+
+/** A full reconciliation, as the worker records it. */
+function reconcileAndRecord(dir, job = { fullHash: true }) {
+  const result = lifecycle.reconcile(dir, job);
+  if (result.receipt) lifecycle.writeLifecycle(dir, { epoch: { requested: 0, applied: 0 }, dirty: [], receipt: result.receipt });
+  return result;
+}
+
+/** update-structure --check: is the map what a full scan would produce? */
+function inSync(dir) {
+  return spawnSync('node', [path.join(SCRIPTS, 'update-structure.js'), '--check'], { encoding: 'utf8', env: { ...process.env, FRAME_PROJECT_ROOT: dir } }).status;
+}
+
+async function waitFor(predicate, timeoutMs = 8000, stepMs = 50) {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    if (predicate()) return true;
+    await new Promise((r) => setTimeout(r, stepMs));
+  }
+  return predicate();
+}
+
+test('reconcile publishes the map and a receipt that reads fresh', () => {
+  const dir = project({ 'src/a.js': '// A', 'app/user.rb': 'x' });
+  try {
+    const result = reconcileAndRecord(dir);
+    assert.equal(result.status, 'published');
+    assert.deepEqual(filesOf(dir), ['app/user.rb', 'src/a.js']);
+    const d = readDescriptor(dir);
+    assert.equal(d.freshness, 'fresh', d.reasons.join(','));
+    assert.equal(d.revision, mapOf(dir).generation.revision);
+    assert.equal(d.coverage, 'complete');
+    for (const key of ['sourceDigest', 'policyDigest', 'curationDigest', 'artifactDigest']) assert.match(result.receipt[key], /^[0-9a-f]{64}$/);
+    assert.equal(result.receipt.leaseMs, 90000);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('an unchanged tree renews the receipt without rewriting the map', () => {
+  const dir = project({ 'src/a.js': '// A' });
+  try {
+    reconcileAndRecord(dir);
+    const before = fs.statSync(path.join(dir, '.frame', 'STRUCTURE.json'));
+    const revision = mapOf(dir).generation.revision;
+    const again = reconcileAndRecord(dir, { fullHash: false });
+    assert.equal(again.status, 'unchanged');
+    assert.equal(again.hashed, 0);
+    assert.equal(fs.statSync(path.join(dir, '.frame', 'STRUCTURE.json')).mtimeMs, before.mtimeMs);
+    assert.equal(mapOf(dir).generation.revision, revision);
+    assert.equal(readDescriptor(dir).freshness, 'fresh');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('untracked files, new roots, renamed directories and deletions converge to the full-scan map', () => {
+  const dir = project({ 'src/a.js': '// A', 'src/old/b.js': '// B', 'gone.js': '// G' });
+  try {
+    reconcileAndRecord(dir);
+    fs.writeFileSync(path.join(dir, 'untracked.js'), '// new');
+    fs.mkdirSync(path.join(dir, 'packages', 'core'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'packages', 'core', 'index.ts'), 'export {}');
+    fs.renameSync(path.join(dir, 'src', 'old'), path.join(dir, 'src', 'renamed'));
+    fs.rmSync(path.join(dir, 'gone.js'));
+    const result = reconcileAndRecord(dir, { fullHash: false });
+    assert.equal(result.status, 'published');
+    assert.deepEqual(filesOf(dir), ['packages/core/index.ts', 'src/a.js', 'src/renamed/b.js', 'untracked.js']);
+    assert.equal(inSync(dir), 0, 'identical to what a full scan would produce');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('ignore-policy and config changes add and remove entries while curation and prose survive', () => {
+  const dir = project({ 'src/a.js': '// A', 'src/gen.js': '// G', 'build/tool.js': '// T' });
+  try {
+    reconcileAndRecord(dir);
+    const map = mapOf(dir);
+    map.modules.a.description = 'Hand-written';
+    fs.writeFileSync(path.join(dir, '.frame', 'STRUCTURE.json'), JSON.stringify(map, null, 2));
+
+    fs.writeFileSync(path.join(dir, '.gitignore'), 'src/gen.js\n');
+    fs.writeFileSync(path.join(dir, '.frame', 'config.json'), JSON.stringify({ project: { structure: { ignoredDirectories: [] } } }));
+    reconcileAndRecord(dir, { fullHash: true });
+    assert.deepEqual(filesOf(dir), ['.gitignore', 'build/tool.js', 'src/a.js']);
+    assert.equal(mapOf(dir).modules.a.description, 'Hand-written');
+    assert.equal(inSync(dir), 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a branch switch reconciles to the checked-out tree', () => {
+  const dir = project({ 'src/a.js': '// A' });
+  const git = (...args) => spawnSync('git', ['-C', dir, ...args], { encoding: 'utf8' });
+  try {
+    git('init', '-q');
+    git('config', 'user.email', 't@example.com');
+    git('config', 'user.name', 'T');
+    fs.writeFileSync(path.join(dir, '.gitignore'), '.frame/\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'a');
+    git('checkout', '-q', '-b', 'feature');
+    fs.writeFileSync(path.join(dir, 'src', 'feature.js'), '// F');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'f');
+    reconcileAndRecord(dir);
+    assert.ok(filesOf(dir).includes('src/feature.js'));
+
+    git('checkout', '-q', '-');
+    reconcileAndRecord(dir, { fullHash: true });
+    assert.deepEqual(filesOf(dir), ['.gitignore', 'src/a.js']);
+    assert.equal(inSync(dir), 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a busy writer is reported busy and nothing is published', () => {
+  const dir = project({ 'src/a.js': '// A' });
+  try {
+    const held = structureState.acquireLock(structureState.statePaths(dir), {});
+    assert.equal(lifecycle.reconcile(dir, { fullHash: true }).status, 'busy');
+    assert.ok(!fs.existsSync(path.join(dir, '.frame', 'STRUCTURE.json')));
+    structureState.releaseLock(structureState.statePaths(dir), held.token);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('notifications are classified; Frame\'s own writes are ignored', () => {
+  const c = (rel, owned) => lifecycle.classify(rel, owned);
+  assert.deepEqual(c('src/a.js'), { reason: 'file-event', full: false, path: 'src/a.js' });
+  assert.deepEqual(c('pkg/.gitignore'), { reason: 'gitignore', full: true });
+  assert.deepEqual(c('.frame/config.json'), { reason: 'config', full: true });
+  assert.deepEqual(c('.frame/bin/intent-map.json'), { reason: 'curation', full: true });
+  assert.deepEqual(c('.git/HEAD'), { reason: 'git-state', full: true });
+  assert.deepEqual(c(null), { reason: 'unknown-change', full: true });
+  for (const own of ['.frame/STRUCTURE.json', '.frame/STRUCTURE.json.bak', '.frame/runtime/structure/lifecycle.json', '.frame/bin/update-structure.js', '.frame/tasks.json', '.git/index', '.git/objects/ab/cd']) {
+    assert.equal(c(own), null, own);
+  }
+  assert.equal(c('STRUCTURE.json', true), null, 'an owned root map is ours');
+  assert.equal(c('STRUCTURE.json', false).reason, 'file-event', 'an unowned one is project content');
+});
+
+test('Git directories resolve for a repository and for a linked worktree without running Git', () => {
+  const dir = project();
+  try {
+    assert.equal(lifecycle.resolveGitDirs(dir), null);
+    fs.mkdirSync(path.join(dir, '.git'));
+    assert.deepEqual(lifecycle.resolveGitDirs(dir), { gitDir: path.join(dir, '.git'), inside: true });
+    fs.rmSync(path.join(dir, '.git'), { recursive: true });
+    fs.writeFileSync(path.join(dir, '.git'), 'gitdir: /repos/main/.git/worktrees/wt\n');
+    assert.deepEqual(lifecycle.resolveGitDirs(dir), { gitDir: '/repos/main/.git/worktrees/wt', inside: false });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('one coordinator owns a checkout; a dead owner is reclaimed', () => {
+  const dir = project();
+  try {
+    const first = lifecycle.acquireOwner(dir);
+    assert.ok(first.ok);
+    assert.equal(lifecycle.acquireOwner(dir).reason, 'busy');
+    lifecycle.releaseOwner(dir, first.token);
+    fs.writeFileSync(path.join(dir, '.frame', 'runtime', 'structure', 'lifecycle.owner'), JSON.stringify({ token: 'x', pid: 2 ** 22 + 99, host: os.hostname() }));
+    assert.ok(lifecycle.acquireOwner(dir, { isAlive: () => false }).ok);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+for (const forcePerDirectory of [false, true]) {
+  test(`a running worker keeps the map current (${forcePerDirectory ? 'per-directory' : 'platform'} watching)`, async () => {
+    const dir = project({ 'src/a.js': '// A' });
+    const worker = lifecycle.startWorker(dir, { forcePerDirectory, periodicMs: 3600000 });
+    try {
+      assert.ok(worker.ok);
+      await waitFor(() => readDescriptor(dir).freshness === 'fresh');
+      assert.equal(readDescriptor(dir).freshness, 'fresh');
+
+      fs.mkdirSync(path.join(dir, 'src', 'new'), { recursive: true });
+      await new Promise((r) => setTimeout(r, 100));
+      fs.writeFileSync(path.join(dir, 'src', 'new', 'b.js'), '// B');
+      fs.writeFileSync(path.join(dir, 'src', 'a.js'), '// A edited');
+      const converged = await waitFor(() => {
+        try {
+          const map = mapOf(dir);
+          return map.modules['new/b'] && map.modules.a.description === 'A edited' && readDescriptor(dir).freshness === 'fresh';
+        } catch (e) {
+          return false;
+        }
+      });
+      assert.ok(converged, JSON.stringify(worker.status()));
+
+      // our own writes never trigger more work
+      await worker.idle();
+      const jobs = worker.status().jobs;
+      await new Promise((r) => setTimeout(r, 1200));
+      assert.equal(worker.status().jobs, jobs, 'no self-triggered loop');
+    } finally {
+      worker.stop();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}
+
+test('while paused, changes are recorded and readers see the map as dirty', async () => {
+  const dir = project({ 'src/a.js': '// A' });
+  const worker = lifecycle.startWorker(dir, { periodicMs: 3600000, forcePerDirectory: true });
+  try {
+    await waitFor(() => readDescriptor(dir).freshness === 'fresh');
+    worker.pause();
+    fs.writeFileSync(path.join(dir, 'src', 'a.js'), '// A paused edit');
+    assert.ok(await waitFor(() => readDescriptor(dir).freshness === 'dirty'), readDescriptor(dir).reasons.join(','));
+    assert.ok(!mapOf(dir).modules.a.description.includes('paused'));
+    worker.resume();
+    assert.ok(await waitFor(() => readDescriptor(dir).freshness === 'fresh' && mapOf(dir).modules.a.description === 'A paused edit'));
+  } finally {
+    worker.stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/* ---------------------------------- CLI ---------------------------------- */
+
+function spawnLifecycle(dir, args) {
+  const child = spawn('node', [path.join(SCRIPTS, 'structure-lifecycle.js'), ...args], { env: { ...process.env, FRAME_PROJECT_ROOT: dir }, stdio: ['pipe', 'pipe', 'pipe'] });
+  const lines = [];
+  let buffer = '';
+  child.stdout.on('data', (chunk) => {
+    buffer += chunk;
+    let i;
+    while ((i = buffer.indexOf('\n')) !== -1) {
+      lines.push(JSON.parse(buffer.slice(0, i)));
+      buffer = buffer.slice(i + 1);
+    }
+  });
+  const exited = new Promise((resolve) => child.on('close', (code) => resolve(code)));
+  return { child, lines, exited };
+}
+
+test('--once --json reconciles and reports one envelope', () => {
+  const dir = project({ 'src/a.js': '// A' });
+  try {
+    const res = spawnSync('node', [path.join(SCRIPTS, 'structure-lifecycle.js'), '--once', '--json'], { encoding: 'utf8', env: { ...process.env, FRAME_PROJECT_ROOT: dir } });
+    assert.equal(res.status, 0, res.stderr);
+    const envelope = JSON.parse(res.stdout.trim());
+    assert.equal(envelope.schema, 'frame.structure.lifecycle/1');
+    assert.equal(envelope.status, 'published');
+    assert.equal(readDescriptor(dir).freshness, 'fresh');
+    assert.equal(spawnSync('node', [path.join(SCRIPTS, 'structure-lifecycle.js'), '--bogus']).status, 2);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('--watch owns the checkout; a second coordinator is busy; a killed owner is reclaimed', async () => {
+  const dir = project({ 'src/a.js': '// A' });
+  const first = spawnLifecycle(dir, ['--watch']);
+  try {
+    assert.ok(await waitFor(() => first.lines.some((l) => l.type === 'started')));
+    const second = spawnLifecycle(dir, ['--watch']);
+    assert.equal(await second.exited, 2);
+    assert.ok(second.lines.some((l) => l.type === 'busy'));
+
+    first.child.kill('SIGKILL');
+    await first.exited;
+    const third = spawnLifecycle(dir, ['--watch']);
+    assert.ok(await waitFor(() => third.lines.some((l) => l.type === 'started')), 'dead owner reclaimed');
+    third.child.kill('SIGTERM');
+    assert.equal(await third.exited, 0);
+    assert.ok(!fs.existsSync(path.join(dir, '.frame', 'runtime', 'structure', 'lifecycle.owner')), 'released on a clean stop');
+  } finally {
+    first.child.kill('SIGKILL');
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('--supervised takes commands on stdin and exits when stdin closes', async () => {
+  const dir = project({ 'src/a.js': '// A' });
+  const worker = spawnLifecycle(dir, ['--supervised']);
+  try {
+    assert.ok(await waitFor(() => worker.lines.some((l) => l.type === 'job')), 'attach reconciliation ran');
+    const before = worker.lines.filter((l) => l.type === 'job').length;
+    worker.child.stdin.write(`${JSON.stringify({ cmd: 'reconcile', reason: 'reopen' })}\n`);
+    assert.ok(await waitFor(() => worker.lines.filter((l) => l.type === 'job').length > before));
+    assert.deepEqual(worker.lines.filter((l) => l.type === 'job').pop().reasons, ['reopen']);
+    worker.child.stdin.end();
+    assert.equal(await worker.exited, 0);
+  } finally {
+    worker.child.kill('SIGKILL');
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/* ------------------------------ measurement ------------------------------ */
+
+test('10,000-file fixture: refresh times and scan counts', (t) => {
+  const dir = project();
+  try {
+    for (let d = 0; d < 100; d++) {
+      const sub = path.join(dir, 'src', `pkg${d}`);
+      fs.mkdirSync(sub, { recursive: true });
+      for (let f = 0; f < 100; f++) {
+        fs.writeFileSync(path.join(sub, `mod${f}.js`), `// Module ${d}.${f}\nfunction f${f}() {}\nmodule.exports = { f${f} };\n`);
+      }
+    }
+    const time = (fn) => { const s = process.hrtime.bigint(); const r = fn(); return [Number(process.hrtime.bigint() - s) / 1e6, r]; };
+    const [cold, coldResult] = time(() => reconcileAndRecord(dir, { fullHash: true }));
+    assert.equal(coldResult.status, 'published');
+    assert.equal(Object.keys(mapOf(dir).modules).length, 10000);
+
+    const refresh = [];
+    for (let i = 0; i < 7; i++) {
+      fs.writeFileSync(path.join(dir, 'src', 'pkg0', `mod${i}.js`), `// Edited ${i}\n`);
+      const [ms, r] = time(() => reconcileAndRecord(dir, { fullHash: false }));
+      assert.equal(r.status, 'published');
+      assert.equal(r.hashed, 1, 'only the edited file is rehashed');
+      refresh.push(ms);
+    }
+    const [full, fullResult] = time(() => reconcileAndRecord(dir, { fullHash: true }));
+    assert.equal(fullResult.status, 'unchanged');
+    assert.equal(fullResult.hashed, 10000);
+    assert.equal(fullResult.cacheHits, 10000, 'unchanged content is never re-extracted');
+
+    refresh.sort((a, b) => a - b);
+    const pct = (p) => refresh[Math.min(refresh.length - 1, Math.ceil(p * refresh.length) - 1)];
+    const summary = `cold ${cold.toFixed(0)}ms · refresh p50 ${pct(0.5).toFixed(0)}ms p95 ${pct(0.95).toFixed(0)}ms · full-hash ${full.toFixed(0)}ms · jobs ${refresh.length + 2}`;
+    t.diagnostic(summary);
+    fs.writeFileSync(path.join(os.tmpdir(), 'frame-str02-measurement.txt'), summary + '\n');
+    assert.ok(pct(0.95) < 30000, 'a settled edit completes within the default scan budget');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a job report is emitted after its epoch is applied', async () => {
+  const seen = [];
+  const clock = fakeClock();
+  let scheduler;
+  scheduler = createScheduler({
+    clock,
+    run: async () => ({ status: 'published' }),
+    onReport: (r) => { if (r.type === 'job') seen.push(scheduler.status().pending); }
+  });
+  scheduler.notify();
+  await clock.advance(1000);
+  assert.deepEqual(seen, [false]);
+});

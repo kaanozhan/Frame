@@ -39,3 +39,11 @@ Added `createScheduler` in `scripts/structure-lifecycle.js`: 300 ms coalescing w
 _Captured: 2026-09-26 · 2 file change(s)_
 
 ---
+
+## T06 — Complete the lifecycle worker and commands
+
+Added the worker to `scripts/structure-lifecycle.js`: `reconcile()` (discover, stat-gated or full-hash observe, cached-extraction `buildFull`, publish through `runAttempt` with a mixed-bytes precondition, then the `lifecycle.json` receipt), the checkout owner lease on STR-01's lock primitive (`lifecycle.owner`), notification classification that ignores Frame's own writes, Git control state read from `.git`/`gitdir:` files, `startWorker`, and `--once --json`/`--watch`/`--supervised` (JSON lines on stdin/stdout). Deviations: the Git `index` is not a trigger (`git status` rewrites it constantly and staging changes no file); native recursive watching is used only on macOS/Windows because Node's Linux implementation watches every subdirectory itself, so Linux uses the bounded per-directory mode; `.frame/` and `.frame/bin/` are watched explicitly in that mode. Fixed a scheduler ordering bug found here (the job report fired before the epoch was applied, so the worker overwrote a clean receipt with `dirty`). Measured on 10,000 files (macOS, this machine): cold 2.9 s, single-edit refresh p50 ≈ 0.85 s / p95 ≈ 0.9 s, full-hash reconciliation ≈ 1.1 s with 10,000 cache hits. Files touched: `scripts/structure-lifecycle.js`, `test/structureLifecycle.test.js`.
+
+_Captured: 2026-09-26 · 2 file change(s)_
+
+---
