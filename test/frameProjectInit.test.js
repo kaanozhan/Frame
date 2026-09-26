@@ -470,3 +470,188 @@ test('Remove Frame takes the hook file and an empty settings file with it', asyn
   // The user's own .claude/CLAUDE.md is still there, so the directory stays.
   assert.ok(fs.existsSync(path.join(projectDir, '.claude', 'CLAUDE.md')));
 });
+
+/* ------------------- STR-01: initial generation and re-init ------------------- */
+
+const { spawnSync } = require('child_process');
+const structureBootstrap = require('../src/main/structureBootstrap');
+
+const mapPath = (dir) => path.join(dir, FRAME_DIR, 'STRUCTURE.json');
+const readMap = (dir) => JSON.parse(fs.readFileSync(mapPath(dir), 'utf8'));
+const scanRecord = (dir) => path.join(dir, FRAME_DIR, 'runtime', 'structure', 'scan.json');
+
+test('a truly empty project gets a completed empty map, not a template', async () => {
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-init-empty-'));
+  try {
+    const result = await frameProject.runProjectInit(empty, 'empty');
+    const scan = result._structureBootstrap.initialScan;
+    assert.equal(scan.status, 'ok', scan.message);
+    assert.equal(scan.empty, true);
+    const map = readMap(empty);
+    assert.deepEqual(map.modules, {});
+    assert.equal(map.generation.inventory.coverage, 'complete');
+    assert.notEqual(map.generation.state, 'pending');
+    assert.equal(JSON.parse(fs.readFileSync(scanRecord(empty), 'utf8')).state, 'complete');
+  } finally {
+    fs.rmSync(empty, { recursive: true, force: true });
+  }
+});
+
+test('an imported project with mixed roots and unsupported languages is fully inventoried', async () => {
+  const extra = {
+    'index.js': '// Root entry\n',
+    'lib/util.py': '"""Utilities."""\n',
+    'app/models/user.rb': 'class User; end\n',
+    'docs/guide.md': '# Guide\n'
+  };
+  for (const [rel, content] of Object.entries(extra)) {
+    fs.mkdirSync(path.dirname(path.join(projectDir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, rel), content);
+  }
+  const result = await frameProject.runProjectInit(projectDir, 'demo');
+  assert.equal(result._structureBootstrap.initialScan.status, 'ok', result._structureBootstrap.initialScan.message);
+  const files = Object.values(readMap(projectDir).modules).map((m) => m.file).sort();
+  for (const rel of [...Object.keys(extra), 'src/app.js', 'AGENTS.md', 'CLAUDE.md', '.husky/pre-commit']) {
+    assert.ok(files.includes(rel), `${rel} in ${files}`);
+  }
+  assert.ok(!files.includes(CLAUDE_RULE_PATH), 'Frame\'s generated rule file is not project content');
+  assert.ok(!files.some((f) => f.startsWith('.frame/')));
+});
+
+test('re-init keeps the existing configuration; only explicit options and detector facts change', async () => {
+  await frameProject.runProjectInit(projectDir, 'demo');
+  const configFile = path.join(projectDir, FRAME_DIR, 'config.json');
+  const original = frameStore.readConfig(projectDir);
+  const customized = {
+    ...original,
+    createdAt: '2020-01-01T00:00:00.000Z',
+    settings: { ...original.settings, autoUpdateNotes: true, gitSharing: 'local' },
+    features: { ...original.features, specDriven: false, experimentalThing: true },
+    custom: { keep: 'me' },
+    project: {
+      ...original.project,
+      languages: ['cobol'],
+      ipcChannelsFile: 'src/shared/ipc.js',
+      structure: { exclude: ['generated/'], limits: { maxFiles: 1234 } }
+    }
+  };
+  fs.writeFileSync(configFile, JSON.stringify(customized, null, 2));
+
+  await frameProject.runProjectInit(projectDir, 'demo');
+  const after = frameStore.readConfig(projectDir);
+  assert.equal(after.projectId, original.projectId);
+  assert.equal(after.createdAt, '2020-01-01T00:00:00.000Z');
+  assert.equal(after.settings.autoUpdateNotes, true);
+  assert.equal(after.settings.gitSharing, 'local', 'the previous sharing mode is kept');
+  assert.equal(after.features.specDriven, false);
+  assert.equal(after.features.experimentalThing, true);
+  assert.deepEqual(after.custom, { keep: 'me' });
+  assert.equal(after.project.ipcChannelsFile, 'src/shared/ipc.js');
+  assert.deepEqual(after.project.structure, { exclude: ['generated/'], limits: { maxFiles: 1234 } });
+  const detected = require('../scripts/detect-project').detectProject(projectDir);
+  assert.deepEqual(after.project.languages, detected.languages, 'detector-owned facts are refreshed');
+  assert.notDeepEqual(after.project.languages, ['cobol']);
+
+  await frameProject.runProjectInit(projectDir, 'demo', { gitSharing: 'repo' });
+  assert.equal(frameStore.readConfig(projectDir).settings.gitSharing, 'repo', 'an explicit option replaces its value');
+});
+
+test('re-init preserves an existing map untouched and reports it as skipped and unverified', async () => {
+  await frameProject.runProjectInit(projectDir, 'demo');
+  const map = fs.readFileSync(mapPath(projectDir), 'utf8');
+  const record = fs.readFileSync(scanRecord(projectDir), 'utf8');
+  fs.writeFileSync(path.join(projectDir, 'src', 'late.js'), '// Late\n');
+
+  const result = await frameProject.runProjectInit(projectDir, 'demo');
+  const scan = result._structureBootstrap.initialScan;
+  assert.equal(scan.status, 'skipped-existing');
+  assert.equal(scan.verified, false);
+  assert.equal(scan.repairCommand, 'node .frame/bin/update-structure.js --full');
+  assert.equal(fs.readFileSync(mapPath(projectDir), 'utf8'), map, 'no silent rebuild');
+  assert.equal(fs.readFileSync(scanRecord(projectDir), 'utf8'), record);
+});
+
+test('the documented repair command rebuilds the map and keeps hand-written prose', async () => {
+  await frameProject.runProjectInit(projectDir, 'demo');
+  const edited = readMap(projectDir);
+  edited.modules.app.description = 'Hand-written: the composition root';
+  edited.architectureNotes = { boot: 'why startup is ordered this way' };
+  fs.writeFileSync(mapPath(projectDir), JSON.stringify(edited, null, 2));
+  fs.writeFileSync(path.join(projectDir, 'src', 'late.js'), '// Late\n');
+
+  const run = spawnSync('node', ['.frame/bin/update-structure.js', '--full'], { cwd: projectDir, encoding: 'utf8', env: { ...process.env, FRAME_PROJECT_ROOT: '' } });
+  assert.equal(run.status, 0, run.stderr);
+  const map = readMap(projectDir);
+  assert.ok(map.modules.late, 'new file picked up');
+  assert.equal(map.modules.app.description, 'Hand-written: the composition root');
+  assert.deepEqual(map.architectureNotes, { boot: 'why startup is ordered this way' });
+});
+
+test('a bootstrap exception comes back as an explicit failure summary', async () => {
+  const original = structureBootstrap.bootstrapStructure;
+  structureBootstrap.bootstrapStructure = async () => { throw new Error('disk on fire'); };
+  try {
+    const result = await frameProject.runProjectInit(projectDir, 'demo');
+    assert.deepEqual(result._structureBootstrap.initialScan, {
+      status: 'error',
+      reason: 'bootstrap-exception',
+      message: 'STRUCTURE bootstrap failed: disk on fire',
+      repairCommand: 'node .frame/bin/update-structure.js --full'
+    });
+    assert.ok(fs.existsSync(path.join(projectDir, FRAME_DIR, 'config.json')), 'the project still initialized');
+  } finally {
+    structureBootstrap.bootstrapStructure = original;
+  }
+});
+
+test('generation works without Git and beside a custom hook it never touches', async () => {
+  const noGit = await frameProject.runProjectInit(projectDir, 'demo');
+  assert.equal(noGit._structureBootstrap.hook.status, 'skipped-no-git');
+  assert.equal(noGit._structureBootstrap.initialScan.status, 'ok');
+
+  const custom = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-init-custom-'));
+  try {
+    spawnSync('git', ['init', '-q'], { cwd: custom });
+    fs.writeFileSync(path.join(custom, 'a.js'), '// A\n');
+    const hookFile = path.join(custom, '.git', 'hooks', 'pre-commit');
+    fs.writeFileSync(hookFile, '#!/bin/sh\necho mine\n', { mode: 0o755 });
+    const result = await frameProject.runProjectInit(custom, 'custom');
+    assert.equal(result._structureBootstrap.hook.status, 'skipped-custom');
+    assert.match(result._structureBootstrap.hook.manualInstructions, /--changed/);
+    assert.equal(result._structureBootstrap.initialScan.status, 'ok');
+    assert.equal(fs.readFileSync(hookFile, 'utf8'), '#!/bin/sh\necho mine\n');
+  } finally {
+    fs.rmSync(custom, { recursive: true, force: true });
+  }
+});
+
+for (const mode of ['repo', 'local']) {
+  test(`${mode} sharing never exposes scan state or recovery files to git`, async () => {
+    spawnSync('git', ['init', '-q'], { cwd: projectDir });
+    await frameProject.runProjectInit(projectDir, 'demo', { gitSharing: mode });
+    const recovery = path.join(projectDir, FRAME_DIR, 'runtime', 'structure', 'recovery');
+    fs.mkdirSync(recovery, { recursive: true });
+    fs.writeFileSync(path.join(recovery, 'x.json'), '{}');
+    const status = spawnSync('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: projectDir, encoding: 'utf8' }).stdout;
+    assert.ok(!/\.frame\/runtime\//.test(status), status);
+    assert.ok(!/\.bak$/m.test(status), status);
+    if (mode === 'repo') assert.match(status, /\.frame\/STRUCTURE\.json/, 'the map itself stays shareable');
+  });
+}
+
+test('re-init never rewrites user-authored REFERENCE or QUICKSTART text to refresh guidance', async () => {
+  await frameProject.runProjectInit(projectDir, 'demo');
+  const reference = path.join(projectDir, FRAME_DIR, 'docs', 'REFERENCE.md');
+  const quickstart = frameStore.resolvePath(projectDir, FRAME_FILES.QUICKSTART);
+  fs.writeFileSync(reference, '# Our reference\n\nHand-written.\n');
+  fs.writeFileSync(quickstart, '# Our quickstart\n');
+  await frameProject.runProjectInit(projectDir, 'demo');
+  await frameProject.openProjectLayout(projectDir);
+  // Frame's own managed spec section may be appended (a separate, older
+  // contract); the user's prose stays verbatim and no STRUCTURE guidance is
+  // pushed into their document.
+  const after = fs.readFileSync(reference, 'utf8');
+  assert.ok(after.startsWith('# Our reference\n\nHand-written.\n'));
+  assert.ok(!after.includes('STRUCTURE.json Rules'));
+  assert.equal(fs.readFileSync(quickstart, 'utf8'), '# Our quickstart\n');
+});

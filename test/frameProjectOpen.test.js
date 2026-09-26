@@ -201,6 +201,11 @@ test('an opened legacy project ends up with the artifacts an already-migrated on
       // under `npm test`), so it can never match across two fixtures.
       if (rel.startsWith(`${MIGRATION_BACKUP_DIR}/`)) continue;
       if (rel.startsWith('runtime/test-activity/')) continue;
+      // Per-attempt scan records and publication backups belong to the fresh
+      // project's initial scan. An open never scans, and must not fabricate
+      // them to match (STR-01): compare durable metadata and tooling only.
+      if (rel.startsWith('runtime/structure/')) continue;
+      if (rel.endsWith('.bak')) continue;
       assert.ok(migrated.has(rel), `.frame/${rel} is present after a migrating open`);
     }
     // The three the stagers are actually here to deliver.
@@ -294,4 +299,43 @@ test('a directory Frame never initialised is answered, not written to', async ()
 
   assert.deepEqual(result, { isFrame: false, layout: 'none', migration: null });
   assert.deepEqual(snapshotTree(projectDir), before);
+});
+
+/* ------------------------ STR-01: opens never scan ------------------------ */
+
+test('an open refreshes tools only: the map and scan record stay byte-identical', async () => {
+  projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-open-tools-'));
+  fs.writeFileSync(path.join(projectDir, 'a.js'), '// A\n');
+  await frameProject.runProjectInit(projectDir, 'demo');
+  const map = path.join(projectDir, FRAME_DIR, 'STRUCTURE.json');
+  const record = path.join(projectDir, FRAME_DIR, 'runtime', 'structure', 'scan.json');
+  const before = [fs.readFileSync(map, 'utf8'), fs.readFileSync(record, 'utf8')];
+
+  // an older checkout's tooling, and a source change the map does not know about
+  fs.writeFileSync(path.join(projectDir, FRAME_DIR, 'bin', 'update-structure.js'), '// stale generation\n');
+  fs.writeFileSync(path.join(projectDir, 'b.js'), '// B\n');
+  await frameProject.openProjectLayout(projectDir);
+
+  assert.notEqual(fs.readFileSync(path.join(projectDir, FRAME_DIR, 'bin', 'update-structure.js'), 'utf8'), '// stale generation\n', 'tools refreshed');
+  assert.deepEqual([fs.readFileSync(map, 'utf8'), fs.readFileSync(record, 'utf8')], before, 'no scan, no invalidation');
+});
+
+test('a re-init blocked by a merge writes nothing at all', async () => {
+  projectDir = makeLegacyProject();
+  const notes = path.join(projectDir, 'PROJECT_NOTES.md');
+  git(projectDir, ['checkout', '-q', '-b', 'other']);
+  fs.appendFileSync(notes, '\n### [2026-02-02] Theirs\n');
+  git(projectDir, ['commit', '-q', '-a', '-m', 'theirs']);
+  git(projectDir, ['checkout', '-q', '-']);
+  fs.appendFileSync(notes, '\n### [2026-02-02] Ours\n');
+  git(projectDir, ['commit', '-q', '-a', '-m', 'ours']);
+  try {
+    git(projectDir, ['merge', '--no-edit', 'other']);
+  } catch (err) {
+    /* the conflict is the point */
+  }
+  const before = snapshotTree(projectDir);
+
+  await assert.rejects(frameProject.runProjectInit(projectDir, 'demo'), (err) => err.code === 'E_LAYOUT_UNMERGED');
+  assert.deepEqual(snapshotTree(projectDir), before, 'no config, staging, scan state or map writes');
 });

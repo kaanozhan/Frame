@@ -33,19 +33,64 @@ function resolveProjectRoot() {
 }
 
 /**
- * Where a meta file lives: `.frame/<name>` for a migrated project, the root
- * only while an unmigrated project still has it there.
+ * STRUCTURE.json's owner: the overlay first; the root copy only when
+ * `.frame/config.json`'s `files` record names it (Frame's legacy init
+ * fingerprint); otherwise the overlay. A user's own root STRUCTURE.json is
+ * never read as Frame's map. Read-only mirror of structure-state.js and
+ * frameStore.resolvePath — kept tiny on purpose, pinned by parity tests.
  */
-function resolveMetaPath(name) {
-  const overlay = path.join(ROOT_DIR, '.frame', name);
+function resolveStructurePath() {
+  const overlay = path.join(ROOT_DIR, '.frame', 'STRUCTURE.json');
   if (fs.existsSync(overlay)) return overlay;
-  const legacy = path.join(ROOT_DIR, name);
-  if (fs.existsSync(legacy)) return legacy;
+  const legacy = path.join(ROOT_DIR, 'STRUCTURE.json');
+  if (fs.existsSync(legacy)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, '.frame', 'config.json'), 'utf8'));
+      if (config && config.files && Object.values(config.files).includes('STRUCTURE.json')) return legacy;
+    } catch (e) {
+      /* no record → not Frame's file */
+    }
+  }
   return overlay;
 }
 
+/**
+ * Generation-status notes for the map (read-only; never repairs). The map's
+ * own `generation` block says whether it covers the whole project; the
+ * latest attempt record says whether the last scan replaced it. A missing
+ * attempt record (fresh clone) is unknown, not a failure.
+ */
+function generationNotes(root, structure) {
+  const notes = [];
+  const inventory = structure && structure.generation && structure.generation.inventory;
+  const reasons = inventory && Array.isArray(inventory.reasons) ? inventory.reasons : [];
+  if (inventory && inventory.coverage === 'partial') {
+    notes.push(`covers only part of the project (${reasons.join(', ') || 'incomplete scan'})`);
+  } else if (inventory && inventory.coverage === 'unknown' && reasons.includes('no-baseline')) {
+    notes.push('was built from changed files only and has not been verified by a full scan');
+  }
+  let attempt = null;
+  try {
+    attempt = JSON.parse(fs.readFileSync(path.join(root, '.frame', 'runtime', 'structure', 'scan.json'), 'utf8'));
+  } catch (e) {
+    attempt = null;
+  }
+  if (attempt && attempt.state === 'interrupted' && attempt.published && attempt.acknowledged === false) {
+    notes.push('comes from a scan that was interrupted right after publishing (unconfirmed)');
+  } else if (attempt && (attempt.state === 'failed' || attempt.state === 'interrupted' || (attempt.state === 'partial' && attempt.retainedPrevious))) {
+    notes.push(`is from an earlier scan — the latest one ${attempt.state === 'partial' ? 'was incomplete' : attempt.state}${attempt.reason ? ` (${attempt.reason})` : ''}`);
+  }
+  return notes;
+}
+
+function repairCommand(root) {
+  const updater = path.join(__dirname, 'update-structure.js');
+  const rel = path.relative(root, updater).split(path.sep).join('/');
+  return `node ${rel && !rel.startsWith('..') ? rel : '.frame/bin/update-structure.js'} --full`;
+}
+
 const ROOT_DIR = resolveProjectRoot();
-const STRUCTURE_FILE = resolveMetaPath('STRUCTURE.json');
+const STRUCTURE_FILE = resolveStructurePath();
 
 function loadStructure() {
   try {
@@ -243,6 +288,11 @@ const structure = loadStructure();
 const banner = stalenessBanner(structure);
 if (banner) {
   console.log(banner + '\n');
+}
+const generationWarnings = generationNotes(ROOT_DIR, structure);
+if (generationWarnings.length > 0) {
+  for (const note of generationWarnings) console.log(`⚠ STRUCTURE.json ${note}`);
+  console.log(`  Rebuild: ${repairCommand(ROOT_DIR)}\n`);
 }
 
 if (args[0] === '--list') {

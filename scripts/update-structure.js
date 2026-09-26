@@ -1,21 +1,37 @@
 #!/usr/bin/env node
 /**
- * STRUCTURE.json Auto-Updater
+ * STRUCTURE.json generator — the CLI over the shared pipeline:
  *
- * Parses source files (per-language extractors in scripts/lang/) and updates
- * STRUCTURE.json with module info.
- * Can run in full mode (all files) or incremental mode (changed files only).
+ *   structure-discovery.js   which files exist (one policy, any layout)
+ *   structure-generation.js  what their entries say (identity, annotations)
+ *   structure-state.js       where the map lives and how it is published
  *
  * Usage:
- *   node scripts/update-structure.js              # Full update
- *   node scripts/update-structure.js --changed    # Only git staged changes
- *   node scripts/update-structure.js --check      # Would a regen change anything? (writes nothing; exit 0/1/2)
- *   node scripts/update-structure.js file1.js file2.js  # Specific files
+ *   node update-structure.js                 # full rebuild
+ *   node update-structure.js --full          # same, explicit (the repair command)
+ *   node update-structure.js --changed       # staged + unstaged Git changes (pre-commit hook)
+ *   node update-structure.js a.js b.py       # specific files
+ *   node update-structure.js --check         # would a full rebuild change the map? (read-only)
+ *   add --json for one bounded result envelope on stdout (diagnostics go to stderr)
+ *
+ * Exit codes:
+ *   full / partial update  0 complete · 1 incomplete inventory or extraction
+ *                          errors (`published` says whether the map changed) ·
+ *                          2 failure or another update running
+ *   --check                0 in sync · 1 out of date · 2 missing, corrupt or
+ *                          unverifiable
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+
+const discovery = require('./structure-discovery');
+const generation = require('./structure-generation');
+const state = require('./structure-state');
+
+const RESULT_SCHEMA = 'frame.structure.result/1';
+const HUMAN_DIAGNOSTIC_LINES = 5;
 
 /**
  * Which project this run is about. `__dirname/..` was wrong for the shipped
@@ -33,471 +49,104 @@ function resolveProjectRoot() {
   return process.cwd();
 }
 
-/**
- * Where a meta file lives: `.frame/<name>` for a migrated project, the root
- * only while an unmigrated project still has it there. A file that exists in
- * neither place resolves to `.frame/` — new files are never created at the root.
- */
-function resolveMetaPath(name) {
-  const overlay = path.join(ROOT_DIR, '.frame', name);
-  if (fs.existsSync(overlay)) return overlay;
-  const legacy = path.join(ROOT_DIR, name);
-  if (fs.existsSync(legacy)) return legacy;
-  return overlay;
+const ROOT_DIR = resolveProjectRoot();
+
+/* ------------------------------ arguments ---------------------------- */
+
+const FLAGS = new Set(['--full', '--changed', '--check', '--json']);
+
+function parseArgs(argv) {
+  const flags = new Set();
+  const files = [];
+  for (const arg of argv) {
+    if (arg.startsWith('--')) {
+      if (!FLAGS.has(arg)) return { error: `unknown option ${arg}` };
+      flags.add(arg);
+    } else {
+      files.push(arg);
+    }
+  }
+  const modes = [flags.has('--full'), flags.has('--changed'), flags.has('--check'), files.length > 0].filter(Boolean).length;
+  if (modes > 1) return { error: 'choose one of --full, --changed, --check or a file list' };
+  let command = 'full';
+  if (flags.has('--check')) command = 'check';
+  else if (flags.has('--changed')) command = 'changed';
+  else if (files.length > 0) command = 'files';
+  return { command, json: flags.has('--json'), files };
 }
 
-const ROOT_DIR = resolveProjectRoot();
-const STRUCTURE_FILE = resolveMetaPath('STRUCTURE.json');
-const SRC_DIR = path.join(ROOT_DIR, 'src');
+/* ------------------------------- output ------------------------------ */
 
-// Directories never scanned for source files, regardless of .gitignore.
-const DEFAULT_IGNORED_DIRS = new Set([
-  'node_modules', 'vendor', '.venv', 'venv', 'target', 'dist', 'build',
-  '.git', '__pycache__', '.next', '.turbo', 'coverage', '.frame'
-]);
-// Degradation caps: a pathological tree (huge vendored dir the ignores miss,
-// deep generated nesting) warns and stops instead of hanging.
-const MAX_SCAN_DEPTH = 12;
-const MAX_SCAN_FILES = 5000;
+let jsonMode = false;
 
-/** The `project` block of .frame/config.json (written by detect-project.js). */
-function loadProjectConfig() {
+/** Human text: stdout normally, stderr when stdout carries the envelope. */
+function say(line) {
+  (jsonMode ? process.stderr : process.stdout).write(`${line}\n`);
+}
+
+function warn(line) {
+  process.stderr.write(`${line}\n`);
+}
+
+function repairCommand() {
+  const rel = path.relative(ROOT_DIR, __filename).split(path.sep).join('/');
+  return `node ${rel.startsWith('..') ? __filename : rel} --full`;
+}
+
+function printDiagnostics(diagnostics) {
+  if (!diagnostics || !diagnostics.samples || diagnostics.samples.length === 0) return;
+  for (const d of diagnostics.samples.slice(0, HUMAN_DIAGNOSTIC_LINES)) {
+    warn(`  · ${d.path}: ${d.reason}${d.code ? ` (${d.code})` : ''}`);
+  }
+  const more = diagnostics.total - Math.min(diagnostics.samples.length, HUMAN_DIAGNOSTIC_LINES);
+  if (more > 0) warn(`  · … ${more} more`);
+}
+
+function emit(envelope) {
+  if (jsonMode) process.stdout.write(`${JSON.stringify(envelope)}\n`);
+}
+
+/* ------------------------------- inputs ------------------------------ */
+
+function projectBlock() {
   try {
-    const config = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, '.frame', 'config.json'), 'utf-8'));
-    return config.project || {};
-  } catch (e) {
+    const config = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, '.frame', 'config.json'), 'utf8'));
+    return config && config.project && typeof config.project === 'object' ? config.project : {};
+  } catch (err) {
     return {};
   }
 }
 
-/**
- * Source roots to scan: project.sourceRoots from .frame/config.json, falling
- * back to Frame's historical default ["src"] so a config without the block
- * behaves exactly like today. Only roots that exist on disk are returned.
- */
-function getSourceRoots() {
-  const project = loadProjectConfig();
-  const configured = Array.isArray(project.sourceRoots) && project.sourceRoots.length > 0
-    ? project.sourceRoots
-    : ['src'];
-  return configured.filter(root => {
-    try { return fs.statSync(path.join(ROOT_DIR, root)).isDirectory(); } catch (e) { return false; }
-  });
-}
-
-/**
- * Simple .gitignore subset: bare directory names ("dist") match anywhere,
- * anchored entries ("/build", "docs/out") match repo-relative. Wildcard and
- * negation lines are skipped — a pragmatic filter, not a gitignore engine.
- */
-function loadGitignoreDirs() {
-  const names = new Set();
-  const paths = new Set();
-  let lines = [];
-  try {
-    lines = fs.readFileSync(path.join(ROOT_DIR, '.gitignore'), 'utf-8').split('\n');
-  } catch (e) {
-    return { names, paths };
-  }
-  for (let line of lines) {
-    line = line.trim();
-    if (!line || line.startsWith('#') || line.startsWith('!') || line.includes('*')) continue;
-    line = line.replace(/\/+$/, '');
-    if (line.startsWith('/')) paths.add(line.slice(1));
-    else if (!line.includes('/')) names.add(line);
-    else paths.add(line);
-  }
-  return { names, paths };
-}
-
-// Per-language extractors (scripts/lang/*). Each declares its extensions and
-// extraction functions; the registry dispatches by file extension.
-const EXTRACTORS = [
-  require('./lang/javascript'),
-  require('./lang/python'),
-  require('./lang/go'),
-  require('./lang/rust'),
-  require('./lang/markdown')
-];
-const EXT_TO_EXTRACTOR = new Map();
-for (const extractor of EXTRACTORS) {
-  for (const ext of extractor.extensions) EXT_TO_EXTRACTOR.set(ext, extractor);
-}
-
-/**
- * Extensions to scan: every registered extension, minus opt-in languages
- * (markdown) unless the detected project languages include them — a code
- * repo shouldn't index its READMEs as modules, a docs repo should.
- */
-function allExtensions() {
-  const languages = loadProjectConfig().languages || [];
-  return [...EXT_TO_EXTRACTOR.entries()]
-    .filter(([, ex]) => !ex.optInLanguage || languages.includes(ex.optInLanguage))
-    .map(([ext]) => ext);
-}
-
-/**
- * Parse a source file with its language's extractor and build the module entry
- */
-function parseSourceFile(filePath) {
-  const lang = EXT_TO_EXTRACTOR.get(path.extname(filePath));
-  if (!lang) return null;
-
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
-
-  const moduleInfo = {
-    file: path.relative(ROOT_DIR, filePath),
-    description: lang.extractDescription(content),
-    exports: lang.extractExports(content),
-    depends: lang.extractDependencies(content),
-    functions: {}
-  };
-
-  // Extract functions with line numbers
-  const functions = lang.extractFunctions(content, lines);
-  if (Object.keys(functions).length > 0) {
-    moduleInfo.functions = functions;
-  }
-
-  // Extract IPC info when the language knows about it (Electron JS)
-  if (lang.extractIPC) {
-    const ipc = lang.extractIPC(content);
-    if (ipc.listens.length > 0 || ipc.emits.length > 0) {
-      moduleInfo.ipc = ipc;
-    }
-  }
-
-  return moduleInfo;
-}
-
-/**
- * Get module key from file path: repo-relative, with a leading "src/"
- * stripped so the src-convention keys stay exactly what they always were.
- * Files under any other source root keep their full repo-relative path —
- * unambiguous across multiple roots (cmd/ + internal/, packages/*).
- */
-function getModuleKey(filePath) {
-  let relative = path.relative(ROOT_DIR, filePath).replace(/\\/g, '/');
-  if (relative.startsWith('src/')) relative = relative.slice(4);
-  const ext = path.extname(relative);
-  return EXT_TO_EXTRACTOR.has(ext) ? relative.slice(0, -ext.length) : relative;
-}
-
-/**
- * Get list of changed JS files from git
- */
+/** Staged and unstaged changes, exactly the sources the hook always used. */
 function getChangedFiles() {
-  try {
-    // Get staged changes
-    const staged = execSync('git diff --cached --name-only --diff-filter=ACMR', {
-      cwd: ROOT_DIR,
-      encoding: 'utf-8'
-    });
-
-    // Get unstaged changes too
-    const unstaged = execSync('git diff --name-only --diff-filter=ACMR', {
-      cwd: ROOT_DIR,
-      encoding: 'utf-8'
-    });
-
-    const roots = getSourceRoots();
-    const inRoots = (f) => roots.some(root => root === '.' || f.startsWith(root.replace(/\\/g, '/') + '/'));
-    const active = allExtensions();
-    const files = [...staged.split('\n'), ...unstaged.split('\n')]
-      .filter(f => active.includes(path.extname(f)) && inRoots(f))
-      .map(f => path.join(ROOT_DIR, f));
-
-    return [...new Set(files)];
-  } catch (e) {
-    console.error('Git error:', e.message);
-    return [];
+  const names = [];
+  for (const command of ['git diff --cached --name-only --diff-filter=ACMR', 'git diff --name-only --diff-filter=ACMR']) {
+    const output = execSync(command, { cwd: ROOT_DIR, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    names.push(...output.split('\n').filter(Boolean));
   }
+  return [...new Set(names)];
 }
 
-/**
- * Walk the configured source roots collecting source files.
- * Skips the built-in ignore set plus simple .gitignore entries and hidden
- * dirs, never follows symlinks (cycles, out-of-repo trees), and caps
- * depth/file count with a warning instead of hanging on pathological trees.
- */
-function getAllSourceFiles(extensions = allExtensions()) {
-  const files = [];
-  const seen = new Set();
-  const ignore = loadGitignoreDirs();
-  const warnings = new Set();
-
-  function isIgnoredDir(name, relPath) {
-    return DEFAULT_IGNORED_DIRS.has(name) || ignore.names.has(name) || ignore.paths.has(relPath);
-  }
-
-  function walk(dir, depth) {
-    if (depth > MAX_SCAN_DEPTH) {
-      warnings.add(`depth cap (${MAX_SCAN_DEPTH}) hit at ${path.relative(ROOT_DIR, dir)} — deeper files skipped`);
-      return;
-    }
-    let items;
-    try {
-      items = fs.readdirSync(dir);
-    } catch (e) {
-      return;
-    }
-    for (const item of items) {
-      if (files.length >= MAX_SCAN_FILES) {
-        warnings.add(`file cap (${MAX_SCAN_FILES}) hit — remaining files skipped`);
-        return;
-      }
-      const fullPath = path.join(dir, item);
-      let stat;
-      try {
-        stat = fs.lstatSync(fullPath);
-      } catch (e) {
-        continue;
-      }
-      if (stat.isSymbolicLink()) continue;
-      if (stat.isDirectory()) {
-        const relPath = path.relative(ROOT_DIR, fullPath).replace(/\\/g, '/');
-        if (item.startsWith('.') || isIgnoredDir(item, relPath)) continue;
-        walk(fullPath, depth + 1);
-      } else if (extensions.some(ext => item.endsWith(ext)) && !seen.has(fullPath)) {
-        seen.add(fullPath);
-        files.push(fullPath);
-      }
-    }
-  }
-
-  for (const root of getSourceRoots()) {
-    walk(root === '.' ? ROOT_DIR : path.join(ROOT_DIR, root), 0);
-  }
-  for (const w of warnings) console.warn(`⚠ ${w}`);
-  return files;
-}
-
-/**
- * Load existing STRUCTURE.json
- */
-function loadStructure() {
-  try {
-    return JSON.parse(fs.readFileSync(STRUCTURE_FILE, 'utf-8'));
-  } catch (e) {
-    // Return minimal structure if file doesn't exist
-    return {
-      version: "1.0",
-      description: "Auto-generated module structure",
-      lastUpdated: new Date().toISOString().split('T')[0],
-      architecture: {},
-      modules: {},
-      ipcChannels: {},
-      dataFlow: [],
-      files: {},
-      conventions: {}
-    };
-  }
-}
-
-/**
- * Remove modules whose file no longer exists on disk.
- * Runs in every mode so deletions are reconciled even when they never hit
- * the staged diff (the phantom-module class of bug).
- */
-function reconcileDeletedModules(structure, quiet) {
-  let removed = 0;
-  for (const [key, mod] of Object.entries(structure.modules)) {
-    const file = mod.file || path.join('src', `${key}.js`);
-    if (!fs.existsSync(path.join(ROOT_DIR, file))) {
-      delete structure.modules[key];
-      if (!quiet) console.log(`  - Removed (missing on disk): ${key}`);
-      removed++;
-    }
-  }
-  return removed;
-}
-
-/**
- * Return a copy of an object with keys sorted alphabetically
- */
-function sortKeys(obj) {
-  const sorted = {};
-  for (const key of Object.keys(obj).sort()) {
-    sorted[key] = obj[key];
-  }
-  return sorted;
-}
-
-/**
- * Normalize a structure for output: sorted modules, and architectureNotes —
- * hand-written insight — preserved verbatim when present, omitted entirely
- * when empty (never emit an empty object that looks populated).
- */
-function normalizeStructure(structure) {
-  structure.modules = sortKeys(structure.modules);
-  if (structure.architectureNotes && Object.keys(structure.architectureNotes).length === 0) {
-    delete structure.architectureNotes;
-  }
-}
-
-/**
- * Save STRUCTURE.json.
- * Modules are sorted for stable output, and lastUpdated is only bumped when
- * content actually changed — a regen on an unchanged tree is byte-identical.
- */
-function saveStructure(structure) {
-  normalizeStructure(structure);
-
-  let previous = null;
-  try {
-    previous = JSON.parse(fs.readFileSync(STRUCTURE_FILE, 'utf-8'));
-  } catch (e) {
-    // No existing file — treat as changed
-  }
-
-  const withoutTimestamp = (s) => JSON.stringify({ ...s, lastUpdated: undefined });
-  if (previous && withoutTimestamp(previous) === withoutTimestamp(structure)) {
-    structure.lastUpdated = previous.lastUpdated;
-  } else {
-    structure.lastUpdated = new Date().toISOString().split('T')[0];
-  }
-
-  // First run in a project whose .frame/ isn't there yet (running this script
-  // by hand is a legitimate way to bootstrap the map).
-  fs.mkdirSync(path.dirname(STRUCTURE_FILE), { recursive: true });
-  fs.writeFileSync(STRUCTURE_FILE, JSON.stringify(structure, null, 2) + '\n');
-  console.log(`✓ Updated STRUCTURE.json (${Object.keys(structure.modules).length} modules)`);
-}
-
-// Leading verb tokens carry no topic — skipped when deriving a category
-// from a channel's own name (LOAD_REPORTS → "reports").
-const IPC_VERB_TOKENS = new Set([
-  'LOAD', 'GET', 'SET', 'ADD', 'REMOVE', 'DELETE', 'UPDATE', 'CREATE',
-  'TOGGLE', 'REFRESH', 'START', 'RESTART', 'STOP', 'OPEN', 'CLOSE',
-  'CHECK', 'RUN', 'SELECT', 'SWITCH', 'IS'
-]);
-
-/**
- * Sync IPC channels into STRUCTURE.json from the repo-local channels file
- * named in .frame/config.json (project.ipcChannelsFile). Nothing configured
- * or file missing → no-op: "IPC channels" is this repo's concept, not a
- * product assumption. Existing channels keep their category and rich data
- * (direction, payload, description); new channels are categorized from
- * their own name tokens — no baked-in channel vocabulary.
- */
-function syncIPCChannels(structure, quiet) {
-  const configured = loadProjectConfig().ipcChannelsFile;
-  if (!configured) return;
-  const ipcFile = path.join(ROOT_DIR, configured);
-  if (!fs.existsSync(ipcFile)) return;
-
-  const content = fs.readFileSync(ipcFile, 'utf-8');
-
-  // Extract all KEY: 'value' pairs from the IPC object
-  const channelMap = {}; // KEY → 'channel-string'
-  const matches = content.matchAll(/^\s+(\w+):\s*'([^']+)'/gm);
-  for (const match of matches) {
-    channelMap[match[1]] = match[2];
-  }
-
-  // Category for a channel Frame hasn't seen: first non-verb token of its
-  // own name, lowercased
-  const deriveCategory = (key) => {
-    const tokens = key.split('_').filter(t => t && !IPC_VERB_TOKENS.has(t));
-    return (tokens[0] || key.split('_')[0] || 'other').toLowerCase();
-  };
-
-  // Build new ipcChannels, preserving existing categories and rich data
-  const existing = structure.ipcChannels || {};
-  const updated = {};
-  const known = new Set();
-  for (const [cat, channels] of Object.entries(existing)) {
-    updated[cat] = { ...channels };
-    for (const key of Object.keys(channels)) known.add(key);
-  }
-
-  // Add skeleton entries for channels not present in any category
-  let added = 0;
-  for (const [key, value] of Object.entries(channelMap)) {
-    if (known.has(key)) continue;
-    const category = deriveCategory(key);
-    if (!updated[category]) updated[category] = {};
-    updated[category][key] = {
-      name: value,
-      direction: '',
-      description: ''
-    };
-    added++;
-  }
-
-  structure.ipcChannels = updated;
-
-  const total = Object.values(updated).reduce((sum, cat) => sum + Object.keys(cat).length, 0);
-  if (!quiet) console.log(`  ✓ IPC channels: ${total} total (${added} new) — parsed from ${configured}`);
-}
-
-/**
- * Parse the given files into structure.modules (preserving manual
- * descriptions when the auto-extracted one is empty)
- */
-function processFiles(structure, files, quiet) {
+/** Explicit file arguments, relative to the project root. */
+function toRootRelative(files) {
+  const out = [];
   for (const file of files) {
-    try {
-      const moduleInfo = parseSourceFile(file);
-      if (!moduleInfo) continue; // No extractor for this extension
-      const moduleKey = getModuleKey(file);
-
-      const existing = structure.modules[moduleKey] || {};
-      structure.modules[moduleKey] = {
-        ...moduleInfo,
-        description: moduleInfo.description || existing.description || ''
-      };
-
-      if (!quiet) console.log(`  ✓ ${moduleKey}`);
-    } catch (e) {
-      if (!quiet) console.error(`  ✗ ${file}: ${e.message}`);
+    const rel = path.relative(ROOT_DIR, path.resolve(ROOT_DIR, file));
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+      warn(`⚠ ${file} is outside the project — ignored`);
+      continue;
     }
+    out.push(rel.split(path.sep).join('/'));
   }
+  return out;
 }
 
-/**
- * --check: report whether a full regen would change STRUCTURE.json
- * (ignoring lastUpdated) without writing anything. Exit 0 = in sync,
- * 1 = out of date, 2 = cannot check. Lets check-freshness.js and
- * find-module.js confirm date-based drift suspicion against actual
- * content, so merges/reverts that changed no module content don't
- * produce false staleness warnings.
- */
-function runCheck() {
-  if (!fs.existsSync(STRUCTURE_FILE)) {
-    console.log('STRUCTURE.json missing — run: npm run structure');
-    process.exit(2);
-  }
-
-  const current = loadStructure();
-  const rebuilt = JSON.parse(JSON.stringify(current));
-
-  reconcileDeletedModules(rebuilt, true);
-  processFiles(rebuilt, getAllSourceFiles(), true);
-  syncIPCChannels(rebuilt, true);
-  generateIntentIndex(rebuilt);
-  normalizeStructure(rebuilt);
-
-  const withoutTimestamp = (s) => JSON.stringify({ ...s, lastUpdated: undefined });
-  if (withoutTimestamp(current) === withoutTimestamp(rebuilt)) {
-    console.log('STRUCTURE.json is in sync with src/.');
-    process.exit(0);
-  }
-  console.log('STRUCTURE.json is out of date — run: npm run structure');
-  process.exit(1);
-}
-
-/**
- * Main function
- */
-
-// ─── activity record ──────────────────────────────────────
+/* ------------------------------ activity ----------------------------- */
 //
 // This script runs under the git pre-commit hook, in a process Frame never
 // sees. Recording the run is the only way the panel can show that the hook
-// fired at all. Guarded require: `.frame/bin/` refreshes only on project
-// init, so an older generation degrades to today's behavior.
+// fired at all. Guarded require: an older `.frame/bin` generation may lack
+// the module. `--check` is read-only and records nothing.
 
 let activityLog = null;
 try {
@@ -506,13 +155,13 @@ try {
   /* older .frame/bin generation */
 }
 
-function noteRun(script, startedAt, changes) {
+function noteRun(startedAt, changes) {
   if (!activityLog) return;
   try {
     activityLog.appendSync(activityLog.projectKey(ROOT_DIR), {
       ev: 'script.ran',
       kind: 'action',
-      script,
+      script: 'update-structure',
       // git sets GIT_INDEX_FILE for hook processes; without it this is a
       // developer running the script by hand.
       host: process.env.GIT_INDEX_FILE ? 'git-precommit' : 'cli',
@@ -524,143 +173,187 @@ function noteRun(script, startedAt, changes) {
   }
 }
 
+/* ------------------------------ mutation ----------------------------- */
+
+function exitCodeFor(result) {
+  if (result.state === 'complete') return 0;
+  if (result.state === 'partial') return 1;
+  return 2;
+}
+
+function builtFrom(structure, report, prior) {
+  return {
+    candidate: generation.serializeStructure(structure, prior),
+    inventory: structure.generation.inventory,
+    extraction: report.extraction,
+    counts: structure.generation.counts,
+    diagnostics: structure.generation.diagnostics,
+    discardsAuthored: report.discarded.length > 0
+  };
+}
+
+function runFull() {
+  const curation = generation.loadCuration(__dirname);
+  return state.runAttempt({
+    rootDir: ROOT_DIR,
+    mode: 'full',
+    attemptId: process.env.FRAME_STRUCTURE_ATTEMPT_ID || undefined,
+    build: (baseline) => {
+      const loaded = discovery.loadProjectStructureConfig(ROOT_DIR);
+      const found = discovery.discover(ROOT_DIR, { structure: loaded.structure, legacyFiles: loaded.legacyFiles });
+      const prior = baseline.status === 'valid' ? baseline.data : null;
+      const { structure, report } = generation.buildFull({
+        rootDir: ROOT_DIR, discovery: found, prior, curation, projectConfig: projectBlock()
+      });
+      return builtFrom(structure, report, prior);
+    }
+  });
+}
+
+function runDelta(candidates) {
+  const curation = generation.loadCuration(__dirname);
+  let policyInputChanged = false;
+  const result = state.runAttempt({
+    rootDir: ROOT_DIR,
+    mode: 'delta',
+    attemptId: process.env.FRAME_STRUCTURE_ATTEMPT_ID || undefined,
+    build: (baseline) => {
+      const loaded = discovery.loadProjectStructureConfig(ROOT_DIR);
+      const evaluation = discovery.evaluatePaths(ROOT_DIR, candidates, { structure: loaded.structure, legacyFiles: loaded.legacyFiles });
+      let kind = 'valid';
+      if (baseline.status === 'missing') kind = 'missing';
+      else if (baseline.status === 'corrupt' || baseline.liveCorrupt) kind = 'corrupt';
+      const prior = kind === 'valid' ? baseline.data : null;
+      const { structure, report } = generation.buildDelta({
+        rootDir: ROOT_DIR, evaluation, prior, baseline: kind, curation, projectConfig: projectBlock()
+      });
+      policyInputChanged = report.policyInputChanged;
+      if (!report.changed) {
+        return { candidate: null, inventory: report.inventory, extraction: report.extraction, diagnostics: report.diagnostics };
+      }
+      return builtFrom(structure, report, prior);
+    }
+  });
+  result.policyInputChanged = policyInputChanged;
+  return result;
+}
+
+function reportMutation(result, command) {
+  const count = result.counts && typeof result.counts.indexedFiles === 'number' ? result.counts.indexedFiles : null;
+  const modules = count === null ? '' : ` (${count} modules)`;
+  if (result.busy) {
+    warn('⚠ STRUCTURE.json not refreshed: another update is running.');
+  } else if (result.state === 'failed') {
+    warn(`✗ STRUCTURE.json was not updated: ${result.reason}${result.message ? ` — ${result.message}` : ''}`);
+    if (result.reason === 'E_DELTA_BASELINE' || result.reason === 'E_STRUCTURE_POLICY') warn(`  Repair: ${repairCommand()}`);
+  } else if (result.artifact === 'retained') {
+    const reasons = (result.coverage && result.coverage.reasons || []).join(', ');
+    warn(`⚠ Scan incomplete (${reasons}) — kept the existing STRUCTURE.json unchanged.`);
+    warn(`  Repair: ${repairCommand()}`);
+  } else if (result.artifact === 'unchanged') {
+    say(command === 'full' ? `✓ STRUCTURE.json is up to date${modules}` : 'STRUCTURE.json unchanged.');
+  } else if (result.artifact === 'written') {
+    say(`✓ Updated STRUCTURE.json${modules}`);
+  }
+  if (!result.busy && result.coverage && result.coverage.coverage === 'partial' && result.artifact === 'written') {
+    warn(`⚠ Coverage is partial (${(result.coverage.reasons || []).join(', ')}) — the map is labeled incomplete.`);
+  }
+  if (result.extraction && result.extraction.coverage === 'partial') {
+    warn(`⚠ ${result.extraction.counts.partial} file(s) could not be parsed and carry basic metadata only.`);
+  }
+  if (result.state !== 'complete' || (result.extraction && result.extraction.coverage === 'partial')) printDiagnostics(result.diagnostics);
+  if (result.recoveryPaths && result.recoveryPaths.length) warn(`  Original map preserved at: ${result.recoveryPaths.join(', ')}`);
+  if (result.policyInputChanged) warn(`  An ignore file changed — run ${repairCommand()} to reconcile the whole inventory.`);
+  if (!result.persisted && !result.busy) warn('  (the attempt could not be recorded under .frame/runtime/structure)');
+}
+
+/* -------------------------------- check ------------------------------ */
+
+function runCheck() {
+  const verdict = (exitCode, result, reason, message) => ({ schema: RESULT_SCHEMA, command: 'check', exitCode, result, reason, message });
+  const snap = state.snapshot(ROOT_DIR);
+  if (snap.baseline.status === 'missing') {
+    return verdict(2, 'unverifiable', 'missing', `STRUCTURE.json missing — run: ${repairCommand()}`);
+  }
+  if (snap.baseline.status !== 'valid' || snap.baseline.liveCorrupt) {
+    return verdict(2, 'unverifiable', 'corrupt', `STRUCTURE.json is not a valid map — run: ${repairCommand()}`);
+  }
+  if (snap.writerActive) return verdict(2, 'unverifiable', 'writer-active', 'An update is running; check again when it finishes.');
+
+  let found;
+  try {
+    const loaded = discovery.loadProjectStructureConfig(ROOT_DIR);
+    found = discovery.discover(ROOT_DIR, { structure: loaded.structure, legacyFiles: loaded.legacyFiles });
+  } catch (err) {
+    return verdict(2, 'unverifiable', 'policy-error', err.message);
+  }
+  if (found.coverage !== 'complete') {
+    return verdict(2, 'unverifiable', 'incomplete-inventory', `Cannot verify: discovery incomplete (${found.incompleteReasons.join(', ')}).`);
+  }
+  const { structure } = generation.buildFull({
+    rootDir: ROOT_DIR, discovery: found, prior: snap.baseline.data,
+    curation: generation.loadCuration(__dirname), projectConfig: projectBlock()
+  });
+  const same = JSON.stringify(generation.checkView(structure)) === JSON.stringify(generation.checkView(snap.baseline.data));
+  if (!snap.stable()) return verdict(2, 'unverifiable', 'changed-during-check', 'STRUCTURE.json changed during the check; run it again.');
+  return same
+    ? verdict(0, 'in-sync', null, 'STRUCTURE.json is in sync with the project.')
+    : verdict(1, 'out-of-date', null, `STRUCTURE.json is out of date — run: ${repairCommand()}`);
+}
+
+/* -------------------------------- main ------------------------------- */
+
 function main() {
   const startedAt = Date.now();
-  const args = process.argv.slice(2);
+  const args = parseArgs(process.argv.slice(2));
+  jsonMode = Boolean(args.json) || process.argv.includes('--json');
 
-  if (args.includes('--check')) {
-    runCheck();
-    noteRun('update-structure', startedAt);
+  if (args.error) {
+    warn(`✗ ${args.error}`);
+    emit({ schema: RESULT_SCHEMA, command: 'invalid', exitCode: 2, state: 'failed', reason: 'usage', message: args.error });
+    process.exitCode = 2;
     return;
   }
 
-  const structure = loadStructure();
+  if (args.command === 'check') {
+    const result = runCheck();
+    (result.exitCode === 0 ? say : warn)(result.message);
+    emit(result);
+    process.exitCode = result.exitCode;
+    return;
+  }
 
-  let filesToProcess = [];
-  let mode = 'full';
-
-  // Reconcile deletions against the disk in every mode, so a phantom module
-  // never survives just because its deletion wasn't in the staged diff.
-  const removedCount = reconcileDeletedModules(structure);
-
-  if (args.includes('--changed')) {
-    // Incremental mode: only changed files
-    mode = 'incremental';
-    filesToProcess = getChangedFiles();
-
-    if (filesToProcess.length === 0 && removedCount === 0) {
-      console.log('No JS changes detected.');
-      noteRun('update-structure', startedAt, 0);
-      return;
-    }
-  } else if (args.length > 0 && !args[0].startsWith('--')) {
-    // Specific files mode
-    mode = 'specific';
-    filesToProcess = args.map(f => path.resolve(ROOT_DIR, f)).filter(f => fs.existsSync(f));
+  let result;
+  if (args.command === 'full') {
+    say('Mode: full');
+    result = runFull();
   } else {
-    // Full mode: all files
-    mode = 'full';
-    filesToProcess = getAllSourceFiles();
-    if (filesToProcess.length === 0) {
-      console.warn('⚠ No source files found — review project.sourceRoots in .frame/config.json (regenerate it with detect-project.js).');
+    let candidates;
+    if (args.command === 'changed') {
+      try {
+        candidates = getChangedFiles();
+      } catch (err) {
+        warn(`⚠ Git error: ${err.message.split('\n')[0]} — only confirming existing entries.`);
+        candidates = [];
+      }
+    } else {
+      candidates = toRootRelative(args.files);
     }
+    say(`Mode: ${args.command === 'changed' ? 'incremental' : 'specific'}, ${candidates.length} candidate file(s)`);
+    result = runDelta(candidates);
   }
 
-  console.log(`Mode: ${mode}, Processing ${filesToProcess.length} file(s)...`);
-
-  processFiles(structure, filesToProcess, false);
-
-  // Sync IPC channels from the config-named channels file (if any)
-  syncIPCChannels(structure);
-
-  // Generate intent index from modules
-  generateIntentIndex(structure);
-
-  saveStructure(structure);
-  noteRun('update-structure', startedAt, filesToProcess.length);
+  reportMutation(result, args.command);
+  const exitCode = exitCodeFor(result);
+  emit({ schema: RESULT_SCHEMA, command: args.command, exitCode, ...result });
+  noteRun(startedAt, result.counts && typeof result.counts.indexedFiles === 'number' ? result.counts.indexedFiles : undefined);
+  process.exitCode = exitCode;
 }
 
-/**
- * Load the curated concept→modules map (agent-editable).
- * Lives next to this script so it works both in Frame's repo (scripts/) and
- * in user projects (.frame/bin/). Missing file → pure auto-grouping.
- */
-function loadIntentMap() {
-  try {
-    const map = JSON.parse(fs.readFileSync(path.join(__dirname, 'intent-map.json'), 'utf-8'));
-    delete map._comment;
-    return map;
-  } catch (e) {
-    return {};
-  }
+try {
+  main();
+} catch (err) {
+  warn(`✗ update-structure failed: ${err && err.stack ? err.stack : err}`);
+  if (jsonMode) process.stdout.write(`${JSON.stringify({ schema: RESULT_SCHEMA, command: 'unknown', exitCode: 2, state: 'failed', reason: 'crash', message: String(err && err.message) })}\n`);
+  process.exitCode = 2;
 }
-
-/**
- * Generate intentIndex: curated concepts from intent-map.json first, then
- * auto-grouping by stripped filename suffix — but only for groups spanning
- * ≥ 2 files. Thin single-file intents are dropped; find-module.js's deep
- * search over module keys/descriptions still finds them.
- */
-function generateIntentIndex(structure) {
-  const modules = structure.modules;
-  const intentMap = loadIntentMap();
-  const groups = {};
-  const claimed = new Set();
-
-  const toEntry = (key) => ({
-    module: key,
-    file: modules[key].file,
-    description: modules[key].description || ''
-  });
-
-  // 1. Curated concepts — skip module keys that no longer exist
-  for (const [concept, entry] of Object.entries(intentMap)) {
-    const mods = (entry.modules || []).filter(key => modules[key]);
-    if (mods.length === 0) continue;
-    groups[concept] = mods.map(toEntry);
-    mods.forEach(key => claimed.add(key));
-  }
-
-  // 2. Auto-group unclaimed modules by name tokens: an intent is a token
-  // (from the basename split on camelCase/kebab/snake boundaries) shared by
-  // ≥ 2 modules — the repo's own vocabulary, never a baked-in suffix list.
-  // Tokens too short, structural (index/main/…) or too common to
-  // discriminate (> 25% of unclaimed modules) are skipped.
-  const STRUCTURAL_TOKENS = new Set(['index', 'main', 'src', 'lib', 'app', 'test', 'spec', 'mod']);
-  const unclaimed = Object.keys(modules).filter(key => !claimed.has(key));
-  const tokenGroups = {};
-
-  for (const key of unclaimed) {
-    const baseName = key.split('/').pop();
-    const tokens = new Set(
-      baseName
-        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-        .split(/[\s\-_.]+/)
-        .map(t => t.toLowerCase())
-        .filter(t => t.length >= 3 && !STRUCTURAL_TOKENS.has(t))
-    );
-    for (const token of tokens) {
-      if (!tokenGroups[token]) tokenGroups[token] = [];
-      tokenGroups[token].push(key);
-    }
-  }
-
-  const maxGroupSize = Math.max(2, Math.ceil(unclaimed.length * 0.25));
-  for (const [name, keys] of Object.entries(tokenGroups).sort(([a], [b]) => a.localeCompare(b))) {
-    if (keys.length < 2 || keys.length > maxGroupSize) continue;
-    // A curated concept owns its name — auto-groups never overwrite it
-    // (deep search still finds the unclaimed modules)
-    if (groups[name]) continue;
-    groups[name] = keys.map(toEntry);
-  }
-
-  // Sort groups alphabetically and sort modules within each group
-  const sorted = {};
-  for (const key of Object.keys(groups).sort()) {
-    sorted[key] = groups[key].sort((a, b) => a.module.localeCompare(b.module));
-  }
-
-  structure.intentIndex = sorted;
-}
-
-main();

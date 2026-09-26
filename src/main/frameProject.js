@@ -173,11 +173,48 @@ async function doInitializeFrameProject(projectPath, projectName, options = {}) 
   }
 }
 
+/**
+ * Config for (re-)init: the template's defaults *underneath* whatever the
+ * project already has. Identity, creation metadata, settings, feature flags,
+ * unknown keys, `project.structure` and custom project fields such as
+ * `ipcChannelsFile` all survive, and so does a legacy `files` record (the
+ * migration fingerprint, cleared only by the migration itself). Only explicit
+ * caller options and detector-owned facts replace their own values.
+ */
+function mergeInitConfig(defaults, existing, { name, sharingMode, detectedProject }) {
+  const isPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const under = (base, over) => {
+    if (!isPlain(base) || !isPlain(over)) return over === undefined ? base : over;
+    const out = { ...base };
+    for (const key of Object.keys(over)) out[key] = key in base ? under(base[key], over[key]) : over[key];
+    return out;
+  };
+  const config = isPlain(existing) ? under(defaults, existing) : defaults;
+  if (name) config.name = name;
+  config.settings = { ...(isPlain(config.settings) ? config.settings : {}), gitSharing: sharingMode };
+  if (detectedProject) {
+    config.project = { ...(isPlain(config.project) ? config.project : {}), ...detectedProject };
+  }
+  return config;
+}
+
 async function runProjectInit(projectPath, projectName, options = {}) {
   const name = projectName || path.basename(projectPath);
   // Re-init must not reset what the project already decided: identity and
   // sharing mode are carried over unless the caller explicitly picks one.
   const existingConfig = frameStore.readConfig(projectPath);
+
+  // Same guard as openProjectLayout: a legacy project with an unmerged meta
+  // file gets nothing written — no config, no staging, no scan state, no map.
+  if (existingConfig && frameStore.isLegacyLayout(projectPath)) {
+    const migrationPlan = layoutMigration.plan(projectPath);
+    if (migrationPlan && !migrationPlan.canRun) {
+      const err = new Error(`Re-initialization is blocked until the merge is resolved: ${migrationPlan.unmerged.join(', ')}`);
+      err.code = 'E_LAYOUT_UNMERGED';
+      err.unmerged = migrationPlan.unmerged;
+      throw err;
+    }
+  }
   const previousSharing = existingConfig && existingConfig.settings && existingConfig.settings.gitSharing;
   // Never name this `gitSharing`: the module of that name is required at the
   // top of this file and a local would shadow it for the whole function.
@@ -197,20 +234,14 @@ async function runProjectInit(projectPath, projectName, options = {}) {
     console.warn('[frame] project detection failed (non-fatal):', err.message);
   }
 
-  // Create .frame/config.json (carrying the detected project block)
-  const config = templates.getFrameConfigTemplate(name);
-  config.settings.gitSharing = sharingMode;
-  if (existingConfig && existingConfig.projectId) {
-    config.projectId = existingConfig.projectId;
-  }
-  if (detectedProject) {
-    config.project = detectedProject;
-  }
-  await fsp.writeFile(
-    path.join(frameDirPath, FRAME_CONFIG_FILE),
-    JSON.stringify(config, null, 2),
-    'utf8'
-  );
+  // Create or refresh .frame/config.json (carrying the detected project
+  // block) through the storage seam's atomic writer.
+  const config = mergeInitConfig(templates.getFrameConfigTemplate(name), existingConfig, {
+    name: projectName || (existingConfig && existingConfig.name) || name,
+    sharingMode,
+    detectedProject
+  });
+  frameStore.writeConfig(projectPath, config);
   // Re-init of a project written before projectId existed: stamp it now, so
   // every Frame project has a stable identity from here on.
   frameStore.ensureProjectId(projectPath);
@@ -284,7 +315,18 @@ async function runProjectInit(projectPath, projectName, options = {}) {
     );
     console.log('[frame] structure bootstrap:', JSON.stringify(structureBootstrapSummary, null, 2));
   } catch (err) {
+    // Non-fatal for init, but never silent: the renderer reads this summary.
     console.warn('[frame] structure bootstrap failed (non-fatal):', err.message);
+    structureBootstrapSummary = {
+      copied: [],
+      hook: null,
+      initialScan: {
+        status: 'error',
+        reason: 'bootstrap-exception',
+        message: `STRUCTURE bootstrap failed: ${err.message}`,
+        repairCommand: 'node .frame/bin/update-structure.js --full'
+      }
+    };
   }
 
   // Stage the spec command templates, report assets and launch helper so a

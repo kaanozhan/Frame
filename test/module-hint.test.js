@@ -168,3 +168,49 @@ test('a Codex apply_patch is an edit, never a search', () => {
   const command = ['*** Begin Patch', '*** Add File: github.js', '+x', '*** End Patch'].join('\n');
   assert.equal(runHook({ session_id: 'cx', cwd: root, tool_name: 'apply_patch', tool_input: { command } }), null);
 });
+
+// ─── STR-01: version 1.1 maps and STRUCTURE ownership ─────
+
+test('a version 1.1 map answers with the same shape and limits', () => {
+  const v11 = {
+    version: '1.1',
+    lastUpdated: '2026-09-26',
+    modules: {
+      ...STRUCTURE.modules,
+      '@file:src/main/github.ts': { file: 'src/main/github.ts', description: '', sizeBytes: 10, extraction: { status: 'parsed' } }
+    },
+    legacyModuleGroups: { api: { path: 'apps/api', purpose: 'REST API' } },
+    curatedKeyOwners: { 'main/removed': 'src/main/removed.js' },
+    intentIndex: {
+      github: [
+        { module: 'main/githubManager', file: 'src/main/githubManager.js', description: 'GitHub Manager' },
+        { module: '@file:src/main/github.ts', file: 'src/main/github.ts', description: '' }
+      ]
+    },
+    generation: { schema: 1, mode: 'full', inventory: { coverage: 'complete', reasons: [] } }
+  };
+  const root = mkProject(v11);
+  const out = runHook(bash(root, 'grep -rn github src/'));
+  const ctx = out.hookSpecificOutput.additionalContext;
+  assert.match(ctx, /src\/main\/githubManager\.js — GitHub Manager/);
+  assert.match(ctx, /src\/main\/github\.ts/);
+  assert.match(ctx, /IPC: LOAD_GITHUB_ISSUES/);
+});
+
+test('an unowned root STRUCTURE.json is never read as Frame\'s map', () => {
+  const root = mkProject(null);
+  fs.writeFileSync(path.join(root, 'STRUCTURE.json'), JSON.stringify(STRUCTURE));
+  assert.equal(runHook(bash(root, 'grep -rn github src/')), null);
+
+  // the legacy init record makes it Frame's
+  fs.writeFileSync(path.join(root, '.frame', 'config.json'), JSON.stringify({ files: { structure: 'STRUCTURE.json' } }));
+  assert.match(runHook(bash(root, 'grep -rn github src/', 's2')).hookSpecificOutput.additionalContext, /githubManager/);
+});
+
+test('the hook never loads builder or state code', () => {
+  const source = fs.readFileSync(HOOK, 'utf8');
+  const requires = [...source.matchAll(/require\(\s*['"]([^'"]+)['"]\s*\)/g)].map((m) => m[1]);
+  // only the long-standing record/vocabulary helpers; never a builder
+  assert.deepEqual(requires.filter((r) => r.startsWith('.')).sort(), ['./activity-log', './toolVocabulary']);
+  assert.ok(!requires.some((r) => /structure-|update-structure|child_process/.test(r)), requires.join(', '));
+});

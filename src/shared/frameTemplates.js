@@ -576,25 +576,72 @@ No problem, continue. The user can also say what they consider important themsel
 
 ## STRUCTURE.json Rules
 
-**This file is the map of the codebase.**
+**This file is the map of the codebase.** Frame generates it; you enrich it.
 
-### When to Update?
-- When a new file/folder is created
-- When a file/folder is deleted or moved
-- When module dependencies change
-- When an important architectural pattern is discovered (architectureNotes)
+### How It Is Generated
+- \`update-structure.js --full\` (shipped in \`.frame/bin/\`; run it with
+  \`node\` from the project root) rebuilds the whole map — it is also the
+  repair command. The pre-commit hook runs \`--changed\` and only touches the
+  files in the change.
+- Every project-owned text file gets an entry: source, configuration,
+  documentation, and languages Frame cannot parse (those carry path and size
+  with \`extraction.status: "unsupported"\`). Layout does not matter — root
+  files, several source folders and any number of workspace packages are all
+  scanned.
+- Excluded: \`.git/\`, \`.frame/\`, dependency and output folders
+  (\`node_modules\`, \`dist\`, \`build\`, …), binary files, symlinks, and whatever
+  the repository's own \`.gitignore\` files exclude (nested files and \`!\`
+  negations included). Machine-global git excludes and \`.git/info/exclude\` are
+  not applied, so the result is reproducible from the repository alone.
+- Tune it in \`.frame/config.json\` → \`project.structure\`:
+  \`ignoredDirectories\` (replaces the default folder list), \`exclude\`
+  (gitignore-style rules, applied last) and \`limits\` (\`maxEntries\` 100000,
+  \`maxFiles\` 50000, \`maxDepth\` 128, \`timeoutMs\` 30000, \`maxParseBytes\`
+  2 MiB). An invalid setting is an error, never silently ignored.
+
+### Reading the Result
+- \`generation.inventory.coverage\` — \`complete\`: every eligible file is listed;
+  \`partial\`: a limit, timeout or unreadable path stopped the scan
+  (\`reasons\` says which); \`unknown\`: last written by a partial update.
+- \`generation.extraction.coverage\` — \`partial\` when some files could not be
+  parsed; they keep their basic metadata.
+- Empty \`modules\` with \`complete\` coverage means there are no eligible files
+  yet — not a failure.
+- The latest scan attempt is recorded as \`scan.json\` in
+  \`.frame/runtime/structure/\` (never committed). An incomplete scan keeps
+  the previous map; a failed one never replaces it.
+- Hand-written content a rebuild could not keep, and malformed maps, are
+  preserved in \`.frame/runtime/structure/recovery/\`.
+
+### What to Edit
+- Enrich entries in place: \`description\`, function \`purpose\`, fields of
+  your own, and \`architectureNotes\`. They survive rebuilds, matched by the
+  entry's \`file\`.
+- Do not rename module keys: curated concepts in \`intent-map.json\`
+  (\`.frame/bin/\`) refer to them.
+
+### When to Rebuild
+- After large moves or renames, after changing \`.gitignore\` or
+  \`project.structure\`, and whenever the map reports partial or unverified
+  coverage.
 
 ### Format
 \`\`\`json
 {
+  "version": "1.1",
   "modules": {
-    "moduleName": {
-      "path": "src/module",
-      "purpose": "What this module does",
-      "depends": ["otherModule"]
+    "main/widget": {
+      "file": "src/main/widget.js",
+      "description": "What this module does",
+      "exports": ["createWidget"],
+      "depends": ["shared/config"],
+      "functions": { "createWidget": { "line": 12, "purpose": "Build a widget" } },
+      "sizeBytes": 2048,
+      "extraction": { "status": "parsed" }
     }
   },
-  "architectureNotes": {}
+  "architectureNotes": {},
+  "generation": { "inventory": { "coverage": "complete", "reasons": [] } }
 }
 \`\`\`
 
@@ -635,7 +682,7 @@ function getStructureTemplate(projectName, project) {
       lastUpdated: getDateString(),
       generatedBy: "Frame"
     },
-    version: "1.0",
+    version: "1.1",
     description: `${projectName} - update this description`,
     architecture: {
       languages: p.languages || [],
@@ -644,7 +691,10 @@ function getStructureTemplate(projectName, project) {
       notes: ""
     },
     modules: {},
-    intentIndex: {}
+    intentIndex: {},
+    // No scan has run yet: an empty `modules` here is not an empty project.
+    // The first full scan replaces this block with its real result.
+    generation: { schema: 1, state: "pending" }
   };
 }
 
@@ -770,7 +820,7 @@ ${cmds.test || todo}
 
 | File | Purpose |
 |------|---------|
-| \`.frame/STRUCTURE.json\` | Module map and architecture |
+| \`.frame/STRUCTURE.json\` | Module map and architecture (rebuild: \`node .frame/bin/update-structure.js --full\`) |
 | \`.frame/PROJECT_NOTES.md\` | Decisions and context |
 | \`.frame/tasks.json\` | Task tracking |
 | \`.frame/QUICKSTART.md\` | This file |
@@ -783,7 +833,9 @@ ${tree}
 
 ## For AI Assistants
 
-1. **First**: Read \`.frame/STRUCTURE.json\` for architecture overview
+1. **First**: Read \`.frame/STRUCTURE.json\` for architecture overview — if its
+   \`generation.inventory.coverage\` is not \`complete\`, the map is missing files;
+   rebuild it with \`node .frame/bin/update-structure.js --full\`
 2. **Then**: Check \`.frame/PROJECT_NOTES.md\` for current context and decisions
 3. **Check**: \`.frame/tasks.json\` for pending tasks
 4. **Follow**: Existing code patterns and conventions

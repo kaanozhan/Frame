@@ -1,9 +1,21 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-09-17",
+  "lastUpdated": "2026-09-26",
   "architecture": {},
   "modules": {
+    ".gitignore": {
+      "file": ".gitignore",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 1723,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "main/activityLog": {
       "file": "src/main/activityLog.js",
       "description": "Activity log — the main-process side.",
@@ -1000,8 +1012,19 @@
             "options = {}"
           ]
         },
+        "mergeInitConfig": {
+          "line": 184,
+          "params": [
+            "defaults",
+            "existing",
+            "{ name",
+            "sharingMode",
+            "detectedProject }"
+          ],
+          "purpose": "Config for (re-)init: the template's defaults *underneath* whatever the"
+        },
         "runProjectInit": {
-          "line": 176,
+          "line": 201,
           "params": [
             "projectPath",
             "projectName",
@@ -1009,20 +1032,20 @@
           ]
         },
         "ensureProjectArtifacts": {
-          "line": 393,
+          "line": 435,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-ensure on open what a fresh init creates."
         },
         "syncClaudeRule": {
-          "line": 416,
+          "line": 458,
           "params": [
             "projectPath"
           ]
         },
         "detectJsonIndent": {
-          "line": 443,
+          "line": 485,
           "params": [
             "text",
             "fallback = 2"
@@ -1030,18 +1053,18 @@
           "purpose": "The indentation an existing settings file uses, so rewriting it preserves"
         },
         "hookCommandsIn": {
-          "line": 450,
+          "line": 492,
           "params": [
             "settings"
           ],
           "purpose": "Every hook command in a settings object, whatever shape the file is in."
         },
         "frameHookCommands": {
-          "line": 467,
+          "line": 509,
           "purpose": "The command strings Frame installs today."
         },
         "installSpecHintHook": {
-          "line": 491,
+          "line": 533,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -1049,11 +1072,11 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "codexHome": {
-          "line": 575,
+          "line": 617,
           "purpose": "Where Codex keeps its configuration. `CODEX_HOME` wins so a test — or a"
         },
         "installCodexHintHook": {
-          "line": 593,
+          "line": 635,
           "params": [
             "projectPath",
             "{ enabled = true",
@@ -1062,14 +1085,14 @@
           "purpose": "Register Frame's hooks for Codex in `CODEX_HOME/hooks.json`."
         },
         "removeCodexHintHook": {
-          "line": 656,
+          "line": 698,
           "params": [
             "{ home = null } = {}"
           ],
           "purpose": "Take Frame's Codex entries back out. Exact-match on the command string, so"
         },
         "codexHookTrustState": {
-          "line": 708,
+          "line": 750,
           "params": [
             "projectPath",
             "{ home = null",
@@ -1078,11 +1101,11 @@
           "purpose": "Are Frame's Codex hooks installed, and have they ever actually run?"
         },
         "codexHookCommands": {
-          "line": 744,
+          "line": 786,
           "purpose": "Every command string Frame's Codex hook entries carry."
         },
         "removeSpecHintHook": {
-          "line": 759,
+          "line": 801,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -1090,13 +1113,13 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "getDoneWindow": {
-          "line": 828,
+          "line": 870,
           "params": [
             "projectPath"
           ]
         },
         "setDoneWindow": {
-          "line": 833,
+          "line": 875,
           "params": [
             "projectPath",
             "board",
@@ -1104,74 +1127,74 @@
           ]
         },
         "isSpecDrivenEnabled": {
-          "line": 858,
+          "line": 900,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 863,
+          "line": 905,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 892,
+          "line": 934,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 920,
+          "line": 962,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 924,
+          "line": 966,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 938,
+          "line": 980,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 948,
+          "line": 990,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "specDocDescriptors": {
-          "line": 1049,
+          "line": 1091,
           "params": [
             "projectPath"
           ],
           "purpose": "The spec-section descriptors, in the order they must be settled: the target"
         },
         "readTextOrNull": {
-          "line": 1077,
+          "line": 1119,
           "params": [
             "file"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 1091,
+          "line": 1133,
           "params": [
             "projectPath"
           ],
           "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
         },
         "appendSpecSection": {
-          "line": 1174,
+          "line": 1216,
           "params": [
             "projectPath",
             "rel"
@@ -1179,14 +1202,14 @@
           "purpose": "Append the managed spec section to a document the pass deliberately refused"
         },
         "docsHealthFor": {
-          "line": 1213,
+          "line": 1255,
           "params": [
             "projectPath"
           ],
           "purpose": "The report on its own, without running the repair pass — what the UI asks"
         },
         "recordDocsActivity": {
-          "line": 1235,
+          "line": 1277,
           "params": [
             "written",
             "appended",
@@ -1195,14 +1218,14 @@
           "purpose": "Put the pass's result on the record. This is the half that was missing when"
         },
         "removeFrame": {
-          "line": 1270,
+          "line": 1312,
           "params": [
             "projectPath"
           ],
           "purpose": "Delete everything Frame authored in this project and forget it:"
         },
         "dropEmptySettingsFile": {
-          "line": 1324,
+          "line": 1366,
           "params": [
             "projectPath",
             "file"
@@ -1210,21 +1233,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 1350,
+          "line": 1392,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 1366,
+          "line": 1408,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "openProjectLayout": {
-          "line": 1418,
+          "line": 1460,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1232,7 +1255,7 @@
           "purpose": "Everything a project open does to the project, in the order that makes the"
         },
         "rearmAfterMigration": {
-          "line": 1501,
+          "line": 1543,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1240,7 +1263,7 @@
           "purpose": "Every meta file just changed address: the watchers are pointed at the"
         },
         "setupIPC": {
-          "line": 1523,
+          "line": 1565,
           "params": [
             "ipcMain"
           ],
@@ -1271,6 +1294,47 @@
           "WORKSPACE_UPDATED",
           "FRAME_CONFIG_DATA"
         ]
+      },
+      "sizeBytes": 69694,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "8f03b8c8ca3c4694",
+        "purposes": {
+          "appendSpecSection": "a2c21485fd5707b5",
+          "checkExistingFrameFiles": "c178518c93da8dce",
+          "codexHome": "0cca5044c5549673",
+          "codexHookCommands": "afde75443c4f68ec",
+          "codexHookTrustState": "b35898ceb2b707f9",
+          "createFileIfNotExists": "e80f7149766ffca8",
+          "detectJsonIndent": "c38f04613767ff43",
+          "disableSpecDriven": "99e3bc02adf26ebf",
+          "docsHealthFor": "ffc78f9b77fe0ae2",
+          "dropEmptySettingsFile": "433c29c3bba34424",
+          "ensureProjectArtifacts": "6d5ff92e9ec5f793",
+          "frameHookCommands": "a78a07a75d59c4d3",
+          "getFrameConfig": "7457f4984e430647",
+          "hookCommandsIn": "8186c8a3eddccd32",
+          "init": "04f8375031ed9cdf",
+          "installCodexHintHook": "e9234935ccee5018",
+          "installSpecHintHook": "3fc33ee2c1a3b714",
+          "isFrameOwnedHookResidue": "d7f9a0bc5445700c",
+          "isFrameProject": "5329ad46f9d42478",
+          "mergeInitConfig": "9fe7ad780af82471",
+          "openProjectLayout": "842c0e2ecb1f9947",
+          "rearmAfterMigration": "87898ea8b9d19046",
+          "recordDocsActivity": "e89004dc19f0ef0f",
+          "removeCodexHintHook": "14427a558e630ede",
+          "removeFrame": "8e60b5802eea8a31",
+          "removeHookSnippet": "c6d857ea6a82ed11",
+          "removeSpecHintHook": "746a49d79f59e200",
+          "setupIPC": "b41c7437e6910eb5",
+          "showInitializeConfirmation": "86d8b076001bb107",
+          "specDocDescriptors": "7917da0ffbe6c206",
+          "stripManagedSpecSection": "39fdcfaa7c9c5bf0",
+          "upgradeSpecDocs": "3de43a73ac4af552"
+        }
       }
     },
     "main/frameStore": {
@@ -4101,6 +4165,9 @@
       "exports": [
         "bootstrapStructure",
         "copyParserScripts",
+        "stageParserScripts",
+        "PARSER_FILES",
+        "PARSER_REQUIRES",
         "detectHookSetup",
         "installPreCommitHook",
         "runInitialFullScan"
@@ -4108,47 +4175,103 @@
       "depends": [
         "fs",
         "path",
+        "crypto",
         "child_process",
         "shared/frameConstants",
-        "commandStaging",
         "shared/frameTemplates"
       ],
       "functions": {
+        "stageFile": {
+          "line": 78,
+          "params": [
+            "fsImpl",
+            "src",
+            "dst"
+          ],
+          "purpose": "Write `src` to `dst` only when the bytes differ, through a temporary file"
+        },
+        "stageParserScripts": {
+          "line": 111,
+          "params": [
+            "projectPath",
+            "options = {}"
+          ],
+          "purpose": "Stage Frame's bundled scripts into the project's .frame/bin/."
+        },
         "copyParserScripts": {
-          "line": 51,
+          "line": 191,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "detectHookSetup": {
-          "line": 125,
+          "line": 205,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "installPreCommitHook": {
-          "line": 192,
+          "line": 272,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook, but only where there is no hook to damage."
         },
-        "runInitialFullScan": {
-          "line": 259,
+        "scanTimeoutMs": {
+          "line": 339,
           "params": [
             "projectPath"
+          ]
+        },
+        "parseEnvelope": {
+          "line": 352,
+          "params": [
+            "stdout"
+          ],
+          "purpose": "The single JSON envelope a `--json` run prints, or null."
+        },
+        "summarizeEnvelope": {
+          "line": 364,
+          "params": [
+            "envelope",
+            "code"
+          ],
+          "purpose": "Map a child result envelope onto the bootstrap's initialScan summary."
+        },
+        "runInitialFullScan": {
+          "line": 423,
+          "params": [
+            "projectPath",
+            "options = {}"
           ],
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 297,
+          "line": 541,
           "params": [
             "projectPath",
             "structureWasCreated"
           ],
           "purpose": "Top-level bootstrap orchestrator. Called from frameProject.js after the"
+        }
+      },
+      "sizeBytes": 23472,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "bbc735b2daf55103",
+        "purposes": {
+          "bootstrapStructure": "723773900dfeea80",
+          "detectHookSetup": "7139e135de5fdc39",
+          "installPreCommitHook": "748f5e3e8d88f1b5",
+          "parseEnvelope": "b20189a62e13bc20",
+          "runInitialFullScan": "428669e2648a82bd",
+          "stageFile": "351d4019ce6a4dad",
+          "stageParserScripts": "5834317416f84c7e",
+          "summarizeEnvelope": "4fdc1da7b5ddb106"
         }
       }
     },
@@ -4713,6 +4836,30 @@
           "WORKSPACE_DATA",
           "WORKSPACE_UPDATED"
         ]
+      }
+    },
+    "package-lock.json": {
+      "file": "package-lock.json",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 216456,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
+    "package.json": {
+      "file": "package.json",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 3456,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
       }
     },
     "renderer/activityPanel": {
@@ -7678,7 +7825,8 @@
       "description": "Health notices",
       "exports": [
         "init",
-        "showMigration"
+        "showMigration",
+        "describeStructureScan"
       ],
       "depends": [
         "electron",
@@ -7687,10 +7835,17 @@
       ],
       "functions": {
         "init": {
-          "line": 24
+          "line": 26
+        },
+        "describeStructureScan": {
+          "line": 69,
+          "params": [
+            "payload"
+          ],
+          "purpose": "The notice for an init's initial STRUCTURE scan, or null when there is"
         },
         "show": {
-          "line": 52,
+          "line": 102,
           "params": [
             "severity",
             "source",
@@ -7698,7 +7853,7 @@
           ]
         },
         "showMigration": {
-          "line": 64,
+          "line": 114,
           "params": [
             "migration"
           ],
@@ -7710,9 +7865,21 @@
           "MAIN_PROCESS_ERROR",
           "STATE_FILE_RECOVERED",
           "CODEX_HOOKS_UNTRUSTED",
+          "FRAME_PROJECT_INITIALIZED",
           "TASKS_FILE_ERROR"
         ],
         "emits": []
+      },
+      "sizeBytes": 6631,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7757338fd3aa46aa",
+        "purposes": {
+          "describeStructureScan": "6030e5b50ff501a5",
+          "showMigration": "68baf9a6d0ec4af2"
+        }
       }
     },
     "renderer/home/agentRows": {
@@ -12602,6 +12769,1439 @@
         }
       }
     },
+    "scripts/check-freshness": {
+      "file": "scripts/check-freshness.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "activity-log"
+      ],
+      "functions": {
+        "resolveProjectRoot": {
+          "line": 24,
+          "purpose": "Which project this run is about. `__dirname/..` was wrong for the shipped"
+        },
+        "resolveMetaPath": {
+          "line": 42,
+          "params": [
+            "name"
+          ],
+          "purpose": "Where a meta file lives: `.frame/<name>` for a migrated project, the root"
+        },
+        "resolveStructurePath": {
+          "line": 57,
+          "purpose": "STRUCTURE.json's owner: the overlay first; the root copy only when"
+        },
+        "generationNotes": {
+          "line": 78,
+          "params": [
+            "root",
+            "structure"
+          ],
+          "purpose": "Generation-status notes for the map (read-only; never repairs). The map's"
+        },
+        "repairCommand": {
+          "line": 101,
+          "params": [
+            "root"
+          ]
+        },
+        "warn": {
+          "line": 113,
+          "params": [
+            "check",
+            "message"
+          ]
+        },
+        "git": {
+          "line": 117,
+          "params": [
+            "cmd"
+          ]
+        },
+        "readJSON": {
+          "line": 129,
+          "params": [
+            "name"
+          ]
+        },
+        "checkPhantomModules": {
+          "line": 141,
+          "params": [
+            "structure"
+          ],
+          "purpose": "1. Phantom modules — STRUCTURE.json entries whose file is missing on disk"
+        },
+        "confirmContentDrift": {
+          "line": 154,
+          "purpose": "Ask update-structure.js --check whether a regen would actually change"
+        },
+        "checkStructureDrift": {
+          "line": 179,
+          "params": [
+            "structure"
+          ],
+          "purpose": "2. STRUCTURE drift — the date heuristic (lastUpdated older than the last"
+        },
+        "checkStructureGeneration": {
+          "line": 197,
+          "params": [
+            "structure"
+          ],
+          "purpose": "2b. Generation status — a partial or unverified map, or a latest scan that"
+        },
+        "checkNotesStaleness": {
+          "line": 207,
+          "purpose": "3. Notes staleness — commits landed since the last dated PROJECT_NOTES entry"
+        },
+        "checkStuckTasks": {
+          "line": 225,
+          "purpose": "4. Stuck tasks — in_progress for more than STALE_TASK_DAYS"
+        },
+        "checkQuickstartStaleness": {
+          "line": 246,
+          "purpose": "5. QUICKSTART staleness — commits landed since QUICKSTART.md was last touched"
+        }
+      },
+      "sizeBytes": 11609,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "checkNotesStaleness": "07fc71b70706900a",
+          "checkPhantomModules": "50dd6ff44fc3cfe8",
+          "checkQuickstartStaleness": "946207b69dfa2ad1",
+          "checkStructureDrift": "2ebc65f90fe31ea2",
+          "checkStructureGeneration": "0348ebab53cef17e",
+          "checkStuckTasks": "1f5e1836816e0dbd",
+          "confirmContentDrift": "c2c5c559d55b8faf",
+          "generationNotes": "efd6a4bbd171f44c",
+          "resolveMetaPath": "246df3924894a319",
+          "resolveProjectRoot": "bdaf2016db7ccaef",
+          "resolveStructurePath": "f63d3b2fc11bb99f"
+        }
+      }
+    },
+    "scripts/find-module": {
+      "file": "scripts/find-module.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "resolveProjectRoot": {
+          "line": 24,
+          "purpose": "Which project this run is about. `__dirname/..` was wrong for the shipped"
+        },
+        "resolveStructurePath": {
+          "line": 42,
+          "purpose": "STRUCTURE.json's owner: the overlay first; the root copy only when"
+        },
+        "generationNotes": {
+          "line": 63,
+          "params": [
+            "root",
+            "structure"
+          ],
+          "purpose": "Generation-status notes for the map (read-only; never repairs). The map's"
+        },
+        "repairCommand": {
+          "line": 86,
+          "params": [
+            "root"
+          ]
+        },
+        "loadStructure": {
+          "line": 95
+        },
+        "loadIntentMap": {
+          "line": 108,
+          "purpose": "Load the curated concept map (synonyms live here). Sits next to this"
+        },
+        "stalenessBanner": {
+          "line": 125,
+          "params": [
+            "structure"
+          ],
+          "purpose": "One-line warning when STRUCTURE.json is stale. The date comparison is a"
+        },
+        "searchIntentIndex": {
+          "line": 159,
+          "params": [
+            "structure",
+            "keyword"
+          ],
+          "purpose": "Search intentIndex for matching features"
+        },
+        "listFeatures": {
+          "line": 227,
+          "params": [
+            "structure"
+          ],
+          "purpose": "List all features in intentIndex"
+        },
+        "printResults": {
+          "line": 245,
+          "params": [
+            "structure",
+            "results",
+            "keyword"
+          ],
+          "purpose": "Format and print results"
+        }
+      },
+      "sizeBytes": 10528,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "generationNotes": "efd6a4bbd171f44c",
+          "listFeatures": "abee8c0e66184dfd",
+          "loadIntentMap": "97c2e373d690a85c",
+          "printResults": "92ba06a56754bee9",
+          "resolveProjectRoot": "bdaf2016db7ccaef",
+          "resolveStructurePath": "f63d3b2fc11bb99f",
+          "searchIntentIndex": "331ec57f0459ec19",
+          "stalenessBanner": "ef7f87ea90f30ceb"
+        }
+      }
+    },
+    "scripts/module-hint": {
+      "file": "scripts/module-hint.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "path",
+        "activity-log",
+        "toolVocabulary"
+      ],
+      "functions": {
+        "toPosix": {
+          "line": 52,
+          "params": [
+            "p"
+          ]
+        },
+        "readStdin": {
+          "line": 54
+        },
+        "readJson": {
+          "line": 58,
+          "params": [
+            "p"
+          ]
+        },
+        "resolveRoot": {
+          "line": 64,
+          "params": [
+            "hookCwd"
+          ]
+        },
+        "resolveStructurePath": {
+          "line": 80,
+          "params": [
+            "root"
+          ],
+          "purpose": "STRUCTURE.json's owner: the overlay first; the root copy only when"
+        },
+        "finderCliPath": {
+          "line": 95,
+          "params": [
+            "root"
+          ]
+        },
+        "stateFile": {
+          "line": 103,
+          "params": [
+            "root",
+            "sessionId"
+          ]
+        },
+        "loadState": {
+          "line": 108,
+          "params": [
+            "root",
+            "sessionId"
+          ]
+        },
+        "saveState": {
+          "line": 113,
+          "params": [
+            "root",
+            "sessionId",
+            "state"
+          ]
+        },
+        "cleanupState": {
+          "line": 121,
+          "params": [
+            "root"
+          ]
+        },
+        "setHookCli": {
+          "line": 167,
+          "params": [
+            "payload"
+          ],
+          "purpose": "Called once, from the entry point, with the parsed payload."
+        },
+        "hookHost": {
+          "line": 171
+        },
+        "note": {
+          "line": 175,
+          "params": [
+            "root",
+            "ev",
+            "fields"
+          ]
+        },
+        "quiet": {
+          "line": 191,
+          "params": [
+            "root",
+            "reason"
+          ],
+          "purpose": "Record a quiet path and return, so call sites stay single-expression."
+        },
+        "emit": {
+          "line": 195,
+          "params": [
+            "context"
+          ]
+        },
+        "searchSegments": {
+          "line": 217,
+          "params": [
+            "cmd"
+          ]
+        },
+        "extractPattern": {
+          "line": 236,
+          "params": [
+            "seg"
+          ],
+          "purpose": "Pull the pattern operand out of one search segment (already known to start"
+        },
+        "candidates": {
+          "line": 252,
+          "params": [
+            "raw"
+          ],
+          "purpose": "A raw pattern (regex, glob, or plain word) → the concept words worth"
+        },
+        "keywordsFrom": {
+          "line": 263,
+          "params": [
+            "toolName",
+            "input"
+          ]
+        },
+        "loadIntentMap": {
+          "line": 300
+        },
+        "lookup": {
+          "line": 307,
+          "params": [
+            "structure",
+            "keyword"
+          ]
+        },
+        "render": {
+          "line": 329,
+          "params": [
+            "root",
+            "structure",
+            "hit",
+            "keyword"
+          ]
+        },
+        "searchMode": {
+          "line": 354,
+          "params": [
+            "input"
+          ]
+        }
+      },
+      "sizeBytes": 16184,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "candidates": "a9ed75e60ec11d73",
+          "extractPattern": "2c7cae15c16d94d2",
+          "quiet": "3e8f4a1504407442",
+          "resolveStructurePath": "f63d3b2fc11bb99f",
+          "setHookCli": "c07ecdee8595a6cf"
+        }
+      }
+    },
+    "scripts/structure-discovery": {
+      "file": "scripts/structure-discovery.js",
+      "description": "STRUCTURE discovery — which files a project map must contain.",
+      "exports": [
+        "discover",
+        "discoverProject",
+        "evaluatePaths",
+        "resolvePolicy",
+        "loadProjectStructureConfig",
+        "normalizeCandidatePath",
+        "classifySample",
+        "compareBytes",
+        "StructurePolicyError",
+        "DEFAULT_LIMITS",
+        "DEFAULT_IGNORED_DIRECTORIES",
+        "HARD_EXCLUDED_NAMES",
+        "GENERATED_DELIVERY_PATHS",
+        "TEXT_EXTENSIONS",
+        "SAMPLE_BYTES",
+        "MAX_DIAGNOSTIC_SAMPLES"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "crypto",
+        "structure-ignore"
+      ],
+      "functions": {
+        "compareBytes": {
+          "line": 115,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Bytewise (UTF-8) ordering — the same on every platform and locale."
+        },
+        "sha256": {
+          "line": 119,
+          "params": [
+            "data"
+          ]
+        },
+        "isPlainObject": {
+          "line": 125,
+          "params": [
+            "value"
+          ]
+        },
+        "resolvePolicy": {
+          "line": 134,
+          "params": [
+            "raw"
+          ],
+          "purpose": "Validate `project.structure` and merge it over the defaults. Invalid input"
+        },
+        "loadProjectStructureConfig": {
+          "line": 191,
+          "params": [
+            "rootDir",
+            "fsImpl = fs"
+          ],
+          "purpose": "Read the inputs discovery needs from `.frame/config.json`: the optional"
+        },
+        "createMatcher": {
+          "line": 215,
+          "params": [
+            "rules"
+          ]
+        },
+        "matchOne": {
+          "line": 227,
+          "params": [
+            "matcher",
+            "relPath"
+          ],
+          "purpose": "Test one path against one rule set without re-deciding its parents."
+        },
+        "isRecoveryName": {
+          "line": 231,
+          "params": [
+            "name",
+            "base"
+          ]
+        },
+        "buildHardRules": {
+          "line": 236,
+          "params": [
+            "legacyFiles"
+          ]
+        },
+        "isFrameArtifact": {
+          "line": 258,
+          "params": [
+            "hard",
+            "relPath",
+            "name",
+            "isRootLevel"
+          ],
+          "purpose": "Files Frame itself writes into the user's tree (legacy meta files, their"
+        },
+        "isHardExcluded": {
+          "line": 263,
+          "params": [
+            "hard",
+            "relPath",
+            "name",
+            "isRootLevel"
+          ]
+        },
+        "policyDecision": {
+          "line": 271,
+          "params": [
+            "ctx",
+            "relPath",
+            "name",
+            "isDir",
+            "layers"
+          ],
+          "purpose": "Decide an entry whose ancestors are all included. Returns null when the"
+        },
+        "startsWith": {
+          "line": 294,
+          "params": [
+            "buf",
+            "bytes"
+          ]
+        },
+        "classifySample": {
+          "line": 306,
+          "params": [
+            "buf",
+            "wholeFile = false"
+          ],
+          "purpose": "Classify a leading byte sample. BOMs are recognized before the NUL test,"
+        },
+        "readSample": {
+          "line": 323,
+          "params": [
+            "fsImpl",
+            "absPath",
+            "size"
+          ]
+        },
+        "classifyFile": {
+          "line": 346,
+          "params": [
+            "fsImpl",
+            "absPath",
+            "relPath",
+            "size"
+          ],
+          "purpose": "Classify one regular file. Returns `{ eligible: true, record }`,"
+        },
+        "emptyCounts": {
+          "line": 362
+        },
+        "createContext": {
+          "line": 376,
+          "params": [
+            "rootDir",
+            "options"
+          ]
+        },
+        "diagnose": {
+          "line": 400,
+          "params": [
+            "ctx",
+            "relPath",
+            "reason",
+            "err"
+          ]
+        },
+        "incomplete": {
+          "line": 412,
+          "params": [
+            "ctx",
+            "reason",
+            "relPath",
+            "err",
+            "stop"
+          ],
+          "purpose": "Mark coverage partial; `stop` also ends the walk."
+        },
+        "checkBudget": {
+          "line": 418,
+          "params": [
+            "ctx",
+            "relPath"
+          ]
+        },
+        "joinRel": {
+          "line": 431,
+          "params": [
+            "dirRel",
+            "name"
+          ]
+        },
+        "loadIgnoreLayer": {
+          "line": 436,
+          "params": [
+            "ctx",
+            "absDir",
+            "relDir",
+            "layers"
+          ],
+          "purpose": "Load `<dir>/.gitignore` as a new innermost layer, if it exists."
+        },
+        "walkDirectory": {
+          "line": 459,
+          "params": [
+            "ctx",
+            "absDir",
+            "relDir",
+            "depth",
+            "parentLayers",
+            "files"
+          ]
+        },
+        "policySummary": {
+          "line": 564,
+          "params": [
+            "ctx"
+          ]
+        },
+        "discover": {
+          "line": 591,
+          "params": [
+            "rootDir",
+            "options = {}"
+          ],
+          "purpose": "Walk `rootDir` and return the eligible-file inventory."
+        },
+        "discoverProject": {
+          "line": 618,
+          "params": [
+            "rootDir",
+            "options = {}"
+          ],
+          "purpose": "discover() with policy and legacy names read from `.frame/config.json`."
+        },
+        "isMissingError": {
+          "line": 626,
+          "params": [
+            "err"
+          ]
+        },
+        "evaluatePaths": {
+          "line": 644,
+          "params": [
+            "rootDir",
+            "relPaths",
+            "options = {}"
+          ],
+          "purpose": "Evaluate specific root-relative paths under the same policy as a full walk,"
+        },
+        "normalizeCandidatePath": {
+          "line": 766,
+          "params": [
+            "input"
+          ],
+          "purpose": "Normalize a candidate path to root-relative POSIX form. Only the platform's"
+        }
+      },
+      "sizeBytes": 30123,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "60e26149fd3cbcaa",
+        "purposes": {
+          "classifyFile": "cefd165c17836d77",
+          "classifySample": "ee4536385f413763",
+          "compareBytes": "10772070192069e9",
+          "discover": "e3c28a26d1899668",
+          "discoverProject": "9f7c0895ba12c110",
+          "evaluatePaths": "4fc7572787178391",
+          "incomplete": "809eb53c25b45701",
+          "isFrameArtifact": "fc3d063b76733ae6",
+          "loadIgnoreLayer": "6985b9016772c083",
+          "loadProjectStructureConfig": "eca8d5158e2b8844",
+          "matchOne": "c06f226feff24f91",
+          "normalizeCandidatePath": "6200ebbf81a271d4",
+          "policyDecision": "61e99875dafaa7f8",
+          "resolvePolicy": "288a455de94a93d2"
+        }
+      }
+    },
+    "scripts/structure-generation": {
+      "file": "scripts/structure-generation.js",
+      "description": "STRUCTURE generation — turn a discovered inventory into map entries.",
+      "exports": [
+        "buildFull",
+        "buildDelta",
+        "serializeStructure",
+        "contentView",
+        "checkView",
+        "extractFacts",
+        "loadCuration",
+        "legacyKeyFor",
+        "fallbackKeyFor",
+        "hasAuthoredContent",
+        "DeltaBaselineError",
+        "ARTIFACT_VERSION",
+        "EXT_TO_EXTRACTOR"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "crypto",
+        "structure-discovery",
+        "lang/javascript",
+        "lang/python",
+        "lang/go",
+        "lang/rust",
+        "lang/markdown"
+      ],
+      "functions": {
+        "setOwn": {
+          "line": 66,
+          "params": [
+            "obj",
+            "key",
+            "value"
+          ],
+          "purpose": "Assign without prototype-key hazards (`__proto__`, `constructor`, …)."
+        },
+        "isPlainObject": {
+          "line": 71,
+          "params": [
+            "value"
+          ]
+        },
+        "proseHash": {
+          "line": 75,
+          "params": [
+            "text"
+          ]
+        },
+        "sortedObject": {
+          "line": 79,
+          "params": [
+            "entries"
+          ]
+        },
+        "canonical": {
+          "line": 85,
+          "params": [
+            "value"
+          ]
+        },
+        "legacyKeyFor": {
+          "line": 96,
+          "params": [
+            "relPath"
+          ],
+          "purpose": "Frame's historical key: repo-relative path, a leading `src/` stripped, and"
+        },
+        "fallbackKeyFor": {
+          "line": 104,
+          "params": [
+            "relPath"
+          ],
+          "purpose": "Collision-safe key: `@file:` + the percent-encoded complete path."
+        },
+        "groupingBaseName": {
+          "line": 109,
+          "params": [
+            "relPath"
+          ],
+          "purpose": "Name tokens for auto-grouping come from the file, never a synthetic key."
+        },
+        "emptyFacts": {
+          "line": 124
+        },
+        "extractFacts": {
+          "line": 133,
+          "params": [
+            "rootDir",
+            "record",
+            "options = {}"
+          ],
+          "purpose": "Extract semantic facts for one discovered file. Never throws: a missing"
+        },
+        "resolveProse": {
+          "line": 188,
+          "params": [
+            "generated",
+            "priorValue",
+            "priorHash"
+          ],
+          "purpose": "Resolve one prose field. Returns `{ value, hash }`; hash is set only when"
+        },
+        "isAuthoredProse": {
+          "line": 199,
+          "params": [
+            "value",
+            "hash"
+          ],
+          "purpose": "True when prose would be lost if this value disappeared."
+        },
+        "hasAuthoredContent": {
+          "line": 203,
+          "params": [
+            "entry"
+          ]
+        },
+        "mergeEntry": {
+          "line": 224,
+          "params": [
+            "relPath",
+            "record",
+            "extracted",
+            "priorEntry"
+          ],
+          "purpose": "Merge freshly extracted facts with the prior entry for the same file."
+        },
+        "loadCuration": {
+          "line": 286,
+          "params": [
+            "dir = __dirname",
+            "fsImpl = fs"
+          ],
+          "purpose": "The curated concept → module-keys map. It lives beside the running parser"
+        },
+        "curatedKeySet": {
+          "line": 297,
+          "params": [
+            "curation"
+          ]
+        },
+        "analyzePrior": {
+          "line": 317,
+          "params": [
+            "prior",
+            "curatedKeys",
+            "isVerifiedFile",
+            "diagnostics"
+          ],
+          "purpose": "Index the prior map by file identity and reserve every key it uses."
+        },
+        "allocateKeys": {
+          "line": 420,
+          "params": [
+            "files",
+            "analysis",
+            "assigned = new Map("
+          ],
+          "purpose": "Allocate keys for `files` (bytewise order) given the prior analysis."
+        },
+        "isAutoGroupSource": {
+          "line": 463,
+          "params": [
+            "relPath",
+            "languages",
+            "sourceRoots"
+          ],
+          "purpose": "Files the historical parser scanned — the population automatic grouping"
+        },
+        "autoGroupRoots": {
+          "line": 470,
+          "params": [
+            "projectConfig"
+          ]
+        },
+        "buildIntentIndex": {
+          "line": 483,
+          "params": [
+            "modules",
+            "curation",
+            "owners",
+            "projectConfig",
+            "diagnostics"
+          ],
+          "purpose": "intentIndex: curated concepts first, then auto-groups by shared name"
+        },
+        "syncIpcChannels": {
+          "line": 554,
+          "params": [
+            "existing",
+            "rootDir",
+            "projectConfig",
+            "fsImpl = fs"
+          ],
+          "purpose": "Sync `ipcChannels` from the repo-local channels file named by"
+        },
+        "defaultStructure": {
+          "line": 588
+        },
+        "boundedDiagnostics": {
+          "line": 603,
+          "params": [
+            "discoveryDiagnostics",
+            "generationDiagnostics"
+          ]
+        },
+        "extractionSummary": {
+          "line": 624,
+          "params": [
+            "modules"
+          ]
+        },
+        "assemble": {
+          "line": 638,
+          "params": [
+            "prior",
+            "parts"
+          ],
+          "purpose": "Lay the generated parts over the prior map's own top-level layout, so"
+        },
+        "sortModules": {
+          "line": 658,
+          "params": [
+            "modules"
+          ]
+        },
+        "buildFull": {
+          "line": 673,
+          "params": [
+            "input"
+          ],
+          "purpose": "Full rebuild from a discovery result."
+        },
+        "buildDelta": {
+          "line": 759,
+          "params": [
+            "input"
+          ],
+          "purpose": "Partial update from evaluatePaths() results."
+        },
+        "contentView": {
+          "line": 880,
+          "params": [
+            "structure"
+          ],
+          "purpose": "The map without audit-only and timestamp fields: what a delta no-op and"
+        },
+        "checkView": {
+          "line": 894,
+          "params": [
+            "structure"
+          ],
+          "purpose": "What `--check` compares: the file/intent/annotation payload plus the"
+        },
+        "serializeStructure": {
+          "line": 906,
+          "params": [
+            "candidate",
+            "prior",
+            "today = new Date("
+          ],
+          "purpose": "Final bytes for a candidate. `lastUpdated` keeps the prior date when"
+        }
+      },
+      "sizeBytes": 37803,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ef9cb98867ea8c5a",
+        "purposes": {
+          "allocateKeys": "30677be9f7946a06",
+          "analyzePrior": "4cf59c7e19b7cd49",
+          "assemble": "b72cc9a6c06fce00",
+          "buildDelta": "3dcde68d968ef0db",
+          "buildFull": "4ea6e72a52a2e968",
+          "buildIntentIndex": "01073c03e68aab22",
+          "checkView": "26cca50cb8eab52f",
+          "contentView": "3f1d0c9c6ffeec68",
+          "extractFacts": "8ddcba257fe5c813",
+          "fallbackKeyFor": "4100628edf70ab89",
+          "groupingBaseName": "baf74c0f57c372a4",
+          "isAuthoredProse": "b75e9232f1118d4a",
+          "isAutoGroupSource": "6964fb1e98159c00",
+          "legacyKeyFor": "4e5ff4d8b683dfe8",
+          "loadCuration": "2c09f605ac35ecba",
+          "mergeEntry": "18c2466e689184fb",
+          "resolveProse": "8a818c4061a11e67",
+          "serializeStructure": "86b79c6e3ba0d57d",
+          "setOwn": "64bd67e7413b2806",
+          "syncIpcChannels": "11541ff09b39bd62"
+        }
+      }
+    },
+    "scripts/structure-ignore": {
+      "file": "scripts/structure-ignore.js",
+      "description": "Vendored `ignore` 7.0.5 — the .gitignore pattern matcher used by",
+      "exports": [
+        "isPathValid"
+      ],
+      "depends": [],
+      "functions": {
+        "makeArray": {
+          "line": 19,
+          "params": [
+            "subject"
+          ],
+          "purpose": "---- upstream ignore@7.0.5 index.js ----"
+        },
+        "define": {
+          "line": 57,
+          "params": [
+            "object",
+            "key",
+            "value"
+          ]
+        },
+        "createRule": {
+          "line": 439,
+          "params": [
+            "{\n  pattern",
+            "mark\n}",
+            "ignoreCase"
+          ]
+        },
+        "throwError": {
+          "line": 573,
+          "params": [
+            "message",
+            "Ctor"
+          ]
+        },
+        "checkPath": {
+          "line": 577,
+          "params": [
+            "path",
+            "originalPath",
+            "doThrow"
+          ]
+        },
+        "setupWindows": {
+          "line": 760,
+          "purpose": "istanbul ignore next"
+        }
+      },
+      "sizeBytes": 20428,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "8713ed1fbceb106c",
+        "purposes": {
+          "makeArray": "2c95b59b3c3461cd",
+          "setupWindows": "ac154b0d8f605779"
+        }
+      }
+    },
+    "scripts/structure-ignore.LICENSE": {
+      "file": "scripts/structure-ignore.LICENSE",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 1095,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
+    "scripts/structure-state": {
+      "file": "scripts/structure-state.js",
+      "description": "STRUCTURE state — where the map lives, whether it is usable, and how a",
+      "exports": [
+        "resolveStructurePath",
+        "statePaths",
+        "validateStructure",
+        "isUsableMap",
+        "readBaseline",
+        "acquireLock",
+        "releaseLock",
+        "writerActive",
+        "readAttempt",
+        "preserveBytes",
+        "runAttempt",
+        "reconcileAttempt",
+        "snapshot",
+        "digest",
+        "PreservationError"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "fsSafe",
+        "src/main/fsSafe"
+      ],
+      "functions": {
+        "loadFsSafe": {
+          "line": 43,
+          "purpose": "The atomic writer: the copy shipped beside this file in `.frame/bin/`,"
+        },
+        "readConfig": {
+          "line": 59,
+          "params": [
+            "rootDir",
+            "fsImpl"
+          ]
+        },
+        "legacyOwns": {
+          "line": 68,
+          "params": [
+            "rootDir",
+            "name",
+            "fsImpl"
+          ]
+        },
+        "resolveStructurePath": {
+          "line": 79,
+          "params": [
+            "rootDir",
+            "fsImpl = fs"
+          ],
+          "purpose": "The map this project owns. Mirrors frameStore.resolvePath exactly:"
+        },
+        "statePaths": {
+          "line": 87,
+          "params": [
+            "rootDir",
+            "fsImpl = fs"
+          ]
+        },
+        "isPlainObject": {
+          "line": 101,
+          "params": [
+            "value"
+          ]
+        },
+        "validateStructure": {
+          "line": 110,
+          "params": [
+            "data"
+          ],
+          "purpose": "Shape check for a parsed map. Returns null when valid, otherwise a short"
+        },
+        "isUsableMap": {
+          "line": 133,
+          "params": [
+            "data"
+          ],
+          "purpose": "A map a failed or partial scan may fall back to: valid, and the result of"
+        },
+        "digest": {
+          "line": 140,
+          "params": [
+            "bytes"
+          ]
+        },
+        "readBytes": {
+          "line": 144,
+          "params": [
+            "fsImpl",
+            "file"
+          ]
+        },
+        "parseMap": {
+          "line": 152,
+          "params": [
+            "bytes"
+          ]
+        },
+        "readBaseline": {
+          "line": 170,
+          "params": [
+            "mapPath",
+            "fsImpl = fs"
+          ],
+          "purpose": "The baseline a mutating run builds on."
+        },
+        "defaultIsAlive": {
+          "line": 195,
+          "params": [
+            "pid"
+          ]
+        },
+        "readJson": {
+          "line": 205,
+          "params": [
+            "fsImpl",
+            "file"
+          ]
+        },
+        "ownerIsGone": {
+          "line": 214,
+          "params": [
+            "owner",
+            "isAlive"
+          ],
+          "purpose": "True only when the owner is on this host and its process is gone."
+        },
+        "acquireLock": {
+          "line": 226,
+          "params": [
+            "paths",
+            "options = {}"
+          ],
+          "purpose": "Take the exclusive writer lock. Returns `{ ok: true, token }` or"
+        },
+        "releaseLock": {
+          "line": 280,
+          "params": [
+            "paths",
+            "token",
+            "fsImpl = fs"
+          ],
+          "purpose": "Release the lock only if `token` still owns it."
+        },
+        "writerActive": {
+          "line": 292,
+          "params": [
+            "paths",
+            "options = {}"
+          ],
+          "purpose": "Is a live writer holding the lock right now? (Read-only; for --check.)"
+        },
+        "readAttempt": {
+          "line": 301,
+          "params": [
+            "paths",
+            "fsImpl = fs"
+          ]
+        },
+        "writeAttempt": {
+          "line": 306,
+          "params": [
+            "paths",
+            "record",
+            "fsImpl = fs"
+          ]
+        },
+        "writeAtomicWith": {
+          "line": 313,
+          "params": [
+            "fsImpl",
+            "filePath",
+            "data"
+          ],
+          "purpose": "fsSafe's algorithm over an injected fs (tests inject write failures)."
+        },
+        "currentDigest": {
+          "line": 331,
+          "params": [
+            "paths",
+            "fsImpl"
+          ]
+        },
+        "classifyOrphan": {
+          "line": 342,
+          "params": [
+            "record",
+            "paths",
+            "fsImpl",
+            "now"
+          ],
+          "purpose": "Classify a `running` record whose process is gone. The artifact digest"
+        },
+        "preserveBytes": {
+          "line": 376,
+          "params": [
+            "paths",
+            "bytes",
+            "fsImpl = fs"
+          ],
+          "purpose": "Archive exact bytes at `recovery/<sha256>.json`. Identical content reuses"
+        },
+        "boundedDiagnostics": {
+          "line": 401,
+          "params": [
+            "diagnostics"
+          ]
+        },
+        "relative": {
+          "line": 413,
+          "params": [
+            "paths",
+            "file"
+          ]
+        },
+        "runAttempt": {
+          "line": 438,
+          "params": [
+            "options"
+          ],
+          "purpose": "Run one mutating attempt end to end."
+        },
+        "summarizePrevious": {
+          "line": 660,
+          "params": [
+            "record"
+          ]
+        },
+        "reconcileAttempt": {
+          "line": 680,
+          "params": [
+            "rootDir",
+            "attemptId",
+            "options = {}"
+          ],
+          "purpose": "Parent-side reconciliation after its child exited without a usable"
+        },
+        "snapshot": {
+          "line": 708,
+          "params": [
+            "rootDir",
+            "options = {}"
+          ],
+          "purpose": "Read-only view for `--check`: no lock, no writes. `stable()` re-reads the"
+        }
+      },
+      "sizeBytes": 27259,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "42ea6cb49cc80a62",
+        "purposes": {
+          "acquireLock": "fcd8ee115d25ac05",
+          "classifyOrphan": "2a028dde13d829f7",
+          "isUsableMap": "68ea61e8355d4f5d",
+          "loadFsSafe": "9b708842aa78a527",
+          "ownerIsGone": "a23422b64bc0b73f",
+          "preserveBytes": "29912968f1fb7836",
+          "readBaseline": "1f92e5823934cbc9",
+          "reconcileAttempt": "f757e813c91882e8",
+          "releaseLock": "034bc4527f68fd9d",
+          "resolveStructurePath": "739369cd091b0f3f",
+          "runAttempt": "506776eacaa61bb9",
+          "snapshot": "9a3fabc60d7ee11d",
+          "validateStructure": "169fee911efa99e6",
+          "writeAtomicWith": "a0ca9379073c9865",
+          "writerActive": "a56c00de348cb409"
+        }
+      }
+    },
+    "scripts/update-structure": {
+      "file": "scripts/update-structure.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "structure-discovery",
+        "structure-generation",
+        "structure-state",
+        "activity-log"
+      ],
+      "functions": {
+        "resolveProjectRoot": {
+          "line": 41,
+          "purpose": "Which project this run is about. `__dirname/..` was wrong for the shipped"
+        },
+        "parseArgs": {
+          "line": 58,
+          "params": [
+            "argv"
+          ]
+        },
+        "say": {
+          "line": 83,
+          "params": [
+            "line"
+          ],
+          "purpose": "Human text: stdout normally, stderr when stdout carries the envelope."
+        },
+        "warn": {
+          "line": 87,
+          "params": [
+            "line"
+          ]
+        },
+        "repairCommand": {
+          "line": 91
+        },
+        "printDiagnostics": {
+          "line": 96,
+          "params": [
+            "diagnostics"
+          ]
+        },
+        "emit": {
+          "line": 105,
+          "params": [
+            "envelope"
+          ]
+        },
+        "projectBlock": {
+          "line": 111
+        },
+        "getChangedFiles": {
+          "line": 121,
+          "purpose": "Staged and unstaged changes, exactly the sources the hook always used."
+        },
+        "toRootRelative": {
+          "line": 131,
+          "params": [
+            "files"
+          ],
+          "purpose": "Explicit file arguments, relative to the project root."
+        },
+        "noteRun": {
+          "line": 158,
+          "params": [
+            "startedAt",
+            "changes"
+          ]
+        },
+        "exitCodeFor": {
+          "line": 178,
+          "params": [
+            "result"
+          ]
+        },
+        "builtFrom": {
+          "line": 184,
+          "params": [
+            "structure",
+            "report",
+            "prior"
+          ]
+        },
+        "runFull": {
+          "line": 195
+        },
+        "runDelta": {
+          "line": 213,
+          "params": [
+            "candidates"
+          ]
+        },
+        "reportMutation": {
+          "line": 241,
+          "params": [
+            "result",
+            "command"
+          ]
+        },
+        "runCheck": {
+          "line": 272
+        },
+        "main": {
+          "line": 306
+        }
+      },
+      "sizeBytes": 14875,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "getChangedFiles": "0d5e846bb25dd0ff",
+          "resolveProjectRoot": "bdaf2016db7ccaef",
+          "say": "fe3bfc9b1c053140",
+          "toRootRelative": "a260ebe24f149a83"
+        }
+      }
+    },
     "shared/activityEvents": {
       "file": "src/shared/activityEvents.js",
       "description": "Activity events — pure policy module.",
@@ -13093,7 +14693,7 @@
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 629,
+          "line": 676,
           "params": [
             "projectName",
             "project"
@@ -13101,21 +14701,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 654,
+          "line": 704,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 674,
+          "line": 724,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 720,
+          "line": 770,
           "params": [
             "projectName",
             "project"
@@ -13123,24 +14723,24 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 801,
+          "line": 853,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getClaudeRuleTemplate": {
-          "line": 844,
+          "line": 896,
           "params": [
             "agentsText"
           ],
           "purpose": "`.claude/rules/frame.md` — the file Claude Code loads at session start."
         },
         "getFrameGitignoreBlock": {
-          "line": 859
+          "line": 911
         },
         "getGenericWrapperTemplate": {
-          "line": 1012,
+          "line": 1064,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -13148,28 +14748,52 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1058
+          "line": 1110
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1097,
+          "line": 1149,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "getOrchBusHeader": {
-          "line": 1120,
+          "line": 1172,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1132,
+          "line": 1184,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1152
+          "line": 1204
         },
         "getOrchBinScripts": {
-          "line": 1170,
+          "line": 1222,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
+        }
+      },
+      "sizeBytes": 51234,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "17137e9ce2249380",
+        "purposes": {
+          "formatProjectFacts": "912c7ed02437c0e5",
+          "getClaudeRuleTemplate": "f47b075da4e05782",
+          "getDateString": "1303f512229000ae",
+          "getFrameConfigTemplate": "a1f89f63239d9a60",
+          "getGenericWrapperTemplate": "de5cee2833fdb395",
+          "getISOTimestamp": "52c06498e480e3d7",
+          "getNotesTemplate": "6e8cb5f955bf2473",
+          "getOrchBinScripts": "d113c79aba9b10f4",
+          "getOrchBusHeader": "59e162d4d331ea63",
+          "getQuickstartTemplate": "28441a8843d0b370",
+          "getReferenceTemplate": "24d7ff1b34a851c5",
+          "getStructurePreCommitHookTemplate": "66fc6794d6915e67",
+          "getStructureTemplate": "ae0768942621daa6",
+          "getTasksTemplate": "51a7303c8276cb87",
+          "renderSpecSection": "7fd001cb3ae45a96"
         }
       }
     },
@@ -13679,6 +15303,562 @@
         "TaskList": {
           "line": 9
         }
+      }
+    },
+    "test/fixtures/js-src-app/STRUCTURE.json": {
+      "file": "test/fixtures/js-src-app/STRUCTURE.json",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 4069,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
+    "test/frameProjectInit.test": {
+      "file": "test/frameProjectInit.test.js",
+      "description": "Init footprint tests (non-invasive-overlay T04+).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "node:module",
+        "src/main/frameProject",
+        "src/main/frameStore",
+        "src/main/aiToolManager",
+        "src/shared/frameConstants",
+        "child_process",
+        "src/shared/frameTemplates",
+        "src/main/gitExclude",
+        "src/main/structureBootstrap",
+        "scripts/detect-project"
+      ],
+      "functions": {
+        "writeUserFiles": {
+          "line": 60,
+          "params": [
+            "dir"
+          ]
+        },
+        "hashFile": {
+          "line": 68,
+          "params": [
+            "file"
+          ]
+        },
+        "snapshotTree": {
+          "line": 73,
+          "params": [
+            "dir",
+            "{ excludeFrameOwned = true } = {}"
+          ],
+          "purpose": "Every file in the tree → sha256, excluding paths Frame is allowed to own."
+        }
+      },
+      "sizeBytes": 33369,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "c73c3f7ef869d846",
+        "purposes": {
+          "snapshotTree": "cf58ba8460ecbbf5"
+        }
+      }
+    },
+    "test/frameProjectOpen.test": {
+      "file": "test/frameProjectOpen.test.js",
+      "description": "Project-open footprint tests (migration-consent-scope T04+).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "child_process",
+        "node:module",
+        "src/main/frameProject",
+        "src/main/frameStore",
+        "src/main/specManager",
+        "src/main/tasksManager",
+        "src/main/aiToolManager",
+        "src/shared/frameConstants"
+      ],
+      "functions": {
+        "git": {
+          "line": 60,
+          "params": [
+            "cwd",
+            "args"
+          ]
+        },
+        "makeLegacyProject": {
+          "line": 86,
+          "params": [
+            "{ commit = true } = {}"
+          ],
+          "purpose": "A project as Frame's pre-overlay init left it."
+        },
+        "hashFile": {
+          "line": 121,
+          "params": [
+            "file"
+          ]
+        },
+        "snapshotTree": {
+          "line": 126,
+          "params": [
+            "dir"
+          ],
+          "purpose": "Every file in the tree → sha256, with `.git/` internals left out."
+        },
+        "frameLayout": {
+          "line": 143,
+          "params": [
+            "dir"
+          ],
+          "purpose": "The paths under `.frame/`, so two projects' artifact sets can be compared."
+        }
+      },
+      "sizeBytes": 14833,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4b304f6bdcb0ac07",
+        "purposes": {
+          "frameLayout": "e9b4117ab1d887c3",
+          "makeLegacyProject": "9a1aa225d8467ffb",
+          "snapshotTree": "029b02717988cd54"
+        }
+      }
+    },
+    "test/module-hint.test": {
+      "file": "test/module-hint.test.js",
+      "description": "Module map hook script tests.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "runHook": {
+          "line": 25,
+          "params": [
+            "input",
+            "{ raw = null } = {}"
+          ]
+        },
+        "mkProject": {
+          "line": 49,
+          "params": [
+            "structure = STRUCTURE"
+          ]
+        }
+      },
+      "sizeBytes": 9378,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "6a45b355686cc003"
+      }
+    },
+    "test/projectAgnostic.test": {
+      "file": "test/projectAgnostic.test.js",
+      "description": "Cross-project fixture suite (T02+). The committed golden STRUCTURE.json in",
+      "exports": [
+        "IPC"
+      ],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "child_process",
+        "fs",
+        "os",
+        "path",
+        "src/shared/frameTemplates",
+        "scripts/structure-state",
+        "src/shared/docsHealth"
+      ],
+      "functions": {
+        "runParser": {
+          "line": 22,
+          "params": [
+            "projectRoot",
+            "args = []"
+          ]
+        },
+        "goldenCopy": {
+          "line": 34,
+          "purpose": "A temporary copy of js-src-app. Its golden lives at the project root, so"
+        },
+        "initAndParse": {
+          "line": 89,
+          "params": [
+            "fixtureName"
+          ],
+          "purpose": "Copy a fixture to a tmp dir, run detect-project --write, then a full"
+        },
+        "tmpProject": {
+          "line": 269,
+          "params": [
+            "files = {}",
+            "config = null"
+          ]
+        },
+        "treeState": {
+          "line": 283,
+          "params": [
+            "dir"
+          ],
+          "purpose": "Every path under `dir` with size and mtime — proves a run wrote nothing."
+        },
+        "envelopeOf": {
+          "line": 298,
+          "params": [
+            "res"
+          ]
+        }
+      },
+      "sizeBytes": 23170,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b4c4fb3fbe6e70d8",
+        "purposes": {
+          "goldenCopy": "0b593fc817f10813",
+          "initAndParse": "03ce54eb8587a3f3",
+          "treeState": "93fd1e513890fb18"
+        }
+      }
+    },
+    "test/scriptsProjectRoot.test": {
+      "file": "test/scriptsProjectRoot.test.js",
+      "description": "Shipped-script project-root tests (non-invasive-overlay T03).",
+      "exports": [
+        "createWidget"
+      ],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/main/structureBootstrap",
+        "src/shared/frameTemplates",
+        "scripts/structure-state"
+      ],
+      "functions": {
+        "run": {
+          "line": 27,
+          "params": [
+            "script",
+            "args = []",
+            "env = {}"
+          ]
+        },
+        "ownershipProject": {
+          "line": 211,
+          "params": [
+            "{ overlay = false",
+            "root = false",
+            "owned = false }"
+          ]
+        },
+        "readersSee": {
+          "line": 226,
+          "params": [
+            "dir"
+          ],
+          "purpose": "Which copy each reader used: find-module prints files, freshness flags phantoms."
+        }
+      },
+      "sizeBytes": 23751,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "e403fabe05cd3522",
+        "purposes": {
+          "readersSee": "844215cb5e5884c1"
+        }
+      }
+    },
+    "test/structureBootstrap.test": {
+      "file": "test/structureBootstrap.test.js",
+      "description": "structureBootstrap tests (STR-01 T07/T08): shipping the parser's complete",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/main/structureBootstrap"
+      ],
+      "functions": {
+        "runBinParser": {
+          "line": 33,
+          "params": [
+            "args = []",
+            "root = project"
+          ]
+        },
+        "scriptsCopy": {
+          "line": 43,
+          "purpose": "A copy of Frame's scripts/ to mutate for fault injection."
+        },
+        "installPreviousGeneration": {
+          "line": 60,
+          "purpose": "Install the previous parser generation as if Frame had shipped it earlier."
+        },
+        "stagePackagedTree": {
+          "line": 151,
+          "params": [
+            "dest"
+          ],
+          "purpose": "Stage the app the way electron-builder would: only `build.files`."
+        },
+        "fakeParser": {
+          "line": 196,
+          "params": [
+            "body"
+          ],
+          "purpose": "A stand-in parser: `body` runs with the real env the bootstrap passes."
+        },
+        "hangingAfterPublish": {
+          "line": 275,
+          "purpose": "A parser that publishes through the real state layer, then hangs."
+        },
+        "PREVIOUS_GENERATION": {
+          "line": 50,
+          "params": [
+            "("
+          ],
+          "purpose": "The last parser generation before STR-01, read from history."
+        }
+      },
+      "sizeBytes": 15532,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "270345b5acbb7dd8",
+        "purposes": {
+          "PREVIOUS_GENERATION": "71f584f212de09f2",
+          "fakeParser": "05bf3f174d1714d8",
+          "hangingAfterPublish": "cd656a5e67c0e5e6",
+          "installPreviousGeneration": "2140d962e0406e6e",
+          "scriptsCopy": "4e1f88e5078fc751",
+          "stagePackagedTree": "43181546d97c8ed2"
+        }
+      }
+    },
+    "test/structureDiscovery.test": {
+      "file": "test/structureDiscovery.test.js",
+      "description": "structure-discovery tests (STR-01 T02): one inventory policy independent",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "scripts/structure-discovery",
+        "child_process"
+      ],
+      "functions": {
+        "scaffold": {
+          "line": 38,
+          "params": [
+            "files"
+          ],
+          "purpose": "{ 'rel/path': string | Buffer }"
+        },
+        "failingFs": {
+          "line": 49,
+          "params": [
+            "overrides"
+          ],
+          "purpose": "A real-fs wrapper whose selected calls fail with `code` for matching paths."
+        }
+      },
+      "sizeBytes": 23658,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "3e20bb5ddf76bec8",
+        "purposes": {
+          "failingFs": "6b05255a20bc742f",
+          "scaffold": "3b59355b2f826c51"
+        }
+      }
+    },
+    "test/structureGeneration.test": {
+      "file": "test/structureGeneration.test.js",
+      "description": "structure-generation tests (STR-01 T03): collision-safe identity, curated",
+      "exports": [
+        "run"
+      ],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "scripts/structure-discovery",
+        "scripts/structure-generation"
+      ],
+      "functions": {
+        "scaffold": {
+          "line": 36,
+          "params": [
+            "files"
+          ]
+        },
+        "remove": {
+          "line": 44,
+          "params": [
+            "rel"
+          ]
+        },
+        "full": {
+          "line": 49,
+          "params": [
+            "prior = null",
+            "extra = {}"
+          ],
+          "purpose": "Full build → serialize → parse, like a publish/reload cycle."
+        },
+        "delta": {
+          "line": 56,
+          "params": [
+            "prior",
+            "changed",
+            "extra = {}"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LOAD_TASKS"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 26279,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0fdecc9d4af541bc",
+        "purposes": {
+          "full": "48e1d9027209e9a0"
+        }
+      }
+    },
+    "test/structureNotice.test": {
+      "file": "test/structureNotice.test.js",
+      "description": "Initial-scan notices (STR-01 T11): FRAME_PROJECT_INITIALIZED results reach",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "node:module",
+        "src/shared/ipcChannels",
+        "src/renderer/healthNotice"
+      ],
+      "functions": {
+        "initialized": {
+          "line": 37,
+          "params": [
+            "initialScan",
+            "extra = {}"
+          ]
+        }
+      },
+      "sizeBytes": 4859,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "f92a3b8724568995"
+      }
+    },
+    "test/structureState.test": {
+      "file": "test/structureState.test.js",
+      "description": "structure-state tests (STR-01 T04): ownership resolution, shape",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "scripts/structure-state"
+      ],
+      "functions": {
+        "write": {
+          "line": 32,
+          "params": [
+            "rel",
+            "content"
+          ]
+        },
+        "map": {
+          "line": 38,
+          "params": [
+            "modules = {}",
+            "extra = {}"
+          ]
+        },
+        "run": {
+          "line": 44,
+          "params": [
+            "candidate",
+            "extra = {}"
+          ]
+        },
+        "crash": {
+          "line": 54
+        },
+        "crashedRun": {
+          "line": 295,
+          "params": [
+            "candidate",
+            "hook"
+          ]
+        },
+        "listTree": {
+          "line": 386,
+          "params": [
+            "dir"
+          ]
+        }
+      },
+      "sizeBytes": 19154,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b73f1eabbda70741"
       }
     }
   },
@@ -15443,5 +17623,32 @@
     "orchestration-command-bus": "Conductor/worker agents never call Frame directly — they run .frame/bin scripts (dispatch.js, report-done.js, merge.js, status.js) that write request files; src/main/orchestrationManager.js watches the bus, owns worktrees under .frame/worktrees/, enforces the footprint conflict guard, and fast-forward merges into frame/<slug>/integration. main is never touched.",
     "meta-file-watchers": "tasks.json / STRUCTURE.json / spec status.json are written by both Frame and external agents; main-process managers watch them with self-write debouncing (lastSelfWriteAt) so external edits reconcile without clobbering. Write whole-file JSON, never partial.",
     "dual-homed-scripts": "Everything in scripts/ (update-structure, find-module, check-freshness, intent-map.json) is dual-homed: it runs from this repo AND is copied into user projects .frame/bin/ by structureBootstrap. Scripts must resolve the project root via FRAME_PROJECT_ROOT with a repo-relative fallback and stay dependency-free."
+  },
+  "generation": {
+    "schema": 1,
+    "mode": "delta",
+    "inventory": {
+      "coverage": "unknown",
+      "reasons": [
+        "delta"
+      ]
+    },
+    "extraction": {
+      "coverage": "complete",
+      "counts": {
+        "parsed": 22,
+        "unsupported": 5,
+        "partial": 0
+      }
+    },
+    "counts": {
+      "indexedFiles": 184,
+      "legacyGroups": 0
+    },
+    "diagnostics": {
+      "total": 0,
+      "truncated": false,
+      "samples": []
+    }
   }
 }

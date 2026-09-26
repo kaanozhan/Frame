@@ -4,7 +4,9 @@
  * Degraded/recovered states pushed from the main process: crash-guard errors
  * (MAIN_PROCESS_ERROR, with a warning severity for missing git/gh), state
  * files restored from backup (STATE_FILE_RECOVERED), Codex hooks that never
- * ran (CODEX_HOOKS_UNTRUSTED) and corrupt tasks.json (TASKS_FILE_ERROR). It
+ * ran (CODEX_HOOKS_UNTRUSTED), corrupt tasks.json (TASKS_FILE_ERROR) and an
+ * initial STRUCTURE scan that did not fully succeed (FRAME_PROJECT_INITIALIZED
+ * — the project is initialized either way; only its map is degraded). It
  * also carries the layout migration's receipt — the one thing here that is
  * news rather than a degraded state, which is what the info severity is for:
  * Frame moved a project's own files without asking, so it says so, and says
@@ -40,6 +42,11 @@ function init() {
       + 'or its sessions get none of this project\u2019s context.');
   });
 
+  ipcRenderer.on(IPC.FRAME_PROJECT_INITIALIZED, (event, payload) => {
+    const notice = describeStructureScan(payload);
+    if (notice) show(notice.severity, 'structure', notice.message);
+  });
+
   ipcRenderer.on(IPC.TASKS_FILE_ERROR, (event, payload) => {
     if (payload && payload.recovered) {
       show('warning', 'tasks-file', 'tasks.json was corrupt and has been restored from its backup.');
@@ -47,6 +54,49 @@ function init() {
       show('warning', 'tasks-file', 'tasks.json was corrupt — started a fresh file; the broken copy is preserved next to it.');
     }
   });
+}
+
+/**
+ * The notice for an init's initial STRUCTURE scan, or null when there is
+ * nothing to say (a complete scan, a preserved existing map, a failed init).
+ * Pure: takes the FRAME_PROJECT_INITIALIZED payload as sent.
+ *
+ *   error    the scan failed — Frame initialized, the map did not
+ *   warning  partial coverage, or files that could not be parsed
+ *   info     an empty project (not a failure), or a rebuild that preserved
+ *            the previous map under recovery
+ */
+function describeStructureScan(payload) {
+  if (!payload || !payload.success || !payload.config) return null;
+  const bootstrap = payload.config._structureBootstrap;
+  const scan = bootstrap && bootstrap.initialScan;
+  if (!scan) return null;
+
+  const base = String(payload.projectPath || '').split(/[\\/]/).filter(Boolean).pop();
+  const project = payload.config.name || base || 'this project';
+  const repair = scan.repairCommand || 'node .frame/bin/update-structure.js --full';
+
+  if (scan.status === 'error') {
+    const why = scan.reason === 'timeout' ? 'the scan timed out' : (scan.message || 'the scan failed');
+    return {
+      severity: 'error',
+      message: `${project}: Frame is set up, but its file map was not generated (${why}). Rebuild it with: ${repair}`
+    };
+  }
+  if (scan.status === 'partial') {
+    const incomplete = scan.coverage && scan.coverage.coverage === 'partial';
+    const detail = incomplete
+      ? `covers only part of the project (${(scan.coverage.reasons || []).join(', ') || 'incomplete scan'})`
+      : 'lists some files with basic metadata only — they could not be parsed';
+    return { severity: 'warning', message: `${project}: the file map ${detail}. Rebuild it with: ${repair}` };
+  }
+  if (scan.status === 'ok' && scan.recoveryPaths && scan.recoveryPaths.length) {
+    return { severity: 'info', message: `${project}: the file map was rebuilt; the previous one is preserved in .frame/runtime/structure/recovery/.` };
+  }
+  if (scan.status === 'ok' && scan.empty) {
+    return { severity: 'info', message: `${project}: the file map is empty because the project has no files yet — it fills in as you add them.` };
+  }
+  return null;
 }
 
 function show(severity, source, message) {
@@ -94,4 +144,4 @@ function showMigration(migration) {
   show(migration.failedAt ? 'warning' : 'info', 'migration', message);
 }
 
-module.exports = { init, showMigration };
+module.exports = { init, showMigration, describeStructureScan };
