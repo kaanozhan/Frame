@@ -2361,30 +2361,31 @@
         "telemetry",
         "specManager",
         "orchestrationManager",
+        "structureLifecycle",
         "child_process"
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 53,
+          "line": 54,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 71,
+          "line": 72,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 172
+          "line": 173
         },
         "setupAllIPC": {
-          "line": 202,
+          "line": 203,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 280,
+          "line": 281,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 326,
+          "line": 327,
           "params": [
             "window"
           ],
@@ -2404,6 +2405,20 @@
         "emits": [
           "MAIN_PROCESS_ERROR"
         ]
+      },
+      "sizeBytes": 14235,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "facca0145bbf8b3f",
+        "purposes": {
+          "confirmQuitWithLiveAgents": "6030451f0eecf9ee",
+          "createWindow": "aa0a7596f08cd701",
+          "init": "6b1756e65ac6e12d",
+          "initModulesWithWindow": "08c3c04348164384",
+          "setupAllIPC": "d4cbd3ae94fcc468"
+        }
       }
     },
     "main/layoutMigration": {
@@ -4273,6 +4288,117 @@
           "stageFile": "351d4019ce6a4dad",
           "stageParserScripts": "5834317416f84c7e",
           "summarizeEnvelope": "4fdc1da7b5ddb106"
+        }
+      }
+    },
+    "main/structureLifecycle": {
+      "file": "src/main/structureLifecycle.js",
+      "description": "Structure lifecycle supervisor (STR-02).",
+      "exports": [
+        "configure",
+        "attach",
+        "detach",
+        "requestReconcile",
+        "disposeAll",
+        "list",
+        "PERIODIC_MS"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "shared/frameConstants",
+        "pollGate"
+      ],
+      "functions": {
+        "configure": {
+          "line": 48,
+          "params": [
+            "overrides = {}"
+          ],
+          "purpose": "Tests and app wiring override the defaults here."
+        },
+        "realPath": {
+          "line": 52,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "workerScript": {
+          "line": 60,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "report": {
+          "line": 64,
+          "params": [
+            "record",
+            "value"
+          ]
+        },
+        "send": {
+          "line": 73,
+          "params": [
+            "record",
+            "message"
+          ]
+        },
+        "defaultTicker": {
+          "line": 83,
+          "params": [
+            "fn",
+            "ms"
+          ]
+        },
+        "ensureTicks": {
+          "line": 94
+        },
+        "stopTicksIfIdle": {
+          "line": 102
+        },
+        "attach": {
+          "line": 114,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Start the checkout's worker, or return the running one. Returns null when"
+        },
+        "requestReconcile": {
+          "line": 176,
+          "params": [
+            "projectPath",
+            "reason = 'reopen'"
+          ],
+          "purpose": "Ask for a full reconciliation; a worker that exited is started again."
+        },
+        "detach": {
+          "line": 183,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Stop the checkout's worker. Resolves once it has exited."
+        },
+        "disposeAll": {
+          "line": 199,
+          "purpose": "Stop every worker (app shutdown)."
+        },
+        "list": {
+          "line": 208
+        }
+      },
+      "sizeBytes": 6932,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cf74fee30c703c6b",
+        "purposes": {
+          "attach": "d24ca8d3ca8080cf",
+          "configure": "33dc18bf869cf542",
+          "detach": "f20f0e7a069c82a5",
+          "disposeAll": "7b23575a62550b56",
+          "requestReconcile": "b6be2a86d630d8ca"
         }
       }
     },
@@ -15775,6 +15901,100 @@
         }
       }
     },
+    "test/structureLifecycle.test": {
+      "file": "test/structureLifecycle.test.js",
+      "description": "structure-lifecycle tests (STR-02 T05+): the clock-injected scheduler —",
+      "exports": [
+        "f${f"
+      ],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "scripts/structure-lifecycle",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "scripts/structure-read",
+        "scripts/structure-state",
+        "src/main/structureLifecycle",
+        "src/main/structureBootstrap"
+      ],
+      "functions": {
+        "fakeClock": {
+          "line": 16
+        },
+        "harness": {
+          "line": 50,
+          "params": [
+            "{ durationMs = 0",
+            "statuses = []",
+            "...options } = {}"
+          ],
+          "purpose": "A scheduler whose jobs take `durationMs` of fake time and return `status`."
+        },
+        "project": {
+          "line": 245,
+          "params": [
+            "files = {}"
+          ]
+        },
+        "reconcileAndRecord": {
+          "line": 259,
+          "params": [
+            "dir",
+            "job = { fullHash"
+          ],
+          "purpose": "A full reconciliation, as the worker records it."
+        },
+        "inSync": {
+          "line": 266,
+          "params": [
+            "dir"
+          ],
+          "purpose": "update-structure --check: is the map what a full scan would produce?"
+        },
+        "waitFor": {
+          "line": 270,
+          "params": [
+            "predicate",
+            "timeoutMs = 8000",
+            "stepMs = 50"
+          ]
+        },
+        "spawnLifecycle": {
+          "line": 485,
+          "params": [
+            "dir",
+            "args"
+          ]
+        },
+        "supervised": {
+          "line": 615,
+          "params": [
+            "t"
+          ]
+        },
+        "stagedProject": {
+          "line": 630,
+          "params": [
+            "files = { 'src/a.js'"
+          ]
+        }
+      },
+      "sizeBytes": 31098,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "3735511abe1f2502",
+        "purposes": {
+          "harness": "acdac34161757cf2",
+          "inSync": "d0c4decfbdc1476e",
+          "reconcileAndRecord": "727e28dc79f7f0c6"
+        }
+      }
+    },
     "test/structureNotice.test": {
       "file": "test/structureNotice.test.js",
       "description": "Initial-scan notices (STR-01 T11): FRAME_PROJECT_INITIALIZED results reach",
@@ -17637,13 +17857,13 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 22,
+        "parsed": 25,
         "unsupported": 5,
         "partial": 0
       }
     },
     "counts": {
-      "indexedFiles": 184,
+      "indexedFiles": 186,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -17651,6 +17871,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "edf3dd12b57840c67888503bae0c757ce2f566f9416c81ac54188182253782ac"
+    "revision": "206c23026e6955e87d91089a9c9b973f3e632e4735ec6c11da24fb724f9f26d9"
   }
 }

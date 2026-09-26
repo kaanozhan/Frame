@@ -41,6 +41,7 @@ const gitDiffManager = require('./gitDiffManager');
 const telemetry = require('./telemetry');
 const specManager = require('./specManager');
 const orchestrationManager = require('./orchestrationManager');
+const structureLifecycle = require('./structureLifecycle');
 
 let mainWindow = null;
 let quitConfirmed = false;
@@ -380,6 +381,12 @@ app.on('before-quit', (e) => {
     return;
   }
   quitConfirmed = true;
+});
+
+// Structure lifecycle workers (STR-02) stop once quitting is certain —
+// will-quit only fires after before-quit's live-agent confirmation passed.
+app.on('will-quit', () => {
+  structureLifecycle.disposeAll();
 });
 
 app.on('window-all-closed', () => {

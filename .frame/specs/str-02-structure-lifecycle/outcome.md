@@ -55,3 +55,11 @@ _Captured: 2026-09-26 · 2 file change(s)_
 _Captured: 2026-09-26 · 5 file change(s)_
 
 ---
+
+## T08 — Add the app supervisor and shutdown wiring
+
+Added `src/main/structureLifecycle.js` (`attach`, `detach`, `requestReconcile`, `disposeAll`, `list`, `configure`): one `--supervised` child per checkout keyed by real path, JSON-line reports forwarded to an `onReport` hook, one shared periodic ticker (pollGate's gated interval, lazily loaded so the module stays usable without Electron), SIGKILL after a 3 s stop grace, restart of an exited worker on the next reconcile request, and acceptance of a foreground watcher's ownership (`busy` → foreign owner). `index.js` disposes all workers on `will-quit`, which fires only after the existing live-agent quit confirmation. Deviations: children run on the app's own runtime (`process.execPath` + `ELECTRON_RUN_AS_NODE`) instead of `node` from PATH, so no system Node is needed; ticks gate only periodic reconciliation — change handling keeps running while windows are hidden, since agents edit then too. Files touched: `src/main/structureLifecycle.js` (new), `src/main/index.js`, `test/structureLifecycle.test.js`.
+
+_Captured: 2026-09-26 · 3 file change(s)_
+
+---

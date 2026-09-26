@@ -606,3 +606,130 @@ test('a job report is emitted after its epoch is applied', async () => {
   await clock.advance(1000);
   assert.deepEqual(seen, [false]);
 });
+
+/* ===================== the app supervisor (STR-02 T08) ===================== */
+
+const supervisor = require('../src/main/structureLifecycle');
+const { stageParserScripts } = require('../src/main/structureBootstrap');
+
+function supervised(t) {
+  const reports = [];
+  let tickFn = null;
+  let tickerDisposed = 0;
+  supervisor.configure({
+    onReport: (r) => reports.push(r),
+    ticker: (fn) => { tickFn = fn; return { dispose: () => { tickerDisposed++; tickFn = null; } }; }
+  });
+  t.after(async () => {
+    await supervisor.disposeAll();
+    supervisor.configure({ onReport: null, ticker: null });
+  });
+  return { reports, tick: () => tickFn && tickFn(), ticker: () => ({ active: Boolean(tickFn), disposed: tickerDisposed }) };
+}
+
+function stagedProject(files = { 'src/a.js': '// A' }) {
+  const dir = project(files);
+  stageParserScripts(dir);
+  return dir;
+}
+
+const jobs = (reports, dir) => reports.filter((r) => r.type === 'job' && r.projectPath === fs.realpathSync(dir));
+
+test('attach starts one worker per checkout, whatever path reaches it', async (t) => {
+  const s = supervised(t);
+  const dir = stagedProject();
+  const link = `${dir}-link`;
+  fs.symlinkSync(dir, link);
+  t.after(() => { fs.rmSync(link, { force: true }); fs.rmSync(dir, { recursive: true, force: true }); });
+
+  const first = supervisor.attach(dir);
+  assert.ok(first);
+  assert.equal(supervisor.attach(dir), first);
+  assert.equal(supervisor.attach(link), first, 'deduplicated by real path');
+  assert.deepEqual(supervisor.list(), [fs.realpathSync(dir)]);
+  assert.ok(await waitFor(() => readDescriptor(dir).freshness === 'fresh'), 'the attach reconciliation ran');
+  assert.deepEqual(jobs(s.reports, dir)[0].reasons, ['attach']);
+});
+
+test('periodic ticks and reconcile requests reach the worker', async (t) => {
+  const s = supervised(t);
+  const dir = stagedProject();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  supervisor.attach(dir);
+  assert.ok(await waitFor(() => jobs(s.reports, dir).length === 1));
+  assert.equal(s.ticker().active, true);
+
+  s.tick();
+  assert.ok(await waitFor(() => jobs(s.reports, dir).length === 2));
+  assert.deepEqual(jobs(s.reports, dir)[1].reasons, ['periodic']);
+
+  assert.equal(supervisor.requestReconcile(dir, 'reopen'), true);
+  assert.ok(await waitFor(() => jobs(s.reports, dir).length === 3));
+  assert.deepEqual(jobs(s.reports, dir)[2].reasons, ['reopen']);
+  assert.equal(jobs(s.reports, dir)[2].fullHash, true);
+});
+
+test('detach stops the worker, releases its lease and the shared ticker', async (t) => {
+  const s = supervised(t);
+  const dir = stagedProject();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  supervisor.attach(dir);
+  assert.ok(await waitFor(() => jobs(s.reports, dir).length === 1));
+  assert.equal(await supervisor.detach(dir), true);
+  assert.deepEqual(supervisor.list(), []);
+  assert.ok(!fs.existsSync(path.join(dir, '.frame', 'runtime', 'structure', 'lifecycle.owner')));
+  const exited = s.reports.find((r) => r.type === 'exited');
+  assert.equal(exited.expected, true);
+  assert.deepEqual(s.ticker(), { active: false, disposed: 1 });
+  assert.equal(await supervisor.detach(dir), false, 'detaching twice is harmless');
+});
+
+test('a project without staged tooling is not attached', (t) => {
+  supervised(t);
+  const dir = project({ 'src/a.js': '// A' });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  assert.equal(supervisor.attach(dir), null);
+  assert.deepEqual(supervisor.list(), []);
+});
+
+test('a crashed worker is restarted by the next reconcile request', async (t) => {
+  const s = supervised(t);
+  const dir = stagedProject();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const first = supervisor.attach(dir);
+  assert.ok(await waitFor(() => jobs(s.reports, dir).length === 1));
+  first.child.kill('SIGKILL');
+  await first.exited;
+  assert.equal(s.reports.find((r) => r.type === 'exited').expected, false);
+  assert.deepEqual(supervisor.list(), []);
+
+  assert.equal(supervisor.requestReconcile(dir), true);
+  assert.notEqual(supervisor.attach(dir), first);
+  assert.ok(await waitFor(() => jobs(s.reports, dir).length === 2), 'the new worker reclaimed the dead owner lease');
+});
+
+test('a checkout owned by a foreground watcher is left to it', async (t) => {
+  const s = supervised(t);
+  const dir = stagedProject();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const held = lifecycle.acquireOwner(dir);
+  t.after(() => lifecycle.releaseOwner(dir, held.token));
+  const record = supervisor.attach(dir);
+  await record.exited;
+  const exited = s.reports.find((r) => r.type === 'exited');
+  assert.equal(exited.foreignOwner, true);
+  assert.equal(exited.code, 2);
+  assert.deepEqual(supervisor.list(), []);
+});
+
+test('disposeAll stops every worker', async (t) => {
+  supervised(t);
+  const a = stagedProject();
+  const b = stagedProject();
+  t.after(() => { fs.rmSync(a, { recursive: true, force: true }); fs.rmSync(b, { recursive: true, force: true }); });
+  const ra = supervisor.attach(a);
+  const rb = supervisor.attach(b);
+  await supervisor.disposeAll();
+  await Promise.all([ra.exited, rb.exited]);
+  assert.deepEqual(supervisor.list(), []);
+});
