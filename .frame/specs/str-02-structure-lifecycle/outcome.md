@@ -23,3 +23,11 @@ Added `scripts/structure-snapshot.js`: `observe()` builds the `manifest.json` id
 _Captured: 2026-09-26 · 2 file change(s)_
 
 ---
+
+## T04 — Add the superseded-job precondition
+
+Added an optional `precondition()` to `runAttempt` in `scripts/structure-state.js`, evaluated once under the writer lock after the candidate validates and before any recovery archive, identical-bytes shortcut or publication; `false` ends the attempt with the new state `superseded` (artifact retained, nothing archived), and a throwing precondition fails as `precondition-error` without writing. A distinct `superseded` state (rather than `failed`) keeps an ordinary race from being reported as a failed scan. Files touched: `scripts/structure-state.js`, `test/structureState.test.js`.
+
+_Captured: 2026-09-26 · 2 file change(s)_
+
+---
