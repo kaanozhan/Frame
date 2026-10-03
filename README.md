@@ -200,7 +200,7 @@ the context your work produces outlives any single tool, including Frame.
 ## Installation
 
 ### Prerequisites
-- Node.js 16+
+- Node.js 22.12+
 - npm
 - At least one AI CLI tool: [Claude Code](https://claude.ai/claude-code), [Codex CLI](https://github.com/openai/codex), or [Gemini CLI](https://github.com/google-gemini/gemini-cli)
 
