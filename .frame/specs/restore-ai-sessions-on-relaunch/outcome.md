@@ -54,3 +54,10 @@ Launch now asks main for a launch project (`selectLaunchProject` in `projectList
 _Captured: 2026-10-09 · 5 file change(s)_
 
 ---
+## T09 — resumeAgentSession
+
+Added `resumeAgentSession(tool, sessionId, { projectPath, name, focus })` to `agentDispatch.js`: creates the terminal in the given project via `manager.createTerminal({ projectPath })`, applies the name, optionally enters the lane, and types `claude --resume <id>` or `codex resume <id>` (binary from that tool's own entry) after the usual 800 ms settle; returns the terminal id. `resumeClaudeSession` now delegates with the current project and `focus: true`, keeping its behaviour. No divergence from plan.
+
+_Captured: 2026-10-09 · 1 file change(s)_
+
+---
