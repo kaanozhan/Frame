@@ -33,6 +33,7 @@ Module._load = function (request, ...rest) {
 const frameProject = require('../src/main/frameProject');
 const templates = require('../src/shared/frameTemplates');
 
+const PROJECT_FOR_CODEX = '/tmp/does-not-need-to-exist';
 const CLAUDE_COMMAND = templates.SESSION_REPORT_HOOKS.SessionStart[0].hooks[0].command;
 
 let projectDir;
@@ -135,4 +136,59 @@ test('comes back out with Frame\'s other entries, leaving the user\'s', () => {
   frameProject.removeSpecHintHook(projectDir);
 
   assert.deepEqual(commandsIn(readSettings()), ['echo mine']);
+});
+
+// ─── Codex ────────────────────────────────────────────────
+// CODEX_HOME is the user's global file, so every test points `home` at a
+// temp directory; `npm test` also sets CODEX_HOME so that init/open paths
+// exercised elsewhere can never reach the real one.
+
+const CODEX_COMMAND = templates.CODEX_SESSION_REPORT_HOOKS.SessionStart[0].hooks[0].command;
+const mkHome = () => fs.mkdtempSync(path.join(os.tmpdir(), 'frame-cxsession-'));
+const codexCommands = (home) => commandsIn(JSON.parse(fs.readFileSync(path.join(home, 'hooks.json'), 'utf8')));
+
+test('codex: installs whatever tool is active, idempotently', () => {
+  const home = mkHome();
+  ACTIVE.id = 'claude';
+  assert.equal(frameProject.installCodexSessionHook({ home }).added, 1);
+  assert.equal(frameProject.installCodexSessionHook({ home }).added, 0);
+  assert.deepEqual(codexCommands(home), [CODEX_COMMAND]);
+});
+
+test('codex: merges beside Frame\'s hint hooks and the user\'s own', () => {
+  const home = mkHome();
+  fs.writeFileSync(path.join(home, 'hooks.json'), JSON.stringify({
+    hooks: { SessionStart: [{ hooks: [{ type: 'command', command: 'echo mine' }] }] }
+  }, null, 2));
+  frameProject.installCodexHintHook(PROJECT_FOR_CODEX, { home });
+  frameProject.installCodexSessionHook({ home });
+
+  const commands = codexCommands(home);
+  assert.ok(commands.includes('echo mine'));
+  assert.ok(commands.includes(CODEX_COMMAND));
+
+  frameProject.removeCodexHintHook({ home });
+  assert.deepEqual(codexCommands(home), ['echo mine'], 'removal takes the session entry too');
+});
+
+test('codex: the command is a no-op outside a Frame project', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-reports-'));
+  try {
+    const env = { ...process.env, FRAME_SESSION_DIR: dir, FRAME_TERMINAL_ID: 'term-2' };
+    execFileSync('sh', ['-c', CODEX_COMMAND], { input: '{}', env, cwd: projectDir });
+    assert.deepEqual(fs.readdirSync(dir), [], 'no .frame/ in cwd → nothing written');
+
+    fs.mkdirSync(path.join(projectDir, '.frame'));
+    execFileSync('sh', ['-c', CODEX_COMMAND], { input: '{}', env, cwd: projectDir });
+    assert.match(fs.readdirSync(dir)[0], /^term-2\.codex\.\d+\.json$/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('codex: an unparseable hooks.json is left alone', () => {
+  const home = mkHome();
+  fs.writeFileSync(path.join(home, 'hooks.json'), '{ nope');
+  assert.equal(frameProject.installCodexSessionHook({ home }).manual, true);
+  assert.equal(fs.readFileSync(path.join(home, 'hooks.json'), 'utf8'), '{ nope');
 });

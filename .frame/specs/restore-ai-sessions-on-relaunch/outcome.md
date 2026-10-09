@@ -19,3 +19,10 @@ Added `SESSION_REPORT_HOOKS` (an env-guarded `sh`+`cat` SessionStart command, ve
 _Captured: 2026-10-09 · 8 file change(s)_
 
 ---
+## T04 — Codex session hook
+
+Added `CODEX_SESSION_REPORT_HOOKS` (same command, plus a `[ ! -d .frame ]` guard since `CODEX_HOME/hooks.json` is global) and `installCodexSessionHook` in `frameProject.js`, called after `gitSharing.reconcile` on both init and open with no active-tool gate; `removeCodexHintHook` now removes it too. Outside the plan's Files: the `npm test` script in `package.json` now sets `CODEX_HOME=.frame/runtime/test-codex-home`, because the now-ungated install made every init/open test write the user's real `~/.codex/hooks.json`. Tests added to `test/sessionHookInstall.test.js`.
+
+_Captured: 2026-10-09 · 4 file change(s)_
+
+---

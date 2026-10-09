@@ -1133,6 +1133,18 @@ const SESSION_REPORT_HOOKS = {
 };
 
 /**
+ * The same report for Codex, installed in `CODEX_HOME/hooks.json` — the only
+ * place Codex loads hooks from, and a file shared by every project. The extra
+ * `.frame/` guard keeps it to Frame projects, the per-project scope chosen for
+ * this hook; the hook's cwd is the session's.
+ */
+const CODEX_SESSION_REPORT_HOOKS = {
+  SessionStart: [
+    { hooks: [{ type: 'command', command: sessionReportCommand('codex', '[ ! -d .frame ] || ') }] }
+  ]
+};
+
+/**
  * AI Tool Wrapper Script Templates
  * These wrappers inject AGENTS.md as system prompt for non-Claude tools
  */
@@ -1349,6 +1361,7 @@ module.exports = {
   CODEX_HINT_HOOKS,
   LEGACY_SPEC_HINT_COMMANDS,
   SESSION_REPORT_HOOKS,
+  CODEX_SESSION_REPORT_HOOKS,
   SPEC_DRIVEN_SECTION,
   SPEC_DRIVEN_CORE_SECTION,
   renderSpecSection,
