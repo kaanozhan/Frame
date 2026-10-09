@@ -1106,6 +1106,33 @@ const LEGACY_SPEC_HINT_COMMANDS = [
 ];
 
 /**
+ * Session report hook (restore-ai-sessions-on-relaunch). On SessionStart the
+ * CLI's payload — `session_id`, `transcript_path`, `cwd`, `source` — is
+ * dropped into `$FRAME_SESSION_DIR` as `<terminalId>.<tool>.<pid>.json`, where
+ * Frame's main process picks it up and learns which session runs in which
+ * terminal. `$PPID` is the CLI itself, the terminal's foreground job when the
+ * session is the lane's own (measurements.md §3).
+ *
+ * The guard is the env, not a file: only a Frame terminal sets
+ * `FRAME_SESSION_DIR` / `FRAME_TERMINAL_ID`, so in any other terminal — a
+ * teammate's, for a settings.json committed in sharing mode `repo` — the
+ * command is a no-op that exits 0. `sh` + `cat` rather than node: nothing to
+ * start, nothing in `.frame/bin` to depend on. Written to `.tmp` then moved so
+ * the watcher never reads half a payload.
+ */
+function sessionReportCommand(tool, guard = '') {
+  return `sh -c '${guard}[ -z "$FRAME_SESSION_DIR" ] || [ -z "$FRAME_TERMINAL_ID" ] || `
+    + `{ f="$FRAME_SESSION_DIR/$FRAME_TERMINAL_ID.${tool}.$PPID"; cat > "$f.tmp" && mv -f "$f.tmp" "$f.json"; }'`;
+}
+
+/** Installed in the project's Claude settings file, whatever tool is active. */
+const SESSION_REPORT_HOOKS = {
+  SessionStart: [
+    { hooks: [{ type: 'command', command: sessionReportCommand('claude') }] }
+  ]
+};
+
+/**
  * AI Tool Wrapper Script Templates
  * These wrappers inject AGENTS.md as system prompt for non-Claude tools
  */
@@ -1321,6 +1348,7 @@ module.exports = {
   SPEC_HINT_HOOKS,
   CODEX_HINT_HOOKS,
   LEGACY_SPEC_HINT_COMMANDS,
+  SESSION_REPORT_HOOKS,
   SPEC_DRIVEN_SECTION,
   SPEC_DRIVEN_CORE_SECTION,
   renderSpecSection,

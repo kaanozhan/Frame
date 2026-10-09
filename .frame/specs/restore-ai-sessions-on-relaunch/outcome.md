@@ -12,3 +12,10 @@ Added `src/main/sessionRestoreStore.js`: report name/payload parsing (UUID id, a
 _Captured: 2026-10-09 · 2 file change(s)_
 
 ---
+## T03 — Claude session hook template and install
+
+Added `SESSION_REPORT_HOOKS` (an env-guarded `sh`+`cat` SessionStart command, verified against a live Claude run to name the claude pid) to `frameTemplates.js`, and `installSessionHook` with a shared `mergeHookEntries` helper to `frameProject.js`, called from `gitSharing.setMode` without the active-tool gate. Diverged from plan: no separate `removeSessionHook` — `removeSpecHintHook` now counts the session entry as Frame's, so sharing-mode moves, migration and `removeFrame` take it out with no new call sites. Outside the plan's Files, three existing tests that pin Frame's exact hook set (`frameProjectInit`, `gitSharing`, `layoutMigration`) were updated to count the new entry; new coverage in `test/sessionHookInstall.test.js`.
+
+_Captured: 2026-10-09 · 8 file change(s)_
+
+---

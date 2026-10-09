@@ -145,6 +145,15 @@ function setMode(projectPath, requestedMode) {
   // The install can decline (another tool is active, unparseable settings) and
   // the caller needs to know — it is how the UI reports "hooks need a hand".
   const hooks = frameProject.installSpecHintHook(projectPath, { file: target });
+  // The session report hook (restore-ai-sessions-on-relaunch) follows the same
+  // file but not the active-tool gate. Non-fatal: restore is a convenience,
+  // a mode switch must not fail over it. Removal from the other file is
+  // covered by removeSpecHintHook, which counts it as Frame's.
+  try {
+    frameProject.installSessionHook(projectPath, { file: target });
+  } catch (err) {
+    console.warn('[frame] session hook install failed (non-fatal):', err.message);
+  }
   frameProject.removeSpecHintHook(projectPath, { file: other });
 
   const exclude = mode === 'local'

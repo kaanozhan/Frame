@@ -449,7 +449,10 @@ test('hook entries are replaced with the guarded form', () => {
   layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
 
   const settings = JSON.parse(fs.readFileSync(path.join(projectDir, '.claude', 'settings.json'), 'utf8'));
-  const commands = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command));
+  // The session report hook (restore-ai-sessions-on-relaunch) is env-guarded,
+  // not file-guarded; these assertions are about the hint hooks.
+  const commands = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command))
+    .filter((c) => !c.includes('FRAME_SESSION_DIR'));
   assert.equal(commands.length, 6);
   assert.ok(commands.every((c) => /^sh -c '\[ ! -f \.frame\/bin\/(spec|module|docs|spec-command)-hint\.js \] \|\|/.test(c)), 'guard exits 0');
   assert.deepEqual(settings.permissions.allow, ['Bash(npm test)'], 'the rest of the file survives');
@@ -470,8 +473,12 @@ test('a hand-wired spec-hint hook is left alone, not doubled up', () => {
 
   layoutMigration.run(projectDir, layoutMigration.plan(projectDir));
 
+  // The hint is not doubled up. The session report hook is a different
+  // layer and still lands, in the file's own indentation.
+  const templates = require('../src/shared/frameTemplates');
+  const expected = { hooks: { ...own.hooks, ...templates.SESSION_REPORT_HOOKS } };
   const after = fs.readFileSync(settingsPath, 'utf8');
-  assert.equal(after, JSON.stringify(own, null, 4) + '\n', 'byte-identical: no entries, no reflow');
+  assert.equal(after, JSON.stringify(expected, null, 4) + '\n', 'no hint entries added, no reflow');
 });
 
 test('a second run is a no-op, and an interrupted one reconciles', () => {

@@ -42,6 +42,9 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+// Six hint hooks plus the session report hook (restore-ai-sessions-on-relaunch).
+const FRAME_HOOKS = 7;
+
 function hookCommands(file) {
   if (!fs.existsSync(file)) return [];
   const settings = readJson(file);
@@ -78,20 +81,20 @@ test('switching to local excludes, moves the hooks, and back again', () => {
 
   const localFile = path.join(projectDir, '.claude', 'settings.local.json');
   const sharedFile = path.join(projectDir, '.claude', 'settings.json');
-  assert.equal(hookCommands(localFile).length, 6, 'hooks live in settings.local.json');
+  assert.equal(hookCommands(localFile).length, FRAME_HOOKS, 'hooks live in settings.local.json');
   assert.equal(hookCommands(sharedFile).length, 0);
 
   const repo = gitSharing.setMode(projectDir, 'repo');
   assert.equal(repo.mode, 'repo');
   assert.equal(gitExclude.hasBlock(projectDir), false, 'exclude block withdrawn under repo');
-  assert.equal(hookCommands(sharedFile).length, 6, 'hooks moved to settings.json');
+  assert.equal(hookCommands(sharedFile).length, FRAME_HOOKS, 'hooks moved to settings.json');
   assert.equal(hookCommands(localFile).length, 0, 'and left the local file');
 });
 
 test('switching to local removes an untracked settings.json rather than leaving {}', () => {
   gitSharing.setMode(projectDir, 'repo');
   const sharedFile = path.join(projectDir, '.claude', 'settings.json');
-  assert.equal(hookCommands(sharedFile).length, 6, 'hooks start in the shared file');
+  assert.equal(hookCommands(sharedFile).length, FRAME_HOOKS, 'hooks start in the shared file');
 
   gitSharing.setMode(projectDir, 'local');
   assert.equal(fs.existsSync(sharedFile), false, "Frame's entries were the whole file — no empty shell left in git status");
