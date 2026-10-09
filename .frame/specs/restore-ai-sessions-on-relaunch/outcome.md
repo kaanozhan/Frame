@@ -33,3 +33,10 @@ Added `src/main/sessionRestore.js`: loads/saves `~/.frame/session-restore.json` 
 _Captured: 2026-10-09 · 3 file change(s)_
 
 ---
+## T06 — PTY wiring
+
+`ptyManager.createTerminal` now adds `sessionRestore.envFor(id)` to the PTY env and registers the terminal with its shell pid; the foreground poll forwards name changes; `destroyAll` freezes the store before killing anything. Beyond the plan, `destroyExcept` (orphans after a renderer reload) passes `teardown: true` so those sessions are kept, while user/orchestrator closes and shell exits call `onClose`. Verified end to end under the project's Electron with HOME redirected: the real hook command in a real PTY produced a store record that survived `destroyAll`, and the same report from a background job was rejected by the foreground-group check.
+
+_Captured: 2026-10-09 · 1 file change(s)_
+
+---

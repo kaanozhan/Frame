@@ -4452,26 +4452,27 @@
         "promptLogger",
         "telemetry",
         "pollGate",
+        "sessionRestore",
         "child_process",
         "fs"
       ],
       "functions": {
         "flushOutput": {
-          "line": 26,
+          "line": 27,
           "params": [
             "terminalId"
           ],
           "purpose": "Flush a terminal's buffered output as one coalesced send."
         },
         "init": {
-          "line": 46,
+          "line": 47,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 61,
+          "line": 62,
           "params": [
             "shellPid",
             "callback"
@@ -4479,14 +4480,14 @@
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
         "getDefaultShell": {
-          "line": 80
+          "line": 81
         },
         "getAvailableShells": {
-          "line": 97,
+          "line": 98,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 183,
+          "line": 184,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -4496,28 +4497,28 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 321,
+          "line": 331,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 336,
+          "line": 346,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 348,
+          "line": 358,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 356,
+          "line": 366,
           "params": [
             "terminalId",
             "data"
@@ -4525,7 +4526,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 366,
+          "line": 376,
           "params": [
             "terminalId",
             "cols",
@@ -4534,46 +4535,47 @@
           "purpose": "Resize specific terminal"
         },
         "wasDestroyedOnRequest": {
-          "line": 378,
+          "line": 391,
           "params": [
             "terminalId"
           ]
         },
         "destroyTerminal": {
-          "line": 385,
+          "line": 399,
           "params": [
-            "terminalId"
+            "terminalId",
+            "{ teardown = false } = {}"
           ],
-          "purpose": "Destroy specific terminal"
+          "purpose": "Destroy specific terminal. `teardown` marks one that dies with its"
         },
         "destroyAll": {
-          "line": 404,
+          "line": 420,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 422,
+          "line": 440,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 429,
+          "line": 447,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 439,
+          "line": 457,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 449,
+          "line": 467,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 456,
+          "line": 474,
           "params": [
             "ipcMain"
           ],
@@ -4594,7 +4596,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 16556,
+      "sizeBytes": 17669,
       "extraction": {
         "status": "parsed"
       },
@@ -4604,7 +4606,7 @@
           "createTerminal": "b33d916178fe23ba",
           "destroyAll": "ae9b9368ced1121a",
           "destroyExcept": "2db42ba4367a26b0",
-          "destroyTerminal": "91fbe85d01e6982e",
+          "destroyTerminal": "1c5d8c995da929c7",
           "flushOutput": "862238b90ed7f8f0",
           "getAvailableShells": "538bc64a26510be8",
           "getForegroundCommand": "7c0ce6301fb394c1",
@@ -27415,6 +27417,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "9466433312ab7236850f0a425028b03f97ebfcdccdd6a3e11dc1db1008fc3f51"
+    "revision": "3db9acfa9fa134bc6f31f65d9e32266a17988898e3719284a726cddc0f4aa70e"
   }
 }

@@ -9,6 +9,7 @@ const logger = require('./logger');
 const promptLogger = require('./promptLogger');
 const telemetry = require('./telemetry');
 const pollGate = require('./pollGate');
+const sessionRestore = require('./sessionRestore');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
@@ -223,6 +224,9 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
       // `ELECTRON_RUN_AS_NODE=1 "$FRAME_NODE" script.mjs` — quote it, the
       // packaged macOS path contains spaces.
       FRAME_NODE: process.execPath,
+      // Session restore: lets a CLI's SessionStart hook report which
+      // session runs in this terminal (sessionRestore, frameTemplates).
+      ...sessionRestore.envFor(terminalId),
       // Orchestration: FRAME_ORCH_BUS / FRAME_ORCH_SLUG let conductor + worker
       // terminals reach Frame's command bus from any worktree (see
       // orchestrationManager). Null for normal terminals.
@@ -252,9 +256,14 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     }
   });
 
+  sessionRestore.registerTerminal(terminalId, { projectPath, shellPid: ptyProcess.pid });
+
   // Handle PTY exit
   ptyProcess.onExit(({ exitCode, signal }) => {
     console.log(`Terminal ${terminalId} exited:`, exitCode, signal);
+    // A shell that exits (or a terminal the user closed) ends its session;
+    // one torn down with the renderer does not.
+    if (!teardownIds.delete(terminalId)) sessionRestore.onClose(terminalId);
     const inst = ptyInstances.get(terminalId);
     if (inst) {
       if (inst.processPoll) inst.processPoll.dispose();
@@ -284,6 +293,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     }
     if (name !== lastProcessName) {
       lastProcessName = name;
+      sessionRestore.onForeground(terminalId, name, spawnedShellName);
       getForegroundCommand(ptyProcess.pid, (commandLine) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send(IPC.TERMINAL_PROCESS_DATA, {
@@ -374,18 +384,24 @@ function resizeTerminal(terminalId, cols, rows) {
 // worker removed) — so a watcher that only sees the PTY gone can tell that
 // from a lane that died on its own. Ids are never reused; the set stays tiny.
 const destroyedOnRequest = new Set();
+// Destroyed because the renderer that owned them is gone, not by the user:
+// their sessions stay in the restore record.
+const teardownIds = new Set();
 
 function wasDestroyedOnRequest(terminalId) {
   return destroyedOnRequest.has(terminalId);
 }
 
 /**
- * Destroy specific terminal
+ * Destroy specific terminal. `teardown` marks one that dies with its
+ * renderer rather than by the user's hand — its session is kept for restore.
  */
-function destroyTerminal(terminalId) {
+function destroyTerminal(terminalId, { teardown = false } = {}) {
   const instance = ptyInstances.get(terminalId);
   if (instance) {
     destroyedOnRequest.add(terminalId);
+    if (teardown) teardownIds.add(terminalId);
+    else sessionRestore.onClose(terminalId);
     if (instance.processPoll) instance.processPoll.dispose();
     if (instance.flushTimer) clearTimeout(instance.flushTimer);
     try {
@@ -402,6 +418,8 @@ function destroyTerminal(terminalId) {
  * Destroy all terminals
  */
 function destroyAll() {
+  // Quit, window close, reload: every record stays exactly as it is.
+  sessionRestore.freeze();
   for (const [terminalId, instance] of ptyInstances) {
     destroyedOnRequest.add(terminalId);
     if (instance.processPoll) instance.processPoll.dispose();
@@ -439,7 +457,7 @@ function getTerminalIds() {
 function destroyExcept(knownIds) {
   const keep = new Set(knownIds);
   const orphans = getTerminalIds().filter((id) => !keep.has(id));
-  for (const id of orphans) destroyTerminal(id);
+  for (const id of orphans) destroyTerminal(id, { teardown: true });
   return orphans;
 }
 
