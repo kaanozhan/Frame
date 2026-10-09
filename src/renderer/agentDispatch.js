@@ -357,10 +357,10 @@ const RESUME_ARGS = {
  *
  * @param {'claude'|'codex'} tool
  * @param {string} sessionId - UUID; it reaches a command line
- * @param {{projectPath: string, name?: string|null, focus?: boolean}} opts
+ * @param {{projectPath: string, cwd?: string|null, name?: string|null, focus?: boolean}} opts
  * @returns {Promise<string|null>} the new terminal's id, or null
  */
-async function resumeAgentSession(tool, sessionId, { projectPath, name = null, focus = false } = {}) {
+async function resumeAgentSession(tool, sessionId, { projectPath, cwd = null, name = null, focus = false } = {}) {
   if (!multiTerminalUI) {
     notify.error('Terminal system is not ready yet');
     return null;
@@ -380,7 +380,7 @@ async function resumeAgentSession(tool, sessionId, { projectPath, name = null, f
   const manager = multiTerminalUI.getManager();
   let id = null;
   try {
-    id = await manager.createTerminal({ projectPath });
+    id = await manager.createTerminal({ projectPath, cwd: cwd || projectPath });
   } catch (err) {
     console.error('agentDispatch: terminal creation failed', err);
   }

@@ -61,3 +61,10 @@ Added `resumeAgentSession(tool, sessionId, { projectPath, name, focus })` to `ag
 _Captured: 2026-10-09 · 1 file change(s)_
 
 ---
+## T10 — Restore on project open
+
+Added `src/renderer/sessionRestore.js`: `maybeRestore(projectPath, host)` runs once per project per renderer lifetime, takes the plan from main, resumes each session sequentially via `resumeAgentSession`, sends `SESSION_RESTORE_CLAIM` per terminal and `SESSION_RESTORE_DONE` at the end (in `finally`), then enters the previously focused lane if the user is still in that project; `multiTerminalUI.setCurrentProject` calls it. Diverged from plan: `resumeAgentSession` gained a `cwd` option and restored terminals start in the session's saved cwd (falling back to the project) — `claude --resume` finds a transcript by the directory it runs in, so a session started in a subdirectory would otherwise fail to resume. Not verified in the running app: the GUI flow (quit with sessions → relaunch) needs a manual check.
+
+_Captured: 2026-10-09 · 3 file change(s)_
+
+---

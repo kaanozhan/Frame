@@ -1,7 +1,7 @@
 {
   "slug": "restore-ai-sessions-on-relaunch",
   "title": "Restore AI sessions on relaunch",
-  "phase": "implementing",
+  "phase": "done",
   "generated_task_ids": [
     "task-spec-restore-ai-sessions-on-relaunch-T01",
     "task-spec-restore-ai-sessions-on-relaunch-T02",
@@ -16,7 +16,7 @@
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-10-09T12:16:48Z",
-  "updated_at": "2026-10-09T12:37:14.686Z",
-  "last_phase_at": "2026-10-09T12:37:14.686Z",
+  "updated_at": "2026-10-09T13:59:56.552Z",
+  "last_phase_at": "2026-10-09T13:59:56.552Z",
   "implement_mode": "guided"
 }

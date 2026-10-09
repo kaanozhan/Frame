@@ -6740,6 +6740,7 @@
             "tool",
             "sessionId",
             "{ projectPath",
+            "cwd = null",
             "name = null",
             "focus = false } = {}"
           ],
@@ -6906,7 +6907,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 42320,
+      "sizeBytes": 42376,
       "extraction": {
         "status": "parsed"
       },
@@ -11024,6 +11025,7 @@
         "electron",
         "shared/ipcChannels",
         "terminalManager",
+        "sessionRestore",
         "terminalTabBar",
         "terminalsView",
         "homeBoard",
@@ -11047,7 +11049,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 35045,
+      "sizeBytes": 35201,
       "extraction": {
         "status": "parsed"
       },
@@ -12562,6 +12564,52 @@
         "description": "2ec71c102b172e93",
         "purposes": {
           "render": "1e18c115c84813c1"
+        }
+      }
+    },
+    "renderer/sessionRestore": {
+      "file": "src/renderer/sessionRestore.js",
+      "description": "Session restore — the renderer half (restore-ai-sessions-on-relaunch).",
+      "exports": [
+        "maybeRestore"
+      ],
+      "depends": [
+        "fs",
+        "electron",
+        "shared/ipcChannels",
+        "agentDispatch"
+      ],
+      "functions": {
+        "maybeRestore": {
+          "line": 27,
+          "params": [
+            "projectPath",
+            "host"
+          ],
+          "purpose": "Restore a project's sessions if this is its first open in this run."
+        },
+        "safeIsDir": {
+          "line": 73,
+          "params": [
+            "dir"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [],
+        "emits": [
+          "SESSION_RESTORE_CLAIM",
+          "SESSION_RESTORE_DONE"
+        ]
+      },
+      "sizeBytes": 2864,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "6bcb9a213bd9274c",
+        "purposes": {
+          "maybeRestore": "16e769e101258226"
         }
       }
     },
@@ -27043,6 +27091,11 @@
         "module": "main/sessionRestoreStore",
         "file": "src/main/sessionRestoreStore.js",
         "description": "Which AI session runs in which terminal, and what each project restores."
+      },
+      {
+        "module": "renderer/sessionRestore",
+        "file": "src/renderer/sessionRestore.js",
+        "description": "Session restore — the renderer half (restore-ai-sessions-on-relaunch)."
       }
     ],
     "rows": [
@@ -27094,6 +27147,11 @@
         "module": "renderer/home/sessionRows",
         "file": "src/renderer/home/sessionRows.js",
         "description": "Which Claude sessions Home offers to resume, and how they are labelled."
+      },
+      {
+        "module": "renderer/sessionRestore",
+        "file": "src/renderer/sessionRestore.js",
+        "description": "Session restore — the renderer half (restore-ai-sessions-on-relaunch)."
       },
       {
         "module": "templates/sample-project/src/auth/session",
@@ -27376,7 +27434,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 299,
+        "parsed": 300,
         "unsupported": 83,
         "partial": 0
       }
@@ -27423,9 +27481,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 470,
+      "visitedEntries": 471,
       "traversedDirectories": 80,
-      "eligibleFiles": 382,
+      "eligibleFiles": 383,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -27442,7 +27500,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 382,
+      "indexedFiles": 383,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -27450,6 +27508,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "aa7ffcfcfb6cffcedb4a9b5b013a9598ae11638f2734d8cebb558a41b706b20e"
+    "revision": "4a1b82f9db880653dcbcf5444eeb4799aea3165df61e2967ae1fa972af830c22"
   }
 }
