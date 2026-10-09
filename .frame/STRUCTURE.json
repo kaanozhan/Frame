@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-10-07",
+  "lastUpdated": "2026-10-09",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -4589,6 +4589,186 @@
           "resizeTerminal": "810c8f104494f695",
           "setupIPC": "9454079ed67a9898",
           "writeToTerminal": "6e7ca448a2aac555"
+        }
+      }
+    },
+    "main/sessionRestoreStore": {
+      "file": "src/main/sessionRestoreStore.js",
+      "description": "Which AI session runs in which terminal, and what each project restores.",
+      "exports": [
+        "STORE_VERSION",
+        "TOOLS",
+        "MAX_PROJECTS",
+        "MAX_RESTORE",
+        "isSessionId",
+        "parseReportName",
+        "parseReport",
+        "registerTerminal",
+        "applyReport",
+        "applyClaim",
+        "applyMeta",
+        "applyForeground",
+        "applyClose",
+        "normalizeStore",
+        "projectRecord",
+        "putRecord",
+        "planRestore"
+      ],
+      "depends": [
+        "path"
+      ],
+      "functions": {
+        "isAbsolutePath": {
+          "line": 47,
+          "params": [
+            "value"
+          ]
+        },
+        "isSessionId": {
+          "line": 51,
+          "params": [
+            "value"
+          ]
+        },
+        "parseReportName": {
+          "line": 59,
+          "params": [
+            "name"
+          ],
+          "purpose": "Parse a report file's name. Anything else in the directory — the hook's"
+        },
+        "parseReport": {
+          "line": 71,
+          "params": [
+            "name",
+            "text"
+          ],
+          "purpose": "A report is the CLI's SessionStart payload, verbatim. Returns null for a"
+        },
+        "emptyEntry": {
+          "line": 94,
+          "params": [
+            "terminalId",
+            "projectPath",
+            "createdAt"
+          ]
+        },
+        "hasSession": {
+          "line": 112,
+          "params": [
+            "entry"
+          ]
+        },
+        "registerTerminal": {
+          "line": 117,
+          "params": [
+            "live",
+            "terminalId",
+            "{ projectPath = null",
+            "createdAt = 0 } = {}"
+          ],
+          "purpose": "A PTY was spawned. Terminals without a project (global) are never restored."
+        },
+        "applyReport": {
+          "line": 127,
+          "params": [
+            "live",
+            "report"
+          ],
+          "purpose": "A CLI reported its session. The caller has already checked the reporter is"
+        },
+        "applyClaim": {
+          "line": 145,
+          "params": [
+            "live",
+            "terminalId",
+            "{ tool",
+            "sessionId",
+            "transcriptPath",
+            "cwd = null",
+            "name = null } = {}"
+          ],
+          "purpose": "The renderer opened this terminal to resume a saved session. Registered"
+        },
+        "applyMeta": {
+          "line": 160,
+          "params": [
+            "live",
+            "terminalId",
+            "{ name",
+            "active } = {}"
+          ],
+          "purpose": "Rename and focus, from the renderer. `active: true` clears the flag on"
+        },
+        "applyForeground": {
+          "line": 183,
+          "params": [
+            "live",
+            "terminalId",
+            "{ processName",
+            "shellName } = {}"
+          ],
+          "purpose": "The terminal's foreground process changed (ptyManager's poll). Anything"
+        },
+        "applyClose": {
+          "line": 200,
+          "params": [
+            "live",
+            "terminalId"
+          ],
+          "purpose": "The user closed the terminal, or its shell exited. Never called during"
+        },
+        "normalizeStore": {
+          "line": 209,
+          "params": [
+            "raw"
+          ]
+        },
+        "projectRecord": {
+          "line": 222,
+          "params": [
+            "live",
+            "projectPath",
+            "now"
+          ],
+          "purpose": "A project's record, projected from its live terminals, oldest first."
+        },
+        "putRecord": {
+          "line": 245,
+          "params": [
+            "store",
+            "projectPath",
+            "record"
+          ],
+          "purpose": "Write a project's record into the store. An empty record removes the"
+        },
+        "planRestore": {
+          "line": 268,
+          "params": [
+            "record",
+            "exists"
+          ],
+          "purpose": "What to reopen for a project: its saved sessions whose transcript still"
+        }
+      },
+      "sizeBytes": 10878,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "39452a27c5316c5e",
+        "purposes": {
+          "applyClaim": "1cc0d12c21c21ae8",
+          "applyClose": "e90adb56b8be1847",
+          "applyForeground": "1f33efe107f397b9",
+          "applyMeta": "5a08aefb4602cba9",
+          "applyReport": "b47508eaeef2c9cf",
+          "parseReport": "4773a8490cd2c87d",
+          "parseReportName": "01988f96928080e1",
+          "planRestore": "7af52cb2256369f6",
+          "projectRecord": "285caec9896e0c76",
+          "putRecord": "209518f20ff09823",
+          "registerTerminal": "4d5af1e749a027e8"
         }
       }
     },
@@ -24009,6 +24189,53 @@
         }
       }
     },
+    "test/sessionRestoreStore.test": {
+      "file": "test/sessionRestoreStore.test.js",
+      "description": "The session-restore store's pure core: which reports count, how the live",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/main/sessionRestoreStore"
+      ],
+      "functions": {
+        "payload": {
+          "line": 20,
+          "params": [
+            "sessionId",
+            "extra = {}"
+          ]
+        },
+        "liveWith": {
+          "line": 31,
+          "params": [
+            "...terminals"
+          ]
+        },
+        "report": {
+          "line": 37,
+          "params": [
+            "terminalId",
+            "tool",
+            "sessionId"
+          ]
+        },
+        "rec": {
+          "line": 187,
+          "params": [
+            "sessions",
+            "activeSessionId = null"
+          ]
+        }
+      },
+      "sizeBytes": 11199,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "134639e22914d629"
+      }
+    },
     "test/spec-command-hint.test": {
       "file": "test/spec-command-hint.test.js",
       "description": "Spec command hook script tests.",
@@ -26571,6 +26798,11 @@
     ],
     "session": [
       {
+        "module": "main/sessionRestoreStore",
+        "file": "src/main/sessionRestoreStore.js",
+        "description": "Which AI session runs in which terminal, and what each project restores."
+      },
+      {
         "module": "renderer/home/sessionRows",
         "file": "src/renderer/home/sessionRows.js",
         "description": "Which Claude sessions Home offers to resume, and how they are labelled."
@@ -26671,6 +26903,18 @@
         "module": "renderer/statusBar",
         "file": "src/renderer/statusBar.js",
         "description": "Status Bar Module"
+      }
+    ],
+    "store": [
+      {
+        "module": "main/frameStore",
+        "file": "src/main/frameStore.js",
+        "description": "frameStore — the one module that knows where a project's meta files live."
+      },
+      {
+        "module": "main/sessionRestoreStore",
+        "file": "src/main/sessionRestoreStore.js",
+        "description": "Which AI session runs in which terminal, and what each project restores."
       }
     ],
     "structure": [
@@ -26844,7 +27088,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 295,
+        "parsed": 297,
         "unsupported": 83,
         "partial": 0
       }
@@ -26891,9 +27135,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 466,
+      "visitedEntries": 468,
       "traversedDirectories": 80,
-      "eligibleFiles": 378,
+      "eligibleFiles": 380,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -26910,7 +27154,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 378,
+      "indexedFiles": 380,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -26918,6 +27162,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2d26793869a6b8a93b4c3286db4771905ca8adc726a3512958abf69deef9c36f"
+    "revision": "e32ed1a03e05b09212a68eee1df2b432ea9ede5cae94804e15938f77393856ae"
   }
 }
