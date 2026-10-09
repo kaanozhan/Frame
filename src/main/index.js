@@ -15,6 +15,7 @@ const activityLog = require('./activityLog');
 const crashGuard = require('./crashGuard');
 const pty = require('./pty');
 const ptyManager = require('./ptyManager');
+const sessionRestore = require('./sessionRestore');
 const menu = require('./menu');
 const dialogs = require('./dialogs');
 const fileTree = require('./fileTree');
@@ -207,6 +208,9 @@ function setupAllIPC() {
   // Setup module IPC handlers
   pty.setupIPC(ipcMain);
   ptyManager.setupIPC(ipcMain);
+  // Before any PTY exists: terminals get the report env from it.
+  sessionRestore.init();
+  sessionRestore.setupIPC(ipcMain);
   dialogs.setupIPC(ipcMain);
   fileTree.setupIPC(ipcMain);
   promptLogger.setupIPC(ipcMain);

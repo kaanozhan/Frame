@@ -26,3 +26,10 @@ Added `CODEX_SESSION_REPORT_HOOKS` (same command, plus a `[ ! -d .frame ]` guard
 _Captured: 2026-10-09 · 4 file change(s)_
 
 ---
+## T05 — Main-process wrapper
+
+Added `src/main/sessionRestore.js`: loads/saves `~/.frame/session-restore.json` through `fsSafe` (skipping writes when a record is unchanged), clears and watches `~/.frame/session-reports/`, accepts a report only when `pgid(pid) === tpgid(shell)` via one `ps` call (Windows accepts as is), exposes `envFor` / `registerTerminal` / `onForeground` / `onClose` / `freeze` for ptyManager, and the IPC handlers; `index.js` inits it before any PTY exists. Diverged from plan: a sixth channel, `SESSION_RESTORE_DONE` — `take()` holds a project's record until the renderer says its restore finished (60 s fallback), so the first claimed terminal cannot rewrite a multi-session record down to one mid-restore.
+
+_Captured: 2026-10-09 · 3 file change(s)_
+
+---

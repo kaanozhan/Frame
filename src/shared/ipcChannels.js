@@ -76,6 +76,14 @@ const IPC = {
   AVAILABLE_SHELLS_DATA: 'available-shells-data',
   RECONCILE_TERMINALS: 'reconcile-terminals',
 
+  // Session restore (restore-ai-sessions-on-relaunch)
+  SESSION_RESTORE_TAKE: 'session-restore-take',                     // renderer → main (invoke): projectPath → { sessions, activeSessionId }
+  SESSION_RESTORE_DONE: 'session-restore-done',                     // renderer → main: projectPath — its restore finished
+  SESSION_RESTORE_CLAIM: 'session-restore-claim',                   // renderer → main: { terminalId, tool, sessionId, transcriptPath, cwd, name }
+  SESSION_RESTORE_META: 'session-restore-meta',                     // renderer → main: { terminalId, name?, active? }
+  SESSION_RESTORE_GET_LAST_PROJECT: 'session-restore-get-last-project', // renderer → main (invoke): → projectPath | null
+  SESSION_RESTORE_SET_LAST_PROJECT: 'session-restore-set-last-project', // renderer → main: projectPath
+
   // Tasks Panel
   LOAD_TASKS: 'load-tasks',
   TASKS_DATA: 'tasks-data',

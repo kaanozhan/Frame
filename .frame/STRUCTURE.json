@@ -3055,6 +3055,7 @@
         "crashGuard",
         "pty",
         "ptyManager",
+        "sessionRestore",
         "menu",
         "dialogs",
         "fileTree",
@@ -3086,26 +3087,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 57,
+          "line": 58,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 75,
+          "line": 76,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 176
+          "line": 177
         },
         "setupAllIPC": {
-          "line": 206,
+          "line": 207,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 284,
+          "line": 288,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 330,
+          "line": 334,
           "params": [
             "window"
           ],
@@ -3126,7 +3127,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 14361,
+      "sizeBytes": 14540,
       "extraction": {
         "status": "parsed"
       },
@@ -4617,6 +4618,146 @@
           "resizeTerminal": "810c8f104494f695",
           "setupIPC": "9454079ed67a9898",
           "writeToTerminal": "6e7ca448a2aac555"
+        }
+      }
+    },
+    "main/sessionRestore": {
+      "file": "src/main/sessionRestore.js",
+      "description": "Session restore — the main-process half (restore-ai-sessions-on-relaunch).",
+      "exports": [
+        "init",
+        "envFor",
+        "registerTerminal",
+        "onForeground",
+        "onClose",
+        "freeze",
+        "setupIPC"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "fsSafe",
+        "sessionRestoreStore",
+        "shared/ipcChannels",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "init": {
+          "line": 55,
+          "purpose": "Create the report directory, drop last run's leftovers (their terminals"
+        },
+        "envFor": {
+          "line": 80,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The env a PTY needs so its CLIs can report. Empty when init failed."
+        },
+        "writeStore": {
+          "line": 87
+        },
+        "persist": {
+          "line": 100,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Rewrite one project's record from its live terminals."
+        },
+        "registerTerminal": {
+          "line": 112,
+          "params": [
+            "terminalId",
+            "{ projectPath = null",
+            "shellPid = null } = {}"
+          ]
+        },
+        "onForeground": {
+          "line": 119,
+          "params": [
+            "terminalId",
+            "processName",
+            "shellName"
+          ]
+        },
+        "onClose": {
+          "line": 125,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The user closed the terminal or its shell exited."
+        },
+        "freeze": {
+          "line": 132,
+          "purpose": "App teardown: keep every record exactly as it is."
+        },
+        "scheduleScan": {
+          "line": 138
+        },
+        "scanReports": {
+          "line": 146
+        },
+        "isForegroundJob": {
+          "line": 178,
+          "params": [
+            "pid",
+            "shellPid",
+            "callback"
+          ],
+          "purpose": "Is `pid` the terminal's foreground job? A CLI started from inside a"
+        },
+        "take": {
+          "line": 201,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "A project's restore plan. Holds the project's record until the renderer"
+        },
+        "restoreDone": {
+          "line": 210,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "setLastActiveProject": {
+          "line": 217,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "setupIPC": {
+          "line": 224,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SESSION_RESTORE_TAKE",
+          "SESSION_RESTORE_DONE",
+          "SESSION_RESTORE_CLAIM",
+          "SESSION_RESTORE_META",
+          "SESSION_RESTORE_GET_LAST_PROJECT",
+          "SESSION_RESTORE_SET_LAST_PROJECT"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 8829,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "56e0dc7645f72d66",
+        "purposes": {
+          "envFor": "30895657cf37f5c8",
+          "freeze": "8af1f3193e28563a",
+          "init": "d53665acde5503bc",
+          "isForegroundJob": "34cdff934cc1d37f",
+          "onClose": "4eedc38351ae9028",
+          "persist": "5e8a9c379af7ca5c",
+          "take": "d506f8cc1cf5a1ec"
         }
       }
     },
@@ -21325,7 +21466,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 11799,
+      "sizeBytes": 12629,
       "extraction": {
         "status": "parsed"
       },
@@ -26231,6 +26372,38 @@
         "direction": "",
         "description": ""
       }
+    },
+    "session": {
+      "SESSION_RESTORE_TAKE": {
+        "name": "session-restore-take",
+        "direction": "",
+        "description": ""
+      },
+      "SESSION_RESTORE_DONE": {
+        "name": "session-restore-done",
+        "direction": "",
+        "description": ""
+      },
+      "SESSION_RESTORE_CLAIM": {
+        "name": "session-restore-claim",
+        "direction": "",
+        "description": ""
+      },
+      "SESSION_RESTORE_META": {
+        "name": "session-restore-meta",
+        "direction": "",
+        "description": ""
+      },
+      "SESSION_RESTORE_GET_LAST_PROJECT": {
+        "name": "session-restore-get-last-project",
+        "direction": "",
+        "description": ""
+      },
+      "SESSION_RESTORE_SET_LAST_PROJECT": {
+        "name": "session-restore-set-last-project",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -26825,6 +26998,18 @@
         "description": ""
       }
     ],
+    "restore": [
+      {
+        "module": "main/sessionRestore",
+        "file": "src/main/sessionRestore.js",
+        "description": "Session restore — the main-process half (restore-ai-sessions-on-relaunch)."
+      },
+      {
+        "module": "main/sessionRestoreStore",
+        "file": "src/main/sessionRestoreStore.js",
+        "description": "Which AI session runs in which terminal, and what each project restores."
+      }
+    ],
     "rows": [
       {
         "module": "renderer/home/agentRows",
@@ -26860,6 +27045,11 @@
       }
     ],
     "session": [
+      {
+        "module": "main/sessionRestore",
+        "file": "src/main/sessionRestore.js",
+        "description": "Session restore — the main-process half (restore-ai-sessions-on-relaunch)."
+      },
       {
         "module": "main/sessionRestoreStore",
         "file": "src/main/sessionRestoreStore.js",
@@ -27151,7 +27341,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 298,
+        "parsed": 299,
         "unsupported": 83,
         "partial": 0
       }
@@ -27198,9 +27388,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 469,
+      "visitedEntries": 470,
       "traversedDirectories": 80,
-      "eligibleFiles": 381,
+      "eligibleFiles": 382,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -27217,7 +27407,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 381,
+      "indexedFiles": 382,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -27225,6 +27415,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "b26353b4749cb09311c996115f1daf76caa1db77c41a717f8f1c1b3e90fdd49c"
+    "revision": "9466433312ab7236850f0a425028b03f97ebfcdccdd6a3e11dc1db1008fc3f51"
   }
 }
