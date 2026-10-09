@@ -81,7 +81,7 @@ const IPC = {
   SESSION_RESTORE_DONE: 'session-restore-done',                     // renderer → main: projectPath — its restore finished
   SESSION_RESTORE_CLAIM: 'session-restore-claim',                   // renderer → main: { terminalId, tool, sessionId, transcriptPath, cwd, name }
   SESSION_RESTORE_META: 'session-restore-meta',                     // renderer → main: { terminalId, name?, active? }
-  SESSION_RESTORE_GET_LAST_PROJECT: 'session-restore-get-last-project', // renderer → main (invoke): → projectPath | null
+  SESSION_RESTORE_GET_LAST_PROJECT: 'session-restore-get-last-project', // renderer → main (invoke): → last project if it has sessions to resume, else null
   SESSION_RESTORE_SET_LAST_PROJECT: 'session-restore-set-last-project', // renderer → main: projectPath
 
   // Tasks Panel

@@ -51,12 +51,12 @@ function loadProjects() {
 function renderProjects(projectsList) {
   projects = [...(projectsList || [])];
 
-  // First launch with nothing selected yet: open the top project so the app
+  // First launch with nothing selected yet: open a project so the app
   // doesn't start on an empty context. Skipped if a project is already
-  // active (e.g. restored), and only ever runs once.
+  // active, and only ever runs once.
   if (!didInitialAutoSelect && !activeProjectPath && projects.length > 0) {
     didInitialAutoSelect = true;
-    selectProject(projects[0].path);
+    selectLaunchProject();
   }
 
   placeWorkspaceNav();
@@ -64,11 +64,27 @@ function renderProjects(projectsList) {
 }
 
 /**
- * Is this the project Frame opens on launch?
+ * Open the launch project: the one the user left, when it had AI sessions
+ * running that Frame will resume (restore-ai-sessions-on-relaunch);
+ * otherwise the default project, the front of the list.
+ */
+async function selectLaunchProject() {
+  let last = null;
+  try {
+    last = await ipcRenderer.invoke(IPC.SESSION_RESTORE_GET_LAST_PROJECT);
+  } catch (_) { /* no restore store — open the default */ }
+  // Something may have selected a project while main answered.
+  if (activeProjectPath) return;
+  const target = projects.find(p => p.path === last) || projects[0];
+  if (target) selectProject(target.path);
+}
+
+/**
+ * Is this the default project?
  *
- * There is no stored "default" flag: `renderProjects` selects `projects[0]`
- * when nothing is active yet, and nothing restores a previous session's
- * project — so the front of the list *is* the default, always.
+ * There is no stored "default" flag: launch opens `projects[0]` unless the
+ * project left last has AI sessions to resume — so the front of the list
+ * *is* the default, always.
  */
 function isDefaultProject(projectPath) {
   return projects.length > 0 && !!projectPath && projects[0].path === projectPath;

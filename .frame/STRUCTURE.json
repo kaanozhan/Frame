@@ -4722,14 +4722,18 @@
             "projectPath"
           ]
         },
+        "launchProject": {
+          "line": 222,
+          "purpose": "The project to open on launch instead of the default one: the project the"
+        },
         "setLastActiveProject": {
-          "line": 217,
+          "line": 229,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 224,
+          "line": 236,
           "params": [
             "ipcMain"
           ]
@@ -4746,7 +4750,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 8829,
+      "sizeBytes": 9287,
       "extraction": {
         "status": "parsed"
       },
@@ -4757,6 +4761,7 @@
           "freeze": "8af1f3193e28563a",
           "init": "d53665acde5503bc",
           "isForegroundJob": "34cdff934cc1d37f",
+          "launchProject": "11a50d0b9f2e3a19",
           "onClose": "4eedc38351ae9028",
           "persist": "5e8a9c379af7ca5c",
           "take": "d506f8cc1cf5a1ec"
@@ -11003,6 +11008,8 @@
         "MultiTerminalUI"
       ],
       "depends": [
+        "electron",
+        "shared/ipcChannels",
         "terminalManager",
         "terminalTabBar",
         "terminalsView",
@@ -11021,7 +11028,13 @@
         "projectListUI"
       ],
       "functions": {},
-      "sizeBytes": 34695,
+      "ipc": {
+        "listens": [],
+        "emits": [
+          "SESSION_RESTORE_SET_LAST_PROJECT"
+        ]
+      },
+      "sizeBytes": 35045,
       "extraction": {
         "status": "parsed"
       },
@@ -11776,22 +11789,26 @@
           ],
           "purpose": "Workspace data arrived — refresh state (no rows to render anymore)."
         },
+        "selectLaunchProject": {
+          "line": 71,
+          "purpose": "Open the launch project: the one the user left, when it had AI sessions"
+        },
         "isDefaultProject": {
-          "line": 73,
+          "line": 89,
           "params": [
             "projectPath"
           ],
-          "purpose": "Is this the project Frame opens on launch?"
+          "purpose": "Is this the default project?"
         },
         "setDefaultProject": {
-          "line": 90,
+          "line": 106,
           "params": [
             "projectPath"
           ],
           "purpose": "Make a project the one Frame opens on launch, by moving it to the front."
         },
         "confirmRemoveProject": {
-          "line": 103,
+          "line": 119,
           "params": [
             "projectPath",
             "projectName"
@@ -11799,24 +11816,24 @@
           "purpose": "Confirmation + removal (also offered as the × in the switcher menu)."
         },
         "selectProject": {
-          "line": 129,
+          "line": 145,
           "params": [
             "projectPath"
           ],
           "purpose": "Select a project"
         },
         "setActiveProject": {
-          "line": 140,
+          "line": 156,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project (visual state lives in the switcher + workspace nav)"
         },
         "getActiveProject": {
-          "line": 146
+          "line": 162
         },
         "addProject": {
-          "line": 153,
+          "line": 169,
           "params": [
             "projectPath",
             "projectName",
@@ -11825,77 +11842,77 @@
           "purpose": "Add project to workspace"
         },
         "removeProject": {
-          "line": 164,
+          "line": 180,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove project from workspace"
         },
         "setupIPC": {
-          "line": 180,
+          "line": 196,
           "purpose": "Setup IPC listeners"
         },
         "applyAgentStatuses": {
-          "line": 211,
+          "line": 227,
           "params": [
             "map"
           ],
           "purpose": "Per-project agent status counts (from projectStatusBadges). Stored for the"
         },
         "getAgentStatus": {
-          "line": 217,
+          "line": 233,
           "params": [
             "projectPath"
           ],
           "purpose": "{ approval, input } counts for one project, or undefined."
         },
         "selectNextProject": {
-          "line": 224,
+          "line": 240,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 235,
+          "line": 251,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 246,
+          "line": 262,
           "purpose": "\"Focus Project List\" now means: open the switcher dropdown."
         },
         "blur": {
-          "line": 251,
+          "line": 267,
           "purpose": "No list rows to blur anymore — kept for callers."
         },
         "getProjects": {
-          "line": 257,
+          "line": 273,
           "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 321
+          "line": 337
         },
         "saveCollapsedGroups": {
-          "line": 330,
+          "line": 346,
           "params": [
             "state"
           ]
         },
         "buildWorkspaceNav": {
-          "line": 338
+          "line": 354
         },
         "revealNavItem": {
-          "line": 407,
+          "line": 423,
           "params": [
             "view"
           ],
           "purpose": "Make a nav row reachable without changing the user's saved layout: expand"
         },
         "placeWorkspaceNav": {
-          "line": 420
+          "line": 436
         },
         "refreshWorkspaceNav": {
-          "line": 432
+          "line": 448
         },
         "updateWorkspaceNav": {
-          "line": 508,
+          "line": 524,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -11913,7 +11930,7 @@
           "REMOVE_PROJECT_FROM_WORKSPACE"
         ]
       },
-      "sizeBytes": 20113,
+      "sizeBytes": 20655,
       "extraction": {
         "status": "parsed"
       },
@@ -11928,11 +11945,12 @@
           "getAgentStatus": "58aa9e289baa1014",
           "getProjects": "a80547c433308646",
           "init": "b0191b86c936f558",
-          "isDefaultProject": "d0f8ce44ee2eda81",
+          "isDefaultProject": "aec8a734885deb99",
           "loadProjects": "fd8f9e8d29f90885",
           "removeProject": "ffa3a4a134bf5b20",
           "renderProjects": "04b96b3b783d8203",
           "revealNavItem": "e08e882c45c25ea2",
+          "selectLaunchProject": "92566c058d1b6328",
           "selectNextProject": "05f2261213152608",
           "selectPrevProject": "2f1e10aa3fbb4120",
           "selectProject": "dd18e6f08d5e0eea",
@@ -12068,7 +12086,7 @@
           ]
         }
       },
-      "sizeBytes": 17653,
+      "sizeBytes": 17801,
       "extraction": {
         "status": "parsed"
       },
@@ -21470,7 +21488,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 12629,
+      "sizeBytes": 12663,
       "extraction": {
         "status": "parsed"
       },
@@ -27419,6 +27437,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5b464693525eb37c1375cfce62997ded4efa340d8318cbb48926f9a0b0d5dfc3"
+    "revision": "5f75268055a24aceea71ad5b2b681eaaa17191c1479ddfe7f7ad7c68a1b8c5d8"
   }
 }

@@ -47,3 +47,10 @@ _Captured: 2026-10-09 · 1 file change(s)_
 _Captured: 2026-10-09 · 1 file change(s)_
 
 ---
+## T08 — Last active project on launch
+
+Launch now asks main for a launch project (`selectLaunchProject` in `projectListUI.js`); main's `launchProject()` returns the last active project only when it has sessions to resume, else null and `projects[0]` opens as before. Diverged from plan in two ways: (1) the plan missed the existing "Default project" setting ("Frame opens it every time it launches") — asked mid-run, the user chose "last project only when it has sessions, otherwise the default", and the setting's text in `projectSettingsModal.js` (outside the plan's Files) now states that exception; (2) the last project is saved from `multiTerminalUI.setCurrentProject`, not `projectListUI.selectProject`, because the status bar, palette and open dialog switch projects without going through `selectProject`.
+
+_Captured: 2026-10-09 · 5 file change(s)_
+
+---

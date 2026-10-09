@@ -214,6 +214,18 @@ function restoreDone(projectPath) {
   persist(projectPath);
 }
 
+/**
+ * The project to open on launch instead of the default one: the project the
+ * user left, but only when it has sessions to resume. Otherwise null, and the
+ * default project (the front of the workspace list) opens as it always has.
+ */
+function launchProject() {
+  const last = state.lastActiveProject;
+  if (!last) return null;
+  const plan = core.planRestore(state.projects[last], (p) => fs.existsSync(p));
+  return plan.sessions.length > 0 ? last : null;
+}
+
 function setLastActiveProject(projectPath) {
   const next = typeof projectPath === 'string' ? projectPath : null;
   if (state.lastActiveProject === next) return;
@@ -230,7 +242,7 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.SESSION_RESTORE_META, (event, { terminalId, ...meta } = {}) => {
     persist(core.applyMeta(live, terminalId, meta));
   });
-  ipcMain.handle(IPC.SESSION_RESTORE_GET_LAST_PROJECT, () => state.lastActiveProject);
+  ipcMain.handle(IPC.SESSION_RESTORE_GET_LAST_PROJECT, () => launchProject());
   ipcMain.on(IPC.SESSION_RESTORE_SET_LAST_PROJECT, (event, projectPath) => setLastActiveProject(projectPath));
 }
 

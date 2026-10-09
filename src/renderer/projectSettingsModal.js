@@ -359,8 +359,8 @@ function syncDefaultProject() {
   if (defaultProjectChipEl) defaultProjectChipEl.style.display = isDefault ? '' : 'none';
   if (defaultProjectDescEl) {
     defaultProjectDescEl.textContent = isDefault
-      ? 'This project is your default. Frame opens it every time it launches.'
-      : 'Frame opens your default project when it launches. Make this the default to land here every time.';
+      ? 'This project is your default. Frame opens it when it launches, unless the project you left had AI sessions running — then Frame reopens that one and resumes them.'
+      : 'Frame opens your default project when it launches, unless the project you left had AI sessions running. Make this the default to land here otherwise.';
   }
 }
 
