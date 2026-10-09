@@ -1454,6 +1454,7 @@
       ],
       "depends": [
         "fs",
+        "os",
         "path",
         "shared/ipcChannels",
         "shared/frameConstants",
@@ -1482,28 +1483,28 @@
       ],
       "functions": {
         "init": {
-          "line": 32,
+          "line": 33,
           "params": [
             "window"
           ],
           "purpose": "Initialize frame project module"
         },
         "isFrameProject": {
-          "line": 50,
+          "line": 51,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if a project is a Frame project"
         },
         "getFrameConfig": {
-          "line": 58,
+          "line": 59,
           "params": [
             "projectPath"
           ],
           "purpose": "Get Frame config from project"
         },
         "createFileIfNotExists": {
-          "line": 71,
+          "line": 72,
           "params": [
             "filePath",
             "content"
@@ -1511,21 +1512,21 @@
           "purpose": "Create file if it doesn't exist"
         },
         "checkExistingFrameFiles": {
-          "line": 85,
+          "line": 86,
           "params": [
             "projectPath"
           ],
           "purpose": "Check which Frame files already exist in the project"
         },
         "showInitializeConfirmation": {
-          "line": 112,
+          "line": 113,
           "params": [
             "projectPath"
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
         "initializeFrameProject": {
-          "line": 157,
+          "line": 158,
           "params": [
             "projectPath",
             "projectName",
@@ -1533,7 +1534,7 @@
           ]
         },
         "doInitializeFrameProject": {
-          "line": 165,
+          "line": 166,
           "params": [
             "projectPath",
             "projectName",
@@ -1541,7 +1542,7 @@
           ]
         },
         "mergeInitConfig": {
-          "line": 185,
+          "line": 186,
           "params": [
             "defaults",
             "existing",
@@ -1552,7 +1553,7 @@
           "purpose": "Config for (re-)init: the template's defaults *underneath* whatever the"
         },
         "runProjectInit": {
-          "line": 202,
+          "line": 203,
           "params": [
             "projectPath",
             "projectName",
@@ -1560,20 +1561,20 @@
           ]
         },
         "ensureProjectArtifacts": {
-          "line": 450,
+          "line": 451,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-ensure on open what a fresh init creates."
         },
         "syncClaudeRule": {
-          "line": 473,
+          "line": 474,
           "params": [
             "projectPath"
           ]
         },
         "detectJsonIndent": {
-          "line": 500,
+          "line": 501,
           "params": [
             "text",
             "fallback = 2"
@@ -1581,18 +1582,18 @@
           "purpose": "The indentation an existing settings file uses, so rewriting it preserves"
         },
         "hookCommandsIn": {
-          "line": 507,
+          "line": 508,
           "params": [
             "settings"
           ],
           "purpose": "Every hook command in a settings object, whatever shape the file is in."
         },
         "frameHookCommands": {
-          "line": 524,
+          "line": 525,
           "purpose": "The command strings Frame installs today."
         },
         "installSpecHintHook": {
-          "line": 548,
+          "line": 549,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -1600,7 +1601,7 @@
           "purpose": "Register the spec-hint hooks in the project's Claude settings file."
         },
         "mergeHookEntries": {
-          "line": 631,
+          "line": 632,
           "params": [
             "hooks",
             "template"
@@ -1608,7 +1609,7 @@
           "purpose": "Append each template entry to a hooks object unless an identical one is"
         },
         "installSessionHook": {
-          "line": 657,
+          "line": 658,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -1616,11 +1617,11 @@
           "purpose": "Register the session report hook (restore-ai-sessions-on-relaunch) in the"
         },
         "codexHome": {
-          "line": 687,
+          "line": 688,
           "purpose": "Where Codex keeps its configuration. `CODEX_HOME` wins so a test — or a"
         },
         "installCodexHintHook": {
-          "line": 705,
+          "line": 706,
           "params": [
             "projectPath",
             "{ enabled = true",
@@ -1629,21 +1630,21 @@
           "purpose": "Register Frame's hooks for Codex in `CODEX_HOME/hooks.json`."
         },
         "installCodexSessionHook": {
-          "line": 772,
+          "line": 773,
           "params": [
             "{ home = null } = {}"
           ],
           "purpose": "Register the Codex session report hook (restore-ai-sessions-on-relaunch) in"
         },
         "removeCodexHintHook": {
-          "line": 803,
+          "line": 804,
           "params": [
             "{ home = null } = {}"
           ],
           "purpose": "Take Frame's Codex entries back out. Exact-match on the command string, so"
         },
         "codexHookTrustState": {
-          "line": 858,
+          "line": 859,
           "params": [
             "projectPath",
             "{ home = null",
@@ -1652,11 +1653,11 @@
           "purpose": "Are Frame's Codex hooks installed, and have they ever actually run?"
         },
         "codexHookCommands": {
-          "line": 894,
+          "line": 895,
           "purpose": "Every command string Frame's Codex hook entries carry."
         },
         "removeSpecHintHook": {
-          "line": 909,
+          "line": 910,
           "params": [
             "projectPath",
             "{ file = 'settings.json' } = {}"
@@ -1664,13 +1665,13 @@
           "purpose": "Take Frame's hook entries back out of a Claude settings file. Exact-match on"
         },
         "getDoneWindow": {
-          "line": 981,
+          "line": 982,
           "params": [
             "projectPath"
           ]
         },
         "setDoneWindow": {
-          "line": 986,
+          "line": 987,
           "params": [
             "projectPath",
             "board",
@@ -1678,74 +1679,74 @@
           ]
         },
         "isSpecDrivenEnabled": {
-          "line": 1011,
+          "line": 1012,
           "params": [
             "projectPath"
           ]
         },
         "enableSpecDriven": {
-          "line": 1016,
+          "line": 1017,
           "params": [
             "projectPath"
           ]
         },
         "disableSpecDriven": {
-          "line": 1045,
+          "line": 1046,
           "params": [
             "projectPath"
           ],
           "purpose": "Turn the workflow off: flip the flag and take the Frame-managed spec"
         },
         "setSpecDrivenEnabled": {
-          "line": 1073,
+          "line": 1074,
           "params": [
             "projectPath",
             "enabled"
           ]
         },
         "writeFrameConfig": {
-          "line": 1077,
+          "line": 1078,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "stripManagedSpecSection": {
-          "line": 1091,
+          "line": 1092,
           "params": [
             "text"
           ],
           "purpose": "Remove the marker-wrapped spec section from a doc, together with the `---`"
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 1101,
+          "line": 1102,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "specDocDescriptors": {
-          "line": 1202,
+          "line": 1203,
           "params": [
             "projectPath"
           ],
           "purpose": "The spec-section descriptors, in the order they must be settled: the target"
         },
         "readTextOrNull": {
-          "line": 1230,
+          "line": 1231,
           "params": [
             "file"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 1244,
+          "line": 1245,
           "params": [
             "projectPath"
           ],
           "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
         },
         "appendSpecSection": {
-          "line": 1327,
+          "line": 1328,
           "params": [
             "projectPath",
             "rel"
@@ -1753,14 +1754,14 @@
           "purpose": "Append the managed spec section to a document the pass deliberately refused"
         },
         "docsHealthFor": {
-          "line": 1366,
+          "line": 1367,
           "params": [
             "projectPath"
           ],
           "purpose": "The report on its own, without running the repair pass — what the UI asks"
         },
         "recordDocsActivity": {
-          "line": 1388,
+          "line": 1389,
           "params": [
             "written",
             "appended",
@@ -1769,20 +1770,20 @@
           "purpose": "Put the pass's result on the record. This is the half that was missing when"
         },
         "detachThenRemoveFrame": {
-          "line": 1427,
+          "line": 1428,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove Frame after its lifecycle worker has stopped, so no child is still"
         },
         "removeFrame": {
-          "line": 1436,
+          "line": 1437,
           "params": [
             "projectPath"
           ]
         },
         "dropEmptySettingsFile": {
-          "line": 1490,
+          "line": 1491,
           "params": [
             "projectPath",
             "file"
@@ -1790,21 +1791,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 1516,
+          "line": 1517,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 1532,
+          "line": 1533,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "openProjectLayout": {
-          "line": 1584,
+          "line": 1585,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1812,7 +1813,7 @@
           "purpose": "Everything a project open does to the project, in the order that makes the"
         },
         "rearmAfterMigration": {
-          "line": 1691,
+          "line": 1692,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -1820,7 +1821,7 @@
           "purpose": "Every meta file just changed address: the watchers are pointed at the"
         },
         "setupIPC": {
-          "line": 1713,
+          "line": 1714,
           "params": [
             "ipcMain"
           ],
@@ -1852,7 +1853,7 @@
           "FRAME_CONFIG_DATA"
         ]
       },
-      "sizeBytes": 75435,
+      "sizeBytes": 75461,
       "extraction": {
         "status": "parsed"
       },
@@ -24468,7 +24469,7 @@
         "src/shared/frameTemplates"
       ],
       "functions": {},
-      "sizeBytes": 8592,
+      "sizeBytes": 9098,
       "extraction": {
         "status": "parsed"
       },
@@ -27508,6 +27509,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4a1b82f9db880653dcbcf5444eeb4799aea3165df61e2967ae1fa972af830c22"
+    "revision": "6660514309ad697c96b6f614bbb322230783ec491ba60c1c6e40c037fe7eadd1"
   }
 }

@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const fsp = require('fs').promises;
+const os = require('os');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR, CLAUDE_RULE_PATH } = require('../shared/frameConstants');

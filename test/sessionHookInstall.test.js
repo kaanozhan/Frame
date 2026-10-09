@@ -192,3 +192,16 @@ test('codex: an unparseable hooks.json is left alone', () => {
   assert.equal(frameProject.installCodexSessionHook({ home }).manual, true);
   assert.equal(fs.readFileSync(path.join(home, 'hooks.json'), 'utf8'), '{ nope');
 });
+
+test('codex: codexHome resolves without a test-supplied home', () => {
+  // Every other test passes `home`; the app never does. This path once
+  // threw (`os` was not required) and the open swallowed it, so the Codex
+  // session hook silently never installed.
+  const saved = process.env.CODEX_HOME;
+  delete process.env.CODEX_HOME;
+  try {
+    assert.equal(frameProject.codexHome(), path.join(os.homedir(), '.codex'));
+  } finally {
+    if (saved !== undefined) process.env.CODEX_HOME = saved;
+  }
+});

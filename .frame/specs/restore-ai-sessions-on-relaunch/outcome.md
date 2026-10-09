@@ -68,3 +68,10 @@ Added `src/renderer/sessionRestore.js`: `maybeRestore(projectPath, host)` runs o
 _Captured: 2026-10-09 · 3 file change(s)_
 
 ---
+## Fix — Codex session hook never installed in the app
+
+First manual test: `~/.codex/hooks.json` was never created. `codexHome()` in `frameProject.js` used `os` without requiring it; every test passes `home`, and the open path's try/catch turned the ReferenceError into a console warning. Pre-existing latent bug (the hint installer had the same call, but only ran with Codex active), exposed by the ungated session install. Added the require and a regression test for `codexHome()` without `home`. The same test showed the first relaunch was empty for an expected reason: the sessions had run under the installed (pre-feature) Frame, so nothing had been recorded.
+
+_Captured: 2026-10-09 · 2 file change(s)_
+
+---
