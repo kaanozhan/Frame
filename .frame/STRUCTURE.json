@@ -15872,11 +15872,13 @@
         "emits": [
           "TERMINAL_CREATE",
           "GET_AVAILABLE_SHELLS",
+          "SESSION_RESTORE_META",
+          "SESSION_RESTORE_META",
           "TERMINAL_DESTROY",
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 27618,
+      "sizeBytes": 27932,
       "extraction": {
         "status": "parsed"
       },
@@ -27417,6 +27419,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "3db9acfa9fa134bc6f31f65d9e32266a17988898e3719284a726cddc0f4aa70e"
+    "revision": "5b464693525eb37c1375cfce62997ded4efa340d8318cbb48926f9a0b0d5dfc3"
   }
 }

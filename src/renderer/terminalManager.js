@@ -552,6 +552,8 @@ class TerminalManager {
     if (current) {
       current.state.isActive = true;
       current.terminal.focus();
+      // Session restore focuses this one again after a relaunch.
+      ipcRenderer.send(IPC.SESSION_RESTORE_META, { terminalId, active: true });
     }
 
     this._notifyStateChange();
@@ -565,6 +567,8 @@ class TerminalManager {
     if (instance) {
       instance.state.customName = newName;
       instance.state.name = newName;
+      // Saved with the terminal's session, so a restored lane keeps its name.
+      ipcRenderer.send(IPC.SESSION_RESTORE_META, { terminalId, name: newName || null });
       this._notifyStateChange();
     }
   }

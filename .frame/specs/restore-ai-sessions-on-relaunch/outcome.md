@@ -40,3 +40,10 @@ _Captured: 2026-10-09 · 3 file change(s)_
 _Captured: 2026-10-09 · 1 file change(s)_
 
 ---
+## T07 — Renderer metadata
+
+`terminalManager.renameTerminal` sends the custom name and `setActiveTerminal` sends `active: true` to main over `SESSION_RESTORE_META`. Only custom names are sent — the auto-numbered "Terminal N" labels are not, so a restored lane without a custom name is renumbered like any new one. No divergence from plan.
+
+_Captured: 2026-10-09 · 1 file change(s)_
+
+---
