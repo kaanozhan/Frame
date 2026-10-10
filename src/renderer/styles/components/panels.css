@@ -606,21 +606,27 @@
 
 /* Toast Notifications — viewport-fixed, slides down from the top so
    important messages (especially errors) aren't tucked into a narrow
-   side panel where they'd be easy to miss. */
+   side panel where they'd be easy to miss. Same surface as the dropdown
+   menus (menu.css): translucent blurred panel, 1px light edge, dark
+   outline, 10px corners, Inter at 13px. */
 .app-toast {
   position: fixed;
   top: 16px;
   left: 50%;
   transform: translateX(-50%) translateY(-24px);
   width: min(560px, calc(100vw - 32px));
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
+  box-sizing: border-box;
+  background: var(--menu-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--menu-border);
+  border-radius: 10px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  box-shadow: var(--shadow-lg);
+  gap: 8px;
+  box-shadow: 0 0 0 0.5px var(--menu-outline), 0 12px 32px rgba(0, 0, 0, 0.4);
+  font-family: var(--font-sans);
   opacity: 0;
   transition: opacity var(--transition-normal), transform var(--transition-normal);
   z-index: 10000;
@@ -638,37 +644,45 @@
   flex-shrink: 0;
 }
 
+.app-toast .toast-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
 .app-toast .toast-message {
-  font-size: 12px;
-  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 400;
   color: var(--text-primary);
-  line-height: 1.4;
+  line-height: 1.45;
   word-break: break-word;
 }
 
 /* Sticky variant: stays until dismissed, so a warning carrying detail
    (channel breakdown, rates) can actually be read — the four-second fade
-   made those unreadable (resize-storm-watchdog spec). The message takes the
-   free space and the × sits at the end. */
-.app-toast-sticky .toast-message {
-  flex: 1;
-  min-width: 0;
-}
-
+   made those unreadable (resize-storm-watchdog spec). The × sits at the end. */
 .app-toast .toast-close {
   flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  color: var(--text-tertiary);
-  font-size: 18px;
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 16px;
   line-height: 1;
-  padding: 0 4px;
+  padding: 0;
   cursor: pointer;
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
 .app-toast .toast-close:hover {
   color: var(--text-primary);
+  background: var(--menu-hover);
 }
 
 .app-toast-success .toast-icon {
@@ -679,25 +693,15 @@
   color: var(--info);
 }
 
-/* Error variant: louder background tint, accent border, larger text
-   so a missed-CLI / failure message can't slip past the user.
-   The tint (--error-subtle) is 15% alpha, so it is layered over an opaque
-   base — on its own it let whatever sat behind the toast read straight
-   through the message (resize-storm-watchdog spec). */
+/* Error variant: the icon carries the color and the panel takes a faint
+   tint, layered over the opaque-enough menu surface so whatever sits behind
+   the toast can't read through the message (resize-storm-watchdog spec).
+   The text stays primary ink — red body text was hard to read. */
 .app-toast-error {
-  background: linear-gradient(var(--error-subtle), var(--error-subtle)), var(--bg-elevated);
-  border-color: var(--error);
-  padding: 16px 20px;
-  box-shadow: var(--shadow-lg), 0 0 0 1px var(--error);
+  background: linear-gradient(var(--error-subtle), var(--error-subtle)), var(--menu-bg);
 }
 
 .app-toast-error .toast-icon {
-  color: var(--error);
-}
-
-.app-toast-error .toast-message {
-  font-size: 13px;
-  font-weight: 600;
   color: var(--error);
 }
 

@@ -33,11 +33,10 @@ function init() {
   initialized = true;
 
   // Frame status arrives after the project path (main answers
-  // CHECK_IS_FRAME_PROJECT asynchronously), so both edges re-evaluate.
-  state.onProjectChange(() => {
-    hide();
-    evaluate();
-  });
+  // CHECK_IS_FRAME_PROJECT asynchronously), and until it does the status
+  // flag still describes the previous project. So a project change only
+  // clears the hint; the fresh status is what decides whether it shows.
+  state.onProjectChange(() => hide());
   state.onFrameStatusChange(() => evaluate());
 
   window.addEventListener('resize', position);
@@ -63,8 +62,8 @@ async function evaluate() {
     if (await isDismissed(projectPath)) return;
     const enabled = await ipcRenderer.invoke(IPC.IS_SPEC_DRIVEN_ENABLED, projectPath);
     if (enabled === true) return;
-    // The project may have changed while we were awaiting.
-    if (state.getProjectPath() !== projectPath) return;
+    // The project, or its Frame status, may have changed while we were awaiting.
+    if (state.getProjectPath() !== projectPath || !state.getIsFrameProject()) return;
     schedule(projectPath);
   } catch (err) {
     console.error('specDrivenHint: could not evaluate', err);

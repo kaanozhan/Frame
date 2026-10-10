@@ -129,7 +129,7 @@
   flex-shrink: 0;
 }
 
-/* Project switcher rows: exactly 32px. Name (and its Frame tag) sit left;
+/* Project switcher rows: exactly 32px. The name sits left;
    the attention dot, checkmark and remove × sit right — the ::before
    spacer between them is ordered in by flex `order`, so the markup stays
    as index.js writes it. */
@@ -151,9 +151,19 @@
   flex: 0 1 auto;
 }
 
-.sidebar-project-menu-item .sidebar-project-menu-tag {
+/* Frame-not-set-up mark: right after the name, quiet until hovered — its
+   tooltip (index.js) points at Project Settings. */
+.sidebar-project-menu-item .sidebar-project-menu-unset {
   order: 1;
-  line-height: normal;
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.sidebar-project-menu-item .sidebar-project-menu-unset:hover {
+  color: var(--warning);
 }
 
 .sidebar-project-menu-item .sidebar-project-menu-dot,

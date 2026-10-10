@@ -202,18 +202,6 @@
   color: var(--accent-primary);
 }
 
-.sidebar-project-menu-tag {
-  flex-shrink: 0;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  color: var(--bg-deep);
-  background: var(--accent-primary);
-  padding: 0 4px;
-  border-radius: 3px;
-}
-
 .sidebar-project-menu-sep {
   height: 1px;
   margin: 4px 2px;

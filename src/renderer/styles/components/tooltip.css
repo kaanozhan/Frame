@@ -8,7 +8,11 @@
   position: fixed;
   top: 0;
   left: 0;
+  /* Sized to its text up to 260px, then wraps inside the box — a nowrap
+     label longer than the cap ran out past its own border. */
+  width: max-content;
   max-width: 260px;
+  box-sizing: border-box;
   padding: 4px 8px;
   background: var(--bg-elevated);
   color: var(--text-primary);
@@ -17,7 +21,8 @@
   box-shadow: var(--shadow-md);
   font-size: 11px;
   line-height: 1.4;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;

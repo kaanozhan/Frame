@@ -34,8 +34,8 @@ let gitSharingWarningEl = null;
 let removeFrameBtnEl = null;
 let removeFrameNoteEl = null;
 let initFrameBtnEl = null;
-let frameSetupLabelEl = null;
-let frameSetupDescEl = null;
+let initBannerEl = null;
+let removeFrameRowEl = null;
 let defaultProjectRowEl = null;
 let defaultProjectDescEl = null;
 let defaultProjectChipEl = null;
@@ -53,8 +53,8 @@ function init() {
   removeFrameBtnEl = document.getElementById('settings-remove-frame');
   removeFrameNoteEl = document.getElementById('settings-remove-frame-note');
   initFrameBtnEl = document.getElementById('settings-init-frame');
-  frameSetupLabelEl = document.getElementById('settings-frame-setup-label');
-  frameSetupDescEl = document.getElementById('settings-frame-setup-desc');
+  initBannerEl = document.getElementById('settings-init-banner');
+  removeFrameRowEl = document.getElementById('settings-remove-frame-row');
   defaultProjectRowEl = document.getElementById('settings-default-project-row');
   defaultProjectDescEl = document.getElementById('settings-default-project-desc');
   defaultProjectChipEl = document.getElementById('settings-default-project-chip');
@@ -274,48 +274,25 @@ function setDoneWindowNote(message) {
 }
 
 /**
- * The setup row's two states. A folder Frame was never initialized in has
- * nothing to delete, so offering "Remove Frame" there described an action that
- * could not happen; and a project just removed kept offering it again. The row
- * follows `state.getIsFrameProject()`, which the open, an init and a removal
- * all keep current.
+ * Setup and removal are two surfaces. A project without `.frame/` gets the
+ * banner at the top — the one place Frame is set up from — and no remove
+ * row, since a folder Frame was never initialized in has nothing to delete.
+ * A Frame project gets the remove row and no banner. Both follow
+ * `state.getIsFrameProject()`, which the open, an init and a removal all keep
+ * current.
  *
- * With no project open it stays on the remove wording and goes inert, the same
- * way every other row in this modal does — the setting still exists, there is
- * just nothing to write to.
+ * With no project open the banner stays hidden and the remove row goes
+ * inert, the same way every other row in this modal does.
  */
 function syncFrameSetup() {
-  if (!removeFrameBtnEl || !initFrameBtnEl) return;
+  if (!removeFrameBtnEl) return;
   const projectPath = state.getProjectPath();
   const isFrame = state.getIsFrameProject();
+  const needsSetup = !!projectPath && !isFrame;
 
-  if (!projectPath) {
-    initFrameBtnEl.style.display = 'none';
-    removeFrameBtnEl.style.display = '';
-    removeFrameBtnEl.disabled = true;
-    setFrameSetupText(true);
-    return;
-  }
-
-  removeFrameBtnEl.disabled = false;
-  initFrameBtnEl.style.display = isFrame ? 'none' : '';
-  removeFrameBtnEl.style.display = isFrame ? '' : 'none';
-  setFrameSetupText(isFrame);
-}
-
-function setFrameSetupText(isFrame) {
-  if (frameSetupLabelEl) {
-    frameSetupLabelEl.textContent = isFrame
-      ? 'Remove Frame from this project'
-      : 'Set up Frame in this project';
-  }
-  if (frameSetupDescEl) {
-    frameSetupDescEl.innerHTML = isFrame
-      ? 'Deletes <code>.frame/</code>, <code>.claude/rules/frame.md</code> and Frame\'s hook '
-        + 'entries. Your own files are never touched.'
-      : 'This project isn\'t set up with Frame yet. Initializing adds <code>.frame/</code> for '
-        + 'AI context, task tracking and session notes. Nothing is added to your project root.';
-  }
+  if (initBannerEl) initBannerEl.style.display = needsSetup ? '' : 'none';
+  if (removeFrameRowEl) removeFrameRowEl.style.display = needsSetup ? 'none' : '';
+  removeFrameBtnEl.disabled = !projectPath;
 }
 
 /**

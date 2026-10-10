@@ -150,11 +150,11 @@ function getActiveProject() {
 /**
  * Add project to workspace
  */
-function addProject(projectPath, projectName, isFrameProject = false) {
+function addProject(projectPath, projectName) {
+  // Main reads the Frame status from disk itself.
   ipcRenderer.send(IPC.ADD_PROJECT_TO_WORKSPACE, {
     projectPath,
-    name: projectName,
-    isFrameProject
+    name: projectName
   });
 }
 

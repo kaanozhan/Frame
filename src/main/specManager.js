@@ -1269,6 +1269,15 @@ function startWatching(projectPath) {
   // and it arrives by whichever IPC message the renderer happens to send
   // first, which is why the gate lives here and not only in the open path.
   if (frameStore.isLegacyLayout(projectPath)) return;
+  // Same promise for a project that was never initialized: no `.frame/`
+  // until the user says so. The panel still gets an empty list so it stops
+  // showing the previous project's specs; init restarts the watch.
+  if (!frameProject.isFrameProject(projectPath)) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC.SPEC_DATA, { projectPath, specs: [] });
+    }
+    return;
+  }
 
   const root = getSpecsRoot(projectPath);
   // Ensure the directory exists so fs.watch doesn't throw on a fresh project
@@ -1533,6 +1542,8 @@ function setupIPC(ipcMain) {
     // *root* AGENTS.md — writing there before the move is what dirtied the
     // file and then made the migration refuse to run.
     if (frameStore.isLegacyLayout(projectPath)) return;
+    // Nothing to stage into a project that was never initialized.
+    if (!frameProject.isFrameProject(projectPath)) return;
     try {
       commandStaging.stageCommandFiles(projectPath);
       frameProject.ensureProjectArtifacts(projectPath);

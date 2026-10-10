@@ -777,6 +777,32 @@
   margin-left: auto;
 }
 
+/* ─── New terminal ──────────────────────────────────────── */
+/* A quiet + after the last terminal chip: square, the bar's 28px height,
+   muted until hovered. Never shrinks, so it stays reachable however many
+   chips there are. */
+.lane-bar-new-terminal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.lane-bar-new-terminal:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
 /* ─── "Close this terminal?" confirmation ───────────────── */
 
 .tcn-modal {

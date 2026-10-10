@@ -82,6 +82,45 @@
   margin-bottom: 22px;
 }
 
+/* Setup banner: Project Settings' first block for a project without
+   .frame/ (projectSettingsModal.syncFrameSetup). An accent-edged card so it
+   reads as the thing to do here, with the one filled button in the modal. */
+.settings-init-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+  padding: 12px 14px;
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-primary);
+  border-radius: 8px;
+}
+
+.settings-init-banner-title {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-init-btn {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bg-deep);
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.settings-init-btn:hover {
+  filter: brightness(1.08);
+}
+
 .settings-section:last-child {
   margin-bottom: 0;
 }

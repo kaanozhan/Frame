@@ -36,6 +36,7 @@ const { Plus, CheckSquare, Home, X, FileText, FileDiff, FileBarChart, Bot } = re
 const { escapeHtml } = require('./htmlUtils');
 const laneStatus = require('./laneStatus');
 const notify = require('./notify');
+const tooltip = require('./tooltip');
 
 function lucideIcon(data, size = 18) {
   const children = data.map(([tag, attrs]) => {
@@ -233,6 +234,7 @@ class TerminalTabBar {
       ` : ''}
       ${pagesDivider}
       ${showTerminals ? terminals.map(t => this._terminalChip(t, onTerminals && shownId === t.id)).join('') : ''}
+      <button class="lane-bar-new-terminal" type="button">${lucideIcon(Plus, 14)}</button>
       ${specDrawer ? `
         <button class="lane-bar-section lane-bar-page lane-bar-spec-drawer ${state.specDrawerShown ? 'current' : ''}" data-slug="${escapeHtml(specDrawer.slug)}" title="${escapeHtml(specDrawer.title)}">
           ${lucideIcon(FileText, 13)}
@@ -255,6 +257,10 @@ class TerminalTabBar {
         </button>
       `).join('')}
     `;
+
+    // New terminal, at the end of the terminal group: opens one in the
+    // default shell and enlarges it — no detour through the Terminals grid.
+    tooltip.attach(left.querySelector('.lane-bar-new-terminal'), 'New terminal', { placement: 'bottom' });
   }
 
   /**
@@ -287,6 +293,10 @@ class TerminalTabBar {
   _setupEventHandlers() {
     // Left section (delegated — content re-renders on every state update)
     this.element.addEventListener('click', (e) => {
+      if (e.target.closest('.lane-bar-new-terminal')) {
+        this._createLane();
+        return;
+      }
       // Terminals wears a section chip but is not one — it has no key, and
       // its × drops it from the bar rather than closing anything.
       if (e.target.closest('.lane-bar-terminals')) {

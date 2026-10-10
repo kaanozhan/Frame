@@ -231,7 +231,7 @@ function init() {
 
       // Add to workspace and update project list
       const projectName = projectPath.split('/').pop() || projectPath.split('\\').pop();
-      projectListUI.addProject(projectPath, projectName, state.getIsFrameProject());
+      projectListUI.addProject(projectPath, projectName);
       projectListUI.setActiveProject(projectPath);
 
       // Load tasks if tasks panel is visible
@@ -265,6 +265,9 @@ function init() {
     fileTreeUI.refreshFileTree();
     // Load tasks for the new project
     tasksPanel.loadTasks();
+    // The spec watch skipped this project while it had no .frame/ — start it
+    // now (this also stages the spec commands).
+    specPanel.startWatchingForProject(projectPath);
   });
 
   // Initialize the Open Project modal (shell over the existing open flows)
@@ -436,8 +439,14 @@ function setupProjectSwitcher() {
   if (wrap) wrap.style.display = '';
 
   const CHECK = '<svg class="sidebar-project-menu-item-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  // Small mark after the name of a project Frame isn't set up in; its
+  // tooltip says where to fix that (Project Settings' top banner).
+  const NOT_SET_UP = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="2.4"/></svg>';
 
   const close = () => {
+    // Rows are rebuilt on every open, so a label left on one would never see
+    // its mouseleave.
+    tooltip.hide();
     if (menu.hidden) return;
     menu.hidden = true;
     btn.setAttribute('aria-expanded', 'false');
@@ -455,7 +464,26 @@ function setupProjectSwitcher() {
   const open = () => {
     const projects = projectListUI.getProjects();
     const active = projectListUI.getActiveProject();
+    const wasOpen = !menu.hidden;
+    tooltip.hide();
     menu.innerHTML = '';
+
+    // "Add a project" leads the menu: with a long list at the end it sat
+    // below a scroll.
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'sidebar-project-menu-item sidebar-project-menu-add';
+    add.setAttribute('role', 'menuitem');
+    add.innerHTML = '<span class="sidebar-project-menu-item-name">+ Add a project…</span>';
+    add.addEventListener('click', () => {
+      close();
+      openProjectModal.open();
+    });
+    menu.appendChild(add);
+
+    const sep = document.createElement('div');
+    sep.className = 'sidebar-project-menu-sep';
+    menu.appendChild(sep);
 
     if (!projects.length) {
       const empty = document.createElement('div');
@@ -474,11 +502,15 @@ function setupProjectSwitcher() {
           ? `<span class="sidebar-project-menu-dot ${counts.approval ? 'approval' : 'input'}" title="${counts.approval ? 'agents need approval' : 'agents waiting for input'}"></span>`
           : '';
         item.innerHTML = '<span class="sidebar-project-menu-item-name"></span>'
-          + (p.isFrameProject ? '<span class="sidebar-project-menu-tag">Frame</span>' : '')
+          + (p.isFrameProject ? '' : `<span class="sidebar-project-menu-unset">${NOT_SET_UP}</span>`)
           + attention
           + (isActive ? CHECK : '')
           + '<span class="sidebar-project-menu-remove" title="Remove from list">×</span>';
         item.querySelector('.sidebar-project-menu-item-name').textContent = p.name;
+        const unset = item.querySelector('.sidebar-project-menu-unset');
+        if (unset) {
+          tooltip.attach(unset, 'Frame not set up — initialize it in Project Settings');
+        }
         item.addEventListener('click', (e) => {
           if (e.target.closest('.sidebar-project-menu-remove')) {
             close();
@@ -492,22 +524,10 @@ function setupProjectSwitcher() {
       });
     }
 
-    const sep = document.createElement('div');
-    sep.className = 'sidebar-project-menu-sep';
-    menu.appendChild(sep);
-
-    const add = document.createElement('button');
-    add.type = 'button';
-    add.className = 'sidebar-project-menu-item sidebar-project-menu-add';
-    add.setAttribute('role', 'menuitem');
-    add.innerHTML = '<span class="sidebar-project-menu-item-name">+ Add a project…</span>';
-    add.addEventListener('click', () => {
-      close();
-      openProjectModal.open();
-    });
-    menu.appendChild(add);
-
     menu.hidden = false;
+    // Open at the top, where "Add a project" is — a refresh while open keeps
+    // the user's scroll.
+    if (!wasOpen) menu.scrollTop = 0;
     btn.setAttribute('aria-expanded', 'true');
     // Defer so this opening click doesn't immediately close via the doc listener.
     setTimeout(() => {

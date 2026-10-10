@@ -50,6 +50,7 @@ const STATE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_MODULES = 8;     // output ceiling: a hint, not a file listing
 const MAX_CANDIDATES = 3;  // legacy: how many words from one search we bother to try
 const MAX_CONTEXT_CHARS = 1800; // below Claude Code's ~2,000-character inline ceiling
+const WORKER_BUDGET_MS = 25;    // connect + answer from the lifecycle worker, else read lookup.json
 
 // ─── tiny utils ───────────────────────────────────────────
 
@@ -105,7 +106,8 @@ function loadState(root, sessionId) {
   const st = readJson(stateFile(root, sessionId)) || {};
   return {
     concepts: Array.isArray(st.concepts) ? st.concepts : [],
-    delivered: Array.isArray(st.delivered) ? st.delivered : []
+    delivered: Array.isArray(st.delivered) ? st.delivered : [],
+    lookedUp: Array.isArray(st.lookedUp) ? st.lookedUp : []
   };
 }
 
@@ -397,6 +399,55 @@ function shellQuote(text) {
   return `'${text.replace(/'/g, `'\\''`)}'`;
 }
 
+// ─── find-module awareness (STR-03b) ──────────────────────
+//
+// An agent told to run find-module before grepping often greps right after
+// it anyway, and the hint then repeats the answer find-module just gave.
+// The hook already sees every Bash call: a find-module call is remembered
+// for the session, and a later search for the same thing stays quiet.
+
+const FIND_MODULE_CALL = /^\s*node\s+(?:"[^"]*find-module\.js"|'[^']*find-module\.js'|\S*find-module\.js)\s+(.+)$/;
+const MAX_LOOKED_UP = 64;
+
+/** The query of a `node …/find-module.js <query>` call on Bash, else null. */
+function findModuleQuery(toolName, input) {
+  const role = vocab ? vocab.roleOf(toolName) : (toolName === 'Bash' ? 'shell' : null);
+  if (role !== 'shell') return null;
+  const cmd = String((input && input.command) || '');
+  if (!cmd.includes('find-module') || cmd.includes('<<')) return null;
+  for (const seg of cmd.split(SEGMENT_SPLIT)) {
+    const m = FIND_MODULE_CALL.exec(seg.split('|')[0]);
+    if (!m) continue;
+    const words = [];
+    const tokens = m[1].match(/"[^"]*"|'[^']*'|\S+/g) || [];
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (t === '--list') return null;
+      if (t === '--limit' || t === '--retrieval') { i++; continue; }
+      if (t.startsWith('--')) continue;
+      words.push(t.replace(/^["']|["']$/g, ''));
+    }
+    if (words.length) return words.join(' ');
+  }
+  return null;
+}
+
+/** The same normalized form for a find-module query and a search pattern. */
+function lookupKey(text) {
+  return retrieval.fold(String(text)).replace(/[^\p{L}\p{N}_-]+/gu, ' ').trim();
+}
+
+function recordLookup(root, sessionId, query, revision) {
+  if (!sessionId) return;
+  const state = loadState(root, sessionId);
+  const entry = { q: lookupKey(query), rev: revision || null };
+  if (!entry.q || state.lookedUp.some((e) => e.q === entry.q && e.rev === entry.rev)) return;
+  cleanupState(root);
+  state.lookedUp.push(entry);
+  if (state.lookedUp.length > MAX_LOOKED_UP) state.lookedUp.splice(0, state.lookedUp.length - MAX_LOOKED_UP);
+  saveState(root, sessionId, state);
+}
+
 function renderV2(root, result, pattern, descriptor) {
   const q = shownQuery(pattern);
   const evidence = [...new Set(result.answer.map((c) => c.evidence))].join(', ');
@@ -404,8 +455,9 @@ function renderV2(root, result, pattern, descriptor) {
   const head = verified
     ? `Frame's module map points to these files for "${q}" (${evidence}):`
     : `Frame's module map has candidates for "${q}" (${evidence}) — map not verified recently (${descriptor.freshness}):`;
-  const tail = `Start from these files rather than a broad scan; your search still runs. ` +
-    `Full query: node ${finderCliPath(root)} ${shellQuote(q)}`;
+  const withLine = result.answer.some((c) => c.line);
+  const tail = `Open ${withLine ? 'it at the line shown' : 'these files'} directly; grep is for searching inside a file. ` +
+    `Your search still runs. Full query: node ${finderCliPath(root)} ${shellQuote(q)}`;
   const moreLine = `  … more — ${finderCliPath(root)} lists them`;
   // head \n lines… \n [more \n] tail — the "more" line is always reserved
   const total = (ls) => head.length + 1 + ls.reduce((n, l) => n + l.length + 1, 0) + moreLine.length + 1 + tail.length;
@@ -414,7 +466,7 @@ function renderV2(root, result, pattern, descriptor) {
   for (let i = 0; i < answer.length; i++) {
     const c = answer[i];
     const share = Math.floor((MAX_CONTEXT_CHARS - total(lines)) / (answer.length - i)) - 1;
-    const base = `  ${c.path}`;
+    const base = `  ${c.path}${c.line ? `:${c.line} ${c.symbol}` : ''}`;
     if (share < base.length) break; // stop on a whole candidate, never a cut path
     const room = share - base.length - 3;
     const desc = c.description && room > 12
@@ -427,22 +479,97 @@ function renderV2(root, result, pattern, descriptor) {
   return `${head}\n${lines.join('\n')}\n${tail}`;
 }
 
-function v2Mode(root, input, descriptor) {
+/**
+ * Ask the running lifecycle worker (STR-03b): one JSON line over the local
+ * socket it announced in lookup.endpoint. Resolves null — and the caller
+ * reads lookup.json as before — when there is no live worker of the same
+ * algorithm, or no answer within WORKER_BUDGET_MS. Local IPC only: the
+ * address is a socket path, never a host or port.
+ */
+function askWorker(root, query) {
+  const endpoint = readJson(retrieval.lookupEndpointPath(root));
+  if (!endpoint || endpoint.v !== retrieval.LOOKUP_PROTOCOL || endpoint.algorithm !== retrieval.ALGORITHM
+    || typeof endpoint.address !== 'string' || !Number.isInteger(endpoint.pid)) return Promise.resolve(null);
+  try {
+    process.kill(endpoint.pid, 0);
+  } catch (e) {
+    if (e.code !== 'EPERM') return Promise.resolve(null); // the announced worker is gone
+  }
+  let net;
+  try {
+    net = require('net');
+  } catch {
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    let done = false;
+    let buffer = '';
+    let socket = null;
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try { socket.destroy(); } catch { /* already closed */ }
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(null), WORKER_BUDGET_MS);
+    try {
+      socket = net.createConnection({ path: endpoint.address });
+    } catch {
+      return finish(null);
+    }
+    socket.setEncoding('utf8');
+    socket.on('connect', () => socket.write(`${JSON.stringify({ v: retrieval.LOOKUP_PROTOCOL, query, mode: 'hook', limit: MAX_MODULES })}\n`));
+    socket.on('data', (chunk) => {
+      buffer += chunk;
+      const newline = buffer.indexOf('\n');
+      if (newline === -1) return;
+      try {
+        const reply = JSON.parse(buffer.slice(0, newline));
+        finish(reply && reply.ok && reply.result ? reply : null);
+      } catch {
+        finish(null);
+      }
+    });
+    socket.on('error', () => finish(null));
+    socket.on('close', () => finish(null));
+  });
+}
+
+async function v2Mode(root, input, descriptor) {
   const pattern = patternFrom(input.tool_name, input.tool_input || {});
   if (!pattern || !pattern.trim()) return quiet(root, 'no-words');
   // A scan that missed files: an answer could be the wrong one. Stay quiet.
   if (descriptor.coverage && descriptor.coverage !== 'complete') return quiet(root, 'map-incomplete');
 
-  const { index, reason } = loadIndex(root);
-  if (!index) return quiet(root, reason);
-  const exists = (rel) => existsInProject(root, rel);
-  const result = retrieval.retrieve(index, pattern, { mode: 'hook', exists });
-  if (result.status === 'no-match') {
-    const weak = retrieval.retrieve(index, pattern, { mode: 'cli', limit: 1 });
-    return quiet(root, weak.status === 'no-match' ? 'no-match' : 'ambiguous-weak');
+  // find-module already answered this in the session, at this map revision
+  if (input.session_id) {
+    const seen = loadState(root, input.session_id).lookedUp;
+    const q = lookupKey(pattern);
+    if (seen.some((e) => e.q === q && e.rev === (descriptor.revision || null))) return quiet(root, 'already-looked-up');
   }
 
-  const key = `${index.revision || (index.source && JSON.stringify(index.source.signature)) || 'map'}|${fingerprint(result.answer.map((c) => c.path))}`;
+  // The running worker answers from memory; without one, read lookup.json.
+  let result;
+  let revisionKey;
+  const fromWorker = await askWorker(root, pattern);
+  if (fromWorker) {
+    result = fromWorker.result;
+    revisionKey = fromWorker.revision || 'worker';
+    if (result.status === 'no-match') return quiet(root, fromWorker.weak ? 'ambiguous-weak' : 'no-match');
+  } else {
+    const { index, reason } = loadIndex(root);
+    if (!index) return quiet(root, reason);
+    const exists = (rel) => existsInProject(root, rel);
+    result = retrieval.retrieve(index, pattern, { mode: 'hook', exists });
+    if (result.status === 'no-match') {
+      const weak = retrieval.retrieve(index, pattern, { mode: 'cli', limit: 1 });
+      return quiet(root, weak.status === 'no-match' ? 'no-match' : 'ambiguous-weak');
+    }
+    revisionKey = index.revision || (index.source && JSON.stringify(index.source.signature)) || 'map';
+  }
+
+  const key = `${revisionKey}|${fingerprint(result.answer.map((c) => c.path))}`;
   const sessionId = input.session_id;
   if (sessionId) {
     const state = loadState(root, sessionId);
@@ -462,6 +589,15 @@ function v2Mode(root, input, descriptor) {
 function searchMode(input) {
   const root = resolveRoot(input.cwd);
 
+  // A find-module call is remembered (v2), never answered: it is the answer.
+  const lookedUp = findModuleQuery(input.tool_name, input.tool_input || {});
+  if (lookedUp !== null) {
+    if (structureRead && retrieval && engineFor(root) !== 'legacy') {
+      recordLookup(root, input.session_id, lookedUp, structureRead.readDescriptor(root).revision);
+    }
+    return;
+  }
+
   if (patternFrom(input.tool_name, input.tool_input || {}) === null) return; // not a search: silent, unrecorded
 
   if (!structureRead || !retrieval) return quiet(root, 'no-index');
@@ -477,7 +613,7 @@ function searchMode(input) {
 try {
   const input = JSON.parse(readStdin() || '{}');
   setHookCli(input);
-  if (process.argv[2] === 'search') searchMode(input);
+  if (process.argv[2] === 'search') Promise.resolve(searchMode(input)).catch(() => { /* silence is the contract */ });
 } catch { /* silence is the contract */ }
 
 // Deliberately `exitCode`, not `process.exit(0)`: an explicit exit tears the

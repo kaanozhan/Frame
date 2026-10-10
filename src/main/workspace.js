@@ -203,8 +203,13 @@ function setupIPC(ipcMain) {
     event.sender.send(IPC.WORKSPACE_DATA, projects);
   });
 
-  ipcMain.on(IPC.ADD_PROJECT_TO_WORKSPACE, (event, { projectPath, name, isFrameProject }) => {
-    const added = addProject(projectPath, name, isFrameProject);
+  ipcMain.on(IPC.ADD_PROJECT_TO_WORKSPACE, (event, { projectPath, name }) => {
+    // The Frame status is read from disk here, not taken from the renderer:
+    // the renderer adds the project the moment its path changes, before its
+    // own status check has answered, so what it would send is the previous
+    // project's status. Lazily required: frameProject requires this module.
+    const isFrame = require('./frameProject').isFrameProject(projectPath);
+    const added = addProject(projectPath, name, isFrame);
     const projects = getProjects();
     event.sender.send(IPC.WORKSPACE_UPDATED, projects);
   });

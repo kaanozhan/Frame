@@ -52,13 +52,6 @@
     <button type="button" id="sample-banner-close" class="sample-banner-close" aria-label="Dismiss">&#x2715;</button>
   </div>
 
-  <!-- First-run detection banner (shown right after a project is initialized as a Frame project) -->
-  <div id="detection-banner" class="sample-banner" role="status">
-    <span class="sample-banner-icon">&#10022;</span>
-    <span id="detection-banner-text" class="sample-banner-text"></span>
-    <button type="button" id="detection-banner-close" class="sample-banner-close" aria-label="Dismiss">&#x2715;</button>
-  </div>
-
   <!-- App Loader — boot splash and, on a first run, the onboarding screen
        (first-run-onboarding-screen spec). Frame's mark sits at half opacity
        and fills along its own perimeter — top-left → right → down → left →
@@ -1424,6 +1417,21 @@
         <button type="button" class="settings-close" data-settings-close aria-label="Close">&#x2715;</button>
       </div>
       <div class="settings-body">
+        <!-- Only for a project without .frame/: the one place Frame is set up
+             from. Opening such a project lands here (state.js), and the
+             button hands over to the init modal. -->
+        <div class="settings-init-banner" id="settings-init-banner" style="display:none;">
+          <div class="settings-row-text">
+            <div class="settings-init-banner-title">Frame isn't set up in this project</div>
+            <p class="settings-row-desc">
+              Initializing adds <code>.frame/</code> for AI context, specs, task tracking and
+              session notes; the settings below apply once it's set up. Nothing is added to
+              your project root.
+            </p>
+          </div>
+          <button type="button" class="settings-init-btn" id="settings-init-frame">Initialize Frame</button>
+        </div>
+
         <div class="settings-section">
           <h4 class="settings-section-title">Workflow</h4>
           <div class="settings-row">
@@ -1483,21 +1491,18 @@
             <button type="button" class="settings-action-btn" id="settings-migration-decision">Review</button>
           </div>
 
-          <!-- One row, two states: a project that has Frame can remove it, one
-               that does not can set it up. Which of the two buttons is shown
-               is decided in syncFrameSetup() — a folder that was never
-               initialized has nothing to remove, and one just removed must
-               stop offering to remove it again. -->
-          <div class="settings-row">
+          <!-- Shown only while the project has Frame (syncFrameSetup) — a folder
+               that was never initialized has nothing to remove; setting it up
+               is the banner at the top. -->
+          <div class="settings-row" id="settings-remove-frame-row">
             <div class="settings-row-text">
-              <label class="settings-row-label" id="settings-frame-setup-label">Remove Frame from this project</label>
-              <p class="settings-row-desc" id="settings-frame-setup-desc">
+              <label class="settings-row-label">Remove Frame from this project</label>
+              <p class="settings-row-desc">
                 Deletes <code>.frame/</code>, <code>.claude/rules/frame.md</code> and Frame's hook
                 entries. Your own files are never touched.
               </p>
               <p class="settings-row-desc" id="settings-remove-frame-note" style="display:none;"></p>
             </div>
-            <button type="button" class="settings-action-btn" id="settings-init-frame" style="display:none;">Initialize</button>
             <button type="button" class="settings-danger-btn" id="settings-remove-frame">Remove Frame</button>
           </div>
         </div>
