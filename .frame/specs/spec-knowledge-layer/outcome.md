@@ -206,3 +206,11 @@ directional criterion is recorded. Files touched:
 _Captured: 2026-07-22 · 1 file change(s) + acceptance.md_
 
 ---
+
+## Fix — The prompt-time hint names digest.md before the chain
+
+T05's prompt block told the agent to "read the spec chain (spec.md → plan.md → outcome.md)" and never named the digest, which holds a spec's decisions in a few lines. The sentence in `scripts/spec-hint.js` now sends the agent to each spec's `digest.md` first, where it has one (an in-flight spec has none yet), and to the chain when it needs the detail; the per-spec lines and the size handling are unchanged. Done as the separate task `spec-close-step` left out of its scope, on the hook line only: the AGENTS.md and CLAUDE.md templates keep their chain line. The digest records no wording of this sentence, so it stays as it is.
+
+_Captured: 2026-10-20 · 2 file changes_
+
+---

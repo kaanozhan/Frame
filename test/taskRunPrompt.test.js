@@ -134,3 +134,64 @@ test('the completion line closes every prompt', () => {
     assert.ok(buildTaskPrompt(ready({ description: '' }), opts).endsWith(tail));
   }
 });
+
+// ─── recorded decisions (decision-cards-core T07) ─────────
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const READY = {
+  id: 't1', title: 'Merge cards from two branches', description: 'Make two branches merge their card files cleanly.',
+  acceptanceCriteria: 'A merge has no conflict.', priority: 'medium', status: 'pending'
+};
+const CARDS = [
+  { id: '20261015-bbbbbb', decision: 'Card files merge with the union driver.', story: 'PROJECT_NOTES.md "### [2026-10-15] Union merge"' },
+  { id: '20261014-aaaaaa', decision: 'Cards are never edited in place.', story: '.frame/specs/decision-cards-core/' },
+  { id: '20261013-cccccc', decision: 'A third card is never sent.' }
+];
+
+test('no matched cards leaves the prompt exactly as it was', () => {
+  const plain = buildTaskPrompt(READY);
+  assert.equal(buildTaskPrompt(READY, { cards: [] }), plain);
+  assert.equal(buildTaskPrompt(READY, { cards: undefined }), plain);
+  assert.equal(buildTaskPrompt(READY, { cards: [{ id: '', decision: '' }] }), plain, 'an unusable card is dropped, not rendered');
+});
+
+test('up to two matched cards follow the task text, on the prompt\'s one line', () => {
+  const prompt = buildTaskPrompt(READY, { cards: CARDS, branchMode: 'new', newBranchName: 'feat/x' });
+  assert.ok(!prompt.includes('\n'));
+  const at = prompt.indexOf('Recorded decisions that may apply — respect them, or tell me before overturning one: ');
+  assert.ok(at > prompt.indexOf('Acceptance criteria: A merge has no conflict.'), 'after the task\'s own text');
+  assert.ok(at < prompt.indexOf('Before starting'), 'before the steps');
+  assert.match(prompt, /"Card files merge with the union driver\." \(card 20261015-bbbbbb, story: PROJECT_NOTES\.md "### \[2026-10-15\] Union merge"\); "Cards are never edited in place\." \(card 20261014-aaaaaa, story: \.frame\/specs\/decision-cards-core\/\)\./);
+  assert.ok(!prompt.includes('A third card is never sent.'));
+});
+
+test('the main process matches at most two strong spec-less cards for a task', async () => {
+  const projectInsights = require('../src/main/projectInsights');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-taskcards-'));
+  fs.mkdirSync(path.join(root, '.frame'), { recursive: true });
+  assert.deepEqual((await projectInsights.loadDecisionCards(root, { match: 'merge branches' })).matches, [], 'no card file, no matches');
+
+  const card = (over) => JSON.stringify({
+    date: '2026-10-14', why: 'A reason.', files: [], supersedes: null, extends: null,
+    source: 'notes:2026-10-14 Union merge', ...over
+  });
+  fs.writeFileSync(path.join(root, '.frame', 'PROJECT_NOTES.md'), '### [2026-10-14] Union merge\n\nWhy.\n');
+  fs.writeFileSync(path.join(root, '.frame', 'decisions.jsonl'), [
+    card({ id: '20261011-aaaaaa', decision: 'Card files merge with the union driver.', keywords: ['union merge', 'branches'] }),
+    card({ id: '20261012-bbbbbb', decision: 'Two branches merge card files without conflict.', keywords: ['merge', 'branches'] }),
+    card({ id: '20261013-cccccc', decision: 'Branches that merge cards keep both lines.', keywords: ['merge', 'branches', 'cards'] }),
+    card({ id: '20261014-dddddd', decision: 'A spec card about merging branches.', keywords: ['merge', 'branches'], source: 'spec:some-spec' }),
+    card({ id: '20261015-eeeeee', decision: 'Unrelated sidebar colours.', keywords: ['sidebar'] })
+  ].join('\n') + '\n');
+
+  const out = await projectInsights.loadDecisionCards(root, { match: `${READY.title} ${READY.description}` });
+  assert.equal(out.matches.length, 2);
+  assert.ok(out.matches.every((c) => !c.source.startsWith('spec:')), 'spec cards are never sent to a task run');
+  assert.ok(out.matches.every((c) => c.story.startsWith('PROJECT_NOTES.md')));
+  assert.equal(out.cards.length, 5, 'the whole current set is returned beside the matches');
+  assert.equal(out.notes.length, 1);
+  assert.equal((await projectInsights.loadDecisionCards(root, { match: 'sidebar' })).matches.length, 0, 'one rare word is not a strong match');
+});

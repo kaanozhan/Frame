@@ -126,6 +126,10 @@ const IPC = {
 
   // Project insights (decisions list, structure-map file history)
   LOAD_DECISIONS: 'load-decisions',
+  // Decision cards (decision-cards-core): the current set and the notes
+  // entries their stories point at, plus, given a task's text, the cards a
+  // task run is told about.
+  LOAD_DECISION_CARDS: 'load-decision-cards',
   GET_FILE_GIT_HISTORY: 'get-file-git-history',
 
   // Git Branches Panel

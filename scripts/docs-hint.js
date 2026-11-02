@@ -33,6 +33,13 @@
  * that never reads them loses nothing. `--list` names them, and `section`
  * prints them on request.
  *
+ * One more thing rides on `pre-edit`, because this is the only script Frame
+ * registers on both shell and edit calls in both CLIs: when a call is *not* a
+ * meta write — the path that used to return in silence — it asks
+ * spec-close-state.js whether a spec has just closed without its digest, and
+ * says so in one line. A meta write still delivers its section and nothing
+ * else; the reminder waits for the next call.
+ *
  * Hard contract (same as scripts/spec-hint.js):
  *   - NEVER block, NEVER break: any failure → exit 0, empty output.
  *   - Read-only: sections are sliced out and emitted, never written back.
@@ -98,7 +105,12 @@ const FILE_SECTIONS = [
   { file: 'tasks.json', section: 'Task Management', subsections: ['Task Structure', 'Task Content Rules', 'Task Status Updates'] },
   { file: 'PROJECT_NOTES.md', section: 'PROJECT_NOTES.md Rules' },
   { file: 'STRUCTURE.json', section: 'STRUCTURE.json Rules' },
-  { file: 'QUICKSTART.md', section: 'QUICKSTART.md Rules' }
+  { file: 'QUICKSTART.md', section: 'QUICKSTART.md Rules' },
+  // A card written by hand — the fallback when decision.js is missing, or an
+  // agent appending with `>>`. The write needs the yes rule and the card's
+  // shape; when to ask and how to phrase the question belong to the
+  // conversation, before anything is written.
+  { file: 'decisions.jsonl', section: 'Decision Cards', subsections: ['On a yes', 'The card'] }
 ];
 
 // `Task Management` as a whole is 2396 characters — over the ceiling — but its
@@ -213,6 +225,16 @@ try {
   vocab = require('./toolVocabulary');
 } catch {
   /* older generation — the inline fallbacks below are the old behaviour */
+}
+
+// What a closed spec still owes. Guarded like the two above: a `.frame/bin/`
+// that predates spec-close-state.js keeps exactly today's silence on a
+// non-meta call.
+let closeState = null;
+try {
+  closeState = require('./spec-close-state');
+} catch {
+  /* older generation — no reminder */
 }
 
 /**
@@ -337,10 +359,28 @@ function metaTargetOf(toolName, input) {
   return null;
 }
 
+/**
+ * The same-turn close reminder. An agent closes a spec's last task through a
+ * shell command, and the next thing it does is another shell or edit call —
+ * this one. The helper owns every decision (closed by this session, not
+ * orchestrated, not yet said this session); this only says the line and
+ * records what the helper reports. No candidate means no output and no row,
+ * which is every call in a project with nothing owed.
+ */
+function closeReminder(root, input) {
+  if (!closeState) return;
+  const out = closeState.reminder(root, input.session_id);
+  if (!out) return;
+  for (const reason of out.reasons || []) note(root, 'hint.quiet', 'spec-close', { reason });
+  if (!out.line) return;
+  note(root, 'hint.injected', 'spec-close', { specs: out.slugs.length });
+  emit('PreToolUse', out.line);
+}
+
 function preEdit(input) {
   const root = resolveRoot(input.cwd);
   const target = metaTargetOf(input.tool_name, input.tool_input || {});
-  if (!target) return; // not a Frame meta write — silent and unrecorded
+  if (!target) return closeReminder(root, input); // not a Frame meta write — its rules have nothing to say
 
   const sections = loadSections(root);
   if (!sections) return note(root, 'hint.quiet', 'meta-write', { reason: 'no-index' });

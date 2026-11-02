@@ -1,0 +1,31 @@
+{
+  "slug": "spec-close-step",
+  "title": "Spec Close Step",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-spec-close-step-T01",
+    "task-spec-spec-close-step-T02",
+    "task-spec-spec-close-step-T03",
+    "task-spec-spec-close-step-T04",
+    "task-spec-spec-close-step-T05",
+    "task-spec-spec-close-step-T06",
+    "task-spec-spec-close-step-T07",
+    "task-spec-spec-close-step-T08",
+    "task-spec-spec-close-step-T09",
+    "task-spec-spec-close-step-T10",
+    "task-spec-spec-close-step-T11",
+    "task-spec-spec-close-step-T12",
+    "task-spec-spec-close-step-T13",
+    "task-spec-spec-close-step-T14",
+    "task-spec-spec-close-step-T15",
+    "task-spec-spec-close-step-T16",
+    "task-spec-spec-close-step-T17",
+    "task-spec-spec-close-step-T18",
+    "task-spec-spec-close-step-T19"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-10-13T13:14:16Z",
+  "updated_at": "2026-10-14T16:17:01.351Z",
+  "last_phase_at": "2026-10-14T16:17:01.351Z",
+  "implement_mode": "autonomous"
+}

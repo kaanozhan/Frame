@@ -122,7 +122,7 @@ function panelTab({ label, icon, elementId, module }) {
  */
 const DOCK_TABS = {
   decisions: {
-    label: 'Decisions',
+    label: 'Project Notes',
     icon: ScrollText,
     // decisionsView renders into whatever container it is given; the slot
     // carries the class its CSS is scoped to. One LOAD_DECISIONS per mount,

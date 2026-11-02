@@ -139,16 +139,22 @@ function cliOfTool(toolName) {
  * An explicit `cli` beats everything: Frame writes the hook config, so it can
  * name the CLI on the command line and nothing has to be inferred. The
  * fallbacks exist for a hand-installed hook — first the tool name when it
- * belongs to exactly one CLI, then the fields only Codex sends. Claude Code
- * is the default because it is the generation of hook config that already
- * exists in the field without a `--cli` flag.
+ * belongs to exactly one CLI, then `turn_id`, the one field only Codex sends.
+ * Claude Code is the default because it is the generation of hook config that
+ * already exists in the field without a `--cli` flag.
+ *
+ * Frame's own Claude Code hooks pass no CLI name, so this check decides their
+ * label and their inline cap. Claude Code 2.1 sends `permission_mode` and
+ * `tool_use_id` too, so those no longer tell the two CLIs apart. `model` is
+ * left out as well: one more field shared with Claude Code would bring the
+ * same mislabel back, and `turn_id` alone is enough.
  */
 function cliOf(payload, explicit) {
   if (explicit && CLIS[explicit]) return explicit;
   const p = payload || {};
   const byTool = cliOfTool(p.tool_name);
   if (byTool) return byTool;
-  if (p.turn_id || p.permission_mode || p.model) return CODEX;
+  if (p.turn_id) return CODEX;
   return CLAUDE;
 }
 

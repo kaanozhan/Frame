@@ -52,12 +52,13 @@ const SCRIPTS_SOURCE_DIR = path.join(__dirname, '..', '..', 'scripts');
 const HELPER_FILES = [
   'structure-switch.js', 'structure-ignore.js', 'structure-ignore.LICENSE', 'structure-discovery.js',
   'structure-generation.js', 'structure-state.js', 'structure-snapshot.js',
-  'structure-read.js', 'structure-commit.js', 'structure-retrieval.js', 'toolVocabulary.js', 'redact.js', 'activity-log.js'
+  'structure-read.js', 'structure-commit.js', 'structure-retrieval.js', 'toolVocabulary.js', 'redact.js', 'activity-log.js',
+  'spec-close-state.js', 'decision-cards.js'
 ];
 const ENTRY_FILES = [
   'update-structure.js', 'structure-lifecycle.js', 'find-module.js', 'check-freshness.js',
   'detect-project.js', 'spec-index.js', 'spec-context.js', 'spec-hint.js', 'module-hint.js',
-  'docs-hint.js', 'spec-command-hint.js'
+  'docs-hint.js', 'spec-command-hint.js', 'spec-close.js', 'decision.js'
 ];
 // The app's own atomic writer, shipped beside the structure helpers so the
 // project's parser publishes with the same implementation (not a copy of it).
@@ -77,7 +78,14 @@ const ENTRY_REQUIRES = {
   'structure-lifecycle.js': LIFECYCLE_REQUIRES,
   // Readers of the freshness contract (STR-02).
   'find-module.js': ['structure-read.js', 'structure-retrieval.js'],
-  'module-hint.js': ['structure-read.js', 'structure-retrieval.js', 'structure-switch.js']
+  'module-hint.js': ['structure-read.js', 'structure-retrieval.js', 'structure-switch.js'],
+  // The close step. docs-hint.js and spec-hint.js also read the helper, but
+  // behind a guarded require — without it they behave as they always did,
+  // so only the script that cannot run at all is held back.
+  'spec-close.js': ['spec-close-state.js'],
+  // The card writer cannot run without the reader it validates with. The
+  // hooks read cards behind a guarded require, like spec-close-state.js.
+  'decision.js': ['decision-cards.js']
 };
 // The module map's own files (scripts/structure-switch.js: opt-in per
 // project). A project without the map gets none of them — fsSafe.js and the

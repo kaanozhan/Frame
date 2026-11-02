@@ -23,7 +23,9 @@ const FRAME_FILES = {
   STRUCTURE: 'STRUCTURE.json',
   NOTES: 'PROJECT_NOTES.md',
   TASKS: 'tasks.json',
-  QUICKSTART: 'QUICKSTART.md'
+  QUICKSTART: 'QUICKSTART.md',
+  // Decision cards. Born after the overlay, so it only ever lives in .frame/.
+  DECISIONS: 'decisions.jsonl'
 };
 
 // Frame bin directory for AI tool wrappers
@@ -52,7 +54,7 @@ const MIGRATION_BACKUP_DIR = 'migration-backup';
 // is built from these lists minus those.
 const FRAME_FILE_CLASSES = {
   instruction: ['AGENTS.md', 'docs/'],
-  data: ['tasks.json', 'PROJECT_NOTES.md', 'QUICKSTART.md', 'specs/'],
+  data: ['tasks.json', 'PROJECT_NOTES.md', 'QUICKSTART.md', 'decisions.jsonl', 'specs/'],
   derived: [
     'STRUCTURE.json',
     'index/',
@@ -116,7 +118,7 @@ const orchIntegrationBranch = (slug) => `${ORCH_BRANCH_PREFIX}/${slug}/integrati
 
 // Meta files excluded from footprint conflict analysis (reconciled separately,
 // otherwise every spec collides on them).
-const ORCH_META_FILES = ['tasks.json', 'STRUCTURE.json', 'PROJECT_NOTES.md', 'AGENTS.md', 'CLAUDE.md'];
+const ORCH_META_FILES = ['tasks.json', 'STRUCTURE.json', 'PROJECT_NOTES.md', 'AGENTS.md', 'CLAUDE.md', 'decisions.jsonl'];
 
 // Frame version
 const FRAME_VERSION = '1.0';

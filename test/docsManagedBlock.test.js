@@ -308,3 +308,28 @@ test('append rejects the same invalid inputs upgradeDoc does', () => {
   assert.equal(appendBlock('# Doc', { body: NEW_BODY, version: 1.5 }), null);
   assert.equal(appendBlock('# Doc', { version: 2 }), null);
 });
+
+// ─── The decision block (decision-cards-core T04) ─────────────
+
+const { DECISION_BLOCK_NAME, SPEC_BLOCK_NAME } = require('../src/shared/docsManagedBlock');
+
+test('the decision block is a second named block, distinct from the spec section', () => {
+  assert.equal(DECISION_BLOCK_NAME, 'frame:managed:decision-section');
+  assert.notEqual(DECISION_BLOCK_NAME, SPEC_BLOCK_NAME);
+});
+
+test('appending the decision block beside a spec block leaves the spec block byte-identical', () => {
+  const doc = `# Doc\n\n---\n\n${renderBlock('spec body', 3)}\n\n---\n\n*This file was automatically created by Frame.*\n`;
+  const out = upgradeDoc(doc, {
+    body: '## Decision Cards\n\nAsk once.', version: 1, blockName: DECISION_BLOCK_NAME,
+    onAbsent: 'append', footerMarker: '*This file was automatically created by Frame.'
+  });
+  assert.ok(out);
+  assert.ok(out.includes(renderBlock('spec body', 3)));
+  assert.equal(findBlock(out).version, 3, 'the spec block keeps its own stamp');
+  assert.equal(findBlock(out, DECISION_BLOCK_NAME).version, 1);
+  assert.ok(findBlock(out, DECISION_BLOCK_NAME).start > findBlock(out).end, 'appended after the spec block');
+  // Upgrading the spec section later never touches the decision block.
+  const specUp = upgradeDoc(out, { body: 'spec body v4', version: 4 });
+  assert.ok(specUp.includes(renderBlock('## Decision Cards\n\nAsk once.', 1, DECISION_BLOCK_NAME)));
+});

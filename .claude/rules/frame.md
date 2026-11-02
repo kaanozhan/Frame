@@ -110,3 +110,13 @@ Full roles and rules: **"Agent Orchestration"** in `.frame/docs/REFERENCE.md`.
 ---
 
 *Managed by Frame. Maintenance reference: `.frame/docs/REFERENCE.md`*
+
+---
+
+<!-- frame:managed:decision-section v=2 -->
+## Decision Cards
+
+When a decision is made in conversation, ask once whether to record it, naming any card it overturns (`node .frame/bin/decision.js related`); on a yes, write the `.frame/PROJECT_NOTES.md` entry and its card (`decision.js add`).
+Nothing is recorded without that yes — this overrides any older "add without asking" line.
+How: **"Decision Cards"** in `.frame/docs/REFERENCE.md`.
+<!-- /frame:managed:decision-section -->

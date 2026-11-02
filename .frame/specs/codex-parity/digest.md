@@ -1,0 +1,16 @@
+---
+keywords: codex, hooks, hook trust, CODEX_HOME, tool vocabulary, command templates, apply_patch, wrapper retirement
+related: spec-knowledge-layer, cli-spec-command-parity, non-invasive-overlay, audit-q3-cross-platform, spec-docs-delivery-invariant, fix-report-staging-and-opening
+---
+Gave Codex the hook deliveries and spec commands Claude Code has: `scripts/toolVocabulary.js` maps each CLI's tool names, Frame merges its hooks into the global `CODEX_HOME/hooks.json`, and a `SessionStart` hook replaced the `.frame/bin/codex` wrapper.
+
+- Measured first (Codex CLI 0.149.1, `measurements.md`): the shell tool is `Bash` with Claude Code's `tool_input.command`, so the search and shell hints ported unchanged; `apply_patch` sends a `*** Add|Update|Delete File:` envelope instead of `file_path`, so the vocabulary carries a path extractor; the inline ceiling is ≥20 000 characters against Claude Code's 2 000, so the cap is per CLI. The vocabulary sits in `scripts/`, not `src/shared/` as planned, because the hint scripts ship to `.frame/bin/`.
+- Hooks: `installCodexHintHook`/`removeCodexHintHook` merge into `CODEX_HOME/hooks.json` from `runProjectInit`, only when Codex is the active tool; a project-local `.codex/hooks.json` did not fire. An `if: "test -d .frame"` did not gate, but a hook's cwd is the project, so each command's `[ ! -f .frame/bin/… ] ||` guard keeps node from starting outside Frame projects. Accepted departure from `non-invasive-overlay`: a user file Frame merges into, never owns.
+- Untrusted hooks: Codex keeps no readable trust state, so detection is behavioural: hooks installed but no `codex-hook` row in the activity log → `hooks.untrusted` + a `CODEX_HOOKS_UNTRUSTED` notice. Rejected: reading Codex internals; warning once at setup (a script change un-trusts the hooks again, silently).
+- Templates: the rendered prompts differed on 2 of 1 120 lines (0.18%), so no `commands/codex/` files: one source plus `toolVocabulary.dialect()` tokens, falling back to `claude-code`. Rejected: four hand-written Codex templates (drift). Tests pin Claude Code's rendering byte-identical and run the drift guard for both CLIs; a live Codex `/spec.plan` reached the decision gate and asked with a numbered list.
+- Autonomous implement is not offered to Codex: `getImplementLaunchFlags` returns nothing for it and the dialect points at guided. Porting `implement-launch.js` (Codex has `--approve-for-me`) is the open gap.
+- Wrapper gone: the codex command is plain `codex`; a live session answered a passphrase that exists only in REFERENCE.md. This reverses `audit-q3-cross-platform`'s asked decision (in-process `codex "<prompt>"`), recorded in that plan (T10). After merge, `ec12616` added `toolVocabulary.js` to `build.files`: without it the packaged main process crashed at startup, and tests run from source.
+- Fix 2026-10-20 (`b77e7a2`): `cliOf` treated `turn_id`, `permission_mode` or `model` as Codex signals; Claude Code 2.1 sends `permission_mode`, so its hooks were logged `codex-hook` with Codex's 20 000 cap. Only `turn_id` marks Codex now.
+- Rules: measure the other CLI before trusting a payload's shape or size; a field identifies a CLI only while no other CLI sends it; a per-tool template file exists only where the flow really differs.
+
+Chain: spec.md → plan.md → tasks.md → outcome.md

@@ -12,6 +12,11 @@
  *           `.gitignore`) while `.frame/` is untracked; hook entries move to
  *           `.claude/settings.local.json`.
  *
+ * In repo mode `.frame/.gitattributes` also carries a managed block that
+ * merges `decisions.jsonl` by union, so cards two branches each add never
+ * conflict. Local mode writes nothing there: `.frame/` is untracked, nothing
+ * of it is merged.
+ *
  * Frame never runs `git rm`. If `.frame/` is already tracked and the user
  * picks `local`, the mode is stored, the exclusion is skipped (excluding
  * tracked files makes them vanish on a teammate's clone) and a warning with
@@ -92,6 +97,36 @@ function ensureFrameGitignore(projectPath) {
 }
 
 /**
+ * Write (or refresh) the managed block in `.frame/.gitattributes` — in repo
+ * mode only. Local mode leaves the file as it finds it: a block written while
+ * the project was shared stays harmless, and removing it would be a write to
+ * a file that mode is meant not to touch. Same marker surgery as the
+ * `.gitignore` block, so lines the user added survive.
+ */
+function ensureFrameGitattributes(projectPath, mode = getMode(projectPath)) {
+  const file = path.join(projectPath, FRAME_DIR, templates.FRAME_GITATTRIBUTES_FILE);
+  if (normalizeMode(mode) !== 'repo') return { changed: false, file, skipped: 'local' };
+
+  let existing = '';
+  try {
+    existing = fs.readFileSync(file, 'utf8');
+  } catch (err) {
+    /* first write */
+  }
+  const { head, tail } = gitExclude.splitBlock(existing, {
+    start: templates.FRAME_GITATTRIBUTES_MARKER_START,
+    end: templates.FRAME_GITATTRIBUTES_MARKER_END
+  });
+  const headText = head.length > 0 && !head.endsWith('\n') ? `${head}\n` : head;
+  const next = headText + templates.getFrameGitattributesBlock() + tail;
+
+  if (next === existing) return { changed: false, file };
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, next, 'utf8');
+  return { changed: true, file };
+}
+
+/**
  * What the UI needs to render the control: the current mode, whether `.frame/`
  * is tracked, and the warning (with command) when those two disagree.
  */
@@ -135,6 +170,7 @@ function setMode(projectPath, requestedMode) {
   }
 
   ensureFrameGitignore(projectPath);
+  ensureFrameGitattributes(projectPath, mode);
 
   // Hook entries follow the mode: added to the new file, taken out of the old
   // one. Lazy require — frameProject requires this module's siblings and we
@@ -185,6 +221,7 @@ module.exports = {
   reconcile,
   hookFileFor,
   ensureFrameGitignore,
+  ensureFrameGitattributes,
   MODES,
   DEFAULT_MODE
 };

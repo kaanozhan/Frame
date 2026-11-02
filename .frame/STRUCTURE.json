@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-10-23",
+  "lastUpdated": "2026-10-24",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -94,7 +94,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 12254,
+      "sizeBytes": 13229,
       "extraction": {
         "status": "parsed"
       },
@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 94121,
+      "sizeBytes": 95286,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -2125,21 +2125,27 @@
           ],
           "purpose": "The spec-section descriptors, in the order they must be settled: the target"
         },
+        "decisionDocDescriptors": {
+          "line": 1244,
+          "params": [
+            "projectPath"
+          ]
+        },
         "readTextOrNull": {
-          "line": 1239,
+          "line": 1265,
           "params": [
             "file"
           ]
         },
         "upgradeSpecDocs": {
-          "line": 1253,
+          "line": 1279,
           "params": [
             "projectPath"
           ],
           "purpose": "Upgrade the Frame-managed sections and report what could not be settled."
         },
         "appendSpecSection": {
-          "line": 1336,
+          "line": 1375,
           "params": [
             "projectPath",
             "rel"
@@ -2147,14 +2153,14 @@
           "purpose": "Append the managed spec section to a document the pass deliberately refused"
         },
         "docsHealthFor": {
-          "line": 1375,
+          "line": 1414,
           "params": [
             "projectPath"
           ],
           "purpose": "The report on its own, without running the repair pass — what the UI asks"
         },
         "recordDocsActivity": {
-          "line": 1397,
+          "line": 1436,
           "params": [
             "written",
             "appended",
@@ -2163,20 +2169,20 @@
           "purpose": "Put the pass's result on the record. This is the half that was missing when"
         },
         "detachThenRemoveFrame": {
-          "line": 1436,
+          "line": 1475,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove Frame after its lifecycle worker has stopped, so no child is still"
         },
         "removeFrame": {
-          "line": 1445,
+          "line": 1484,
           "params": [
             "projectPath"
           ]
         },
         "dropEmptySettingsFile": {
-          "line": 1499,
+          "line": 1538,
           "params": [
             "projectPath",
             "file"
@@ -2184,21 +2190,21 @@
           "purpose": "Delete a Claude settings file that now parses to `{}` — Frame wrote it to"
         },
         "isFrameOwnedHookResidue": {
-          "line": 1525,
+          "line": 1564,
           "params": [
             "text"
           ],
           "purpose": "What Frame's own pre-commit file looks like once its managed block is gone:"
         },
         "removeHookSnippet": {
-          "line": 1541,
+          "line": 1580,
           "params": [
             "projectPath"
           ],
           "purpose": "Strip Frame's marker-wrapped block from whichever pre-commit hook carries"
         },
         "openProjectLayout": {
-          "line": 1593,
+          "line": 1632,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -2206,7 +2212,7 @@
           "purpose": "Everything a project open does to the project, in the order that makes the"
         },
         "rearmAfterMigration": {
-          "line": 1714,
+          "line": 1753,
           "params": [
             "projectPath",
             "hooks = {}"
@@ -2214,7 +2220,7 @@
           "purpose": "Every meta file just changed address: the watchers are pointed at the"
         },
         "setupIPC": {
-          "line": 1736,
+          "line": 1775,
           "params": [
             "ipcMain"
           ],
@@ -2246,7 +2252,7 @@
           "FRAME_CONFIG_DATA"
         ]
       },
-      "sizeBytes": 77143,
+      "sizeBytes": 78958,
       "extraction": {
         "status": "parsed"
       },
@@ -2298,6 +2304,7 @@
         "resolvePath",
         "specsRoot",
         "resolveSpecDir",
+        "decisionsPath",
         "setupIPC",
         "metaDir",
         "isLegacyLayout",
@@ -2389,15 +2396,22 @@
           ],
           "purpose": "One spec's folder: `<project>/.frame/specs/<slug>`."
         },
+        "decisionsPath": {
+          "line": 145,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The project's decision cards: `<project>/.frame/decisions.jsonl`."
+        },
         "readText": {
-          "line": 139,
+          "line": 151,
           "params": [
             "projectPath",
             "name"
           ]
         },
         "writeText": {
-          "line": 147,
+          "line": 159,
           "params": [
             "projectPath",
             "name",
@@ -2405,48 +2419,48 @@
           ]
         },
         "getTasks": {
-          "line": 160,
+          "line": 172,
           "params": [
             "projectPath"
           ],
           "purpose": "tasks.json, with fsSafe's corruption recovery. Returns the recovery record"
         },
         "saveTasks": {
-          "line": 164,
+          "line": 176,
           "params": [
             "projectPath",
             "data"
           ]
         },
         "getStructure": {
-          "line": 174,
+          "line": 186,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's module map parsed, or null when it is missing or"
         },
         "workingViewPath": {
-          "line": 193,
+          "line": 205,
           "params": [
             "projectPath"
           ],
           "purpose": "Where the structure lifecycle keeps the working-tree view (STR-02c)."
         },
         "saveStructure": {
-          "line": 197,
+          "line": 209,
           "params": [
             "projectPath",
             "structure"
           ]
         },
         "readNotes": {
-          "line": 201,
+          "line": 213,
           "params": [
             "projectPath"
           ]
         },
         "appendNote": {
-          "line": 209,
+          "line": 221,
           "params": [
             "projectPath",
             "text"
@@ -2454,40 +2468,40 @@
           "purpose": "Append an entry to PROJECT_NOTES.md, keeping one blank line between it and"
         },
         "readQuickstart": {
-          "line": 218,
+          "line": 230,
           "params": [
             "projectPath"
           ]
         },
         "readAgents": {
-          "line": 222,
+          "line": 234,
           "params": [
             "projectPath"
           ]
         },
         "writeAgents": {
-          "line": 226,
+          "line": 238,
           "params": [
             "projectPath",
             "text"
           ]
         },
         "getProjectId": {
-          "line": 233,
+          "line": 245,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's stable id, or null if it has none yet."
         },
         "ensureProjectId": {
-          "line": 245,
+          "line": 257,
           "params": [
             "projectPath"
           ],
           "purpose": "Stamp a UUID into `.frame/config.json` once and return it; a project that"
         },
         "setupIPC": {
-          "line": 262,
+          "line": 274,
           "params": [
             "ipcMain"
           ],
@@ -2500,7 +2514,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 10669,
+      "sizeBytes": 11334,
       "extraction": {
         "status": "parsed"
       },
@@ -2508,6 +2522,7 @@
         "description": "49656e0cd38ce1d6",
         "purposes": {
           "appendNote": "4638b55e22918626",
+          "decisionsPath": "2f914fcfff9f7702",
           "ensureProjectId": "ba7dbfded94437a3",
           "getProjectId": "425bd0bcce18a16f",
           "getStructure": "6b39658e89876cb1",
@@ -3071,6 +3086,7 @@
         "reconcile",
         "hookFileFor",
         "ensureFrameGitignore",
+        "ensureFrameGitattributes",
         "MODES",
         "DEFAULT_MODE"
       ],
@@ -3085,55 +3101,63 @@
       ],
       "functions": {
         "init": {
-          "line": 35,
+          "line": 40,
           "params": [
             "{ activityLog"
           ],
           "purpose": "Wired from index.js so mode changes land in the activity record."
         },
         "record": {
-          "line": 39,
+          "line": 44,
           "params": [
             "event",
             "fields"
           ]
         },
         "normalizeMode": {
-          "line": 47,
+          "line": 52,
           "params": [
             "mode"
           ]
         },
         "getMode": {
-          "line": 52,
+          "line": 57,
           "params": [
             "projectPath"
           ],
           "purpose": "The mode a project is in (defaulting to `repo` for configs written before it)."
         },
         "hookFileFor": {
-          "line": 58,
+          "line": 63,
           "params": [
             "mode"
           ],
           "purpose": "Which Claude settings file this mode's hook entries belong in."
         },
         "ensureFrameGitignore": {
-          "line": 68,
+          "line": 73,
           "params": [
             "projectPath"
           ],
           "purpose": "Write (or refresh) the managed block in `.frame/.gitignore`. Lines the user"
         },
+        "ensureFrameGitattributes": {
+          "line": 106,
+          "params": [
+            "projectPath",
+            "mode = getMode(projectPath"
+          ],
+          "purpose": "Write (or refresh) the managed block in `.frame/.gitattributes` — in repo"
+        },
         "getState": {
-          "line": 98,
+          "line": 133,
           "params": [
             "projectPath"
           ],
           "purpose": "What the UI needs to render the control: the current mode, whether `.frame/`"
         },
         "setMode": {
-          "line": 118,
+          "line": 153,
           "params": [
             "projectPath",
             "requestedMode"
@@ -3141,20 +3165,21 @@
           "purpose": "Apply a mode: store it, move Frame's hook entries to the file that mode"
         },
         "reconcile": {
-          "line": 175,
+          "line": 211,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-apply the stored mode. Called on project open and after migration: the"
         }
       },
-      "sizeBytes": 7450,
+      "sizeBytes": 9035,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "f12906081269971a",
         "purposes": {
+          "ensureFrameGitattributes": "f86fd9f79636792c",
           "ensureFrameGitignore": "d226f4fb60b81633",
           "getMode": "54c338e1d57047a2",
           "getState": "69e6776b3565ef17",
@@ -3915,7 +3940,7 @@
           "RUN_APP_COMMAND"
         ]
       },
-      "sizeBytes": 11541,
+      "sizeBytes": 11545,
       "extraction": {
         "status": "parsed"
       },
@@ -4521,31 +4546,42 @@
       "exports": [
         "init",
         "loadDecisions",
+        "loadDecisionCards",
         "getFileGitHistory",
         "setupIPC"
       ],
       "depends": [
+        "fs",
+        "path",
         "child_process",
         "frameStore",
         "shared/ipcChannels"
       ],
       "functions": {
         "init": {
-          "line": 19,
+          "line": 27,
           "params": [
             "window"
           ],
           "purpose": "Initialize overview manager"
         },
         "loadDecisions": {
-          "line": 31,
+          "line": 39,
           "params": [
             "projectPath"
           ],
           "purpose": "Load every decision recorded in PROJECT_NOTES.md."
         },
+        "loadDecisionCards": {
+          "line": 107,
+          "params": [
+            "projectPath",
+            "opts = {}"
+          ],
+          "purpose": "The project's decision cards, read now: `{ exists, cards, notes, malformed }`."
+        },
         "getFileGitHistory": {
-          "line": 89,
+          "line": 132,
           "params": [
             "projectPath",
             "filePath"
@@ -4553,7 +4589,7 @@
           "purpose": "Get file git history (contributors, commits, blame)"
         },
         "getFileCommits": {
-          "line": 126,
+          "line": 169,
           "params": [
             "projectPath",
             "filePath"
@@ -4561,7 +4597,7 @@
           "purpose": "Get recent commits for a file"
         },
         "getFileContributors": {
-          "line": 157,
+          "line": 200,
           "params": [
             "projectPath",
             "filePath"
@@ -4569,7 +4605,7 @@
           "purpose": "Get contributors for a file"
         },
         "getFileBlame": {
-          "line": 190,
+          "line": 233,
           "params": [
             "projectPath",
             "filePath"
@@ -4577,7 +4613,7 @@
           "purpose": "Get blame summary for a file (who wrote how many lines)"
         },
         "setupIPC": {
-          "line": 222,
+          "line": 265,
           "params": [
             "ipcMain"
           ],
@@ -4587,11 +4623,12 @@
       "ipc": {
         "listens": [
           "LOAD_DECISIONS",
+          "LOAD_DECISION_CARDS",
           "GET_FILE_GIT_HISTORY"
         ],
         "emits": []
       },
-      "sizeBytes": 6208,
+      "sizeBytes": 8399,
       "extraction": {
         "status": "parsed"
       },
@@ -4603,6 +4640,7 @@
           "getFileContributors": "e86b3f2317993412",
           "getFileGitHistory": "1c5df0bf5f7de76d",
           "init": "ff06efb3e2e3739c",
+          "loadDecisionCards": "c5129aae2e08baac",
           "loadDecisions": "ce3e996abfd950cb",
           "setupIPC": "b41c7437e6910eb5"
         }
@@ -5442,33 +5480,46 @@
           ]
         },
         "indexStamp": {
-          "line": 183,
+          "line": 184,
           "params": [
             "projectPath"
           ],
           "purpose": "mtime of the derived index, or 0 — used to tell a rebuild from a no-op."
         },
         "scheduleIndexRefresh": {
-          "line": 192,
+          "line": 193,
           "params": [
             "projectPath"
           ]
         },
         "buildSpecCatalog": {
-          "line": 220,
+          "line": 221,
           "params": [
             "projectPath"
           ],
           "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
         },
+        "cardCatalogLines": {
+          "line": 235,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The current spec-less decision cards as catalog lines, after the specs"
+        },
+        "specCatalogText": {
+          "line": 245,
+          "params": [
+            "projectPath"
+          ]
+        },
         "listSpecs": {
-          "line": 240,
+          "line": 265,
           "params": [
             "projectPath"
           ]
         },
         "listSpecReports": {
-          "line": 339,
+          "line": 364,
           "params": [
             "projectPath",
             "slug"
@@ -5476,7 +5527,7 @@
           "purpose": "Which of a spec's two generated reports exist on disk, named as the viewer"
         },
         "looksLikeSpecFolder": {
-          "line": 348,
+          "line": 373,
           "params": [
             "projectPath",
             "folderName"
@@ -5484,7 +5535,7 @@
           "purpose": "A folder is a spec if it carries at least one of the chain's artifacts."
         },
         "malformedSpec": {
-          "line": 360,
+          "line": 385,
           "params": [
             "folderName",
             "status",
@@ -5493,7 +5544,7 @@
           "purpose": "A spec folder Frame cannot read as a spec, rendered as itself rather than"
         },
         "fileExists": {
-          "line": 380,
+          "line": 405,
           "params": [
             "projectPath",
             "slug",
@@ -5501,7 +5552,7 @@
           ]
         },
         "derivePhase": {
-          "line": 384,
+          "line": 409,
           "params": [
             "projectPath",
             "slug",
@@ -5511,7 +5562,7 @@
           ]
         },
         "recordedTaskCount": {
-          "line": 425,
+          "line": 450,
           "params": [
             "projectPath",
             "slug",
@@ -5519,14 +5570,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 431,
+          "line": 456,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "countPhaseWrite": {
-          "line": 452,
+          "line": 477,
           "params": [
             "projectPath",
             "slug",
@@ -5535,7 +5586,7 @@
           ]
         },
         "reconcilePhase": {
-          "line": 460,
+          "line": 485,
           "params": [
             "projectPath",
             "slug",
@@ -5543,14 +5594,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 506,
+          "line": 531,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 510,
+          "line": 535,
           "params": [
             "projectPath",
             "aiTool",
@@ -5558,7 +5609,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 530,
+          "line": 555,
           "params": [
             "projectPath",
             "aiTool",
@@ -5566,7 +5617,7 @@
           ]
         },
         "interpolateValues": {
-          "line": 539,
+          "line": 564,
           "params": [
             "obj",
             "vars"
@@ -5574,14 +5625,35 @@
           "purpose": "Run `interpolate` over each value of an object. One pass, no recursion."
         },
         "interpolate": {
-          "line": 547,
+          "line": 572,
           "params": [
             "template",
             "vars"
           ]
         },
+        "closeScriptRel": {
+          "line": 590,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Where the close script is for this project, project-relative — the command"
+        },
+        "decisionScriptRel": {
+          "line": 595,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The card writer the close step runs, resolved the same way (decision-cards-core)."
+        },
+        "shippedScriptRel": {
+          "line": 599,
+          "params": [
+            "projectPath",
+            "file"
+          ]
+        },
         "getCommandPrompt": {
-          "line": 560,
+          "line": 612,
           "params": [
             "projectPath",
             "slug",
@@ -5591,7 +5663,7 @@
           ]
         },
         "reportAssetRel": {
-          "line": 638,
+          "line": 694,
           "params": [
             "projectPath",
             "tool",
@@ -5600,34 +5672,34 @@
           "purpose": "Which staged report asset a tool's prompt should name."
         },
         "resolveVerificationCommand": {
-          "line": 705,
+          "line": 772,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 720,
+          "line": 787,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 738,
+          "line": 805,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 762,
+          "line": 829,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 778,
+          "line": 845,
           "params": [
             "projectPath",
             "slug",
@@ -5636,21 +5708,21 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "specNewPromptFilename": {
-          "line": 799,
+          "line": 866,
           "params": [
             "date"
           ],
           "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
         },
         "uniquePromptFilename": {
-          "line": 804,
+          "line": 871,
           "params": [
             "promptsDir",
             "filename"
           ]
         },
         "buildSpecCommandFile": {
-          "line": 813,
+          "line": 880,
           "params": [
             "projectPath",
             "slug",
@@ -5660,32 +5732,32 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 857,
+          "line": 924,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 883,
+          "line": 950,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 902,
+          "line": 969,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "completedTaskIdsFromOutcome": {
-          "line": 916,
+          "line": 983,
           "params": [
             "content"
           ]
         },
         "initialTaskState": {
-          "line": 923,
+          "line": 990,
           "params": [
             "status",
             "outcomeIds",
@@ -5694,34 +5766,34 @@
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 931,
+          "line": 998,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 1016,
+          "line": 1083,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 1023,
+          "line": 1090,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 1040,
+          "line": 1107,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1079,
+          "line": 1146,
           "params": [
             "projectPath",
             "slug",
@@ -5730,7 +5802,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1108,
+          "line": 1175,
           "params": [
             "projectPath",
             "query"
@@ -5738,7 +5810,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1129,
+          "line": 1196,
           "params": [
             "projectPath",
             "slug",
@@ -5746,14 +5818,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1153,
+          "line": 1220,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1170,
+          "line": 1237,
           "params": [
             "projectPath",
             "oldSlug",
@@ -5762,54 +5834,54 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "startWatching": {
-          "line": 1285,
+          "line": 1352,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1385
+          "line": 1452
         },
         "markSpecNewLaunch": {
-          "line": 1438,
+          "line": 1505,
           "params": [
             "projectPath"
           ]
         },
         "consumeSpecNewLaunch": {
-          "line": 1444,
+          "line": 1511,
           "params": [
             "projectPath"
           ]
         },
         "resolveSpecOrigin": {
-          "line": 1460,
+          "line": 1527,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackSpecLifecycle": {
-          "line": 1471,
+          "line": 1538,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1499,
+          "line": 1566,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1523,
+          "line": 1590,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1527,
+          "line": 1594,
           "params": [
             "ipcMain"
           ]
@@ -5836,7 +5908,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 69592,
+      "sizeBytes": 72688,
       "extraction": {
         "status": "parsed"
       },
@@ -5844,6 +5916,9 @@
         "description": "548bca758bc986dd",
         "purposes": {
           "buildSpecCatalog": "c0e0dc84b1debf77",
+          "cardCatalogLines": "ee40aead8dbf673a",
+          "closeScriptRel": "9c2cba05cf628d46",
+          "decisionScriptRel": "09558f9b84c2c047",
           "getImplementLaunchFlags": "c96e947927709160",
           "indexStamp": "759797531edafff5",
           "interpolateValues": "72397f6a1df7e05f",
@@ -5890,7 +5965,7 @@
       ],
       "functions": {
         "stageFile": {
-          "line": 105,
+          "line": 113,
           "params": [
             "fsImpl",
             "src",
@@ -5899,7 +5974,7 @@
           "purpose": "Write `src` to `dst` only when the bytes differ, through a temporary file"
         },
         "stageParserScripts": {
-          "line": 145,
+          "line": 153,
           "params": [
             "projectPath",
             "options = {}"
@@ -5907,61 +5982,61 @@
           "purpose": "Stage Frame's bundled scripts into the project's .frame/bin/."
         },
         "copyParserScripts": {
-          "line": 233,
+          "line": 241,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "hookLocation": {
-          "line": 244,
+          "line": 252,
           "params": [
             "projectPath"
           ],
           "purpose": "Where this checkout's `pre-commit` hook lives, asked of Git — a linked"
         },
         "detectHookSetup": {
-          "line": 278,
+          "line": 286,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "writeHook": {
-          "line": 319,
+          "line": 327,
           "params": [
             "location"
           ]
         },
         "installPreCommitHook": {
-          "line": 339,
+          "line": 347,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook, but only where there is no hook to damage."
         },
         "upgradeStructureHook": {
-          "line": 414,
+          "line": 422,
           "params": [
             "projectPath"
           ],
           "purpose": "On project open: replace an unmodified earlier Frame template with the"
         },
         "scanTimeoutMs": {
-          "line": 434,
+          "line": 442,
           "params": [
             "projectPath"
           ]
         },
         "parseEnvelope": {
-          "line": 447,
+          "line": 455,
           "params": [
             "stdout"
           ],
           "purpose": "The single JSON envelope a `--json` run prints, or null."
         },
         "summarizeEnvelope": {
-          "line": 459,
+          "line": 467,
           "params": [
             "envelope",
             "code"
@@ -5969,7 +6044,7 @@
           "purpose": "Map a child result envelope onto the bootstrap's initialScan summary."
         },
         "runInitialFullScan": {
-          "line": 518,
+          "line": 526,
           "params": [
             "projectPath",
             "options = {}"
@@ -5977,7 +6052,7 @@
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 636,
+          "line": 644,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -5985,14 +6060,14 @@
           "purpose": "Top-level bootstrap orchestrator. Called from frameProject.js after the"
         },
         "ensureStructureHook": {
-          "line": 681,
+          "line": 689,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook for a project that opted into the module map"
         }
       },
-      "sizeBytes": 29560,
+      "sizeBytes": 30085,
       "extraction": {
         "status": "parsed"
       },
@@ -6748,7 +6823,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4075,
+      "sizeBytes": 4207,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -7770,6 +7845,180 @@
         }
       }
     },
+    "renderer/decisionCardsPanel": {
+      "file": "src/renderer/decisionCardsPanel.js",
+      "description": "Decision Cards Panel (decision-cards-core T08)",
+      "exports": [
+        "init",
+        "show",
+        "hide"
+      ],
+      "depends": [
+        "electron",
+        "marked",
+        "shared/ipcChannels",
+        "state",
+        "htmlUtils",
+        "decisions/cardsModel",
+        "specSection"
+      ],
+      "functions": {
+        "init": {
+          "line": 36
+        },
+        "show": {
+          "line": 59,
+          "purpose": "Show the panel and (re)read the cards — the host calls this on mount."
+        },
+        "hide": {
+          "line": 65
+        },
+        "load": {
+          "line": 70
+        },
+        "render": {
+          "line": 88
+        },
+        "setCount": {
+          "line": 116,
+          "params": [
+            "model"
+          ]
+        },
+        "renderRow": {
+          "line": 124,
+          "params": [
+            "row"
+          ]
+        },
+        "renderBody": {
+          "line": 142,
+          "params": [
+            "row",
+            "relation"
+          ]
+        },
+        "renderStory": {
+          "line": 161,
+          "params": [
+            "row"
+          ]
+        },
+        "onClick": {
+          "line": 181,
+          "params": [
+            "e"
+          ]
+        },
+        "repaintRow": {
+          "line": 203,
+          "params": [
+            "id"
+          ],
+          "purpose": "Repaint one card: a full repaint would scroll the reader away from it."
+        },
+        "renderEmpty": {
+          "line": 209,
+          "params": [
+            "title",
+            "message"
+          ]
+        },
+        "renderMarkdown": {
+          "line": 221,
+          "params": [
+            "md"
+          ]
+        }
+      },
+      "sizeBytes": 8727,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "954e36869608bf33",
+        "purposes": {
+          "repaintRow": "46fc397bd33903d8",
+          "show": "72dbdb735905de80"
+        }
+      }
+    },
+    "renderer/decisions/cardsModel": {
+      "file": "src/renderer/decisions/cardsModel.js",
+      "description": "Decision cards view — the pure row model (decision-cards-core T08).",
+      "exports": [
+        "buildModel",
+        "rowOf",
+        "storyOf",
+        "matchesQuery",
+        "fold"
+      ],
+      "depends": [],
+      "functions": {
+        "fold": {
+          "line": 25,
+          "params": [
+            "s"
+          ],
+          "purpose": "Lowercased, accents and Turkish letters folded, spacing collapsed."
+        },
+        "storyOf": {
+          "line": 38,
+          "params": [
+            "card",
+            "notes"
+          ],
+          "purpose": "Where a card's story is, for the view:"
+        },
+        "rowOf": {
+          "line": 60,
+          "params": [
+            "card",
+            "notes"
+          ],
+          "purpose": "One card as a row."
+        },
+        "matchesQuery": {
+          "line": 79,
+          "params": [
+            "row",
+            "query"
+          ],
+          "purpose": "Whether a row matches the search: every word of the query appears in the"
+        },
+        "newerFirst": {
+          "line": 87,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Newest first; a later line breaks a same-date tie, being written later."
+        },
+        "buildModel": {
+          "line": 96,
+          "params": [
+            "data",
+            "{ query = '' } = {}"
+          ],
+          "purpose": "The whole view: `{ rows, total, shown, query }`. `rows` are the visible"
+        }
+      },
+      "sizeBytes": 3959,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7d52e6deb001e4a3",
+        "purposes": {
+          "buildModel": "e83f5934168c23c5",
+          "fold": "6f6a23e973adadc1",
+          "matchesQuery": "4bda59ca8488231b",
+          "newerFirst": "426d077a9d057acd",
+          "rowOf": "935b121bc8050a8f",
+          "storyOf": "70745dddf8b4870e"
+        }
+      }
+    },
     "renderer/decisionsView": {
       "file": "src/renderer/decisionsView.js",
       "description": "Decisions View Module",
@@ -7851,7 +8100,7 @@
           ]
         }
       },
-      "sizeBytes": 6102,
+      "sizeBytes": 6101,
       "extraction": {
         "status": "parsed"
       },
@@ -8239,7 +8488,7 @@
           "ANALYTICS_TRACK"
         ]
       },
-      "sizeBytes": 18854,
+      "sizeBytes": 18858,
       "extraction": {
         "status": "parsed"
       },
@@ -9975,7 +10224,7 @@
           "purpose": "Check the content against every rule the host relies on."
         }
       },
-      "sizeBytes": 35030,
+      "sizeBytes": 35046,
       "extraction": {
         "status": "parsed"
       },
@@ -10060,7 +10309,7 @@
           ]
         }
       },
-      "sizeBytes": 35392,
+      "sizeBytes": 35404,
       "extraction": {
         "status": "parsed"
       },
@@ -11007,6 +11256,7 @@
         "taskRunModal",
         "pluginsPanel",
         "sessionsPanel",
+        "decisionCardsPanel",
         "githubPanel",
         "notify",
         "promptsPanel",
@@ -11057,38 +11307,38 @@
       ],
       "functions": {
         "init": {
-          "line": 65,
+          "line": 66,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 324,
+          "line": 326,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 432,
+          "line": 434,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 563,
+          "line": 565,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 602,
+          "line": 604,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 628,
+          "line": 630,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1032,
+          "line": 1041,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1057,
+          "line": 1066,
           "params": [
             "err"
           ],
@@ -11108,7 +11358,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 38779,
+      "sizeBytes": 39133,
       "extraction": {
         "status": "parsed"
       },
@@ -11469,6 +11719,7 @@
         "notify",
         "terminalChipNotice",
         "sessionsPanel",
+        "decisionCardsPanel",
         "specsDashboard",
         "tasksDashboard",
         "projectListUI"
@@ -11480,7 +11731,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 35201,
+      "sizeBytes": 35380,
       "extraction": {
         "status": "parsed"
       },
@@ -12000,7 +12251,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 4162,
+      "sizeBytes": 4241,
       "extraction": {
         "status": "parsed"
       },
@@ -12332,32 +12583,32 @@
           "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 337
+          "line": 340
         },
         "saveCollapsedGroups": {
-          "line": 346,
+          "line": 349,
           "params": [
             "state"
           ]
         },
         "buildWorkspaceNav": {
-          "line": 354
+          "line": 357
         },
         "revealNavItem": {
-          "line": 423,
+          "line": 426,
           "params": [
             "view"
           ],
           "purpose": "Make a nav row reachable without changing the user's saved layout: expand"
         },
         "placeWorkspaceNav": {
-          "line": 436
+          "line": 439
         },
         "refreshWorkspaceNav": {
-          "line": 448
+          "line": 451
         },
         "updateWorkspaceNav": {
-          "line": 524,
+          "line": 527,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -12375,7 +12626,7 @@
           "REMOVE_PROJECT_FROM_WORKSPACE"
         ]
       },
-      "sizeBytes": 20596,
+      "sizeBytes": 20894,
       "extraction": {
         "status": "parsed"
       },
@@ -14451,7 +14702,7 @@
           "LOAD_CLAUDE_USAGE"
         ]
       },
-      "sizeBytes": 22044,
+      "sizeBytes": 22048,
       "extraction": {
         "status": "parsed"
       },
@@ -15113,6 +15364,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/decision-cards.css": {
+      "file": "src/renderer/styles/components/decision-cards.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 4956,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/components/decisions-view.css": {
       "file": "src/renderer/styles/components/decisions-view.css",
       "description": "",
@@ -15467,7 +15730,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3518,
+      "sizeBytes": 3632,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -15769,6 +16032,7 @@
       "description": "Task run prompt — what Play hands the agent, and whether the task is",
       "exports": [
         "READY_FIELDS",
+        "MAX_CARDS",
         "isSpecTask",
         "missingFields",
         "buildTaskPrompt"
@@ -15791,8 +16055,15 @@
             "missing"
           ]
         },
+        "cardsSegment": {
+          "line": 51,
+          "params": [
+            "cards"
+          ],
+          "purpose": "The recorded decisions that match this task, as one sentence — the prompt"
+        },
         "buildTaskPrompt": {
-          "line": 52,
+          "line": 72,
           "params": [
             "task",
             "opts = {}"
@@ -15800,7 +16071,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. A task missing"
         }
       },
-      "sizeBytes": 4178,
+      "sizeBytes": 5203,
       "extraction": {
         "status": "parsed"
       },
@@ -15808,6 +16079,7 @@
         "description": "92c1eacd599ba2cf",
         "purposes": {
           "buildTaskPrompt": "3be35129f2a0f17b",
+          "cardsSegment": "2cfd1f84e5170498",
           "missingFields": "72708aa38392c272"
         }
       }
@@ -16240,66 +16512,73 @@
           ],
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
+        "matchedCards": {
+          "line": 429,
+          "params": [
+            "task"
+          ],
+          "purpose": "The recorded decisions that match this task (decision-cards-core D17),"
+        },
         "setClaudeRunning": {
-          "line": 427,
+          "line": 445,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 434,
+          "line": 452,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 443,
+          "line": 461,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 460,
+          "line": 478,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 479,
+          "line": 497,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 505,
+          "line": 523,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 515,
+          "line": 533,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 553,
+          "line": 571,
           "purpose": "Setup modal event listeners"
         },
         "renderSourceChip": {
-          "line": 598,
+          "line": 616,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 609,
+          "line": 627,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 626,
+          "line": 644,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -16318,7 +16597,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 18712,
+      "sizeBytes": 19352,
       "extraction": {
         "status": "parsed"
       },
@@ -16337,6 +16616,7 @@
           "initWhenReady": "4c04832df3e2467a",
           "isClaudeRunning": "152e6568a9a61ac0",
           "loadTasks": "18bd5168b3738abc",
+          "matchedCards": "192eace57ead7044",
           "openRunFlow": "35f4d5b92426ca43",
           "render": "4b6ddec5ceddac40",
           "renderSourceChip": "9af08c407d8854ff",
@@ -17178,6 +17458,410 @@
         }
       }
     },
+    "scripts/decision": {
+      "file": "scripts/decision.js",
+      "description": "",
+      "exports": [
+        "prepare",
+        "appendLine",
+        "cardId",
+        "main"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "crypto",
+        "decision-cards",
+        "activity-log"
+      ],
+      "functions": {
+        "resolveRoot": {
+          "line": 53
+        },
+        "specDir": {
+          "line": 61,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "today": {
+          "line": 64,
+          "purpose": "The UTC date of writing. FRAME_DECISION_DATE pins it, for tests only."
+        },
+        "cardId": {
+          "line": 70,
+          "params": [
+            "decision",
+            "source",
+            "date"
+          ]
+        },
+        "listFlag": {
+          "line": 76,
+          "params": [
+            "argv",
+            "name"
+          ],
+          "purpose": "`--name value` or `--name=value`, as a comma-split list."
+        },
+        "record": {
+          "line": 89,
+          "params": [
+            "root",
+            "ev",
+            "fields"
+          ],
+          "purpose": "A refusal is a guard preventing a write, so it is a suppression; a written"
+        },
+        "prepare": {
+          "line": 106,
+          "params": [
+            "root",
+            "input"
+          ],
+          "purpose": "Build and check the card `input` describes. Returns"
+        },
+        "appendLine": {
+          "line": 180,
+          "params": [
+            "root",
+            "line"
+          ],
+          "purpose": "Append one line in a single write. A file whose last line was torn by an"
+        },
+        "readInput": {
+          "line": 199,
+          "params": [
+            "argv"
+          ]
+        },
+        "add": {
+          "line": 205,
+          "params": [
+            "root",
+            "argv",
+            "json"
+          ]
+        },
+        "malformedLines": {
+          "line": 243,
+          "params": [
+            "malformed"
+          ]
+        },
+        "related": {
+          "line": 247,
+          "params": [
+            "root",
+            "argv",
+            "json"
+          ]
+        },
+        "list": {
+          "line": 275,
+          "params": [
+            "root",
+            "json"
+          ]
+        },
+        "main": {
+          "line": 295,
+          "params": [
+            "argv"
+          ]
+        }
+      },
+      "sizeBytes": 12926,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "appendLine": "70fcc1622a9334fc",
+          "listFlag": "2153b844d9ce7969",
+          "prepare": "5902b4df1676e66c",
+          "record": "cbe913d9af56f4a9",
+          "today": "d13ee7c56298e198"
+        }
+      }
+    },
+    "scripts/decision-cards": {
+      "file": "scripts/decision-cards.js",
+      "description": "Decision cards — the shared reader for `.frame/decisions.jsonl`.",
+      "exports": [
+        "LIMITS",
+        "MATCH_THRESHOLD",
+        "ID_RE",
+        "cardsPath",
+        "normalizeRel",
+        "parseSource",
+        "isRealDate",
+        "sentenceCount",
+        "validateCard",
+        "parseCards",
+        "currentCards",
+        "readCards",
+        "isSpecCard",
+        "specLessCards",
+        "cardsForSpec",
+        "notesPath",
+        "findNotesEntry",
+        "tokenize",
+        "cardTokens",
+        "cardsForFile",
+        "scoreCards",
+        "relatedCards",
+        "clip",
+        "storyPointer",
+        "renderCard",
+        "catalogLines"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "cardsPath": {
+          "line": 58,
+          "params": [
+            "root"
+          ],
+          "purpose": "Where a project keeps its cards. Mirrors frameStore.decisionsPath()."
+        },
+        "toPosix": {
+          "line": 62,
+          "params": [
+            "p"
+          ]
+        },
+        "normalizeRel": {
+          "line": 65,
+          "params": [
+            "p"
+          ],
+          "purpose": "Project-relative, posix, no leading `./` — the form `files` holds."
+        },
+        "parseSource": {
+          "line": 74,
+          "params": [
+            "source"
+          ],
+          "purpose": "What a source points at, or null when it has neither accepted form:"
+        },
+        "isRealDate": {
+          "line": 83,
+          "params": [
+            "s"
+          ]
+        },
+        "sentenceCount": {
+          "line": 96,
+          "params": [
+            "text"
+          ],
+          "purpose": "How many sentences `text` holds. A period ends a sentence only before"
+        },
+        "validateCard": {
+          "line": 123,
+          "params": [
+            "card"
+          ],
+          "purpose": "Everything wrong with `card`'s shape, as readable defects; empty when it is"
+        },
+        "normalizeCard": {
+          "line": 182,
+          "params": [
+            "card"
+          ],
+          "purpose": "The card as the rest of Frame reads it: trimmed, posix files, null relations."
+        },
+        "parseCards": {
+          "line": 203,
+          "params": [
+            "text"
+          ],
+          "purpose": "Every well-formed card in `text`, in file order, plus every line that was"
+        },
+        "currentCards": {
+          "line": 236,
+          "params": [
+            "cards"
+          ],
+          "purpose": "Cards no other card supersedes. A chain A ← B ← C leaves C."
+        },
+        "readCards": {
+          "line": 246,
+          "params": [
+            "root"
+          ],
+          "purpose": "The project's cards, read now. Never throws: no file reads as"
+        },
+        "isSpecCard": {
+          "line": 257,
+          "params": [
+            "card"
+          ]
+        },
+        "specLessCards": {
+          "line": 263,
+          "params": [
+            "cards"
+          ],
+          "purpose": "The cards a hook may deliver: current and spec-less."
+        },
+        "cardsForSpec": {
+          "line": 268,
+          "params": [
+            "cards",
+            "slug"
+          ],
+          "purpose": "Current cards whose story is spec `slug`."
+        },
+        "notesPath": {
+          "line": 286,
+          "params": [
+            "root"
+          ],
+          "purpose": "Where PROJECT_NOTES.md is: `.frame/` once migrated, the root while an"
+        },
+        "sameTitle": {
+          "line": 293,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "findNotesEntry": {
+          "line": 303,
+          "params": [
+            "notesText",
+            "source"
+          ],
+          "purpose": "The `### [date] title` entry a notes source names, as `{ date, title, line }`,"
+        },
+        "fold": {
+          "line": 316,
+          "params": [
+            "s"
+          ]
+        },
+        "tokenize": {
+          "line": 325,
+          "params": [
+            "s"
+          ]
+        },
+        "cardTokens": {
+          "line": 330,
+          "params": [
+            "card"
+          ],
+          "purpose": "The words a card answers to: its keywords, its decision, its files' names."
+        },
+        "newerFirst": {
+          "line": 339,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Newest first; file order breaks a tie, later lines being newer."
+        },
+        "cardsForFile": {
+          "line": 345,
+          "params": [
+            "cards",
+            "rel"
+          ],
+          "purpose": "Cards listing `rel` among their files, newest first."
+        },
+        "scoreCards": {
+          "line": 356,
+          "params": [
+            "cards",
+            "query",
+            "opts = {}"
+          ],
+          "purpose": "Score `cards` against a bag of words: a shared token counts 2 when it is"
+        },
+        "relatedCards": {
+          "line": 394,
+          "params": [
+            "cards",
+            "{ files = []",
+            "keywords = [] } = {}"
+          ],
+          "purpose": "Cards that share a file or a keyword with a decision about to be recorded."
+        },
+        "clip": {
+          "line": 418,
+          "params": [
+            "s",
+            "cap"
+          ],
+          "purpose": "`s` cut at a word boundary with \"…\" when it runs past `cap`."
+        },
+        "storyPointer": {
+          "line": 427,
+          "params": [
+            "card"
+          ],
+          "purpose": "Where the card's story is told, as an agent would go and read it."
+        },
+        "relationMark": {
+          "line": 434,
+          "params": [
+            "card"
+          ]
+        },
+        "renderCard": {
+          "line": 445,
+          "params": [
+            "card",
+            "{ full = true } = {}"
+          ],
+          "purpose": "One card as a hook or the CLI prints it. Full: the decision, its why and"
+        },
+        "catalogLines": {
+          "line": 456,
+          "params": [
+            "cards"
+          ],
+          "purpose": "Catalog lines for /spec.new, in the spec catalog's own shape"
+        }
+      },
+      "sizeBytes": 18472,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "5c12662e23fd1f4f",
+        "purposes": {
+          "cardTokens": "508288ae93c3d4d8",
+          "cardsForFile": "782c462dfb782876",
+          "cardsForSpec": "6e1cc34874502a31",
+          "cardsPath": "cdf08ec41f85d774",
+          "catalogLines": "29fae1ca6ca069fd",
+          "clip": "fc17db4fd46d75e8",
+          "currentCards": "f755f4214a4bf876",
+          "findNotesEntry": "416d974a3bb93489",
+          "newerFirst": "c7d4ca113081a028",
+          "normalizeCard": "3ba911c1aadb8798",
+          "normalizeRel": "04f01133fef0ee95",
+          "notesPath": "7ed6f827658f0feb",
+          "parseCards": "508f42adc36b881c",
+          "parseSource": "75b264a17d14da4f",
+          "readCards": "815fa336ed251032",
+          "relatedCards": "81b434b72bb5f8e3",
+          "renderCard": "eaa84273029de4d6",
+          "scoreCards": "bbc7242de6fc63b9",
+          "sentenceCount": "645299acfdb7cb76",
+          "specLessCards": "e9a7aad63fe6ead8",
+          "storyPointer": "b16825b04b437036",
+          "validateCard": "0671209218a9954b"
+        }
+      }
+    },
     "scripts/detect-project": {
       "file": "scripts/detect-project.js",
       "description": "",
@@ -17311,46 +17995,47 @@
         "fs",
         "path",
         "activity-log",
-        "toolVocabulary"
+        "toolVocabulary",
+        "spec-close-state"
       ],
       "functions": {
         "capFor": {
-          "line": 69,
+          "line": 76,
           "params": [
             "payload"
           ],
           "purpose": "The cap for the CLI this payload came from. Claude Code inlines 2 000"
         },
         "readStdin": {
-          "line": 111
+          "line": 123
         },
         "resolveRoot": {
-          "line": 115,
+          "line": 127,
           "params": [
             "hookCwd"
           ]
         },
         "referencePath": {
-          "line": 124,
+          "line": 136,
           "params": [
             "root"
           ]
         },
         "cliPath": {
-          "line": 128,
+          "line": 140,
           "params": [
             "root"
           ]
         },
         "parseSections": {
-          "line": 140,
+          "line": 152,
           "params": [
             "text"
           ],
           "purpose": "REFERENCE.md → [{ title, body, subs: [{ title, body }] }], in file order."
         },
         "renderSection": {
-          "line": 171,
+          "line": 183,
           "params": [
             "section",
             "subsetTitles"
@@ -17358,7 +18043,7 @@
           "purpose": "One section, or only the named subsections of it, as markdown."
         },
         "capped": {
-          "line": 188,
+          "line": 200,
           "params": [
             "root",
             "preamble",
@@ -17368,17 +18053,17 @@
           "purpose": "Compose the payload and keep it under CAP. Over-length degrades to a"
         },
         "setHookCli": {
-          "line": 227,
+          "line": 249,
           "params": [
             "payload"
           ],
           "purpose": "Called once, from the entry point, with the parsed payload."
         },
         "hookHost": {
-          "line": 231
+          "line": 253
         },
         "note": {
-          "line": 235,
+          "line": 257,
           "params": [
             "root",
             "ev",
@@ -17387,54 +18072,62 @@
           ]
         },
         "emit": {
-          "line": 250,
+          "line": 272,
           "params": [
             "eventName",
             "context"
           ]
         },
         "loadSections": {
-          "line": 258,
+          "line": 280,
           "params": [
             "root"
           ]
         },
         "sessionStart": {
-          "line": 269,
+          "line": 291,
           "params": [
             "input"
           ]
         },
         "writeTargets": {
-          "line": 293,
+          "line": 315,
           "params": [
             "cmd"
           ],
           "purpose": "Every path a shell command would actually write to: redirect destinations,"
         },
         "sectionForPath": {
-          "line": 310,
+          "line": 332,
           "params": [
             "p"
           ],
           "purpose": "One path → the meta file it is, or null. The `.frame/` requirement is the"
         },
         "metaTargetOf": {
-          "line": 318,
+          "line": 340,
           "params": [
             "toolName",
             "input"
           ],
           "purpose": "The meta file this write targets, or null."
         },
+        "closeReminder": {
+          "line": 370,
+          "params": [
+            "root",
+            "input"
+          ],
+          "purpose": "The same-turn close reminder. An agent closes a spec's last task through a"
+        },
         "preEdit": {
-          "line": 340,
+          "line": 380,
           "params": [
             "input"
           ]
         },
         "sectionCli": {
-          "line": 358,
+          "line": 398,
           "params": [
             "root",
             "name"
@@ -17442,7 +18135,7 @@
           "purpose": "CLI: print one section, or list them. The manual escape hatch."
         }
       },
-      "sizeBytes": 16534,
+      "sizeBytes": 18480,
       "extraction": {
         "status": "parsed"
       },
@@ -17450,6 +18143,7 @@
         "purposes": {
           "capFor": "c346ef29e91448a4",
           "capped": "5704334cf6752807",
+          "closeReminder": "c6d5f278abbc85da",
           "metaTargetOf": "d6a15510bcb3879e",
           "parseSections": "89349ae4dda49ea0",
           "renderSection": "cd5686e4ce121b6d",
@@ -17962,6 +18656,241 @@
           "lookupsOf": "5693a0ed1e190393",
           "paired": "49da72b4b2b66533",
           "searchTerm": "500eea52ef3966a7"
+        }
+      }
+    },
+    "scripts/eval/spec-close/make-fixture": {
+      "file": "scripts/eval/spec-close/make-fixture.js",
+      "description": "",
+      "exports": [
+        "greet"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:test",
+        "node:assert/strict",
+        "src/greet",
+        "src/index"
+      ],
+      "functions": {
+        "greet": {
+          "line": 137,
+          "params": [
+            "name"
+          ],
+          "purpose": "A greeting for \\`name\\`, or for a stranger when there is none."
+        },
+        "write": {
+          "line": 235,
+          "params": [
+            "root",
+            "rel",
+            "content"
+          ]
+        },
+        "taskStates": {
+          "line": 241,
+          "params": [
+            "kind",
+            "now"
+          ]
+        },
+        "makeFixture": {
+          "line": 261,
+          "params": [
+            "{ kind",
+            "dir = null",
+            "now = Date.now("
+          ],
+          "purpose": "Build one fixture. Returns what a runner needs: where it is, what to ask,"
+        }
+      },
+      "sizeBytes": 15389,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "greet": "2fcd7e9bb126b07e",
+          "makeFixture": "063d1a3dcb408e3a"
+        }
+      }
+    },
+    "scripts/eval/spec-close/run": {
+      "file": "scripts/eval/spec-close/run.js",
+      "description": "",
+      "exports": [
+        "parseArgs",
+        "agentArgs",
+        "sessionEnv",
+        "parseTranscript",
+        "closeRows",
+        "judge",
+        "summarize",
+        "table",
+        "inspect",
+        "DISALLOWED",
+        "FOLLOW_UP"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "child_process",
+        "make-fixture",
+        "src/greet"
+      ],
+      "functions": {
+        "parseArgs": {
+          "line": 81,
+          "params": [
+            "argv"
+          ]
+        },
+        "agentArgs": {
+          "line": 119,
+          "params": [
+            "{ prompt",
+            "settingsPath",
+            "budget",
+            "model",
+            "persist = false",
+            "resume = null }"
+          ],
+          "purpose": "The CLI arguments for one turn of a fixture session. A session is not kept"
+        },
+        "sessionEnv": {
+          "line": 136,
+          "params": [
+            "base",
+            "fixture"
+          ],
+          "purpose": "The environment for one fixture session: the caller's, minus what binds it to the caller."
+        },
+        "parseTranscript": {
+          "line": 156,
+          "params": [
+            "text"
+          ],
+          "purpose": "A stream-json transcript → the few facts the table needs. Tolerant of"
+        },
+        "closeRows": {
+          "line": 203,
+          "params": [
+            "activityHome"
+          ],
+          "purpose": "The fixture's own activity rows that concern the close step."
+        },
+        "judge": {
+          "line": 227,
+          "params": [
+            "kind",
+            "f"
+          ],
+          "purpose": "Whether one session did what its kind asks of it. `facts` is what"
+        },
+        "summarize": {
+          "line": 240,
+          "params": [
+            "{ id",
+            "kind",
+            "facts",
+            "transcript",
+            "rows",
+            "timedOut",
+            "exitCode }"
+          ],
+          "purpose": "One session's row. `facts` come from `inspect`, run after the session."
+        },
+        "table": {
+          "line": 274,
+          "params": [
+            "results"
+          ],
+          "purpose": "Results → the markdown table recorded in the spec's outcome."
+        },
+        "runTurn": {
+          "line": 301,
+          "params": [
+            "fixture",
+            "opts",
+            "runDir",
+            "{ prompt",
+            "resume = null",
+            "file = 'transcript.jsonl' }"
+          ]
+        },
+        "runSession": {
+          "line": 329,
+          "params": [
+            "fixture",
+            "opts",
+            "runDir"
+          ],
+          "purpose": "One session: its prompt, and the follow-up turn when its kind has one."
+        },
+        "digestWithCode": {
+          "line": 356,
+          "params": [
+            "root",
+            "slug"
+          ],
+          "purpose": "Whether the commit that added the digest also carries code — the digest"
+        },
+        "inspect": {
+          "line": 368,
+          "params": [
+            "fixture",
+            "runDir"
+          ],
+          "purpose": "What the fixture looks like after its session, read without changing it."
+        },
+        "pool": {
+          "line": 411,
+          "params": [
+            "items",
+            "size",
+            "worker"
+          ]
+        },
+        "main": {
+          "line": 425,
+          "params": [
+            "argv"
+          ]
+        },
+        "median": {
+          "line": 266,
+          "params": [
+            "values"
+          ]
+        },
+        "readOr": {
+          "line": 343,
+          "params": [
+            "file",
+            "fallback"
+          ]
+        }
+      },
+      "sizeBytes": 22928,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "agentArgs": "91956e3fa2a1c6a7",
+          "closeRows": "c7d8e48a6ace2a80",
+          "digestWithCode": "caffb57186325a60",
+          "inspect": "3f4ba67db26288f4",
+          "judge": "c1ace852cec3cce0",
+          "parseTranscript": "bdcb3da86d5ef5b0",
+          "runSession": "cfcaf557a94ea7ba",
+          "sessionEnv": "8bc17c5c687a1f89",
+          "summarize": "98e96a51636b1731",
+          "table": "15e2e5c767ab65ea"
         }
       }
     },
@@ -18767,6 +19696,397 @@
         "description": "32ac7921fd767895"
       }
     },
+    "scripts/spec-close": {
+      "file": "scripts/spec-close.js",
+      "description": "",
+      "exports": [
+        "DIGEST_SHAPE",
+        "CHAIN_LINE",
+        "DIGEST_LINE_CAP",
+        "ITEM_CHECKS",
+        "digestDefects",
+        "cardDefects",
+        "cardShape",
+        "checkSpec",
+        "textReport"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "spec-close-state",
+        "spec-index",
+        "decision-cards",
+        "activity-log"
+      ],
+      "functions": {
+        "cardShape": {
+          "line": 88,
+          "params": [
+            "cli",
+            "slug"
+          ],
+          "purpose": "The command that records one of the spec's cards, as the implement"
+        },
+        "toPosix": {
+          "line": 102,
+          "params": [
+            "p"
+          ]
+        },
+        "decisionScriptPath": {
+          "line": 105,
+          "params": [
+            "root"
+          ],
+          "purpose": "The card writer, as a path an agent can run from the project root."
+        },
+        "resolveRoot": {
+          "line": 114
+        },
+        "specDir": {
+          "line": 123,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "digestDefects": {
+          "line": 132,
+          "params": [
+            "md"
+          ],
+          "purpose": "Named defects of one digest, in the order a reader would fix them."
+        },
+        "cardDefects": {
+          "line": 176,
+          "params": [
+            "root",
+            "slug"
+          ],
+          "purpose": "Lines of the card file that name this spec and that the reader skipped,"
+        },
+        "checkSpec": {
+          "line": 224,
+          "params": [
+            "root",
+            "slug"
+          ],
+          "purpose": "Everything this script knows about one spec, as data. Pure apart from"
+        },
+        "selfCommand": {
+          "line": 278,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "taskLine": {
+          "line": 282,
+          "params": [
+            "result"
+          ]
+        },
+        "textReport": {
+          "line": 289,
+          "params": [
+            "root",
+            "result"
+          ]
+        },
+        "record": {
+          "line": 321,
+          "params": [
+            "root",
+            "result"
+          ]
+        },
+        "main": {
+          "line": 339,
+          "params": [
+            "argv"
+          ]
+        }
+      },
+      "sizeBytes": 15876,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "cardDefects": "b5591c31e37f19ce",
+          "cardShape": "ef816e957958d4b6",
+          "checkSpec": "94a5a95ab78e5f38",
+          "decisionScriptPath": "292ed6a8f7cb88fc",
+          "digestDefects": "0fe97d9cb34d80e7"
+        }
+      }
+    },
+    "scripts/spec-close-state": {
+      "file": "scripts/spec-close-state.js",
+      "description": "Spec close state — what a closed spec still owes.",
+      "exports": [
+        "STATE_VERSION",
+        "SLUG_RE",
+        "STATE_REL",
+        "SESSIONS_REL",
+        "SESSION_TTL_MS",
+        "MAX_NAMED",
+        "CLOSE_ITEMS",
+        "isDue",
+        "cardsDue",
+        "missingItems",
+        "readTasks",
+        "specTaskCounts",
+        "closedSpecs",
+        "closeState",
+        "isOrchestrated",
+        "pending",
+        "sessionKey",
+        "closeScriptPath",
+        "reminder"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "decision-cards",
+        "child_process"
+      ],
+      "functions": {
+        "toPosix": {
+          "line": 74,
+          "params": [
+            "p"
+          ]
+        },
+        "readJson": {
+          "line": 76,
+          "params": [
+            "p"
+          ]
+        },
+        "tasksPath": {
+          "line": 80,
+          "params": [
+            "root"
+          ]
+        },
+        "specDir": {
+          "line": 81,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "cardsDue": {
+          "line": 104,
+          "params": [
+            "root"
+          ],
+          "purpose": "Cards are owed once the project can write them: a `decision.js` in"
+        },
+        "specsWithCards": {
+          "line": 115,
+          "params": [
+            "root"
+          ]
+        },
+        "isDue": {
+          "line": 146,
+          "params": [
+            "root",
+            "item"
+          ],
+          "purpose": "Whether `item` is owed in this project at all."
+        },
+        "missingItems": {
+          "line": 155,
+          "params": [
+            "root",
+            "slug"
+          ],
+          "purpose": "Ids of the close items this spec still lacks."
+        },
+        "timeOf": {
+          "line": 175,
+          "params": [
+            "value"
+          ],
+          "purpose": "A timestamp as milliseconds, or null. A date with no time counts as the end"
+        },
+        "readTasks": {
+          "line": 182,
+          "params": [
+            "root"
+          ],
+          "purpose": "tasks.json → its task list, or null when it cannot be read as one."
+        },
+        "specTaskCounts": {
+          "line": 189,
+          "params": [
+            "tasks"
+          ],
+          "purpose": "Task list → Map of slug → { total, completed, latest } for spec tasks."
+        },
+        "specStates": {
+          "line": 217,
+          "params": [
+            "root"
+          ],
+          "purpose": "`{ closed: [{ slug, closedAt }], open: [slug] }`, or null when tasks.json"
+        },
+        "closedSpecs": {
+          "line": 239,
+          "params": [
+            "root"
+          ],
+          "purpose": "Every closed spec as `{ slug, closedAt }`, or null when tasks.json cannot be read."
+        },
+        "writeState": {
+          "line": 254,
+          "params": [
+            "root",
+            "state"
+          ]
+        },
+        "closeState": {
+          "line": 274,
+          "params": [
+            "root"
+          ],
+          "purpose": "`{ closed, open, unreadable, hit }` for this project, or null when it has"
+        },
+        "insideGitRepo": {
+          "line": 302,
+          "params": [
+            "root"
+          ]
+        },
+        "isOrchestrated": {
+          "line": 326,
+          "params": [
+            "root",
+            "slug"
+          ],
+          "purpose": "Whether a spec is run by Frame's orchestration: true, false, or null when"
+        },
+        "openSpecs": {
+          "line": 344,
+          "params": [
+            "root",
+            "state"
+          ],
+          "purpose": "Closed specs with at least one missing item, newest close first."
+        },
+        "orchestrationReason": {
+          "line": 358,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "pending": {
+          "line": 369,
+          "params": [
+            "root"
+          ],
+          "purpose": "Closed, something missing, not run by orchestration — each as"
+        },
+        "sessionKey": {
+          "line": 392,
+          "params": [
+            "sessionId",
+            "now = Date.now("
+          ],
+          "purpose": "A host that sends no session id still gets at most one reminder a day."
+        },
+        "sessionFile": {
+          "line": 397,
+          "params": [
+            "root",
+            "key"
+          ]
+        },
+        "loadSession": {
+          "line": 401,
+          "params": [
+            "root",
+            "key"
+          ]
+        },
+        "cleanupSessions": {
+          "line": 411,
+          "params": [
+            "root",
+            "now"
+          ]
+        },
+        "saveSession": {
+          "line": 423,
+          "params": [
+            "root",
+            "key",
+            "session",
+            "now"
+          ]
+        },
+        "closeScriptPath": {
+          "line": 435,
+          "params": [
+            "root"
+          ],
+          "purpose": "The close script, as a path an agent can run from the project root."
+        },
+        "labelsOf": {
+          "line": 444,
+          "params": [
+            "specs"
+          ]
+        },
+        "reminderLine": {
+          "line": 455,
+          "params": [
+            "root",
+            "named",
+            "more"
+          ],
+          "purpose": "Worded as the session's own unfinished work, because it is: only the"
+        },
+        "reminder": {
+          "line": 480,
+          "params": [
+            "root",
+            "sessionId",
+            "now = Date.now("
+          ],
+          "purpose": "What a hook should do about closed specs right now."
+        }
+      },
+      "sizeBytes": 21769,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "31fd80bb4a098694",
+        "purposes": {
+          "cardsDue": "063b2d4ca990a3b5",
+          "closeScriptPath": "eb55c527830baae1",
+          "closeState": "fe9a2a8efe637cbf",
+          "closedSpecs": "f2aa09861c3b114b",
+          "isDue": "a22a04ca4d597058",
+          "isOrchestrated": "9eb319e04d59282d",
+          "missingItems": "265b8c8c40498710",
+          "openSpecs": "2a0f20095011198c",
+          "pending": "de654e387f4b3df9",
+          "readTasks": "b2a62548c72b1fa1",
+          "reminder": "f3dc678226bb00a5",
+          "reminderLine": "e79ef51e448f2dd6",
+          "sessionKey": "3ab5b382c4ceb8e1",
+          "specStates": "fb57a90358e1598e",
+          "specTaskCounts": "23893a21574aea54",
+          "timeOf": "964231ab15f867b1"
+        }
+      }
+    },
     "scripts/spec-command-hint": {
       "file": "scripts/spec-command-hint.js",
       "description": "",
@@ -18779,38 +20099,38 @@
       ],
       "functions": {
         "readStdin": {
-          "line": 77
+          "line": 86
         },
         "readJson": {
-          "line": 81,
+          "line": 90,
           "params": [
             "p"
           ]
         },
         "readText": {
-          "line": 85,
+          "line": 94,
           "params": [
             "p"
           ]
         },
         "resolveRoot": {
-          "line": 89,
+          "line": 98,
           "params": [
             "hookCwd"
           ]
         },
         "setHookCli": {
-          "line": 126,
+          "line": 135,
           "params": [
             "payload"
           ],
           "purpose": "Called once, from the entry point, with the parsed payload."
         },
         "hookHost": {
-          "line": 130
+          "line": 139
         },
         "note": {
-          "line": 134,
+          "line": 143,
           "params": [
             "root",
             "ev",
@@ -18818,20 +20138,20 @@
           ]
         },
         "emit": {
-          "line": 151,
+          "line": 160,
           "params": [
             "context"
           ]
         },
         "commandOf": {
-          "line": 160,
+          "line": 169,
           "params": [
             "prompt"
           ],
           "purpose": "Which spec command this prompt is asking for, or null."
         },
         "namedSlug": {
-          "line": 177,
+          "line": 187,
           "params": [
             "root",
             "prompt"
@@ -18839,7 +20159,7 @@
           "purpose": "A slug the prompt names outright — an explicit target always wins."
         },
         "candidates": {
-          "line": 192,
+          "line": 202,
           "params": [
             "root",
             "command"
@@ -18847,7 +20167,7 @@
           "purpose": "Specs whose phase this command acts on."
         },
         "templatePath": {
-          "line": 220,
+          "line": 230,
           "params": [
             "root",
             "tool",
@@ -18855,7 +20175,7 @@
           ]
         },
         "reportAssetRel": {
-          "line": 234,
+          "line": 244,
           "params": [
             "root",
             "tool",
@@ -18863,28 +20183,49 @@
           ],
           "purpose": "Report assets resolve like templatePath and end at the base tool: only"
         },
+        "closeScriptRel": {
+          "line": 257,
+          "params": [
+            "root"
+          ],
+          "purpose": "The close script the implement flow's digest step runs, resolved exactly as"
+        },
+        "decisionScriptRel": {
+          "line": 262,
+          "params": [
+            "root"
+          ],
+          "purpose": "The card writer the close step runs, resolved as specManager's decisionScriptRel does."
+        },
+        "shippedScriptRel": {
+          "line": 266,
+          "params": [
+            "root",
+            "file"
+          ]
+        },
         "interpolate": {
-          "line": 242,
+          "line": 273,
           "params": [
             "template",
             "vars"
           ]
         },
         "catalogLines": {
-          "line": 248,
+          "line": 279,
           "params": [
             "index"
           ],
           "purpose": "Six-line copy of spec-index.js's formatter — see the header note."
         },
         "specCatalog": {
-          "line": 255,
+          "line": 286,
           "params": [
             "root"
           ]
         },
         "buildPrompt": {
-          "line": 262,
+          "line": 293,
           "params": [
             "root",
             "slug",
@@ -18893,13 +20234,13 @@
           ]
         },
         "promptMode": {
-          "line": 292,
+          "line": 325,
           "params": [
             "input"
           ]
         }
       },
-      "sizeBytes": 15758,
+      "sizeBytes": 17208,
       "extraction": {
         "status": "parsed"
       },
@@ -18907,7 +20248,9 @@
         "purposes": {
           "candidates": "f513fc5d43d8cbb8",
           "catalogLines": "a8e2caeefaa868f1",
+          "closeScriptRel": "5d0b92db45c7cf6a",
           "commandOf": "069e914f97632a46",
+          "decisionScriptRel": "14a4a36f5ca2cf14",
           "namedSlug": "782912f88bd3875d",
           "reportAssetRel": "38cbe8bc969f5efc",
           "setHookCli": "c07ecdee8595a6cf"
@@ -18920,60 +20263,77 @@
       "exports": [],
       "depends": [
         "path",
-        "spec-index"
+        "spec-index",
+        "decision-cards"
       ],
       "functions": {
+        "printFileCards": {
+          "line": 38,
+          "params": [
+            "root",
+            "rel"
+          ],
+          "purpose": "The current spec-less cards that name `rel`, after its spec history. Spec"
+        },
         "fold": {
-          "line": 25,
+          "line": 52,
           "params": [
             "s"
           ],
           "purpose": "ascii-fold + lowercase — Turkish/English tolerant matching."
         },
         "tokenize": {
-          "line": 30,
+          "line": 57,
           "params": [
             "s"
           ]
         },
         "flagText": {
-          "line": 34,
+          "line": 61,
           "params": [
             "flags"
           ]
         },
         "printFileHistory": {
-          "line": 45,
+          "line": 72,
           "params": [
             "index",
             "rawPath",
             "root"
           ]
         },
+        "printSpecHistory": {
+          "line": 81,
+          "params": [
+            "index",
+            "rel"
+          ]
+        },
         "printTopicMatches": {
-          "line": 64,
+          "line": 96,
           "params": [
             "index",
             "words"
           ]
         },
         "printList": {
-          "line": 89,
+          "line": 121,
           "params": [
             "index"
           ]
         },
         "main": {
-          "line": 93
+          "line": 125
         }
       },
-      "sizeBytes": 4373,
+      "sizeBytes": 5411,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "purposes": {
-          "fold": "9fef4598a74d4c06"
+          "fold": "9fef4598a74d4c06",
+          "printFileCards": "2ad54b9e1df8cb62"
         }
       }
     },
@@ -18985,64 +20345,66 @@
         "fs",
         "path",
         "activity-log",
-        "toolVocabulary"
+        "toolVocabulary",
+        "spec-close-state",
+        "decision-cards"
       ],
       "functions": {
         "toPosix": {
-          "line": 43,
+          "line": 49,
           "params": [
             "p"
           ]
         },
         "fold": {
-          "line": 45,
+          "line": 51,
           "params": [
             "s"
           ]
         },
         "tokenize": {
-          "line": 54,
+          "line": 60,
           "params": [
             "s"
           ]
         },
         "readStdin": {
-          "line": 58
+          "line": 64
         },
         "readJson": {
-          "line": 62,
+          "line": 68,
           "params": [
             "p"
           ]
         },
         "resolveRoot": {
-          "line": 68,
+          "line": 74,
           "params": [
             "hookCwd"
           ]
         },
         "contextCliPath": {
-          "line": 77,
+          "line": 83,
           "params": [
             "root"
           ]
         },
         "stateFile": {
-          "line": 85,
+          "line": 91,
           "params": [
             "root",
             "sessionId"
           ]
         },
         "loadState": {
-          "line": 90,
+          "line": 96,
           "params": [
             "root",
             "sessionId"
           ]
         },
         "saveState": {
-          "line": 95,
+          "line": 105,
           "params": [
             "root",
             "sessionId",
@@ -19050,23 +20412,38 @@
           ]
         },
         "cleanupState": {
-          "line": 103,
+          "line": 113,
           "params": [
             "root"
           ]
         },
+        "decisionCliPath": {
+          "line": 176,
+          "params": [
+            "root"
+          ],
+          "purpose": "The card CLI, as a path an agent can run from the project root."
+        },
+        "fileCards": {
+          "line": 191,
+          "params": [
+            "root",
+            "rel"
+          ],
+          "purpose": "The current spec-less cards that name `rel`, newest first. Spec cards are"
+        },
         "setHookCli": {
-          "line": 155,
+          "line": 210,
           "params": [
             "payload"
           ],
           "purpose": "Called once, from the entry point, with the parsed payload."
         },
         "hookHost": {
-          "line": 159
+          "line": 214
         },
         "note": {
-          "line": 163,
+          "line": 218,
           "params": [
             "root",
             "ev",
@@ -19074,7 +20451,7 @@
           ]
         },
         "quiet": {
-          "line": 178,
+          "line": 233,
           "params": [
             "root",
             "mode",
@@ -19084,39 +20461,144 @@
           "purpose": "Record a quiet path and return, so call sites stay single-expression."
         },
         "emit": {
-          "line": 184,
+          "line": 239,
           "params": [
             "eventName",
             "context",
             "ctx"
           ]
         },
+        "fixInstruction": {
+          "line": 261,
+          "params": [
+            "slugs",
+            "subject = 'edit'"
+          ],
+          "purpose": "How a fix to a finished spec's work records itself. Test-time fixes used to"
+        },
         "formatEntry": {
-          "line": 199,
+          "line": 273,
           "params": [
             "r",
             "full"
           ]
         },
         "preEdit": {
-          "line": 211,
+          "line": 285,
           "params": [
             "input"
           ]
         },
+        "cardBlock": {
+          "line": 349,
+          "params": [
+            "root",
+            "rel",
+            "cards",
+            "signalMode",
+            "used"
+          ],
+          "purpose": "The cards block for a pre-edit payload, or null when nothing fits. 1–2"
+        },
+        "cardLines": {
+          "line": 360,
+          "params": [
+            "cli",
+            "list",
+            "full"
+          ],
+          "purpose": "Cards as lines: in full, or one line each plus the command that prints them whole."
+        },
+        "fitCards": {
+          "line": 373,
+          "params": [
+            "cards",
+            "used",
+            "render"
+          ],
+          "purpose": "The most of `cards` that `render(list, full)` fits into what the host"
+        },
+        "historyBlock": {
+          "line": 386,
+          "params": [
+            "root",
+            "rel",
+            "hist",
+            "signalMode"
+          ],
+          "purpose": "The spec-history block for a pre-edit payload — the text this hook has always sent."
+        },
+        "inlineBudget": {
+          "line": 417,
+          "purpose": "How much this host inlines, less the margin docs-hint.js keeps. Only the"
+        },
+        "closeReminder": {
+          "line": 427,
+          "params": [
+            "root",
+            "input"
+          ],
+          "purpose": "The close reminder for this prompt, or null. The helper decides everything"
+        },
+        "freshTopics": {
+          "line": 442,
+          "params": [
+            "root",
+            "input"
+          ],
+          "purpose": "Specs related to this prompt that the session has not been shown, or null"
+        },
+        "topicBlock": {
+          "line": 482,
+          "params": [
+            "index",
+            "list"
+          ]
+        },
+        "promptCards": {
+          "line": 510,
+          "params": [
+            "root",
+            "input"
+          ],
+          "purpose": "The spec-less cards this prompt matches strongly — score 3 or more on the"
+        },
         "promptMode": {
-          "line": 265,
+          "line": 524,
           "params": [
             "input"
           ]
+        },
+        "promptWithCards": {
+          "line": 566,
+          "params": [
+            "root",
+            "input",
+            "reminder",
+            "topics",
+            "cards"
+          ],
+          "purpose": "The prompt path when recorded decisions match. Everything above it is sent"
         }
       },
-      "sizeBytes": 14684,
+      "sizeBytes": 27324,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "purposes": {
+          "cardBlock": "fecefdc2a5602b1f",
+          "cardLines": "dc61581db7f7066d",
+          "closeReminder": "53f0b45f5426931c",
+          "decisionCliPath": "cd4bfc0820502ca0",
+          "fileCards": "a1c33b4244d4f79c",
+          "fitCards": "3b0fc2a50ca86f6b",
+          "fixInstruction": "3025d4b48f1ea9b4",
+          "freshTopics": "0d2ec57657e79c1b",
+          "historyBlock": "4db225d038272e1a",
+          "inlineBudget": "493a88afee203081",
+          "promptCards": "db2181caaf29e43b",
+          "promptWithCards": "f2427d5ebb7807d7",
           "quiet": "3e8f4a1504407442",
           "setHookCli": "c07ecdee8595a6cf"
         }
@@ -19134,7 +20616,10 @@
         "parseFrontMatter",
         "parseFootprint",
         "parseOutcome",
-        "parseDigest"
+        "parseDigest",
+        "not a copy of them.\n  firstSentence",
+        "firstParagraph",
+        "DIGEST_LINE_CAP"
       ],
       "depends": [
         "spec-index",
@@ -19144,59 +20629,74 @@
       ],
       "functions": {
         "toPosix": {
-          "line": 47,
+          "line": 48,
           "params": [
             "p"
           ]
         },
         "resolveRoot": {
-          "line": 49,
+          "line": 50,
           "params": [
             "explicit"
           ]
         },
         "readSafe": {
-          "line": 59,
+          "line": 60,
           "params": [
             "p"
           ]
         },
         "readJsonSafe": {
-          "line": 63,
+          "line": 64,
           "params": [
             "p"
           ]
         },
         "parseFrontMatter": {
-          "line": 79,
+          "line": 80,
           "params": [
             "md"
           ],
           "purpose": "Fenced front-matter at the top of spec.md/digest.md:"
         },
         "parseFootprint": {
-          "line": 96,
+          "line": 97,
           "params": [
             "md"
           ],
           "purpose": "`## Footprint` bullets — same contract getSpecFootprint parses."
         },
-        "parseOutcome": {
-          "line": 117,
+        "firstParagraph": {
+          "line": 128,
           "params": [
             "md"
           ],
-          "purpose": "Outcome sections: `## T<n> — title` … `_Captured: <date> …_`."
+          "purpose": "First paragraph of a markdown body, unwrapped: leading headings and blank"
+        },
+        "firstSentence": {
+          "line": 148,
+          "params": [
+            "text",
+            "cap"
+          ],
+          "purpose": "The first sentence of `text`, cut at a word boundary with \"…\" when it runs"
+        },
+        "parseOutcome": {
+          "line": 176,
+          "params": [
+            "md"
+          ],
+          "purpose": "Outcome sections: `## T<n> — title` … `_Captured: <date> …_`, and"
         },
         "parseDigest": {
-          "line": 145,
+          "line": 203,
           "params": [
             "md"
           ],
-          "purpose": "digest.md: front-matter + first non-heading body line."
+          "purpose": "digest.md: front-matter + the first sentence of the body."
         },
         "lexicalKeywords": {
-          "line": 154,
+          "line": 212,
           "params": [
             "slug",
             "title"
@@ -19204,21 +20704,21 @@
           "purpose": "Fallback keywords when nothing is declared: title + slug tokens."
         },
         "gitExec": {
-          "line": 163,
+          "line": 221,
           "params": [
             "projectPath",
             "args"
           ]
         },
         "buildRenameMap": {
-          "line": 171,
+          "line": 229,
           "params": [
             "projectPath"
           ],
           "purpose": "One pass over history: rename chains old→final path."
         },
         "buildLastTouchMap": {
-          "line": 190,
+          "line": 248,
           "params": [
             "projectPath",
             "sinceIso"
@@ -19226,45 +20726,45 @@
           "purpose": "file → last commit date (ISO), one git call since the oldest spec close."
         },
         "build": {
-          "line": 207,
+          "line": 265,
           "params": [
             "projectPath"
           ]
         },
         "indexPath": {
-          "line": 352,
+          "line": 410,
           "params": [
             "projectPath"
           ]
         },
         "newestSourceMtime": {
-          "line": 356,
+          "line": 414,
           "params": [
             "root"
           ]
         },
         "writeIndex": {
-          "line": 372,
+          "line": 430,
           "params": [
             "projectPath"
           ]
         },
         "ensureFresh": {
-          "line": 385,
+          "line": 443,
           "params": [
             "projectPath"
           ],
           "purpose": "Rebuild only when the index is missing or older than the newest spec"
         },
         "catalogLines": {
-          "line": 399,
+          "line": 457,
           "params": [
             "index"
           ],
           "purpose": "One compact line per spec — the {spec_catalog} embed for spec.new."
         }
       },
-      "sizeBytes": 17100,
+      "sizeBytes": 19509,
       "extraction": {
         "status": "parsed"
       },
@@ -19274,11 +20774,13 @@
           "buildRenameMap": "92f50b9673fe220f",
           "catalogLines": "718c0b376a2d93d6",
           "ensureFresh": "6587c44c71eb2fe8",
+          "firstParagraph": "bcdec6abb5a050e5",
+          "firstSentence": "556060c1bca1028b",
           "lexicalKeywords": "d0a6eacbf069c1f6",
-          "parseDigest": "64f5b6dab96b8ba7",
+          "parseDigest": "4a83bd05f3efb5fc",
           "parseFootprint": "2cbd05b5ef6d5091",
           "parseFrontMatter": "ab7e13a321f1523c",
-          "parseOutcome": "0a8e749f98978b97"
+          "parseOutcome": "6fc70dbe35b0d7af"
         }
       }
     },
@@ -21260,7 +22762,7 @@
           "purpose": "Which CLI a tool name belongs to, or null when it is shared or unknown."
         },
         "cliOf": {
-          "line": 146,
+          "line": 152,
           "params": [
             "payload",
             "explicit"
@@ -21268,7 +22770,7 @@
           "purpose": "Which CLI produced a hook payload."
         },
         "editPaths": {
-          "line": 156,
+          "line": 162,
           "params": [
             "toolName",
             "toolInput",
@@ -21277,7 +22779,7 @@
           "purpose": "Files an edit tool call would write, or [] when it is not an edit."
         },
         "searchPattern": {
-          "line": 169,
+          "line": 175,
           "params": [
             "toolName",
             "toolInput",
@@ -21286,7 +22788,7 @@
           "purpose": "The pattern a search tool call is looking for, or null."
         },
         "shellCommand": {
-          "line": 182,
+          "line": 188,
           "params": [
             "toolName",
             "toolInput"
@@ -21294,7 +22796,7 @@
           "purpose": "The command a shell tool call would run, or null."
         },
         "matcherFor": {
-          "line": 193,
+          "line": 199,
           "params": [
             "cli",
             "roles"
@@ -21302,21 +22804,21 @@
           "purpose": "The `matcher` string for a hook that should fire on these roles under one"
         },
         "inlineCap": {
-          "line": 202,
+          "line": 208,
           "params": [
             "cli"
           ],
           "purpose": "How much additionalContext this CLI inlines before it truncates."
         },
         "dialect": {
-          "line": 250,
+          "line": 256,
           "params": [
             "cli"
           ],
           "purpose": "Phrase values for one CLI, falling back to Claude Code's."
         }
       },
-      "sizeBytes": 10006,
+      "sizeBytes": 10352,
       "extraction": {
         "status": "parsed"
       },
@@ -21499,6 +23001,10 @@
         "WATCHERS",
         "POLLERS",
         "HINT_REASONS",
+        "HINT_MODES",
+        "CLOSE_VERDICTS",
+        "DECISION_SOURCES",
+        "DECISION_RELATIONS",
         "LIFECYCLE_REASONS",
         "MISSED_BOUND_REASONS",
         "HOSTS",
@@ -21512,32 +23018,32 @@
       "depends": [],
       "functions": {
         "isRegistered": {
-          "line": 429,
+          "line": 513,
           "params": [
             "name"
           ]
         },
         "kindOf": {
-          "line": 433,
+          "line": 517,
           "params": [
             "name"
           ]
         },
         "isSuppression": {
-          "line": 437,
+          "line": 521,
           "params": [
             "name"
           ]
         },
         "fieldPasses": {
-          "line": 441,
+          "line": 525,
           "params": [
             "spec",
             "value"
           ]
         },
         "validateEvent": {
-          "line": 464,
+          "line": 548,
           "params": [
             "name",
             "fields"
@@ -21545,7 +23051,7 @@
           "purpose": "Validate an (event, fields) pair against the registry."
         },
         "formatLabel": {
-          "line": 481,
+          "line": 565,
           "params": [
             "name",
             "fields"
@@ -21553,7 +23059,7 @@
           "purpose": "The one-line sentence the panel's default view shows, or null when the"
         },
         "buildRecord": {
-          "line": 502,
+          "line": 586,
           "params": [
             "name",
             "fields"
@@ -21561,7 +23067,7 @@
           "purpose": "Build the record the append contract writes: the validated fields plus the"
         }
       },
-      "sizeBytes": 22912,
+      "sizeBytes": 27519,
       "extraction": {
         "status": "parsed"
       },
@@ -21668,43 +23174,44 @@
         "renderBlock",
         "BLOCK_NAME",
         "SPEC_BLOCK_NAME",
+        "DECISION_BLOCK_NAME",
         "END_MARKER"
       ],
       "depends": [],
       "functions": {
         "escapeRe": {
-          "line": 39,
+          "line": 43,
           "params": [
             "text"
           ]
         },
         "beginMarkerRe": {
-          "line": 43,
-          "params": [
-            "blockName"
-          ]
-        },
-        "endMarkerRe": {
           "line": 47,
           "params": [
             "blockName"
           ]
         },
-        "beginMarker": {
+        "endMarkerRe": {
           "line": 51,
+          "params": [
+            "blockName"
+          ]
+        },
+        "beginMarker": {
+          "line": 55,
           "params": [
             "version",
             "blockName"
           ]
         },
         "endMarker": {
-          "line": 55,
+          "line": 59,
           "params": [
             "blockName"
           ]
         },
         "renderBlock": {
-          "line": 64,
+          "line": 68,
           "params": [
             "body",
             "version",
@@ -21713,7 +23220,7 @@
           "purpose": "Wrap a section body in stamped markers — the canonical emitted form."
         },
         "findBlock": {
-          "line": 75,
+          "line": 79,
           "params": [
             "text",
             "blockName = SPEC_BLOCK_NAME"
@@ -21721,14 +23228,14 @@
           "purpose": "Locate the managed block. Returns { start, end, version } — start/end are"
         },
         "normalize": {
-          "line": 94,
+          "line": 98,
           "params": [
             "text"
           ],
           "purpose": "Whitespace-normalized comparison basis. The shipped legacy sections were"
         },
         "findLegacySpan": {
-          "line": 105,
+          "line": 109,
           "params": [
             "text",
             "matcher"
@@ -21736,7 +23243,7 @@
           "purpose": "Find the heading-bounded span of a legacy section that passes the"
         },
         "firstFooterIndex": {
-          "line": 149,
+          "line": 153,
           "params": [
             "text",
             "footerMarker"
@@ -21744,7 +23251,7 @@
           "purpose": "Where a new block goes in a document that has none: before the trailing"
         },
         "appendBlock": {
-          "line": 172,
+          "line": 176,
           "params": [
             "text",
             "options"
@@ -21752,7 +23259,7 @@
           "purpose": "Add a managed block to a document that carries none, rewriting nothing:"
         },
         "upgradeDoc": {
-          "line": 210,
+          "line": 214,
           "params": [
             "text",
             "options"
@@ -21760,7 +23267,7 @@
           "purpose": "Compute the upgraded document text, or null when nothing may change."
         }
       },
-      "sizeBytes": 10300,
+      "sizeBytes": 10616,
       "extraction": {
         "status": "parsed"
       },
@@ -21977,7 +23484,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5392,
+      "sizeBytes": 5541,
       "extraction": {
         "status": "parsed"
       },
@@ -22000,6 +23507,10 @@
         "getFrameGitignoreBlock",
         "FRAME_GITIGNORE_MARKER_START",
         "FRAME_GITIGNORE_MARKER_END",
+        "FRAME_GITATTRIBUTES_FILE",
+        "FRAME_GITATTRIBUTES_MARKER_START",
+        "FRAME_GITATTRIBUTES_MARKER_END",
+        "getFrameGitattributesBlock",
         "SPEC_HINT_HOOKS",
         "CODEX_HINT_HOOKS",
         "hintHooksFor",
@@ -22011,6 +23522,9 @@
         "renderSpecSection",
         "renderSpecCoreSection",
         "SPEC_SECTION_VERSION",
+        "DECISION_SECTION",
+        "DECISION_CORE_SECTION",
+        "DECISION_SECTION_VERSION",
         "LEGACY_SPEC_DRIVEN_SECTION",
         "LEGACY_SPEC_DRIVEN_SECTION_V0",
         "LEGACY_SPEC_DRIVEN_CORE_SECTION",
@@ -22043,28 +23557,28 @@
           "purpose": "Get current ISO timestamp"
         },
         "renderSpecSection": {
-          "line": 300,
+          "line": 370,
           "purpose": "The spec sections as actually emitted into docs: wrapped in managed-block"
         },
         "renderSpecCoreSection": {
-          "line": 304
+          "line": 374
         },
         "formatProjectFacts": {
-          "line": 325,
+          "line": 395,
           "params": [
             "project"
           ],
           "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
         },
         "getAgentsTemplate": {
-          "line": 354,
+          "line": 424,
           "params": [
             "projectName",
             "options"
           ]
         },
         "getReferenceTemplate": {
-          "line": 461,
+          "line": 531,
           "params": [
             "projectName",
             "options"
@@ -22072,7 +23586,7 @@
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 737,
+          "line": 807,
           "params": [
             "projectName",
             "project"
@@ -22080,21 +23594,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 765,
+          "line": 835,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 785,
+          "line": 855,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 831,
+          "line": 901,
           "params": [
             "projectName",
             "project",
@@ -22103,24 +23617,27 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 918,
+          "line": 988,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getClaudeRuleTemplate": {
-          "line": 961,
+          "line": 1031,
           "params": [
             "agentsText"
           ],
           "purpose": "`.claude/rules/frame.md` — the file Claude Code loads at session start."
         },
         "getFrameGitignoreBlock": {
-          "line": 976
+          "line": 1046
+        },
+        "getFrameGitattributesBlock": {
+          "line": 1063
         },
         "hintHooksFor": {
-          "line": 1113,
+          "line": 1196,
           "params": [
             "template",
             "{ structureMap = false } = {}"
@@ -22128,7 +23645,7 @@
           "purpose": "The hint hooks a project should get. The full sets above stay as they are —"
         },
         "sessionReportCommand": {
-          "line": 1149,
+          "line": 1232,
           "params": [
             "tool",
             "guard = ''"
@@ -22136,7 +23653,7 @@
           "purpose": "Session report hook (restore-ai-sessions-on-relaunch). On SessionStart the"
         },
         "getGenericWrapperTemplate": {
-          "line": 1184,
+          "line": 1267,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -22144,38 +23661,38 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1230
+          "line": 1313
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1267,
+          "line": 1350,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "classifyStructureHook": {
-          "line": 1296,
+          "line": 1379,
           "params": [
             "text"
           ],
           "purpose": "'current' when `text` is today's template, 'previous' when it is an"
         },
         "getOrchBusHeader": {
-          "line": 1315,
+          "line": 1398,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1327,
+          "line": 1410,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1347
+          "line": 1430
         },
         "getOrchBinScripts": {
-          "line": 1365,
+          "line": 1448,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       },
-      "sizeBytes": 59621,
+      "sizeBytes": 65025,
       "extraction": {
         "status": "parsed"
       },
@@ -22244,7 +23761,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 12918,
+      "sizeBytes": 13142,
       "extraction": {
         "status": "parsed"
       },
@@ -22353,7 +23870,7 @@
       ],
       "functions": {
         "interpolate": {
-          "line": 72,
+          "line": 76,
           "params": [
             "template",
             "vars"
@@ -22361,21 +23878,21 @@
           "purpose": "{key} → vars[key]; unknown placeholders are left intact (same contract as"
         },
         "resolveVerificationCommand": {
-          "line": 79,
+          "line": 83,
           "params": [
             "config"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildPermissions": {
-          "line": 91,
+          "line": 95,
           "params": [
             "verification"
           ],
           "purpose": "The implement-permissions.json body. When a verification command exists,"
         },
         "buildLaunchArgs": {
-          "line": 101,
+          "line": 105,
           "params": [
             "settingsAbsPath",
             "promptRelPath"
@@ -22383,7 +23900,7 @@
           "purpose": "The CLI launch line: the permission flags plus the short read-this-file"
         },
         "resolveRawTemplatePath": {
-          "line": 111,
+          "line": 115,
           "params": [
             "projectRoot",
             "existsFn = fs.existsSync"
@@ -22391,20 +23908,20 @@
           "purpose": "Raw template path: override → staged. `existsFn` is injectable for tests."
         },
         "findProjectRoot": {
-          "line": 123,
+          "line": 127,
           "params": [
             "startDir"
           ],
           "purpose": "Walk up from a starting dir to the nearest ancestor that holds a .frame/"
         },
         "readJson": {
-          "line": 133,
+          "line": 137,
           "params": [
             "absPath"
           ]
         },
         "recordAutonomousMode": {
-          "line": 143,
+          "line": 147,
           "params": [
             "projectRoot",
             "slug"
@@ -22412,25 +23929,25 @@
           "purpose": "Merge implement_mode: autonomous into the spec's status.json, preserving"
         },
         "writePermissions": {
-          "line": 153,
+          "line": 157,
           "params": [
             "projectRoot"
           ]
         },
         "fail": {
-          "line": 162,
+          "line": 166,
           "params": [
             "message"
           ]
         },
         "main": {
-          "line": 167,
+          "line": 171,
           "params": [
             "argv"
           ]
         }
       },
-      "sizeBytes": 8480,
+      "sizeBytes": 8727,
       "extraction": {
         "status": "parsed"
       },
@@ -22635,7 +24152,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 21630,
+      "sizeBytes": 25456,
       "extraction": {
         "status": "parsed"
       },
@@ -22649,7 +24166,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5562,
+      "sizeBytes": 5771,
       "extraction": {
         "status": "parsed"
       },
@@ -23073,7 +24590,7 @@
         "src/shared/activityEvents"
       ],
       "functions": {},
-      "sizeBytes": 11202,
+      "sizeBytes": 18518,
       "extraction": {
         "status": "parsed"
       },
@@ -23384,9 +24901,17 @@
         "mkProject": {
           "line": 44,
           "purpose": "A project with one spec, so getCommandPrompt has a status.json to read."
+        },
+        "section": {
+          "line": 196,
+          "params": [
+            "prompt",
+            "from",
+            "to"
+          ]
         }
       },
-      "sizeBytes": 8560,
+      "sizeBytes": 17700,
       "extraction": {
         "status": "parsed"
       },
@@ -23414,6 +24939,132 @@
       },
       "provenance": {
         "description": "a0ee2f5a72dd524f"
+      }
+    },
+    "test/decision.test": {
+      "file": "test/decision.test.js",
+      "description": "decision.js — the card writer and lookup CLI (decision-cards-core T02).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "scripts/decision-cards",
+        "src/shared/activityEvents",
+        "scripts/activity-log",
+        "scripts/decision"
+      ],
+      "functions": {
+        "mkProject": {
+          "line": 35,
+          "params": [
+            "{ notes = NOTES",
+            "specs = ['spec-close-step']",
+            "files = ['src/main/gitSharing.js'] } = {}"
+          ]
+        },
+        "env": {
+          "line": 47,
+          "params": [
+            "root"
+          ]
+        },
+        "run": {
+          "line": 51,
+          "params": [
+            "root",
+            "args",
+            "input"
+          ]
+        },
+        "rows": {
+          "line": 56,
+          "params": [
+            "root"
+          ]
+        },
+        "input": {
+          "line": 65,
+          "params": [
+            "over = {}"
+          ]
+        },
+        "add": {
+          "line": 76,
+          "params": [
+            "root",
+            "over",
+            "args = []"
+          ]
+        },
+        "fileLines": {
+          "line": 80,
+          "params": [
+            "root"
+          ]
+        }
+      },
+      "sizeBytes": 15083,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "3c538125f67c204e"
+      }
+    },
+    "test/decisionCards.test": {
+      "file": "test/decisionCards.test.js",
+      "description": "Decision cards reader (decision-cards-core T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "scripts/decision-cards"
+      ],
+      "functions": {
+        "card": {
+          "line": 31,
+          "params": [
+            "over = {}"
+          ]
+        },
+        "writeCards": {
+          "line": 46,
+          "params": [
+            "lines"
+          ]
+        }
+      },
+      "sizeBytes": 14031,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "aac9230f4886e953"
+      }
+    },
+    "test/decisionCardsModel.test": {
+      "file": "test/decisionCardsModel.test.js",
+      "description": "Decision cards view — the pure row model (decision-cards-core T08).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/decisions/cardsModel"
+      ],
+      "functions": {},
+      "sizeBytes": 4543,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7d52e6deb001e4a3"
       }
     },
     "test/detectProject.test": {
@@ -23476,7 +25127,11 @@
         "fs",
         "os",
         "path",
-        "child_process"
+        "child_process",
+        "scripts/activity-log",
+        "src/shared/activityEvents",
+        "src/shared/frameTemplates",
+        "src/shared/docsManagedBlock"
       ],
       "functions": {
         "runHook": {
@@ -23484,22 +25139,70 @@
           "params": [
             "mode",
             "input",
-            "{ raw = null } = {}"
+            "{ raw = null",
+            "env = {}",
+            "args = []",
+            "hook = HOOK } = {}"
           ]
         },
         "mkProject": {
-          "line": 68,
+          "line": 69,
           "params": [
             "reference = REFERENCE"
           ]
+        },
+        "mkClosable": {
+          "line": 325,
+          "params": [
+            "{ slug = SLUG",
+            "digest = false",
+            "preClosed = false",
+            "tasksRaw = null } = {}"
+          ],
+          "purpose": "A project holding `slug`, its last task still open unless `preClosed`."
+        },
+        "closeAll": {
+          "line": 336,
+          "params": [
+            "root",
+            "slug = SLUG"
+          ],
+          "purpose": "Complete the spec's last task, the way a shell script would."
+        },
+        "closedBy": {
+          "line": 348,
+          "params": [
+            "root",
+            "firstLook",
+            "opts = {}"
+          ],
+          "purpose": "The session's first look, with the spec still open — then the session closes it."
+        },
+        "rowsOf": {
+          "line": 354,
+          "params": [
+            "root"
+          ],
+          "purpose": "Every activity row the hook wrote for this project, each checked against the registry."
+        },
+        "referenceWithDecisions": {
+          "line": 549,
+          "purpose": "The repo's REFERENCE.md as a project gets it on open: the decision block appended."
         }
       },
-      "sizeBytes": 13653,
+      "sizeBytes": 28536,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "7cf6097a8e5aec5b"
+        "description": "7cf6097a8e5aec5b",
+        "purposes": {
+          "closeAll": "506474a93dcd1f0e",
+          "closedBy": "cfddeda123aa0af1",
+          "mkClosable": "db119b3b11c9e5f4",
+          "referenceWithDecisions": "bf0295f2ba8389de",
+          "rowsOf": "2b5937aa7baca604"
+        }
       }
     },
     "test/docsHealth.test": {
@@ -23532,7 +25235,7 @@
         "src/shared/frameTemplates"
       ],
       "functions": {},
-      "sizeBytes": 12953,
+      "sizeBytes": 14387,
       "extraction": {
         "status": "parsed"
       },
@@ -24362,7 +26065,7 @@
           ]
         }
       },
-      "sizeBytes": 10822,
+      "sizeBytes": 11274,
       "extraction": {
         "status": "parsed"
       },
@@ -24516,14 +26219,24 @@
           "params": [
             "file"
           ]
+        },
+        "attributesFile": {
+          "line": 207
+        },
+        "mergeTwoCardBranches": {
+          "line": 237,
+          "purpose": "Two branches that each append one card to a committed card file, merged."
         }
       },
-      "sizeBytes": 8988,
+      "sizeBytes": 12206,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "d85681307214f445"
+        "description": "d85681307214f445",
+        "purposes": {
+          "mergeTwoCardBranches": "4daab35caefb1f76"
+        }
       }
     },
     "test/gitStatusWatcher.test": {
@@ -24676,10 +26389,12 @@
         "node:test",
         "node:assert/strict",
         "path",
-        "src/templates/bin/implement-launch"
+        "src/templates/bin/implement-launch",
+        "node:module",
+        "src/main/specManager"
       ],
       "functions": {},
-      "sizeBytes": 5184,
+      "sizeBytes": 6884,
       "extraction": {
         "status": "parsed"
       },
@@ -24859,11 +26574,11 @@
           "purpose": "Lines in `relFile` that build a path with a `specs` segment, as `file:line`."
         },
         "expectedSegments": {
-          "line": 102,
+          "line": 105,
           "purpose": "The segments frameStore puts between a project and its specs: ['.frame', 'specs']."
         },
         "joinArguments": {
-          "line": 112,
+          "line": 115,
           "params": [
             "line",
             "from"
@@ -24871,20 +26586,28 @@
           "purpose": "The arguments of the `path.join(` call starting at `from`, as a flat list."
         },
         "specPathJoins": {
-          "line": 132,
+          "line": 135,
           "params": [
             "relFile"
           ],
           "purpose": "Every spec-path join in `relFile`, with its segments resolved where we can."
+        },
+        "decisionPathLines": {
+          "line": 185,
+          "params": [
+            "relFile"
+          ],
+          "purpose": "Lines in `relFile` that build a path ending in the card file."
         }
       },
-      "sizeBytes": 6975,
+      "sizeBytes": 9609,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "f7209289e40e427b",
         "purposes": {
+          "decisionPathLines": "38833cc62b2faf57",
           "expectedSegments": "51c778ceb33565e7",
           "joinArguments": "71266266515500b4",
           "jsFilesUnder": "79cf5b6b6fac3594",
@@ -25344,6 +27067,231 @@
         "description": "134639e22914d629"
       }
     },
+    "test/spec-close-fixture.test": {
+      "file": "test/spec-close-fixture.test.js",
+      "description": "Spec close step — fixture and runner tests.",
+      "exports": [
+        "greet",
+        "${n || 'stranger'"
+      ],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "path",
+        "child_process",
+        "scripts/eval/spec-close/make-fixture",
+        "scripts/eval/spec-close/run",
+        "src/shared/frameTemplates"
+      ],
+      "functions": {
+        "withFixture": {
+          "line": 38,
+          "params": [
+            "kind",
+            "fn"
+          ]
+        },
+        "envOf": {
+          "line": 48,
+          "params": [
+            "fixture"
+          ],
+          "purpose": "The fixture's environment for anything run inside it: its own activity home, nobody else's root."
+        },
+        "hook": {
+          "line": 60,
+          "params": [
+            "fixture",
+            "event",
+            "script",
+            "payload"
+          ],
+          "purpose": "Run one registered hook the way Claude Code would: the command string from"
+        },
+        "closeCheck": {
+          "line": 81,
+          "params": [
+            "fixture"
+          ]
+        },
+        "appendFix": {
+          "line": 258,
+          "params": [
+            "fixture",
+            "title"
+          ]
+        },
+        "inspected": {
+          "line": 263,
+          "params": [
+            "fixture"
+          ]
+        }
+      },
+      "sizeBytes": 27214,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "01eee78c43692144",
+        "purposes": {
+          "envOf": "77a2d52e47a88a90",
+          "hook": "90fb94588feabdbf"
+        }
+      }
+    },
+    "test/spec-close-state.test": {
+      "file": "test/spec-close-state.test.js",
+      "description": "Spec close state — helper tests.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "scripts/spec-close-state"
+      ],
+      "functions": {
+        "writeTasks": {
+          "line": 42,
+          "params": [
+            "root",
+            "tasks",
+            "{ raw = null } = {}"
+          ],
+          "purpose": "Write tasks.json with an mtime no earlier write shared."
+        },
+        "mkSpec": {
+          "line": 51,
+          "params": [
+            "root",
+            "slug",
+            "{ digest = false",
+            "status = null } = {}"
+          ]
+        },
+        "mkProject": {
+          "line": 60,
+          "params": [
+            "{ specs = []",
+            "tasks = [] } = {}"
+          ],
+          "purpose": "A project holding the given specs and tasks."
+        },
+        "closeIn": {
+          "line": 72,
+          "params": [
+            "root",
+            "session",
+            "before",
+            "after",
+            "now = NOW"
+          ],
+          "purpose": "The session takes its first look with `before` on disk, then the tasks"
+        },
+        "withCardTooling": {
+          "line": 158,
+          "params": [
+            "root"
+          ],
+          "purpose": "A project that can write cards: decision.js in .frame/bin/, as Frame ships it."
+        },
+        "writeCards": {
+          "line": 164,
+          "params": [
+            "root",
+            "cards"
+          ]
+        },
+        "gitInit": {
+          "line": 326,
+          "params": [
+            "root"
+          ]
+        }
+      },
+      "sizeBytes": 23500,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "24c240c9101ebaa5",
+        "purposes": {
+          "closeIn": "eb2b6dd3e560218c",
+          "mkProject": "8494b5262d8ec57c",
+          "withCardTooling": "588f99cee98d914a",
+          "writeTasks": "3de6815b184f2a3c"
+        }
+      }
+    },
+    "test/spec-close.test": {
+      "file": "test/spec-close.test.js",
+      "description": "Spec close step — close script tests.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "scripts/spec-close",
+        "scripts/spec-index",
+        "src/shared/activityEvents",
+        "scripts/activity-log",
+        "src/main/structureBootstrap",
+        "scripts/decision"
+      ],
+      "functions": {
+        "mkProject": {
+          "line": 48,
+          "params": [
+            "{ slug = 'a-spec'",
+            "statuses = ['completed'",
+            "'completed']",
+            "digest = null",
+            "tasksRaw = null } = {}"
+          ],
+          "purpose": "A project with one spec. `digest` is the file's text, or null for none."
+        },
+        "run": {
+          "line": 59,
+          "params": [
+            "root",
+            "args"
+          ]
+        },
+        "snapshot": {
+          "line": 74,
+          "params": [
+            "root"
+          ],
+          "purpose": "Every file under the project, with its content — the activity home aside."
+        },
+        "mkCardProject": {
+          "line": 422,
+          "params": [
+            "opts"
+          ],
+          "purpose": "mkProject, plus the card writer Frame ships, which is what makes cards owed."
+        }
+      },
+      "sizeBytes": 24233,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "04eb4c5e40bc2520",
+        "purposes": {
+          "mkCardProject": "eabebc8be0539278",
+          "mkProject": "b3984d82c4aeb33e",
+          "snapshot": "d1ea210d6033143c"
+        }
+      }
+    },
     "test/spec-command-hint.test": {
       "file": "test/spec-command-hint.test.js",
       "description": "Spec command hook script tests.",
@@ -25377,7 +27325,7 @@
           "purpose": "A project with one spec in `phase`, and the command templates staged."
         }
       },
-      "sizeBytes": 12187,
+      "sizeBytes": 15425,
       "extraction": {
         "status": "parsed"
       },
@@ -25385,6 +27333,51 @@
         "description": "212d9ec4f4b9e819",
         "purposes": {
           "mkProject": "5132d1f7b4ee6504"
+        }
+      }
+    },
+    "test/spec-context.test": {
+      "file": "test/spec-context.test.js",
+      "description": "spec-context.js --file — spec history, then the file's decision cards",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "mkProject": {
+          "line": 22,
+          "purpose": "A project holding one real finished spec, so the file has spec history."
+        },
+        "run": {
+          "line": 29,
+          "params": [
+            "root",
+            "args",
+            "cli = CLI"
+          ]
+        },
+        "BEFORE_CARDS": {
+          "line": 80,
+          "params": [
+            "("
+          ],
+          "purpose": "The last commit before decision cards. Absent in a shallow clone."
+        }
+      },
+      "sizeBytes": 4482,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a939452c9bef96e6",
+        "purposes": {
+          "BEFORE_CARDS": "6e0627e49f9db956",
+          "mkProject": "f9ad42d45055e57f"
         }
       }
     },
@@ -25399,7 +27392,9 @@
         "os",
         "path",
         "child_process",
-        "scripts/activity-log"
+        "scripts/activity-log",
+        "src/shared/activityEvents",
+        "scripts/decision-cards"
       ],
       "functions": {
         "runHook": {
@@ -25418,25 +27413,61 @@
           ]
         },
         "withActivity": {
-          "line": 181,
+          "line": 209,
           "params": [
             "root",
             "fn"
           ]
         },
         "recordsFor": {
-          "line": 193,
+          "line": 221,
           "params": [
             "root"
           ]
+        },
+        "addClosed": {
+          "line": 414,
+          "params": [
+            "root",
+            "{ digest = false",
+            "session = 'p1' } = {}"
+          ],
+          "purpose": "Give a project a spec that `session` closed with no digest: the session's"
+        },
+        "wideIndex": {
+          "line": 429,
+          "params": [
+            "slugs",
+            "width"
+          ],
+          "purpose": "An index whose topics all match \"telemetry\", each with a digest line of `width` characters."
+        },
+        "withCards": {
+          "line": 613,
+          "params": [
+            "root",
+            "cards"
+          ]
+        },
+        "BEFORE_CARDS": {
+          "line": 718,
+          "params": [
+            "("
+          ],
+          "purpose": "With no card file, every pre-edit payload and record is the one the hook"
         }
       },
-      "sizeBytes": 15884,
+      "sizeBytes": 47091,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "68fc601a032f6611"
+        "description": "68fc601a032f6611",
+        "purposes": {
+          "BEFORE_CARDS": "681d84b1ac3171cc",
+          "addClosed": "5cceb150c8ba49c1",
+          "wideIndex": "42801f3b44956247"
+        }
       }
     },
     "test/spec-index.test": {
@@ -25477,7 +27508,7 @@
           ]
         }
       },
-      "sizeBytes": 9880,
+      "sizeBytes": 13333,
       "extraction": {
         "status": "parsed"
       },
@@ -25509,14 +27540,14 @@
           ]
         },
         "open": {
-          "line": 246,
+          "line": 269,
           "params": [
             "dir"
           ],
           "purpose": "Simulates the project-open sequence: artifacts before docs. This is the"
         }
       },
-      "sizeBytes": 15082,
+      "sizeBytes": 20882,
       "extraction": {
         "status": "parsed"
       },
@@ -25769,11 +27800,11 @@
           "purpose": "A parser that publishes through the real state layer, then hangs."
         },
         "previousTemplate": {
-          "line": 430,
+          "line": 453,
           "purpose": "The template Frame shipped before STR-02b, rebuilt from history (null in a shallow clone)."
         },
         "gitInit": {
-          "line": 444,
+          "line": 467,
           "params": [
             "dir"
           ]
@@ -25786,7 +27817,7 @@
           "purpose": "The last parser generation before STR-01, read from history."
         }
       },
-      "sizeBytes": 24451,
+      "sizeBytes": 25540,
       "extraction": {
         "status": "parsed"
       },
@@ -26326,7 +28357,11 @@
       "depends": [
         "node:test",
         "node:assert/strict",
-        "src/renderer/tasks/runPrompt"
+        "src/renderer/tasks/runPrompt",
+        "fs",
+        "os",
+        "path",
+        "src/main/projectInsights"
       ],
       "functions": {
         "legacyBuildTaskPrompt": {
@@ -26338,7 +28373,7 @@
           "purpose": "The builder as it stood in tasksPanel.js before this spec, kept verbatim"
         }
       },
-      "sizeBytes": 6767,
+      "sizeBytes": 10835,
       "extraction": {
         "status": "parsed"
       },
@@ -26433,7 +28468,7 @@
         "scripts/toolVocabulary"
       ],
       "functions": {},
-      "sizeBytes": 7426,
+      "sizeBytes": 8706,
       "extraction": {
         "status": "parsed"
       },
@@ -27438,6 +29473,13 @@
         "direction": "",
         "description": ""
       }
+    },
+    "decision": {
+      "LOAD_DECISION_CARDS": {
+        "name": "load-decision-cards",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -27512,6 +29554,18 @@
         "module": "renderer/statusBar/branchPickerModel",
         "file": "src/renderer/statusBar/branchPickerModel.js",
         "description": "Branch picker list model — pure (status-bar-branch-picker spec, D5 / C12)."
+      }
+    ],
+    "cards": [
+      {
+        "module": "renderer/decisionCardsPanel",
+        "file": "src/renderer/decisionCardsPanel.js",
+        "description": "Decision Cards Panel (decision-cards-core T08)"
+      },
+      {
+        "module": "renderer/decisions/cardsModel",
+        "file": "src/renderer/decisions/cardsModel.js",
+        "description": "Decision cards view — the pure row model (decision-cards-core T08)."
       }
     ],
     "claude-sessions": [
@@ -27924,6 +29978,11 @@
     ],
     "model": [
       {
+        "module": "renderer/decisions/cardsModel",
+        "file": "src/renderer/decisions/cardsModel.js",
+        "description": "Decision cards view — the pure row model (decision-cards-core T08)."
+      },
+      {
         "module": "renderer/specs/filterModel",
         "file": "src/renderer/specs/filterModel.js",
         "description": "Specs dashboard filter model — what the grid shows for a given scope,"
@@ -27983,6 +30042,11 @@
         "module": "renderer/activityPanel",
         "file": "src/renderer/activityPanel.js",
         "description": "Activity Panel"
+      },
+      {
+        "module": "renderer/decisionCardsPanel",
+        "file": "src/renderer/decisionCardsPanel.js",
+        "description": "Decision Cards Panel (decision-cards-core T08)"
       },
       {
         "module": "renderer/feedbackPanel",
@@ -28448,8 +30512,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 311,
-        "unsupported": 84,
+        "parsed": 326,
+        "unsupported": 85,
         "partial": 0
       }
     },
@@ -28495,9 +30559,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 484,
-      "traversedDirectories": 81,
-      "eligibleFiles": 395,
+      "visitedEntries": 502,
+      "traversedDirectories": 83,
+      "eligibleFiles": 411,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -28514,7 +30578,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 395,
+      "indexedFiles": 411,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -28522,6 +30586,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4098d30de66746721c76e982e2ba4e648a5e8256e018dc903adf04d08afa2e0a"
+    "revision": "f1debea2ec51ba5befff690156a0eac93029df52edffa06eac40362f2bfd2400"
   }
 }

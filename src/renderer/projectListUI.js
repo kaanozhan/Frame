@@ -311,7 +311,10 @@ const WORKSPACE_NAV_GROUPS = [
     items: [
       { view: 'specs', icon: '≡', label: 'Specs', count: true, open: ui => ui.showSpecs(), surfaces: ['specs', 'section:spec'] },
       { view: 'tasks', icon: '✓', label: 'Tasks', count: true, open: ui => ui.showTasksBoard(), surfaces: ['tasks', 'section:task'] },
-      { view: 'sessions', icon: '↺', label: 'Sessions', open: ui => ui.showPanel('sessions'), surfaces: ['panel:sessions'] }
+      { view: 'sessions', icon: '↺', label: 'Sessions', open: ui => ui.showPanel('sessions'), surfaces: ['panel:sessions'] },
+      // decision-cards-core D2: the cards view lives here rather than as a
+      // second dock tab. It is "Decisions"; the dock tab is "Project Notes".
+      { view: 'decisionCards', icon: '◇', label: 'Decisions', open: ui => ui.showPanel('decisionCards'), surfaces: ['panel:decisionCards'] }
     ]
   }
 ];

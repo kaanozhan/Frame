@@ -67,7 +67,7 @@ function renderShell(body) {
   return `
     <div class="decisions-view">
       <div class="decisions-header dock-view-header">
-        <h3 class="dock-view-title">Decisions</h3>
+        <h3 class="dock-view-title">Project Notes</h3>
         <div class="dock-view-actions">
           <input type="search" class="decisions-search dock-view-search" placeholder="Search decisions…"
                  autocomplete="off" spellcheck="false">
@@ -91,8 +91,8 @@ function matches(decision) {
 function renderList() {
   if (decisions.length === 0) {
     return renderEmpty(
-      'No decisions recorded yet',
-      'Decisions are the `### [YYYY-MM-DD] Title` entries in PROJECT_NOTES.md. Add one and it shows up here.'
+      'No entries yet',
+      'Project Notes lists the `### [YYYY-MM-DD] Title` entries in PROJECT_NOTES.md. Add one and it shows up here.'
     );
   }
 

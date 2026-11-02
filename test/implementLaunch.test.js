@@ -79,6 +79,41 @@ test('buildPermissions does not mutate the shared constant arrays', () => {
   assert.equal(helper.IMPLEMENT_ALLOW.length, before);
 });
 
+test('the close script the digest step runs is allowed by a rule, not left to a classifier', () => {
+  assert.ok(helper.IMPLEMENT_ALLOW.includes('Bash(node .frame/bin/spec-close.js *)'));
+  assert.ok(!helper.IMPLEMENT_ALLOW.some((rule) => rule.includes('scripts/spec-close.js')),
+    'only the shipped path — a project\'s own scripts/ is not Frame\'s');
+});
+
+test('the card writer the close step runs is allowed by its shipped path only', () => {
+  assert.ok(helper.IMPLEMENT_ALLOW.includes('Bash(node .frame/bin/decision.js *)'));
+  assert.ok(!helper.IMPLEMENT_ALLOW.some((rule) => rule.includes('scripts/decision.js')));
+});
+
+test('the launcher and the app write the same permission file', () => {
+  // Two copies of one list: the launcher ships into .frame/bin/ and cannot
+  // require the app. specManager pulls in Electron-side modules, so those are
+  // stubbed for the one require.
+  const Module = require('node:module');
+  const stubs = {
+    '@aptabase/electron/main': { initialize() {}, trackEvent() {} },
+    'posthog-node': { PostHog: class { capture() {} captureException() {} identify() {} shutdown() { return Promise.resolve(); } } },
+    electron: { app: {}, ipcMain: { handle() {}, on() {} } }
+  };
+  const original = Module._load;
+  Module._load = function (request, ...rest) {
+    return Object.prototype.hasOwnProperty.call(stubs, request) ? stubs[request] : original.call(this, request, ...rest);
+  };
+  try {
+    const specManager = require('../src/main/specManager');
+    for (const check of [null, 'npm test']) {
+      assert.deepEqual(specManager.buildImplementPermissions(check), helper.buildPermissions(check));
+    }
+  } finally {
+    Module._load = original;
+  }
+});
+
 test('deny list blocks push and hard resets', () => {
   assert.ok(helper.IMPLEMENT_DENY.includes('Bash(git push)'));
   assert.ok(helper.IMPLEMENT_DENY.includes('Bash(git push *)'));

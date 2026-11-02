@@ -65,6 +65,9 @@
 /* 13b. Decisions view (center list of PROJECT_NOTES decisions) */
 @import 'components/decisions-view.css';
 
+/* 13b2. Decision cards view (center list of .frame/decisions.jsonl) */
+@import 'components/decision-cards.css';
+
 /* 13c. Status bar (foot of the window) */
 @import 'components/status-bar.css';
 

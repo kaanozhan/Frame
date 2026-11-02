@@ -382,6 +382,29 @@ test('freshness readers are activated only after the read contract they import',
   }
 });
 
+test('the card writer ships with its reader and is activated after it', () => {
+  const order = [];
+  const recording = { ...fs, renameSync: (from, to) => { order.push(path.relative(bin(), to)); return fs.renameSync(from, to); } };
+  const report = stageParserScripts(project, { fs: recording });
+  assert.deepEqual(report.unavailable, []);
+  assert.ok(fs.existsSync(bin('decision-cards.js')));
+  assert.ok(fs.existsSync(bin('decision.js')));
+  assert.ok(order.indexOf('decision-cards.js') < order.indexOf('decision.js'), 'reader before writer');
+});
+
+test('a missing card reader withholds the writer and nothing else', () => {
+  const source = scriptsCopy();
+  try {
+    fs.rmSync(path.join(source, 'decision-cards.js'));
+    const report = stageParserScripts(project, { sourceDir: source });
+    assert.deepEqual(report.unavailable, ['decision.js']);
+    assert.ok(!fs.existsSync(bin('decision.js')));
+    assert.ok(fs.existsSync(bin('spec-hint.js')), 'the hooks read cards behind a guard and still ship');
+  } finally {
+    fs.rmSync(source, { recursive: true, force: true });
+  }
+});
+
 /* ------------- the module map is opt-in (structure-map-opt-in) ------------- */
 
 const STRUCTURE_ONLY = [

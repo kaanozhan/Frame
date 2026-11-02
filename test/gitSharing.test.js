@@ -201,3 +201,76 @@ test('the state handed to the UI carries mode, tracked and hookFile', () => {
   assert.equal(after.hookFile, 'settings.local.json');
   assert.equal(gitSharing.hookFileFor('repo'), 'settings.json');
 });
+
+// ─── .frame/.gitattributes (decision-cards-core T03) ──────────
+
+function attributesFile() {
+  return path.join(projectDir, '.frame', templates.FRAME_GITATTRIBUTES_FILE);
+}
+
+test('repo mode writes the union-merge block for the card file', () => {
+  gitSharing.setMode(projectDir, 'repo');
+  assert.equal(fs.readFileSync(attributesFile(), 'utf8'), templates.getFrameGitattributesBlock());
+  assert.match(templates.getFrameGitattributesBlock(), /^decisions\.jsonl merge=union$/m);
+  assert.equal(git(projectDir, ['check-attr', 'merge', '--', '.frame/decisions.jsonl']), '.frame/decisions.jsonl: merge: union');
+  assert.equal(gitSharing.ensureFrameGitattributes(projectDir).changed, false, 'a second pass rewrites nothing');
+});
+
+test('user lines in .frame/.gitattributes survive the managed block', () => {
+  fs.mkdirSync(path.dirname(attributesFile()), { recursive: true });
+  fs.writeFileSync(attributesFile(), '*.md text eol=lf');
+  gitSharing.setMode(projectDir, 'repo');
+  const text = fs.readFileSync(attributesFile(), 'utf8');
+  assert.ok(text.startsWith('*.md text eol=lf\n'));
+  assert.ok(text.endsWith(templates.getFrameGitattributesBlock()));
+  gitSharing.setMode(projectDir, 'repo');
+  assert.equal(fs.readFileSync(attributesFile(), 'utf8'), text);
+});
+
+test('local mode writes no .frame/.gitattributes', () => {
+  gitSharing.setMode(projectDir, 'local');
+  assert.ok(!fs.existsSync(attributesFile()));
+  assert.equal(gitSharing.ensureFrameGitattributes(projectDir).skipped, 'local');
+});
+
+/** Two branches that each append one card to a committed card file, merged. */
+function mergeTwoCardBranches() {
+  const cardsFile = path.join(projectDir, '.frame', 'decisions.jsonl');
+  const card = (id) => JSON.stringify({ id, decision: `Decision ${id}.` });
+  fs.writeFileSync(cardsFile, `${card('20261001-aaaaaa')}\n`);
+  git(projectDir, ['add', '-A']);
+  git(projectDir, ['commit', '-q', '-m', 'base']);
+  const base = git(projectDir, ['rev-parse', '--abbrev-ref', 'HEAD']);
+
+  git(projectDir, ['checkout', '-q', '-b', 'one']);
+  fs.appendFileSync(cardsFile, `${card('20261002-bbbbbb')}\n`);
+  git(projectDir, ['commit', '-q', '-am', 'one']);
+
+  git(projectDir, ['checkout', '-q', base]);
+  git(projectDir, ['checkout', '-q', '-b', 'two']);
+  fs.appendFileSync(cardsFile, `${card('20261003-cccccc')}\n`);
+  git(projectDir, ['commit', '-q', '-am', 'two']);
+
+  let conflicted = false;
+  try {
+    git(projectDir, ['merge', '--no-edit', '-q', 'one']);
+  } catch (err) {
+    conflicted = true;
+  }
+  return { conflicted, lines: fs.readFileSync(cardsFile, 'utf8').split('\n').filter(Boolean) };
+}
+
+test('two branches that each add a card merge without a conflict in repo mode', () => {
+  gitSharing.setMode(projectDir, 'repo');
+  const { conflicted, lines } = mergeTwoCardBranches();
+  assert.equal(conflicted, false);
+  assert.equal(lines.length, 3);
+  for (const id of ['20261001-aaaaaa', '20261002-bbbbbb', '20261003-cccccc']) {
+    assert.ok(lines.some((l) => l.includes(id)), `${id} kept`);
+  }
+});
+
+test('without the block the same merge conflicts — the rule is what makes it clean', () => {
+  const { conflicted } = mergeTwoCardBranches();
+  assert.equal(conflicted, true);
+});

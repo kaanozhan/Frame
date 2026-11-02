@@ -1,0 +1,224 @@
+/* ==================== DECISION CARDS VIEW ====================
+   The project's decision cards (decision-cards-core T08), a Context view
+   hosted in the center like Sessions. In its home slot it is hidden; mounted,
+   .panel-inline (panels.css) fills the center. The header is the shared
+   .view-header. Rows follow the dock Decisions view's shape — collapsed to
+   date and decision, one expands in place — so the two read as siblings. */
+
+#decision-cards-panel {
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+#decision-cards-panel.visible { display: flex; }
+
+#decision-cards-panel:not(.visible) { pointer-events: none; }
+
+.decision-cards-search {
+  width: 220px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.decision-cards-search:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+#decision-cards-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+#decision-cards-refresh-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+#decision-cards-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-md) var(--space-xl) var(--space-xl);
+}
+
+.decision-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 900px;
+}
+
+/* ---------- One card ---------- */
+.decision-card { border-bottom: 1px solid var(--border-subtle); }
+
+.decision-card-head {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  padding: 12px 8px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.decision-card-head:hover { background: var(--bg-secondary); }
+
+.decision-card-chevron {
+  flex-shrink: 0;
+  color: var(--text-quaternary);
+  font-size: 13px;
+  line-height: 1.4;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.decision-card.open .decision-card-chevron {
+  transform: rotate(90deg);
+  color: var(--accent-primary);
+}
+
+.decision-card-date {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.decision-card-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.decision-card.open .decision-card-text {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.decision-card-source {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+}
+
+.decision-card-source-spec { color: var(--accent-primary); }
+
+/* ---------- Expanded ---------- */
+.decision-card-body {
+  padding: 0 8px var(--space-lg) 32px;
+  font-size: 13px;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.decision-card-why { margin: 0; color: var(--text-secondary); }
+
+.decision-card-meta {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 11px;
+  color: var(--text-quaternary);
+}
+
+.decision-card-id { font-family: var(--font-mono, monospace); }
+
+.decision-card-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.decision-card-chip {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+.decision-card-files {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.decision-card-none,
+.decision-card-story-missing {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-quaternary);
+}
+
+.decision-card-story {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--accent-primary);
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.decision-card-story:hover { background: var(--bg-secondary); }
+
+.decision-card-notes {
+  padding: var(--space-sm) var(--space-md);
+  border-left: 2px solid var(--border-subtle);
+}
+
+.decision-card-notes > :first-child { margin-top: 0; }
+
+/* ---------- Empty / skipped ---------- */
+.decision-cards-empty {
+  padding: 64px var(--space-xl);
+  text-align: center;
+}
+
+.decision-cards-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.decision-cards-empty-message {
+  font-size: 13px;
+  color: var(--text-quaternary);
+  margin: 0 auto;
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+.decision-cards-skipped {
+  max-width: 900px;
+  margin: var(--space-md) 0 0;
+  font-size: 12px;
+  color: var(--text-quaternary);
+}

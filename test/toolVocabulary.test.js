@@ -138,11 +138,31 @@ test('a CLI-specific tool name identifies the CLI on its own', () => {
   assert.equal(v.cliOf({ tool_name: 'NotebookEdit' }), v.CLAUDE);
 });
 
-test('Codex-only payload fields identify it when no tool name does', () => {
-  // SessionStart carries no tool_name; these fields are what T01 saw Codex
-  // send and Claude Code not send.
+test('turn_id identifies Codex when no tool name does', () => {
+  // SessionStart carries no tool_name. Codex payloads as codex-parity's T01
+  // recorded them carry turn_id beside model and permission_mode.
   assert.equal(v.cliOf({ hook_event_name: 'SessionStart', turn_id: 't' }), v.CODEX);
-  assert.equal(v.cliOf({ hook_event_name: 'SessionStart', permission_mode: 'x' }), v.CODEX);
+  assert.equal(v.cliOf({ hook_event_name: 'UserPromptSubmit', prompt: 'p', turn_id: 't',
+    tool_use_id: 'u', model: 'm', permission_mode: 'default' }), v.CODEX);
+});
+
+test('Claude Code payloads read as Claude Code although they carry permission_mode', () => {
+  // Field sets captured from Claude Code 2.1.304 on 2026-10-20. Each of these
+  // was read as Codex while permission_mode and tool_use_id counted as Codex-only.
+  const base = { session_id: 's', transcript_path: '/t.jsonl', cwd: '/p' };
+  assert.equal(v.cliOf({ ...base, hook_event_name: 'SessionStart', source: 'startup' }), v.CLAUDE);
+  assert.equal(v.cliOf({ ...base, hook_event_name: 'UserPromptSubmit', prompt: 'p',
+    prompt_id: 'q', permission_mode: 'default' }), v.CLAUDE);
+  assert.equal(v.cliOf({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Write',
+    tool_input: { file_path: '/p/a' }, prompt_id: 'q', permission_mode: 'default',
+    effort: 'low', tool_use_id: 'u' }), v.CLAUDE);
+  assert.equal(v.cliOf({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Bash',
+    tool_input: { command: 'ls' }, prompt_id: 'q', permission_mode: 'default',
+    effort: 'low', tool_use_id: 'u' }), v.CLAUDE);
+});
+
+test('a model field alone does not make a payload Codex', () => {
+  assert.equal(v.cliOf({ hook_event_name: 'SessionStart', source: 'startup', model: 'm' }), v.CLAUDE);
 });
 
 test('an unmarked payload reads as Claude Code', () => {

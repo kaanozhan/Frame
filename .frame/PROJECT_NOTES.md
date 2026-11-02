@@ -3707,6 +3707,44 @@ Decisions taken with the user:
 
 Measured (measurements.md): both CLIs pass the env to the hook; `$PPID` is the CLI and its pgid equals the terminal's tpgid, while a CLI nested in a session's Bash tool sits in another group — that check filters nested reports.
 
+### [2026-10-14] Spec close step — the digest rides the last task's commit, the reminder speaks only to the closing session (spec: spec-close-step)
+
+Implemented in autonomous mode on `feat/spec-close-step`, 2026-10-13/14. The spec's problem: the digest step lived as a conditional section after the last mode of the implement template; 69 of 73 closed specs had a digest, and 12 of 50 digests had a first sentence over the 280 characters a hint carries.
+
+Pre-flight found the installed Frame.app's known rewrite (8 done specs flipped back to `tasks_generated`, 68 tasks re-added). The user: "Sil'ince tekrar üretiliyor ignore edebilisin çözücem onu ilerde". It stayed in the working tree; every commit staged a `tasks.json` with those 68 tasks left out.
+
+The first pilot could not be started by the agent: the permission layer refuses headless sessions that spend money, so the user ran every pilot and run with `!`. Its two induced sessions received the reminder and relayed it to the user instead of acting. That opened a design discussion:
+
+- The user: "Ama alakasız bir sohbette ajanıon hatırlatması ne kadar mantıklı ? … Bunu mantıklı bir eksene almamız gerekebilir". The first design (D1) told every session in the project, every day, until the digest existed.
+- A pre-commit check of "the commit that closes a spec" was proposed and rejected by the user: "Öncelikle bunun ayrı bir commit olması bizim istemeyeceğimiz bir şey olabilir bir de repo ayarları var sonuçta local ve repo diye bu da işi baya bir değiştirir … Bunu böyle yapmak Frame'in doğasına aykırı". Frame's state lives on disk, and a local-mode project commits no `.frame/` file for such a check to see.
+- The user then: "şu an ayrı comitte yapıyoruz bunu bunu istemiyorum". The pilot had committed the digest separately, because the loop committed at step 7 while the digest step sat in the closing summary. The template now runs the digest step before the last task's commit, in every mode.
+- Asked whether the old template re-wrote the digest after a post-close fix: it did not. Its only trigger was "the task you just completed leaves no pending tasks", the same condition as now.
+- Reminder audience: the user chose B, only the session that closed the spec. The session records what was already *closed* at its first look rather than what was open, so a spec created and closed inside one session still counts as its own. The line now reads as the session's own unfinished work ("You completed the last task of spec X in this session…").
+- The user's real flow: "genelde başıma geliyor bir spec yapıyorum vs test ederken bir bug görüyorum düzeltiyorum ya da yanlış planlamış oluyorum ufak bir değişiklik oluyor e finalde zaten bu işin de commit edilmesi lazım finalde ?" Agreed:
+  - A fix after the last task carries a `## Fix —` outcome entry in its own commit.
+  - When the fix changes a decision the digest records, the same commit corrects the digest in place and adds a `Revised <date>:` line.
+  - The fixing agent decides which case applies, and asks the user when unsure.
+  - Regenerating the digest on every related commit was rejected: no check can tell which commits belong to a spec, or whether they change a decision.
+
+Later pilots changed the plan twice more:
+
+- In the second pilot, auto mode's classifier blocked `spec-close.js` in one session after allowing it in another. It is now in Frame's autonomous allowlist; the app's and the launcher's copies of the list are pinned equal by a test.
+- Both fix sessions edited through `sed -i`, so the edit-time hint (registered on Edit and Write only) never fired. The fix rule now also rides the prompt-time hint whenever it names a finished spec.
+- In the third pilot, `closing-turn` closed its task in the turn's last call. The product speaks at the next prompt, so that kind became two turns: a resumed "Thanks.", neutral on purpose.
+- N for the main run, the user: "İki turlu yap, N için natural 10 diğerleri 30".
+
+Main run on claude-opus-5-5, $21.48 (pilots ~$2 more):
+- natural: 10/10.
+- earlier-close, fix-bug, fix-decision: 30/30 each.
+- closing-turn: the reminder reached all 30; 26 wrote the digest, 4 asked the user first ("you only asked for the two commands").
+- Codex: verified by payload fixtures only.
+
+Left open:
+- The prompt-time fix sentence also rides false-positive topic matches; it was seen on this repo's own prompts.
+- `toolVocabulary.cliOf` reads Claude Code payloads as Codex (`permission_mode`), which mislabels rows and hands Claude Code Codex's inline cap.
+- `spec.close_checked` is grouped only under the Activity panel's "All" filter.
+- The installed app's rewrite still needs fixing.
+
 ### [2026-10-22] Opt-out now sends one `analytics_disabled` event
 
 Context: the user suspected Aptabase was broken because very few events arrive. Checked in-session: the app key is valid, the SDK delivers end to end in Electron 28, and PostHog failures (offline, 500) never block Aptabase — `track()` sends to Aptabase first in its own try, and no unhandled rejections occur. The likelier explanation is a small install base (v2.8.2 arm64 .dmg ≈ 84 downloads, mac arm64 only since 2.8.0) and a v2.8.2 registry dominated by `app_started`. One real coupling found and left as-is: `captureException` shares the event rate limiter, so an exception storm with error reporting on silences usage events for the rest of that session.

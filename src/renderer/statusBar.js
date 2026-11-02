@@ -58,7 +58,7 @@ const githubPanel = require('./githubPanel');
 // is dockState.TAB_SHORTCUTS' (the registry's source), read here because
 // the bar is built before registerCommands() runs.
 const DOCK_ICONS = [
-  { tab: 'decisions', command: 'dock.decisions', label: 'Decisions' },
+  { tab: 'decisions', command: 'dock.decisions', label: 'Project Notes' },
   // 'structure' is parked (dockState.HIDDEN_TABS) — no icon until it ships.
   { tab: 'prompts', command: 'dock.prompts', label: 'Prompts' },
   { tab: 'activity', command: 'dock.activity', label: 'Activity' }

@@ -606,6 +606,27 @@
       </div>
     </div>
 
+    <!-- Decision cards (decision-cards-core): a Context view hosted in the
+         center like Sessions (multiTerminalUI PANEL_REGISTRY). -->
+    <div id="decision-cards-panel">
+      <div id="decision-cards-header" class="view-header">
+        <div class="view-header-title">
+          <span class="view-header-mark" aria-hidden="true">&#9671;</span>
+          <h2>Decisions</h2>
+        </div>
+        <div class="view-header-actions">
+          <input type="search" id="decision-cards-search" class="decision-cards-search" placeholder="Search cards…" autocomplete="off" spellcheck="false">
+          <span id="decision-cards-count" class="view-header-count"></span>
+          <button id="decision-cards-refresh-btn" tabindex="-1" title="Re-read the decision cards">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="decision-cards-content"></div>
+    </div>
+
     <!-- Prompts Panel -->
     <div id="prompts-panel">
       <div id="prompts-header" class="dock-view-header">

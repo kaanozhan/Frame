@@ -16,6 +16,7 @@ const taskInfoModal = require('./taskInfoModal');
 const taskRunModal = require('./taskRunModal');
 const pluginsPanel = require('./pluginsPanel');
 const sessionsPanel = require('./sessionsPanel');
+const decisionCardsPanel = require('./decisionCardsPanel');
 const githubPanel = require('./githubPanel');
 const notify = require('./notify');
 const promptsPanel = require('./promptsPanel');
@@ -169,6 +170,7 @@ function init() {
   // center-hosted Context view).
   pluginsPanel.init();
   sessionsPanel.init();
+  decisionCardsPanel.init();
 
   // Initialize GitHub panel. Terminal lanes (Sign in to GitHub, Open
   // terminal here) come through this hook (github-view-tree-layout D11):
@@ -746,6 +748,13 @@ function registerCommands() {
     shortcut: 'CmdOrCtrl+Shift+X',
     run: () => require('./terminal').getMultiTerminalUI()?.togglePanel('sessions')
   });
+  r({
+    // The decision cards view (decision-cards-core), toggled like Sessions.
+    id: 'decisionCards.open',
+    title: 'Toggle Decisions',
+    category: 'Panel',
+    run: () => require('./terminal').getMultiTerminalUI()?.togglePanel('decisionCards')
+  });
   // 'panel.toggleGitHub' became 'sidebar.github' (View) when GitHub moved
   // to the icon rail; the shortcut travelled with it.
   // 'panel.togglePrompts' became 'dock.prompts' (below) when Prompts moved
@@ -766,7 +775,7 @@ function registerCommands() {
   });
   r({
     id: 'dock.decisions',
-    title: 'Toggle Decisions',
+    title: 'Toggle Project Notes',
     category: 'View',
     shortcut: dockState.TAB_SHORTCUTS.decisions,
     run: () => dock.toggleTab('decisions')

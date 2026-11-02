@@ -7,9 +7,17 @@
  * map's info panel).
  */
 
+const fs = require('fs');
+const path = require('path');
 const { exec } = require('child_process');
 const frameStore = require('./frameStore');
 const { IPC } = require('../shared/ipcChannels');
+// The shared card reader — parsing, the current set, matching. The file's
+// path is frameStore's, not the reader's mirror of it.
+const decisionCards = require(path.join(__dirname, '..', '..', 'scripts', 'decision-cards.js'));
+
+// A task run hears at most this many cards (decision-cards-core D17).
+const TASK_RUN_CARDS = 2;
 
 let mainWindow = null;
 
@@ -81,6 +89,41 @@ async function loadDecisions(projectPath) {
     console.error('Error loading decisions:', err);
     return { decisions: [], total: 0, error: err.message };
   }
+}
+
+/**
+ * The project's decision cards, read now: `{ exists, cards, notes, malformed }`.
+ *
+ *   cards      the current set — superseded cards dropped — spec and spec-less
+ *   notes      today's PROJECT_NOTES.md entries, so a notes card's story can
+ *              be shown where the card is
+ *   malformed  the card-file lines the reader skipped, with why
+ *
+ * With `opts.match` — a task's title and description — it also returns
+ * `matches`: at most two spec-less cards that match it strongly (the same
+ * score the hooks use), each with the `story` pointer a prompt names. A
+ * project with no card file returns empty lists and no matches.
+ */
+async function loadDecisionCards(projectPath, opts = {}) {
+  const empty = { exists: false, cards: [], notes: [], malformed: [] };
+  if (!projectPath) return opts && opts.match !== undefined ? { ...empty, matches: [] } : empty;
+  let text = null;
+  try {
+    text = fs.readFileSync(frameStore.decisionsPath(projectPath), 'utf8');
+  } catch (err) {
+    text = null;
+  }
+  const parsed = text === null ? { cards: [], malformed: [] } : decisionCards.parseCards(text);
+  const cards = decisionCards.currentCards(parsed.cards);
+  const notes = cards.length ? (await loadDecisions(projectPath)).decisions : [];
+  const out = { exists: text !== null, cards, notes, malformed: parsed.malformed };
+
+  if (opts && typeof opts.match === 'string') {
+    out.matches = decisionCards.scoreCards(decisionCards.specLessCards(cards), opts.match, { corpus: cards })
+      .slice(0, TASK_RUN_CARDS)
+      .map(({ card }) => ({ ...card, story: decisionCards.storyPointer(card) }));
+  }
+  return out;
 }
 
 /**
@@ -224,6 +267,10 @@ function setupIPC(ipcMain) {
     return await loadDecisions(projectPath);
   });
 
+  ipcMain.handle(IPC.LOAD_DECISION_CARDS, async (event, projectPath, opts) => {
+    return await loadDecisionCards(projectPath, opts || {});
+  });
+
   ipcMain.handle(IPC.GET_FILE_GIT_HISTORY, async (event, projectPath, filePath) => {
     return await getFileGitHistory(projectPath, filePath);
   });
@@ -232,6 +279,7 @@ function setupIPC(ipcMain) {
 module.exports = {
   init,
   loadDecisions,
+  loadDecisionCards,
   getFileGitHistory,
   setupIPC
 };

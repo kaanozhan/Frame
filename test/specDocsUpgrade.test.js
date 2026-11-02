@@ -44,6 +44,7 @@ function makeProject({ agents, reference }) {
   fs.writeFileSync(path.join(dir, '.frame', 'QUICKSTART.md'), '# Quickstart\n', 'utf8');
   fs.mkdirSync(path.join(dir, '.frame', 'bin'), { recursive: true });
   fs.writeFileSync(path.join(dir, '.frame', 'bin', 'implement-launch.js'), '// stub\n', 'utf8');
+  fs.writeFileSync(path.join(dir, '.frame', 'bin', 'decision.js'), '// stub\n', 'utf8');
   if (agents != null) fs.writeFileSync(path.join(dir, '.frame', 'AGENTS.md'), agents, 'utf8');
   if (reference != null) {
     fs.mkdirSync(path.join(dir, '.frame', 'docs'), { recursive: true });
@@ -51,6 +52,15 @@ function makeProject({ agents, reference }) {
   }
   return dir;
 }
+
+// The decision-card rules (decision-cards-core T04): a second managed block,
+// appended to both documents on open. The spec-section assertions below are
+// about the spec section, so they compare documents with that block removed.
+const DECISION_BLOCK = managedBlock.DECISION_BLOCK_NAME;
+const decisionReference = () => managedBlock.renderBlock(templates.DECISION_SECTION, templates.DECISION_SECTION_VERSION, DECISION_BLOCK);
+const decisionPointer = () => managedBlock.renderBlock(templates.DECISION_CORE_SECTION, templates.DECISION_SECTION_VERSION, DECISION_BLOCK);
+const DECISION_SPAN = /\n\n---\n\n<!-- frame:managed:decision-section v=\d+ -->[\s\S]*?<!-- \/frame:managed:decision-section -->/;
+const stripDecision = (text) => text.replace(DECISION_SPAN, '');
 
 const agentsPath = (dir) => path.join(dir, '.frame', 'AGENTS.md');
 const referencePath = (dir) => path.join(dir, '.frame', 'docs', 'REFERENCE.md');
@@ -78,6 +88,10 @@ Intro.
 ---
 
 ${templates.renderSpecSection()}
+
+---
+
+${decisionReference()}
 
 ---
 
@@ -143,8 +157,13 @@ When a significant request appears, ask once before coding.
 
   const health = frameProject.upgradeSpecDocs(dir);
 
-  assert.equal(read(agentsPath(dir)), beforeAgents);
-  assert.equal(read(referencePath(dir)), beforeReference);
+  // Their spec section is untouched in both; the decision rules are a block
+  // of their own and nothing of the user's conflicts with them.
+  assert.equal(stripDecision(read(agentsPath(dir))), beforeAgents);
+  assert.equal(stripDecision(read(referencePath(dir))), beforeReference);
+  assert.ok(!managedBlock.findBlock(read(referencePath(dir))), 'no spec block written beside theirs');
+  assert.ok(managedBlock.findBlock(read(referencePath(dir)), DECISION_BLOCK));
+  assert.ok(managedBlock.findBlock(read(agentsPath(dir)), DECISION_BLOCK));
   assert.equal(health.unmatchedSections.length, 2);
   assert.equal(health.ok, false);
 });
@@ -185,6 +204,10 @@ Intro.
 ---
 
 ${templates.renderSpecCoreSection()}
+
+---
+
+${decisionPointer()}
 
 ---
 
@@ -290,7 +313,7 @@ ${templates.renderSpecCoreSection()}
   // Repaired entirely by the artifact pass: the pointer was already correct
   // and already stamped current, so upgradeSpecDocs leaves both documents
   // alone and the fix comes from the target appearing.
-  assert.equal(read(agentsPath(dir)), before);
+  assert.equal(stripDecision(read(agentsPath(dir))), before);
   assert.equal(fs.existsSync(referencePath(dir)), true);
   assert.ok(managedBlock.findBlock(read(referencePath(dir))));
   assert.equal(health.ok, true);
@@ -347,6 +370,111 @@ test('the returned report describes the state the pass leaves, not the one it fo
   assert.deepEqual(health.sections.map((s) => s.state), ['managed', 'managed']);
   assert.deepEqual(health.unreadable, []);
   assert.equal(health.ok, true);
+});
+
+// ─── The decision-card rules (decision-cards-core T04) ───────
+
+const specOnlyAgents = `# demo
+
+Intro.
+
+---
+
+${templates.renderSpecCoreSection()}
+
+---
+
+*This file was automatically created by Frame.*
+`;
+
+const specOnlyReference = `# demo — Frame Reference
+
+Intro.
+
+---
+
+${templates.renderSpecSection()}
+
+---
+
+*This file was automatically created by Frame.*
+`;
+
+test('the decision rules are appended to both documents, above the footer, once', () => {
+  const dir = makeProject({ agents: specOnlyAgents, reference: specOnlyReference });
+
+  const health = frameProject.upgradeSpecDocs(dir);
+
+  const reference = read(referencePath(dir));
+  const agents = read(agentsPath(dir));
+  assert.ok(reference.includes(templates.DECISION_SECTION));
+  assert.ok(agents.includes(templates.DECISION_CORE_SECTION));
+  for (const text of [reference, agents]) {
+    assert.ok(text.indexOf(DECISION_BLOCK) > text.indexOf('frame:managed:spec-section'), 'after the spec section');
+    assert.ok(text.indexOf(DECISION_BLOCK) < text.indexOf('automatically created by Frame'), 'above the footer');
+  }
+  assert.equal(stripDecision(reference), specOnlyReference);
+  assert.equal(stripDecision(agents), specOnlyAgents);
+  // The report is still the spec section's, and the prose names nothing missing.
+  assert.deepEqual(health.sections.map((s) => s.block), [managedBlock.SPEC_BLOCK_NAME, managedBlock.SPEC_BLOCK_NAME]);
+  assert.equal(health.ok, true);
+
+  frameProject.upgradeSpecDocs(dir);
+  assert.equal(read(referencePath(dir)), reference, 'a second open writes nothing');
+  assert.equal(read(agentsPath(dir)), agents);
+});
+
+test('the decision pointer waits until the reference carries the rules', () => {
+  const own = specOnlyReference.replace('*This file was', `## Decision cards — our own
+
+We record decisions our way.
+
+---
+
+*This file was`);
+  const dir = makeProject({ agents: specOnlyAgents, reference: own });
+
+  const health = frameProject.upgradeSpecDocs(dir);
+
+  // A hand-written section of the same name is the user's: never written
+  // over, never written beside — and so the pointer is not written either.
+  assert.equal(read(referencePath(dir)), own);
+  assert.equal(read(agentsPath(dir)), specOnlyAgents);
+  // The popover speaks about the spec section only; this is left alone quietly.
+  assert.deepEqual(health.unmatchedSections, []);
+  assert.equal(health.ok, true);
+});
+
+test('an older decision block is upgraded in place, the spec section untouched', () => {
+  const old = managedBlock.renderBlock('## Decision Cards\n\nAn older wording.', 0, DECISION_BLOCK);
+  const reference = specOnlyReference.replace('*This file was', `${old}\n\n---\n\n*This file was`);
+  const dir = makeProject({ agents: specOnlyAgents, reference });
+
+  frameProject.upgradeSpecDocs(dir);
+
+  const after = read(referencePath(dir));
+  assert.ok(!after.includes('An older wording.'));
+  assert.equal(managedBlock.findBlock(after, DECISION_BLOCK).version, templates.DECISION_SECTION_VERSION);
+  assert.equal(after.replace(managedBlock.renderBlock(templates.DECISION_SECTION, templates.DECISION_SECTION_VERSION, DECISION_BLOCK), old), reference);
+});
+
+test('the decision rules name the card file by name, not by a path that may not exist', () => {
+  // docsHealth reports every .frame/ path the prose names that is not on disk,
+  // and most projects have no card file — so the prose must not name one.
+  for (const text of [templates.DECISION_SECTION, templates.DECISION_CORE_SECTION]) {
+    assert.ok(!text.includes('.frame/decisions.jsonl'));
+  }
+  assert.match(templates.DECISION_SECTION, /overrides "You can add without asking the user"/);
+  assert.match(templates.DECISION_SECTION, /decision\.js related --files/);
+  assert.match(templates.DECISION_SECTION, /decision\.js add '/);
+  assert.equal(templates.DECISION_CORE_SECTION.split('\n').filter(Boolean).length, 4, 'a heading and a three-line pointer');
+});
+
+test('a decision inside the spec flow is not asked about, except how the project tests', () => {
+  // Found in the manual tour: spec.new asked to record choices the spec already
+  // held, because the exception named only implement.
+  assert.match(templates.DECISION_SECTION, /inside the spec flow \(spec\.new, spec\.plan, spec\.tasks, spec\.implement\) is not asked about/);
+  assert.match(templates.DECISION_SECTION, /One exception: how the project tests \(choosing or changing its test runner or test convention\)/);
 });
 
 // ─── What the pass puts on the record ─────────────────────────

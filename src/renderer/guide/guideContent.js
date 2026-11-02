@@ -400,7 +400,7 @@ const CHAPTERS = [
         title: 'The panel',
         sketch: { kind: 'shell', focus: 'dock' },
         blocks: [
-          { p: 'The panel {kbd:dock.toggle} holds the project\'s readable history — Decisions, Prompts and Activity — one tab at a time, without replacing what is on screen.' },
+          { p: 'The panel {kbd:dock.toggle} holds the project\'s readable history — Project Notes, Prompts and Activity — one tab at a time, without replacing what is on screen.' },
           { p: 'It opens at the bottom; move it to the right from its header or the View menu. Drag its edge to resize and its tabs to reorder. The status bar has an icon per tab, too.' }
         ],
         actions: [
@@ -409,14 +409,14 @@ const CHAPTERS = [
       },
       {
         id: 'context.decisions',
-        title: 'Decisions',
+        title: 'Project Notes',
         sketch: { kind: 'dockTabs', focus: 'decisions' },
         blocks: [
-          { p: 'Decisions {kbd:dock.decisions} lists every dated entry in `PROJECT_NOTES.md` — the decisions you and your agents recorded, with the reasoning behind them. Click one to read it; search filters by date, title or text.' },
+          { p: 'Project Notes {kbd:dock.decisions} lists every dated entry in `PROJECT_NOTES.md` — the decisions you and your agents recorded, with the reasoning behind them. Click one to read it; search filters by date, title or text.' },
           { p: 'It is the fastest way to answer "why is it like this?" before asking an agent to change it.' }
         ],
         actions: [
-          { id: 'dock.decisions', label: 'Show Decisions' }
+          { id: 'dock.decisions', label: 'Show Project Notes' }
         ]
       },
       {

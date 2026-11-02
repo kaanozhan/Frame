@@ -9,7 +9,7 @@
  *
  * Usage:
  *   node scripts/spec-context.js <keyword…>        # topic → specs + digest lines
- *   node scripts/spec-context.js --file <path>     # file → chronological history
+ *   node scripts/spec-context.js --file <path>     # file → chronological history, then its decision cards
  *   node scripts/spec-context.js --list            # all indexed specs, one line each
  *
  * Reads the index via ensureFresh (rebuilds lazily when stale). Dependency-
@@ -20,6 +20,33 @@
 
 const path = require('path');
 const specIndex = require('./spec-index');
+
+// Decision cards (decision-cards-core), guarded: a `.frame/bin/` without the
+// reader prints spec history exactly as before, and so does a project with no
+// card file.
+let decisionCards = null;
+try {
+  decisionCards = require('./decision-cards');
+} catch {
+  /* older generation — no cards */
+}
+
+/**
+ * The current spec-less cards that name `rel`, after its spec history. Spec
+ * cards are left out: the history lines above already are those specs.
+ */
+function printFileCards(root, rel) {
+  if (!decisionCards) return;
+  let cards = [];
+  try {
+    cards = decisionCards.cardsForFile(decisionCards.specLessCards(decisionCards.readCards(root).current), rel);
+  } catch {
+    return;
+  }
+  if (!cards.length) return;
+  console.log(`Recorded decisions for ${rel} — ${cards.length} card(s), newest first:`);
+  for (const card of cards) console.log(decisionCards.renderCard(card).replace(/^/gm, '  '));
+}
 
 /** ascii-fold + lowercase — Turkish/English tolerant matching. */
 function fold(s) {
@@ -47,6 +74,11 @@ function printFileHistory(index, rawPath, root) {
   let rel = rawPath;
   if (path.isAbsolute(rawPath)) rel = path.relative(root, rawPath);
   rel = rel.split(path.sep).join('/').replace(/^\.\//, '');
+  printSpecHistory(index, rel);
+  printFileCards(root, rel);
+}
+
+function printSpecHistory(index, rel) {
   const hist = index.files[rel];
   if (!hist || !hist.length) {
     console.log(`No spec history for ${rel}.`);

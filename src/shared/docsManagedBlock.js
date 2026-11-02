@@ -35,6 +35,10 @@
 // a document may carry one, both, or neither, and each is versioned on its own.
 const SPEC_BLOCK_NAME = 'frame:managed:spec-section';
 const BLOCK_NAME = SPEC_BLOCK_NAME;
+// The decision-card rules (decision-cards-core). A block of its own rather
+// than a change to the PROJECT_NOTES rules, because those are user-owned text
+// Frame never upgrades; this one is appended beside them and says it wins.
+const DECISION_BLOCK_NAME = 'frame:managed:decision-section';
 
 function escapeRe(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -246,5 +250,6 @@ module.exports = {
   renderBlock,
   BLOCK_NAME,
   SPEC_BLOCK_NAME,
+  DECISION_BLOCK_NAME,
   END_MARKER
 };

@@ -13,7 +13,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const { build, ensureFresh, writeIndex, parseFrontMatter, parseFootprint, parseOutcome } = require('../scripts/spec-index');
+const { build, ensureFresh, writeIndex, parseFrontMatter, parseFootprint, parseOutcome, parseDigest } = require('../scripts/spec-index');
 
 function mkProject() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-specidx-'));
@@ -84,6 +84,49 @@ test('parseOutcome yields per-task sections with files, dates, one-liners', () =
   assert.deepEqual(secs[0].files, ['src/main/alpha.js']);
   assert.equal(secs[0].date, '2026-06-01');
   assert.match(secs[0].line, /alpha cache/);
+});
+
+test('a fix after the last task is a record of its own, with its files and date', () => {
+  const md = [
+    '## T02 — Add the helper', '', 'Added it. Files touched: `src/a.js`.', '', '_Captured: 2026-10-01 · 1 file change_', '', '---',
+    '## Fix — Empty names greet a stranger', '', 'Found in testing: an empty string printed "Hello, !". Files touched: `src/a.js`, `test/a.test.js`.',
+    '', '_Captured: 2026-10-03 · 2 file changes_', '', '---', ''
+  ].join('\n');
+  const secs = parseOutcome(md);
+  assert.deepEqual(secs.map((s) => s.task), ['T02', 'Fix']);
+  assert.equal(secs[1].title, 'Empty names greet a stranger');
+  assert.deepEqual(secs[1].files, ['src/a.js', 'test/a.test.js']);
+  assert.equal(secs[1].date, '2026-10-03');
+  assert.match(secs[1].line, /^Found in testing/);
+  assert.deepEqual(parseOutcome('## Fixes — not a fix heading\n\nx\n').map((s) => s.task), [], 'only the exact word');
+});
+
+test('the digest line is the first sentence, across wrapped lines', () => {
+  // Digests wrap near 75 columns; the first physical line used to be the
+  // whole hint, and ended mid-sentence in 45 of this repo's 50 digests.
+  const md = '---\nkeywords: cache\n---\nMade the archive a delivered memory, not\nadvisory text. Rejected: a tracked index.\n\nChain: spec.md\n';
+  assert.equal(parseDigest(md).digestLine, 'Made the archive a delivered memory, not advisory text.');
+  assert.equal(parseDigest('---\nkeywords: cache\n---\n').digestLine, null);
+});
+
+test('a period ends the line only where a sentence ends', () => {
+  const line = (body) => parseDigest(body).digestLine;
+  assert.equal(line('`spec-index.js` v1.2 feeds the hooks. Next.'), '`spec-index.js` v1.2 feeds the hooks.');
+  assert.equal(line('Caches results, e.g. Footprints, per spec. Next.'), 'Caches results, e.g. Footprints, per spec.');
+  assert.equal(line('Runs approx. five times faster. Next.'), 'Runs approx. five times faster.');
+  assert.equal(line('1. Wired the cache. Next.'), '1. Wired the cache.');
+  assert.equal(line('Feeds the hooks (see\n+ the chain pointer). Next.'), 'Feeds the hooks (see + the chain pointer).');
+});
+
+test('a line past its cap is cut at a word boundary with an ellipsis', () => {
+  const digest = parseDigest(`Reworked the picker: ${'filter focused on open, '.repeat(20)}and more.`).digestLine;
+  assert.ok(digest.length <= 280, `digest line is ${digest.length} characters`);
+  assert.match(digest, /(?:filter|focused|on|open)…$/);
+
+  const [sec] = parseOutcome(`## T01 — Long\n\n${'word '.repeat(60)}end. Files touched: \`src/a/b.js\`.\n`);
+  assert.ok(sec.line.length <= 160, `outcome line is ${sec.line.length} characters`);
+  assert.match(sec.line, /word…$/);
+  assert.deepEqual(sec.files, ['src/a/b.js']);
 });
 
 // ─── multi-spec file: full history, chronology, flags ─────
@@ -209,4 +252,16 @@ test('ensureFresh rebuilds on missing/stale index and reuses a fresh one', async
   await new Promise(r => setTimeout(r, 10));
   await ensureFresh(root);
   assert.notEqual(fs.readFileSync(file, 'utf8'), stamp1, 'stale index rebuilt');
+});
+
+test('ensureFresh rebuilds an index an older builder wrote', async () => {
+  // Its lines were cut by the old rule; mtime alone would keep serving them.
+  const root = mkProject();
+  mkSpec(root, 'spec-a', { plan: PLAN_A, digest: 'Old first line that the\nold builder cut here. Next.\n' });
+  const file = path.join(root, '.frame', 'index', 'spec-index.json');
+  const stale = { ...(await ensureFresh(root)), version: 1 };
+  stale.topics['spec-a'].digestLine = 'Old first line that the';
+  fs.writeFileSync(file, JSON.stringify(stale, null, 2) + '\n');
+  const idx = await ensureFresh(root);
+  assert.equal(idx.topics['spec-a'].digestLine, 'Old first line that the old builder cut here.');
 });

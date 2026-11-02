@@ -39,6 +39,24 @@ function formatStep(task, missing) {
     + ` Show me the acceptance criteria and wait for my confirmation before continuing`;
 }
 
+// A task run hears at most two recorded decisions (decision-cards-core D17).
+const MAX_CARDS = 2;
+
+/**
+ * The recorded decisions that match this task, as one sentence — the prompt
+ * is typed into a terminal, so it stays on one line. Each card is
+ * `{ id, decision, story }`, matched and capped by the main process; none
+ * means nothing is added and the prompt is exactly what it was.
+ */
+function cardsSegment(cards) {
+  const list = (Array.isArray(cards) ? cards : [])
+    .filter((c) => c && filled(c.decision) && filled(c.id))
+    .slice(0, MAX_CARDS);
+  if (!list.length) return '';
+  const items = list.map((c) => `"${c.decision.trim()}" (card ${c.id}${filled(c.story) ? `, story: ${c.story}` : ''})`);
+  return `Recorded decisions that may apply — respect them, or tell me before overturning one: ${items.join('; ')}`;
+}
+
 /**
  * Build the task prompt that gets injected into the AI CLI. A task missing
  * its description or acceptance criteria opens with the format step. If the
@@ -48,12 +66,16 @@ function formatStep(task, missing) {
  * when none was given — suggest one and wait for confirmation before
  * creating it. Uncommitted-check comes before the branch so the branch
  * decision is never made on top of an unresolved working tree.
+ * `opts.cards` — the recorded decisions matched to this task — follow the
+ * task's own text.
  */
 function buildTaskPrompt(task, opts = {}) {
   let prompt = `Work on this task: ${task.title}`;
   if (task.description) prompt += `. ${task.description}`;
   if (task.priority === 'high') prompt += ` (High priority)`;
   if (filled(task.acceptanceCriteria)) prompt += `. Acceptance criteria: ${task.acceptanceCriteria.trim()}`;
+  const cards = cardsSegment(opts.cards);
+  if (cards) prompt += `. ${cards}`;
 
   const steps = [];
   const missing = missingFields(task);
@@ -82,4 +104,4 @@ function buildTaskPrompt(task, opts = {}) {
   return prompt;
 }
 
-module.exports = { READY_FIELDS, isSpecTask, missingFields, buildTaskPrompt };
+module.exports = { READY_FIELDS, MAX_CARDS, isSpecTask, missingFields, buildTaskPrompt };

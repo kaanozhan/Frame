@@ -134,6 +134,18 @@ function resolveSpecDir(projectPath, slug) {
   return path.join(specsRoot(projectPath), slug);
 }
 
+// ─── Decision cards ───────────────────────────────────────────
+//
+// `decisions.jsonl` arrived after the overlay, so no legacy project ever
+// recorded it in `config.files` and it never resolves to the root: a flat
+// join, like the spec folders. The shipped reader (scripts/decision-cards.js)
+// carries its own copy of this literal; test/metaPathGuard.test.js pins it.
+
+/** The project's decision cards: `<project>/.frame/decisions.jsonl`. */
+function decisionsPath(projectPath) {
+  return path.join(projectPath, FRAME_DIR, FRAME_FILES.DECISIONS);
+}
+
 // ─── Typed read/write ─────────────────────────────────────────
 
 function readText(projectPath, name) {
@@ -272,6 +284,7 @@ module.exports = {
   resolvePath,
   specsRoot,
   resolveSpecDir,
+  decisionsPath,
   setupIPC,
   metaDir,
   isLegacyLayout,

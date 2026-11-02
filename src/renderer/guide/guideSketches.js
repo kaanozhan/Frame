@@ -166,7 +166,7 @@ const KINDS = {
       </div>`);
 
     const dock = region('dock', focused, 'gs-dock', `
-      <div class="gs-dock-tabs">${label('Decisions', 'gs-tab gs-tab-active')}${label('Prompts', 'gs-tab')}${label('Activity', 'gs-tab')}</div>
+      <div class="gs-dock-tabs">${label('Project Notes', 'gs-tab gs-tab-active')}${label('Prompts', 'gs-tab')}${label('Activity', 'gs-tab')}</div>
       <div class="gs-dock-body">${bar(64)}${bar(48)}</div>`);
 
     const status = `
@@ -477,7 +477,7 @@ const KINDS = {
     return frame('dockTabs', focused, `
       ${region(active, focused, 'gs-dock-panel', `
         <div class="gs-dock-head">
-          <div class="gs-dock-tabrow">${tab('decisions', 'Decisions')}${tab('prompts', 'Prompts')}${tab('activity', 'Activity')}</div>
+          <div class="gs-dock-tabrow">${tab('decisions', 'Project Notes')}${tab('prompts', 'Prompts')}${tab('activity', 'Activity')}</div>
           <div class="gs-dock-tools">${icon(PanelRight, 10)}${icon(X, 10)}</div>
         </div>
         <div class="gs-dock-list">${bodies[active]}</div>`)}`);
@@ -606,7 +606,7 @@ const KINDS = {
           <div class="gs-set-row">${label('New Terminal')}${kbd('terminal.new')}</div>
           <div class="gs-set-row">${label('Go to Home')}${kbd('lane.home')}</div>
           ${label('VIEW', 'gs-eyebrow')}
-          <div class="gs-set-row">${label('Toggle Decisions')}${kbd('dock.decisions')}</div>`)}
+          <div class="gs-set-row">${label('Toggle Project Notes')}${kbd('dock.decisions')}</div>`)}
       </div>`);
   },
 

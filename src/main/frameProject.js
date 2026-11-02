@@ -1236,6 +1236,32 @@ function specDocDescriptors(projectPath) {
   ];
 }
 
+// The decision-card rules (decision-cards-core D13): a second managed block in
+// the same two documents, versioned on its own, settled after each document's
+// spec section and in the same order — the reference before its pointer.
+const DECISION_HEADING_STEMS = ['decision cards'];
+
+function decisionDocDescriptors(projectPath) {
+  const block = { name: docsManagedBlock.DECISION_BLOCK_NAME, legacyMatchers: [], headingStems: DECISION_HEADING_STEMS };
+  return [
+    {
+      rel: `${FRAME_DIR}/docs/REFERENCE.md`,
+      file: path.join(projectPath, FRAME_DIR, 'docs', 'REFERENCE.md'),
+      body: templates.DECISION_SECTION,
+      version: templates.DECISION_SECTION_VERSION,
+      block
+    },
+    {
+      rel: `${FRAME_DIR}/${FRAME_FILES.AGENTS}`,
+      file: frameStore.resolvePath(projectPath, FRAME_FILES.AGENTS),
+      body: templates.DECISION_CORE_SECTION,
+      version: templates.DECISION_SECTION_VERSION,
+      pointsAt: `${FRAME_DIR}/docs/REFERENCE.md`,
+      block
+    }
+  ];
+}
+
 function readTextOrNull(file) {
   try {
     return fs.readFileSync(file, 'utf8');
@@ -1264,25 +1290,38 @@ function upgradeSpecDocs(projectPath) {
     exists
   );
 
+  // Each document's spec section first, then its decision block: REFERENCE
+  // spec, REFERENCE decisions, AGENTS spec, AGENTS decisions. The decision
+  // blocks are decided like the spec sections but stay out of the returned
+  // report — the UI's popover speaks about the spec section only, and a
+  // hand-written "Decision Cards" heading is simply left alone.
+  const decisions = decisionDocDescriptors(projectPath);
+  const ordered = descriptors.flatMap((d) => [d, ...decisions.filter((x) => x.rel === d.rel)]);
+
   // Two surveys, and the distinction matters. The pass *decides* from the
   // state it found — append or skip is a question about what was there. It
   // *reports* the state it leaves behind, because the report is what the UI
   // raises to the user, and a popover complaining about a section this pass
   // just repaired would be worse than no popover at all.
   const before = survey();
+  const decisionStates = new Map(decisions.map((d) => {
+    const text = readTextOrNull(d.file);
+    return [d.rel, text === null ? null : docsHealth.classifySection(text, d.block)];
+  }));
   let written = 0;
   let appended = 0;
-  const stateOf = (rel) => {
-    const found = before.sections.find((s) => s.doc === rel);
+  const stateOf = (doc) => {
+    if (doc.block.name !== docsManagedBlock.SPEC_BLOCK_NAME) return decisionStates.get(doc.rel) || null;
+    const found = before.sections.find((s) => s.doc === doc.rel);
     return found ? found.state : null;
   };
 
-  for (const doc of descriptors) {
+  for (const doc of ordered) {
     const text = readTextOrNull(doc.file);
     if (text === null) continue; // absent file — creating it is not this pass's job
 
     // A section Frame cannot prove is its own: report it, never write over it.
-    if (stateOf(doc.rel) === 'unmatched') continue;
+    if (stateOf(doc) === 'unmatched') continue;
 
     // Rule 1 — never aim a pointer at a document that will not carry the
     // protocol. Read the target back rather than assume this pass fixed it.
@@ -1295,18 +1334,18 @@ function upgradeSpecDocs(projectPath) {
 
     const upgraded = docsManagedBlock.upgradeDoc(text, {
       body: doc.body,
-      version: templates.SPEC_SECTION_VERSION,
+      version: doc.version || templates.SPEC_SECTION_VERSION,
       legacyMatchers: doc.block.legacyMatchers,
       blockName: doc.block.name,
       // Rule 2 — a document with no section at all gets one, additively.
-      onAbsent: stateOf(doc.rel) === 'absent' ? 'append' : undefined,
+      onAbsent: stateOf(doc) === 'absent' ? 'append' : undefined,
       footerMarker: FRAME_DOC_FOOTER
     });
     if (upgraded !== null && upgraded !== text) {
       try {
         fs.writeFileSync(doc.file, upgraded, 'utf8');
         written += 1;
-        if (stateOf(doc.rel) === 'absent') appended += 1;
+        if (stateOf(doc) === 'absent') appended += 1;
       } catch (err) {
         console.warn(`[frame] spec docs upgrade failed for ${doc.file} (non-fatal):`, err.message);
       }

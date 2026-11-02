@@ -137,7 +137,7 @@ function getMenuTemplate() {
       // One ⇧⌘ letter per dock tab — the renderer's source is
       // dockState.TAB_SHORTCUTS; the accelerator here is what the menu
       // shows beside the item and what makes it fire app-wide.
-      cmd('Decisions', 'dock.decisions', 'CmdOrCtrl+Shift+Y'),
+      cmd('Project Notes', 'dock.decisions', 'CmdOrCtrl+Shift+Y'),
       // 'Structure Map' (dock.structure) is parked — see dockState.HIDDEN_TABS.
       cmd('Prompts', 'dock.prompts', 'CmdOrCtrl+Shift+L'),
       cmd('Activity', 'dock.activity', 'CmdOrCtrl+Shift+A'),

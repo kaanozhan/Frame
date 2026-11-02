@@ -87,7 +87,7 @@ test('the guard is live — it still finds the joins in the exempt shipped tree'
 
 // ─── Mirror drift ─────────────────────────────────────────────
 //
-// These three ship into a user project's `.frame/bin/` and each carries its
+// These ship into a user project's `.frame/bin/` and each carries its
 // own copy of the `.frame/specs` literal, because none of them can require
 // frameStore from there. Coupling is impossible, so the answer is a test: the
 // segments they join must be the ones frameStore resolves to.
@@ -95,6 +95,9 @@ test('the guard is live — it still finds the joins in the exempt shipped tree'
 const MIRRORS = [
   path.join('scripts', 'spec-index.js'),
   path.join('scripts', 'spec-command-hint.js'),
+  path.join('scripts', 'spec-close-state.js'),
+  path.join('scripts', 'spec-close.js'),
+  path.join('scripts', 'decision.js'),
   path.join('src', 'templates', 'bin', 'implement-launch.js')
 ];
 
@@ -163,6 +166,63 @@ test('the .frame/bin mirrors join the same segments frameStore resolves to', () 
         at !== -1,
         `${where} joins [${segments.join(', ')}], which does not carry ` +
         `[${expected.join(', ')}] — the shipped literal has drifted from frameStore.specsRoot()`
+      );
+    }
+  }
+});
+
+// ─── Decision cards ───────────────────────────────────────────
+//
+// `decisions.jsonl` follows the same doctrine (frame-storage-seam): its path
+// comes from `frameStore.decisionsPath()`, never from a join at the call
+// site. The shipped reader cannot require frameStore from `.frame/bin/`, so it
+// carries the literal and is pinned as a mirror.
+
+const DECISIONS_LITERAL = /(['"`])decisions\.jsonl\1|FRAME_FILES\.DECISIONS/;
+const DECISION_MIRRORS = [path.join('scripts', 'decision-cards.js')];
+
+/** Lines in `relFile` that build a path ending in the card file. */
+function decisionPathLines(relFile) {
+  const lines = fs.readFileSync(path.join(REPO_ROOT, relFile), 'utf8').split('\n');
+  const hits = [];
+  lines.forEach((line, i) => {
+    if (JOIN_CALL.test(line) && DECISIONS_LITERAL.test(line)) hits.push(`${relFile}:${i + 1}`);
+  });
+  return hits;
+}
+
+test('no module but frameStore builds the decisions.jsonl path', () => {
+  const offenders = jsFilesUnder(SRC_DIR)
+    .filter((rel) => rel !== OWNER && !rel.startsWith(SHIPPED_TREE + path.sep))
+    .flatMap(decisionPathLines);
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `the card file's path must come from frameStore.decisionsPath:\n  ${offenders.join('\n  ')}`
+  );
+  // Live: the owner itself must still match, or the scanner is broken.
+  assert.ok(decisionPathLines(OWNER).length > 0, 'the scanner no longer sees frameStore\'s own join');
+});
+
+test('the shipped card reader joins the same segments frameStore resolves to', () => {
+  const projectPath = path.join(path.sep, 'p');
+  const expected = path.relative(projectPath, frameStore.decisionsPath(projectPath)).split(path.sep);
+
+  for (const relFile of DECISION_MIRRORS) {
+    const source = fs.readFileSync(path.join(REPO_ROOT, relFile), 'utf8');
+    const joins = [];
+    source.split('\n').forEach((line, i) => {
+      const match = JOIN_CALL.exec(line);
+      if (!match || !DECISIONS_LITERAL.test(line)) return;
+      joins.push({ where: `${relFile}:${i + 1}`, segments: joinArguments(line, match.index) });
+    });
+    assert.ok(joins.length > 0, `${relFile} builds no card-file path any more — the mirror moved`);
+    for (const { where, segments } of joins) {
+      assert.deepEqual(
+        segments.slice(-expected.length),
+        expected,
+        `${where} joins [${segments.join(', ')}] — the shipped literal has drifted from frameStore.decisionsPath()`
       );
     }
   }

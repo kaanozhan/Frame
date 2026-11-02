@@ -19,6 +19,8 @@ below is the first half of this job.
 {spec_catalog}
 ```
 
+Lines starting `- card <id>` after the specs are decisions recorded outside any spec: weigh them like a related spec, and record one this spec must respect or overturn under **Constraints**, naming the card.
+
 ## Task
 
 ### 1. Derive the slug and the title

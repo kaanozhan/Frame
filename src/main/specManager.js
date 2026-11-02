@@ -177,6 +177,7 @@ function writeStatus(projectPath, slug, status) {
 // Same bundled-scripts location contract as structureBootstrap.
 
 const specIndexLib = require(path.join(__dirname, '..', '..', 'scripts', 'spec-index.js'));
+const decisionCardsLib = require(path.join(__dirname, '..', '..', 'scripts', 'decision-cards.js'));
 const vocabulary = require('../../scripts/toolVocabulary');
 
 /** mtime of the derived index, or 0 — used to tell a rebuild from a no-op. */
@@ -218,6 +219,30 @@ function scheduleIndexRefresh(projectPath) {
  * refresh warms it for the next dispatch.
  */
 function buildSpecCatalog(projectPath) {
+  const specs = specCatalogText(projectPath);
+  const cards = cardCatalogLines(projectPath);
+  if (!cards.length) return specs;
+  return specs ? `${specs}\n${cards.join('\n')}` : cards.join('\n');
+}
+
+/**
+ * The current spec-less decision cards as catalog lines, after the specs
+ * (decision-cards-core D17): `/spec.new` weighs a decision recorded outside
+ * any spec the way it weighs a related spec. Spec cards are left out — their
+ * spec is already a line above. No card file, no lines, so the catalog is
+ * exactly what it was.
+ */
+function cardCatalogLines(projectPath) {
+  try {
+    const text = fs.readFileSync(frameStore.decisionsPath(projectPath), 'utf8');
+    const current = decisionCardsLib.currentCards(decisionCardsLib.parseCards(text).cards);
+    return decisionCardsLib.catalogLines(decisionCardsLib.specLessCards(current));
+  } catch (_) {
+    return [];
+  }
+}
+
+function specCatalogText(projectPath) {
   scheduleIndexRefresh(projectPath);
   try {
     const idx = JSON.parse(fs.readFileSync(
@@ -551,6 +576,33 @@ function interpolate(template, vars) {
   });
 }
 
+/**
+ * Where the close script is for this project, project-relative — the command
+ * the implement flow's digest step runs.
+ *
+ * `.frame/bin/` is where Frame ships it. `scripts/` is second because of one
+ * repository: Frame's own, where the script is developed and `.frame/bin/`
+ * is whatever copy the installed app last wrote, possibly none. With neither
+ * on disk the shipped location is named anyway — the flow tells the agent
+ * what to do when the script is not there, and a path that will exist after
+ * the next project open is better than no path.
+ */
+function closeScriptRel(projectPath) {
+  return shippedScriptRel(projectPath, CLOSE_SCRIPT_FILE);
+}
+
+/** The card writer the close step runs, resolved the same way (decision-cards-core). */
+function decisionScriptRel(projectPath) {
+  return shippedScriptRel(projectPath, DECISION_SCRIPT_FILE);
+}
+
+function shippedScriptRel(projectPath, file) {
+  const shipped = path.posix.join(FRAME_DIR.replace(/\\/g, '/'), FRAME_BIN_DIR, file);
+  if (fs.existsSync(path.join(projectPath, shipped))) return shipped;
+  const dev = path.posix.join('scripts', file);
+  return fs.existsSync(path.join(projectPath, dev)) ? dev : shipped;
+}
+
 // `spec.new` is the one command that runs *before* a spec exists: the New Spec
 // launcher hands the agent the user's raw text and the agent derives the slug,
 // creates the folder and authors spec.md. So a slug-less call is legitimate for
@@ -586,6 +638,8 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
     description: description == null ? '' : String(description),
     report_template_path: reportAssetRel(projectPath, tool, REPORT_TEMPLATE_FILE),
     report_generator_path: reportAssetRel(projectPath, tool, REPORT_GENERATOR_FILE),
+    close_script_path: closeScriptRel(projectPath),
+    decision_script_path: decisionScriptRel(projectPath),
     // Full spec catalog only where it's consumed (spec.new's relatedness
     // evaluation and slug disambiguation) — other templates carry no
     // {spec_catalog} token.
@@ -612,6 +666,8 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
 const RUNTIME_PROMPTS_DIR = path.join(FRAME_DIR, 'runtime', 'prompts');
 const REPORT_TEMPLATE_FILE = 'plan-report-template.html';
 const REPORT_GENERATOR_FILE = 'build-implement-report.mjs';
+const CLOSE_SCRIPT_FILE = 'spec-close.js';
+const DECISION_SCRIPT_FILE = 'decision.js';
 
 // The report assets the agent reads live beside the command templates they
 // belong to, under .frame/runtime/commands/<tool>/ — the location
@@ -687,6 +743,15 @@ const IMPLEMENT_DENY = [
 // read a diff. `Edit` covers Write and NotebookEdit too — file permission
 // checks only match Edit() and Read() rules, so a Write() rule would be
 // accepted and then never consulted.
+//
+// And the close script the digest step runs on the last task. Left to auto
+// mode's classifier it was allowed in one pilot session and blocked in the
+// next, and a step the template requires cannot hang on that. Only the
+// shipped path: `scripts/spec-close.js` exists in Frame's own repository
+// alone, and allowing it everywhere would allow any project's script of that
+// name. The card writer the close step runs beside it (decision.js add) is
+// allowed for the same reason, by its shipped path only. The list lives in
+// src/templates/bin/implement-launch.js too; a test keeps the two equal.
 const IMPLEMENT_ALLOW = [
   'Edit',
   'Read',
@@ -696,7 +761,9 @@ const IMPLEMENT_ALLOW = [
   'Bash(git diff*)',
   'Bash(git show *)',
   'Bash(git log *)',
-  'Bash(git rev-parse *)'
+  'Bash(git rev-parse *)',
+  'Bash(node .frame/bin/spec-close.js *)',
+  'Bash(node .frame/bin/decision.js *)'
 ];
 
 // The project's own check, in descending order of what actually verifies a

@@ -156,6 +156,17 @@ test('spec paths never fall back to the project root, legacy record or not', () 
 
 // ─── Typed read/write ─────────────────────────────────────────
 
+test('the card file is a flat join under .frame, legacy record or not', () => {
+  assert.equal(frameStore.decisionsPath(projectDir), path.join(frameDir(), 'decisions.jsonl'));
+  writeConfig({ files: legacyFilesRecord() });
+  writeRootFile('decisions.jsonl', '');
+  assert.equal(
+    frameStore.decisionsPath(projectDir),
+    path.join(frameDir(), FRAME_FILES.DECISIONS),
+    'a root decisions.jsonl was never Frame\'s — no legacy fallback'
+  );
+});
+
 test('typed read/write round-trips', () => {
   writeConfig({ version: '1.0', name: 'demo' });
 

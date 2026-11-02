@@ -110,7 +110,8 @@ function viewItems() {
     ['terminals', 'Go to Terminals', () => ui.showTerminals()],
     ['specs', 'Go to Specs', () => ui.showSpecs()],
     ['tasks', 'Go to Tasks', () => ui.showTasksBoard()],
-    ['sessions', 'Go to Sessions', () => ui.showPanel('sessions')]
+    ['sessions', 'Go to Sessions', () => ui.showPanel('sessions')],
+    ['decisionCards', 'Go to Decisions', () => ui.showPanel('decisionCards')]
   ];
   return views.map(([key, title, run]) => ({
     id: `jump.view:${key}`,

@@ -127,3 +127,10 @@ Extended `plan.md`'s Files and Footprint with the two `src/main/` files.
 _Captured: 2026-08-28 · 3 file changes_
 
 ---
+## Fix — Frame's own repo stops tracking `.frame/bin/` too
+
+The 2026-08-28 exception kept this repo's 24 `.frame/bin/` files tracked as a worked example of what Frame writes into a project, with their diffs visible in history. Neither reason held. The example was incomplete (24 of the 42 files Frame writes; the other 18 were silently ignored without `git add -f`), five upstream copies lagged their `scripts/` source, and the content depended on which Frame opened the project last. On 2026-10-24 the installed 2.9.0 app rewrote seven files back to its own versions seconds after this branch's code had staged them. The history was a duplicate of `scripts/`, and it leaked into unrelated commits (`bfdb629`, a UI change, carried a 272-line `module-hint.js` diff) or needed refresh-only commits (`4e9c29f`). Nothing here depends on the tracked copies: `.claude/settings.json` and `.githooks/pre-commit` run from `scripts/`, CI does not touch `.frame/bin/`, the tests build temporary projects, and Frame writes the folder on open. So this repo now follows the same path as every user project: `git rm -r --cached .frame/bin`, files left on disk, `bin/` already in the managed `.frame/.gitignore` block. `test/structureBootstrap.test.js` remains the record of what Frame writes. Transition cost: checking out a branch that still tracks the files brings the old copies back, and leaving it removes them until Frame's next open; the hooks are unaffected.
+
+_Captured: 2026-10-24 · 24 files untracked_
+
+---

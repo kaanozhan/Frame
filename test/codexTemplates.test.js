@@ -183,3 +183,150 @@ test('autonomous launch flags are Claude Code\'s and go nowhere else', () => {
   const claude = specManager.getImplementLaunchFlags(root, 'alpha', 'claude-code');
   assert.ok(claude.includes('--permission-mode'), 'Claude Code still gets its flags');
 });
+
+// ─── the digest step ──────────────────────────────────────
+//
+// The digest used to be a conditional section after the last mode, and the
+// three specs that ran the whole flow and still skipped it are why it moved.
+// What is pinned here is position, not wording: it sits in the shared core
+// that binds every mode, it is named wherever the flow says the phase goes to
+// `done`, and the old section is gone — for both CLIs, since the template is
+// one source.
+
+const section = (prompt, from, to) => {
+  const start = prompt.indexOf(from);
+  const end = prompt.indexOf(to, start + from.length);
+  assert.ok(start >= 0 && end > start, `expected "${from}" … "${to}" in the prompt`);
+  return prompt.slice(start, end);
+};
+
+for (const cli of ['claude-code', 'codex']) {
+  test(`${cli}: the digest step sits in the shared core, as numbered steps`, () => {
+    const { prompt } = specManager.getCommandPrompt(mkProject(), 'alpha', 'spec.implement', cli);
+    const core = section(prompt, '## The shared core', '## Mode · Step by step');
+    assert.match(core, /\*\*The digest, when the spec's last task closes\.\*\*/);
+    assert.match(core, /\n1\. You write `\.frame\/specs\/alpha\/digest\.md`/);
+    assert.match(core, /\n2\. You record the spec's decision cards — at least one — with\s+`node \.frame\/bin\/decision\.js add`/);
+    assert.match(core, /\n3\. You run `node \.frame\/bin\/spec-close\.js alpha`/);
+    assert.match(core, /\n4\. You fix what it names and run it again, until it reports every item `ok`/);
+    assert.match(core, /\n5\. The spec phase goes to `"done"`\./);
+    assert.match(core, /\n### The digest\n/);
+    assert.match(core, /\nChain: spec\.md → plan\.md → tasks\.md → outcome\.md\n/);
+    assert.match(core, /\n### The cards\n/);
+    assert.match(core, /\n  "source": "spec:alpha",\n/);
+    assert.ok(core.indexOf('### The digest') < core.indexOf('### The cards'), 'the cards follow the digest');
+  });
+
+  test(`${cli}: every place the phase goes to done names the digest`, () => {
+    const { prompt } = specManager.getCommandPrompt(mkProject(), 'alpha', 'spec.implement', cli);
+    const blocks = prompt.split(/\n\s*\n/).filter((block) => block.includes('`"done"`'));
+    assert.equal(blocks.length, 4, 'the phase rule, the numbered step, the closing summary, the stop condition');
+    for (const block of blocks) {
+      assert.match(block, /digest/, `this block sends the phase to done without the digest:\n${block}`);
+    }
+    assert.match(section(prompt, '### A description governs', '### Saved flows are skills'),
+      /one outcome entry per task, the digest when the last task\s+closes, never push/);
+  });
+
+  test(`${cli}: the digest rides in the last task's commit, never in one of its own`, () => {
+    // The pilot's natural run committed its last task and then the digest
+    // separately: the loop committed at its step 7, and the digest step sat in
+    // the closing summary that follows the loop. Each mode now runs it before
+    // the commit, and the closing summary only reports it.
+    const { prompt } = specManager.getCommandPrompt(mkProject(), 'alpha', 'spec.implement', cli);
+    assert.match(section(prompt, '## The shared core', '## Mode · Step by step'),
+      /part of that last task, not a step after it[\s\S]*never into a commit of their\s+own/);
+    assert.match(section(prompt, '## Mode · Step by step', '## Mode · Guided'),
+      /\n3\. Write the outcome entry and mark the task `completed`\. If that leaves no\s+pending task for this spec, run the digest step from the shared core now/);
+
+    const loop = section(prompt, 'Per task, in this order:', '### When there is no check');
+    const digestAt = loop.indexOf('run the digest step from the shared core now, before the commit');
+    const commitAt = loop.indexOf('7. **One atomic commit**');
+    assert.ok(digestAt > 0 && commitAt > digestAt, 'the digest step comes before the commit in the loop');
+    assert.match(loop, /on the last task the digest and the phase change with them/);
+
+    const closing = section(prompt, '### Closing summary', '## Mode · Describe your own');
+    assert.match(closing, /the last task's commit already carries the digest/);
+    assert.ok(!/run the digest step/.test(closing), 'nothing is left for after the loop');
+  });
+
+  test(`${cli}: a fix after the last task records itself, in the shared core`, () => {
+    const { prompt } = specManager.getCommandPrompt(mkProject(), 'alpha', 'spec.implement', cli);
+    const core = section(prompt, '## The shared core', '## Mode · Step by step');
+    assert.match(core, /\*\*A fix after the last task\.\*\*/);
+    assert.match(core, /headed `## Fix — <short title>`/);
+    assert.match(core, /a `Revised <YYYY-MM-DD>: <what changed, and why>` line\s+added before the `Chain:` line, and `node \.frame\/bin\/spec-close\.js alpha` run\s+again/);
+    assert.match(core, /A bug fixed within the recorded decisions leaves the digest as it is\./);
+    assert.match(core, /when the fix overturns a decision one of this spec's cards records, a new\s+card that supersedes it, in the same commit: `node \.frame\/bin\/decision\.js add`/);
+    assert.match(core, /if you are not sure, ask the\s+user/);
+    assert.match(core, /uses the same shape under `## Fix — <short title>`/);
+  });
+
+  test(`${cli}: the conditional section at the end is gone`, () => {
+    const { prompt } = specManager.getCommandPrompt(mkProject(), 'alpha', 'spec.implement', cli);
+    assert.ok(!prompt.includes('LAST pending task'));
+    assert.equal(prompt.split('\n### The digest\n').length, 2, 'the shape is stated once');
+    assert.ok(prompt.indexOf('### The digest') < prompt.indexOf('## Mode · Step by step'), 'before the first mode, not after the last');
+  });
+}
+
+test('the card writer token names the copy that is on disk, for both CLIs', () => {
+  const touch = (root, rel) => {
+    fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+    fs.writeFileSync(path.join(root, rel), '');
+  };
+  for (const cli of ['claude-code', 'codex']) {
+    const render = (root) => specManager.getCommandPrompt(root, 'alpha', 'spec.implement', cli).prompt;
+    assert.match(render(mkProject()), /`node \.frame\/bin\/decision\.js add`/, `${cli}: the shipped location`);
+    const dev = mkProject();
+    touch(dev, 'scripts/decision.js');
+    assert.match(render(dev), /`node scripts\/decision\.js add`/, `${cli}: Frame's own repository`);
+    touch(dev, '.frame/bin/decision.js');
+    assert.match(render(dev), /`node \.frame\/bin\/decision\.js add`/, `${cli}: the shipped copy wins`);
+    assert.ok(!render(dev).includes('{decision_script_path}'));
+  }
+});
+
+test('the /spec.new catalog lists spec-less cards after the specs, and nothing more without a card file', () => {
+  const root = mkProject();
+  const catalogOf = () => {
+    const { prompt } = specManager.getCommandPrompt(root, null, 'spec.new', 'claude-code', 'a description');
+    return prompt.slice(prompt.indexOf('## Spec catalog'), prompt.indexOf('## Task'));
+  };
+  const plain = catalogOf();
+  assert.ok(!/\n- card /.test(plain), 'no card lines in the catalog');
+  assert.match(plain, /Lines starting `- card <id>` after the specs are decisions recorded outside any spec/);
+
+  const line = (over) => JSON.stringify({
+    date: '2026-10-14', decision: 'Card files merge with the union driver.', why: 'A reason.', keywords: ['union merge'],
+    files: [], supersedes: null, extends: null, source: 'notes:2026-10-14 Union merge', ...over
+  });
+  fs.writeFileSync(path.join(root, '.frame', 'decisions.jsonl'),
+    [line({ id: '20261014-aaaaaa' }), line({ id: '20261015-bbbbbb', source: 'spec:alpha', decision: 'A spec card.' })].join('\n') + '\n');
+  const withCards = catalogOf();
+  const specLine = withCards.indexOf('- alpha');
+  const cardLine = withCards.indexOf('- card 20261014-aaaaaa · Card files merge with the union driver. · union merge');
+  assert.ok(specLine >= 0 && cardLine > specLine, 'the card follows the specs');
+  assert.ok(!withCards.includes('A spec card.'), 'a spec card is already its spec\'s line');
+});
+
+test('the close script token names the copy that is on disk', () => {
+  const render = (root) => specManager.getCommandPrompt(root, 'alpha', 'spec.implement', 'claude-code').prompt;
+  const touch = (root, rel) => {
+    fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+    fs.writeFileSync(path.join(root, rel), '');
+  };
+
+  // Neither on disk: the shipped location, which the next project open fills.
+  assert.match(render(mkProject()), /`node \.frame\/bin\/spec-close\.js alpha`/);
+
+  // Frame's own repository: the script under development, no shipped copy.
+  const dev = mkProject();
+  touch(dev, 'scripts/spec-close.js');
+  assert.match(render(dev), /`node scripts\/spec-close\.js alpha`/);
+
+  // Both: the shipped copy wins, as it does for every user project.
+  touch(dev, '.frame/bin/spec-close.js');
+  assert.match(render(dev), /`node \.frame\/bin\/spec-close\.js alpha`/);
+  assert.ok(!render(dev).includes('{close_script_path}'));
+});

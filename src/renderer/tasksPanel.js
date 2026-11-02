@@ -408,7 +408,7 @@ function buildTaskPrompt(task, opts = {}) {
  * show the "sent" toast.
  */
 async function runTaskWithOptions(task, opts = {}) {
-  const prompt = buildTaskPrompt(task, opts);
+  const prompt = buildTaskPrompt(task, { ...opts, cards: await matchedCards(task) });
 
   // Lazy-required to avoid load-order coupling with the terminal wiring.
   const agentDispatch = require('./agentDispatch');
@@ -419,6 +419,24 @@ async function runTaskWithOptions(task, opts = {}) {
     assignment: { kind: 'task', label: task.title, ref: task.id }
   });
   return result.success;
+}
+
+/**
+ * The recorded decisions that match this task (decision-cards-core D17),
+ * matched in the main process from the task's title and description. A run
+ * is never held up by them: any failure is no cards.
+ */
+async function matchedCards(task) {
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return [];
+  try {
+    const result = await ipcRenderer.invoke(IPC.LOAD_DECISION_CARDS, projectPath, {
+      match: `${task.title || ''} ${task.description || ''}`
+    });
+    return result && Array.isArray(result.matches) ? result.matches : [];
+  } catch (err) {
+    return [];
+  }
 }
 
 /**

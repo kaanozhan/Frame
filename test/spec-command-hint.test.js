@@ -107,6 +107,28 @@ test('a verb without "spec" is just English and says nothing', () => {
   assert.equal(ask(root, 'bu isi planla'), null);
 });
 
+test('a long message that names a spec and a verb is a discussion, not a command', () => {
+  // Measured on this repo's sessions: 22 conversational hits in 560 prompts,
+  // none of them a command. Each one staged a flow the user had not asked for.
+  const root = mkProject();
+  assert.equal(ask(root, 'henuz spec e gecmeyelim, daha tartisiyoruz; once plan uzerinde biraz daha konusalim'), null);
+  assert.equal(ask(root, 'we should talk about how a spec gets its plan before anyone writes more code'), null);
+});
+
+test('"task" as a noun beside "spec" is not the tasks command', () => {
+  const root = mkProject([{ slug: 'alpha', title: 'Alpha', phase: 'planned' }]);
+  assert.equal(ask(root, 'bu spec e ek bir task olarak eklenebilir'), null);
+  assert.equal(ask(root, 'alpha spec neden tasks.json uretiyor'), null);
+  assert.ok(ask(root, 'alpha spec inin tasklarını çıkar'));
+  assert.ok(ask(root, 'generate tasks for the alpha spec'));
+});
+
+test('an explicit form counts at any length', () => {
+  const root = mkProject();
+  const ctx = ctxOf(ask(root, '/spec.plan for alpha, and keep the migration and the rollback as separate steps please'));
+  assert.match(ctx, /spec\.plan` on spec `alpha`/);
+});
+
 test('an unrelated prompt says nothing', () => {
   const root = mkProject();
   assert.equal(ask(root, 'why is this test failing'), null);
@@ -207,6 +229,43 @@ test('the staged prompt is byte-identical to the one the button builds', () => {
       assert.equal(fs.readFileSync(file, 'utf8'), expected.prompt,
         `${cli}/${command}: the hook drifted from specManager`);
     }
+  }
+});
+
+test('the close script token is filled the way specManager fills it', () => {
+  // {close_script_path} is the one token whose value depends on what is on
+  // disk in the project, so the byte-for-byte guard above — which runs on a
+  // project with neither copy — sees only one of its three answers.
+  const stage = (root) => {
+    fs.writeFileSync(path.join(root, '.frame', 'runtime', 'commands', 'claude-code', 'spec.implement.md'),
+      'run: node {close_script_path} {slug}\n');
+    const file = path.join(root, '.frame', 'runtime', 'prompts', 'alpha__spec.implement.md');
+    fs.rmSync(file, { force: true });
+    runHook({ session_id: 'tok', cwd: root, prompt: '/spec.implement alpha' });
+    return fs.readFileSync(file, 'utf8');
+  };
+  const touch = (root, rel) => {
+    fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+    fs.writeFileSync(path.join(root, rel), '');
+  };
+  const viaButton = (root) => specManager.getCommandPrompt(root, 'alpha', 'spec.implement', 'claude-code').prompt;
+
+  const root = mkProject([{ slug: 'alpha', title: 'Alpha', phase: 'tasks_generated' }]);
+  assert.equal(stage(root), 'run: node .frame/bin/spec-close.js alpha\n', 'neither copy: the shipped location');
+
+  touch(root, 'scripts/spec-close.js');
+  assert.equal(stage(root), 'run: node scripts/spec-close.js alpha\n', "Frame's own repository");
+
+  touch(root, '.frame/bin/spec-close.js');
+  assert.equal(stage(root), 'run: node .frame/bin/spec-close.js alpha\n', 'the shipped copy wins');
+
+  // And at each of the three, the button's renderer gives the same path.
+  for (const expected of ['.frame/bin/spec-close.js', 'scripts/spec-close.js']) {
+    const probe = mkProject([{ slug: 'alpha', title: 'Alpha', phase: 'tasks_generated' }]);
+    if (expected.startsWith('scripts/')) touch(probe, expected);
+    const staged = stage(probe);
+    assert.ok(staged.includes(`node ${expected} alpha`));
+    assert.ok(viaButton(probe).includes(`node ${expected} alpha`), 'specManager resolves the same copy');
   }
 });
 
