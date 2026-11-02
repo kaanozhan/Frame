@@ -440,3 +440,53 @@ version-drift detection (Tier 2); orchestration bus, PTY and IPC detail
 2. **Date Format:** ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)
 3. **After Commit:** Check `.frame/tasks.json` and `.frame/STRUCTURE.json`
 4. **Session Start:** Review pending tasks in `.frame/tasks.json`
+
+---
+
+<!-- frame:managed:decision-section v=2 -->
+## Decision Cards (decisions.jsonl)
+
+A recorded decision leaves a **card**: one line in `decisions.jsonl`, beside this project's other Frame files, that reaches the next agent when it matters — before it edits a file the card names, or when a prompt or task matches it. The story stays where it lives: the spec chain for spec work, a `.frame/PROJECT_NOTES.md` entry for a decision made outside a spec.
+
+**This section overrides "You can add without asking the user" under PROJECT_NOTES.md Rules: nothing from a conversation is recorded without the user's yes.**
+
+### When to ask
+
+When a decision is made in conversation — a technical or architectural choice, a rule for future work, an approach settled with the user, an earlier decision overturned — ask once, before moving on. Not for routine edits, questions or experiments. A decision made inside the spec flow (spec.new, spec.plan, spec.tasks, spec.implement) is not asked about: it lives in the spec, and its cards are written when the spec closes. One exception: how the project tests (choosing or changing its test runner or test convention) belongs to the project, not to the spec. Ask about it once, as for a chat decision, so it gets a PROJECT_NOTES.md story and reaches work after this spec.
+
+### The one question
+
+First list the cards it may relate to:
+
+```bash
+node .frame/bin/decision.js related --files <a,b> --keywords <x,y>
+```
+
+Pick the one it overturns or builds on, if any, and put it inside the question — *"Record this decision: <one sentence>? It overturns card <id> (<its decision>)."*, or *"builds on card <id>"*. Ask exactly once; a no ends it for this decision.
+
+### On a yes
+
+1. Append the story to `.frame/PROJECT_NOTES.md` in its usual format: `### [YYYY-MM-DD] Title`, then the conversation's context.
+2. Record the card, its `source` naming that heading:
+
+```bash
+node .frame/bin/decision.js add '{"decision":"…","why":"…","keywords":["…"],"files":["…"],"source":"notes:YYYY-MM-DD Title","supersedes":null,"extends":null}'
+```
+
+It assigns the id and the date, and names every defect when it refuses — fix them and run it again.
+
+### The card
+
+- `decision` — one sentence, at most 280 characters
+- `why` — at most 3 sentences
+- `keywords` — 1–8 concepts
+- `files` — project-relative paths the decision governs; `[]` when it names none
+- `source` — `notes:<YYYY-MM-DD> <title>` (an existing PROJECT_NOTES.md heading) or `spec:<slug>`
+- `supersedes` / `extends` — the id of a current card it overturns or builds on, or `null`; never both
+
+Cards are never edited: undo a decision with a new card that supersedes it. Only when `.frame/bin/decision.js` is missing, append the line yourself — one JSON object on one line, `id` as `<YYYYMMDD>-<6 lowercase hex>`, `date` today in UTC:
+
+```json
+{"id":"20261014-3fa9c1","date":"2026-10-14","decision":"…","why":"…","keywords":["…"],"files":[],"source":"notes:2026-10-14 Title","supersedes":null,"extends":null}
+```
+<!-- /frame:managed:decision-section -->

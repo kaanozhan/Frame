@@ -34,4 +34,6 @@ Frame's own repo keeps its 24 `.frame/bin/` files tracked deliberately, so a
 **new** script added there needs `git add -f`. The Git sharing setting governs the project's Frame context, not
 the `.frame/` folder.
 
+Revised 2026-10-24: Frame's own repo no longer keeps `.frame/bin/` tracked either; the worked-example exception is gone, and the folder is generated on open like in every project.
+
 Chain: spec.md → plan.md → tasks.md → outcome.md
