@@ -55,3 +55,11 @@ Added `src/renderer/workspaceSection.js` (main row + workspace rows with branch 
 _Captured: 2026-11-09 · 9 file change(s)_
 
 ---
+
+## T08 — Build the new-workspace flow
+
+Added `src/renderer/newWorkspaceModal.js` + `#new-workspace-modal` markup (reusing the task-run modal shell, styles in `workspaces.css`): start point (new branch / existing branch), a base field prefilled from `GIT_DEFAULT_BRANCH` with a branch datalist, agent select, optional prompt (⌘↩ inside it), Enter creates; errors from main (e.g. the busy-branch refusal naming its holder) show inline. New Workspace… ⌘⇧N went into the File menu and the `workspace.new` command; `index.js` wires the section's ＋ and restore to the modal through `setActions`. After create the workspace is selected, the setup script runs in a terminal renamed `setup` and the AI terminal opens when laneStatus sees it go running → idle (5 s grace when it never shows as running); with a prompt it goes through `agentDispatch.dispatch`, without one the chosen tool's command is typed into a fresh terminal; a failed fetch shows a notice. Live-verified over CDP on a scratch Frame project with `setupScript: "sleep 2 && echo SETUP-DONE"`: worktree created, `.env.local` copied, `setup` tab printed SETUP-DONE then Claude (and in a second run Codex) started in the worktree; busy branch refused. Divergence: `createTerminal({ name })` does not set the visible name, so the setup tab uses `renameTerminal`.
+
+_Captured: 2026-11-09 · 5 file change(s)_
+
+---

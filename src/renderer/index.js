@@ -287,8 +287,16 @@ function init() {
 
   // Initialize the pinned Projects section (root-level project switcher)
   projectSection.init();
-  // Workspaces list under the project switcher (workspaces spec).
-  require('./workspaceSection').init();
+  // Workspaces list under the project switcher, and the dialog behind its ＋
+  // (workspaces spec). Restoring a workspace reruns the setup script.
+  const workspaceSection = require('./workspaceSection');
+  const newWorkspaceModal = require('./newWorkspaceModal');
+  newWorkspaceModal.init();
+  workspaceSection.setActions({
+    onNew: () => newWorkspaceModal.open(),
+    onRestored: (ws, result) => newWorkspaceModal.runSetupThenAgent({ setupScript: result && result.setupScript })
+  });
+  workspaceSection.init();
 
   // Setup button handlers
   setupButtonHandlers();
@@ -925,6 +933,14 @@ function registerCommands() {
     category: 'Project',
     shortcut: 'CmdOrCtrl+Shift+[',
     run: () => projectListUI.selectPrevProject()
+  });
+  r({
+    id: 'workspace.new',
+    title: 'New Workspace…',
+    category: 'Workspace',
+    shortcut: 'CmdOrCtrl+Shift+N',
+    when: () => !!state.getProjectPath(),
+    run: () => require('./newWorkspaceModal').open()
   });
   r({
     id: 'project.add',

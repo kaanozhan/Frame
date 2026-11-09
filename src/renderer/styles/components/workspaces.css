@@ -198,3 +198,49 @@
 .ws-archived-toggle:hover { color: var(--text-primary); }
 
 .ws-count { color: var(--text-muted); }
+
+/* ---------- New workspace dialog (reuses the task-run modal shell) ---------- */
+
+.new-workspace-modal { --modal-width: 460px; }
+
+.new-workspace-modal .task-run-modal-header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.nw-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.nw-field[hidden] { display: none; }
+
+.nw-field-label {
+  flex: none;
+  width: 52px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.nw-field .task-run-input { flex: 1; margin: 0; }
+
+.nw-select { width: 100%; margin-bottom: 8px; }
+
+.nw-prompt {
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+  font-family: var(--font-sans);
+}
+
+.nw-error {
+  min-height: 16px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--error);
+}
+
+.nw-error:empty { display: none; }

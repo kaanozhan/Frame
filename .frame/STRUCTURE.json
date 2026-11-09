@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 94340,
+      "sizeBytes": 96698,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -3999,43 +3999,43 @@
           "purpose": "Get menu template based on active AI tool"
         },
         "openSettings": {
-          "line": 249
+          "line": 251
         },
         "buildAICommandsSubmenu": {
-          "line": 260,
+          "line": 262,
           "params": [
             "tool"
           ],
           "purpose": "Build the AI-tool root's submenu: Start first, then the tool's slash"
         },
         "buildToolSwitcherSubmenu": {
-          "line": 309,
+          "line": 311,
           "purpose": "Build tool switcher submenu"
         },
         "buildThemeSubmenu": {
-          "line": 330,
+          "line": 332,
           "purpose": "View › Theme: one radio item per registry entry, the current one checked."
         },
         "sendCommand": {
-          "line": 345,
+          "line": 347,
           "params": [
             "command"
           ],
           "purpose": "Send command to terminal"
         },
         "sendAppCommand": {
-          "line": 355,
+          "line": 357,
           "params": [
             "commandId"
           ],
           "purpose": "Run a renderer command by its command-registry id (the menu's one"
         },
         "openHistoryFile": {
-          "line": 364,
+          "line": 366,
           "purpose": "Open history file in default editor"
         },
         "createMenu": {
-          "line": 378,
+          "line": 380,
           "purpose": "Create and set application menu"
         }
       },
@@ -4049,7 +4049,7 @@
           "RUN_APP_COMMAND"
         ]
       },
-      "sizeBytes": 11520,
+      "sizeBytes": 11600,
       "extraction": {
         "status": "parsed"
       },
@@ -11422,6 +11422,7 @@
         "../package.json",
         "statusBar",
         "workspaceSection",
+        "newWorkspaceModal",
         "paletteSources",
         "agentDispatch"
       ],
@@ -11431,34 +11432,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 338,
+          "line": 346,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 446,
+          "line": 454,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 577,
+          "line": 585,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 616,
+          "line": 624,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 642,
+          "line": 650,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1046,
+          "line": 1062,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1071,
+          "line": 1087,
           "params": [
             "err"
           ],
@@ -11478,7 +11479,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 39511,
+      "sizeBytes": 40148,
       "extraction": {
         "status": "parsed"
       },
@@ -11856,6 +11857,91 @@
       },
       "provenance": {
         "description": "c131e8b92939773c"
+      }
+    },
+    "renderer/newWorkspaceModal": {
+      "file": "src/renderer/newWorkspaceModal.js",
+      "description": "New Workspace Modal (workspaces spec, T08).",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "runSetupThenAgent"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "notify",
+        "laneStatus",
+        "htmlUtils",
+        "terminal",
+        "aiToolSelector",
+        "workspaceSection",
+        "agentDispatch"
+      ],
+      "functions": {
+        "init": {
+          "line": 36
+        },
+        "multiTerminalUI": {
+          "line": 56
+        },
+        "toolOptionsHtml": {
+          "line": 60
+        },
+        "syncFrom": {
+          "line": 72
+        },
+        "open": {
+          "line": 81
+        },
+        "close": {
+          "line": 115
+        },
+        "setBusy": {
+          "line": 120,
+          "params": [
+            "on"
+          ]
+        },
+        "submit": {
+          "line": 126
+        },
+        "waitForSetupToFinish": {
+          "line": 171,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Resolve when `terminalId` has run something and come back to its shell prompt."
+        },
+        "runSetupThenAgent": {
+          "line": 198,
+          "params": [
+            "{ setupScript",
+            "toolId = null",
+            "prompt = '' } = {}"
+          ],
+          "purpose": "In the selected workspace: run the setup script (if any) in a \"setup\""
+        },
+        "openAgent": {
+          "line": 224,
+          "params": [
+            "{ toolId",
+            "prompt }"
+          ]
+        }
+      },
+      "sizeBytes": 9360,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "77ffe2f7903f65f7",
+        "purposes": {
+          "runSetupThenAgent": "f974f3208de33a77",
+          "waitForSetupToFinish": "218763e8d18ab89d"
+        }
       }
     },
     "renderer/notify": {
@@ -15875,7 +15961,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4011,
+      "sizeBytes": 4819,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -29067,6 +29153,11 @@
         "description": "Migration Decision Modal"
       },
       {
+        "module": "renderer/newWorkspaceModal",
+        "file": "src/renderer/newWorkspaceModal.js",
+        "description": "New Workspace Modal (workspaces spec, T08)."
+      },
+      {
         "module": "renderer/openProjectModal",
         "file": "src/renderer/openProjectModal.js",
         "description": "Open Project Modal"
@@ -29619,6 +29710,11 @@
         "description": "Workspace Manager — the main-process side of workspaces (workspaces spec)."
       },
       {
+        "module": "renderer/newWorkspaceModal",
+        "file": "src/renderer/newWorkspaceModal.js",
+        "description": "New Workspace Modal (workspaces spec, T08)."
+      },
+      {
         "module": "renderer/workspaceSection",
         "file": "src/renderer/workspaceSection.js",
         "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07)."
@@ -29664,7 +29760,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 321,
+        "parsed": 322,
         "unsupported": 85,
         "partial": 0
       }
@@ -29711,9 +29807,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 496,
+      "visitedEntries": 497,
       "traversedDirectories": 82,
-      "eligibleFiles": 406,
+      "eligibleFiles": 407,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -29730,7 +29826,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 406,
+      "indexedFiles": 407,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -29738,6 +29834,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1f3fc68e1b753159c17724bb0cb72b3a435a1c9f7125f677b65660fabc5e3a22"
+    "revision": "1eb24e84e16f5db64914e1c52e131a6957c6762b869ddfff9ae9fdab28179655"
   }
 }

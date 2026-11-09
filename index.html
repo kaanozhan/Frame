@@ -1384,6 +1384,50 @@
     </div>
   </div>
 
+  <!-- New workspace (workspaces spec): branch + worktree, then setup, then the agent -->
+  <div id="new-workspace-modal" class="task-run-modal new-workspace-modal" role="dialog" aria-modal="true" aria-labelledby="nw-title">
+    <div class="task-run-modal-container">
+      <div class="task-run-modal-header">
+        <h3 id="nw-title">New workspace</h3>
+        <p>A branch in its own worktree, outside the repo. Your main checkout is untouched.</p>
+      </div>
+      <div class="task-run-modal-body">
+        <div class="task-run-section">
+          <label class="task-run-section-label">Start from</label>
+          <div class="task-run-radio-list" role="radiogroup" aria-label="Start from">
+            <label class="task-run-radio">
+              <input type="radio" name="nw-from" value="new" checked>
+              <span>A new branch</span>
+            </label>
+            <label class="task-run-radio">
+              <input type="radio" name="nw-from" value="branch">
+              <span>An existing branch</span>
+            </label>
+          </div>
+          <div id="nw-base-row" class="nw-field">
+            <label for="nw-base" class="nw-field-label">Base</label>
+            <input type="text" id="nw-base" class="task-run-input" list="nw-branches" placeholder="main" spellcheck="false">
+          </div>
+          <div id="nw-branch-row" class="nw-field" hidden>
+            <label for="nw-branch" class="nw-field-label">Branch</label>
+            <input type="text" id="nw-branch" class="task-run-input" list="nw-branches" placeholder="feat/login" spellcheck="false">
+          </div>
+          <datalist id="nw-branches"></datalist>
+        </div>
+        <div class="task-run-section">
+          <label for="nw-tool" class="task-run-section-label">Agent</label>
+          <select id="nw-tool" class="nw-select"></select>
+          <textarea id="nw-prompt" class="task-run-input nw-prompt" rows="3" placeholder="Optional first prompt — ⌘↩ to create"></textarea>
+        </div>
+        <p id="nw-error" class="nw-error" role="alert"></p>
+      </div>
+      <div class="task-run-modal-footer">
+        <button type="button" id="nw-cancel" class="task-run-btn task-run-btn-cancel">Cancel</button>
+        <button type="button" id="nw-create" class="task-run-btn task-run-btn-primary">Create</button>
+      </div>
+    </div>
+  </div>
+
   <!-- File Tree Context Menu -->
   <div id="file-tree-context-menu" class="context-menu" role="menu">
     <button class="context-menu-item" data-action="reveal" type="button">Reveal in Finder</button>

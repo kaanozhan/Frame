@@ -98,6 +98,8 @@ function getMenuTemplate() {
   template.push({
     label: 'File',
     submenu: [
+      cmd('New Workspace…', 'workspace.new', 'CmdOrCtrl+Shift+N'),
+      SEP,
       cmd('Add Project…', 'project.add'),
       cmd('Create New Project…', 'project.create'),
       SEP,
