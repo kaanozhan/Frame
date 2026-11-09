@@ -2635,6 +2635,15 @@
         "removeWorktree",
         "isWorkingTreeClean",
         "setupIPC",
+        "localBranchExists",
+        "defaultRemoteBranch",
+        "fetchBranch",
+        "addWorkspaceWorktree",
+        "removeWorkspaceWorktree",
+        "worktreeStatus",
+        "commitAll",
+        "discardAll",
+        "listIgnoredCandidates",
         "getHeadSha",
         "branchExists",
         "createOrchWorktree",
@@ -2674,12 +2683,13 @@
           "line": 65,
           "params": [
             "args",
-            "projectPath"
+            "projectPath",
+            "opts = {}"
           ],
           "purpose": "Execute git with an argv array — no shell, so a branch name is one"
         },
         "localBranchExists": {
-          "line": 90,
+          "line": 94,
           "params": [
             "name",
             "projectPath"
@@ -2687,21 +2697,21 @@
           "purpose": "Does `refs/heads/<name>` exist in this repo?"
         },
         "isWorkingTreeClean": {
-          "line": 102,
+          "line": 106,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if working tree is clean"
         },
         "loadBranches": {
-          "line": 114,
+          "line": 118,
           "params": [
             "projectPath"
           ],
           "purpose": "Load all branches"
         },
         "switchBranch": {
-          "line": 172,
+          "line": 176,
           "params": [
             "projectPath",
             "branchName"
@@ -2709,7 +2719,7 @@
           "purpose": "Switch to a branch"
         },
         "createBranch": {
-          "line": 223,
+          "line": 227,
           "params": [
             "projectPath",
             "branchName",
@@ -2719,7 +2729,7 @@
           "purpose": "Create a new branch"
         },
         "deleteBranch": {
-          "line": 246,
+          "line": 250,
           "params": [
             "projectPath",
             "branchName",
@@ -2728,14 +2738,14 @@
           "purpose": "Delete a branch"
         },
         "loadWorktrees": {
-          "line": 263,
+          "line": 267,
           "params": [
             "projectPath"
           ],
           "purpose": "Load worktrees"
         },
         "addWorktree": {
-          "line": 305,
+          "line": 309,
           "params": [
             "projectPath",
             "worktreePath",
@@ -2745,7 +2755,7 @@
           "purpose": "Add a worktree"
         },
         "removeWorktree": {
-          "line": 324,
+          "line": 328,
           "params": [
             "projectPath",
             "worktreePath",
@@ -2753,28 +2763,106 @@
           ],
           "purpose": "Remove a worktree"
         },
+        "hasRemote": {
+          "line": 355,
+          "params": [
+            "projectPath",
+            "remote = 'origin'"
+          ]
+        },
+        "refExists": {
+          "line": 364,
+          "params": [
+            "ref",
+            "projectPath"
+          ]
+        },
+        "defaultRemoteBranch": {
+          "line": 379,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The branch a new workspace should start from by default."
+        },
+        "fetchBranch": {
+          "line": 407,
+          "params": [
+            "projectPath",
+            "branch"
+          ],
+          "purpose": "`git fetch origin <branch>` with a 15 s ceiling. Never throws: a failure"
+        },
+        "addWorkspaceWorktree": {
+          "line": 425,
+          "params": [
+            "projectPath",
+            "worktreePath",
+            "{ branch",
+            "createBranch",
+            "startPoint } = {}"
+          ],
+          "purpose": "Create a workspace worktree."
+        },
+        "removeWorkspaceWorktree": {
+          "line": 439,
+          "params": [
+            "projectPath",
+            "worktreePath",
+            "force = false"
+          ],
+          "purpose": "`git worktree remove [--force] <path>`, argv form."
+        },
+        "worktreeStatus": {
+          "line": 451,
+          "params": [
+            "worktreePath"
+          ],
+          "purpose": "Uncommitted state of a worktree: `{ error, dirty, count }` from `git status --porcelain`."
+        },
+        "commitAll": {
+          "line": 463,
+          "params": [
+            "worktreePath",
+            "message"
+          ],
+          "purpose": "Stage everything and commit it with `message` (the archive dialog's \"commit\")."
+        },
+        "discardAll": {
+          "line": 479,
+          "params": [
+            "worktreePath"
+          ],
+          "purpose": "Throw away uncommitted work (the archive dialog's \"discard\"): tracked"
+        },
+        "listIgnoredCandidates": {
+          "line": 496,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Ignored, untracked paths in the main checkout — the candidates `copyFiles`"
+        },
         "orchWorktreePath": {
-          "line": 346,
+          "line": 516,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 350,
+          "line": 520,
           "params": [
             "projectPath"
           ]
         },
         "branchExists": {
-          "line": 359,
+          "line": 529,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 373,
+          "line": 543,
           "params": [
             "projectPath",
             "slug"
@@ -2782,7 +2870,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 394,
+          "line": 564,
           "params": [
             "projectPath",
             "slug",
@@ -2791,7 +2879,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 409,
+          "line": 579,
           "params": [
             "projectPath",
             "slug",
@@ -2800,7 +2888,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 426,
+          "line": 596,
           "params": [
             "projectPath",
             "slug"
@@ -2808,7 +2896,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 445,
+          "line": 615,
           "params": [
             "projectPath",
             "slug"
@@ -2816,14 +2904,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 461,
+          "line": 631,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 481,
+          "line": 651,
           "params": [
             "ipcMain"
           ],
@@ -2845,32 +2933,40 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 18502,
+      "sizeBytes": 26033,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "de7834a9081f3c52",
         "purposes": {
+          "addWorkspaceWorktree": "d78c10d4c9ceebc5",
           "addWorktree": "9d5960b0200f2941",
+          "commitAll": "0a26f011c0016854",
           "createBranch": "b25c5d90b1a1893a",
           "createOrchWorktree": "360f17a3e8ed35d7",
+          "defaultRemoteBranch": "2b8cac1668d02128",
           "deleteBranch": "558fdff79656691b",
+          "discardAll": "0a14d294029f8935",
           "execGit": "eb4919d0bef0003b",
           "execGitArgs": "ab6b29b207a1cf6b",
+          "fetchBranch": "5fbf03b136ac7bf3",
           "init": "4ed6c1db9529d664",
           "isWorkMerged": "39ca7ffa9b37d991",
           "isWorkingTreeClean": "077fc8ab2e75ee0d",
+          "listIgnoredCandidates": "8363d4cd5adc577f",
           "listOrchBranches": "b6e87043dfe78d4c",
           "loadBranches": "cb990681d8be2c86",
           "loadWorktrees": "e1f5dd6ccfd9f107",
           "localBranchExists": "d399d1abf0bf3f60",
           "mergeWorkToIntegration": "5fdd31c529fff0f9",
           "removeOrchWorktree": "ee09f7af04806f80",
+          "removeWorkspaceWorktree": "3f14e3547c30a6c2",
           "removeWorktree": "679ea312f5b749d1",
           "setupIPC": "b41c7437e6910eb5",
           "switchBranch": "7059dba0b5b50f79",
-          "worktreeChangedFiles": "d674ac8f88bfbf50"
+          "worktreeChangedFiles": "d674ac8f88bfbf50",
+          "worktreeStatus": "971fca8791873b46"
         }
       }
     },
@@ -3171,7 +3267,9 @@
       "exports": [
         "init",
         "setupIPC",
-        "isIgnoredWorktreePath"
+        "isIgnoredWorktreePath",
+        "gitDirFromDotGitFile",
+        "resolveGitDir"
       ],
       "depends": [
         "child_process",
@@ -3195,60 +3293,75 @@
             "ipcMain"
           ]
         },
+        "gitDirFromDotGitFile": {
+          "line": 71,
+          "params": [
+            "contents",
+            "worktreePath"
+          ],
+          "purpose": "The git dir a `.git` *file* points at (`gitdir: <path>`), resolved against"
+        },
+        "resolveGitDir": {
+          "line": 78,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The real git dir for `projectPath`: `.git` itself, or where a `.git` file points."
+        },
         "startWatching": {
-          "line": 66,
+          "line": 91,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 123
+          "line": 149
         },
         "isGitInternalPath": {
-          "line": 143,
+          "line": 169,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
         "isIgnoredWorktreePath": {
-          "line": 162,
+          "line": 188,
           "params": [
             "filename"
           ],
           "purpose": "Paths the working-tree watcher does not care about."
         },
         "isGitBookkeeping": {
-          "line": 189,
+          "line": 215,
           "params": [
             "filename"
           ],
           "purpose": "Is this .git event just bookkeeping rather than a real repository change?"
         },
         "scheduleRefresh": {
-          "line": 195,
+          "line": 221,
           "params": [
             "watcher"
           ]
         },
         "pushStatus": {
-          "line": 213
+          "line": 239
         },
         "readGitStatus": {
-          "line": 264,
+          "line": 290,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 295,
+          "line": 321,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 352,
+          "line": 378,
           "params": [
             "index",
             "worktree"
@@ -3266,7 +3379,7 @@
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 13328,
+      "sizeBytes": 14353,
       "extraction": {
         "status": "parsed"
       },
@@ -3274,10 +3387,12 @@
         "description": "b94430732ba65bb0",
         "purposes": {
           "classify": "124ff1c7e9926e51",
+          "gitDirFromDotGitFile": "7cf958d4ce19e6ff",
           "isGitBookkeeping": "07ff15b1d7bfb24d",
           "isGitInternalPath": "9b41de2bd762f400",
           "isIgnoredWorktreePath": "6b8e394b475ca715",
-          "parsePorcelainV1": "0f95a69cb744569a"
+          "parsePorcelainV1": "0f95a69cb744569a",
+          "resolveGitDir": "393bc0cf0b8ae000"
         }
       }
     },
@@ -24869,10 +24984,11 @@
       "depends": [
         "node:test",
         "node:assert/strict",
-        "src/main/gitStatusManager"
+        "src/main/gitStatusManager",
+        "path"
       ],
       "functions": {},
-      "sizeBytes": 2004,
+      "sizeBytes": 2882,
       "extraction": {
         "status": "parsed"
       },
@@ -28979,6 +29095,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "31bd9376ac99fb1631f7e04e990b88a3dacc606a545e93e2bc9937817bb5dd55"
+    "revision": "d447ab066305541ad45c289aa09b9008bde7f77d3d5e8864ce40fc3b948bfb81"
   }
 }

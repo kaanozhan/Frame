@@ -63,6 +63,31 @@ function setupIPC(ipcMain) {
   });
 }
 
+/**
+ * The git dir a `.git` *file* points at (`gitdir: <path>`), resolved against
+ * the worktree it sits in. Linked worktrees and submodules use this form.
+ * Pure: takes the file's contents. Returns null for anything else.
+ */
+function gitDirFromDotGitFile(contents, worktreePath) {
+  const match = /^gitdir:\s*(.+?)\s*$/m.exec(String(contents || ''));
+  if (!match) return null;
+  return path.resolve(worktreePath, match[1]);
+}
+
+/** The real git dir for `projectPath`: `.git` itself, or where a `.git` file points. */
+function resolveGitDir(projectPath) {
+  const dotGit = path.join(projectPath, '.git');
+  let stat;
+  try { stat = fs.statSync(dotGit); } catch (_) { return null; }
+  if (stat.isDirectory()) return dotGit;
+  if (!stat.isFile()) return null;
+  try {
+    return gitDirFromDotGitFile(fs.readFileSync(dotGit, 'utf8'), projectPath);
+  } catch (_) {
+    return null;
+  }
+}
+
 function startWatching(projectPath) {
   stopWatching();
   currentProjectPath = projectPath;
@@ -93,13 +118,14 @@ function startWatching(projectPath) {
   }
 
   // `.git` watcher: commit / stage / unstage / checkout / branch only ever
-  // mutate files inside `.git` (index, HEAD, refs/…). Only watch when `.git`
-  // is a real directory — for linked worktrees / submodules it's a file, in
-  // which case the worktree watcher alone is acceptable.
+  // mutate files inside the git dir (index, HEAD, refs/…). In a linked
+  // worktree (a workspace, workspaces spec) or a submodule `.git` is a file
+  // pointing at the real git dir; that dir is watched instead, so commits and
+  // stages made inside a workspace refresh the Changes panel too.
   try {
-    const gitDir = path.join(projectPath, '.git');
-    const stat = fs.statSync(gitDir);
-    if (stat.isDirectory()) {
+    const gitDir = resolveGitDir(projectPath);
+    const stat = gitDir ? fs.statSync(gitDir) : null;
+    if (stat && stat.isDirectory()) {
       gitDirWatcher = fsSafe.safeWatch(
         gitDir,
         { recursive: true, persistent: false },
@@ -377,4 +403,4 @@ function classify(index, worktree) {
   return 'modified';
 }
 
-module.exports = { init, setupIPC, isIgnoredWorktreePath };
+module.exports = { init, setupIPC, isIgnoredWorktreePath, gitDirFromDotGitFile, resolveGitDir };

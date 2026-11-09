@@ -62,12 +62,14 @@ function execGit(command, projectPath) {
  * `error` when there is one, so a refusal such as "already checked out at
  * …" reaches the UI verbatim.
  */
-function execGitArgs(args, projectPath) {
+function execGitArgs(args, projectPath, opts = {}) {
   if (gitMissing) {
     return Promise.reject({ error: GIT_MISSING_ERROR, gitMissing: true });
   }
+  const timeout = opts.timeout || 10000;
+  const maxBuffer = opts.maxBuffer || 1024 * 1024;
   return new Promise((resolve, reject) => {
-    execFile('git', args, { cwd: projectPath, timeout: 10000 }, (error, stdout, stderr) => {
+    execFile('git', args, { cwd: projectPath, timeout, maxBuffer }, (error, stdout, stderr) => {
       if (error) {
         if (error.code === 'ENOENT' || error.code === 127) {
           if (!gitMissing) {
@@ -78,7 +80,9 @@ function execGitArgs(args, projectPath) {
           return;
         }
         const detail = (stderr || '').trim();
-        reject({ error: detail || error.message, stderr: detail });
+        // A killed child (timeout) has no useful stderr; say so plainly.
+        const timedOut = error.killed && error.signal === 'SIGTERM';
+        reject({ error: detail || (timedOut ? `git ${args[0]} timed out` : error.message), stderr: detail, timedOut });
       } else {
         resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
       }
@@ -337,6 +341,172 @@ async function removeWorktree(projectPath, worktreePath, force = false) {
   }
 }
 
+// ─── Workspace helpers (workspaces spec) ──────────────────
+//
+// A workspace is a branch + a linked worktree outside the repo. Everything
+// here goes through execGitArgs (argv, no shell) — branch names and paths are
+// single arguments whatever they contain. The string-built addWorktree /
+// removeWorktree above stay for the GitHub panel and orchestration.
+
+const FETCH_TIMEOUT_MS = 15000;
+const WORKTREE_ADD_TIMEOUT_MS = 120000; // checking out a large repo takes time
+const LIST_MAX_BUFFER = 16 * 1024 * 1024;
+
+async function hasRemote(projectPath, remote = 'origin') {
+  try {
+    const { stdout } = await execGitArgs(['remote'], projectPath);
+    return stdout.split('\n').map((l) => l.trim()).includes(remote);
+  } catch (_) {
+    return false;
+  }
+}
+
+async function refExists(ref, projectPath) {
+  try {
+    await execGitArgs(['rev-parse', '--verify', '--quiet', ref], projectPath);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * The branch a new workspace should start from by default.
+ * With an `origin`: what `origin/HEAD` points at, else origin/main or
+ * origin/master. Without one: the current branch, else main or master.
+ * Returns `{ error, branch, hasOrigin }` — `branch` is a short name ("main").
+ */
+async function defaultRemoteBranch(projectPath) {
+  if (!projectPath) return { error: 'No project selected', branch: null, hasOrigin: false };
+  const hasOrigin = await hasRemote(projectPath);
+  if (hasOrigin) {
+    try {
+      const { stdout } = await execGitArgs(['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'], projectPath);
+      const short = stdout.trim();
+      if (short.startsWith('origin/')) return { error: null, branch: short.slice('origin/'.length), hasOrigin };
+    } catch (_) { /* origin/HEAD not set — fall through */ }
+    for (const name of ['main', 'master']) {
+      if (await refExists(`refs/remotes/origin/${name}`, projectPath)) return { error: null, branch: name, hasOrigin };
+    }
+  }
+  try {
+    const { stdout } = await execGitArgs(['symbolic-ref', '--quiet', '--short', 'HEAD'], projectPath);
+    if (stdout.trim()) return { error: null, branch: stdout.trim(), hasOrigin };
+  } catch (_) { /* detached HEAD */ }
+  for (const name of ['main', 'master']) {
+    if (await localBranchExists(name, projectPath)) return { error: null, branch: name, hasOrigin };
+  }
+  return { error: 'Could not determine a default branch', branch: null, hasOrigin };
+}
+
+/**
+ * `git fetch origin <branch>` with a 15 s ceiling. Never throws: a failure
+ * (offline, auth) comes back as `{ fetched: false, error }` so the caller can
+ * fall back to the local `origin/<branch>` and tell the user.
+ */
+async function fetchBranch(projectPath, branch) {
+  if (!projectPath || !branch) return { fetched: false, error: 'Missing parameters' };
+  try {
+    await execGitArgs(['fetch', 'origin', branch], projectPath, { timeout: FETCH_TIMEOUT_MS });
+    return { fetched: true, error: null };
+  } catch (err) {
+    return { fetched: false, error: err.error || err.message };
+  }
+}
+
+/**
+ * Create a workspace worktree.
+ *   createBranch: true  → `git worktree add --no-track -b <branch> <path> <startPoint>`
+ *   createBranch: false → `git worktree add <path> <branch>` (git's own DWIM
+ *                          creates a tracking branch for a remote-only name)
+ * `--no-track` keeps a new branch from adopting its start point
+ * (`origin/main`) as upstream, so a later push can never target main.
+ */
+async function addWorkspaceWorktree(projectPath, worktreePath, { branch, createBranch, startPoint } = {}) {
+  if (!projectPath || !worktreePath || !branch) return { error: 'Missing parameters' };
+  const args = createBranch
+    ? ['worktree', 'add', '--no-track', '-b', branch, worktreePath, ...(startPoint ? [startPoint] : [])]
+    : ['worktree', 'add', worktreePath, branch];
+  try {
+    await execGitArgs(args, projectPath, { timeout: WORKTREE_ADD_TIMEOUT_MS });
+    return { error: null, path: worktreePath, branch };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
+/** `git worktree remove [--force] <path>`, argv form. */
+async function removeWorkspaceWorktree(projectPath, worktreePath, force = false) {
+  if (!projectPath || !worktreePath) return { error: 'Missing parameters' };
+  const args = ['worktree', 'remove', ...(force ? ['--force'] : []), worktreePath];
+  try {
+    await execGitArgs(args, projectPath, { timeout: WORKTREE_ADD_TIMEOUT_MS });
+    return { error: null, path: worktreePath };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
+/** Uncommitted state of a worktree: `{ error, dirty, count }` from `git status --porcelain`. */
+async function worktreeStatus(worktreePath) {
+  if (!worktreePath) return { error: 'Missing parameters', dirty: false, count: 0 };
+  try {
+    const { stdout } = await execGitArgs(['status', '--porcelain'], worktreePath, { maxBuffer: LIST_MAX_BUFFER });
+    const lines = stdout ? stdout.split('\n').filter(Boolean) : [];
+    return { error: null, dirty: lines.length > 0, count: lines.length };
+  } catch (err) {
+    return { error: err.error || err.message, dirty: false, count: 0 };
+  }
+}
+
+/** Stage everything and commit it with `message` (the archive dialog's "commit"). */
+async function commitAll(worktreePath, message) {
+  if (!worktreePath || !message) return { error: 'Missing parameters' };
+  try {
+    await execGitArgs(['add', '-A'], worktreePath);
+    await execGitArgs(['commit', '-m', message], worktreePath);
+    return { error: null };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
+/**
+ * Throw away uncommitted work (the archive dialog's "discard"): tracked
+ * changes reset, untracked files removed. Ignored files (copied `.env`,
+ * `node_modules`) are left for `worktree remove --force` to take with the folder.
+ */
+async function discardAll(worktreePath) {
+  if (!worktreePath) return { error: 'Missing parameters' };
+  try {
+    await execGitArgs(['reset', '--hard'], worktreePath);
+    await execGitArgs(['clean', '-fd'], worktreePath);
+    return { error: null };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
+/**
+ * Ignored, untracked paths in the main checkout — the candidates `copyFiles`
+ * patterns choose from. `--directory` collapses an ignored directory into one
+ * `dir/` entry instead of listing every file under it (node_modules stays one
+ * line). Returns `{ error, paths }` with repo-relative paths.
+ */
+async function listIgnoredCandidates(projectPath) {
+  if (!projectPath) return { error: 'No project selected', paths: [] };
+  try {
+    const { stdout } = await execGitArgs(
+      ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
+      projectPath,
+      { maxBuffer: LIST_MAX_BUFFER }
+    );
+    return { error: null, paths: stdout.split('\0').filter(Boolean) };
+  } catch (err) {
+    return { error: err.error || err.message, paths: [] };
+  }
+}
+
 // ─── Orchestration helpers ────────────────────────────────
 //
 // Worker worktrees for orchestration live under .frame/worktrees/<slug> on a
@@ -533,6 +703,17 @@ module.exports = {
   removeWorktree,
   isWorkingTreeClean,
   setupIPC,
+  // Workspace helpers (workspaces spec)
+  execGitArgs,
+  localBranchExists,
+  defaultRemoteBranch,
+  fetchBranch,
+  addWorkspaceWorktree,
+  removeWorkspaceWorktree,
+  worktreeStatus,
+  commitAll,
+  discardAll,
+  listIgnoredCandidates,
   // Orchestration helpers
   orchWorktreePath,
   getHeadSha,

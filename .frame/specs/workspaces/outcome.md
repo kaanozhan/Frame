@@ -15,3 +15,11 @@ Added `src/shared/workspaceRegistry.js` (add / archive / restore / rename / remo
 _Captured: 2026-11-10 · 6 file change(s)_
 
 ---
+
+## T03 — Add git primitives
+
+Added a "Workspace helpers" section to `src/main/gitBranchesManager.js`, all on `execGitArgs` (argv): `defaultRemoteBranch` (origin/HEAD → origin/main|master → current/local branch), `fetchBranch` (15 s, never throws), `addWorkspaceWorktree` / `removeWorkspaceWorktree`, `worktreeStatus`, `commitAll`, `discardAll` (`reset --hard` + `clean -fd`, ignored files left for `remove --force`) and `listIgnoredCandidates` (`ls-files --others --ignored --exclude-standard --directory -z`). `execGitArgs` gained an optional `{ timeout, maxBuffer }` and reports timeouts plainly; new branches are created with `--no-track` so a workspace branch never adopts `origin/main` as its upstream — not in the plan, added because the default would make a later push target main. `gitStatusManager` now resolves a `.git` file (`gitdir:`) to the real git dir and watches it (`gitDirFromDotGitFile` / `resolveGitDir`), covered in `test/gitStatusWatcher.test.js`; the helpers were smoke-tested end to end on a scratch repo (create, refuse busy branch, status, discard, commit, remove, branch kept).
+
+_Captured: 2026-11-10 · 3 file change(s)_
+
+---
