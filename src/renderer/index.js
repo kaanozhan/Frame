@@ -294,7 +294,8 @@ function init() {
   newWorkspaceModal.init();
   workspaceSection.setActions({
     onNew: () => newWorkspaceModal.open(),
-    onRestored: (ws, result) => newWorkspaceModal.runSetupThenAgent({ setupScript: result && result.setupScript })
+    // A restored folder came back without dependencies: rerun setup only.
+    onRestored: (ws, result) => newWorkspaceModal.runSetupThenAgent({ setupScript: result && result.setupScript, openAgent: false })
   });
   workspaceSection.init();
 
@@ -941,6 +942,26 @@ function registerCommands() {
     shortcut: 'CmdOrCtrl+Shift+N',
     when: () => !!state.getProjectPath(),
     run: () => require('./newWorkspaceModal').open()
+  });
+  r({
+    id: 'workspace.archive',
+    title: 'Archive Workspace…',
+    category: 'Workspace',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspaceSection').archiveWorkspace(ws);
+    }
+  });
+  r({
+    id: 'workspace.rename',
+    title: 'Rename Workspace…',
+    category: 'Workspace',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspaceSection').startRename(ws, 'name');
+    }
   });
   r({
     id: 'project.add',

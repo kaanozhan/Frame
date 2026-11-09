@@ -195,7 +195,7 @@ function waitForSetupToFinish(terminalId) {
  * In the selected workspace: run the setup script (if any) in a "setup"
  * terminal, then open the AI terminal with `toolId` and, when given, `prompt`.
  */
-async function runSetupThenAgent({ setupScript, toolId = null, prompt = '' } = {}) {
+async function runSetupThenAgent({ setupScript, toolId = null, prompt = '', openAgent: withAgent = true } = {}) {
   const ui = multiTerminalUI();
   if (!ui) return;
   const manager = ui.getManager();
@@ -218,7 +218,7 @@ async function runSetupThenAgent({ setupScript, toolId = null, prompt = '' } = {
       notify.error('Could not open a terminal for the setup script.');
     }
   }
-  await openAgent({ toolId, prompt });
+  if (withAgent) await openAgent({ toolId, prompt });
 }
 
 async function openAgent({ toolId, prompt }) {

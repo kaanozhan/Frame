@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 96698,
+      "sizeBytes": 98385,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -11432,34 +11432,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 346,
+          "line": 347,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 454,
+          "line": 455,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 585,
+          "line": 586,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 624,
+          "line": 625,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 650,
+          "line": 651,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1062,
+          "line": 1083,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1087,
+          "line": 1108,
           "params": [
             "err"
           ],
@@ -11479,7 +11479,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 40148,
+      "sizeBytes": 40900,
       "extraction": {
         "status": "parsed"
       },
@@ -11920,7 +11920,8 @@
           "params": [
             "{ setupScript",
             "toolId = null",
-            "prompt = '' } = {}"
+            "prompt = ''",
+            "openAgent"
           ],
           "purpose": "In the selected workspace: run the setup script (if any) in a \"setup\""
         },
@@ -11932,7 +11933,7 @@
           ]
         }
       },
-      "sizeBytes": 9360,
+      "sizeBytes": 9404,
       "extraction": {
         "status": "parsed"
       },
@@ -15961,7 +15962,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4819,
+      "sizeBytes": 4996,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -17450,6 +17451,7 @@
         "select",
         "setActions",
         "getWorkspaces",
+        "selectedWorkspace",
         "archiveWorkspace",
         "startRename"
       ],
@@ -17568,26 +17570,45 @@
           ]
         },
         "archiveWorkspace": {
-          "line": 351,
+          "line": 356,
           "params": [
             "ws"
           ],
-          "purpose": "Archive — the dialog flow (T09) when it is plugged in, else a clean-only archive."
+          "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
+        },
+        "closeWorkspaceTerminals": {
+          "line": 378,
+          "params": [
+            "workspaceId"
+          ],
+          "purpose": "Close every terminal of one workspace of the current project."
+        },
+        "askArchiveChoice": {
+          "line": 391,
+          "params": [
+            "ws",
+            "count"
+          ],
+          "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
+        },
+        "selectedWorkspace": {
+          "line": 448,
+          "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 359,
+          "line": 454,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 372,
+          "line": 467,
           "params": [
             "ws"
           ]
         },
         "getWorkspaces": {
-          "line": 379,
+          "line": 474,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -17597,16 +17618,19 @@
         ],
         "emits": []
       },
-      "sizeBytes": 15108,
+      "sizeBytes": 19015,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "4c35e4937f971e02",
         "purposes": {
-          "archiveWorkspace": "cc5f658ef8c97483",
+          "archiveWorkspace": "4363218bb753fb2e",
+          "askArchiveChoice": "2981894ae593cf4b",
+          "closeWorkspaceTerminals": "22a7c42ea098a240",
           "getWorkspaces": "0eab879c07f7a326",
           "load": "e807754c516c9be1",
+          "selectedWorkspace": "fa1da8f5f604bd70",
           "setActions": "4f2a1450120dc24f"
         }
       }
@@ -29834,6 +29858,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1eb24e84e16f5db64914e1c52e131a6957c6762b869ddfff9ae9fdab28179655"
+    "revision": "5828011842985b449faf599cefabfd2c3884fb421316846c8287c8a832647b9b"
   }
 }

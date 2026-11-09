@@ -1428,6 +1428,40 @@
     </div>
   </div>
 
+  <!-- Archive a workspace with uncommitted changes (workspaces spec): never auto-commits -->
+  <div id="archive-workspace-modal" class="task-run-modal new-workspace-modal" role="dialog" aria-modal="true" aria-labelledby="aw-title">
+    <div class="task-run-modal-container">
+      <div class="task-run-modal-header">
+        <h3 id="aw-title">Archive workspace</h3>
+        <p id="aw-summary"></p>
+      </div>
+      <div class="task-run-modal-body">
+        <div class="task-run-section">
+          <div class="task-run-radio-list" role="radiogroup" aria-label="Uncommitted changes">
+            <label class="task-run-radio">
+              <input type="radio" name="aw-action" value="commit" checked>
+              <span>Commit them to the branch</span>
+            </label>
+            <label class="task-run-radio">
+              <input type="radio" name="aw-action" value="discard">
+              <span>Discard them</span>
+            </label>
+          </div>
+          <div id="aw-message-row" class="nw-field">
+            <label for="aw-message" class="nw-field-label">Message</label>
+            <input type="text" id="aw-message" class="task-run-input" spellcheck="false">
+          </div>
+          <p class="task-run-hint">The folder is removed; the branch stays and the workspace can be restored.</p>
+        </div>
+        <p id="aw-error" class="nw-error" role="alert"></p>
+      </div>
+      <div class="task-run-modal-footer">
+        <button type="button" id="aw-cancel" class="task-run-btn task-run-btn-cancel">Cancel</button>
+        <button type="button" id="aw-confirm" class="task-run-btn task-run-btn-primary">Archive</button>
+      </div>
+    </div>
+  </div>
+
   <!-- File Tree Context Menu -->
   <div id="file-tree-context-menu" class="context-menu" role="menu">
     <button class="context-menu-item" data-action="reveal" type="button">Reveal in Finder</button>

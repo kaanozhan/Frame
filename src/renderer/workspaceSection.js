@@ -347,13 +347,108 @@ async function commitRename(input) {
   await load();
 }
 
-/** Archive — the dialog flow (T09) when it is plugged in, else a clean-only archive. */
+/**
+ * Archive a workspace (T09). Clean → archived straight away. Uncommitted
+ * changes → the dialog asks: commit them (editable message) or discard them;
+ * Cancel leaves everything as it was. Frame never commits on its own (C4).
+ * The workspace's terminals are closed first, and the selection returns to main.
+ */
 async function archiveWorkspace(ws) {
   if (typeof actions.onArchive === 'function') return actions.onArchive(ws);
-  const result = await ipcRenderer.invoke(IPC.WORKSPACE_ARCHIVE, { projectPath: state.getProjectPath(), id: ws.id });
-  if (result && result.dirty) notify.error(`"${ws.name}" has uncommitted changes — commit them before archiving.`);
-  else if (result && result.error) notify.error(result.error);
+  const projectPath = state.getProjectPath();
+  const status = await ipcRenderer.invoke(IPC.WORKSPACE_STATUS, { projectPath, id: ws.id });
+  if (status && status.error && !ws.missing) {
+    notify.error(status.error);
+    return;
+  }
+  let choice = {};
+  if (status && status.dirty) {
+    choice = await askArchiveChoice(ws, status.count);
+    if (!choice) return; // cancelled
+  }
+  closeWorkspaceTerminals(ws.id);
+  const result = await ipcRenderer.invoke(IPC.WORKSPACE_ARCHIVE, { projectPath, id: ws.id, ...choice });
+  if (result && result.error) notify.error(result.error);
+  else if (result && result.dirty) notify.error(`"${ws.name}" changed while archiving — try again.`);
+  else notify.success(`Archived "${ws.name}" — its branch ${ws.branch} is kept.`);
   await load();
+}
+
+/** Close every terminal of one workspace of the current project. */
+function closeWorkspaceTerminals(workspaceId) {
+  try {
+    const ui = require('./terminal').getMultiTerminalUI();
+    if (!ui) return;
+    const manager = ui.getManager();
+    manager.getTerminalsInScope(state.getProjectPath(), workspaceId)
+      .forEach((t) => manager.closeTerminal(t.id));
+  } catch (err) {
+    console.error('workspaceSection: could not close the workspace terminals', err);
+  }
+}
+
+/** The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel. */
+function askArchiveChoice(ws, count) {
+  const modal = document.getElementById('archive-workspace-modal');
+  if (!modal) return Promise.resolve(null);
+  const summary = modal.querySelector('#aw-summary');
+  const message = modal.querySelector('#aw-message');
+  const messageRow = modal.querySelector('#aw-message-row');
+  const error = modal.querySelector('#aw-error');
+  const confirm = modal.querySelector('#aw-confirm');
+  const cancel = modal.querySelector('#aw-cancel');
+  summary.textContent = `"${ws.name}" (${ws.branch}) has ${count} uncommitted change${count === 1 ? '' : 's'}.`;
+  message.value = `WIP: archive ${ws.name}`;
+  error.textContent = '';
+  modal.querySelector('input[name="aw-action"][value="commit"]').checked = true;
+  messageRow.hidden = false;
+  modal.classList.add('visible');
+  message.focus();
+  message.select();
+
+  return new Promise((resolve) => {
+    const cleanup = (value) => {
+      modal.classList.remove('visible');
+      confirm.removeEventListener('click', onConfirm);
+      cancel.removeEventListener('click', onCancel);
+      modal.removeEventListener('keydown', onKey);
+      modal.removeEventListener('change', onChange);
+      modal.removeEventListener('mousedown', onBackdrop);
+      resolve(value);
+    };
+    const action = () => modal.querySelector('input[name="aw-action"]:checked').value;
+    const onConfirm = () => {
+      if (action() === 'commit' && !message.value.trim()) {
+        error.textContent = 'A commit needs a message.';
+        return;
+      }
+      cleanup({ action: action(), message: message.value.trim() });
+    };
+    const onCancel = () => cleanup(null);
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+      if (e.key === 'Enter') { e.preventDefault(); onConfirm(); }
+    };
+    const onChange = () => {
+      messageRow.hidden = action() !== 'commit';
+      confirm.textContent = action() === 'discard' ? 'Discard and archive' : 'Commit and archive';
+      confirm.classList.toggle('danger', action() === 'discard');
+    };
+    const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+    confirm.addEventListener('click', onConfirm);
+    cancel.addEventListener('click', onCancel);
+    modal.addEventListener('keydown', onKey);
+    modal.addEventListener('change', onChange);
+    modal.addEventListener('mousedown', onBackdrop);
+    onChange();
+  });
+}
+
+/** The selected workspace's record, or null on main. */
+function selectedWorkspace() {
+  const ws = state.getWorkspace();
+  if (!ws || ws.id === state.MAIN_WORKSPACE_ID) return null;
+  return workspaces.find((w) => w.id === ws.id) || null;
 }
 
 async function restoreWorkspace(ws) {
@@ -387,6 +482,7 @@ module.exports = {
   select,
   setActions,
   getWorkspaces,
+  selectedWorkspace,
   archiveWorkspace,
   startRename
 };
