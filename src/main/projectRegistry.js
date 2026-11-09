@@ -199,6 +199,27 @@ function updateProjectFrameStatus(projectPath, isFrame) {
 }
 
 /**
+ * A project's workspace records (workspaces spec). Stored on the project's
+ * own registry record (`projects[i].workspaces`): worktree paths are
+ * machine-local, and so is this file. Unknown project → [].
+ */
+function getWorkspaceRecords(projectPath) {
+  const project = getProjects().find(p => p.path === projectPath);
+  return project && Array.isArray(project.workspaces) ? project.workspaces : [];
+}
+
+/** Replace a project's workspace records. Returns false when the project is not registered. */
+function setWorkspaceRecords(projectPath, records) {
+  const registry = loadRegistry();
+  const active = registry.activeWorkspace;
+  const project = registry.workspaces[active]?.projects.find(p => p.path === projectPath);
+  if (!project) return false;
+  project.workspaces = Array.isArray(records) ? records : [];
+  saveRegistry(registry);
+  return true;
+}
+
+/**
  * Setup IPC handlers
  */
 function setupIPC(ipcMain) {
@@ -247,5 +268,7 @@ module.exports = {
   reorderProjects,
   updateProjectLastOpened,
   updateProjectFrameStatus,
+  getWorkspaceRecords,
+  setWorkspaceRecords,
   setupIPC
 };

@@ -23,3 +23,11 @@ Added a "Workspace helpers" section to `src/main/gitBranchesManager.js`, all on 
 _Captured: 2026-11-10 · 3 file change(s)_
 
 ---
+
+## T04 — Build the main-side workspace lifecycle
+
+Added `src/main/workspaceManager.js` (list + reconcile, create, status, archive, restore, rename, remove-record; mutations serialized per project, rollback of the worktree when the record cannot be saved) on new invoke channels in `ipcChannels.js` plus `WORKSPACES_UPDATED` push, `GIT_DEFAULT_BRANCH` for the dialog and `WORKSPACE_REMOVE_RECORD` for missing records (the last two not in the plan's channel list). `projectRegistry.js` gained `getWorkspaceRecords`/`setWorkspaceRecords`; `frameProject.js` gained `settings.workspaces` get/set + IPC (defaults readable for non-Frame projects, writes need `.frame/`), normalised by a new `normalizeSettings` in `shared/workspaceRegistry.js`. Deviations: `userSettings.js` was not modified — the generic store already serves `workspacesRoot`, so the `~/frame/workspaces` default lives in workspaceManager; and listing filters `git worktree list` rows to folders that still exist, because git keeps a deleted worktree until `prune` and reconcile never flagged it missing (caught by an end-to-end smoke run on a scratch repo).
+
+_Captured: 2026-11-09 · 7 file change(s)_
+
+---

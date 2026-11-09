@@ -235,6 +235,19 @@ const IPC = {
   GET_DONE_WINDOW: 'get-done-window',                // renderer → main (invoke): projectPath → { tasks, specs } days, normalised
   SET_DONE_WINDOW: 'set-done-window',                // renderer → main (invoke): { projectPath, board, days } → { tasks, specs }
 
+  // Workspaces (workspaces spec): branch + worktree + terminals, per project
+  WORKSPACES_LIST: 'workspaces-list',                // renderer → main (invoke): projectPath → { error, isRepo, workspaces, archived }
+  WORKSPACE_CREATE: 'workspace-create',              // renderer → main (invoke): { projectPath, from: 'new'|'branch', base?, branch? } → { error, workspace, copied, fetch, setupScript }
+  WORKSPACE_STATUS: 'workspace-status',              // renderer → main (invoke): { projectPath, id } → { error, dirty, count }
+  WORKSPACE_ARCHIVE: 'workspace-archive',            // renderer → main (invoke): { projectPath, id, action?: 'commit'|'discard', message? } → { error, dirty?, workspace }
+  WORKSPACE_RESTORE: 'workspace-restore',            // renderer → main (invoke): { projectPath, id } → { error, workspace, copied, setupScript }
+  WORKSPACE_RENAME: 'workspace-rename',              // renderer → main (invoke): { projectPath, id, name?, branch? } → { error, workspace }
+  WORKSPACE_REMOVE_RECORD: 'workspace-remove-record', // renderer → main (invoke): { projectPath, id } → { error } (missing/archived records only)
+  WORKSPACES_UPDATED: 'workspaces-updated',          // main → renderer: { projectPath } after any workspace change
+  GIT_DEFAULT_BRANCH: 'git-default-branch',          // renderer → main (invoke): projectPath → { error, branch, hasOrigin }
+  GET_WORKSPACE_SETTINGS: 'get-workspace-settings',  // renderer → main (invoke): projectPath → { setupScript, copyFiles, branchPrefix, frameProject }
+  SET_WORKSPACE_SETTINGS: 'set-workspace-settings',  // renderer → main (invoke): { projectPath, settings } → normalised settings | { error }
+
   // Layout migration (pre-overlay project → .frame/), consented per project
   GET_MIGRATION_DECISIONS: 'get-migration-decisions',      // renderer → main (invoke): what is left to ask, or []
   APPLY_MIGRATION_DECISIONS: 'apply-migration-decisions',  // renderer → main (invoke): the receipt

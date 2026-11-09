@@ -133,3 +133,14 @@ test('remove drops a record', () => {
   assert.deepEqual(r.records, []);
   assert.equal(reg.remove([], 'w1').error.code, reg.ERR.NOT_FOUND);
 });
+
+test('normalizeSettings falls back per key and cleans the branch prefix', () => {
+  assert.deepEqual(reg.normalizeSettings(undefined), { setupScript: '', copyFiles: ['.env*'], branchPrefix: 'ws' });
+  assert.deepEqual(
+    reg.normalizeSettings({ setupScript: 'npm install', copyFiles: ['.env', 3, '  ', ' *.pem '], branchPrefix: ' Feat//Me/ ' }),
+    { setupScript: 'npm install', copyFiles: ['.env', '*.pem'], branchPrefix: 'feat/me' }
+  );
+  assert.deepEqual(reg.normalizeSettings({ copyFiles: [] }).copyFiles, [], 'an explicit empty list stays empty');
+  assert.equal(reg.normalizeSettings({ branchPrefix: '///' }).branchPrefix, 'ws');
+  assert.equal(reg.normalizeSettings({ setupScript: 42 }).setupScript, '');
+});

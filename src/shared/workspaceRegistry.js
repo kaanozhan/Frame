@@ -23,6 +23,13 @@
 
 const MAIN_ID = 'main';
 
+/** Defaults for `.frame/config.json` → `settings.workspaces`. */
+const DEFAULT_SETTINGS = Object.freeze({
+  setupScript: '',
+  copyFiles: Object.freeze(['.env*']),
+  branchPrefix: 'ws'
+});
+
 const ERR = Object.freeze({
   BRANCH_IN_USE: 'BRANCH_IN_USE',
   NAME_IN_USE: 'NAME_IN_USE',
@@ -192,6 +199,24 @@ function reconcile(records, rows) {
   });
 }
 
+/**
+ * Read `settings.workspaces` defensively: a missing or hand-mangled value
+ * falls back per key, so a bad config never blocks creating a workspace.
+ * `branchPrefix` keeps only ref-safe characters (`a-z0-9._-/`, no leading or
+ * trailing slash); an empty prefix after cleaning falls back to `ws`.
+ */
+function normalizeSettings(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const setupScript = typeof src.setupScript === 'string' ? src.setupScript : DEFAULT_SETTINGS.setupScript;
+  const copyFiles = Array.isArray(src.copyFiles)
+    ? src.copyFiles.filter((p) => typeof p === 'string').map((p) => p.trim()).filter(Boolean)
+    : [...DEFAULT_SETTINGS.copyFiles];
+  const cleanedPrefix = typeof src.branchPrefix === 'string'
+    ? src.branchPrefix.trim().toLowerCase().replace(/[^a-z0-9._\/-]+/g, '-').replace(/\/+/g, '/').replace(/^[/.-]+|[/.-]+$/g, '')
+    : '';
+  return { setupScript, copyFiles, branchPrefix: cleanedPrefix || DEFAULT_SETTINGS.branchPrefix };
+}
+
 /** Strip transient fields before persisting. */
 function toStored(records) {
   return list(records).map((r) => {
@@ -204,6 +229,8 @@ function toStored(records) {
 
 module.exports = {
   MAIN_ID,
+  DEFAULT_SETTINGS,
+  normalizeSettings,
   ERR,
   normalizePath,
   isActive,

@@ -14,6 +14,7 @@ const frameStore = require('./frameStore');
 const gitExclude = require('./gitExclude');
 const gitSharing = require('./gitSharing');
 const { normalizeDoneWindow, WINDOW_OPTIONS, BOARDS } = require('../shared/doneWindow');
+const { normalizeSettings: normalizeWorkspaceSettings } = require('../shared/workspaceRegistry');
 const layoutMigration = require('./layoutMigration');
 const projectRegistry = require('./projectRegistry');
 const structureBootstrap = require('./structureBootstrap');
@@ -1005,6 +1006,29 @@ function setDoneWindow(projectPath, board, days) {
   return config.settings.doneWindow;
 }
 
+// ─── Workspace settings ──────────────────────────────────────
+//
+// `settings.workspaces` in .frame/config.json (workspaces spec): the setup
+// script a new workspace runs, the gitignored files it copies, and the branch
+// prefix. Shared with the team in `repo` gitSharing mode. A project without
+// `.frame/` reads the defaults, so workspaces work there too; only writing
+// needs a Frame project.
+
+function getWorkspaceSettings(projectPath) {
+  const config = projectPath && isFrameProject(projectPath) ? getFrameConfig(projectPath) : null;
+  return normalizeWorkspaceSettings(config && config.settings && config.settings.workspaces);
+}
+
+function setWorkspaceSettings(projectPath, settings) {
+  if (!projectPath || !isFrameProject(projectPath)) return { error: 'not a Frame project' };
+  const config = getFrameConfig(projectPath) || {};
+  config.settings = config.settings || {};
+  const current = normalizeWorkspaceSettings(config.settings.workspaces);
+  config.settings.workspaces = normalizeWorkspaceSettings({ ...current, ...(settings || {}) });
+  writeFrameConfig(projectPath, config);
+  return config.settings.workspaces;
+}
+
 // ─── Spec-Driven Development toggle ──────────────────────────
 //
 // Reads/writes the `features.specDriven` flag in .frame/config.json. New
@@ -1832,6 +1856,15 @@ function setupIPC(ipcMain) {
     return setDoneWindow(projectPath, board, days);
   });
 
+  // ─── Workspace settings ────────────────────────────────────
+  ipcMain.handle(IPC.GET_WORKSPACE_SETTINGS, (event, projectPath) => {
+    return { ...getWorkspaceSettings(projectPath), frameProject: !!projectPath && isFrameProject(projectPath) };
+  });
+
+  ipcMain.handle(IPC.SET_WORKSPACE_SETTINGS, (event, { projectPath, settings } = {}) => {
+    return setWorkspaceSettings(projectPath, settings);
+  });
+
   ipcMain.handle(IPC.REMOVE_FRAME_FROM_PROJECT, async (event, projectPath) => {
     if (!projectPath) return { removed: [], errors: ['no project'] };
     const result = await detachThenRemoveFrame(projectPath);
@@ -1867,6 +1900,8 @@ module.exports = {
   isFrameProject,
   getDoneWindow,
   setDoneWindow,
+  getWorkspaceSettings,
+  setWorkspaceSettings,
   openProjectLayout,
   getFrameConfig,
   initializeFrameProject,
