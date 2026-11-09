@@ -197,13 +197,20 @@ function _buildBranch() {
   // one on screen, so a late push from the previous project cannot label
   // this one with its branch.
   ipcRenderer.on(IPC.GIT_STATUS_DATA, (event, payload) => {
-    if (!payload || payload.projectPath !== state.getProjectPath()) return;
+    // Main watches the selected workspace's folder, so that is what a push
+    // is for — compare against the workspace root, not the project path.
+    if (!payload || payload.projectPath !== state.getWorkspaceRoot()) return;
     _renderBranch(payload.isRepo ? payload.branch : null);
   });
   // Between projects the old name must not linger until the next push, and
   // the picker (its own onProjectChange closes it too) must not show the
   // previous repo's list.
   state.onProjectChange(() => {
+    branchPicker.close();
+    _renderBranch(null);
+  });
+  // Same between workspaces: each has its own branch.
+  state.onWorkspaceChange(() => {
     branchPicker.close();
     _renderBranch(null);
   });

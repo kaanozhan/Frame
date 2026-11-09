@@ -124,8 +124,10 @@ function init() {
   require('./statusBar').init();
 
   // Initialize file tree UI
-  fileTreeUI.init('file-tree', state.getProjectPath);
-  fileTreeUI.setProjectPathGetter(state.getProjectPath);
+  // The file tree (and the git watch it starts) follows the selected
+  // workspace's folder; main is the project itself (workspaces spec).
+  fileTreeUI.init('file-tree', state.getWorkspaceRoot);
+  fileTreeUI.setProjectPathGetter(state.getWorkspaceRoot);
 
   // Git Changes panel (Changes sidebar tab); a row click opens that file's
   // diff as a section tab (next to Home / Terminals), navigable with ◀ / ▶.
@@ -248,6 +250,14 @@ function init() {
     // An open dock tab follows the switcher the way the project nav does:
     // Decisions and Structure re-render for the new project, the
     // re-parented panels reload through their own show().
+    dock.remountActive();
+  });
+
+  // Selecting a workspace re-points the checkout-bound views at its folder:
+  // the file tree (which also moves the git-status watch, so Changes and the
+  // branch label follow) and the dock's open tab.
+  state.onWorkspaceChange((ws) => {
+    if (ws && ws.root) fileTreeUI.loadFileTree(ws.root);
     dock.remountActive();
   });
 

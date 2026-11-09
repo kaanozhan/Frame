@@ -31,3 +31,11 @@ Added `src/main/workspaceManager.js` (list + reconcile, create, status, archive,
 _Captured: 2026-11-09 · 7 file change(s)_
 
 ---
+
+## T05 — Add the active workspace to the renderer
+
+`state.js` gained `getWorkspace` / `getWorkspaceRoot` / `setWorkspace` / `onWorkspaceChange` / `getRememberedWorkspaceId` with `{ id, root, name, branch }` (main = id `main`, root = project path), the per-project selection remembered in localStorage `frame-active-workspace`, and a reset to main on project change (the workspace list re-selects the remembered one once it has the records — T07). The file tree getter (and therefore the git-status watch, Changes and diff, which ride its payload) now uses the workspace root, re-loaded on workspace change in `index.js`; the status-bar branch guard and `statusBar/branchPicker.js` compare against the root and close on workspace change; `sessionsPanel.js` lists sessions by root, reloads when open, and resumes Claude through `resumeAgentSession` with `cwd: root` instead of `resumeClaudeSession` (which always used the project path). Verified by build + suite only — there is no way to select a workspace until T07.
+
+_Captured: 2026-11-09 · 6 file change(s)_
+
+---

@@ -111,6 +111,7 @@ function init(opts) {
   });
   // Between projects the list would be the wrong repo's.
   state.onProjectChange(() => { if (opened) close(); });
+  state.onWorkspaceChange(() => { if (opened) close(); });
 }
 
 function isOpen() {
@@ -123,7 +124,8 @@ function toggle() {
 
 async function open() {
   if (!rootEl || opened) return;
-  const projectPath = state.getProjectPath();
+  // The selected workspace's checkout (main = the project itself).
+  const projectPath = state.getWorkspaceRoot();
   if (!projectPath) return;
 
   if (onOpenCb) onOpenCb();
@@ -152,7 +154,7 @@ async function open() {
     worktrees = { worktrees: [] };
   }
   // A reopen or a project switch happened while we were reading.
-  if (seq !== openSeq || !opened || state.getProjectPath() !== projectPath) return;
+  if (seq !== openSeq || !opened || state.getWorkspaceRoot() !== projectPath) return;
 
   if (branches.error) {
     // No git, not a repo, or a read failure: say so where the list would be.
@@ -306,7 +308,7 @@ async function _activate(index) {
     } else {
       result = await ipcRenderer.invoke(IPC.SWITCH_GIT_BRANCH, { projectPath, branchName: item.ref });
     }
-    if (!opened || state.getProjectPath() !== projectPath) return;
+    if (!opened || state.getWorkspaceRoot() !== projectPath) return;
 
     if (result && result.error === 'uncommitted_changes') {
       const n = Array.isArray(result.changes) ? result.changes.length : 0;
