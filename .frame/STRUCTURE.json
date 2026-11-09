@@ -21574,6 +21574,73 @@
         }
       }
     },
+    "shared/copyFilesMatch": {
+      "file": "src/shared/copyFilesMatch.js",
+      "description": "copyFilesMatch — which gitignored files a new workspace copies from the",
+      "exports": [
+        "DEFAULT_COPY_FILES",
+        "compile",
+        "selectFiles",
+        "normalize"
+      ],
+      "depends": [],
+      "functions": {
+        "normalize": {
+          "line": 28,
+          "params": [
+            "relPath"
+          ]
+        },
+        "escapeRegex": {
+          "line": 36,
+          "params": [
+            "ch"
+          ]
+        },
+        "globToRegexSource": {
+          "line": 41,
+          "params": [
+            "glob"
+          ],
+          "purpose": "Translate one glob (already split of its anchor) into a regex source."
+        },
+        "compilePattern": {
+          "line": 68,
+          "params": [
+            "line"
+          ],
+          "purpose": "Compile one pattern line into a tester, or null for blank/comment lines."
+        },
+        "compile": {
+          "line": 90,
+          "params": [
+            "patterns"
+          ],
+          "purpose": "Compile a list of pattern lines (or one newline-separated string) into a"
+        },
+        "selectFiles": {
+          "line": 104,
+          "params": [
+            "candidates",
+            "patterns"
+          ],
+          "purpose": "Filter candidate relative paths down to the ones the patterns select."
+        }
+      },
+      "sizeBytes": 3687,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4c07427cff5ef628",
+        "purposes": {
+          "compile": "636f864ee7338f78",
+          "compilePattern": "10973b3cca0d5633",
+          "globToRegexSource": "d10b60c8b5cf1eb4",
+          "selectFiles": "8d5963438757bb2e"
+        }
+      }
+    },
     "shared/docsHealth": {
       "file": "src/shared/docsHealth.js",
       "description": "Doc health — does Frame's own prose still describe a project that exists?",
@@ -22313,6 +22380,257 @@
           "clampStep": "63a59744b3d644dc",
           "parseStep": "45adc397e73f9143",
           "percentFor": "b68b43b534167340"
+        }
+      }
+    },
+    "shared/workspaceNames": {
+      "file": "src/shared/workspaceNames.js",
+      "description": "workspaceNames — automatic short names for workspaces.",
+      "exports": [
+        "COLORS",
+        "nextName",
+        "toSlug",
+        "uniquify"
+      ],
+      "depends": [],
+      "functions": {
+        "takenSet": {
+          "line": 27,
+          "params": [
+            "taken"
+          ]
+        },
+        "nextName": {
+          "line": 39,
+          "params": [
+            "taken",
+            "random = Math.random"
+          ],
+          "purpose": "Pick the next free name. `taken` is any iterable of names already in use"
+        },
+        "toSlug": {
+          "line": 57,
+          "params": [
+            "input"
+          ],
+          "purpose": "Turn a user-typed name into a safe folder/branch segment: lowercase,"
+        },
+        "uniquify": {
+          "line": 71,
+          "params": [
+            "wanted",
+            "taken"
+          ],
+          "purpose": "Make `wanted` unique against `taken` by suffixing `-2`, `-3`, … Used when a"
+        }
+      },
+      "sizeBytes": 2981,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "50f582d908db3f6a",
+        "purposes": {
+          "nextName": "1314f5d06271034a",
+          "toSlug": "fb441bbe3e182840",
+          "uniquify": "f9c918566e6bd1f2"
+        }
+      }
+    },
+    "shared/workspaceRegistry": {
+      "file": "src/shared/workspaceRegistry.js",
+      "description": "workspaceRegistry — the rules over a project's workspace records.",
+      "exports": [
+        "MAIN_ID",
+        "ERR",
+        "normalizePath",
+        "isActive",
+        "activeOf",
+        "archivedOf",
+        "findById",
+        "findByBranch",
+        "findByName",
+        "createRecord",
+        "add",
+        "archive",
+        "restore",
+        "rename",
+        "remove",
+        "reconcile",
+        "toStored"
+      ],
+      "depends": [],
+      "functions": {
+        "fail": {
+          "line": 35,
+          "params": [
+            "code",
+            "message",
+            "extra"
+          ]
+        },
+        "list": {
+          "line": 39,
+          "params": [
+            "records"
+          ]
+        },
+        "normalizePath": {
+          "line": 44,
+          "params": [
+            "p"
+          ],
+          "purpose": "Normalise a filesystem path for comparison: forward slashes, no trailing slash."
+        },
+        "isActive": {
+          "line": 48,
+          "params": [
+            "record"
+          ]
+        },
+        "activeOf": {
+          "line": 53,
+          "params": [
+            "records"
+          ],
+          "purpose": "Active workspaces, in stored order."
+        },
+        "archivedOf": {
+          "line": 58,
+          "params": [
+            "records"
+          ],
+          "purpose": "Archived workspaces, newest archive first."
+        },
+        "findById": {
+          "line": 64,
+          "params": [
+            "records",
+            "id"
+          ]
+        },
+        "findByBranch": {
+          "line": 69,
+          "params": [
+            "records",
+            "branch",
+            "excludeId"
+          ],
+          "purpose": "The active workspace holding `branch`, else null. `excludeId` skips one record."
+        },
+        "findByName": {
+          "line": 74,
+          "params": [
+            "records",
+            "name",
+            "excludeId"
+          ]
+        },
+        "branchInUse": {
+          "line": 79,
+          "params": [
+            "holder",
+            "branch"
+          ]
+        },
+        "createRecord": {
+          "line": 87,
+          "params": [
+            "{ id",
+            "name",
+            "branch",
+            "base",
+            "path",
+            "now }"
+          ],
+          "purpose": "Build a new record. `now` is an ISO string supplied by the caller so the"
+        },
+        "add": {
+          "line": 101,
+          "params": [
+            "records",
+            "fields"
+          ],
+          "purpose": "Add a workspace. Refused when the branch or name is taken, or fields are missing."
+        },
+        "replace": {
+          "line": 114,
+          "params": [
+            "records",
+            "id",
+            "patch"
+          ]
+        },
+        "archive": {
+          "line": 128,
+          "params": [
+            "records",
+            "id",
+            "now"
+          ],
+          "purpose": "Archive a workspace: it keeps its branch but stops holding it."
+        },
+        "restore": {
+          "line": 136,
+          "params": [
+            "records",
+            "id"
+          ],
+          "purpose": "Restore an archived workspace. Refused when its branch is now open elsewhere (C3)."
+        },
+        "rename": {
+          "line": 149,
+          "params": [
+            "records",
+            "id",
+            "{ name",
+            "branch } = {}"
+          ],
+          "purpose": "Rename a workspace's short name and/or branch. The folder path is not"
+        },
+        "remove": {
+          "line": 170,
+          "params": [
+            "records",
+            "id"
+          ],
+          "purpose": "Drop a record entirely (the \"Remove record\" action for a missing workspace)."
+        },
+        "reconcile": {
+          "line": 182,
+          "params": [
+            "records",
+            "rows"
+          ],
+          "purpose": "Mark active records whose worktree no longer appears in `git worktree list`"
+        },
+        "toStored": {
+          "line": 196,
+          "params": [
+            "records"
+          ],
+          "purpose": "Strip transient fields before persisting."
+        }
+      },
+      "sizeBytes": 7618,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "f163eecc052d7b7b",
+        "purposes": {
+          "activeOf": "564a597f0d33c3ca",
+          "add": "beaf06af391bf13e",
+          "archive": "4978770174ae08ef",
+          "archivedOf": "9f29a23a1a9ddb90",
+          "createRecord": "3de7a5791a4020a4",
+          "findByBranch": "baff79e7bc240f78",
+          "normalizePath": "fed49976f4ad8899",
+          "reconcile": "70bfa2d4999941da",
+          "remove": "cec4a232209af82a",
+          "rename": "7768a558fe0df8ea",
+          "restore": "1a35c719561478a0",
+          "toStored": "25cef354347374f2"
         }
       }
     },
@@ -23414,6 +23732,24 @@
       },
       "provenance": {
         "description": "a0ee2f5a72dd524f"
+      }
+    },
+    "test/copyFilesMatch.test": {
+      "file": "test/copyFilesMatch.test.js",
+      "description": "copyFilesMatch — which gitignored files a new workspace copies",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/copyFilesMatch"
+      ],
+      "functions": {},
+      "sizeBytes": 3068,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4448571725d63765"
       }
     },
     "test/detectProject.test": {
@@ -26494,6 +26830,49 @@
       "provenance": {
         "description": "8d14ca0750c74e20"
       }
+    },
+    "test/workspaceNames.test": {
+      "file": "test/workspaceNames.test.js",
+      "description": "workspaceNames — automatic color names (workspaces spec, T02 / D4).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/workspaceNames"
+      ],
+      "functions": {},
+      "sizeBytes": 1935,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "77f32c60c09ef158"
+      }
+    },
+    "test/workspaceRegistry.test": {
+      "file": "test/workspaceRegistry.test.js",
+      "description": "workspaceRegistry — the rules over a project's workspace records",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/workspaceRegistry"
+      ],
+      "functions": {
+        "teal": {
+          "line": 19
+        },
+        "withTeal": {
+          "line": 23
+        }
+      },
+      "sizeBytes": 5995,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "e8cdd1e7c1d01113"
+      }
     }
   },
   "ipcChannels": {
@@ -27971,6 +28350,18 @@
         "description": "Tasks screen list model — what the grid lists for a given scope, status,"
       }
     ],
+    "names": [
+      {
+        "module": "shared/gitRefNames",
+        "file": "src/shared/gitRefNames.js",
+        "description": "gitRefNames — is this string a branch name git would accept?"
+      },
+      {
+        "module": "shared/workspaceNames",
+        "file": "src/shared/workspaceNames.js",
+        "description": "workspaceNames — automatic short names for workspaces."
+      }
+    ],
     "onboarding": [
       {
         "module": "renderer/onboarding",
@@ -28115,6 +28506,11 @@
         "module": "renderer/home/registry",
         "file": "src/renderer/home/registry.js",
         "description": "Widget Registry — what Home shows, and in what order."
+      },
+      {
+        "module": "shared/workspaceRegistry",
+        "file": "src/shared/workspaceRegistry.js",
+        "description": "workspaceRegistry — the rules over a project's workspace records."
       }
     ],
     "report": [
@@ -28467,6 +28863,18 @@
         "description": "doneWindow — how much of the \"done\" pile a board shows by default."
       }
     ],
+    "workspace": [
+      {
+        "module": "shared/workspaceNames",
+        "file": "src/shared/workspaceNames.js",
+        "description": "workspaceNames — automatic short names for workspaces."
+      },
+      {
+        "module": "shared/workspaceRegistry",
+        "file": "src/shared/workspaceRegistry.js",
+        "description": "workspaceRegistry — the rules over a project's workspace records."
+      }
+    ],
     "zoom": [
       {
         "module": "main/uiZoom",
@@ -28497,7 +28905,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 311,
+        "parsed": 317,
         "unsupported": 84,
         "partial": 0
       }
@@ -28544,9 +28952,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 484,
+      "visitedEntries": 490,
       "traversedDirectories": 81,
-      "eligibleFiles": 395,
+      "eligibleFiles": 401,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -28563,7 +28971,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 395,
+      "indexedFiles": 401,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -28571,6 +28979,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "662c39690c52cb20252aa8ae7bb911d0c472e5996d412867c7d9827eab247c1a"
+    "revision": "31bd9376ac99fb1631f7e04e990b88a3dacc606a545e93e2bc9937817bb5dd55"
   }
 }
