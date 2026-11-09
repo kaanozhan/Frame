@@ -357,10 +357,12 @@ const RESUME_ARGS = {
  *
  * @param {'claude'|'codex'} tool
  * @param {string} sessionId - UUID; it reaches a command line
- * @param {{projectPath: string, cwd?: string|null, name?: string|null, focus?: boolean}} opts
+ * @param {{projectPath: string, cwd?: string|null, name?: string|null, focus?: boolean, workspaceId?: string|null}} opts
+ *   workspaceId: the workspace the terminal joins (workspaces spec); omitted =
+ *   the selected one when `projectPath` is current, else main
  * @returns {Promise<string|null>} the new terminal's id, or null
  */
-async function resumeAgentSession(tool, sessionId, { projectPath, cwd = null, name = null, focus = false } = {}) {
+async function resumeAgentSession(tool, sessionId, { projectPath, cwd = null, name = null, focus = false, workspaceId = null } = {}) {
   if (!multiTerminalUI) {
     notify.error('Terminal system is not ready yet');
     return null;
@@ -380,12 +382,13 @@ async function resumeAgentSession(tool, sessionId, { projectPath, cwd = null, na
   const manager = multiTerminalUI.getManager();
   let id = null;
   try {
-    id = await manager.createTerminal({ projectPath, cwd: cwd || projectPath });
+    // No cwd → the terminal manager picks the workspace's folder.
+    id = await manager.createTerminal({ projectPath, cwd: cwd || undefined, workspaceId: workspaceId || undefined });
   } catch (err) {
     console.error('agentDispatch: terminal creation failed', err);
   }
   if (!id) {
-    notify.error(`Could not create a new terminal — maximum (${manager.maxTerminals}) may be reached for this project`);
+    notify.error(`Could not create a new terminal — maximum (${manager.maxTerminals}) may be reached for this workspace`);
     return null;
   }
 

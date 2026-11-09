@@ -75,6 +75,11 @@ class TerminalManager {
     this.terminalCounter = 0;
     this.onStateChange = null;
     this.currentProjectPath = null; // Current active project (null = global)
+    // The selected workspace within it (workspaces spec): terminals carry a
+    // workspaceId, and only the selected workspace's terminals are "current".
+    // 'main' is the project's own checkout.
+    this.currentWorkspaceId = 'main';
+    this.currentWorkspaceRoot = null;
     this._setupIPC();
     this._setupThemeObserver();
     installGlobalDropGuard();
@@ -91,6 +96,9 @@ class TerminalManager {
     }
 
     this.currentProjectPath = projectPath;
+    // A project opens on main; the workspace list re-selects the remembered one.
+    this.currentWorkspaceId = 'main';
+    this.currentWorkspaceRoot = projectPath;
 
     // Restore session for new project (custom names)
     this.restoreProjectSession(projectPath);
@@ -107,6 +115,53 @@ class TerminalManager {
     this.viewMode = this.getTerminalStates().length > 0 ? 'terminals' : 'board';
 
     this._notifyStateChange();
+  }
+
+  /**
+   * Select a workspace of the current project (workspaces spec). Saves the
+   * outgoing workspace's session, restores the incoming one's, and lands on
+   * its terminals when it has any — the same rule as a project switch.
+   * @param {string} workspaceId - 'main' or a workspace id
+   * @param {string|null} root - the workspace's folder (main: the project)
+   */
+  setCurrentWorkspace(workspaceId, root) {
+    const id = workspaceId || 'main';
+    const nextRoot = root || this.currentProjectPath;
+    if (id === this.currentWorkspaceId && nextRoot === this.currentWorkspaceRoot) return;
+    this.saveProjectSession(this.currentProjectPath);
+    this.currentWorkspaceId = id;
+    this.currentWorkspaceRoot = nextRoot;
+    this.restoreProjectSession(this.currentProjectPath);
+    this.viewMode = this.getTerminalStates().length > 0 ? 'terminals' : 'board';
+    this._notifyStateChange();
+  }
+
+  getCurrentWorkspaceId() {
+    return this.currentWorkspaceId;
+  }
+
+  /** Is this terminal state in the current project and selected workspace? */
+  _inScope(state) {
+    return state.projectPath === this.currentProjectPath
+      && (state.workspaceId || 'main') === this.currentWorkspaceId;
+  }
+
+  /** Terminals of one project + workspace, oldest first. */
+  getTerminalsInScope(projectPath, workspaceId) {
+    const ws = workspaceId || 'main';
+    return Array.from(this.terminals.values())
+      .filter(t => t.state.projectPath === projectPath && (t.state.workspaceId || 'main') === ws)
+      .map(t => ({ ...t.state }))
+      .sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  /**
+   * localStorage key for the current project's selected workspace. Main keeps
+   * the bare project path — exactly today's key, so nothing migrates.
+   */
+  _sessionKey(projectPath) {
+    const base = projectPath || GLOBAL_PROJECT_KEY;
+    return this.currentWorkspaceId && this.currentWorkspaceId !== 'main' ? `${base}#${this.currentWorkspaceId}` : base;
   }
 
   /**
@@ -132,8 +187,8 @@ class TerminalManager {
    * @param {string|null} projectPath - Project path or null for global
    */
   saveProjectSession(projectPath) {
-    const sessionKey = projectPath || GLOBAL_PROJECT_KEY;
-    const projectTerminals = this.getTerminalsByProject(projectPath);
+    const sessionKey = this._sessionKey(projectPath);
+    const projectTerminals = this.getTerminalsInScope(projectPath, this.currentWorkspaceId);
 
     if (projectTerminals.length === 0) {
       return; // Nothing to save
@@ -184,7 +239,7 @@ class TerminalManager {
    * @param {string|null} projectPath - Project path or null for global
    */
   restoreProjectSession(projectPath) {
-    const sessionKey = projectPath || GLOBAL_PROJECT_KEY;
+    const sessionKey = this._sessionKey(projectPath);
 
     try {
       const allSessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}');
@@ -200,7 +255,7 @@ class TerminalManager {
         // still exist in this process and are pruned otherwise.
 
         // Restore custom names for existing terminals
-        const projectTerminals = this.getTerminalsByProject(projectPath);
+        const projectTerminals = this.getTerminalsInScope(projectPath, this.currentWorkspaceId);
         projectTerminals.forEach(t => {
           if (sessionData.terminalNames && sessionData.terminalNames[t.id]) {
             const instance = this.terminals.get(t.id);
@@ -234,7 +289,8 @@ class TerminalManager {
         // Restore active terminal if it belongs to current project
         if (sessionData.activeTerminalId) {
           const terminal = this.terminals.get(sessionData.activeTerminalId);
-          if (terminal && terminal.state.projectPath === projectPath) {
+          if (terminal && terminal.state.projectPath === projectPath
+              && (terminal.state.workspaceId || 'main') === this.currentWorkspaceId) {
             this.setActiveTerminal(sessionData.activeTerminalId);
             return;
           }
@@ -242,7 +298,7 @@ class TerminalManager {
       }
 
       // If no valid active terminal found, select first terminal of current project
-      const projectTerminals = this.getTerminalsByProject(projectPath);
+      const projectTerminals = this.getTerminalsInScope(projectPath, this.currentWorkspaceId);
       if (projectTerminals.length > 0) {
         this.setActiveTerminal(projectTerminals[0].id);
       } else {
@@ -267,18 +323,28 @@ class TerminalManager {
       ? options.projectPath
       : this.currentProjectPath;
 
-    // Per-project cap (was previously global — but terminals from other
-    // projects are kept alive in memory for fast switch-back, so a global
-    // count of 9 silently locked users out at far fewer visible terminals).
-    const projectCount = Array.from(this.terminals.values())
-      .filter(t => t.state.projectPath === projectPath).length;
-    if (projectCount >= this.maxTerminals) {
-      console.error(`Maximum terminal limit (${this.maxTerminals}) reached for this project`);
+    // Which workspace the terminal belongs to (workspaces spec): explicit,
+    // else the selected one when it is for the current project, else main.
+    const inCurrentProject = projectPath === this.currentProjectPath;
+    const workspaceId = options.workspaceId || (inCurrentProject ? this.currentWorkspaceId : 'main');
+
+    // Per-workspace cap (main counts as one workspace). It was per project,
+    // and before that global — terminals from other projects/workspaces stay
+    // alive in memory for fast switch-back, so a wider count silently locked
+    // users out at far fewer visible terminals.
+    const scopeCount = Array.from(this.terminals.values())
+      .filter(t => t.state.projectPath === projectPath && (t.state.workspaceId || 'main') === workspaceId).length;
+    if (scopeCount >= this.maxTerminals) {
+      console.error(`Maximum terminal limit (${this.maxTerminals}) reached for this workspace`);
       return null;
     }
 
-    // Working directory: use provided cwd, or project path, or home directory
-    const workingDir = options.cwd || projectPath || null;
+    // Working directory: the provided cwd, else the selected workspace's
+    // folder (for its own terminals), else the project, else home.
+    const defaultDir = inCurrentProject && workspaceId === this.currentWorkspaceId
+      ? (this.currentWorkspaceRoot || projectPath)
+      : projectPath;
+    const workingDir = options.cwd || defaultDir || null;
 
     return new Promise((resolve, reject) => {
       const handler = (event, response) => {
@@ -287,6 +353,7 @@ class TerminalManager {
           this._initializeTerminal(response.terminalId, {
             ...options,
             projectPath,
+            workspaceId,
             cwd: workingDir
           });
           resolve(response.terminalId);
@@ -299,6 +366,7 @@ class TerminalManager {
       ipcRenderer.send(IPC.TERMINAL_CREATE, {
         cwd: workingDir,
         projectPath,
+        workspaceId,
         shell: options.shell || null,
         extraEnv: options.extraEnv || null // orchestration worker lanes pass FRAME_ORCH_* env
       });
@@ -361,6 +429,7 @@ class TerminalManager {
       isActive: false,
       createdAt: Date.now(),
       projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath,
+      workspaceId: options.workspaceId || 'main',
       // What this lane is working on (set by agentDispatch):
       // { kind: 'task'|'spec', label, ref } — presentation metadata only,
       // session-scoped, dies with the lane (never persisted).
@@ -638,8 +707,8 @@ class TerminalManager {
     let terminals = Array.from(this.terminals.values());
 
     if (!allProjects) {
-      // Filter by current project
-      terminals = terminals.filter(t => t.state.projectPath === this.currentProjectPath);
+      // Filter by current project and selected workspace
+      terminals = terminals.filter(t => this._inScope(t.state));
     }
 
     return terminals

@@ -125,6 +125,8 @@ function setWorkspace(ws) {
   currentWorkspace = next;
   rememberWorkspace(currentProjectPath, next ? next.id : MAIN_WORKSPACE_ID);
   const now = getWorkspace();
+  // Terminals switch scope first, the same way a project switch does.
+  if (multiTerminalUI) multiTerminalUI.setCurrentWorkspace(now.id, now.root);
   onWorkspaceChangeCallbacks.forEach((cb) => cb(now, prev));
 }
 

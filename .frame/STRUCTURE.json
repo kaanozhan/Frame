@@ -5179,33 +5179,34 @@
             "workingDir = null",
             "projectPath = null",
             "shellPath = null",
-            "extraEnv = null"
+            "extraEnv = null",
+            "workspaceId = 'main'"
           ],
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 331,
+          "line": 333,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 346,
+          "line": 348,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 358,
+          "line": 360,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 366,
+          "line": 368,
           "params": [
             "terminalId",
             "data"
@@ -5213,7 +5214,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 376,
+          "line": 378,
           "params": [
             "terminalId",
             "cols",
@@ -5222,13 +5223,13 @@
           "purpose": "Resize specific terminal"
         },
         "wasDestroyedOnRequest": {
-          "line": 391,
+          "line": 393,
           "params": [
             "terminalId"
           ]
         },
         "destroyTerminal": {
-          "line": 399,
+          "line": 401,
           "params": [
             "terminalId",
             "{ teardown = false } = {}"
@@ -5236,33 +5237,33 @@
           "purpose": "Destroy specific terminal. `teardown` marks one that dies with its"
         },
         "destroyAll": {
-          "line": 420,
+          "line": 422,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 440,
+          "line": 442,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 447,
+          "line": 449,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 457,
+          "line": 459,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 467,
+          "line": 469,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 474,
+          "line": 476,
           "params": [
             "ipcMain"
           ],
@@ -5283,7 +5284,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 17669,
+      "sizeBytes": 17875,
       "extraction": {
         "status": "parsed"
       },
@@ -5359,6 +5360,7 @@
           "params": [
             "terminalId",
             "{ projectPath = null",
+            "workspaceId = 'main'",
             "shellPid = null } = {}"
           ]
         },
@@ -5437,7 +5439,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 9287,
+      "sizeBytes": 9322,
       "extraction": {
         "status": "parsed"
       },
@@ -5513,27 +5515,29 @@
           "params": [
             "terminalId",
             "projectPath",
-            "createdAt"
+            "createdAt",
+            "workspaceId"
           ]
         },
         "hasSession": {
-          "line": 112,
+          "line": 115,
           "params": [
             "entry"
           ]
         },
         "registerTerminal": {
-          "line": 117,
+          "line": 120,
           "params": [
             "live",
             "terminalId",
             "{ projectPath = null",
-            "createdAt = 0 } = {}"
+            "createdAt = 0",
+            "workspaceId = 'main' } = {}"
           ],
           "purpose": "A PTY was spawned. Terminals without a project (global) are never restored."
         },
         "applyReport": {
-          "line": 127,
+          "line": 130,
           "params": [
             "live",
             "report"
@@ -5541,7 +5545,7 @@
           "purpose": "A CLI reported its session. The caller has already checked the reporter is"
         },
         "applyClaim": {
-          "line": 145,
+          "line": 148,
           "params": [
             "live",
             "terminalId",
@@ -5554,7 +5558,7 @@
           "purpose": "The renderer opened this terminal to resume a saved session. Registered"
         },
         "applyMeta": {
-          "line": 160,
+          "line": 163,
           "params": [
             "live",
             "terminalId",
@@ -5564,7 +5568,7 @@
           "purpose": "Rename and focus, from the renderer. `active: true` clears the flag on"
         },
         "applyForeground": {
-          "line": 183,
+          "line": 186,
           "params": [
             "live",
             "terminalId",
@@ -5574,7 +5578,7 @@
           "purpose": "The terminal's foreground process changed (ptyManager's poll). Anything"
         },
         "applyClose": {
-          "line": 200,
+          "line": 203,
           "params": [
             "live",
             "terminalId"
@@ -5582,13 +5586,13 @@
           "purpose": "The user closed the terminal, or its shell exited. Never called during"
         },
         "normalizeStore": {
-          "line": 209,
+          "line": 212,
           "params": [
             "raw"
           ]
         },
         "projectRecord": {
-          "line": 222,
+          "line": 225,
           "params": [
             "live",
             "projectPath",
@@ -5597,7 +5601,7 @@
           "purpose": "A project's record, projected from its live terminals, oldest first."
         },
         "putRecord": {
-          "line": 245,
+          "line": 249,
           "params": [
             "store",
             "projectPath",
@@ -5606,7 +5610,7 @@
           "purpose": "Write a project's record into the store. An empty record removes the"
         },
         "planRestore": {
-          "line": 268,
+          "line": 272,
           "params": [
             "record",
             "exists"
@@ -5614,7 +5618,7 @@
           "purpose": "What to reopen for a project: its saved sessions whose transcript still"
         }
       },
-      "sizeBytes": 10878,
+      "sizeBytes": 11232,
       "extraction": {
         "status": "parsed"
       },
@@ -7463,19 +7467,20 @@
           "purpose": "Resume a Claude Code session from the sessions list."
         },
         "resumeAgentSession": {
-          "line": 363,
+          "line": 365,
           "params": [
             "tool",
             "sessionId",
             "{ projectPath",
             "cwd = null",
             "name = null",
-            "focus = false } = {}"
+            "focus = false",
+            "workspaceId = null } = {}"
           ],
           "purpose": "Resume a Claude Code or Codex session in a new terminal of `projectPath`"
         },
         "_askNewOrRestart": {
-          "line": 405,
+          "line": 408,
           "params": [
             "frameName",
             "hasAgent"
@@ -7483,7 +7488,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "dispatchSpecCommand": {
-          "line": 462,
+          "line": 465,
           "params": [
             "{ slug",
             "title = null",
@@ -7492,7 +7497,7 @@
           "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
         },
         "_dispatchImplement": {
-          "line": 537,
+          "line": 540,
           "params": [
             "{ slug",
             "title",
@@ -7502,107 +7507,107 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "_isSpecCreatorLane": {
-          "line": 644,
+          "line": 647,
           "params": [
             "terminalId"
           ],
           "purpose": "Still open, and still carrying the transient name we gave it."
         },
         "_onSpecData": {
-          "line": 660,
+          "line": 663,
           "params": [
             "specs"
           ],
           "purpose": "A new slug appeared — attach it to the lane that produced it."
         },
         "_bindSpecCreatorLane": {
-          "line": 680,
+          "line": 683,
           "params": [
             "terminalId",
             "slug"
           ]
         },
         "dispatchSpecNew": {
-          "line": 716,
+          "line": 719,
           "params": [
             "description"
           ],
           "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
         },
         "getSpecLaneInfo": {
-          "line": 804,
+          "line": 807,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 828,
+          "line": 831,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 849,
+          "line": 852,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 853,
+          "line": 856,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 857,
+          "line": 860,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 874,
+          "line": 877,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 882,
+          "line": 885,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 905,
+          "line": 908,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 913,
+          "line": 916,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 931,
+          "line": 934,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 941,
+          "line": 944,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 950,
+          "line": 953,
           "params": [
             "frameName",
             "specName"
@@ -7610,14 +7615,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 991,
+          "line": 994,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 1020,
+          "line": 1023,
           "params": [
             "terminalId",
             "message"
@@ -7636,7 +7641,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 42666,
+      "sizeBytes": 42964,
       "extraction": {
         "status": "parsed"
       },
@@ -11844,7 +11849,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 35197,
+      "sizeBytes": 35975,
       "extraction": {
         "status": "parsed"
       },
@@ -13430,7 +13435,7 @@
           "purpose": "Restore a project's sessions if this is its first open in this run."
         },
         "safeIsDir": {
-          "line": 73,
+          "line": 86,
           "params": [
             "dir"
           ]
@@ -13443,7 +13448,7 @@
           "SESSION_RESTORE_DONE"
         ]
       },
-      "sizeBytes": 2864,
+      "sizeBytes": 3825,
       "extraction": {
         "status": "parsed"
       },
@@ -14533,134 +14538,134 @@
           "purpose": "Select a workspace of the current project. Pass `null` or an object with"
         },
         "onWorkspaceChange": {
-          "line": 132,
+          "line": 134,
           "params": [
             "callback"
           ],
           "purpose": "Register a callback for workspace selection changes: (workspace, previous)."
         },
         "setMultiTerminalUI": {
-          "line": 139,
+          "line": 141,
           "params": [
             "ui"
           ],
           "purpose": "Set MultiTerminalUI reference for terminal session management"
         },
         "setProjectPath": {
-          "line": 146,
+          "line": 148,
           "params": [
             "path"
           ],
           "purpose": "Set project path and switch terminal session"
         },
         "onProjectChange": {
-          "line": 184,
+          "line": 186,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for project change"
         },
         "getIsFrameProject": {
-          "line": 191,
+          "line": 193,
           "purpose": "Get Frame project status"
         },
         "setIsFrameProject": {
-          "line": 198,
+          "line": 200,
           "params": [
             "isFrame"
           ],
           "purpose": "Set Frame project status"
         },
         "noteFrameRemoved": {
-          "line": 224,
+          "line": 226,
           "params": [
             "projectPath"
           ],
           "purpose": "Frame was removed from this project (Settings → Workflow). Flip the flag so"
         },
         "onFrameStatusChange": {
-          "line": 235,
+          "line": 237,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame status change"
         },
         "onFrameInitialized": {
-          "line": 242,
+          "line": 244,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame project initialized"
         },
         "updateFrameUI": {
-          "line": 249,
+          "line": 251,
           "purpose": "Update Frame-related UI"
         },
         "initializeAsFrameProject": {
-          "line": 264,
+          "line": 266,
           "purpose": "Initialize current project as Frame project"
         },
         "showInitializeFrameModal": {
-          "line": 273,
+          "line": 275,
           "purpose": "Show custom initialize Frame modal"
         },
         "hideInitializeFrameModal": {
-          "line": 286,
+          "line": 288,
           "purpose": "Hide initialize Frame modal"
         },
         "dismissInitPrompt": {
-          "line": 298,
+          "line": 300,
           "purpose": "Dismiss the prompt without initializing (\"Not Now\" / close / Escape /"
         },
         "handleInitializeFrame": {
-          "line": 309,
+          "line": 311,
           "purpose": "Handle initialize Frame confirmation"
         },
         "setupInitFrameModalListeners": {
-          "line": 330,
+          "line": 332,
           "purpose": "Setup initialize Frame modal listeners"
         },
         "showInitSpotlight": {
-          "line": 356,
+          "line": 358,
           "purpose": "Show spotlight tour for the initialize button (first time only)"
         },
         "dismissSpotlight": {
-          "line": 397,
+          "line": 399,
           "purpose": "Dismiss spotlight and mark as seen"
         },
         "setupSpotlightListeners": {
-          "line": 408,
+          "line": 410,
           "purpose": "Setup spotlight tour listeners"
         },
         "updateProjectUI": {
-          "line": 450,
+          "line": 452,
           "purpose": "Update project UI elements"
         },
         "selectProjectFolder": {
-          "line": 474,
+          "line": 476,
           "purpose": "Request folder selection"
         },
         "createNewProject": {
-          "line": 481,
+          "line": 483,
           "purpose": "Request new project creation"
         },
         "openSampleProject": {
-          "line": 491,
+          "line": 493,
           "purpose": "Open the bundled sample project. Main copies it into the user-data"
         },
         "getIsSampleProject": {
-          "line": 498,
+          "line": 500,
           "purpose": "Check whether the current project is the bundled sample."
         },
         "onSampleChange": {
-          "line": 506,
+          "line": 508,
           "params": [
             "callback"
           ],
           "purpose": "Register a callback fired whenever the current project's"
         },
         "setupIPC": {
-          "line": 513,
+          "line": 515,
           "purpose": "Setup IPC listeners"
         }
       },
@@ -14679,7 +14684,7 @@
           "OPEN_SAMPLE_PROJECT"
         ]
       },
-      "sizeBytes": 17596,
+      "sizeBytes": 17745,
       "extraction": {
         "status": "parsed"
       },
@@ -17014,7 +17019,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 28317,
+      "sizeBytes": 31601,
       "extraction": {
         "status": "parsed"
       },
@@ -17117,7 +17122,7 @@
           ]
         }
       },
-      "sizeBytes": 26487,
+      "sizeBytes": 26795,
       "extraction": {
         "status": "parsed"
       },
@@ -26097,7 +26102,7 @@
           ]
         }
       },
-      "sizeBytes": 11199,
+      "sizeBytes": 12245,
       "extraction": {
         "status": "parsed"
       },
@@ -29471,6 +29476,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "16f13b43c546e2a957a9b31d9bd8ea1c88e9d0122916d795435f39170f33bc5c"
+    "revision": "84921cee793908fd8922231ccbe55fec882ab11e71cfc26e0d192ccb99a20f76"
   }
 }

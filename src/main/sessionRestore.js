@@ -109,11 +109,11 @@ function persist(projectPath) {
 
 // ─── terminal lifecycle (ptyManager) ──────────────────────
 
-function registerTerminal(terminalId, { projectPath = null, shellPid = null } = {}) {
+function registerTerminal(terminalId, { projectPath = null, workspaceId = 'main', shellPid = null } = {}) {
   // A new terminal after a teardown means the app is in use again (reload).
   frozen = false;
   if (shellPid) shellPids.set(terminalId, shellPid);
-  core.registerTerminal(live, terminalId, { projectPath, createdAt: Date.now() });
+  core.registerTerminal(live, terminalId, { projectPath, workspaceId, createdAt: Date.now() });
 }
 
 function onForeground(terminalId, processName, shellName) {

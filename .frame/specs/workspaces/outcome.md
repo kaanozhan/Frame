@@ -39,3 +39,11 @@ _Captured: 2026-11-09 · 7 file change(s)_
 _Captured: 2026-11-09 · 6 file change(s)_
 
 ---
+
+## T06 — Scope terminals to workspaces
+
+Terminals now carry `workspaceId` (default `main`) in `terminalManager.js` and `ptyManager.js`; the manager gained `setCurrentWorkspace` / `getCurrentWorkspaceId` / `getTerminalsInScope`, `getTerminalStates()` filters by project + selected workspace, the 9-terminal cap counts per workspace in both processes, and `createTerminal` defaults to the selected workspace and its folder when the caller passes no cwd. Session prefs (`frame-terminal-sessions`, terminals-view `frame-terminals-view`) key non-main workspaces as `<projectPath>#<id>` while main keeps today's keys; `multiTerminalUI.setCurrentWorkspace` is driven straight from `state.setWorkspace` (like a project switch), and `agentDispatch.resumeAgentSession` takes a `workspaceId` and no longer forces `cwd` to the project. Session restore carries `workspaceId` through `sessionRestoreStore` (entry → record → plan, legacy records default to main), `sessionRestore.registerTerminal`, and the renderer, which resumes into the recorded workspace only when it is still live and otherwise at main/project — plus a guard so the restore never focuses a lane outside the selected workspace; covered in `test/sessionRestoreStore.test.js`.
+
+_Captured: 2026-11-09 · 10 file change(s)_
+
+---

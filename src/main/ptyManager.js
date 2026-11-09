@@ -181,15 +181,16 @@ function getAvailableShells() {
  * @param {string|null} shellPath - Shell to use (defaults to system default)
  * @returns {string} Terminal ID
  */
-function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null) {
-  // Per-project cap. The renderer keeps terminals from inactive projects
-  // alive in its Map for fast switch-back, so a global count would surface
-  // here as a confusing "you have 3 visible but can't open a 4th" because
-  // 6 hidden ones from a previous project are eating the global slot.
-  const projectCount = Array.from(ptyInstances.values())
-    .filter(p => p.projectPath === projectPath).length;
-  if (projectCount >= MAX_TERMINALS) {
-    throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached for this project`);
+function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null, workspaceId = 'main') {
+  // Per-workspace cap (workspaces spec; main counts as one). The renderer
+  // keeps terminals from inactive projects and workspaces alive in its Map
+  // for fast switch-back, so a wider count would surface here as a confusing
+  // "you have 3 visible but can't open a 4th".
+  const ws = workspaceId || 'main';
+  const scopeCount = Array.from(ptyInstances.values())
+    .filter(p => p.projectPath === projectPath && (p.workspaceId || 'main') === ws).length;
+  if (scopeCount >= MAX_TERMINALS) {
+    throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached for this workspace`);
   }
 
   const terminalId = `term-${++terminalCounter}`;
@@ -256,7 +257,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     }
   });
 
-  sessionRestore.registerTerminal(terminalId, { projectPath, shellPid: ptyProcess.pid });
+  sessionRestore.registerTerminal(terminalId, { projectPath, workspaceId: ws, shellPid: ptyProcess.pid });
 
   // Handle PTY exit
   ptyProcess.onExit(({ exitCode, signal }) => {
@@ -311,6 +312,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     pty: ptyProcess,
     cwd,
     projectPath,
+    workspaceId: ws,
     processPoll,
     lastOutputAt: Date.now(),
     outputChunks: [],
@@ -490,6 +492,7 @@ function setupIPC(ipcMain) {
       let projectPath = null;
       let shellPath = null;
       let extraEnv = null;
+      let workspaceId = 'main';
 
       if (typeof data === 'string') {
         // Legacy format: just working directory
@@ -500,9 +503,10 @@ function setupIPC(ipcMain) {
         projectPath = data.projectPath;
         shellPath = data.shell;
         extraEnv = data.extraEnv || null; // orchestration worker lanes pass FRAME_ORCH_* here
+        workspaceId = data.workspaceId || 'main';
       }
 
-      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv);
+      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv, workspaceId);
       event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true });
     } catch (error) {
       analytics.track('error_occurred', { category: 'terminal_create_failed' });
