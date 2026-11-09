@@ -1,0 +1,392 @@
+/**
+ * Workspace Section — the sidebar's Workspaces list (workspaces spec, T07).
+ *
+ * Sits under the project switcher, above the project nav. A main row (the
+ * project's own checkout) comes first, then one row per workspace: the branch
+ * as the primary label, the color name as the secondary one, and a status dot
+ * folded from the workspace's terminals (workspaces/rollup.js). Clicking a
+ * row selects it (state.setWorkspace), which re-points terminals, file tree,
+ * git and sessions at that folder.
+ *
+ * Records come from main (WORKSPACES_LIST) and are re-read on
+ * WORKSPACES_UPDATED and project changes. A workspace whose folder vanished
+ * shows as missing with Restore / Remove record; archived ones sit behind a
+ * toggle with Restore.
+ *
+ * The new-workspace dialog (T08) and the archive dialog (T09) plug in
+ * through setActions() so this module does not depend on them.
+ */
+
+const { ipcRenderer } = require('electron');
+const { IPC } = require('../shared/ipcChannels');
+const state = require('./state');
+const laneStatus = require('./laneStatus');
+const notify = require('./notify');
+const { escapeHtml } = require('./htmlUtils');
+const rollup = require('./workspaces/rollup');
+
+let rootEl = null;
+let menuEl = null;
+let loadedFor = null;          // project path the list below belongs to
+let isRepo = false;
+let workspaces = [];           // active records (some may be `missing`)
+let archived = [];
+let showArchived = false;
+let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
+let renderScheduled = false;
+let loadSeq = 0;
+
+const actions = {
+  onNew: null,                 // () => void — opens the new-workspace dialog (T08)
+  onArchive: null,             // (workspace) => Promise — archive flow with the dirty dialog (T09)
+  onRestored: null             // (workspace, result) => void — reruns setup after a restore (T09)
+};
+
+/** Let the dialogs plug in without this module requiring them. */
+function setActions(next) {
+  Object.assign(actions, next || {});
+}
+
+function init() {
+  rootEl = document.getElementById('workspace-section');
+  if (!rootEl) {
+    console.error('workspaceSection: #workspace-section not found — the workspace list will not show');
+    return;
+  }
+  menuEl = document.createElement('div');
+  menuEl.className = 'context-menu workspace-context-menu';
+  menuEl.setAttribute('role', 'menu');
+  document.body.appendChild(menuEl);
+
+  rootEl.addEventListener('click', onClick);
+  rootEl.addEventListener('keydown', onKeyDown);
+  rootEl.addEventListener('contextmenu', onContextMenu);
+  menuEl.addEventListener('click', onMenuClick);
+  document.addEventListener('mousedown', (e) => {
+    if (menuEl.classList.contains('visible') && !menuEl.contains(e.target)) hideMenu();
+  });
+  window.addEventListener('blur', hideMenu);
+
+  state.onProjectChange(() => {
+    workspaces = [];
+    archived = [];
+    showArchived = false;
+    loadedFor = null;
+    render();
+    load({ reselect: true });
+  });
+  state.onWorkspaceChange(() => scheduleRender());
+  laneStatus.onChange(() => scheduleRender());
+  ipcRenderer.on(IPC.WORKSPACES_UPDATED, (event, { projectPath } = {}) => {
+    if (projectPath && projectPath === state.getProjectPath()) load();
+  });
+  window.addEventListener('focus', () => { if (state.getProjectPath()) load(); });
+
+  if (state.getProjectPath()) load({ reselect: true });
+  else render();
+}
+
+/** Re-read the project's workspaces; with `reselect`, restore the remembered selection. */
+async function load({ reselect = false } = {}) {
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return;
+  const seq = ++loadSeq;
+  let result;
+  try {
+    result = await ipcRenderer.invoke(IPC.WORKSPACES_LIST, projectPath);
+  } catch (err) {
+    result = { error: err.message, isRepo: false, workspaces: [], archived: [] };
+  }
+  if (seq !== loadSeq || state.getProjectPath() !== projectPath) return;
+  loadedFor = projectPath;
+  isRepo = !!(result && result.isRepo);
+  workspaces = (result && result.workspaces) || [];
+  archived = (result && result.archived) || [];
+
+  const selected = state.getWorkspace();
+  if (reselect) {
+    const wanted = state.getRememberedWorkspaceId(projectPath);
+    const ws = workspaces.find((w) => w.id === wanted && !w.missing);
+    if (ws) select(ws);
+  } else if (selected && selected.id !== state.MAIN_WORKSPACE_ID) {
+    // The selected workspace was archived, removed or went missing: back to main.
+    const still = workspaces.find((w) => w.id === selected.id && !w.missing);
+    if (!still) state.setWorkspace(null);
+    else if (still.branch !== selected.branch) select(still); // renamed branch
+  }
+  render();
+}
+
+function select(ws) {
+  if (!ws) {
+    state.setWorkspace(null);
+    return;
+  }
+  if (ws.missing) return;
+  state.setWorkspace({ id: ws.id, root: ws.path, name: ws.name, branch: ws.branch });
+}
+
+function scheduleRender() {
+  // A live re-render would replace an open rename field and lose what was typed.
+  if (renderScheduled || renaming) return;
+  renderScheduled = true;
+  requestAnimationFrame(() => {
+    renderScheduled = false;
+    render();
+  });
+}
+
+function summaries() {
+  const projectPath = state.getProjectPath();
+  let states = [];
+  try {
+    const ui = require('./terminal').getMultiTerminalUI();
+    if (ui) states = ui.getManager().getTerminalStates(true);
+  } catch (_) { /* terminal system not ready yet */ }
+  return rollup.summarize(states, projectPath, (id) => laneStatus.getStatus(id));
+}
+
+const DOT_TITLES = {
+  approval: 'An agent is waiting for permission',
+  input: 'An agent is waiting for your input',
+  working: 'Working',
+  idle: ''
+};
+
+function dotHtml(summary) {
+  if (!summary || summary.dot === 'idle') return '<span class="ws-dot" aria-hidden="true"></span>';
+  return `<span class="ws-dot ${summary.dot}" title="${DOT_TITLES[summary.dot]}"></span>`;
+}
+
+function rowHtml(ws, { selectedId, sums }) {
+  const on = ws.id === selectedId ? ' on' : '';
+  const missing = ws.missing ? ' missing' : '';
+  const editing = renaming && renaming.id === ws.id;
+  const primary = editing && renaming.field === 'branch'
+    ? `<input class="ws-rename" data-field="branch" value="${escapeHtml(ws.branch)}" spellcheck="false">`
+    : `<span class="ws-primary" title="${escapeHtml(ws.branch)}">${escapeHtml(ws.branch)}</span>`;
+  const secondary = editing && renaming.field === 'name'
+    ? `<input class="ws-rename" data-field="name" value="${escapeHtml(ws.name)}" spellcheck="false">`
+    : `<span class="ws-secondary">${escapeHtml(ws.name)}${ws.missing ? ' · missing' : ''}</span>`;
+  const trailing = ws.missing
+    ? `<button class="ws-act" data-act="restore-missing" type="button" title="Recreate the folder from the branch">Restore</button>
+       <button class="ws-act" data-act="remove-record" type="button" title="Forget this workspace">Remove</button>`
+    : `<button class="ws-more" data-act="menu" type="button" aria-label="Workspace actions" title="Workspace actions">⋯</button>`;
+  return `
+    <div class="ws-row${on}${missing}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="button" aria-pressed="${!!on}">
+      ${dotHtml(rollup.summaryFor(sums, ws.id))}
+      <span class="ws-labels">${primary}${secondary}</span>
+      ${trailing}
+    </div>`;
+}
+
+function render() {
+  if (!rootEl) return;
+  const projectPath = state.getProjectPath();
+  rootEl.hidden = !projectPath;
+  if (!projectPath) {
+    rootEl.innerHTML = '';
+    return;
+  }
+  const selected = state.getWorkspace();
+  const selectedId = selected ? selected.id : state.MAIN_WORKSPACE_ID;
+  const sums = summaries();
+  const canCreate = isRepo && loadedFor === projectPath;
+  const addTitle = canCreate
+    ? 'New workspace (⌘⇧N)'
+    : (loadedFor === projectPath ? 'Workspaces need a git repository' : 'Loading…');
+  const mainOn = selectedId === state.MAIN_WORKSPACE_ID ? ' on' : '';
+
+  const archivedHtml = archived.length
+    ? `<button class="ws-archived-toggle${showArchived ? ' open' : ''}" data-act="toggle-archived" type="button">
+         Archived <span class="ws-count">${archived.length}</span>
+       </button>
+       ${showArchived ? `<div class="ws-archived">${archived.map((ws) => `
+         <div class="ws-row archived" data-id="${escapeHtml(ws.id)}">
+           <span class="ws-dot" aria-hidden="true"></span>
+           <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(ws.branch)}">${escapeHtml(ws.branch)}</span><span class="ws-secondary">${escapeHtml(ws.name)}</span></span>
+           <button class="ws-act" data-act="restore" type="button">Restore</button>
+         </div>`).join('')}</div>` : ''}`
+    : '';
+
+  rootEl.innerHTML = `
+    <div class="ws-header">
+      <span class="ws-title">Workspaces</span>
+      <button class="ws-add" data-act="new" type="button" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}" aria-label="New workspace">＋</button>
+    </div>
+    <div class="ws-list">
+      <div class="ws-row main${mainOn}" data-id="main" tabindex="0" role="button" aria-pressed="${!!mainOn}">
+        ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
+        <span class="ws-labels"><span class="ws-primary">main</span><span class="ws-secondary">project checkout</span></span>
+      </div>
+      ${workspaces.map((ws) => rowHtml(ws, { selectedId, sums })).join('')}
+    </div>
+    ${archivedHtml}`;
+
+  const input = rootEl.querySelector('.ws-rename');
+  if (input) {
+    input.focus();
+    input.select();
+    input.addEventListener('blur', () => commitRename(input));
+  }
+}
+
+function findWs(id) {
+  return workspaces.find((w) => w.id === id) || archived.find((w) => w.id === id) || null;
+}
+
+function onClick(e) {
+  const actEl = e.target.closest('[data-act]');
+  const row = e.target.closest('.ws-row');
+  if (e.target.closest('.ws-rename')) return;
+  if (actEl) {
+    e.stopPropagation();
+    const act = actEl.dataset.act;
+    const ws = row ? findWs(row.dataset.id) : null;
+    if (act === 'new') return openNew();
+    if (act === 'toggle-archived') { showArchived = !showArchived; return render(); }
+    if (act === 'menu' && ws) {
+      const rect = actEl.getBoundingClientRect();
+      return showMenu(ws, rect.left, rect.bottom + 2);
+    }
+    if ((act === 'restore' || act === 'restore-missing') && ws) return restoreWorkspace(ws);
+    if (act === 'remove-record' && ws) return removeRecord(ws);
+    return;
+  }
+  if (!row || row.classList.contains('archived')) return;
+  if (row.dataset.id === state.MAIN_WORKSPACE_ID) return select(null);
+  const ws = findWs(row.dataset.id);
+  if (ws && ws.missing) {
+    notify.info(`The folder for "${ws.name}" is gone. Restore it from its branch, or remove the record.`);
+    return;
+  }
+  select(ws);
+}
+
+function onKeyDown(e) {
+  if (e.target.classList && e.target.classList.contains('ws-rename')) {
+    if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+    if (e.key === 'Escape') { e.preventDefault(); renaming = null; render(); }
+    return;
+  }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ws-row')) {
+    e.preventDefault();
+    e.target.click();
+  }
+}
+
+function onContextMenu(e) {
+  const row = e.target.closest('.ws-row');
+  if (!row || row.classList.contains('main') || row.classList.contains('archived')) return;
+  const ws = findWs(row.dataset.id);
+  if (!ws || ws.missing) return;
+  e.preventDefault();
+  showMenu(ws, e.clientX, e.clientY);
+}
+
+// ─── Row menu ────────────────────────────────────────────────
+
+let menuTarget = null;
+
+function showMenu(ws, x, y) {
+  menuTarget = ws;
+  menuEl.innerHTML = [
+    { id: 'rename', label: 'Rename…' },
+    { id: 'rename-branch', label: 'Rename branch…' },
+    { id: 'archive', label: 'Archive…', danger: true }
+  ].map((a) => `<button class="context-menu-item${a.danger ? ' danger' : ''}" data-menu="${a.id}" type="button">${a.label}</button>`).join('');
+  menuEl.classList.add('visible');
+  menuEl.style.position = 'fixed';
+  menuEl.style.zIndex = '1000';
+  const w = menuEl.offsetWidth || 180;
+  const h = menuEl.offsetHeight || 120;
+  menuEl.style.left = `${Math.max(4, Math.min(x, window.innerWidth - w - 4))}px`;
+  menuEl.style.top = `${Math.max(4, Math.min(y, window.innerHeight - h - 4))}px`;
+}
+
+function hideMenu() {
+  if (menuEl) menuEl.classList.remove('visible');
+}
+
+function onMenuClick(e) {
+  const item = e.target.closest('[data-menu]');
+  if (!item || !menuTarget) return;
+  const ws = menuTarget;
+  hideMenu();
+  if (item.dataset.menu === 'rename') startRename(ws, 'name');
+  else if (item.dataset.menu === 'rename-branch') startRename(ws, 'branch');
+  else if (item.dataset.menu === 'archive') archiveWorkspace(ws);
+}
+
+// ─── Actions ─────────────────────────────────────────────────
+
+function openNew() {
+  if (!isRepo) {
+    notify.info('Workspaces need a git repository.');
+    return;
+  }
+  if (typeof actions.onNew === 'function') actions.onNew();
+}
+
+function startRename(ws, field) {
+  renaming = { id: ws.id, field };
+  render();
+}
+
+async function commitRename(input) {
+  if (!renaming) return;
+  const { id, field } = renaming;
+  renaming = null;
+  const ws = findWs(id);
+  const value = input.value.trim();
+  if (!ws || !value || value === ws[field]) return render();
+  const result = await ipcRenderer.invoke(IPC.WORKSPACE_RENAME, {
+    projectPath: state.getProjectPath(), id, [field]: value
+  });
+  if (result && result.error) notify.error(result.error);
+  await load();
+}
+
+/** Archive — the dialog flow (T09) when it is plugged in, else a clean-only archive. */
+async function archiveWorkspace(ws) {
+  if (typeof actions.onArchive === 'function') return actions.onArchive(ws);
+  const result = await ipcRenderer.invoke(IPC.WORKSPACE_ARCHIVE, { projectPath: state.getProjectPath(), id: ws.id });
+  if (result && result.dirty) notify.error(`"${ws.name}" has uncommitted changes — commit them before archiving.`);
+  else if (result && result.error) notify.error(result.error);
+  await load();
+}
+
+async function restoreWorkspace(ws) {
+  const projectPath = state.getProjectPath();
+  const result = await ipcRenderer.invoke(IPC.WORKSPACE_RESTORE, { projectPath, id: ws.id });
+  if (result && result.error) {
+    notify.error(result.error);
+    return;
+  }
+  await load();
+  const restored = workspaces.find((w) => w.id === ws.id);
+  if (restored) select(restored);
+  if (typeof actions.onRestored === 'function') actions.onRestored(restored || ws, result);
+}
+
+async function removeRecord(ws) {
+  const result = await ipcRenderer.invoke(IPC.WORKSPACE_REMOVE_RECORD, { projectPath: state.getProjectPath(), id: ws.id });
+  if (result && result.error) notify.error(result.error);
+  await load();
+}
+
+/** Active workspaces of the current project, as last loaded. */
+function getWorkspaces() {
+  return workspaces.slice();
+}
+
+module.exports = {
+  init,
+  load,
+  render,
+  select,
+  setActions,
+  getWorkspaces,
+  archiveWorkspace,
+  startRename
+};

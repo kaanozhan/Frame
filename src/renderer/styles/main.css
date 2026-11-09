@@ -97,6 +97,7 @@
 
 /* 18. Projects Section (pinned project switcher + Open Project modal) */
 @import 'components/project-section.css';
+@import 'components/workspaces.css';
 
 /* Activity panel + right rail */
 @import 'components/activity.css';

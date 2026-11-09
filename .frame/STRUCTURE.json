@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 94094,
+      "sizeBytes": 94340,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -11421,6 +11421,7 @@
         "ipcWatchdog",
         "../package.json",
         "statusBar",
+        "workspaceSection",
         "paletteSources",
         "agentDispatch"
       ],
@@ -11430,34 +11431,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 334,
+          "line": 338,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 442,
+          "line": 446,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 573,
+          "line": 577,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 612,
+          "line": 616,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 638,
+          "line": 642,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1042,
+          "line": 1046,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1067,
+          "line": 1071,
           "params": [
             "err"
           ],
@@ -11477,7 +11478,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 39227,
+      "sizeBytes": 39511,
       "extraction": {
         "status": "parsed"
       },
@@ -12726,7 +12727,7 @@
           "line": 448
         },
         "updateProjectNav": {
-          "line": 524,
+          "line": 526,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -12744,7 +12745,7 @@
           "REMOVE_PROJECT_FROM_REGISTRY"
         ]
       },
-      "sizeBytes": 20462,
+      "sizeBytes": 20589,
       "extraction": {
         "status": "parsed"
       },
@@ -15868,6 +15869,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/workspaces.css": {
+      "file": "src/renderer/styles/components/workspaces.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 4011,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/layout.css": {
       "file": "src/renderer/styles/layout.css",
       "description": "",
@@ -15886,7 +15899,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3518,
+      "sizeBytes": 3555,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -17338,6 +17351,227 @@
           "placeCard": "386a7972933c7bad",
           "shouldAutoStart": "d99b11e0dd70008c",
           "validate": "306f2461717e652f"
+        }
+      }
+    },
+    "renderer/workspaceSection": {
+      "file": "src/renderer/workspaceSection.js",
+      "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07).",
+      "exports": [
+        "init",
+        "load",
+        "render",
+        "select",
+        "setActions",
+        "getWorkspaces",
+        "archiveWorkspace",
+        "startRename"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "laneStatus",
+        "notify",
+        "htmlUtils",
+        "workspaces/rollup",
+        "terminal"
+      ],
+      "functions": {
+        "setActions": {
+          "line": 46,
+          "params": [
+            "next"
+          ],
+          "purpose": "Let the dialogs plug in without this module requiring them."
+        },
+        "init": {
+          "line": 50
+        },
+        "load": {
+          "line": 90,
+          "params": [
+            "{ reselect = false } = {}"
+          ],
+          "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
+        },
+        "select": {
+          "line": 120,
+          "params": [
+            "ws"
+          ]
+        },
+        "scheduleRender": {
+          "line": 129
+        },
+        "summaries": {
+          "line": 139
+        },
+        "dotHtml": {
+          "line": 156,
+          "params": [
+            "summary"
+          ]
+        },
+        "rowHtml": {
+          "line": 161,
+          "params": [
+            "ws",
+            "{ selectedId",
+            "sums }"
+          ]
+        },
+        "render": {
+          "line": 183
+        },
+        "findWs": {
+          "line": 234,
+          "params": [
+            "id"
+          ]
+        },
+        "onClick": {
+          "line": 238,
+          "params": [
+            "e"
+          ]
+        },
+        "onKeyDown": {
+          "line": 266,
+          "params": [
+            "e"
+          ]
+        },
+        "onContextMenu": {
+          "line": 278,
+          "params": [
+            "e"
+          ]
+        },
+        "showMenu": {
+          "line": 291,
+          "params": [
+            "ws",
+            "x",
+            "y"
+          ]
+        },
+        "hideMenu": {
+          "line": 307
+        },
+        "onMenuClick": {
+          "line": 311,
+          "params": [
+            "e"
+          ]
+        },
+        "openNew": {
+          "line": 323
+        },
+        "startRename": {
+          "line": 331,
+          "params": [
+            "ws",
+            "field"
+          ]
+        },
+        "commitRename": {
+          "line": 336,
+          "params": [
+            "input"
+          ]
+        },
+        "archiveWorkspace": {
+          "line": 351,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Archive — the dialog flow (T09) when it is plugged in, else a clean-only archive."
+        },
+        "restoreWorkspace": {
+          "line": 359,
+          "params": [
+            "ws"
+          ]
+        },
+        "removeRecord": {
+          "line": 372,
+          "params": [
+            "ws"
+          ]
+        },
+        "getWorkspaces": {
+          "line": 379,
+          "purpose": "Active workspaces of the current project, as last loaded."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "WORKSPACES_UPDATED"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 15108,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4c35e4937f971e02",
+        "purposes": {
+          "archiveWorkspace": "cc5f658ef8c97483",
+          "getWorkspaces": "0eab879c07f7a326",
+          "load": "e807754c516c9be1",
+          "setActions": "4f2a1450120dc24f"
+        }
+      }
+    },
+    "renderer/workspaces/rollup": {
+      "file": "src/renderer/workspaces/rollup.js",
+      "description": "Workspace rollup — pure (workspaces spec, T07 / G2 / S5).",
+      "exports": [
+        "MAIN_ID",
+        "PRIORITY",
+        "summarize",
+        "summaryFor"
+      ],
+      "depends": [],
+      "functions": {
+        "emptySummary": {
+          "line": 19
+        },
+        "bucketOf": {
+          "line": 23,
+          "params": [
+            "status"
+          ]
+        },
+        "summarize": {
+          "line": 37,
+          "params": [
+            "states",
+            "projectPath",
+            "getStatus"
+          ],
+          "purpose": "workspace id; a workspace with no terminals is absent (read it as idle)."
+        },
+        "summaryFor": {
+          "line": 56,
+          "params": [
+            "map",
+            "workspaceId"
+          ],
+          "purpose": "The summary for one workspace, idle when it has no terminals."
+        }
+      },
+      "sizeBytes": 2296,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "decdc6ab7a5720ee",
+        "purposes": {
+          "summarize": "792ab9421ae1dddb",
+          "summaryFor": "864562f648f87160"
         }
       }
     },
@@ -27303,6 +27537,24 @@
       "provenance": {
         "description": "e8cdd1e7c1d01113"
       }
+    },
+    "test/workspaceRollup.test": {
+      "file": "test/workspaceRollup.test.js",
+      "description": "Workspace rollup — per-workspace attention for the sidebar rows",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/workspaces/rollup"
+      ],
+      "functions": {},
+      "sizeBytes": 2356,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "d45fbeca6d3b3142"
+      }
     }
   },
   "ipcChannels": {
@@ -29071,6 +29323,11 @@
         "module": "renderer/sectionRail",
         "file": "src/renderer/sectionRail.js",
         "description": "Section Rail Module"
+      },
+      {
+        "module": "renderer/workspaceSection",
+        "file": "src/renderer/workspaceSection.js",
+        "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07)."
       }
     ],
     "session": [
@@ -29362,6 +29619,11 @@
         "description": "Workspace Manager — the main-process side of workspaces (workspaces spec)."
       },
       {
+        "module": "renderer/workspaceSection",
+        "file": "src/renderer/workspaceSection.js",
+        "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07)."
+      },
+      {
         "module": "shared/workspaceNames",
         "file": "src/shared/workspaceNames.js",
         "description": "workspaceNames — automatic short names for workspaces."
@@ -29402,8 +29664,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 318,
-        "unsupported": 84,
+        "parsed": 321,
+        "unsupported": 85,
         "partial": 0
       }
     },
@@ -29449,9 +29711,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 491,
-      "traversedDirectories": 81,
-      "eligibleFiles": 402,
+      "visitedEntries": 496,
+      "traversedDirectories": 82,
+      "eligibleFiles": 406,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -29468,7 +29730,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 402,
+      "indexedFiles": 406,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -29476,6 +29738,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "84921cee793908fd8922231ccbe55fec882ab11e71cfc26e0d192ccb99a20f76"
+    "revision": "1f3fc68e1b753159c17724bb0cb72b3a435a1c9f7125f677b65660fabc5e3a22"
   }
 }

@@ -456,7 +456,9 @@ function refreshProjectNav() {
     const manager = ui && ui.getManager && ui.getManager();
     if (manager) {
       const laneStatus = require('./laneStatus');
-      const terminals = manager.getTerminalsByProject(activeProjectPath);
+      // The selected workspace's terminals — what the Terminals view shows
+      // (workspaces spec); other workspaces have their own row dots.
+      const terminals = manager.getTerminalStates();
       count = terminals.length;
       agents = terminals.filter(t => laneStatus.getStatus(t.id).agentName).length;
       // Same tally the project badges and the status bar slot use (D8) —

@@ -229,7 +229,9 @@ function init() {
   // Setup state change listeners
   state.onProjectChange((projectPath, previousPath) => {
     if (projectPath) {
-      fileTreeUI.loadFileTree(projectPath);
+      // The selected workspace's folder: main on a new project, but a
+      // re-select of the same project keeps its workspace (workspaces spec).
+      fileTreeUI.loadFileTree(state.getWorkspaceRoot() || projectPath);
 
       // Add to the registry and update project list
       const projectName = projectPath.split('/').pop() || projectPath.split('\\').pop();
@@ -285,6 +287,8 @@ function init() {
 
   // Initialize the pinned Projects section (root-level project switcher)
   projectSection.init();
+  // Workspaces list under the project switcher (workspaces spec).
+  require('./workspaceSection').init();
 
   // Setup button handlers
   setupButtonHandlers();

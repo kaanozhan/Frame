@@ -293,7 +293,11 @@
              Home carries the three ways in, so the button was a third answer
              to a question already answered twice. -->
         <div class="sidebar-tab-content sidebar-view-projects" data-sidebar-tab-content="projects">
-          <div id="project-panel" class="project-panel"></div>
+          <div id="project-panel" class="project-panel">
+            <!-- Workspaces (workspaces spec): main + branch/worktree rows,
+                 above the project nav, which projectListUI appends after. -->
+            <div id="workspace-section" class="workspace-section" hidden></div>
+          </div>
         </div>
 
         <!-- Files view -->

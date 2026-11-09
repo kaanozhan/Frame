@@ -47,3 +47,11 @@ Terminals now carry `workspaceId` (default `main`) in `terminalManager.js` and `
 _Captured: 2026-11-09 · 10 file change(s)_
 
 ---
+
+## T07 — Add the Workspaces sidebar section
+
+Added `src/renderer/workspaceSection.js` (main row + workspace rows with branch / color name / status dot, ＋ disabled with a reason outside git, ⋯ and right-click menu with Rename… / Rename branch… / Archive…, inline rename, archived toggle with Restore, missing rows with Restore / Remove; re-reads on project change, `WORKSPACES_UPDATED` and window focus, re-selects the remembered workspace, falls back to main when the selection disappears), the pure `src/renderer/workspaces/rollup.js` + `test/workspaceRollup.test.js`, `styles/components/workspaces.css`, the `#workspace-section` container in `index.html` and its init in `index.js`; the dialogs plug in later through `setActions` (T08/T09). Two fixes outside the plan's file list for this step, both found by driving the app over CDP in an isolated HOME: the project nav's Terminals count now reads the selected workspace's terminals (`projectListUI.js`), and the project-change handler loads the file tree at `state.getWorkspaceRoot()` because re-selecting the same project pulled the git watch back to main while the workspace stayed selected. Live-verified: create + select (status bar shows the workspace branch, file tree shows the worktree with the copied `.env`), terminal opens in the worktree and is scoped per workspace, reload restores the selection, rename, archive (selection returns to main), restore, missing state, remove record.
+
+_Captured: 2026-11-09 · 9 file change(s)_
+
+---

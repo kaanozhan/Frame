@@ -1,0 +1,200 @@
+/* ==================== WORKSPACES (workspaces spec) ==================== */
+/* The sidebar's Workspaces list: a main row (the project's checkout) then
+   one row per branch + worktree, above the project nav. Rows follow the
+   project nav's density (13px / 20px line) so the two read as one sidebar. */
+
+.workspace-section {
+  margin: 6px 0 4px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.workspace-section[hidden] { display: none; }
+
+.ws-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px 2px 12px;
+}
+
+.ws-title {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.ws-add {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+.ws-add:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.ws-add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ws-list,
+.ws-archived {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+}
+
+.ws-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 3px 6px 3px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+}
+
+.ws-row:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ws-row:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
+
+.ws-row.on {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  box-shadow: inset 2px 0 0 var(--accent-primary);
+}
+
+.ws-row.missing { opacity: 0.7; cursor: default; }
+.ws-row.archived { cursor: default; }
+
+.ws-labels {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.ws-primary,
+.ws-secondary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-primary { font-weight: 500; }
+
+.ws-secondary {
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--text-tertiary);
+}
+
+.ws-row.missing .ws-secondary { color: var(--warning); }
+
+/* Status dot: urgent states use the project switcher's colors. */
+.ws-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.ws-dot.approval { background: var(--error); }
+.ws-dot.input { background: var(--warning); }
+.ws-dot.working {
+  background: var(--accent-primary);
+  animation: ws-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ws-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-dot.working { animation: none; }
+}
+
+.ws-more,
+.ws-act {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+}
+
+.ws-more {
+  width: 22px;
+  height: 22px;
+  visibility: hidden;
+}
+
+.ws-row:hover .ws-more,
+.ws-row.on .ws-more,
+.ws-more:focus-visible { visibility: visible; }
+
+.ws-act {
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ws-more:hover,
+.ws-act:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.ws-rename {
+  width: 100%;
+  min-width: 0;
+  padding: 0 4px;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.ws-archived-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 2px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ws-archived-toggle::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 150ms ease;
+}
+
+.ws-archived-toggle.open::before { transform: translateY(-2px) rotate(45deg); }
+.ws-archived-toggle:hover { color: var(--text-primary); }
+
+.ws-count { color: var(--text-muted); }
