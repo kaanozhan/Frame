@@ -44,6 +44,7 @@ let migrationDecisionRowEl = null;
 let migrationDecisionBtnEl = null;
 let doneWindowSelectEls = {};   // { tasks, specs }
 let doneWindowNoteEl = null;
+let wsEls = null;               // { setup, copy, prefix, note }
 
 function init() {
   specDrivenToggleEl = document.getElementById('settings-spec-driven-toggle');
@@ -89,6 +90,19 @@ function init() {
   // Another writer (a project switch, a hand edit picked up on reload)
   // moves the value: keep the selects honest while the modal is open.
   doneWindow.onChange(() => renderDoneWindow());
+
+  // Workspaces (workspaces spec): saved on blur/change, read back normalised.
+  wsEls = {
+    setup: document.getElementById('settings-ws-setup'),
+    copy: document.getElementById('settings-ws-copy'),
+    prefix: document.getElementById('settings-ws-prefix'),
+    note: document.getElementById('settings-workspaces-note')
+  };
+  // Each field saves only its own key, so a field still showing another
+  // project's value can never overwrite this project's setting.
+  if (wsEls.setup) wsEls.setup.addEventListener('change', () => saveWorkspaceSettings({ setupScript: wsEls.setup.value }));
+  if (wsEls.copy) wsEls.copy.addEventListener('change', () => saveWorkspaceSettings({ copyFiles: wsEls.copy.value.split(/\r?\n/) }));
+  if (wsEls.prefix) wsEls.prefix.addEventListener('change', () => saveWorkspaceSettings({ branchPrefix: wsEls.prefix.value }));
 
   overlay = settingsOverlay.create('project-settings-overlay', syncFromProject);
   if (!overlay) return;
@@ -248,7 +262,55 @@ async function syncFromProject() {
   await syncSpecDrivenToggle();
   await syncGitSharing();
   renderDoneWindow();
+  await syncWorkspaceSettings();
   await syncMigrationDecision();
+}
+
+function setWorkspacesNote(message) {
+  if (!wsEls || !wsEls.note) return;
+  wsEls.note.textContent = message || '';
+  wsEls.note.style.display = message ? '' : 'none';
+}
+
+function paintWorkspaceSettings(settings) {
+  wsEls.setup.value = settings.setupScript || '';
+  wsEls.copy.value = (settings.copyFiles || []).join('\n');
+  wsEls.prefix.value = settings.branchPrefix || '';
+}
+
+/**
+ * Read `settings.workspaces`. Defaults show for a project without Frame —
+ * workspaces work there too — but editing needs `.frame/config.json`.
+ */
+async function syncWorkspaceSettings() {
+  if (!wsEls || !wsEls.setup) return;
+  const projectPath = state.getProjectPath();
+  let settings = null;
+  try {
+    settings = projectPath ? await ipcRenderer.invoke(IPC.GET_WORKSPACE_SETTINGS, projectPath) : null;
+  } catch (_) { /* leave the fields empty */ }
+  const editable = !!(settings && settings.frameProject);
+  if (settings) paintWorkspaceSettings(settings);
+  for (const el of [wsEls.setup, wsEls.copy, wsEls.prefix]) el.disabled = !editable;
+  setWorkspacesNote(!projectPath
+    ? 'Open a project to change this.'
+    : editable ? null : 'Initialize Frame to customize — new workspaces use these defaults until then.');
+}
+
+async function saveWorkspaceSettings(settings) {
+  const projectPath = state.getProjectPath();
+  if (!projectPath || !wsEls) return;
+  try {
+    const saved = await ipcRenderer.invoke(IPC.SET_WORKSPACE_SETTINGS, { projectPath, settings });
+    if (saved && saved.error) {
+      setWorkspacesNote('Could not save: ' + saved.error);
+      return;
+    }
+    setWorkspacesNote(null);
+    paintWorkspaceSettings(saved);
+  } catch (err) {
+    setWorkspacesNote('Could not save: ' + err.message);
+  }
 }
 
 /**

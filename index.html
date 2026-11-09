@@ -1618,6 +1618,42 @@
             </select>
           </div>
         </div>
+
+        <!-- Workspaces (workspaces spec): what every new workspace gets. Saved
+             in .frame/config.json → settings.workspaces, so a team sharing the
+             repo shares the setup. -->
+        <div class="settings-section" id="settings-workspaces-section">
+          <h4 class="settings-section-title">Workspaces</h4>
+          <p class="settings-row-desc" id="settings-workspaces-note" style="display:none;"></p>
+          <div class="settings-row settings-row-stacked">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-ws-setup">Setup script</label>
+              <p class="settings-row-desc">
+                Runs in a <em>setup</em> terminal inside each new or restored workspace, before the
+                agent starts — usually installing dependencies, e.g. <code>npm install</code>.
+              </p>
+            </div>
+            <textarea id="settings-ws-setup" class="settings-textarea" rows="3" spellcheck="false" placeholder="npm install"></textarea>
+          </div>
+          <div class="settings-row settings-row-stacked">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-ws-copy">Files to copy</label>
+              <p class="settings-row-desc">
+                Gitignored files copied from the main checkout into each workspace, one pattern per
+                line (<code>.env*</code>, <code>config/local.json</code>, <code>certs/**</code>).
+                <code>node_modules</code> is never copied.
+              </p>
+            </div>
+            <textarea id="settings-ws-copy" class="settings-textarea" rows="3" spellcheck="false" placeholder=".env*"></textarea>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-ws-prefix">Branch prefix</label>
+              <p class="settings-row-desc">New workspace branches are named <code>&lt;prefix&gt;/&lt;color&gt;</code>.</p>
+            </div>
+            <input type="text" id="settings-ws-prefix" class="settings-text-input" spellcheck="false" placeholder="ws">
+          </div>
+        </div>
       </div>
     </div>
   </div>

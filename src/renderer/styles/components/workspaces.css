@@ -250,3 +250,46 @@
   background: var(--error);
   border-color: var(--error);
 }
+
+/* ---------- Project Settings → Workspaces ---------- */
+
+.settings-row.settings-row-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.settings-textarea,
+.settings-text-input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+
+.settings-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 56px;
+}
+
+.settings-text-input {
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 140px;
+}
+
+.settings-textarea:focus,
+.settings-text-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.settings-textarea:disabled,
+.settings-text-input:disabled { opacity: 0.5; }
+
+#settings-workspaces-note { margin: 0 0 8px; }

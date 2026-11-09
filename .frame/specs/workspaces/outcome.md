@@ -71,3 +71,11 @@ Added the dirty-archive dialog (`#archive-workspace-modal`, logic in `workspaceS
 _Captured: 2026-11-09 · 5 file change(s)_
 
 ---
+
+## T10 — Add the Workspaces section to Project Settings
+
+Added a Workspaces section to `#project-settings-overlay` (`index.html`) and its logic in `projectSettingsModal.js`: setup script and files-to-copy textareas, branch-prefix input (styles in `workspaces.css`), read through `GET_WORKSPACE_SETTINGS` on every open and saved on change through `SET_WORKSPACE_SETTINGS`, painted back normalised (`Feat//Kaan/` → `feat/kaan`); non-Frame projects see the defaults, disabled, with "Initialize Frame to customize". Divergence from the first cut: each field saves only its own key — the live run showed the modal can still display another project's values (it stays open across a project switch, an existing behaviour of the overlay), and saving all three fields at once overwrote this project's setup script with that stale empty value. Live-verified over CDP on the scratch Frame project: values load, prefix normalises on save, setup script untouched.
+
+_Captured: 2026-11-09 · 3 file change(s)_
+
+---
