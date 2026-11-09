@@ -15,7 +15,7 @@ const gitExclude = require('./gitExclude');
 const gitSharing = require('./gitSharing');
 const { normalizeDoneWindow, WINDOW_OPTIONS, BOARDS } = require('../shared/doneWindow');
 const layoutMigration = require('./layoutMigration');
-const workspace = require('./workspace');
+const projectRegistry = require('./projectRegistry');
 const structureBootstrap = require('./structureBootstrap');
 const structureLifecycle = require('./structureLifecycle');
 const commandStaging = require('./commandStaging');
@@ -411,8 +411,8 @@ async function runProjectInit(projectPath, projectName, options = {}) {
     console.warn('[frame] codex session hook install failed (non-fatal):', err.message);
   }
 
-  // Update workspace to mark as Frame project
-  workspace.updateProjectFrameStatus(projectPath, true);
+  // Update the project registry to mark as Frame project
+  projectRegistry.updateProjectFrameStatus(projectPath, true);
 
   return { ...config, _structureBootstrap: structureBootstrapSummary, _specHintHook: specHintSummary };
 }
@@ -1487,7 +1487,7 @@ function removeFrame(projectPath) {
 
   drop('pre-commit hook block', () => removeHookSnippet(projectPath));
 
-  workspace.removeProject(projectPath);
+  projectRegistry.removeProject(projectPath);
   return { removed, errors, projectPath };
 }
 
@@ -1742,9 +1742,9 @@ function setupIPC(ipcMain) {
       onProgress: (progress) => send(IPC.LAYOUT_MIGRATION_PROGRESS, progress),
       onFileTree: (files) => send(IPC.FILE_TREE_DATA, files)
     });
-    workspace.updateProjectFrameStatus(projectPath, isFrame);
+    projectRegistry.updateProjectFrameStatus(projectPath, isFrame);
     send(IPC.IS_FRAME_PROJECT_RESULT, { projectPath, isFrame, layout, migration });
-    send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
+    send(IPC.PROJECT_REGISTRY_UPDATED, projectRegistry.getProjects());
   });
 
   ipcMain.on(IPC.INITIALIZE_FRAME_PROJECT, async (event, { projectPath, projectName, confirmed, gitSharing }) => {
@@ -1773,9 +1773,9 @@ function setupIPC(ipcMain) {
         success: true
       });
 
-      // Also send updated workspace
-      const projects = workspace.getProjects();
-      event.sender.send(IPC.WORKSPACE_UPDATED, projects);
+      // Also send the updated project registry
+      const projects = projectRegistry.getProjects();
+      event.sender.send(IPC.PROJECT_REGISTRY_UPDATED, projects);
     } catch (err) {
       console.error('Error initializing Frame project:', err);
       event.sender.send(IPC.FRAME_PROJECT_INITIALIZED, {
@@ -1835,7 +1835,7 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.REMOVE_FRAME_FROM_PROJECT, async (event, projectPath) => {
     if (!projectPath) return { removed: [], errors: ['no project'] };
     const result = await detachThenRemoveFrame(projectPath);
-    event.sender.send(IPC.WORKSPACE_UPDATED, workspace.getProjects());
+    event.sender.send(IPC.PROJECT_REGISTRY_UPDATED, projectRegistry.getProjects());
     return result;
   });
 

@@ -481,9 +481,9 @@ class MultiTerminalUI {
       ? this.terminalsView.barTerminals()
       : state.terminals;
 
-    // Keep the sidebar's workspace nav (Terminals count / active state) fresh
+    // Keep the sidebar's project nav (Terminals count / active state) fresh
     try {
-      require('./projectListUI').updateWorkspaceNav(state);
+      require('./projectListUI').updateProjectNav(state);
     } catch (_) { /* sidebar not initialized yet */ }
 
     // The inline dashboards live inside contentContainer — whenever the

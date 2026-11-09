@@ -103,7 +103,7 @@
       </div>
     </div>
 
-    <span class="app-loader-sr">Loading workspace…</span>
+    <span class="app-loader-sr">Loading projects…</span>
   </div>
 
   <!-- App header: one row across the whole window, above the sidebar and
@@ -253,7 +253,7 @@
         </button>
         <!-- Frame's own settings: privacy and About/updates. The gear is the
              app-preferences mark everywhere else; the project's settings are
-             a row under the project in the workspace nav. -->
+             a row in the project nav. -->
         <button id="frame-settings-btn" class="sidebar-rail-btn" aria-label="Frame Settings" tabindex="-1">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
@@ -285,7 +285,7 @@
           </button>
           <div id="sidebar-project-menu" class="sidebar-project-menu" role="menu" hidden></div>
         </div>
-        <!-- Projects view (default) — the workspace panel for the selected
+        <!-- Projects view (default) — the project panel for the selected
              project (project-dropdown spec): selection lives in the
              current-project switcher above, which also carries "+ Add a
              project…". The pinned "Add new Project" CTA was removed on
@@ -293,7 +293,7 @@
              Home carries the three ways in, so the button was a third answer
              to a question already answered twice. -->
         <div class="sidebar-tab-content sidebar-view-projects" data-sidebar-tab-content="projects">
-          <div id="workspace-panel" class="workspace-panel"></div>
+          <div id="project-panel" class="project-panel"></div>
         </div>
 
         <!-- Files view -->

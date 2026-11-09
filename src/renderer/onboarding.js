@@ -1,7 +1,7 @@
 /**
  * First-run onboarding screen (first-run-onboarding-screen spec)
  *
- * The boot splash's second state. With no projects in the workspace the
+ * The boot splash's second state. With no projects in the registry the
  * loader hands this module the surface instead of leaving: the mark and
  * wordmark stay where the intro put them, and `#onboarding` — three ways into
  * a project, the default agent, and Skip — arrives beneath them. With

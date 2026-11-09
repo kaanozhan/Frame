@@ -68,7 +68,7 @@ function startWatching(projectPath) {
   currentProjectPath = projectPath;
   // Point the activity record at this project. Doing it here rather than
   // only on the open-project dialog matters: at boot the project is restored
-  // from the workspace, that dialog callback never runs, and every record
+  // from the project registry, that dialog callback never runs, and every record
   // for a restored project was landing in the `app` bucket.
   activityLog.setProject(projectPath);
   if (!projectPath) return;

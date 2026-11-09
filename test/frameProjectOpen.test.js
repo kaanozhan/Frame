@@ -415,11 +415,11 @@ test('a blocked open and a blocked re-init start no worker', async (t) => {
   assert.equal(spawned.length, 0);
 });
 
-test('removing a project from the workspace stops its worker', { skip: process.platform === 'win32' && 'HOME redirection is POSIX-only' }, async (t) => {
+test('removing a project from the registry stops its worker', { skip: process.platform === 'win32' && 'HOME redirection is POSIX-only' }, async (t) => {
   const spawned = fakeWorkers();
   t.after(resetWorkers);
-  // workspace.init resolves ~/.frame from HOME: point it at a scratch home so
-  // the user's real workspace file is never read or written.
+  // projectRegistry.init resolves ~/.frame from HOME: point it at a scratch home so
+  // the user's real registry file is never read or written.
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-open-home-'));
   const previousHome = process.env.HOME;
   process.env.HOME = home;
@@ -427,22 +427,22 @@ test('removing a project from the workspace stops its worker', { skip: process.p
     process.env.HOME = previousHome;
     fs.rmSync(home, { recursive: true, force: true });
   });
-  const workspace = require('../src/main/workspace');
+  const projectRegistry = require('../src/main/projectRegistry');
   const { IPC: CHANNELS } = require('../src/shared/ipcChannels');
-  workspace.init({}, null);
+  projectRegistry.init({}, null);
   const handlers = {};
-  workspace.setupIPC({ on: (channel, fn) => { handlers[channel] = fn; }, handle() {} });
+  projectRegistry.setupIPC({ on: (channel, fn) => { handlers[channel] = fn; }, handle() {} });
 
   projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-open-ws-'));
   await frameProject.runProjectInit(projectDir, 'demo');
-  workspace.addProject(projectDir, 'demo', true);
+  projectRegistry.addProject(projectDir, 'demo', true);
   assert.equal(spawned.length, 1);
 
-  handlers[CHANNELS.REMOVE_PROJECT_FROM_WORKSPACE]({ sender: { send() {} } }, projectDir);
+  handlers[CHANNELS.REMOVE_PROJECT_FROM_REGISTRY]({ sender: { send() {} } }, projectDir);
   assert.deepEqual(spawned[0].child.messages.map((m) => m.cmd), ['stop']);
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(structureLifecycle.list(), []);
-  assert.ok(!workspace.getProjects().some((p) => p.path === projectDir));
+  assert.ok(!projectRegistry.getProjects().some((p) => p.path === projectDir));
   assert.ok(fs.existsSync(path.join(home, '.frame')), 'the scratch home was used');
 });
 

@@ -144,7 +144,7 @@ function setIsFrameProject(isFrame) {
 /**
  * Frame was removed from this project (Settings → Workflow). Flip the flag so
  * the spec panel and the workflow toggles stop acting on a project that has no
- * `.frame/` any more, and ask main to re-answer — the workspace record follows
+ * `.frame/` any more, and ask main to re-answer — the registry record follows
  * from that. The init prompt is suppressed first: removing Frame is a
  * decision, and offering to initialize it again in the same second is not an
  * answer to it.

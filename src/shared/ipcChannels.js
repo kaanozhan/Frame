@@ -36,13 +36,13 @@ const IPC = {
   RUN_APP_COMMAND: 'run-app-command',                // main → renderer: run this command-registry id (the View menu; dock-panel-readonly-views spec)
   THEME_CHANGED: 'theme-changed',                    // renderer → main: the applied theme id, so View › Theme can check the current one
 
-  // Workspace
-  LOAD_WORKSPACE: 'load-workspace',
-  WORKSPACE_DATA: 'workspace-data',
-  WORKSPACE_UPDATED: 'workspace-updated',
-  ADD_PROJECT_TO_WORKSPACE: 'add-project-to-workspace',
-  REMOVE_PROJECT_FROM_WORKSPACE: 'remove-project-from-workspace',
-  REORDER_WORKSPACE_PROJECTS: 'reorder-workspace-projects',
+  // Project registry (~/.frame/workspaces.json)
+  LOAD_PROJECT_REGISTRY: 'load-project-registry',
+  PROJECT_REGISTRY_DATA: 'project-registry-data',
+  PROJECT_REGISTRY_UPDATED: 'project-registry-updated',
+  ADD_PROJECT_TO_REGISTRY: 'add-project-to-registry',
+  REMOVE_PROJECT_FROM_REGISTRY: 'remove-project-from-registry',
+  REORDER_REGISTRY_PROJECTS: 'reorder-registry-projects',
 
   // Frame Project
   INITIALIZE_FRAME_PROJECT: 'initialize-frame-project',

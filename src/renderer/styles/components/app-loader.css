@@ -268,7 +268,7 @@
   }
 }
 
-/* Failure state — shown when the failsafe fires before any WORKSPACE_DATA.
+/* Failure state — shown when the failsafe fires before any PROJECT_REGISTRY_DATA.
    Appended beside the lockup rather than replacing it, so a retry that
    succeeds still has an onboarding panel to show; these two rules are what
    gets it out of the way meanwhile. */

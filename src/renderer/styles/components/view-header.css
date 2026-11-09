@@ -2,7 +2,7 @@
    The one header every full-page surface hosted in the center opens with —
    Specs, Tasks, Sessions, Orchestration. The mark on the left is the
    same glyph the sidebar nav row uses for that surface (projectListUI.js
-   WORKSPACE_NAV_GROUPS), so the page and the row that opened it read as
+   PROJECT_NAV_GROUPS), so the page and the row that opened it read as
    one thing; the title follows; the surface's own controls sit on the
    right. Nothing else — no project name, the sidebar already shows it. */
 .view-header {

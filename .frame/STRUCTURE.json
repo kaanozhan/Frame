@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-10-23",
+  "lastUpdated": "2026-11-09",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 94121,
+      "sizeBytes": 94094,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -1856,7 +1856,7 @@
         "gitSharing",
         "shared/doneWindow",
         "layoutMigration",
-        "workspace",
+        "projectRegistry",
         "structureBootstrap",
         "structureLifecycle",
         "commandStaging",
@@ -2242,11 +2242,11 @@
         "emits": [
           "CODEX_HOOKS_UNTRUSTED",
           "FRAME_PROJECT_INITIALIZED",
-          "WORKSPACE_UPDATED",
+          "PROJECT_REGISTRY_UPDATED",
           "FRAME_CONFIG_DATA"
         ]
       },
-      "sizeBytes": 77143,
+      "sizeBytes": 77234,
       "extraction": {
         "status": "parsed"
       },
@@ -2572,7 +2572,7 @@
           "purpose": "fs.watch with an `error` listener attached to the returned watcher."
         }
       },
-      "sizeBytes": 5636,
+      "sizeBytes": 5643,
       "extraction": {
         "status": "parsed"
       },
@@ -3266,7 +3266,7 @@
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 13321,
+      "sizeBytes": 13328,
       "extraction": {
         "status": "parsed"
       },
@@ -3454,7 +3454,7 @@
         "dialogs",
         "fileTree",
         "promptLogger",
-        "workspace",
+        "projectRegistry",
         "frameProject",
         "frameStore",
         "gitSharing",
@@ -3524,7 +3524,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 15891,
+      "sizeBytes": 15915,
       "extraction": {
         "status": "parsed"
       },
@@ -3915,7 +3915,7 @@
           "RUN_APP_COMMAND"
         ]
       },
-      "sizeBytes": 11541,
+      "sizeBytes": 11520,
       "extraction": {
         "status": "parsed"
       },
@@ -4605,6 +4605,143 @@
           "init": "ff06efb3e2e3739c",
           "loadDecisions": "ce3e996abfd950cb",
           "setupIPC": "b41c7437e6910eb5"
+        }
+      }
+    },
+    "main/projectRegistry": {
+      "file": "src/main/projectRegistry.js",
+      "description": "Project Registry Module",
+      "exports": [
+        "init",
+        "loadRegistry",
+        "getProjects",
+        "addProject",
+        "removeProject",
+        "reorderProjects",
+        "updateProjectLastOpened",
+        "updateProjectFrameStatus",
+        "setupIPC"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "os",
+        "fsSafe",
+        "shared/ipcChannels",
+        "shared/frameConstants",
+        "frameProject",
+        "structureLifecycle"
+      ],
+      "functions": {
+        "init": {
+          "line": 25,
+          "params": [
+            "app",
+            "window"
+          ],
+          "purpose": "Initialize the project registry"
+        },
+        "ensureRegistryFile": {
+          "line": 35,
+          "purpose": "Ensure the registry directory and file exist"
+        },
+        "createDefaultRegistry": {
+          "line": 47,
+          "purpose": "Create the default registry structure (on-disk shape unchanged)"
+        },
+        "loadRegistry": {
+          "line": 69,
+          "purpose": "Load the registry from file."
+        },
+        "saveRegistry": {
+          "line": 92,
+          "params": [
+            "data"
+          ],
+          "purpose": "Save the registry to file"
+        },
+        "getProjects": {
+          "line": 103,
+          "purpose": "Get the registered projects"
+        },
+        "addProject": {
+          "line": 112,
+          "params": [
+            "projectPath",
+            "name",
+            "isFrameProject = false"
+          ],
+          "purpose": "Add a project to the registry"
+        },
+        "removeProject": {
+          "line": 137,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Remove a project from the registry"
+        },
+        "reorderProjects": {
+          "line": 152,
+          "params": [
+            "orderedPaths"
+          ],
+          "purpose": "Reorder the registered projects to match the given list of paths."
+        },
+        "updateProjectLastOpened": {
+          "line": 172,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Update project's last opened timestamp"
+        },
+        "updateProjectFrameStatus": {
+          "line": 188,
+          "params": [
+            "projectPath",
+            "isFrame"
+          ],
+          "purpose": "Update project's Frame status"
+        },
+        "setupIPC": {
+          "line": 204,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "Setup IPC handlers"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LOAD_PROJECT_REGISTRY",
+          "ADD_PROJECT_TO_REGISTRY",
+          "REMOVE_PROJECT_FROM_REGISTRY",
+          "REORDER_REGISTRY_PROJECTS"
+        ],
+        "emits": [
+          "STATE_FILE_RECOVERED",
+          "PROJECT_REGISTRY_DATA",
+          "PROJECT_REGISTRY_UPDATED"
+        ]
+      },
+      "sizeBytes": 7248,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "e742f02c20cca454",
+        "purposes": {
+          "addProject": "0eef156eaa89adea",
+          "createDefaultRegistry": "6be1fea2856d0ff7",
+          "ensureRegistryFile": "facf39e936bba113",
+          "getProjects": "165d87c5a46b38cd",
+          "init": "189ce569abbf8772",
+          "loadRegistry": "62e6126be7c4c14c",
+          "removeProject": "0099ffe9661fa208",
+          "reorderProjects": "aaa95c93cbfc0409",
+          "saveRegistry": "068dec3b6483827f",
+          "setupIPC": "b41c7437e6910eb5",
+          "updateProjectFrameStatus": "4452e5713bd83a0c",
+          "updateProjectLastOpened": "a3c95e039aa5b38a"
         }
       }
     },
@@ -6110,7 +6247,7 @@
           "line": 215
         }
       },
-      "sizeBytes": 7373,
+      "sizeBytes": 7372,
       "extraction": {
         "status": "parsed"
       },
@@ -6582,7 +6719,7 @@
           "purpose": "True when the last load ended in an unrecoverable failure — the settings"
         }
       },
-      "sizeBytes": 2667,
+      "sizeBytes": 2673,
       "extraction": {
         "status": "parsed"
       },
@@ -6590,143 +6727,6 @@
         "description": "818ed0c87562281c",
         "purposes": {
           "loadFailed": "04ef8707b862d98f"
-        }
-      }
-    },
-    "main/workspace": {
-      "file": "src/main/workspace.js",
-      "description": "Workspace Module",
-      "exports": [
-        "init",
-        "loadWorkspace",
-        "getProjects",
-        "addProject",
-        "removeProject",
-        "reorderProjects",
-        "updateProjectLastOpened",
-        "updateProjectFrameStatus",
-        "setupIPC"
-      ],
-      "depends": [
-        "fs",
-        "path",
-        "os",
-        "fsSafe",
-        "shared/ipcChannels",
-        "shared/frameConstants",
-        "frameProject",
-        "structureLifecycle"
-      ],
-      "functions": {
-        "init": {
-          "line": 20,
-          "params": [
-            "app",
-            "window"
-          ],
-          "purpose": "Initialize workspace module"
-        },
-        "ensureWorkspaceDir": {
-          "line": 30,
-          "purpose": "Ensure workspace directory and file exist"
-        },
-        "createDefaultWorkspace": {
-          "line": 43,
-          "purpose": "Create default workspace structure"
-        },
-        "loadWorkspace": {
-          "line": 65,
-          "purpose": "Load workspace from file."
-        },
-        "saveWorkspace": {
-          "line": 88,
-          "params": [
-            "data"
-          ],
-          "purpose": "Save workspace to file"
-        },
-        "getProjects": {
-          "line": 99,
-          "purpose": "Get projects from active workspace"
-        },
-        "addProject": {
-          "line": 108,
-          "params": [
-            "projectPath",
-            "name",
-            "isFrameProject = false"
-          ],
-          "purpose": "Add project to workspace"
-        },
-        "removeProject": {
-          "line": 133,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Remove project from workspace"
-        },
-        "reorderProjects": {
-          "line": 148,
-          "params": [
-            "orderedPaths"
-          ],
-          "purpose": "Reorder the active workspace's projects to match the given list of paths."
-        },
-        "updateProjectLastOpened": {
-          "line": 168,
-          "params": [
-            "projectPath"
-          ],
-          "purpose": "Update project's last opened timestamp"
-        },
-        "updateProjectFrameStatus": {
-          "line": 184,
-          "params": [
-            "projectPath",
-            "isFrame"
-          ],
-          "purpose": "Update project's Frame status"
-        },
-        "setupIPC": {
-          "line": 200,
-          "params": [
-            "ipcMain"
-          ],
-          "purpose": "Setup IPC handlers"
-        }
-      },
-      "ipc": {
-        "listens": [
-          "LOAD_WORKSPACE",
-          "ADD_PROJECT_TO_WORKSPACE",
-          "REMOVE_PROJECT_FROM_WORKSPACE",
-          "REORDER_WORKSPACE_PROJECTS"
-        ],
-        "emits": [
-          "STATE_FILE_RECOVERED",
-          "WORKSPACE_DATA",
-          "WORKSPACE_UPDATED"
-        ]
-      },
-      "sizeBytes": 6940,
-      "extraction": {
-        "status": "parsed"
-      },
-      "provenance": {
-        "description": "6955eb432b244d2a",
-        "purposes": {
-          "addProject": "18fe1b661ce0bb41",
-          "createDefaultWorkspace": "317b2b86ee89940b",
-          "ensureWorkspaceDir": "1d41c6121ef92a9e",
-          "getProjects": "c084478532cfe12c",
-          "init": "ccdcf1984574b5d2",
-          "loadWorkspace": "6caf0722eb1f3655",
-          "removeProject": "ffa3a4a134bf5b20",
-          "reorderProjects": "33ea4ae07392fdcc",
-          "saveWorkspace": "c5384597ae0b10e5",
-          "setupIPC": "b41c7437e6910eb5",
-          "updateProjectFrameStatus": "4452e5713bd83a0c",
-          "updateProjectLastOpened": "a3c95e039aa5b38a"
         }
       }
     },
@@ -7547,13 +7547,13 @@
       },
       "ipc": {
         "listens": [
-          "WORKSPACE_DATA"
+          "PROJECT_REGISTRY_DATA"
         ],
         "emits": [
-          "LOAD_WORKSPACE"
+          "LOAD_PROJECT_REGISTRY"
         ]
       },
-      "sizeBytes": 8472,
+      "sizeBytes": 8524,
       "extraction": {
         "status": "parsed"
       },
@@ -11108,7 +11108,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 38779,
+      "sizeBytes": 38750,
       "extraction": {
         "status": "parsed"
       },
@@ -11480,7 +11480,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 35201,
+      "sizeBytes": 35197,
       "extraction": {
         "status": "parsed"
       },
@@ -11604,7 +11604,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 9287,
+      "sizeBytes": 9286,
       "extraction": {
         "status": "parsed"
       },
@@ -11637,7 +11637,7 @@
           ]
         }
       },
-      "sizeBytes": 1986,
+      "sizeBytes": 2000,
       "extraction": {
         "status": "parsed"
       },
@@ -12000,7 +12000,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 4162,
+      "sizeBytes": 4160,
       "extraction": {
         "status": "parsed"
       },
@@ -12196,7 +12196,7 @@
         "focus",
         "blur",
         "applyAgentStatuses",
-        "updateWorkspaceNav",
+        "updateProjectNav",
         "revealNavItem"
       ],
       "depends": [
@@ -12226,14 +12226,14 @@
         },
         "loadProjects": {
           "line": 44,
-          "purpose": "Load projects from workspace"
+          "purpose": "Load projects from the registry"
         },
         "renderProjects": {
           "line": 51,
           "params": [
             "projectsList"
           ],
-          "purpose": "Workspace data arrived — refresh state (no rows to render anymore)."
+          "purpose": "Registry data arrived — refresh state (no rows to render anymore)."
         },
         "selectLaunchProject": {
           "line": 71,
@@ -12273,7 +12273,7 @@
           "params": [
             "projectPath"
           ],
-          "purpose": "Set active project (visual state lives in the switcher + workspace nav)"
+          "purpose": "Set active project (visual state lives in the switcher + project nav)"
         },
         "getActiveProject": {
           "line": 162
@@ -12284,14 +12284,14 @@
             "projectPath",
             "projectName"
           ],
-          "purpose": "Add project to workspace"
+          "purpose": "Add project to the registry"
         },
         "removeProject": {
           "line": 180,
           "params": [
             "projectPath"
           ],
-          "purpose": "Remove project from workspace"
+          "purpose": "Remove project from the registry"
         },
         "setupIPC": {
           "line": 196,
@@ -12329,7 +12329,7 @@
         },
         "getProjects": {
           "line": 273,
-          "purpose": "Snapshot of the workspace projects (switcher menu, file panels). Copy so"
+          "purpose": "Snapshot of the registered projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
           "line": 337
@@ -12340,7 +12340,7 @@
             "state"
           ]
         },
-        "buildWorkspaceNav": {
+        "buildProjectNav": {
           "line": 354
         },
         "revealNavItem": {
@@ -12350,60 +12350,60 @@
           ],
           "purpose": "Make a nav row reachable without changing the user's saved layout: expand"
         },
-        "placeWorkspaceNav": {
+        "placeProjectNav": {
           "line": 436
         },
-        "refreshWorkspaceNav": {
+        "refreshProjectNav": {
           "line": 448
         },
-        "updateWorkspaceNav": {
+        "updateProjectNav": {
           "line": 524,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
       "ipc": {
         "listens": [
-          "WORKSPACE_DATA",
-          "WORKSPACE_UPDATED",
+          "PROJECT_REGISTRY_DATA",
+          "PROJECT_REGISTRY_UPDATED",
           "SPEC_DATA",
           "TASKS_DATA"
         ],
         "emits": [
-          "LOAD_WORKSPACE",
-          "REORDER_WORKSPACE_PROJECTS",
-          "ADD_PROJECT_TO_WORKSPACE",
-          "REMOVE_PROJECT_FROM_WORKSPACE"
+          "LOAD_PROJECT_REGISTRY",
+          "REORDER_REGISTRY_PROJECTS",
+          "ADD_PROJECT_TO_REGISTRY",
+          "REMOVE_PROJECT_FROM_REGISTRY"
         ]
       },
-      "sizeBytes": 20596,
+      "sizeBytes": 20462,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "67a64e20beb809e1",
         "purposes": {
-          "addProject": "18fe1b661ce0bb41",
+          "addProject": "f4e6ed1fd4b49e43",
           "applyAgentStatuses": "4f8adc52c32b7af7",
           "blur": "524d39c9aef1e27b",
           "confirmRemoveProject": "c2be48fc79fc966a",
           "focus": "d12953f9416f4b6e",
           "getAgentStatus": "58aa9e289baa1014",
-          "getProjects": "a80547c433308646",
+          "getProjects": "0f1b5905cfd31ec3",
           "init": "b0191b86c936f558",
           "isDefaultProject": "aec8a734885deb99",
-          "loadProjects": "fd8f9e8d29f90885",
-          "removeProject": "ffa3a4a134bf5b20",
-          "renderProjects": "04b96b3b783d8203",
+          "loadProjects": "3928a09f387aa3aa",
+          "removeProject": "07716e0ab43897a0",
+          "renderProjects": "811bd357982874a1",
           "revealNavItem": "e08e882c45c25ea2",
           "selectLaunchProject": "92566c058d1b6328",
           "selectNextProject": "05f2261213152608",
           "selectPrevProject": "2f1e10aa3fbb4120",
           "selectProject": "dd18e6f08d5e0eea",
-          "setActiveProject": "683a9d6d80c86ffd",
+          "setActiveProject": "2a8e7cf36cfd60a8",
           "setDefaultProject": "560868b5d2dc60cc",
           "setSwitcherHooks": "1ac18ac47ab5002e",
           "setupIPC": "4c49f7443d20ad7c",
-          "updateWorkspaceNav": "9995f9b2851ff5ff"
+          "updateProjectNav": "9995f9b2851ff5ff"
         }
       }
     },
@@ -12432,7 +12432,7 @@
           "purpose": "No project means an empty panel, so collapse to the rail. Never persisted:"
         }
       },
-      "sizeBytes": 2018,
+      "sizeBytes": 2016,
       "extraction": {
         "status": "parsed"
       },
@@ -12525,7 +12525,7 @@
           ]
         }
       },
-      "sizeBytes": 17028,
+      "sizeBytes": 17026,
       "extraction": {
         "status": "parsed"
       },
@@ -13312,7 +13312,7 @@
           "purpose": "Follow the sidebar: fn(visible) after every hide / show, whichever entry"
         }
       },
-      "sizeBytes": 7928,
+      "sizeBytes": 7927,
       "extraction": {
         "status": "parsed"
       },
@@ -14270,7 +14270,7 @@
           "OPEN_SAMPLE_PROJECT"
         ]
       },
-      "sizeBytes": 14532,
+      "sizeBytes": 14531,
       "extraction": {
         "status": "parsed"
       },
@@ -15083,7 +15083,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 9593,
+      "sizeBytes": 9600,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -15275,7 +15275,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5277,
+      "sizeBytes": 5265,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -15395,7 +15395,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 16038,
+      "sizeBytes": 15954,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -15443,7 +15443,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 1638,
+      "sizeBytes": 1636,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -16906,7 +16906,7 @@
           "purpose": "Mistakes in a step list, as readable strings; empty when it is sound."
         }
       },
-      "sizeBytes": 9835,
+      "sizeBytes": 9829,
       "extraction": {
         "status": "parsed"
       },
@@ -21956,8 +21956,8 @@
       "exports": [
         "FRAME_DIR",
         "FRAME_CONFIG_FILE",
-        "WORKSPACE_DIR",
-        "WORKSPACE_FILE",
+        "FRAME_HOME_DIR",
+        "PROJECT_REGISTRY_FILE",
         "FRAME_FILES",
         "FRAME_BIN_DIR",
         "CLAUDE_RULE_PATH",
@@ -21977,7 +21977,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5392,
+      "sizeBytes": 5573,
       "extraction": {
         "status": "parsed"
       },
@@ -22244,7 +22244,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 12918,
+      "sizeBytes": 12988,
       "extraction": {
         "status": "parsed"
       },
@@ -24241,7 +24241,7 @@
         "src/shared/frameConstants",
         "events",
         "src/main/structureLifecycle",
-        "src/main/workspace",
+        "src/main/projectRegistry",
         "src/shared/ipcChannels",
         "src/shared/frameTemplates"
       ],
@@ -24306,7 +24306,7 @@
           ]
         }
       },
-      "sizeBytes": 24614,
+      "sizeBytes": 24653,
       "extraction": {
         "status": "parsed"
       },
@@ -26539,6 +26539,31 @@
         "name": "project-selected",
         "direction": "",
         "description": ""
+      },
+      "LOAD_PROJECT_REGISTRY": {
+        "name": "load-project-registry",
+        "direction": "",
+        "description": ""
+      },
+      "PROJECT_REGISTRY_DATA": {
+        "name": "project-registry-data",
+        "direction": "",
+        "description": ""
+      },
+      "PROJECT_REGISTRY_UPDATED": {
+        "name": "project-registry-updated",
+        "direction": "",
+        "description": ""
+      },
+      "ADD_PROJECT_TO_REGISTRY": {
+        "name": "add-project-to-registry",
+        "direction": "",
+        "description": ""
+      },
+      "REMOVE_PROJECT_FROM_REGISTRY": {
+        "name": "remove-project-from-registry",
+        "direction": "",
+        "description": ""
       }
     },
     "other": {
@@ -27438,6 +27463,13 @@
         "direction": "",
         "description": ""
       }
+    },
+    "reorder": {
+      "REORDER_REGISTRY_PROJECTS": {
+        "name": "reorder-registry-projects",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -28031,6 +28063,11 @@
         "description": "Project Insights Module"
       },
       {
+        "module": "main/projectRegistry",
+        "file": "src/main/projectRegistry.js",
+        "description": "Project Registry Module"
+      },
+      {
         "module": "renderer/openProjectModal",
         "file": "src/renderer/openProjectModal.js",
         "description": "Open Project Modal"
@@ -28066,6 +28103,18 @@
         "module": "renderer/sectionRail",
         "file": "src/renderer/sectionRail.js",
         "description": "Section Rail Module"
+      }
+    ],
+    "registry": [
+      {
+        "module": "main/projectRegistry",
+        "file": "src/main/projectRegistry.js",
+        "description": "Project Registry Module"
+      },
+      {
+        "module": "renderer/home/registry",
+        "file": "src/renderer/home/registry.js",
+        "description": "Widget Registry — what Home shows, and in what order."
       }
     ],
     "report": [
@@ -28522,6 +28571,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4098d30de66746721c76e982e2ba4e648a5e8256e018dc903adf04d08afa2e0a"
+    "revision": "662c39690c52cb20252aa8ae7bb911d0c472e5996d412867c7d9827eab247c1a"
   }
 }

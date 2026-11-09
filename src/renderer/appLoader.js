@@ -1,13 +1,13 @@
 /**
  * App Loader
  *
- * Full-screen splash shown on boot until the first WORKSPACE_DATA arrives.
+ * Full-screen splash shown on boot until the first PROJECT_REGISTRY_DATA arrives.
  * Avoids the brief flash of empty sidebar / unmounted terminal that users
- * see while the main process loads workspace state.
+ * see while the main process loads the project registry.
  *
  * It also plays Frame's intro: the mark fills along its own perimeter like a
  * progress ring, then the wordmark unrolls out of it and pushes it left. The
- * splash leaves only once BOTH the intro has finished and workspace data has
+ * splash leaves only once BOTH the intro has finished and the project registry has
  * arrived — whichever is slower — so the animation is never cut mid-beat and
  * a slow boot never adds the intro's length on top of itself.
  *
@@ -18,9 +18,9 @@
  * the Start Screen reuses this same element, and its same lockup, later.
  *
  * If the failsafe timeout fires before any data, the splash swaps to a
- * "couldn't load workspace" state with a Retry button instead of silently
+ * "couldn't load projects" state with a Retry button instead of silently
  * dropping the user into a blank app. Main has no error variant for
- * LOAD_WORKSPACE — the timeout is the only failure signal the renderer has.
+ * LOAD_PROJECT_REGISTRY — the timeout is the only failure signal the renderer has.
  */
 
 const { ipcRenderer } = require('electron');
@@ -40,7 +40,7 @@ const REDUCED_MOTION_MS = 500; // no beats to play; just don't blink past it
 let loaderEl = null;
 let firstDataArrived = false;
 let introDone = false;
-let projects = null;      // the first WORKSPACE_DATA payload, for the gate
+let projects = null;      // the first PROJECT_REGISTRY_DATA payload, for the gate
 let failsafeTimer = null;
 let introTimers = [];
 let initialized = false;
@@ -53,15 +53,15 @@ let bootLeaveListeners = [];
 function init() {
   loaderEl = document.getElementById('app-loader');
   if (!loaderEl) return;
-  // Init-once: a re-init must not stack a second WORKSPACE_DATA listener.
+  // Init-once: a re-init must not stack a second PROJECT_REGISTRY_DATA listener.
   if (initialized) return;
   initialized = true;
 
-  // The first workspace push is what the surface is waiting for: it both
+  // The first registry push is what the surface is waiting for: it both
   // releases the loader and tells the gate whether this is a first run. It
   // also resolves the failure state — if data arrives late (slow main, or
   // after Retry), the loader stops being an error screen.
-  ipcRenderer.on(IPC.WORKSPACE_DATA, (event, payload) => {
+  ipcRenderer.on(IPC.PROJECT_REGISTRY_DATA, (event, payload) => {
     if (firstDataArrived) return;
     firstDataArrived = true;
     // Kept for the gate: the project count decides whether this boot ends on
@@ -112,7 +112,7 @@ function clearIntroTimers() {
 }
 
 /* The splash owes the user two things: a finished intro and a loaded
-   workspace. Neither alone is enough to leave.
+   registry. Neither alone is enough to leave.
 
    And it may not leave at all: on a first run the surface becomes the
    onboarding screen, which parks it later through the onLeave hook. */
@@ -159,14 +159,14 @@ function showFailureState() {
     errorEl.className = 'app-loader-error';
     errorEl.innerHTML = `
       <div class="app-loader-error-mark">&#10022;</div>
-      <div class="app-loader-error-title">Couldn't load your workspace</div>
-      <div class="app-loader-error-detail">The workspace didn't respond in time. You can retry, or restart Frame if this keeps happening.</div>
+      <div class="app-loader-error-title">Couldn't load your projects</div>
+      <div class="app-loader-error-detail">The project list didn't respond in time. You can retry, or restart Frame if this keeps happening.</div>
       <button type="button" class="btn app-loader-retry">Retry</button>
     `;
     loaderEl.appendChild(errorEl);
     errorEl.querySelector('.app-loader-retry').addEventListener('click', () => {
       errorEl.querySelector('.app-loader-error-title').textContent = 'Retrying…';
-      ipcRenderer.send(IPC.LOAD_WORKSPACE);
+      ipcRenderer.send(IPC.LOAD_PROJECT_REGISTRY);
       armFailsafe();
     });
   }

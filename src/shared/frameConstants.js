@@ -9,11 +9,13 @@ const FRAME_DIR = '.frame';
 // Frame config file name
 const FRAME_CONFIG_FILE = 'config.json';
 
-// Workspace directory name (in user home: ~/.frame/)
-const WORKSPACE_DIR = '.frame';
+// Frame's home directory name (in user home: ~/.frame/)
+const FRAME_HOME_DIR = '.frame';
 
-// Workspace file name
-const WORKSPACE_FILE = 'workspaces.json';
+// Project registry file name (in ~/.frame/). Kept as workspaces.json so
+// existing installs need no migration; "workspace" in code now means a
+// branch + worktree (workspaces spec).
+const PROJECT_REGISTRY_FILE = 'workspaces.json';
 
 // Frame auto-generated files. Names only — where they live (root or .frame/)
 // is frameStore's business, never a caller's.
@@ -124,8 +126,8 @@ const FRAME_VERSION = '1.0';
 module.exports = {
   FRAME_DIR,
   FRAME_CONFIG_FILE,
-  WORKSPACE_DIR,
-  WORKSPACE_FILE,
+  FRAME_HOME_DIR,
+  PROJECT_REGISTRY_FILE,
   FRAME_FILES,
   FRAME_BIN_DIR,
   CLAUDE_RULE_PATH,

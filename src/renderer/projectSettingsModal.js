@@ -227,7 +227,7 @@ function init() {
   // land from the project open. Either way the row is stale until it is told.
   state.onFrameInitialized(() => syncFrameSetup());
 
-  // Make Default: move this project to the front of the workspace list, which
+  // Make Default: move this project to the front of the project list, which
   // is the whole of what "default" means (see projectListUI.isDefaultProject).
   if (makeDefaultBtnEl) {
     makeDefaultBtnEl.addEventListener('click', () => {

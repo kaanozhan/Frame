@@ -223,7 +223,7 @@ function toggle() {
  * Collapse the sidebar to its rail (the panel goes, the icons stay).
  *
  * `{ persist: false }` collapses without touching the stored preference — for
- * the automatic collapse while the workspace has no projects, where the panel
+ * the automatic collapse while the registry has no projects, where the panel
  * has nothing to show. A rule the app applied on the user's behalf must not
  * come back as the user's own setting after they add a project.
  */

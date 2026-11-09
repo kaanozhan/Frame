@@ -20,7 +20,7 @@ const menu = require('./menu');
 const dialogs = require('./dialogs');
 const fileTree = require('./fileTree');
 const promptLogger = require('./promptLogger');
-const workspace = require('./workspace');
+const projectRegistry = require('./projectRegistry');
 const frameProject = require('./frameProject');
 const frameStore = require('./frameStore');
 const gitSharing = require('./gitSharing');
@@ -217,7 +217,7 @@ function setupAllIPC() {
   dialogs.setupIPC(ipcMain);
   fileTree.setupIPC(ipcMain);
   promptLogger.setupIPC(ipcMain);
-  workspace.setupIPC(ipcMain);
+  projectRegistry.setupIPC(ipcMain);
   frameProject.setupIPC(ipcMain);
   frameStore.setupIPC(ipcMain);
   fileEditor.setupIPC(ipcMain);
@@ -350,7 +350,7 @@ function init() {
  * Initialize modules that need window reference
  */
 function initModulesWithWindow(window) {
-  workspace.init(app, window);
+  projectRegistry.init(app, window);
   frameProject.init(window);
   fileEditor.init(window);
   tasksManager.init(window);

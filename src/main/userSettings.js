@@ -8,7 +8,7 @@
  * Used instead of localStorage because Electron's renderer localStorage
  * has been observed to lose state across launches in dev mode (likely
  * tied to userData path resolution timing). This main-process JSON is
- * the same pattern aiToolManager / workspace already use.
+ * the same pattern aiToolManager / projectRegistry already use.
  */
 
 const path = require('path');

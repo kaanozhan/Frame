@@ -110,7 +110,7 @@ function init() {
     state.setProjectPath(projectPath);
   });
 
-  // Load projects from workspace
+  // Load projects from the registry
   projectListUI.loadProjects();
 
   // Surface background-project agent activity (needs-approval / waiting-for-input)
@@ -229,7 +229,7 @@ function init() {
     if (projectPath) {
       fileTreeUI.loadFileTree(projectPath);
 
-      // Add to workspace and update project list
+      // Add to the registry and update project list
       const projectName = projectPath.split('/').pop() || projectPath.split('\\').pop();
       projectListUI.addProject(projectPath, projectName);
       projectListUI.setActiveProject(projectPath);
@@ -245,7 +245,7 @@ function init() {
       fileTreeUI.clearFileTree({ unwatch: true });
       specPanel.stopWatching();
     }
-    // An open dock tab follows the switcher the way the workspace nav does:
+    // An open dock tab follows the switcher the way the project nav does:
     // Decisions and Structure re-render for the new project, the
     // re-parented panels reload through their own show().
     dock.remountActive();
@@ -387,7 +387,7 @@ function setupButtonHandlers() {
 
   // Frame's own settings, from the gear at the foot of the rail (where the
   // app menu entry and Cmd+, also land); toggles, so a second click closes
-  // it. The project's settings are a row under the project in the workspace
+  // it. The project's settings are a row in the project
   // nav (dock-panel-readonly-views spec), running `settings.openProject`.
   const frameSettingsBtn = document.getElementById('frame-settings-btn');
   if (frameSettingsBtn) {
@@ -914,7 +914,7 @@ function registerCommands() {
   });
   r({
     id: 'project.add',
-    title: 'Add Project to Workspace…',
+    title: 'Add Project…',
     category: 'Project',
     run: () => openProjectModal.open()
   });
