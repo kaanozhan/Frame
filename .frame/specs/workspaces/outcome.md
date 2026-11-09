@@ -79,3 +79,11 @@ Added a Workspaces section to `#project-settings-overlay` (`index.html`) and its
 _Captured: 2026-11-09 · 3 file change(s)_
 
 ---
+
+## T11 — Label worktree rows in the GitHub panel with their workspace name
+
+`github/rowModels.worktreeRow` takes an optional path-indexed map of workspace records and adds `workspace` plus a `workspace · <name>` meta to rows that are workspaces (`worktreeRows(result, projectPath, workspaces)`); `githubPanel.js` loads `WORKSPACES_LIST` alongside `LOAD_GIT_WORKTREES`. The orchestration `worktreeSlug` label is unchanged (out of scope). Covered in `test/githubRowModels.test.js`; live-verified over CDP — the scratch project's live workspace shows `workspace · beige`, the archived one has no worktree row. Last task: wrote `digest.md` and set the spec phase to done.
+
+_Captured: 2026-11-09 · 3 file change(s)_
+
+---

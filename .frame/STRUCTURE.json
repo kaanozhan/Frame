@@ -9819,21 +9819,31 @@
           "purpose": "The spec slug for a worktree at `<project>/.frame/worktrees/<slug>`"
         },
         "worktreeRow": {
-          "line": 243,
+          "line": 251,
           "params": [
             "wt",
-            "projectPath"
-          ]
+            "projectPath",
+            "workspacesByPath"
+          ],
+          "purpose": "workspace records keyed by normalised folder path (workspaces spec): a"
+        },
+        "workspacesByPath": {
+          "line": 283,
+          "params": [
+            "workspaces"
+          ],
+          "purpose": "Index workspace records by normalised folder path for worktreeRows."
         },
         "worktreeRows": {
-          "line": 271,
+          "line": 291,
           "params": [
             "result",
-            "projectPath"
+            "projectPath",
+            "workspaces"
           ]
         },
         "filterRows": {
-          "line": 282,
+          "line": 303,
           "params": [
             "rows",
             "query"
@@ -9841,7 +9851,7 @@
           "purpose": "Rows whose primary text, `#number`, secondary text or slug contains the"
         }
       },
-      "sizeBytes": 11116,
+      "sizeBytes": 12050,
       "extraction": {
         "status": "parsed"
       },
@@ -9855,6 +9865,8 @@
           "issueBranchName": "788ee17e975bbb93",
           "labelColor": "09b658a17b43ddc3",
           "relativeTime": "5de360f90a939e4b",
+          "workspacesByPath": "ff3f693a142adde3",
+          "worktreeRow": "060249832b51b211",
           "worktreeSlug": "78d42ab2d4c5ea71"
         }
       }
@@ -10083,7 +10095,7 @@
           ]
         },
         "loadSection": {
-          "line": 516,
+          "line": 521,
           "params": [
             "id",
             "opts = {}"
@@ -10091,75 +10103,75 @@
           "purpose": "Load one section into its cache and re-render it. A section that is not"
         },
         "visibleRows": {
-          "line": 557,
+          "line": 562,
           "params": [
             "id"
           ]
         },
         "findRow": {
-          "line": 563,
+          "line": 568,
           "params": [
             "id",
             "rowId"
           ]
         },
         "noteHtml": {
-          "line": 569,
+          "line": 574,
           "params": [
             "text",
             "kind = ''"
           ]
         },
         "unavailableNote": {
-          "line": 573
+          "line": 578
         },
         "emptyNote": {
-          "line": 580,
+          "line": 585,
           "params": [
             "id"
           ]
         },
         "renderSection": {
-          "line": 589,
+          "line": 594,
           "params": [
             "id"
           ]
         },
         "rowHtml": {
-          "line": 650,
+          "line": 655,
           "params": [
             "row"
           ]
         },
         "hintLabel": {
-          "line": 684,
+          "line": 689,
           "params": [
             "h"
           ]
         },
         "rowTitle": {
-          "line": 695,
+          "line": 700,
           "params": [
             "row"
           ]
         },
         "selectRow": {
-          "line": 710,
+          "line": 715,
           "params": [
             "row"
           ]
         },
         "clearSearch": {
-          "line": 721
+          "line": 726
         },
         "menusOpen": {
-          "line": 730
-        },
-        "hideMenus": {
           "line": 735
         },
+        "hideMenus": {
+          "line": 740
+        },
         "placeMenu": {
-          "line": 742,
+          "line": 747,
           "params": [
             "menuEl",
             "x",
@@ -10167,7 +10179,7 @@
           ]
         },
         "showContextMenu": {
-          "line": 753,
+          "line": 758,
           "params": [
             "row",
             "x",
@@ -10175,103 +10187,103 @@
           ]
         },
         "showFilterMenu": {
-          "line": 763,
+          "line": 768,
           "params": [
             "id",
             "anchorBtn"
           ]
         },
         "setFilter": {
-          "line": 775,
+          "line": 780,
           "params": [
             "id",
             "filter"
           ]
         },
         "runAction": {
-          "line": 789,
+          "line": 794,
           "params": [
             "row",
             "action"
           ]
         },
         "openOnGitHub": {
-          "line": 804,
+          "line": 809,
           "params": [
             "row"
           ],
           "purpose": "D2: the browser opens only from the action or the context menu."
         },
         "afterCheckoutChange": {
-          "line": 809,
+          "line": 814,
           "purpose": "D13: after a checkout-changing action the status bar and Changes follow."
         },
         "reportDirty": {
-          "line": 814,
+          "line": 819,
           "params": [
             "result"
           ]
         },
         "switchBranch": {
-          "line": 822,
+          "line": 827,
           "params": [
             "row"
           ]
         },
         "checkoutPullRequest": {
-          "line": 839,
+          "line": 844,
           "params": [
             "row"
           ]
         },
         "startWork": {
-          "line": 857,
+          "line": 862,
           "params": [
             "row"
           ],
           "purpose": "D1: branch only — `issue-<n>-<slug>` from the current branch, checked out."
         },
         "confirmModal": {
-          "line": 885,
+          "line": 890,
           "params": [
             "opts"
           ]
         },
         "deleteBranch": {
-          "line": 897,
+          "line": 902,
           "params": [
             "row"
           ]
         },
         "openTerminalHere": {
-          "line": 930,
+          "line": 935,
           "params": [
             "row"
           ]
         },
         "removeWorktree": {
-          "line": 938,
+          "line": 943,
           "params": [
             "row"
           ]
         },
         "setupModalListeners": {
-          "line": 974
+          "line": 979
         },
         "showCreateBranchModal": {
-          "line": 1002
+          "line": 1007
         },
         "populateBaseBranchSelect": {
-          "line": 1018,
+          "line": 1023,
           "params": [
             "select"
           ]
         },
         "hideCreateBranchModal": {
-          "line": 1046
+          "line": 1051
         },
         "handleCreateBranch": {
-          "line": 1051
+          "line": 1056
         }
       },
       "ipc": {
@@ -10281,7 +10293,7 @@
           "REFRESH_GIT_STATUS"
         ]
       },
-      "sizeBytes": 36738,
+      "sizeBytes": 37033,
       "extraction": {
         "status": "parsed"
       },
@@ -25705,7 +25717,7 @@
         "src/renderer/github/rowModels"
       ],
       "functions": {},
-      "sizeBytes": 13038,
+      "sizeBytes": 13886,
       "extraction": {
         "status": "parsed"
       },
@@ -29881,6 +29893,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "99c502ea634dbfbe1cc1ce9d5b49cca9955cce38198d1219ec1158596239fb63"
+    "revision": "43aebb74d4f5368535990e7f995b66f546f256077e663bb85d5195a7a5bef393"
   }
 }

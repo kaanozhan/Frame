@@ -500,8 +500,13 @@ async function invokeSection(id, path) {
       return { error: result.error, rows: rowModels.branchRows(result) };
     }
     case 'worktrees': {
-      const result = await ipcRenderer.invoke(IPC.LOAD_GIT_WORKTREES, path);
-      return { error: result.error, rows: rowModels.worktreeRows(result, path) };
+      const [result, listed] = await Promise.all([
+        ipcRenderer.invoke(IPC.LOAD_GIT_WORKTREES, path),
+        ipcRenderer.invoke(IPC.WORKSPACES_LIST, path).catch(() => null)
+      ]);
+      // Worktrees that are workspaces carry their name (workspaces spec).
+      const workspaces = listed && Array.isArray(listed.workspaces) ? listed.workspaces : [];
+      return { error: result.error, rows: rowModels.worktreeRows(result, path, workspaces) };
     }
     default:
       return { error: null, rows: [] };
