@@ -1,10 +1,17 @@
 {
   "slug": "update-from-base",
   "title": "Update workspace from base",
-  "phase": "draft",
-  "generated_task_ids": [],
+  "phase": "tasks_generated",
+  "generated_task_ids": [
+    "task-spec-update-from-base-T01",
+    "task-spec-update-from-base-T02",
+    "task-spec-update-from-base-T03",
+    "task-spec-update-from-base-T04",
+    "task-spec-update-from-base-T05"
+  ],
   "ai_tool": "claude",
   "created_at": "2026-11-10T12:55:21.022Z",
-  "updated_at": "2026-11-10T12:55:21.356Z",
-  "last_phase_at": "2026-11-10T12:55:21.356Z"
+  "updated_at": "2026-11-10T13:05:56.173Z",
+  "last_phase_at": "2026-11-10T13:05:55.833Z",
+  "implement_mode": "guided"
 }
