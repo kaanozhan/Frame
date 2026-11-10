@@ -25083,6 +25083,100 @@
         }
       }
     },
+    "shared/serverInstall": {
+      "file": "src/shared/serverInstall.js",
+      "description": "serverInstall — the rules behind installing and updating Frame Server",
+      "exports": [
+        "RELEASE_BASE",
+        "assetFor",
+        "releaseUrl",
+        "parseVersion",
+        "compareVersions",
+        "installDecision",
+        "parseChecksum",
+        "systemdUnit",
+        "doctorItems"
+      ],
+      "depends": [],
+      "functions": {
+        "assetFor": {
+          "line": 18,
+          "params": [
+            "unameS",
+            "unameM",
+            "version"
+          ],
+          "purpose": "The package for a server from `uname -s` / `uname -m`:"
+        },
+        "releaseUrl": {
+          "line": 31,
+          "params": [
+            "version",
+            "asset"
+          ],
+          "purpose": "Where a release asset is downloaded from."
+        },
+        "parseVersion": {
+          "line": 35,
+          "params": [
+            "v"
+          ]
+        },
+        "compareVersions": {
+          "line": 46,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "-1 / 0 / 1 like semver: numbers first, a prerelease (`2.9.0-dev`) sorts"
+        },
+        "installDecision": {
+          "line": 70,
+          "params": [
+            "{ installed = null",
+            "desktopVersion",
+            "dev = false",
+            "protocolOk = true } = {}"
+          ],
+          "purpose": "What to do with a server: `{ action, reason }`, action one of"
+        },
+        "parseChecksum": {
+          "line": 94,
+          "params": [
+            "text",
+            "fileName"
+          ],
+          "purpose": "The hex SHA-256 for `fileName` in a checksum file (`<hex>  <name>`,"
+        },
+        "systemdUnit": {
+          "line": 108,
+          "purpose": "The systemd user unit that runs the current version."
+        },
+        "doctorItems": {
+          "line": 131,
+          "params": [
+            "raw = {}"
+          ],
+          "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
+        }
+      },
+      "sizeBytes": 7632,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "955ca6f14ff11f5a",
+        "purposes": {
+          "assetFor": "6891ea64a3c6b3ea",
+          "compareVersions": "efd0728fd35f2db1",
+          "doctorItems": "dd574ec4d6cee2a5",
+          "installDecision": "e84479a8fb5b69bd",
+          "parseChecksum": "691d502f346e91f0",
+          "releaseUrl": "57ede9ed46f442ef",
+          "systemdUnit": "4c73100446c0ebe3"
+        }
+      }
+    },
     "shared/serverProtocol": {
       "file": "src/shared/serverProtocol.js",
       "description": "serverProtocol — the messages between Frame desktop and Frame Server",
@@ -28741,6 +28835,24 @@
         }
       }
     },
+    "test/serverInstall.test": {
+      "file": "test/serverInstall.test.js",
+      "description": "serverInstall — installing and updating Frame Server (server-install-update spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/serverInstall"
+      ],
+      "functions": {},
+      "sizeBytes": 5042,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "760904a1f755fc32"
+      }
+    },
     "test/serverProtocol.test": {
       "file": "test/serverProtocol.test.js",
       "description": "serverProtocol — desktop ↔ Frame Server messages (server-workspaces spec, T01).",
@@ -32038,6 +32150,11 @@
         "description": "Connect to Server — the renderer side of the Frame Server link"
       },
       {
+        "module": "shared/serverInstall",
+        "file": "src/shared/serverInstall.js",
+        "description": "serverInstall — the rules behind installing and updating Frame Server"
+      },
+      {
         "module": "shared/serverProtocol",
         "file": "src/shared/serverProtocol.js",
         "description": "serverProtocol — the messages between Frame desktop and Frame Server"
@@ -32427,7 +32544,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 349,
+        "parsed": 351,
         "unsupported": 86,
         "partial": 0
       }
@@ -32474,9 +32591,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 526,
+      "visitedEntries": 528,
       "traversedDirectories": 83,
-      "eligibleFiles": 435,
+      "eligibleFiles": 437,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32493,7 +32610,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 435,
+      "indexedFiles": 437,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32501,6 +32618,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "ee216d0ec4737301c6f2261f82cfb56d07b05f24e0779fa30470248b7e8a0d20"
+    "revision": "33197f195a80b8a2a5f15bd9bec2d803a82b11c686b747516aed7de6b3bec14a"
   }
 }
