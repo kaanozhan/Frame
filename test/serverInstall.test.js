@@ -77,4 +77,7 @@ test('doctorItems: one ready agent is enough; missing items carry fixes', () => 
   assert.match(byId.git.fix, /apt install -y git/);
   assert.match(byId.service.detail, /reboot/);
   assert.match(byId.service.fix, /enable-linger/);
+  const manual = I.doctorItems({ service: { mode: 'manual' } }).find((i) => i.id === 'service');
+  assert.match(manual.detail, /by hand/);
+  assert.match(manual.fix, /install-service/);
 });

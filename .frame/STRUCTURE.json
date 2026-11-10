@@ -23852,6 +23852,62 @@
         "reason": "no-extractor"
       }
     },
+    "server/doctor": {
+      "file": "src/server/doctor.js",
+      "description": "Server check-up — what this server can do for Frame and what is missing",
+      "exports": [
+        "setup",
+        "measure"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "shared/serverInstall",
+        "main/aiToolManager"
+      ],
+      "functions": {
+        "shell": {
+          "line": 24,
+          "params": [
+            "command"
+          ],
+          "purpose": "Run a command in the user's login shell (PATH from their profile); resolves { ok, stdout }."
+        },
+        "exists": {
+          "line": 33,
+          "params": [
+            "p"
+          ]
+        },
+        "claudeSignedIn": {
+          "line": 37,
+          "params": [
+            "home"
+          ]
+        },
+        "measure": {
+          "line": 47
+        },
+        "setup": {
+          "line": 70,
+          "params": [
+            "{ registerMethods }"
+          ]
+        }
+      },
+      "sizeBytes": 3133,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "68119c545887d4ec",
+        "purposes": {
+          "shell": "8b620b4a26359dbc"
+        }
+      }
+    },
     "server/electronShim": {
       "file": "src/server/electronShim.js",
       "description": "electronShim — lets Frame's main-process managers run headless inside",
@@ -23926,7 +23982,8 @@
         "shared/serverSecurity",
         "terminals",
         "projects",
-        "panels"
+        "panels",
+        "doctor"
       ],
       "functions": {
         "parseArgs": {
@@ -23987,7 +24044,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 7192,
+      "sizeBytes": 7261,
       "extraction": {
         "status": "parsed"
       },
@@ -25280,7 +25337,7 @@
           "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
         }
       },
-      "sizeBytes": 7632,
+      "sizeBytes": 7916,
       "extraction": {
         "status": "parsed"
       },
@@ -28965,7 +29022,7 @@
         "src/shared/serverInstall"
       ],
       "functions": {},
-      "sizeBytes": 5042,
+      "sizeBytes": 5228,
       "extraction": {
         "status": "parsed"
       },
@@ -32664,7 +32721,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 353,
+        "parsed": 354,
         "unsupported": 89,
         "partial": 0
       }
@@ -32711,9 +32768,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 534,
+      "visitedEntries": 535,
       "traversedDirectories": 84,
-      "eligibleFiles": 442,
+      "eligibleFiles": 443,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32730,7 +32787,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 442,
+      "indexedFiles": 443,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32738,6 +32795,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "74e0d7ea2231a481c3d35e9c2f29fece6361c535a6cfba05432591abac996ff5"
+    "revision": "ef1e2ef40d86e05cc67d28f91230cdce91325e89aa143f093203f9fe97dde859"
   }
 }

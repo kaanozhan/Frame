@@ -30,3 +30,11 @@ Added scripts/install-frame-server.sh: verified release download (curl/wget, SHA
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T05 — Server check-up (server.doctor)
+
+Added src/server/doctor.js with server.doctor, registered in src/server/index.js: as the server user it checks Claude Code and Codex with the same login-shell probe agent lanes use plus their credential files (~/.claude/.credentials.json or ~/.claude.json's oauthAccount; ~/.codex/auth.json), gh (installed, gh auth status), git, and how Frame Server runs (systemd user service via is-enabled, detached via server.pid, else started by hand) with linger; serverInstall.doctorItems turns it into ready/missing items with fix commands. Added a 'started by hand' case to doctorItems (fix: frame-server install-service), with a test.
+
+_Captured: 2026-11-10 · 4 file change(s)_
+
+---

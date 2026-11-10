@@ -157,6 +157,14 @@ function doctorItems(raw = {}) {
   const svc = r.service || {};
   if (svc.mode === 'systemd' && svc.linger) {
     items.push({ id: 'service', label: 'Keeps running after logout', ok: true, detail: 'systemd user service with linger' });
+  } else if (svc.mode === 'manual') {
+    items.push({
+      id: 'service',
+      label: 'Keeps running after logout',
+      ok: false,
+      detail: 'started by hand — it stops when that shell or session ends',
+      fix: '~/.frame-server/bin/frame-server install-service'
+    });
   } else {
     items.push({
       id: 'service',
