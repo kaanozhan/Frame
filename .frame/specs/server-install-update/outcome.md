@@ -62,3 +62,11 @@ The Connect dialog now shows, by state: 'Frame Server is not installed' with Ins
 _Captured: 2026-11-10 · 4 file change(s)_
 
 ---
+
+## T09 — README around the managed install
+
+Rewrote src/server/README.md: install from Frame (SSH without prompts, Connect, Install, what Frame does step by step, the check-up), development installs from source, updates with agent consent, automatic and manual rollback, protocol mismatch, the curl | bash install and the frame-server commands, requirements (no compiler — packages bundle Node 20 and node-pty), security (incl. verified packages), the full file layout, and the manual install as a fallback.
+
+_Captured: 2026-11-10 · 1 file change(s)_
+
+---
