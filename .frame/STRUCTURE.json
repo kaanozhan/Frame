@@ -23457,6 +23457,88 @@
         }
       }
     },
+    "shared/workspaceSpecs": {
+      "file": "src/shared/workspaceSpecs.js",
+      "description": "workspaceSpecs — where a spec lives once specs move into workspaces",
+      "exports": [
+        "provisionEntries",
+        "mergeSpecLists",
+        "rootForSlug",
+        "commandPaths",
+        "handBackSlugs"
+      ],
+      "depends": [],
+      "functions": {
+        "provisionEntries": {
+          "line": 19,
+          "params": [
+            "{ gitSharing } = {}"
+          ],
+          "purpose": "Gitignored Frame paths a worktree needs for hooks, helpers and staged"
+        },
+        "isMalformed": {
+          "line": 25,
+          "params": [
+            "spec"
+          ]
+        },
+        "sortSpecs": {
+          "line": 29,
+          "params": [
+            "list"
+          ]
+        },
+        "mergeSpecLists": {
+          "line": 50,
+          "params": [
+            "mainSpecs",
+            "workspaceLists"
+          ],
+          "purpose": "Merge the main checkout's specs with each workspace's."
+        },
+        "rootForSlug": {
+          "line": 70,
+          "params": [
+            "mergedSpecs",
+            "slug",
+            "projectPath"
+          ],
+          "purpose": "The root a slug lives in: its workspace's folder, else the main checkout."
+        },
+        "commandPaths": {
+          "line": 80,
+          "params": [
+            "{ projectPath",
+            "root",
+            "tasksPath }"
+          ],
+          "purpose": "Values a staged spec command is filled with. `{project_path}` is where the"
+        },
+        "handBackSlugs": {
+          "line": 99,
+          "params": [
+            "worktreeSpecs",
+            "mainSpecs",
+            "mode"
+          ],
+          "purpose": "Spec folders to copy from a worktree back into the main checkout before the"
+        }
+      },
+      "sizeBytes": 4458,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "d70bc4df0fdba8ad",
+        "purposes": {
+          "commandPaths": "799f45f08c4756c2",
+          "handBackSlugs": "c84fc4da51b81f44",
+          "mergeSpecLists": "c32869d3ac5d64b4",
+          "provisionEntries": "c86c96f5f7fc6af5",
+          "rootForSlug": "dbce3a6fbf36612d"
+        }
+      }
+    },
     "templates/CLAUDE": {
       "file": "src/templates/CLAUDE.md",
       "description": "{{PROJECT_NAME}} - Frame Project",
@@ -27715,6 +27797,24 @@
       "provenance": {
         "description": "d45fbeca6d3b3142"
       }
+    },
+    "test/workspaceSpecs.test": {
+      "file": "test/workspaceSpecs.test.js",
+      "description": "workspaceSpecs — where a spec lives once specs move into workspaces",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/workspaceSpecs"
+      ],
+      "functions": {},
+      "sizeBytes": 4127,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "d70bc4df0fdba8ad"
+      }
     }
   },
   "ipcChannels": {
@@ -29802,6 +29902,11 @@
         "module": "shared/workspaceRegistry",
         "file": "src/shared/workspaceRegistry.js",
         "description": "workspaceRegistry — the rules over a project's workspace records."
+      },
+      {
+        "module": "shared/workspaceSpecs",
+        "file": "src/shared/workspaceSpecs.js",
+        "description": "workspaceSpecs — where a spec lives once specs move into workspaces"
       }
     ],
     "zoom": [
@@ -29834,7 +29939,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 322,
+        "parsed": 324,
         "unsupported": 85,
         "partial": 0
       }
@@ -29881,9 +29986,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 497,
+      "visitedEntries": 499,
       "traversedDirectories": 82,
-      "eligibleFiles": 407,
+      "eligibleFiles": 409,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -29900,7 +30005,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 407,
+      "indexedFiles": 409,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -29908,6 +30013,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "f8a4a0de8b61c52fa051c42483cc523f1d54668dab07285c359def28c96d1ed5"
+    "revision": "54555936c792d14515e8be8089445fbd61326883eef6058e292edde1f313d4ef"
   }
 }
