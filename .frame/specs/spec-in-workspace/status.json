@@ -1,7 +1,7 @@
 {
   "slug": "spec-in-workspace",
   "title": "Specs inside workspaces",
-  "phase": "implementing",
+  "phase": "done",
   "generated_task_ids": [
     "task-spec-spec-in-workspace-T01",
     "task-spec-spec-in-workspace-T02",
@@ -14,7 +14,7 @@
   ],
   "ai_tool": "claude",
   "created_at": "2026-11-09T23:40:11Z",
-  "updated_at": "2026-11-10T00:04:24.084Z",
-  "last_phase_at": "2026-11-10T00:04:24.084Z",
+  "updated_at": "2026-11-10T00:39:58.771Z",
+  "last_phase_at": "2026-11-10T00:39:58.771Z",
   "implement_mode": "guided"
 }

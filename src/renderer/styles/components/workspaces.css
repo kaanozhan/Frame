@@ -320,3 +320,24 @@
   border-radius: 50%;
   background: currentColor;
 }
+
+/* The spec a workspace holds, under its name (spec-in-workspace). */
+.ws-spec {
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 1px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent-primary);
+  font: inherit;
+  font-size: 11px;
+  line-height: 15px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ws-spec:hover { text-decoration: underline; }

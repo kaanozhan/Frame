@@ -54,3 +54,11 @@ _Captured: 2026-11-10 · 2 file change(s)_
 _Captured: 2026-11-10 · 5 file change(s)_
 
 ---
+
+## T08 — Show a workspace's own spec on its sidebar row
+
+`workspaceSection.js` listens to `SPEC_DATA`, keeps the in-flight specs per workspace id, and renders `spec · <slug>` (`+N` when a workspace holds more than one, title and phase in the tooltip) under the workspace name; clicking it selects the workspace and opens the spec in the specs drawer (`showSpecsGrid` + `openSpec`). Styles in `workspaces.css`. Live over CDP: on main, the `denim` row showed `spec · routing-demo`; clicking it selected `denim` and opened Routing demo. While restarting the test app, the log captured the stack behind the window that vanishes on reload with agents running — a throw in `uiZoom.attachWindow` from `createWindow` (src/main/index.js:438); recorded as a followup, outside this spec. Last task: wrote `digest.md` and set the phase to done.
+
+_Captured: 2026-11-10 · 3 file change(s)_
+
+---

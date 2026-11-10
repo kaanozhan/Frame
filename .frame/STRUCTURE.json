@@ -16169,7 +16169,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 6387,
+      "sizeBytes": 6838,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -17672,46 +17672,47 @@
         "notify",
         "htmlUtils",
         "workspaces/rollup",
-        "terminal"
+        "terminal",
+        "specsDashboard"
       ],
       "functions": {
         "setActions": {
-          "line": 46,
+          "line": 49,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 50
+          "line": 53
         },
         "load": {
-          "line": 90,
+          "line": 105,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 120,
+          "line": 135,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 133
+          "line": 148
         },
         "summaries": {
-          "line": 143
+          "line": 158
         },
         "dotHtml": {
-          "line": 160,
+          "line": 175,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 165,
+          "line": 180,
           "params": [
             "ws",
             "{ selectedId",
@@ -17719,34 +17720,34 @@
           ]
         },
         "render": {
-          "line": 187
+          "line": 207
         },
         "findWs": {
-          "line": 238,
+          "line": 258,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 242,
+          "line": 262,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 270,
+          "line": 291,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 282,
+          "line": 303,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 295,
+          "line": 316,
           "params": [
             "ws",
             "x",
@@ -17754,46 +17755,54 @@
           ]
         },
         "hideMenu": {
-          "line": 311
+          "line": 332
         },
         "onMenuClick": {
-          "line": 315,
+          "line": 336,
           "params": [
             "e"
           ]
         },
         "openNew": {
-          "line": 327
+          "line": 348
         },
         "startRename": {
-          "line": 335,
+          "line": 356,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 340,
+          "line": 361,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 360,
+          "line": 381,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
+        "openHeldSpec": {
+          "line": 403,
+          "params": [
+            "ws",
+            "slug"
+          ],
+          "purpose": "Select a workspace and open the spec it holds in the specs drawer."
+        },
         "closeWorkspaceTerminals": {
-          "line": 382,
+          "line": 412,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 395,
+          "line": 425,
           "params": [
             "ws",
             "count"
@@ -17801,47 +17810,48 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 452,
+          "line": 482,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 458,
+          "line": 488,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 471,
+          "line": 501,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 480,
+          "line": 510,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 490,
+          "line": 520,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 504,
+          "line": 534,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
       "ipc": {
         "listens": [
-          "WORKSPACES_UPDATED"
+          "WORKSPACES_UPDATED",
+          "SPEC_DATA"
         ],
         "emits": []
       },
-      "sizeBytes": 20324,
+      "sizeBytes": 21893,
       "extraction": {
         "status": "parsed"
       },
@@ -17853,6 +17863,7 @@
           "closeWorkspaceTerminals": "22a7c42ea098a240",
           "getWorkspaces": "0eab879c07f7a326",
           "load": "e807754c516c9be1",
+          "openHeldSpec": "3c6f2fdd9819c4b2",
           "selectSpecWorkspace": "7d88cec82ca928f9",
           "selectedWorkspace": "fa1da8f5f604bd70",
           "setActions": "4f2a1450120dc24f",
@@ -30207,6 +30218,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "0e1bd2c2431816b2ee61d235ac489db150731ac536d763a4b4155159693f4e67"
+    "revision": "2903765a7e51a3d4d3bed54b82fdc8c90ca21c284f4c8bf13f8a951c5320553b"
   }
 }

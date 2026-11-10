@@ -35,6 +35,9 @@ let showArchived = false;
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
 let renderScheduled = false;
 let loadSeq = 0;
+// In-flight specs per workspace id, from SPEC_DATA (spec-in-workspace):
+// workspaceId → [{ slug, title, phase }].
+let specsByWorkspace = new Map();
 
 const actions = {
   onNew: null,                 // () => void — opens the new-workspace dialog (T08)
@@ -68,6 +71,7 @@ function init() {
   window.addEventListener('blur', hideMenu);
 
   state.onProjectChange(() => {
+    specsByWorkspace = new Map();
     workspaces = [];
     archived = [];
     showArchived = false;
@@ -81,6 +85,17 @@ function init() {
     if (projectPath && projectPath === state.getProjectPath()) load();
   });
   window.addEventListener('focus', () => { if (state.getProjectPath()) load(); });
+  ipcRenderer.on(IPC.SPEC_DATA, (event, { projectPath, specs } = {}) => {
+    if (projectPath !== state.getProjectPath()) return;
+    const next = new Map();
+    for (const spec of specs || []) {
+      if (!spec || !spec.workspace || spec.malformed) continue;
+      if (!next.has(spec.workspace.id)) next.set(spec.workspace.id, []);
+      next.get(spec.workspace.id).push({ slug: spec.slug, title: spec.title, phase: spec.phase });
+    }
+    specsByWorkspace = next;
+    scheduleRender();
+  });
 
   if (state.getProjectPath()) load({ reselect: true });
   else render();
@@ -172,6 +187,11 @@ function rowHtml(ws, { selectedId, sums }) {
   const secondary = editing && renaming.field === 'name'
     ? `<input class="ws-rename" data-field="name" value="${escapeHtml(ws.name)}" spellcheck="false">`
     : `<span class="ws-secondary">${escapeHtml(ws.name)}${ws.missing ? ' · missing' : ''}</span>`;
+  // The spec this workspace holds (spec-in-workspace): one click opens it.
+  const held = specsByWorkspace.get(ws.id) || [];
+  const specLine = held.length && !ws.missing
+    ? `<button type="button" class="ws-spec" data-act="open-spec" data-slug="${escapeHtml(held[0].slug)}" title="${escapeHtml(held[0].title || held[0].slug)} · ${escapeHtml(String(held[0].phase || '').replace(/_/g, ' '))}">spec · ${escapeHtml(held[0].slug)}${held.length > 1 ? ` +${held.length - 1}` : ''}</button>`
+    : '';
   const trailing = ws.missing
     ? `<button class="ws-act" data-act="restore-missing" type="button" title="Recreate the folder from the branch">Restore</button>
        <button class="ws-act" data-act="remove-record" type="button" title="Forget this workspace">Remove</button>`
@@ -179,7 +199,7 @@ function rowHtml(ws, { selectedId, sums }) {
   return `
     <div class="ws-row${on}${missing}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="button" aria-pressed="${!!on}">
       ${dotHtml(rollup.summaryFor(sums, ws.id))}
-      <span class="ws-labels">${primary}${secondary}</span>
+      <span class="ws-labels">${primary}${secondary}${specLine}</span>
       ${trailing}
     </div>`;
 }
@@ -255,6 +275,7 @@ function onClick(e) {
     }
     if ((act === 'restore' || act === 'restore-missing') && ws) return restoreWorkspace(ws);
     if (act === 'remove-record' && ws) return removeRecord(ws);
+    if (act === 'open-spec' && ws) return openHeldSpec(ws, actEl.dataset.slug);
     return;
   }
   if (!row || row.classList.contains('archived')) return;
@@ -376,6 +397,15 @@ async function archiveWorkspace(ws) {
   else if (result && result.dirty) notify.error(`"${ws.name}" changed while archiving — try again.`);
   else notify.success(`Archived "${ws.name}" — its branch ${ws.branch} is kept.`);
   await load();
+}
+
+/** Select a workspace and open the spec it holds in the specs drawer. */
+function openHeldSpec(ws, slug) {
+  select(ws);
+  const ui = require('./terminal').getMultiTerminalUI();
+  if (!ui || !slug) return;
+  ui.showSpecsGrid();
+  require('./specsDashboard').openSpec(slug, { instant: true });
 }
 
 /** Close every terminal of one workspace of the current project. */
