@@ -7540,7 +7540,9 @@
         "notify",
         "implementModeModal",
         "reportSection",
-        "aiToolSelector"
+        "aiToolSelector",
+        "workspaceSection",
+        "newWorkspaceModal"
       ],
       "functions": {
         "init": {
@@ -7615,17 +7617,31 @@
           ],
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
+        "_selectSpecWorkspace": {
+          "line": 473,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "Select the checkout a spec lives in; returns its root (main = projectPath)."
+        },
+        "_workspaceForNewSpec": {
+          "line": 496,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The workspace a new spec is written in: the selected one, or — from main —"
+        },
         "dispatchSpecCommand": {
-          "line": 465,
+          "line": 519,
           "params": [
             "{ slug",
             "title = null",
             "command } = {}"
-          ],
-          "purpose": "Run a spec command in the spec's assigned lane — or a new Frame."
+          ]
         },
         "_dispatchImplement": {
-          "line": 540,
+          "line": 597,
           "params": [
             "{ slug",
             "title",
@@ -7635,107 +7651,107 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "_isSpecCreatorLane": {
-          "line": 647,
+          "line": 704,
           "params": [
             "terminalId"
           ],
           "purpose": "Still open, and still carrying the transient name we gave it."
         },
         "_onSpecData": {
-          "line": 663,
+          "line": 720,
           "params": [
             "specs"
           ],
           "purpose": "A new slug appeared — attach it to the lane that produced it."
         },
         "_bindSpecCreatorLane": {
-          "line": 683,
+          "line": 740,
           "params": [
             "terminalId",
             "slug"
           ]
         },
         "dispatchSpecNew": {
-          "line": 719,
+          "line": 776,
           "params": [
             "description"
           ],
           "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
         },
         "getSpecLaneInfo": {
-          "line": 807,
+          "line": 870,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 831,
+          "line": 894,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 852,
+          "line": 915,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 856,
+          "line": 919,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 860,
+          "line": 923,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 877,
+          "line": 940,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 885,
+          "line": 948,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 908,
+          "line": 971,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 916,
+          "line": 979,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 934,
+          "line": 997,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 944,
+          "line": 1007,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 953,
+          "line": 1016,
           "params": [
             "frameName",
             "specName"
@@ -7743,14 +7759,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 994,
+          "line": 1057,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 1023,
+          "line": 1086,
           "params": [
             "terminalId",
             "message"
@@ -7769,7 +7785,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 42964,
+      "sizeBytes": 45714,
       "extraction": {
         "status": "parsed"
       },
@@ -7782,11 +7798,12 @@
           "_dispatchImplement": "b07ddd2ffbc27686",
           "_isSpecCreatorLane": "18da917b1fa2beef",
           "_onSpecData": "139e794738ce5f20",
+          "_selectSpecWorkspace": "7edc3dacf77b1f79",
           "_startAgentIn": "da2fe978df3538aa",
           "_trackAgentRunWhenReady": "7545c616a53c7960",
           "_waitForAgentReady": "a626843d6a626ace",
+          "_workspaceForNewSpec": "79b2a2da2a74a652",
           "dispatch": "5d84ea33d736c73b",
-          "dispatchSpecCommand": "828da172c8073db1",
           "dispatchSpecNew": "2ac4c8949f90aa5a",
           "getSpecLaneInfo": "95454eeae9051c36",
           "getTaskLaneInfo": "317346690b72ca12",
@@ -17668,19 +17685,19 @@
           ]
         },
         "scheduleRender": {
-          "line": 129
+          "line": 133
         },
         "summaries": {
-          "line": 139
+          "line": 143
         },
         "dotHtml": {
-          "line": 156,
+          "line": 160,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 161,
+          "line": 165,
           "params": [
             "ws",
             "{ selectedId",
@@ -17688,34 +17705,34 @@
           ]
         },
         "render": {
-          "line": 183
+          "line": 187
         },
         "findWs": {
-          "line": 234,
+          "line": 238,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 238,
+          "line": 242,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 266,
+          "line": 270,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 278,
+          "line": 282,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 291,
+          "line": 295,
           "params": [
             "ws",
             "x",
@@ -17723,46 +17740,46 @@
           ]
         },
         "hideMenu": {
-          "line": 307
+          "line": 311
         },
         "onMenuClick": {
-          "line": 311,
+          "line": 315,
           "params": [
             "e"
           ]
         },
         "openNew": {
-          "line": 323
+          "line": 327
         },
         "startRename": {
-          "line": 331,
+          "line": 335,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 336,
+          "line": 340,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 356,
+          "line": 360,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "closeWorkspaceTerminals": {
-          "line": 378,
+          "line": 382,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 391,
+          "line": 395,
           "params": [
             "ws",
             "count"
@@ -17770,23 +17787,23 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 448,
+          "line": 452,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 454,
+          "line": 458,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 467,
+          "line": 471,
           "params": [
             "ws"
           ]
         },
         "getWorkspaces": {
-          "line": 474,
+          "line": 478,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -17796,7 +17813,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 19015,
+      "sizeBytes": 19338,
       "extraction": {
         "status": "parsed"
       },
@@ -30160,6 +30177,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "fb597f112d3a3eee00806a666ee1ea3ef7df7b9819a119063fbb62f922c23a5e"
+    "revision": "e9836032e7f06320070246635b51316e0948315ba1ff683659e1b7fd1cb21096"
   }
 }

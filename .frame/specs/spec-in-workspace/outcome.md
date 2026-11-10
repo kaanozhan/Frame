@@ -38,3 +38,11 @@ _Captured: 2026-11-10 · 2 file change(s)_
 _Captured: 2026-11-10 · 7 file change(s)_
 
 ---
+
+## T06 — Send spec work to the right workspace
+
+`agentDispatch.js` gained `_selectSpecWorkspace` (GET_SPEC's new `workspace` decides: select that workspace, or main, before staging) used by `dispatchSpecCommand` and therefore `_dispatchImplement`, and `_workspaceForNewSpec`: from main a new spec first creates a workspace (`WORKSPACE_CREATE`), selects it and runs its setup script without an agent; `dispatchSpecNew` passes that `root` to `BUILD_SPEC_COMMAND_FILE`. `workspaceSection.select` now fires `WORKSPACE_PROVISION`. Live over CDP on the scratch project: New Spec from main created and selected workspace `denim`, ran setup, staged `spec.new__*.md` in the worktree with Project root = the worktree, and opened the Spec Creator lane there; staging `spec.plan` for a spec that lives in `denim` (IPC, no root given) landed in `denim` too. Not exercised live: the renderer re-selecting an existing spec's workspace from main — the test's leftover Spec Creator lane had bound the hand-made spec (existing single-new-slug binding) and kept its action button locked; the path is the same `select` call the new-spec flow exercised.
+
+_Captured: 2026-11-10 · 2 file change(s)_
+
+---

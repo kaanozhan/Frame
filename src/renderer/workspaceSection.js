@@ -124,6 +124,10 @@ function select(ws) {
   }
   if (ws.missing) return;
   state.setWorkspace({ id: ws.id, root: ws.path, name: ws.name, branch: ws.branch });
+  // Refresh Frame's tooling in the worktree (hooks, staged templates, spec
+  // index) so the agents about to run there see what main sees.
+  ipcRenderer.invoke(IPC.WORKSPACE_PROVISION, { projectPath: state.getProjectPath(), id: ws.id })
+    .catch(() => { /* best effort — the next spec command provisions again */ });
 }
 
 function scheduleRender() {

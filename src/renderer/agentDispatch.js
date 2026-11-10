@@ -462,6 +462,60 @@ const specLanes = new Map(); // Map<slug, terminalId>
  * @param {string} opts.command  - e.g. 'spec.plan', 'spec.implement'
  * @returns {Promise<{success: boolean, terminalId: string|null, error: string|null}>}
  */
+// ─── Where spec work runs (spec-in-workspace) ─────────────────
+//
+// Specs live in workspaces: a spec's lanes run in the workspace that holds
+// it, so its prompt, cwd and hooks all point at that worktree. Before a
+// command is staged, the spec's workspace (or main) is selected — terminals
+// open in the selected workspace's folder.
+
+/** Select the checkout a spec lives in; returns its root (main = projectPath). */
+async function _selectSpecWorkspace(projectPath, slug) {
+  let spec = null;
+  try {
+    spec = await ipcRenderer.invoke(IPC.GET_SPEC, { projectPath, slug });
+  } catch (_) { /* unknown spec — stays where the user is */ }
+  if (!spec) return state.getWorkspaceRoot() || projectPath;
+  const ws = spec.workspace;
+  const current = state.getWorkspace();
+  const section = require('./workspaceSection');
+  if (ws && (!current || current.id !== ws.id)) {
+    section.select({ id: ws.id, path: ws.root, name: ws.name, branch: ws.branch });
+  } else if (!ws && current && current.id !== state.MAIN_WORKSPACE_ID) {
+    section.select(null);
+  }
+  return ws ? ws.root : projectPath;
+}
+
+/**
+ * The workspace a new spec is written in: the selected one, or — from main —
+ * a new workspace created for it (Conductor's model, spec-in-workspace D2).
+ * Its setup script runs alongside, without an agent. Returns the root, or
+ * null when no workspace could be made (not a git repo, git error).
+ */
+async function _workspaceForNewSpec(projectPath) {
+  const current = state.getWorkspace();
+  if (current && current.id !== state.MAIN_WORKSPACE_ID) return current.root;
+  let result;
+  try {
+    result = await ipcRenderer.invoke(IPC.WORKSPACE_CREATE, { projectPath, from: 'new' });
+  } catch (err) {
+    result = { error: err.message };
+  }
+  if (!result || result.error) {
+    notify.error(`Could not create a workspace for the spec: ${(result && result.error) || 'unknown error'}`);
+    return null;
+  }
+  const section = require('./workspaceSection');
+  await section.load();
+  section.select(result.workspace);
+  if (result.setupScript) {
+    require('./newWorkspaceModal').runSetupThenAgent({ setupScript: result.setupScript, openAgent: false })
+      .catch((err) => console.error('agentDispatch: setup for the spec workspace failed', err));
+  }
+  return result.workspace.path;
+}
+
 async function dispatchSpecCommand({ slug, title = null, command } = {}) {
   if (!multiTerminalUI) {
     return _fail(null, 'Terminal system is not ready yet');
@@ -472,6 +526,9 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
   }
 
   const assignment = { kind: 'spec', label: `spec: ${slug}`, ref: slug };
+
+  // The spec's own workspace (or main) — its lanes open there.
+  await _selectSpecWorkspace(projectPath, slug);
 
   // spec.implement flips the ordering: the mode is chosen in the unified
   // modal *before* anything is staged, so the recorded implement_mode is what
@@ -729,6 +786,11 @@ async function dispatchSpecNew(description) {
     return _fail(null, 'Nothing to dispatch — describe the spec first');
   }
 
+  // The spec is written inside a workspace (spec-in-workspace): the selected
+  // one, or a new one when the user is on main.
+  const root = await _workspaceForNewSpec(projectPath);
+  if (!root) return _fail(null, 'A spec needs a workspace — this project could not get one');
+
   let staged;
   try {
     staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
@@ -736,7 +798,8 @@ async function dispatchSpecNew(description) {
       slug: null,
       command: 'spec.new',
       aiTool: 'claude-code',
-      description: text
+      description: text,
+      root
     });
   } catch (err) {
     console.error('agentDispatch: spec.new staging failed', err);
