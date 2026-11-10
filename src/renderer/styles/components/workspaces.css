@@ -465,3 +465,17 @@
   line-height: 1.5;
   color: var(--text-tertiary);
 }
+
+/* Server terminal while the link is down (server-workspaces) */
+.srv-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--bg-primary);
+  background: var(--warning);
+  pointer-events: none;
+}

@@ -7,6 +7,7 @@ const { ipcRenderer, clipboard } = require('electron');
 const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { IPC } = require('../shared/ipcChannels');
+const { isServerTerminalId } = require('../shared/serverRouting');
 const terminalInput = require('./terminalInput');
 const themes = require('./themes');
 
@@ -80,7 +81,11 @@ class TerminalManager {
     // 'main' is the project's own checkout.
     this.currentWorkspaceId = 'main';
     this.currentWorkspaceRoot = null;
+    // Frame Server link (server-workspaces): server terminals (srv- ids) are
+    // adopted on connect and show a banner while the link is down.
+    this.serverState = { state: 'off', host: null };
     this._setupIPC();
+    this._setupServer();
     this._setupThemeObserver();
     installGlobalDropGuard();
   }
@@ -102,6 +107,8 @@ class TerminalManager {
 
     // Restore session for new project (custom names)
     this.restoreProjectSession(projectPath);
+    // Its terminals on the server (they outlive this window).
+    if (this.serverState.state === 'connected') this.adoptServerTerminals(projectPath);
 
     // Land where the work is: a project with running terminals opens on its
     // Terminals section, one with none opens on Home. This also settles the
@@ -872,6 +879,81 @@ class TerminalManager {
         this.closeTerminal(terminalId);
       }
     });
+  }
+
+  // ─── Server terminals (server-workspaces) ──────────────────
+
+  _setupServer() {
+    const apply = (s) => {
+      const prev = this.serverState.state;
+      this.serverState = { state: (s && s.state) || 'off', host: (s && s.host) || this.serverState.host };
+      if (this.serverState.state === 'connected') {
+        if (prev !== 'connected' && this.currentProjectPath) this.adoptServerTerminals(this.currentProjectPath);
+      } else {
+        this._setServerBanners();
+      }
+    };
+    ipcRenderer.on(IPC.SERVER_STATUS_CHANGED, (event, s) => apply(s));
+    ipcRenderer.invoke(IPC.SERVER_STATUS).then(apply).catch(() => {});
+  }
+
+  /**
+   * Bring the server's live terminals of `projectPath` into this window:
+   * new ones get an xterm, known ones are reset; each is redrawn from the
+   * server's screen snapshot (exact, full-screen TUIs included).
+   */
+  async adoptServerTerminals(projectPath) {
+    let list = [];
+    try {
+      list = await ipcRenderer.invoke(IPC.TERMINAL_ADOPT, { projectPath });
+    } catch (err) {
+      console.error('terminalManager: adopting server terminals failed', err);
+      return;
+    }
+    let added = false;
+    for (const t of list || []) {
+      let inst = this.terminals.get(t.terminalId);
+      if (!inst) {
+        this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId });
+        inst = this.terminals.get(t.terminalId);
+        added = true;
+      }
+      if (!inst) continue;
+      inst.terminal.reset();
+      if (t.screen) inst.terminal.write(t.screen);
+    }
+    this._setServerBanners();
+    if (added) {
+      this.restoreProjectSession(this.currentProjectPath);
+      this._renumberTerminals(projectPath);
+    }
+    this._notifyStateChange();
+    // Fit to this window; the resize reaches the server PTY and its app redraws.
+    setTimeout(() => this.fitAll(), 50);
+  }
+
+  /** "Reconnecting to <host>…" over every server terminal while the link is down. */
+  _setServerBanners() {
+    const down = this.serverState.state !== 'connected';
+    const host = this.serverState.host || 'the server';
+    const text = this.serverState.state === 'off'
+      ? `Disconnected from ${host} — the terminal keeps running there. Connect to Server to continue.`
+      : `Reconnecting to ${host}… The terminal keeps running on the server; typing is paused.`;
+    for (const [id, inst] of this.terminals) {
+      if (!isServerTerminalId(id)) continue;
+      let banner = inst.element.querySelector(':scope > .srv-banner');
+      if (!down) {
+        if (banner) banner.remove();
+        continue;
+      }
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'srv-banner';
+        inst.element.style.position = 'relative';
+        inst.element.appendChild(banner);
+      }
+      banner.textContent = text;
+    }
   }
 
   /**

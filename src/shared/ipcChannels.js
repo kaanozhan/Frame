@@ -258,6 +258,7 @@ const IPC = {
   SERVER_DISCONNECT: 'server-disconnect',            // renderer → main (invoke): → { error, status }
   SERVER_SSH_HOSTS: 'server-ssh-hosts',              // renderer → main (invoke): → string[] (Host aliases from ~/.ssh/config)
   SERVER_STATUS_CHANGED: 'server-status-changed',    // main → renderer: status (as SERVER_STATUS)
+  TERMINAL_ADOPT: 'terminal-adopt',                  // renderer → main (invoke): { projectPath } → [{ terminalId, projectPath, workspaceId, screen, cols, rows }] (the server's live terminals of that project)
   // Update from base (update-from-base)
   WORKSPACE_UPDATE_FROM_BASE: 'workspace-update-from-base', // renderer → main (invoke): { projectPath, id } → { state: updated|up-to-date|conflict|dirty, base, commits?, files?, count?, fetchNote? } | { error }
   WORKSPACE_UPDATE_ABORT: 'workspace-update-abort',         // renderer → main (invoke): { projectPath, id } → { error, aborted }

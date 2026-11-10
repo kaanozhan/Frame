@@ -5481,8 +5481,15 @@
         "wireServerEvents": {
           "line": 524
         },
+        "adoptServerTerminals": {
+          "line": 547,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The connected server's live terminals of a local project, with a screen"
+        },
         "setupIPC": {
-          "line": 542,
+          "line": 576,
           "params": [
             "ipcMain"
           ]
@@ -5490,6 +5497,7 @@
       },
       "ipc": {
         "listens": [
+          "TERMINAL_ADOPT",
           "GET_AVAILABLE_SHELLS",
           "TERMINAL_CREATE",
           "TERMINAL_DESTROY",
@@ -5500,16 +5508,18 @@
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED",
           "TERMINAL_PROCESS_DATA",
-          "channel"
+          "channel",
+          "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 21588,
+      "sizeBytes": 23498,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "e5d8e57c0450283d",
         "purposes": {
+          "adoptServerTerminals": "d5f8a7894f921258",
           "createTerminal": "b33d916178fe23ba",
           "destroyAll": "ae9b9368ced1121a",
           "destroyExcept": "2db42ba4367a26b0",
@@ -17014,7 +17024,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 10493,
+      "sizeBytes": 10766,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -18130,25 +18140,26 @@
         "xterm",
         "xterm-addon-fit",
         "shared/ipcChannels",
+        "shared/serverRouting",
         "terminalInput",
         "themes"
       ],
       "functions": {
         "getTerminalTheme": {
-          "line": 14,
+          "line": 15,
           "purpose": "Terminal theme for the current app theme (themes.js owns the palettes)."
         },
         "escapePathForShell": {
-          "line": 32,
+          "line": 33,
           "params": [
             "p"
           ]
         },
         "installGlobalDropGuard": {
-          "line": 48
+          "line": 49
         },
         "terminalName": {
-          "line": 63,
+          "line": 64,
           "params": [
             "n"
           ],
@@ -18160,7 +18171,8 @@
           "TERMINAL_CREATED",
           "AVAILABLE_SHELLS_DATA",
           "TERMINAL_OUTPUT_ID",
-          "TERMINAL_DESTROYED"
+          "TERMINAL_DESTROYED",
+          "SERVER_STATUS_CHANGED"
         ],
         "emits": [
           "TERMINAL_CREATE",
@@ -18171,7 +18183,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 31601,
+      "sizeBytes": 34937,
       "extraction": {
         "status": "parsed"
       },
@@ -24632,7 +24644,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 17220,
+      "sizeBytes": 17433,
       "extraction": {
         "status": "parsed"
       },
@@ -29912,6 +29924,11 @@
         "name": "terminal-resize",
         "direction": "",
         "description": ""
+      },
+      "TERMINAL_ADOPT": {
+        "name": "terminal-adopt",
+        "direction": "",
+        "description": ""
       }
     },
     "project": {
@@ -32250,6 +32267,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "7a0471883e47eac52d7b1003ce5e9835e97c9a34d3484860d9a1980f7521c8a3"
+    "revision": "83f505903cf332a0433ba81b6689cde419b0ae224d26b9ee3618d9677a7e47b4"
   }
 }

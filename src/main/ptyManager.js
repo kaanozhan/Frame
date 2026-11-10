@@ -539,7 +539,50 @@ function wireServerEvents() {
   });
 }
 
+/**
+ * The connected server's live terminals of a local project, with a screen
+ * snapshot each — the renderer adopts them on connect / reconnect / reload.
+ * Their last process info is re-sent so lane detection sees the agents.
+ */
+async function adoptServerTerminals(projectPath) {
+  if (!projectPath || !server().isConnected()) return [];
+  const wm = require('./workspaceManager');
+  const listed = await wm.list(projectPath);
+  const serverIds = new Set(((listed && listed.workspaces) || []).filter((w) => w.location === 'server' && !w.offline).map((w) => w.id));
+  if (!serverIds.size) return [];
+  const loc = wm.serverLocation([...serverIds][0]);
+  if (!loc) return [];
+  const live = await server().call('terminals.list', { projectPath: loc.serverProjectPath });
+  const out = [];
+  const processes = [];
+  for (const t of live || []) {
+    if (!serverIds.has(t.workspaceId)) continue;
+    try {
+      const snap = await server().call('terminals.attach', { terminalId: t.terminalId });
+      noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId });
+      out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, screen: snap.screen, cols: snap.cols, rows: snap.rows });
+      if (snap.process) processes.push(snap.process);
+    } catch (err) {
+      logger.warn('ptyManager', `could not attach ${t.terminalId}: ${err.message}`);
+    }
+  }
+  setTimeout(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    for (const p of processes) mainWindow.webContents.send(IPC.TERMINAL_PROCESS_DATA, p);
+  }, 100);
+  return out;
+}
+
 function setupIPC(ipcMain) {
+  ipcMain.removeHandler(IPC.TERMINAL_ADOPT);
+  ipcMain.handle(IPC.TERMINAL_ADOPT, async (event, { projectPath } = {}) => {
+    try {
+      return await adoptServerTerminals(projectPath);
+    } catch (err) {
+      logger.warn('ptyManager', `adopting server terminals failed: ${err.message}`);
+      return [];
+    }
+  });
   try { wireServerEvents(); } catch (err) { logger.warn('ptyManager', `server terminal events not wired: ${err.message}`); }
 
   // Get available shells

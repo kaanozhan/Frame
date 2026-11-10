@@ -70,3 +70,11 @@ ptyManager's IPC now sends a server workspace's TERMINAL_CREATE to terminals.cre
 _Captured: 2026-11-10 · 3 file change(s)_
 
 ---
+
+## T10 — Adopt server terminals in the renderer
+
+Added TERMINAL_ADOPT: main lists the connected server's live terminals of a local project's server workspaces, attaches each (screen snapshot), remembers them and re-sends their last process info so lane detection sees running agents. terminalManager adopts them on connect, on reconnect and when a project is opened (new ones get an xterm and restored names, known ones are reset), writes each snapshot, then fits so the server PTY takes this window's size; while the link is down every srv- terminal shows a 'Reconnecting to <host>…' banner (or 'Disconnected…' after a manual disconnect), and main already holds input. Banner style in workspaces.css.
+
+_Captured: 2026-11-10 · 5 file change(s)_
+
+---
