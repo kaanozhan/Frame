@@ -20,7 +20,7 @@
 const fs = require('fs');
 const { IPC } = require('../shared/ipcChannels');
 const registry = require('../shared/workspaceRegistry');
-const { mapPrView, parseCount } = require('../shared/prFlow');
+const { mapPrView, parseCount, composePr, pickMergeMethod, isPushable } = require('../shared/prFlow');
 const projectRegistry = require('./projectRegistry');
 const git = require('./gitBranchesManager');
 const github = require('./githubManager');
@@ -148,6 +148,119 @@ function getState(projectPath) {
   return lastState.get(projectPath) || null;
 }
 
+// ─── Actions (push, PR, merge) ────────────────────────────────
+//
+// Each acts on one workspace through the user's git/gh and re-pushes state.
+// Never --force, never the base branch, never a commit on the user's behalf.
+
+function recordOf(projectPath, id) {
+  return activeWorkspaces(projectPath).find((r) => r.id === id) || null;
+}
+
+function settingsOf(projectPath) {
+  // Lazily required: frameProject pulls in much of main.
+  return require('./frameProject').getWorkspaceSettings(projectPath);
+}
+
+/** Push a workspace's branch; the first push sets `origin/<branch>` as upstream. */
+async function push(projectPath, id) {
+  const ws = recordOf(projectPath, id);
+  if (!ws) return { error: 'This workspace is not available.' };
+  if (!isPushable({ branch: ws.branch, base: ws.base })) {
+    return { error: `Refusing to push ${ws.branch}: it is the base branch.` };
+  }
+  const st = await git.worktreeStatus(ws.path);
+  const upstream = await git.upstreamOf(ws.path);
+  const res = await git.pushBranch(ws.path, ws.branch, { setUpstream: !upstream });
+  refresh(projectPath);
+  return { error: res.error || null, dirty: st.count || 0 };
+}
+
+/** The spec a workspace holds (spec-in-workspace), with its documents, or null. */
+function heldSpec(projectPath, id) {
+  try {
+    const specManager = require('./specManager');
+    const held = specManager.listSpecs(projectPath).find((s) => s && s.workspace && s.workspace.id === id && !s.malformed);
+    if (!held) return null;
+    const full = specManager.getSpec(projectPath, held.slug);
+    return full ? { slug: held.slug, title: held.title, spec: full.spec, outcome: full.outcome } : null;
+  } catch (err) {
+    logger.warn('workspaces', `could not read the workspace's spec: ${err.message}`);
+    return null;
+  }
+}
+
+/** Prefilled PR title/body: from the held spec, else the commit subjects. */
+async function prDraft(projectPath, id) {
+  const ws = recordOf(projectPath, id);
+  if (!ws) return { error: 'This workspace is not available.' };
+  const base = ws.base || 'main';
+  const commits = await git.commitSubjects(ws.path, `origin/${base}..HEAD`);
+  const { title, body } = composePr({ spec: heldSpec(projectPath, id), commits, branch: ws.branch });
+  return { error: null, title, body, base, branch: ws.branch, commits: commits.length };
+}
+
+/** Push if needed, then `gh pr create` from the workspace branch into its base. */
+async function prCreate(projectPath, id, { title, body = '', draft = false } = {}) {
+  const ws = recordOf(projectPath, id);
+  if (!ws) return { error: 'This workspace is not available.' };
+  if (!title || !String(title).trim()) return { error: 'A pull request needs a title.' };
+  const access = await github.checkAccess(projectPath);
+  if (!access.gh) return { error: 'GitHub CLI (gh) is not installed.' };
+  if (!access.authed) return { error: 'GitHub CLI is not signed in — run `gh auth login`.' };
+  if (!access.repoName) return { error: 'This project has no GitHub remote.' };
+
+  const pushed = await push(projectPath, id);
+  if (pushed.error) return { error: `Push failed: ${pushed.error}` };
+
+  const args = ['pr', 'create', '--base', ws.base || 'main', '--head', ws.branch,
+    '--title', String(title).trim(), '--body-file', '-'];
+  if (draft) args.push('--draft');
+  const res = await github.runGh(args, ws.path, { stdin: String(body || '') });
+  refresh(projectPath);
+  if (!res.ok) return { error: res.error };
+  const url = (res.stdout.match(/https?:\/\/\S+/) || [null])[0];
+  return { error: null, url };
+}
+
+/**
+ * Merge the workspace's PR with the project's method (or the repo's first
+ * allowed), fast-forward the main checkout when it is on the base and clean,
+ * then archive the workspace when the setting says so.
+ */
+async function merge(projectPath, id) {
+  const ws = recordOf(projectPath, id);
+  if (!ws) return { error: 'This workspace is not available.' };
+  const current = await prFor(projectPath, ws.branch);
+  if (!current) return { error: 'This workspace has no pull request.' };
+  if (current.state !== 'open') return { error: `The pull request is ${current.state}.` };
+  if (!current.ready) return { error: 'The pull request is not ready to merge (checks or conflicts).' };
+
+  const settings = settingsOf(projectPath);
+  const flags = await github.runGh(['repo', 'view', '--json', 'squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed'], projectPath, { timeout: 20000 });
+  let allowed = null;
+  try { allowed = flags.ok ? JSON.parse(flags.stdout) : null; } catch (_) { allowed = null; }
+  const method = pickMergeMethod(allowed, settings.mergeMethod);
+  if (!method) return { error: 'The repository allows no merge method.' };
+
+  const res = await github.runGh(['pr', 'merge', String(current.number), `--${method}`], projectPath);
+  if (!res.ok) {
+    refresh(projectPath);
+    return { error: res.error, method };
+  }
+  const fastForward = await git.fastForwardIfOn(projectPath, ws.base || 'main');
+  let archived = false;
+  let archiveNote = null;
+  if (settings.archiveOnMerge) {
+    const a = await require('./workspaceManager').archive(projectPath, id, {});
+    archived = !!(a && !a.error && !a.dirty);
+    if (a && a.dirty) archiveNote = 'not archived: the workspace has uncommitted changes';
+    else if (a && a.error) archiveNote = `not archived: ${a.error}`;
+  }
+  refresh(projectPath);
+  return { error: null, method, number: current.number, fastForward, archived, archiveNote };
+}
+
 function setupIPC(ipcMain) {
   // The renderer names the project it shows; that project is the one polled.
   ipcMain.handle(IPC.WORKSPACE_GIT_REFRESH, async (event, { projectPath } = {}) => {
@@ -155,6 +268,18 @@ function setupIPC(ipcMain) {
     watchedProject = projectPath;
     return refresh(projectPath);
   });
+  const guarded = (fn) => async (event, payload = {}) => {
+    try {
+      return await fn(payload);
+    } catch (err) {
+      logger.error('workspaces', err);
+      return { error: err.message || String(err) };
+    }
+  };
+  ipcMain.handle(IPC.WORKSPACE_PUSH, guarded(({ projectPath, id }) => push(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_PR_DRAFT, guarded(({ projectPath, id }) => prDraft(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_PR_CREATE, guarded(({ projectPath, id, title, body, draft }) => prCreate(projectPath, id, { title, body, draft })));
+  ipcMain.handle(IPC.WORKSPACE_PR_MERGE, guarded(({ projectPath, id }) => merge(projectPath, id)));
 }
 
-module.exports = { init, setupIPC, refresh, getState, activeWorkspaces, PR_FIELDS };
+module.exports = { init, setupIPC, refresh, getState, activeWorkspaces, push, prDraft, prCreate, merge, PR_FIELDS };

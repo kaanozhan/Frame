@@ -22,3 +22,11 @@ Added `src/main/workspaceGitState.js`: per active workspace it reads uncommitted
 _Captured: 2026-11-10 · 5 file change(s)_
 
 ---
+
+## T04 — Add the PR actions in main
+
+`workspaceGitState.js` gained `push` (refuses the base via `isPushable`, sets the upstream on first push, returns the uncommitted count), `prDraft` (the workspace's held spec from `specManager.listSpecs`/`getSpec` → `composePr`, else `git log origin/<base>..HEAD` subjects), `prCreate` (gh access checked, push first, `gh pr create --base --head --title … --body-file -` with the body on stdin, `--draft` when chosen) and `merge` (refuses non-open or not-`ready` PRs, method from the setting or `gh repo view` flags via `pickMergeMethod`, `gh pr merge <n> --<method>`, `fastForwardIfOn` for the main checkout, then `workspaceManager.archive` when `archiveOnMerge`, reporting rather than forcing when the workspace is dirty), each re-pushing state; IPC for all four. End-to-end smoke with the fake gh: a spec'd workspace drafted 'Login form' with Why/What/Done/spec path, a title with quotes, backticks and `$` reached gh intact as argv with the body on stdin, the branch was pushed, merge was refused while checks were pending, then merged with `--squash`, fast-forwarded main and archived the workspace.
+
+_Captured: 2026-11-10 · 1 file change(s)_
+
+---

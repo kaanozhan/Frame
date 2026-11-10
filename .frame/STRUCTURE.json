@@ -7025,6 +7025,10 @@
         "refresh",
         "getState",
         "activeWorkspaces",
+        "push",
+        "prDraft",
+        "prCreate",
+        "merge",
         "PR_FIELDS"
       ],
       "depends": [
@@ -7036,7 +7040,10 @@
         "gitBranchesManager",
         "githubManager",
         "pollGate",
-        "logger"
+        "logger",
+        "frameProject",
+        "specManager",
+        "workspaceManager"
       ],
       "functions": {
         "init": {
@@ -7094,8 +7101,64 @@
           ],
           "purpose": "The last state read for a project, or null."
         },
+        "recordOf": {
+          "line": 156,
+          "params": [
+            "projectPath",
+            "id"
+          ]
+        },
+        "settingsOf": {
+          "line": 160,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "push": {
+          "line": 166,
+          "params": [
+            "projectPath",
+            "id"
+          ],
+          "purpose": "Push a workspace's branch; the first push sets `origin/<branch>` as upstream."
+        },
+        "heldSpec": {
+          "line": 180,
+          "params": [
+            "projectPath",
+            "id"
+          ],
+          "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
+        },
+        "prDraft": {
+          "line": 194,
+          "params": [
+            "projectPath",
+            "id"
+          ],
+          "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
+        },
+        "prCreate": {
+          "line": 204,
+          "params": [
+            "projectPath",
+            "id",
+            "{ title",
+            "body = ''",
+            "draft = false } = {}"
+          ],
+          "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
+        },
+        "merge": {
+          "line": 231,
+          "params": [
+            "projectPath",
+            "id"
+          ],
+          "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
+        },
         "setupIPC": {
-          "line": 151,
+          "line": 264,
           "params": [
             "ipcMain"
           ]
@@ -7103,13 +7166,17 @@
       },
       "ipc": {
         "listens": [
-          "WORKSPACE_GIT_REFRESH"
+          "WORKSPACE_GIT_REFRESH",
+          "WORKSPACE_PUSH",
+          "WORKSPACE_PR_DRAFT",
+          "WORKSPACE_PR_CREATE",
+          "WORKSPACE_PR_MERGE"
         ],
         "emits": [
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 5731,
+      "sizeBytes": 11962,
       "extraction": {
         "status": "parsed"
       },
@@ -7117,6 +7184,11 @@
         "description": "c09496f4e94b4afe",
         "purposes": {
           "getState": "dbc9f664ea1c334c",
+          "heldSpec": "e5bb998202c6ad99",
+          "merge": "c5b756ff9e37571f",
+          "prCreate": "33db61ed0da6f9aa",
+          "prDraft": "62d68c7cdebe2e3d",
+          "push": "01dc3b998b8c53d9",
           "refresh": "0316824b93954fd9",
           "rowState": "114f885ae19483b9"
         }
@@ -30549,6 +30621,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "c94d01bb34a3e9aa25659a750383e9c0744f9bc1a586bdc2a743f3de59010e90"
+    "revision": "4a2d9cef881c05048217570363b1ab6010e92d273dfe3d072d86518be2995945"
   }
 }
