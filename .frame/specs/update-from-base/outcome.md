@@ -30,3 +30,11 @@ Added 'Update from <base> (n)' to the workspace row menu from prFlow.updateMenuS
 _Captured: 2026-11-10 · 5 file change(s)_
 
 ---
+
+## T05 — Conflicts: dialog, resolve with agent, abort
+
+Added #update-conflict-modal to index.html (files list, Later / Abort update / Resolve with agent; Esc and backdrop mean Later) opened after a conflicted update, and resolveConflicts / abortUpdate in workspacePr.js reachable from the dialog, the row menu (now rendering every updateMenuState item) and the palette commands workspace.resolveConflicts / workspace.abortUpdate. Moved the agent-lane choice into workspacePr.workspaceAgentLanes and pointed reviewSection's 'Send to' at it. Abort from the dialog skips the confirm (the click is the confirmation); from the menu or palette it asks first.
+
+_Captured: 2026-11-10 · 6 file change(s)_
+
+---

@@ -14,7 +14,8 @@ const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const notify = require('./notify');
 const { escapeHtml } = require('./htmlUtils');
-const { fixChecksPrompt, updateMenuState, updateMessage } = require('../shared/prFlow');
+const { fixChecksPrompt, updateMenuState, updateMessage, conflictPrompt } = require('../shared/prFlow');
+const laneStatus = require('./laneStatus');
 
 let current = null;          // last WORKSPACE_GIT_STATE payload for the current project
 const listeners = new Set();
@@ -117,7 +118,7 @@ function menuItems(ws) {
   const items = [];
   items.push({ id: 'pr:review', label: 'Review Changes…' });
   for (const it of updateMenuState({ behind: s ? s.behind : 0, merging: !!(s && s.merging), conflicts: s ? s.conflicts : [], base: ws.base })) {
-    if (it.id === 'update:run') items.push(it);
+    items.push(it);
   }
   items.push({ id: 'pr:push', label: s && s.unpushed ? `Push (${s.unpushed})` : 'Push' });
   const blocked = prBlockedReason();
@@ -143,6 +144,8 @@ function menuItems(ws) {
 /** Run a PR-flow menu action for a workspace. Returns true when it was ours. */
 function runAction(id, ws) {
   if (id === 'update:run') { updateFromBase(ws); return true; }
+  if (id === 'update:resolve') { resolveConflicts(ws); return true; }
+  if (id === 'update:abort') { abortUpdate(ws); return true; }
   if (id === 'pr:review') { require('./reviewSection').open(ws); return true; }
   if (id === 'pr:push') { push(ws); return true; }
   if (id === 'pr:create') { openCreatePr(ws); return true; }
@@ -314,9 +317,94 @@ async function updateFromBase(ws) {
     updating.delete(ws.id);
   }
   const text = updateMessage(result);
-  if (!result || result.error || result.state === 'dirty' || result.state === 'conflict') notify.error(text);
+  if (result && result.state === 'conflict') {
+    notify.error(text);
+    const choice = await askConflictChoice(ws, result.files || []);
+    if (choice === 'resolve') await resolveConflicts(ws, result.files);
+    else if (choice === 'abort') await abortUpdate(ws, { confirmed: true });
+    return result;
+  }
+  if (!result || result.error || result.state === 'dirty') notify.error(text);
   else if (result.state === 'updated') notify.success(text);
   else notify.info(text);
+  return result;
+}
+
+/**
+ * A workspace's terminals running an agent, most recently active first:
+ * `[{ id, name, agentName }]`. The review's "Send to" and the conflict
+ * hand-off pick from the same list (default: the first, else a new lane).
+ */
+function workspaceAgentLanes(projectPath, workspaceId) {
+  let terms = [];
+  try {
+    const ui = require('./terminal').getMultiTerminalUI();
+    terms = ui ? ui.getManager().getTerminalsInScope(projectPath, workspaceId) : [];
+  } catch (_) {
+    terms = [];
+  }
+  return terms
+    .map((t) => ({ id: t.id, name: t.customName || t.name || 'Terminal', st: laneStatus.getStatus(t.id) }))
+    .filter((l) => l.st && l.st.agentName)
+    .sort((a, b) => (b.st.lastActivityAt || 0) - (a.st.lastActivityAt || 0))
+    .map((l) => ({ id: l.id, name: l.name, agentName: l.st.agentName, lastActivityAt: l.st.lastActivityAt || 0 }));
+}
+
+/** The conflict dialog. Resolves 'resolve' | 'abort' | 'later'. */
+function askConflictChoice(ws, files) {
+  const modal = document.getElementById('update-conflict-modal');
+  if (!modal) return Promise.resolve('later');
+  modal.querySelector('#uc-summary').textContent = `Merging origin/${ws.base || 'main'} into ${ws.branch} stopped on ${files.length} conflicted file${files.length === 1 ? '' : 's'}.`;
+  modal.querySelector('#uc-files').innerHTML = files.map((f) => `<li>${escapeHtml(f)}</li>`).join('');
+  modal.classList.add('visible');
+  const resolveBtn = modal.querySelector('#uc-resolve');
+  resolveBtn.focus();
+  return new Promise((resolve) => {
+    const done = (choice) => {
+      modal.classList.remove('visible');
+      modal.removeEventListener('click', onClick);
+      document.removeEventListener('keydown', onKey, true);
+      resolve(choice);
+    };
+    const onClick = (e) => {
+      if (e.target.closest('#uc-resolve')) done('resolve');
+      else if (e.target.closest('#uc-abort')) done('abort');
+      else if (e.target.closest('#uc-later') || e.target === modal) done('later');
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done('later'); }
+    };
+    modal.addEventListener('click', onClick);
+    document.addEventListener('keydown', onKey, true);
+  });
+}
+
+/**
+ * Hand a stopped update to an agent in the workspace: the most recently
+ * active agent lane, else a new one. The agent resolves and commits; the
+ * user pushes.
+ */
+async function resolveConflicts(ws, files = null) {
+  const s = rowState(ws.id);
+  const list = files || (s && s.conflicts) || [];
+  require('./workspaceSection').select(ws);
+  const lanes = workspaceAgentLanes(state.getProjectPath(), ws.id);
+  const prompt = conflictPrompt({ branch: ws.branch, base: ws.base || 'main', files: list });
+  const assignment = { kind: 'task', label: `merge ${ws.base || 'main'}: conflicts`, ref: `update-${ws.id}` };
+  const res = await require('./agentDispatch').dispatch(lanes.length
+    ? { terminalId: lanes[0].id, prompt, assignment }
+    : { createNew: true, prompt, assignment });
+  if (res && res.success) notify.success(`Sent ${list.length} conflicted file${list.length === 1 ? '' : 's'} to ${lanes.length ? lanes[0].name : 'a new agent'}`);
+  return res;
+}
+
+/** Abort a stopped update (`git merge --abort`): the branch goes back to where it was. */
+async function abortUpdate(ws, { confirmed = false } = {}) {
+  if (!confirmed && !window.confirm(`Abort the update of "${ws.name}"? The branch goes back to where it was before the merge.`)) return null;
+  const result = await ipcRenderer.invoke(IPC.WORKSPACE_UPDATE_ABORT, { projectPath: state.getProjectPath(), id: ws.id });
+  if (!result || result.error) notify.error(`Abort failed: ${(result && result.error) || 'unknown error'}`);
+  else if (result.aborted) notify.success(`Update aborted — ${ws.branch} is back where it was`);
+  else notify.info('No update in progress.');
   return result;
 }
 
@@ -341,5 +429,8 @@ module.exports = {
   fixChecks,
   openOnGitHub,
   merge,
-  updateFromBase
+  updateFromBase,
+  resolveConflicts,
+  abortUpdate,
+  workspaceAgentLanes
 };

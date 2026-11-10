@@ -28,7 +28,6 @@ const { reconcileViewed, viewedSummary, lineAnchor, composeReviewPrompt } = requ
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
-const laneStatus = require('./laneStatus');
 
 const VIEWED_KEY = 'frame-review-viewed';
 const REFRESH_DEBOUNCE_MS = 600;
@@ -381,18 +380,7 @@ function createViewport() {
 
   /** The workspace's terminals running an agent, most recently active first. */
   function agentLanes() {
-    if (!ref) return [];
-    let terms = [];
-    try {
-      const ui = require('./terminal').getMultiTerminalUI();
-      terms = ui ? ui.getManager().getTerminalsInScope(ref.projectPath, ref.workspaceId) : [];
-    } catch (_) {
-      terms = [];
-    }
-    return terms
-      .map((t) => ({ id: t.id, name: t.customName || t.name || 'Terminal', st: laneStatus.getStatus(t.id) }))
-      .filter((l) => l.st && l.st.agentName)
-      .sort((a, b) => (b.st.lastActivityAt || 0) - (a.st.lastActivityAt || 0));
+    return ref ? require('./workspacePr').workspaceAgentLanes(ref.projectPath, ref.workspaceId) : [];
   }
 
   function resolvedTarget(lanes) {
@@ -432,7 +420,7 @@ function createViewport() {
   function sendHtml() {
     const lanes = agentLanes();
     const target = resolvedTarget(lanes);
-    const options = lanes.map((l) => `<option value="${escapeHtml(l.id)}"${l.id === target ? ' selected' : ''}>${escapeHtml(l.name)} · ${escapeHtml(l.st.agentName)}</option>`).join('')
+    const options = lanes.map((l) => `<option value="${escapeHtml(l.id)}"${l.id === target ? ' selected' : ''}>${escapeHtml(l.name)} · ${escapeHtml(l.agentName)}</option>`).join('')
       + `<option value="new"${target === 'new' ? ' selected' : ''}>New agent</option>`;
     return `
       <div class="review-send">

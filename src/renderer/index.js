@@ -975,6 +975,34 @@ function registerCommands() {
     }
   });
   r({
+    id: 'workspace.resolveConflicts',
+    title: 'Resolve Update Conflicts with Agent',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!(s && s.merging);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').resolveConflicts(ws);
+    }
+  });
+  r({
+    id: 'workspace.abortUpdate',
+    title: 'Abort Workspace Update',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!(s && s.merging);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').abortUpdate(ws);
+    }
+  });
+  r({
     id: 'workspace.push',
     title: 'Push Workspace',
     category: 'Workspace',

@@ -1454,6 +1454,25 @@
     </div>
   </div>
 
+  <!-- Update from base stopped on conflicts (update-from-base) -->
+  <div id="update-conflict-modal" class="task-run-modal new-workspace-modal update-conflict-modal" role="dialog" aria-modal="true" aria-labelledby="uc-title">
+    <div class="task-run-modal-container">
+      <div class="task-run-modal-header">
+        <h3 id="uc-title">Update stopped on conflicts</h3>
+        <p id="uc-summary"></p>
+      </div>
+      <div class="task-run-modal-body">
+        <ul id="uc-files" class="uc-files"></ul>
+        <p class="uc-hint">Hand them to an agent in this workspace, or abort to put the branch back where it was. You can also decide later from the workspace's menu.</p>
+      </div>
+      <div class="task-run-modal-footer">
+        <button type="button" id="uc-later" class="task-run-btn task-run-btn-cancel">Later</button>
+        <button type="button" id="uc-abort" class="task-run-btn task-run-btn-cancel">Abort update</button>
+        <button type="button" id="uc-resolve" class="task-run-btn task-run-btn-primary">Resolve with agent</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Archive a workspace with uncommitted changes (workspaces spec): never auto-commits -->
   <div id="archive-workspace-modal" class="task-run-modal new-workspace-modal" role="dialog" aria-modal="true" aria-labelledby="aw-title">
     <div class="task-run-modal-container">

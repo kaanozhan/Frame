@@ -400,3 +400,21 @@
 
 /* Update from base stopped half-way (update-from-base) */
 .ws-badge.merging { color: var(--error); font-weight: 600; }
+
+/* Conflict dialog (update-from-base) */
+.update-conflict-modal { --modal-width: 520px; }
+.uc-files {
+  margin: 0;
+  padding: 8px 12px;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--error);
+}
+.uc-files li + li { margin-top: 3px; }
+.uc-hint { margin: 10px 0 0; font-size: 12px; color: var(--text-tertiary); }

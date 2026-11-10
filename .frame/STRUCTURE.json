@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 103336,
+      "sizeBytes": 104424,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -11974,11 +11974,11 @@
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1163,
+          "line": 1191,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1188,
+          "line": 1216,
           "params": [
             "err"
           ],
@@ -11998,7 +11998,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 43548,
+      "sizeBytes": 44463,
       "extraction": {
         "status": "parsed"
       },
@@ -13888,51 +13888,49 @@
         "state",
         "htmlUtils",
         "notify",
-        "laneStatus",
         "workspaceSection",
         "workspacePr",
-        "terminal",
         "agentDispatch"
       ],
       "functions": {
         "setHost": {
-          "line": 39,
+          "line": 38,
           "params": [
             "h"
           ]
         },
         "viewedScope": {
-          "line": 45,
+          "line": 44,
           "params": [
             "projectPath",
             "workspaceId"
           ]
         },
         "readAllViewed": {
-          "line": 49
+          "line": 48
         },
         "loadViewed": {
-          "line": 58,
+          "line": 57,
           "params": [
             "scope"
           ]
         },
         "saveViewed": {
-          "line": 63,
+          "line": 62,
           "params": [
             "scope",
             "viewed"
           ]
         },
         "open": {
-          "line": 76,
+          "line": 75,
           "params": [
             "ws"
           ],
           "purpose": "Open the review of a workspace record (`{ id, name, path, branch, base }`)."
         },
         "createViewport": {
-          "line": 91
+          "line": 90
         }
       },
       "ipc": {
@@ -13941,7 +13939,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 25464,
+      "sizeBytes": 25014,
       "extraction": {
         "status": "parsed"
       },
@@ -16618,7 +16616,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 8243,
+      "sizeBytes": 8744,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -18115,7 +18113,10 @@
         "fixChecks",
         "openOnGitHub",
         "merge",
-        "updateFromBase"
+        "updateFromBase",
+        "resolveConflicts",
+        "abortUpdate",
+        "workspaceAgentLanes"
       ],
       "depends": [
         "electron",
@@ -18124,64 +18125,66 @@
         "notify",
         "htmlUtils",
         "shared/prFlow",
+        "laneStatus",
         "reviewSection",
         "workspaceSection",
-        "agentDispatch"
+        "agentDispatch",
+        "terminal"
       ],
       "functions": {
         "onChange": {
-          "line": 22,
+          "line": 23,
           "params": [
             "cb"
           ]
         },
         "emit": {
-          "line": 27
+          "line": 28
         },
         "refresh": {
-          "line": 34,
+          "line": 35,
           "purpose": "Ask main for fresh state of the current project (and make it the polled one)."
         },
         "init": {
-          "line": 48
+          "line": 49
         },
         "rowState": {
-          "line": 63,
+          "line": 64,
           "params": [
             "id"
           ],
           "purpose": "Row state of a workspace, or null before the first read."
         },
         "access": {
-          "line": 68,
+          "line": 69,
           "purpose": "GitHub access of the current project: `{ gh, authed, repoName }`."
         },
         "prBlockedReason": {
-          "line": 73,
+          "line": 74,
           "purpose": "Why PR actions are unavailable, or null when they are."
         },
         "checksDot": {
-          "line": 81,
+          "line": 82,
           "params": [
             "pr"
           ]
         },
         "rowBadgesHtml": {
-          "line": 90,
+          "line": 91,
           "params": [
             "ws"
           ],
           "purpose": "Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR."
         },
         "menuItems": {
-          "line": 114,
+          "line": 115,
           "params": [
             "ws"
           ],
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 144,
+          "line": 145,
           "params": [
             "id",
             "ws"
@@ -18189,41 +18192,73 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 157,
+          "line": 160,
           "params": [
             "ws"
           ]
         },
         "openCreatePr": {
-          "line": 174,
+          "line": 177,
           "params": [
             "ws"
           ],
           "purpose": "The Create PR dialog: main composes the title/body (from the workspace's"
         },
         "fixChecks": {
-          "line": 255,
+          "line": 258,
           "params": [
             "ws"
           ],
           "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
         },
         "merge": {
-          "line": 275,
+          "line": 278,
           "params": [
             "ws"
           ],
           "purpose": "Merge the workspace's PR with the project's method (main decides: the"
         },
         "updateFromBase": {
-          "line": 304,
+          "line": 307,
           "params": [
             "ws"
           ],
           "purpose": "Fetch the base and merge it into the workspace branch (main decides; see"
         },
+        "workspaceAgentLanes": {
+          "line": 338,
+          "params": [
+            "projectPath",
+            "workspaceId"
+          ],
+          "purpose": "A workspace's terminals running an agent, most recently active first:"
+        },
+        "askConflictChoice": {
+          "line": 354,
+          "params": [
+            "ws",
+            "files"
+          ],
+          "purpose": "The conflict dialog. Resolves 'resolve' | 'abort' | 'later'."
+        },
+        "resolveConflicts": {
+          "line": 387,
+          "params": [
+            "ws",
+            "files = null"
+          ],
+          "purpose": "Hand a stopped update to an agent in the workspace: the most recently"
+        },
+        "abortUpdate": {
+          "line": 402,
+          "params": [
+            "ws",
+            "{ confirmed = false } = {}"
+          ],
+          "purpose": "Abort a stopped update (`git merge --abort`): the branch goes back to where it was."
+        },
         "openOnGitHub": {
-          "line": 324,
+          "line": 412,
           "params": [
             "ws"
           ],
@@ -18238,14 +18273,16 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 14137,
+      "sizeBytes": 18498,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "6f7f1921665ca854",
         "purposes": {
+          "abortUpdate": "7e9e90ddfeac9c68",
           "access": "07aeb542835bc462",
+          "askConflictChoice": "da8fe023e7e36b8f",
           "fixChecks": "04c4c6acd7c5b223",
           "menuItems": "6cf670bca1da203e",
           "merge": "69bc6adb5bacd318",
@@ -18253,10 +18290,12 @@
           "openOnGitHub": "b2731eff4841fa86",
           "prBlockedReason": "24c624a5061312d9",
           "refresh": "8faf0bd876257b8e",
+          "resolveConflicts": "87f9236dd02b44fa",
           "rowBadgesHtml": "299a6e285b813ca9",
           "rowState": "4f19edd01cc50b2a",
           "runAction": "116f81971cd5dbb7",
-          "updateFromBase": "c7ba999ebabec872"
+          "updateFromBase": "c7ba999ebabec872",
+          "workspaceAgentLanes": "4887435f066d0f9f"
         }
       }
     },
@@ -31196,6 +31235,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "7f5268ad0760bc0905a8822b1c5bd797d2edc1c0f24bcb73c21550133c2e9513"
+    "revision": "a38de7d5efc96d068c38b251b28482a0d23ae7bd4f77d462e2870f58f0d47387"
   }
 }
