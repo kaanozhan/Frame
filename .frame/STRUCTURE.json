@@ -2666,6 +2666,10 @@
         "pushBranch",
         "commitSubjects",
         "fastForwardIfOn",
+        "mergeInProgress",
+        "conflictedFiles",
+        "mergeRef",
+        "abortMerge",
         "getHeadSha",
         "branchExists",
         "createOrchWorktree",
@@ -2904,28 +2908,64 @@
           ],
           "purpose": "After a PR merges: fast-forward the main checkout's `branch` from origin —"
         },
-        "orchWorktreePath": {
+        "trackedDirtyCount": {
           "line": 598,
+          "params": [
+            "cwd"
+          ],
+          "purpose": "Uncommitted changes to tracked files (untracked files never block a merge on their own)."
+        },
+        "mergeInProgress": {
+          "line": 608,
+          "params": [
+            "cwd"
+          ],
+          "purpose": "Is a merge stopped half-way (MERGE_HEAD present)?"
+        },
+        "conflictedFiles": {
+          "line": 618,
+          "params": [
+            "cwd"
+          ],
+          "purpose": "Raw `-z` list of unmerged paths (parse with prFlow.parseConflicts); '' when none or unreadable."
+        },
+        "mergeRef": {
+          "line": 628,
+          "params": [
+            "cwd",
+            "ref"
+          ],
+          "purpose": "`git merge --no-edit <ref>` → `{ ok, error }`; never throws."
+        },
+        "abortMerge": {
+          "line": 639,
+          "params": [
+            "cwd"
+          ],
+          "purpose": "`git merge --abort` → `{ error }`."
+        },
+        "orchWorktreePath": {
+          "line": 654,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 602,
+          "line": 658,
           "params": [
             "projectPath"
           ]
         },
         "branchExists": {
-          "line": 611,
+          "line": 667,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 625,
+          "line": 681,
           "params": [
             "projectPath",
             "slug"
@@ -2933,7 +2973,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 646,
+          "line": 702,
           "params": [
             "projectPath",
             "slug",
@@ -2942,7 +2982,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 661,
+          "line": 717,
           "params": [
             "projectPath",
             "slug",
@@ -2951,7 +2991,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 678,
+          "line": 734,
           "params": [
             "projectPath",
             "slug"
@@ -2959,7 +2999,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 697,
+          "line": 753,
           "params": [
             "projectPath",
             "slug"
@@ -2967,14 +3007,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 713,
+          "line": 769,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 733,
+          "line": 789,
           "params": [
             "ipcMain"
           ],
@@ -2996,17 +3036,19 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 29452,
+      "sizeBytes": 31459,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "de7834a9081f3c52",
         "purposes": {
+          "abortMerge": "1c8c79ef0cf54963",
           "addWorkspaceWorktree": "d78c10d4c9ceebc5",
           "addWorktree": "9d5960b0200f2941",
           "commitAll": "0a26f011c0016854",
           "commitSubjects": "f6193395316a2fc0",
+          "conflictedFiles": "37b3d6551b0cd495",
           "createBranch": "b25c5d90b1a1893a",
           "createOrchWorktree": "360f17a3e8ed35d7",
           "defaultRemoteBranch": "2b8cac1668d02128",
@@ -3024,6 +3066,8 @@
           "loadBranches": "cb990681d8be2c86",
           "loadWorktrees": "e1f5dd6ccfd9f107",
           "localBranchExists": "d399d1abf0bf3f60",
+          "mergeInProgress": "3a03486c03657467",
+          "mergeRef": "2e98a7d4780d893c",
           "mergeWorkToIntegration": "5fdd31c529fff0f9",
           "pushBranch": "c8d00a721133a471",
           "removeOrchWorktree": "ee09f7af04806f80",
@@ -3032,6 +3076,7 @@
           "revCount": "01cb38e9254e5fe0",
           "setupIPC": "b41c7437e6910eb5",
           "switchBranch": "7059dba0b5b50f79",
+          "trackedDirtyCount": "9504f62bbad64673",
           "upstreamOf": "84d76c6eee8271fe",
           "worktreeChangedFiles": "d674ac8f88bfbf50",
           "worktreeStatus": "971fca8791873b46"
@@ -31111,6 +31156,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "0cbd2c0eefe8f775723a519c5227766c65c32db3cd66f7d5408c0d4e4ad86f75"
+    "revision": "4734f64df5efa3fb90ac3a5c7fcfa1066be19e32665f6938bcb768099f1dcd0b"
   }
 }

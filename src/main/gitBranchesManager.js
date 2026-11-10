@@ -589,6 +589,62 @@ async function fastForwardIfOn(projectPath, branch) {
   }
 }
 
+// ─── Update from base (update-from-base) ──────────────────
+//
+// The workspace branch takes the base in with a plain merge (never a
+// rebase, never a push). Every helper runs argv in the worktree.
+
+/** Uncommitted changes to tracked files (untracked files never block a merge on their own). */
+async function trackedDirtyCount(cwd) {
+  try {
+    const { stdout } = await execGitArgs(['status', '--porcelain', '--untracked-files=no'], cwd, { maxBuffer: LIST_MAX_BUFFER });
+    return stdout ? stdout.split('\n').filter(Boolean).length : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+/** Is a merge stopped half-way (MERGE_HEAD present)? */
+async function mergeInProgress(cwd) {
+  try {
+    await execGitArgs(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], cwd);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/** Raw `-z` list of unmerged paths (parse with prFlow.parseConflicts); '' when none or unreadable. */
+async function conflictedFiles(cwd) {
+  try {
+    const { stdout } = await execGitArgs(['diff', '--name-only', '--diff-filter=U', '-z'], cwd, { maxBuffer: LIST_MAX_BUFFER });
+    return stdout;
+  } catch (_) {
+    return '';
+  }
+}
+
+/** `git merge --no-edit <ref>` → `{ ok, error }`; never throws. */
+async function mergeRef(cwd, ref) {
+  if (!cwd || !ref) return { ok: false, error: 'Missing parameters' };
+  try {
+    await execGitArgs(['merge', '--no-edit', ref], cwd, { timeout: PUSH_TIMEOUT_MS, maxBuffer: LIST_MAX_BUFFER });
+    return { ok: true, error: null };
+  } catch (err) {
+    return { ok: false, error: err.error || err.message };
+  }
+}
+
+/** `git merge --abort` → `{ error }`. */
+async function abortMerge(cwd) {
+  try {
+    await execGitArgs(['merge', '--abort'], cwd, { timeout: PUSH_TIMEOUT_MS });
+    return { error: null };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
 // ─── Orchestration helpers ────────────────────────────────
 //
 // Worker worktrees for orchestration live under .frame/worktrees/<slug> on a
@@ -802,6 +858,12 @@ module.exports = {
   pushBranch,
   commitSubjects,
   fastForwardIfOn,
+  // Update from base (update-from-base)
+  trackedDirtyCount,
+  mergeInProgress,
+  conflictedFiles,
+  mergeRef,
+  abortMerge,
   // Orchestration helpers
   orchWorktreePath,
   getHeadSha,
