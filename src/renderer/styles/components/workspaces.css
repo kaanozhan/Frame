@@ -442,3 +442,26 @@
 .sb-server[data-state="connecting"] .sb-server-dot,
 .sb-server[data-state="reconnecting"] .sb-server-dot { background: var(--warning); }
 .sb-server[data-state="error"] .sb-server-dot { background: var(--error); }
+
+/* Server workspaces in the list (server-workspaces) */
+.ws-loc {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 15px;
+  color: var(--info, #a6c0f0);
+  vertical-align: 1px;
+}
+.ws-row.server.offline .ws-labels { opacity: 0.55; }
+.ws-row.server.offline .ws-loc { color: var(--warning); }
+.nw-location-hint { margin: 6px 0 0; font-size: 11px; color: var(--text-tertiary); }
+.ws-server-placeholder {
+  padding: 16px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}

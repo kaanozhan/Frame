@@ -90,6 +90,7 @@ async function open() {
   modalEl.querySelector('#nw-branch').value = '';
   modalEl.querySelector('input[name="nw-from"][value="new"]').checked = true;
   modalEl.querySelector('#nw-error').textContent = '';
+  syncLocation();
   setBusy(false);
   modalEl.classList.add('visible');
   syncFrom();
@@ -110,6 +111,32 @@ async function open() {
   baseInput.dataset.project = projectPath;
   const names = [...new Set([...branchNames.local, ...branchNames.remote])].sort();
   modalEl.querySelector('#nw-branches').innerHTML = names.map((n) => `<option value="${escapeHtml(n)}"></option>`).join('');
+}
+
+/**
+ * Location (server-workspaces): "This Mac", or the server Frame is
+ * connected to. Shown once a server has been used; the server option is
+ * disabled while the link is down.
+ */
+function syncLocation() {
+  const row = modalEl.querySelector('#nw-location-row');
+  const sel = modalEl.querySelector('#nw-location');
+  const hint = modalEl.querySelector('#nw-location-hint');
+  const s = require('./serverConnect').getStatus();
+  const host = s.host || (s.saved && s.saved.host);
+  row.hidden = !host;
+  if (!host) { sel.innerHTML = '<option value="local">This Mac</option>'; return; }
+  const up = s.state === 'connected';
+  const keep = sel.value === 'server' && up ? 'server' : 'local';
+  sel.innerHTML = `<option value="local">This Mac</option><option value="server"${up ? '' : ' disabled'}>Server · ${escapeHtml(host)}${up ? '' : ' (not connected)'}</option>`;
+  sel.value = keep;
+  const paint = () => {
+    hint.textContent = sel.value === 'server'
+      ? 'Cloned from the remote on the server; terminals and agents run there and keep running while this Mac is away.'
+      : '';
+  };
+  sel.onchange = paint;
+  paint();
 }
 
 function close() {
@@ -143,6 +170,7 @@ async function submit() {
   try {
     result = await ipcRenderer.invoke(IPC.WORKSPACE_CREATE, {
       projectPath,
+      location: modalEl.querySelector('#nw-location').value || 'local',
       from,
       base: from === 'new' ? (base || undefined) : undefined,
       branch: from === 'branch' ? branch : undefined

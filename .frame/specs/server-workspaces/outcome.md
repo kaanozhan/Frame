@@ -54,3 +54,11 @@ Added src/renderer/serverConnect.js and its #server-connect-modal in index.html 
 _Captured: 2026-11-10 · 6 file change(s)_
 
 ---
+
+## T08 — Location-aware workspaces
+
+workspaceManager now lists the connected server's workspaces next to local ones (location 'server', host; last known rows stay as offline while disconnected), finds a project's server clone by remote URL, and routes create (location 'server' ensures the clone first), status, rename and archive to the server; WORKSPACES_UPDATED follows server events and connect/disconnect. The New Workspace dialog gained a Location field (This Mac / Server · host, disabled when not connected); server rows carry a host tag or 'offline', offer only rename/archive, and show no PR badges; PR/review/update palette commands use selectedLocalWorkspace; selecting a server workspace unwatches git status and puts a 'later update' note in the file tree. Added workspaces.status on the server. Deviations: workspaceRegistry.createRecord did not need a location (the server keeps its own records; the desktop tags rows), and src/main/gitBranchesManager.js (outside the plan's footprint) now treats ENOENT from a missing working directory as 'folder not found' instead of latching 'git is not installed' for the session — a pre-existing bug that turned git off on the server after the first archive (and on the desktop after any call in a deleted folder).
+
+_Captured: 2026-11-10 · 9 file change(s)_
+
+---

@@ -142,6 +142,7 @@ function select(ws) {
   }
   if (ws.missing) return;
   state.setWorkspace({ id: ws.id, root: ws.path, name: ws.name, branch: ws.branch });
+  if (ws.location === 'server') return; // its tooling lives on the server
   // Refresh Frame's tooling in the worktree (hooks, staged templates, spec
   // index) so the agents about to run there see what main sees.
   ipcRenderer.invoke(IPC.WORKSPACE_PROVISION, { projectPath: state.getProjectPath(), id: ws.id })
@@ -183,13 +184,14 @@ function dotHtml(summary) {
 function rowHtml(ws, { selectedId, sums }) {
   const on = ws.id === selectedId ? ' on' : '';
   const missing = ws.missing ? ' missing' : '';
+  const where = ws.location === 'server' ? ` server${ws.offline ? ' offline' : ''}` : '';
   const editing = renaming && renaming.id === ws.id;
   const primary = editing && renaming.field === 'branch'
     ? `<input class="ws-rename" data-field="branch" value="${escapeHtml(ws.branch)}" spellcheck="false">`
     : `<span class="ws-primary" title="${escapeHtml(ws.branch)}">${escapeHtml(ws.branch)}</span>`;
   const secondary = editing && renaming.field === 'name'
     ? `<input class="ws-rename" data-field="name" value="${escapeHtml(ws.name)}" spellcheck="false">`
-    : `<span class="ws-secondary">${escapeHtml(ws.name)}${ws.missing ? ' · missing' : ''}</span>`;
+    : `<span class="ws-secondary">${escapeHtml(ws.name)}${ws.missing ? ' · missing' : ''}${ws.location === 'server' ? `<span class="ws-loc" title="${ws.offline ? 'Offline — ' : ''}Runs on the server ${escapeHtml(ws.host || '')}">${ws.offline ? 'offline' : escapeHtml(ws.host || 'server')}</span>` : ''}</span>`;
   // The spec this workspace holds (spec-in-workspace): one click opens it.
   const held = specsByWorkspace.get(ws.id) || [];
   const specLine = held.length && !ws.missing
@@ -200,7 +202,7 @@ function rowHtml(ws, { selectedId, sums }) {
        <button class="ws-act" data-act="remove-record" type="button" title="Forget this workspace">Remove</button>`
     : `<button class="ws-more" data-act="menu" type="button" aria-label="Workspace actions" title="Workspace actions">⋯</button>`;
   return `
-    <div class="ws-row${on}${missing}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="button" aria-pressed="${!!on}">
+    <div class="ws-row${on}${missing}${where}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="button" aria-pressed="${!!on}">
       ${dotHtml(rollup.summaryFor(sums, ws.id))}
       <span class="ws-labels">${primary}${secondary}${specLine}${workspacePr.rowBadgesHtml(ws)}</span>
       ${trailing}
@@ -319,7 +321,8 @@ let menuTarget = null;
 function showMenu(ws, x, y) {
   menuTarget = ws;
   // The PR flow's actions first (push, PR…), then the workspace's own.
-  const prItems = workspacePr.menuItems(ws);
+  // Server workspaces: their review / PR flow comes in a later update.
+  const prItems = ws.location === 'server' ? [] : workspacePr.menuItems(ws);
   const items = [
     ...prItems,
     ...(prItems.length ? [{ separator: true }] : []),
@@ -489,6 +492,12 @@ function askArchiveChoice(ws, count) {
   });
 }
 
+/** The selected workspace when it is on this Mac (the PR flow and review need a local checkout). */
+function selectedLocalWorkspace() {
+  const ws = selectedWorkspace();
+  return ws && ws.location !== 'server' ? ws : null;
+}
+
 /** The selected workspace's record, or null on main. */
 function selectedWorkspace() {
   const ws = state.getWorkspace();
@@ -547,6 +556,7 @@ function getWorkspaces() {
 }
 
 module.exports = {
+  selectedLocalWorkspace,
   init,
   load,
   render,

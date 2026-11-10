@@ -89,6 +89,7 @@ function checksDot(pr) {
 
 /** Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR. */
 function rowBadgesHtml(ws) {
+  if (ws.location === 'server') return '';
   const s = rowState(ws.id);
   if (!s || ws.missing) return '';
   const parts = [];

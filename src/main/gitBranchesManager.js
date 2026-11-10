@@ -71,6 +71,13 @@ function execGitArgs(args, projectPath, opts = {}) {
   return new Promise((resolve, reject) => {
     execFile('git', args, { cwd: projectPath, timeout, maxBuffer }, (error, stdout, stderr) => {
       if (error) {
+        // spawn reports a missing working directory as ENOENT too (a
+        // workspace folder removed by archive): that is not "git missing",
+        // and must not switch git off for the rest of the session.
+        if (error.code === 'ENOENT' && projectPath && !fs.existsSync(projectPath)) {
+          reject({ error: `Folder not found: ${projectPath}` });
+          return;
+        }
         if (error.code === 'ENOENT' || error.code === 127) {
           if (!gitMissing) {
             gitMissing = true;

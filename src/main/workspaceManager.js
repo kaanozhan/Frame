@@ -37,6 +37,7 @@ const queues = new Map(); // projectPath → tail promise
 
 function init(window) {
   mainWindow = window;
+  try { wireServerEvents(); } catch (err) { logger.warn('workspaces', `server events not wired: ${err.message}`); }
 }
 
 /** Run `fn` after every earlier mutation for this project has settled. */
@@ -131,8 +132,139 @@ async function copyIgnoredFiles(projectPath, worktreePath) {
 // ─── Queries ─────────────────────────────────────────────────
 
 /** Records reconciled against `git worktree list`; `isRepo` false when git cannot read the project. */
+// ─── Server workspaces (server-workspaces spec) ──────────────
+//
+// Workspaces can also live on the connected Frame Server. The server keeps
+// their records (its own workspaceManager, same rules); this side lists
+// them next to the local ones with `location: 'server'` and routes create,
+// status, rename and archive by location. A desktop project finds its server
+// clone by remote URL. While disconnected, the last known server rows stay
+// listed as `offline`.
+
+const serverRows = new Map(); // local projectPath → { serverProjectPath, host, rows }
+
+function server() {
+  return require('./serverConnection');
+}
+
+async function originOf(projectPath) {
+  try {
+    const { stdout } = await git.execGitArgs(['remote', 'get-url', 'origin'], projectPath);
+    return stdout.trim() || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** The server's clone of `projectPath` (by remote), cloning it when `ensure`. */
+async function serverProjectFor(projectPath, { ensure = false } = {}) {
+  const origin = await originOf(projectPath);
+  if (!origin) {
+    if (ensure) throw new Error('This project has no git remote — push it to a remote first, then create a server workspace.');
+    return null;
+  }
+  if (ensure) {
+    const res = await server().call('projects.ensure', { originUrl: origin }, 11 * 60 * 1000);
+    return res.projectPath;
+  }
+  const cached = serverRows.get(projectPath);
+  if (cached && cached.serverProjectPath) return cached.serverProjectPath;
+  const { sameRemote } = require('../shared/serverRouting');
+  const clones = await server().call('projects.list', {});
+  const { normalizeRemoteUrl } = require('../shared/serverRouting');
+  const want = normalizeRemoteUrl(origin);
+  // The server reports normalized remotes; compare in that form.
+  const hit = (clones || []).find((c) => c.remote && (c.remote === want || sameRemote(c.remote, origin)));
+  return hit ? hit.projectPath : null;
+}
+
+function toServerRow(row, serverProjectPath, host) {
+  return { ...row, location: 'server', host, serverProjectPath };
+}
+
+async function listServer(projectPath) {
+  const prev = serverRows.get(projectPath);
+  const offline = () => (prev ? prev.rows.map((r) => ({ ...r, offline: true })) : []);
+  if (!server().isConnected()) return offline();
+  try {
+    const sp = await serverProjectFor(projectPath);
+    if (!sp) { serverRows.delete(projectPath); return []; }
+    const res = await server().call('workspaces.list', { projectPath: sp });
+    const host = server().getStatus().host;
+    const rows = ((res && res.workspaces) || []).map((w) => toServerRow(w, sp, host));
+    serverRows.set(projectPath, { serverProjectPath: sp, host, rows });
+    return rows;
+  } catch (err) {
+    logger.warn('workspaces', `server workspaces for ${projectPath}: ${err.message}`);
+    return offline();
+  }
+}
+
+/** Where a workspace id lives on the server, or null when it is not a server workspace. */
+function serverLocation(workspaceId) {
+  for (const [projectPath, entry] of serverRows) {
+    const row = entry.rows.find((r) => r.id === workspaceId);
+    if (row) return { projectPath, serverProjectPath: entry.serverProjectPath, path: row.path, host: entry.host, name: row.name };
+  }
+  return null;
+}
+
+function serverCall(method, projectPath, id, extra = {}) {
+  const loc = serverLocation(id);
+  if (!loc) return null;
+  if (!server().isConnected()) return Promise.resolve({ error: `Not connected to ${loc.host || 'the server'}.` });
+  return server().call(method, { projectPath: loc.serverProjectPath, id, ...extra }, 11 * 60 * 1000)
+    .then((res) => { notifyRenderer(projectPath); return res; })
+    .catch((err) => ({ error: err.message }));
+}
+
+async function createOnServer(projectPath, { from, base, branch }) {
+  if (!server().isConnected()) return { error: 'Connect to a server first (File ▸ Connect to Server…).' };
+  try {
+    const sp = await serverProjectFor(projectPath, { ensure: true });
+    const res = await server().call('workspaces.create', { projectPath: sp, from, base, branch }, 11 * 60 * 1000);
+    if (!res || res.error) return { error: (res && res.error) || 'Could not create the workspace on the server.' };
+    const host = server().getStatus().host;
+    const workspace = toServerRow(res.workspace, sp, host);
+    const entry = serverRows.get(projectPath) || { serverProjectPath: sp, host, rows: [] };
+    entry.rows = [...entry.rows.filter((r) => r.id !== workspace.id), workspace];
+    serverRows.set(projectPath, entry);
+    notifyRenderer(projectPath);
+    return { error: null, workspace, copied: [], fetch: res.fetch, setupScript: res.setupScript, location: 'server' };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/** Tell the renderer only (no spec/git refresh — those are local concerns). */
+function notifyRenderer(projectPath) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.WORKSPACES_UPDATED, { projectPath });
+}
+
+let serverWired = false;
+function wireServerEvents() {
+  if (serverWired) return;
+  serverWired = true;
+  const sc = server();
+  sc.on('workspaces.updated', ({ projectPath: sp } = {}) => {
+    for (const [projectPath, entry] of serverRows) if (entry.serverProjectPath === sp) notifyRenderer(projectPath);
+  });
+  const all = () => {
+    for (const p of projectRegistry.getProjects()) notifyRenderer(p.path);
+  };
+  sc.on('connected', all);
+  sc.on('disconnected', all);
+}
+
 async function list(projectPath) {
   if (!projectPath) return { error: 'No project selected', isRepo: false, workspaces: [], archived: [] };
+  const local = await listLocal(projectPath);
+  if (local.error || !local.isRepo) return local;
+  const remote = await listServer(projectPath);
+  return { ...local, workspaces: [...local.workspaces.map((w) => ({ ...w, location: 'local' })), ...remote] };
+}
+
+async function listLocal(projectPath) {
   const { error, worktrees } = await git.loadWorktrees(projectPath);
   if (error) return { error, isRepo: false, workspaces: [], archived: [] };
   // `git worktree list` keeps a deleted folder until `worktree prune`, so a
@@ -148,6 +280,8 @@ async function list(projectPath) {
 }
 
 async function status(projectPath, id) {
+  const routed = serverCall('workspaces.status', projectPath, id);
+  if (routed) return routed;
   const record = registry.findById(records(projectPath), id);
   if (!record) return { error: `No workspace "${id}".`, dirty: false, count: 0 };
   return git.worktreeStatus(record.path);
@@ -161,8 +295,9 @@ async function status(projectPath, id) {
  *                    first; a failed fetch falls back to what is local)
  *   from: 'branch' → an existing branch (local, or remote-only via git's DWIM)
  */
-async function create(projectPath, { from = 'new', base, branch } = {}) {
+async function create(projectPath, { from = 'new', base, branch, location = 'local' } = {}) {
   if (!projectPath) return { error: 'No project selected' };
+  if (location === 'server') return createOnServer(projectPath, { from, base, branch });
   const { error: gitError } = await git.loadWorktrees(projectPath);
   if (gitError) return { error: 'This project is not a git repository.' };
 
@@ -257,6 +392,8 @@ async function refExists(ref, projectPath) {
  * as `.env` and `node_modules`); the branch is kept.
  */
 async function archive(projectPath, id, { action, message } = {}) {
+  const routed = serverCall('workspaces.archive', projectPath, id, { action, message });
+  if (routed) return routed;
   const current = records(projectPath);
   const record = registry.findById(current, id);
   if (!record) return { error: `No workspace "${id}".` };
@@ -321,6 +458,8 @@ async function restore(projectPath, id) {
 
 /** Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`). */
 async function rename(projectPath, id, { name, branch } = {}) {
+  const routed = serverCall('workspaces.rename', projectPath, id, { name, branch });
+  if (routed) return routed;
   const current = records(projectPath);
   const record = registry.findById(current, id);
   if (!record) return { error: `No workspace "${id}".` };
@@ -390,6 +529,7 @@ module.exports = {
   setupIPC,
   workspacesRoot,
   list,
+  serverLocation,
   status,
   create,
   archive,
