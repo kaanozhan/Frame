@@ -51,7 +51,20 @@ function getFileExtension(filePath) {
  * Setup IPC handlers
  */
 function setupIPC(ipcMain) {
-  ipcMain.on(IPC.READ_FILE, (event, filePath) => {
+  const serverPanels = require('./serverPanels');
+  ipcMain.on(IPC.READ_FILE, async (event, filePath) => {
+    // A server workspace's file is read on the server, read-only (server-workspace-panels).
+    const remote = serverPanels.rootOf(filePath);
+    if (remote) {
+      let result;
+      try {
+        result = await serverPanels.call(remote, 'files.read', { filePath });
+      } catch (err) {
+        result = { success: false, error: err.message, filePath, readOnly: true, extension: getFileExtension(filePath), fileName: path.basename(filePath) };
+      }
+      if (!event.sender.isDestroyed()) event.sender.send(IPC.FILE_CONTENT, result);
+      return;
+    }
     const result = readFile(filePath);
     result.extension = getFileExtension(filePath);
     result.fileName = path.basename(filePath);
@@ -59,6 +72,10 @@ function setupIPC(ipcMain) {
   });
 
   ipcMain.on(IPC.WRITE_FILE, (event, { filePath, content }) => {
+    if (serverPanels.rootOf(filePath)) {
+      event.sender.send(IPC.FILE_SAVED, { success: false, error: serverPanels.READ_ONLY_FILES, filePath });
+      return;
+    }
     const result = writeFile(filePath, content);
     event.sender.send(IPC.FILE_SAVED, result);
   });

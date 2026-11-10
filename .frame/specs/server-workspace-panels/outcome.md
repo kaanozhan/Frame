@@ -22,3 +22,11 @@ Added pr.refresh / pr.push / pr.draft / pr.create / pr.merge and update.run / up
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T04 — Desktop routing for the file tree and file reads
+
+Added src/main/serverPanels.js (rootOf via workspaceManager.serverRoots() and serverRootFor, call with an '<host> is offline' error while disconnected, read-only messages) and workspaceManager.serverRoots() (known server workspace folders, last known ones kept while offline). LOAD_FILE_TREE (fileTree.js) and READ_FILE (fileEditor.js) route by path to files.tree/files.read; WRITE_FILE and file-tree rename/paste/trash are refused under a server root (paste checks source and destination). An offline tree answers [] (the renderer shows the offline note in T08).
+
+_Captured: 2026-11-10 · 4 file change(s)_
+
+---

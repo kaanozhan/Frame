@@ -1654,7 +1654,8 @@
       "depends": [
         "fs",
         "path",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "serverPanels"
       ],
       "functions": {
         "init": {
@@ -1704,7 +1705,7 @@
           "FILE_SAVED"
         ]
       },
-      "sizeBytes": 1490,
+      "sizeBytes": 2275,
       "extraction": {
         "status": "parsed"
       },
@@ -1730,7 +1731,8 @@
         "fs",
         "path",
         "electron",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "serverPanels"
       ],
       "functions": {
         "getFileTree": {
@@ -1808,7 +1810,7 @@
           "FILE_TREE_DATA"
         ]
       },
-      "sizeBytes": 6051,
+      "sizeBytes": 6773,
       "extraction": {
         "status": "parsed"
       },
@@ -5735,6 +5737,64 @@
         }
       }
     },
+    "main/serverPanels": {
+      "file": "src/main/serverPanels.js",
+      "description": "Server panels — the desktop half of routing a server workspace's panels",
+      "exports": [
+        "rootOf",
+        "call",
+        "offlineError",
+        "READ_ONLY_FILES",
+        "READ_ONLY_ACTIONS"
+      ],
+      "depends": [
+        "shared/serverRouting",
+        "serverConnection",
+        "workspaceManager"
+      ],
+      "functions": {
+        "server": {
+          "line": 22
+        },
+        "roots": {
+          "line": 26
+        },
+        "rootOf": {
+          "line": 35,
+          "params": [
+            "p"
+          ],
+          "purpose": "The server workspace a path belongs to: `{ root, host, id, projectPath, serverProjectPath }`, or null."
+        },
+        "offlineError": {
+          "line": 41,
+          "params": [
+            "entry"
+          ]
+        },
+        "call": {
+          "line": 46,
+          "params": [
+            "entry",
+            "method",
+            "params",
+            "timeoutMs"
+          ],
+          "purpose": "A server call for a routed panel; rejects with the offline error while disconnected."
+        }
+      },
+      "sizeBytes": 1982,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "04141028083ea787",
+        "purposes": {
+          "call": "31fa5a587531cd4f",
+          "rootOf": "2ee6cf11730dd053"
+        }
+      }
+    },
     "main/sessionRestore": {
       "file": "src/main/sessionRestore.js",
       "description": "Session restore — the main-process half (restore-ai-sessions-on-relaunch).",
@@ -7593,6 +7653,7 @@
         "workspacesRoot",
         "list",
         "serverLocation",
+        "serverRoots",
         "status",
         "create",
         "archive",
@@ -7724,15 +7785,19 @@
             "projectPath"
           ]
         },
+        "serverRoots": {
+          "line": 208,
+          "purpose": "Every known server workspace folder (server-workspace-panels): what panel"
+        },
         "serverLocation": {
-          "line": 204,
+          "line": 219,
           "params": [
             "workspaceId"
           ],
           "purpose": "Where a workspace id lives on the server, or null when it is not a server workspace."
         },
         "serverCall": {
-          "line": 212,
+          "line": 227,
           "params": [
             "method",
             "projectPath",
@@ -7741,7 +7806,7 @@
           ]
         },
         "createOnServer": {
-          "line": 221,
+          "line": 236,
           "params": [
             "projectPath",
             "{ from",
@@ -7750,36 +7815,36 @@
           ]
         },
         "notifyRenderer": {
-          "line": 240,
+          "line": 255,
           "params": [
             "projectPath"
           ],
           "purpose": "Tell the renderer only (no spec/git refresh — those are local concerns)."
         },
         "wireServerEvents": {
-          "line": 245
+          "line": 260
         },
         "list": {
-          "line": 259,
+          "line": 274,
           "params": [
             "projectPath"
           ]
         },
         "listLocal": {
-          "line": 267,
+          "line": 282,
           "params": [
             "projectPath"
           ]
         },
         "status": {
-          "line": 282,
+          "line": 297,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 298,
+          "line": 313,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -7790,14 +7855,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 378,
+          "line": 393,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 394,
+          "line": 409,
           "params": [
             "projectPath",
             "id",
@@ -7807,7 +7872,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 435,
+          "line": 450,
           "params": [
             "projectPath",
             "id"
@@ -7815,7 +7880,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 460,
+          "line": 475,
           "params": [
             "projectPath",
             "id",
@@ -7825,7 +7890,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 486,
+          "line": 501,
           "params": [
             "projectPath",
             "id"
@@ -7833,7 +7898,7 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 502,
+          "line": 517,
           "params": [
             "ipcMain"
           ]
@@ -7856,7 +7921,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 22569,
+      "sizeBytes": 23118,
       "extraction": {
         "status": "parsed"
       },
@@ -7873,6 +7938,7 @@
           "serialize": "e12d4daf0f07ad77",
           "serverLocation": "a527f36a1d60a981",
           "serverProjectFor": "e6b28242755cee20",
+          "serverRoots": "a6296ff018796775",
           "workspacesRoot": "c775b00e7f51ade2"
         }
       }
@@ -31691,6 +31757,18 @@
         "description": "Sessions Panel"
       }
     ],
+    "panels": [
+      {
+        "module": "main/serverPanels",
+        "file": "src/main/serverPanels.js",
+        "description": "Server panels — the desktop half of routing a server workspace's panels"
+      },
+      {
+        "module": "server/panels",
+        "file": "src/server/panels.js",
+        "description": "Server panels — what a server workspace's panels ask Frame Server"
+      }
+    ],
     "picker": [
       {
         "module": "renderer/statusBar/branchPicker",
@@ -31876,6 +31954,11 @@
         "module": "main/serverConnection",
         "file": "src/main/serverConnection.js",
         "description": "Server connection — the desktop's link to Frame Server"
+      },
+      {
+        "module": "main/serverPanels",
+        "file": "src/main/serverPanels.js",
+        "description": "Server panels — the desktop half of routing a server workspace's panels"
       },
       {
         "module": "renderer/serverConnect",
@@ -32272,7 +32355,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 348,
+        "parsed": 349,
         "unsupported": 86,
         "partial": 0
       }
@@ -32319,9 +32402,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 525,
+      "visitedEntries": 526,
       "traversedDirectories": 83,
-      "eligibleFiles": 434,
+      "eligibleFiles": 435,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32338,7 +32421,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 434,
+      "indexedFiles": 435,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32346,6 +32429,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "7f759939dc4f6c43b90a385ed720893b330245539c127cb22c459bbe93f04928"
+    "revision": "043464e490c7c94d861b23deedf20a13cde4c2dee11310e859365d92f7e127f4"
   }
 }

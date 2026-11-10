@@ -200,6 +200,21 @@ async function listServer(projectPath) {
   }
 }
 
+/**
+ * Every known server workspace folder (server-workspace-panels): what panel
+ * calls are routed by. Last known rows count while disconnected, so their
+ * calls answer "offline" instead of reading this machine's disk.
+ */
+function serverRoots() {
+  const out = [];
+  for (const [projectPath, entry] of serverRows) {
+    for (const r of entry.rows) {
+      if (r && r.path && !r.archivedAt) out.push({ root: r.path, id: r.id, host: entry.host, projectPath, serverProjectPath: entry.serverProjectPath });
+    }
+  }
+  return out;
+}
+
 /** Where a workspace id lives on the server, or null when it is not a server workspace. */
 function serverLocation(workspaceId) {
   for (const [projectPath, entry] of serverRows) {
@@ -530,6 +545,7 @@ module.exports = {
   workspacesRoot,
   list,
   serverLocation,
+  serverRoots,
   status,
   create,
   archive,
