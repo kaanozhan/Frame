@@ -14,3 +14,11 @@ Added src/server/electronShim.js (Electron stubs via Module._load, analytics and
 _Captured: 2026-11-10 · 4 file change(s)_
 
 ---
+
+## T03 — Screen mirror for server terminals
+
+Added src/server/screenMirror.js: a headless xterm (xterm-headless 5.3.0) with the serialize addon (0.11.0) per PTY; snapshot() waits for pending writes to parse, then returns { screen, cols, rows } to replay into a reset renderer xterm. test/screenMirror.test.js replays snapshots into fresh terminals and compares visible lines, cursor and buffer type for plain output, a TUI on the alternate screen, split escape sequences and a resize. Both packages added to package.json (pinned to the renderer's xterm 5.3 generation).
+
+_Captured: 2026-11-10 · 4 file change(s)_
+
+---

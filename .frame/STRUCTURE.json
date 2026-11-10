@@ -7591,7 +7591,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 220373,
+      "sizeBytes": 221324,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -7603,7 +7603,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4138,
+      "sizeBytes": 4210,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -23288,6 +23288,35 @@
         }
       }
     },
+    "server/screenMirror": {
+      "file": "src/server/screenMirror.js",
+      "description": "screenMirror — what a server terminal looks like right now",
+      "exports": [
+        "createMirror",
+        "DEFAULT_SCROLLBACK"
+      ],
+      "depends": [
+        "xterm-headless",
+        "xterm-addon-serialize"
+      ],
+      "functions": {
+        "createMirror": {
+          "line": 19,
+          "params": [
+            "{ cols = 80",
+            "rows = 24",
+            "scrollback = DEFAULT_SCROLLBACK } = {}"
+          ]
+        }
+      },
+      "sizeBytes": 1985,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "3e1a03f2467a9a7e"
+      }
+    },
     "shared/activityEvents": {
       "file": "src/shared/activityEvents.js",
       "description": "Activity events — pure policy module.",
@@ -27876,6 +27905,46 @@
         "description": "4a2577f22d647b51"
       }
     },
+    "test/screenMirror.test": {
+      "file": "test/screenMirror.test.js",
+      "description": "screenMirror — server terminal snapshots (server-workspaces spec, T03).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "xterm-headless",
+        "src/server/screenMirror"
+      ],
+      "functions": {
+        "visible": {
+          "line": 14,
+          "params": [
+            "term"
+          ]
+        },
+        "replay": {
+          "line": 21,
+          "params": [
+            "snap"
+          ]
+        },
+        "mirrorAndReference": {
+          "line": 27,
+          "params": [
+            "chunks",
+            "{ cols = 40",
+            "rows = 10 } = {}"
+          ]
+        }
+      },
+      "sizeBytes": 2790,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "6a6416dbb4814173"
+      }
+    },
     "test/scriptsProjectRoot.test": {
       "file": "test/scriptsProjectRoot.test.js",
       "description": "Shipped-script project-root tests (non-invasive-overlay T03).",
@@ -31570,7 +31639,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 340,
+        "parsed": 342,
         "unsupported": 86,
         "partial": 0
       }
@@ -31617,9 +31686,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 517,
+      "visitedEntries": 519,
       "traversedDirectories": 83,
-      "eligibleFiles": 426,
+      "eligibleFiles": 428,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -31636,7 +31705,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 426,
+      "indexedFiles": 428,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -31644,6 +31713,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "0efd988a654ab9a0f793499aad884f80adf921dbdfa9871fbac71293f4b01394"
+    "revision": "ad605731d0d3db32c2506ebfa510c1fb02c5f96bee6b9ef5c9e8662cca8509fe"
   }
 }
