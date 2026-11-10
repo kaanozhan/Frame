@@ -244,6 +244,7 @@ const IPC = {
   WORKSPACE_RENAME: 'workspace-rename',              // renderer → main (invoke): { projectPath, id, name?, branch? } → { error, workspace }
   WORKSPACE_REMOVE_RECORD: 'workspace-remove-record', // renderer → main (invoke): { projectPath, id } → { error } (missing/archived records only)
   WORKSPACES_UPDATED: 'workspaces-updated',          // main → renderer: { projectPath } after any workspace change
+  WORKSPACE_PROVISION: 'workspace-provision',        // renderer → main (invoke): { projectPath, id } → { error, copied } — Frame tooling into the worktree (spec-in-workspace)
   GIT_DEFAULT_BRANCH: 'git-default-branch',          // renderer → main (invoke): projectPath → { error, branch, hasOrigin }
   GET_WORKSPACE_SETTINGS: 'get-workspace-settings',  // renderer → main (invoke): projectPath → { setupScript, copyFiles, branchPrefix, frameProject }
   SET_WORKSPACE_SETTINGS: 'set-workspace-settings',  // renderer → main (invoke): { projectPath, settings } → normalised settings | { error }

@@ -25,6 +25,7 @@ const registry = require('../shared/workspaceRegistry');
 const { nextName, toSlug, uniquify } = require('../shared/workspaceNames');
 const { selectFiles } = require('../shared/copyFilesMatch');
 const projectRegistry = require('./projectRegistry');
+const tooling = require('./workspaceTooling');
 const git = require('./gitBranchesManager');
 const userSettings = require('./userSettings');
 const logger = require('./logger');
@@ -224,6 +225,7 @@ async function create(projectPath, { from = 'new', base, branch } = {}) {
   }
 
   const copied = await copyIgnoredFiles(projectPath, worktreePath);
+  tooling.provision(projectPath, worktreePath);
   notify(projectPath);
   return { error: null, workspace: result.record, copied, fetch, setupScript: settings.setupScript };
 }
@@ -265,6 +267,9 @@ async function archive(projectPath, id, { action, message } = {}) {
         return { error: null, dirty: true, count: st.count };
       }
     }
+    // Local gitSharing mode: specs written here were never committed — bring
+    // them home before the folder goes (spec-in-workspace, D3).
+    tooling.handBack(projectPath, record.path);
     const removed = await git.removeWorkspaceWorktree(projectPath, record.path, true);
     if (removed.error) return { error: removed.error };
   } else {
@@ -299,6 +304,7 @@ async function restore(projectPath, id) {
 
   persist(projectPath, check.records);
   const copied = await copyIgnoredFiles(projectPath, record.path);
+  tooling.provision(projectPath, record.path);
   notify(projectPath);
   return { error: null, workspace: check.record, copied, setupScript: settingsFor(projectPath).setupScript };
 }
@@ -361,6 +367,11 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.WORKSPACE_ARCHIVE, guarded(({ projectPath, id, ...opts }) => serialize(projectPath, () => archive(projectPath, id, opts))));
   ipcMain.handle(IPC.WORKSPACE_RESTORE, guarded(({ projectPath, id }) => serialize(projectPath, () => restore(projectPath, id))));
   ipcMain.handle(IPC.WORKSPACE_RENAME, guarded(({ projectPath, id, ...opts }) => serialize(projectPath, () => rename(projectPath, id, opts))));
+  ipcMain.handle(IPC.WORKSPACE_PROVISION, guarded(({ projectPath, id }) => {
+    const record = registry.findById(records(projectPath), id);
+    if (!record || record.archivedAt || !fs.existsSync(record.path)) return { error: null, copied: [] };
+    return { error: null, copied: tooling.provision(projectPath, record.path) };
+  }));
   ipcMain.handle(IPC.WORKSPACE_REMOVE_RECORD, guarded(({ projectPath, id }) => serialize(projectPath, () => removeRecord(projectPath, id))));
 }
 
