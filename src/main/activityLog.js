@@ -293,6 +293,9 @@ function attachWindow(window) {
   onEntry = queueForRenderer;
   watchRecord();
 
+  // Replaced, not added: attachWindow runs again when macOS re-creates the
+  // window (app 'activate'), and a second handle() for a channel throws.
+  ipcMain.removeHandler(IPC.GET_ACTIVITY);
   ipcMain.handle(IPC.GET_ACTIVITY, () => {
     const bucket = activeBucket();
     const fromDisk = activityFile

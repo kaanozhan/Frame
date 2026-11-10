@@ -508,7 +508,7 @@
           "ACTIVITY_DATA"
         ]
       },
-      "sizeBytes": 10637,
+      "sizeBytes": 10830,
       "extraction": {
         "status": "parsed"
       },
@@ -6736,7 +6736,7 @@
           "UI_ZOOM_CHANGED"
         ]
       },
-      "sizeBytes": 3612,
+      "sizeBytes": 3994,
       "extraction": {
         "status": "parsed"
       },
@@ -30218,6 +30218,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2903765a7e51a3d4d3bed54b82fdc8c90ca21c284f4c8bf13f8a951c5320553b"
+    "revision": "e7a29dcd10ab83bd781b80e0bf2d7187f2110e0bd70cf2780f9a0d2ba2bf46de"
   }
 }

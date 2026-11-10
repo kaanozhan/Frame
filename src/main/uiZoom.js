@@ -90,7 +90,13 @@ function attachWindow(window) {
     applyToWindow();
   });
 
+  // attachWindow runs again when macOS re-creates the window from the Dock
+  // (app 'activate'). A second ipcMain.handle for the same channel throws,
+  // which aborted createWindow half-way and left the new window without its
+  // PTY, menu and module wiring — so replace the handler instead.
+  ipcMain.removeHandler(IPC.UI_ZOOM_GET);
   ipcMain.handle(IPC.UI_ZOOM_GET, () => state());
+  ipcMain.removeHandler(IPC.UI_ZOOM_SET);
   ipcMain.handle(IPC.UI_ZOOM_SET, (event, next) => setStep(next));
 }
 
