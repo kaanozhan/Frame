@@ -321,8 +321,9 @@ let menuTarget = null;
 function showMenu(ws, x, y) {
   menuTarget = ws;
   // The PR flow's actions first (push, PR…), then the workspace's own.
-  // Server workspaces: their review / PR flow comes in a later update.
-  const prItems = ws.location === 'server' ? [] : workspacePr.menuItems(ws);
+  // Server workspaces have the same way out, run on the server
+  // (server-workspace-panels); an offline one offers none until it is back.
+  const prItems = workspacePr.menuItems(ws);
   const items = [
     ...prItems,
     ...(prItems.length ? [{ separator: true }] : []),
@@ -492,12 +493,6 @@ function askArchiveChoice(ws, count) {
   });
 }
 
-/** The selected workspace when it is on this Mac (the PR flow and review need a local checkout). */
-function selectedLocalWorkspace() {
-  const ws = selectedWorkspace();
-  return ws && ws.location !== 'server' ? ws : null;
-}
-
 /** The selected workspace's record, or null on main. */
 function selectedWorkspace() {
   const ws = state.getWorkspace();
@@ -556,7 +551,6 @@ function getWorkspaces() {
 }
 
 module.exports = {
-  selectedLocalWorkspace,
   init,
   load,
   render,

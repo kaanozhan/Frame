@@ -65,16 +65,23 @@ function rowState(id) {
   return (current && current.workspaces && current.workspaces[id]) || null;
 }
 
-/** GitHub access of the current project: `{ gh, authed, repoName }`. */
-function access() {
-  return (current && current.access) || { gh: false, authed: false, repoName: null };
+/**
+ * GitHub access for `ws`: the desktop's `gh` for local workspaces, the
+ * server's for a server workspace (server-workspace-panels).
+ */
+function access(ws) {
+  const none = { gh: false, authed: false, repoName: null };
+  if (ws && ws.location === 'server') return (current && current.serverAccess) || none;
+  return (current && current.access) || none;
 }
 
-/** Why PR actions are unavailable, or null when they are. */
-function prBlockedReason() {
-  const a = access();
-  if (!a.gh) return 'GitHub CLI (gh) is not installed';
-  if (!a.authed) return 'GitHub CLI is not signed in — run `gh auth login`';
+/** Why PR actions are unavailable for `ws`, or null when they are. Server messages name the host. */
+function prBlockedReason(ws) {
+  const a = access(ws);
+  const on = ws && ws.location === 'server' ? ` on ${ws.host || 'the server'}` : '';
+  if (ws && ws.location === 'server' && ws.offline) return `${ws.host || 'The server'} is offline`;
+  if (!a.gh) return `GitHub CLI (gh) is not installed${on}`;
+  if (!a.authed) return `GitHub CLI is not signed in${on} — run \`gh auth login\`${on ? ' there' : ''}`;
   if (!a.repoName) return 'This project has no GitHub remote';
   return null;
 }
@@ -89,7 +96,7 @@ function checksDot(pr) {
 
 /** Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR. */
 function rowBadgesHtml(ws) {
-  if (ws.location === 'server') return '';
+  if (ws.offline) return ''; // the last known server state would be stale
   const s = rowState(ws.id);
   if (!s || ws.missing) return '';
   const parts = [];
@@ -114,7 +121,7 @@ function rowBadgesHtml(ws) {
  * through runAction.
  */
 function menuItems(ws) {
-  if (ws.missing) return [];
+  if (ws.missing || ws.offline) return [];
   const s = rowState(ws.id);
   const items = [];
   items.push({ id: 'pr:review', label: 'Review Changes…' });
@@ -122,7 +129,7 @@ function menuItems(ws) {
     items.push(it);
   }
   items.push({ id: 'pr:push', label: s && s.unpushed ? `Push (${s.unpushed})` : 'Push' });
-  const blocked = prBlockedReason();
+  const blocked = prBlockedReason(ws);
   const hasOpenPr = !!(s && s.pr && (s.pr.state === 'open' || s.pr.state === 'draft'));
   if (!hasOpenPr) {
     items.push({ id: 'pr:create', label: 'Create Pull Request…', disabled: !!blocked, title: blocked || '' });
@@ -176,7 +183,7 @@ async function push(ws) {
  * pushes and runs `gh pr create`.
  */
 async function openCreatePr(ws) {
-  const blocked = prBlockedReason();
+  const blocked = prBlockedReason(ws);
   if (blocked) {
     notify.error(blocked);
     return;

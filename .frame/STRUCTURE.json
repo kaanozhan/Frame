@@ -12478,7 +12478,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 45829,
+      "sizeBytes": 45749,
       "extraction": {
         "status": "parsed"
       },
@@ -18714,35 +18714,41 @@
           "purpose": "Row state of a workspace, or null before the first read."
         },
         "access": {
-          "line": 69,
-          "purpose": "GitHub access of the current project: `{ gh, authed, repoName }`."
+          "line": 72,
+          "params": [
+            "ws"
+          ],
+          "purpose": "GitHub access for `ws`: the desktop's `gh` for local workspaces, the"
         },
         "prBlockedReason": {
-          "line": 74,
-          "purpose": "Why PR actions are unavailable, or null when they are."
+          "line": 79,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Why PR actions are unavailable for `ws`, or null when they are. Server messages name the host."
         },
         "checksDot": {
-          "line": 82,
+          "line": 89,
           "params": [
             "pr"
           ]
         },
         "rowBadgesHtml": {
-          "line": 91,
+          "line": 98,
           "params": [
             "ws"
           ],
           "purpose": "Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR."
         },
         "menuItems": {
-          "line": 116,
+          "line": 123,
           "params": [
             "ws"
           ],
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 146,
+          "line": 153,
           "params": [
             "id",
             "ws"
@@ -18750,41 +18756,41 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 161,
+          "line": 168,
           "params": [
             "ws"
           ]
         },
         "openCreatePr": {
-          "line": 178,
+          "line": 185,
           "params": [
             "ws"
           ],
           "purpose": "The Create PR dialog: main composes the title/body (from the workspace's"
         },
         "fixChecks": {
-          "line": 259,
+          "line": 266,
           "params": [
             "ws"
           ],
           "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
         },
         "merge": {
-          "line": 279,
+          "line": 286,
           "params": [
             "ws"
           ],
           "purpose": "Merge the workspace's PR with the project's method (main decides: the"
         },
         "updateFromBase": {
-          "line": 308,
+          "line": 315,
           "params": [
             "ws"
           ],
           "purpose": "Fetch the base and merge it into the workspace branch (main decides; see"
         },
         "workspaceAgentLanes": {
-          "line": 339,
+          "line": 346,
           "params": [
             "projectPath",
             "workspaceId"
@@ -18792,7 +18798,7 @@
           "purpose": "A workspace's terminals running an agent, most recently active first:"
         },
         "askConflictChoice": {
-          "line": 355,
+          "line": 362,
           "params": [
             "ws",
             "files"
@@ -18800,7 +18806,7 @@
           "purpose": "The conflict dialog. Resolves 'resolve' | 'abort' | 'later'."
         },
         "resolveConflicts": {
-          "line": 388,
+          "line": 395,
           "params": [
             "ws",
             "files = null"
@@ -18808,7 +18814,7 @@
           "purpose": "Hand a stopped update to an agent in the workspace: the most recently"
         },
         "abortUpdate": {
-          "line": 403,
+          "line": 410,
           "params": [
             "ws",
             "{ confirmed = false } = {}"
@@ -18816,7 +18822,7 @@
           "purpose": "Abort a stopped update (`git merge --abort`): the branch goes back to where it was."
         },
         "openOnGitHub": {
-          "line": 413,
+          "line": 420,
           "params": [
             "ws"
           ],
@@ -18831,7 +18837,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 18541,
+      "sizeBytes": 19033,
       "extraction": {
         "status": "parsed"
       },
@@ -18839,14 +18845,14 @@
         "description": "6f7f1921665ca854",
         "purposes": {
           "abortUpdate": "7e9e90ddfeac9c68",
-          "access": "07aeb542835bc462",
+          "access": "44d5c5b67147647e",
           "askConflictChoice": "da8fe023e7e36b8f",
           "fixChecks": "04c4c6acd7c5b223",
           "menuItems": "6cf670bca1da203e",
           "merge": "69bc6adb5bacd318",
           "openCreatePr": "6e7d7f5676838d2d",
           "openOnGitHub": "b2731eff4841fa86",
-          "prBlockedReason": "24c624a5061312d9",
+          "prBlockedReason": "c38dacd8474ad664",
           "refresh": "8faf0bd876257b8e",
           "resolveConflicts": "87f9236dd02b44fa",
           "rowBadgesHtml": "299a6e285b813ca9",
@@ -18861,7 +18867,6 @@
       "file": "src/renderer/workspaceSection.js",
       "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07).",
       "exports": [
-        "selectedLocalWorkspace",
         "init",
         "load",
         "render",
@@ -18966,39 +18971,39 @@
           ]
         },
         "hideMenu": {
-          "line": 345
+          "line": 346
         },
         "onMenuClick": {
-          "line": 349,
+          "line": 350,
           "params": [
             "e"
           ]
         },
         "openNew": {
-          "line": 362
+          "line": 363
         },
         "startRename": {
-          "line": 370,
+          "line": 371,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 375,
+          "line": 376,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 395,
+          "line": 396,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "openHeldSpec": {
-          "line": 417,
+          "line": 418,
           "params": [
             "ws",
             "slug"
@@ -19006,56 +19011,52 @@
           "purpose": "Select a workspace and open the spec it holds in the specs drawer."
         },
         "closeWorkspaceTerminals": {
-          "line": 426,
+          "line": 427,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 439,
+          "line": 440,
           "params": [
             "ws",
             "count"
           ],
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
-        "selectedLocalWorkspace": {
-          "line": 496,
-          "purpose": "The selected workspace when it is on this Mac (the PR flow and review need a local checkout)."
-        },
         "selectedWorkspace": {
-          "line": 502,
+          "line": 497,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 508,
+          "line": 503,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 521,
+          "line": 516,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 530,
+          "line": 525,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 540,
+          "line": 535,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 554,
+          "line": 549,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -19066,7 +19067,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 23267,
+      "sizeBytes": 23051,
       "extraction": {
         "status": "parsed"
       },
@@ -19080,7 +19081,6 @@
           "load": "e807754c516c9be1",
           "openHeldSpec": "3c6f2fdd9819c4b2",
           "selectSpecWorkspace": "7d88cec82ca928f9",
-          "selectedLocalWorkspace": "3bda226864799051",
           "selectedWorkspace": "fa1da8f5f604bd70",
           "setActions": "4f2a1450120dc24f",
           "workspaceChipHtml": "f678cae99043073b"
@@ -32490,6 +32490,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "9f1041655d5ea508787bc1f670688fb9552c0d39174224120206b40b9f5e90b3"
+    "revision": "fbc231c802439f465d86e13e47e1253728c8d3fe43e75190333180c22eb2a108"
   }
 }

@@ -971,9 +971,9 @@ function registerCommands() {
     title: 'Review Changes…',
     category: 'Workspace',
     shortcut: 'CmdOrCtrl+Alt+R',
-    when: () => !!require('./workspaceSection').selectedLocalWorkspace(),
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
     run: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./reviewSection').open(ws);
     }
   });
@@ -982,12 +982,12 @@ function registerCommands() {
     title: 'Update Workspace from Base',
     category: 'Workspace',
     when: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       const s = ws && require('./workspacePr').rowState(ws.id);
       return !!ws && !(s && s.merging);
     },
     run: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./workspacePr').updateFromBase(ws);
     }
   });
@@ -996,12 +996,12 @@ function registerCommands() {
     title: 'Resolve Update Conflicts with Agent',
     category: 'Workspace',
     when: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       const s = ws && require('./workspacePr').rowState(ws.id);
       return !!(s && s.merging);
     },
     run: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./workspacePr').resolveConflicts(ws);
     }
   });
@@ -1010,12 +1010,12 @@ function registerCommands() {
     title: 'Abort Workspace Update',
     category: 'Workspace',
     when: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       const s = ws && require('./workspacePr').rowState(ws.id);
       return !!(s && s.merging);
     },
     run: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./workspacePr').abortUpdate(ws);
     }
   });
@@ -1023,9 +1023,9 @@ function registerCommands() {
     id: 'workspace.push',
     title: 'Push Workspace',
     category: 'Workspace',
-    when: () => !!require('./workspaceSection').selectedLocalWorkspace(),
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
     run: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./workspacePr').push(ws);
     }
   });
@@ -1034,9 +1034,9 @@ function registerCommands() {
     title: 'Create Pull Request…',
     category: 'Workspace',
     shortcut: 'CmdOrCtrl+Alt+P',
-    when: () => !!require('./workspaceSection').selectedLocalWorkspace(),
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
     run: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./workspacePr').openCreatePr(ws);
     }
   });
@@ -1045,12 +1045,12 @@ function registerCommands() {
     title: 'Fix Failing Checks',
     category: 'Workspace',
     when: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       const s = ws && require('./workspacePr').rowState(ws.id);
       return !!(s && s.pr && s.pr.checks && s.pr.checks.failing);
     },
     run: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./workspacePr').fixChecks(ws);
     }
   });
@@ -1059,12 +1059,12 @@ function registerCommands() {
     title: 'Merge Pull Request',
     category: 'Workspace',
     when: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       const s = ws && require('./workspacePr').rowState(ws.id);
       return !!(s && s.pr && s.pr.ready);
     },
     run: () => {
-      const ws = require('./workspaceSection').selectedLocalWorkspace();
+      const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./workspacePr').merge(ws);
     }
   });

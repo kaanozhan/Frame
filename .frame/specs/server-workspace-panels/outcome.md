@@ -46,3 +46,11 @@ workspaceGitState keeps the server's pr.state per desktop project and merges it 
 _Captured: 2026-11-10 · 1 file change(s)_
 
 ---
+
+## T07 — PR flow on for server rows in the renderer
+
+workspacePr.access(ws) / prBlockedReason(ws) now take the workspace: server workspaces use the server's gh access (serverAccess) and their messages name the host ('… not signed in on box — run gh auth login there'); offline server rows show no badges or PR items (their last state would be stale); server rows get the same badges and row-menu items as local ones. workspaceSection offers the full menu for server rows and selectedLocalWorkspace is gone; the palette's review/update/push/PR commands use selectedWorkspace again.
+
+_Captured: 2026-11-10 · 3 file change(s)_
+
+---
