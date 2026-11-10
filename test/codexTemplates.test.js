@@ -97,6 +97,7 @@ test("Claude Code's rendered prompt is byte-identical to the committed templates
     const vars = {
       ...vocabulary.dialect('claude-code'),
       project_path: root,
+      tasks_path: path.join(root, '.frame', 'tasks.json'),
       description: '',
       slug: 'alpha',
       title: 'Alpha'

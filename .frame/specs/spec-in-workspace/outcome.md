@@ -30,3 +30,11 @@ _Captured: 2026-11-10 · 1 file change(s)_
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T05 — Stage spec prompts where the agent runs
+
+`buildSpecCommandFile` / `getCommandPrompt` take a root (explicit for a new spec, else the slug's checkout via `specRoot`), write the prompt to `<root>/.frame/runtime/prompts`, provision tooling into a workspace root right after staging, and fill `{project_path}` with that root and the new `{tasks_path}` with main's tasks.json (`frameStore.resolvePath`, through `commandPaths`); `BUILD_SPEC_COMMAND_FILE` accepts `root`. This fixes the shipped bug where a lane in a worktree was told a relative prompt path that only existed in main. `spec.implement.md` (context line plus every tasks.json reference) and `spec.tasks.md` now name `{tasks_path}`, and the placeholder table in `frameTemplates.js` documents it. Divergences outside the plan's file list, both forced by template contracts: `scripts/spec-command-hint.js` (the terminal `/spec.*` hook that mirrors specManager's interpolation) fills `tasks_path` from the main checkout found through `git rev-parse --git-common-dir`, and `test/codexTemplates.test.js` gained `tasks_path` in its re-render vars — that test compares against the HEAD-committed templates, so it is verified after this commit.
+
+_Captured: 2026-11-10 · 7 file change(s)_
+
+---

@@ -10,12 +10,16 @@ back to the user, or the whole spec unattended.
 
 - Project root: `{project_path}`
 - Spec slug: `{slug}`
+- Tasks file: `{tasks_path}` — the project's task list. Always use this exact
+  path: when the spec lives in a workspace, the tasks file stays in the main
+  checkout, outside your working folder, so task state never travels on the
+  branch. Never edit a `.frame/tasks.json` inside the working folder instead.
 - Inputs (read these first, in order):
   - `.frame/specs/{slug}/spec.md` — what we're building (intent, constraints)
   - `.frame/specs/{slug}/plan.md` — the architecture and approach
   - `.frame/specs/{slug}/tasks.md` — the canonical task list
   - `.frame/specs/{slug}/outcome.md` — what previous tasks actually shipped (read this if it exists; it tells you why the codebase may differ from the plan)
-  - `.frame/tasks.json` — find the next task where `source` starts with `spec:{slug}:` AND `status === "pending"` (lowest T-number first)
+  - `{tasks_path}` — find the next task where `source` starts with `spec:{slug}:` AND `status === "pending"` (lowest T-number first)
 
 ## Which mode is in force — resolve it, don't ask for it
 
@@ -83,8 +87,8 @@ this question; the unattended part of the run begins after pre-flight passes.
 classify what's there before asking, so the question you ask is the right one:
 
 - **Plan-phase artifacts** — changes confined to `.frame/specs/{slug}/`
-  (spec.md, plan.md, tasks.md, status.json) and this spec's entries in the
-  `.frame/tasks.json`. That is the planning session's output that never got
+  (spec.md, plan.md, tasks.md, status.json) and this spec's entries in
+  `{tasks_path}`. That is the planning session's output that never got
   committed. Offer the natural move: *commit these as a plan commit before
   implementation starts* (a `docs`/`plan`-style commit naming the spec), with
   "leave them, start anyway" as the alternative.
@@ -126,7 +130,7 @@ may change the loop, the commit policy, the verification and the reporting. It
 may not drop the accounting below — that is what separates describing a flow
 from replacing this file wholesale.
 
-**Which task.** The lowest-numbered task in `.frame/tasks.json` whose `source` is
+**Which task.** The lowest-numbered task in `{tasks_path}` whose `source` is
 `spec:{slug}:T<n>` and whose `status` is `pending`. One task at a time, in
 order; never bundle two into one unit of work.
 
@@ -138,7 +142,7 @@ whether they stop for an answer.
 
 **Task state.** `status: "in_progress"` when you start it, `status:
 "completed"` plus `completedAt` and `updatedAt` (ISO 8601) when it is done.
-Edit `.frame/tasks.json` directly.
+Edit `{tasks_path}` directly.
 
 **Spec phase.** `.frame/specs/{slug}/status.json` goes to `"implementing"` when
 work starts, and to `"done"` once no pending task remains. Merge into the

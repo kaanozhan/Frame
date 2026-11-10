@@ -231,7 +231,8 @@ The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spe
 
 | Placeholder | Value |
 | --- | --- |
-| \`{project_path}\` | absolute path of the project root |
+| \`{project_path}\` | absolute path of the project root — for a spec that lives in a workspace, that workspace's folder |
+| \`{tasks_path}\` | absolute path of the project's \`.frame/tasks.json\` — always the main checkout's, even when the spec lives in a workspace |
 | \`{slug}\` | the spec's slug — **omitted for \`spec.new\`**, which runs before the spec exists |
 | \`{title}\` | the spec's title (from \`status.json\`) — **omitted for \`spec.new\`** for the same reason |
 | \`{description}\` | the user's description, verbatim (\`spec.new\` only; empty otherwise) |

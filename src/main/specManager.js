@@ -26,7 +26,8 @@ const activityLog = require('./activityLog');
 const perfMonitor = require('./perfMonitor');
 const projectRegistry = require('./projectRegistry');
 const workspaceRegistry = require('../shared/workspaceRegistry');
-const { mergeSpecLists } = require('../shared/workspaceSpecs');
+const { mergeSpecLists, commandPaths } = require('../shared/workspaceSpecs');
+const workspaceTooling = require('./workspaceTooling');
 
 const STATUS_FILE = 'status.json';
 const SPEC_FILE = 'spec.md';
@@ -627,7 +628,7 @@ function interpolate(template, vars) {
 // that command only — every other command reads an existing status.json.
 const isSlugless = (slug, command) => !slug && command === 'spec.new';
 
-function getCommandPrompt(projectPath, slug, command, aiTool, description) {
+function getCommandPrompt(projectPath, slug, command, aiTool, description, rootOverride) {
   if (!SUPPORTED_COMMANDS.includes(command)) return { error: `unknown command: ${command}` };
   const tool = aiTool || 'claude-code';
   const slugless = isSlugless(slug, command);
@@ -639,6 +640,14 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
   if (!slugless && !status) return { error: 'spec not found' };
   const template = loadCommandTemplate(projectPath, tool, command);
   if (!template) return { error: `no ${tool} template for ${command}` };
+  // Where the agent works (spec-in-workspace): the spec's workspace folder, or
+  // the explicit target root for a new spec; task state always stays in the
+  // main checkout's tasks.json.
+  const paths = commandPaths({
+    projectPath,
+    root: rootOverride || (slug ? specRoot(projectPath, slug) : projectPath),
+    tasksPath: frameStore.resolvePath(projectPath, FRAME_FILES.TASKS)
+  });
   const vars = {
     // Phrases a template cannot state tool-neutrally — one CLI's structured
     // question tool is another's numbered list. Spread first so a real
@@ -649,8 +658,9 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
     // prompt as literal text, telling the user to run a command against a
     // spec called "{slug}". One pass, not recursion — a value that names a
     // token is filled; a value that names itself is left alone.
-    ...interpolateValues(vocabulary.dialect(tool), { slug, project_path: projectPath }),
-    project_path: projectPath,
+    ...interpolateValues(vocabulary.dialect(tool), { slug, project_path: paths.project_path }),
+    project_path: paths.project_path,
+    tasks_path: paths.tasks_path,
     // The user's free-form text, verbatim. Empty for every command whose
     // template carries no {description} token.
     description: description == null ? '' : String(description),
@@ -880,10 +890,16 @@ function uniquePromptFilename(promptsDir, filename) {
   }
 }
 
-function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
-  const result = getCommandPrompt(projectPath, slug, command, aiTool, description);
+function buildSpecCommandFile(projectPath, slug, command, aiTool, description, rootOverride) {
+  // The prompt is staged where the agent runs (spec-in-workspace): the
+  // instruction below names it by a relative path, and an agent in a
+  // workspace has the worktree as its cwd. Staging it in the main checkout
+  // while the lane ran in a worktree left the agent with a path it could
+  // not open.
+  const root = rootOverride || (slug ? specRoot(projectPath, slug) : projectPath);
+  const result = getCommandPrompt(projectPath, slug, command, aiTool, description, root);
   if (result.error) return result;
-  const promptsDir = path.join(projectPath, RUNTIME_PROMPTS_DIR);
+  const promptsDir = path.join(root, RUNTIME_PROMPTS_DIR);
   fs.mkdirSync(promptsDir, { recursive: true });
   const slugless = isSlugless(slug, command);
   // Staging a slug-less spec.new prompt is the one thing only Frame's own New
@@ -900,6 +916,9 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
   // stager used to provide — and an out-of-app helper launch always finds the
   // latest on disk.
   commandStaging.stageCommandFiles(projectPath);
+  // A workspace gets the freshly staged templates, helpers and index too, so
+  // the agent's hooks and the template's relative report paths resolve there.
+  if (root !== projectPath) workspaceTooling.provision(projectPath, root);
   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
   return {
     success: true,
@@ -1658,8 +1677,8 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool, description }) =>
     getCommandPrompt(projectPath, slug, command, aiTool, description)
   );
-  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool, description }) =>
-    buildSpecCommandFile(projectPath, slug, command, aiTool, description)
+  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool, description, root }) =>
+    buildSpecCommandFile(projectPath, slug, command, aiTool, description, root || null)
   );
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
