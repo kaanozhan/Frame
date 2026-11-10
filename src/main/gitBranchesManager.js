@@ -507,6 +507,88 @@ async function listIgnoredCandidates(projectPath) {
   }
 }
 
+// ─── PR flow helpers (workspace-pr-flow) ───────────────────
+//
+// Push, counts and the post-merge fast-forward. Argv only; nothing here
+// ever passes --force, and pushBranch refuses to be called without a branch.
+
+const PUSH_TIMEOUT_MS = 120000;
+
+/** `git rev-list --count <range>` in `cwd`; 0 when the range does not resolve. */
+async function revCount(cwd, range) {
+  try {
+    const { stdout } = await execGitArgs(['rev-list', '--count', range], cwd);
+    const n = parseInt(stdout, 10);
+    return Number.isFinite(n) ? n : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+/** The upstream of the checked-out branch (`origin/ws/teal`), or null. */
+async function upstreamOf(cwd) {
+  try {
+    const { stdout } = await execGitArgs(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], cwd);
+    return stdout.trim() || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Push `branch` from `cwd`. With `setUpstream`, `git push -u origin <branch>`
+ * (a workspace branch is created --no-track, so its first push names the
+ * remote branch explicitly); otherwise a plain `git push`. Never forces.
+ */
+async function pushBranch(cwd, branch, { setUpstream = false } = {}) {
+  if (!cwd || !branch) return { error: 'Missing parameters' };
+  const args = setUpstream ? ['push', '-u', 'origin', branch] : ['push'];
+  try {
+    await execGitArgs(args, cwd, { timeout: PUSH_TIMEOUT_MS });
+    return { error: null };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
+/** Commit subjects in `range`, newest first (`git log --format=%s`), at most `max`. */
+async function commitSubjects(cwd, range, max = 50) {
+  try {
+    const { stdout } = await execGitArgs(['log', `--max-count=${max}`, '--format=%s', range], cwd);
+    return stdout ? stdout.split('\n').map((s) => s.trim()).filter(Boolean) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+/**
+ * After a PR merges: fast-forward the main checkout's `branch` from origin —
+ * only when that checkout is on `branch` and has no uncommitted changes.
+ * Returns `{ updated, reason }`; never touches a checkout it would disturb.
+ */
+async function fastForwardIfOn(projectPath, branch) {
+  if (!projectPath || !branch) return { updated: false, reason: 'Missing parameters' };
+  let current = '';
+  try {
+    current = (await execGitArgs(['symbolic-ref', '--quiet', '--short', 'HEAD'], projectPath)).stdout.trim();
+  } catch (_) { /* detached */ }
+  if (current !== branch) return { updated: false, reason: `the main checkout is on ${current || 'a detached HEAD'}, not ${branch}` };
+  // Tracked changes only: an untracked .env or scratch file never blocks a
+  // fast-forward, and `pull --ff-only` refuses on its own if it would clobber one.
+  try {
+    const { stdout } = await execGitArgs(['status', '--porcelain', '--untracked-files=no'], projectPath);
+    if (stdout.trim()) return { updated: false, reason: 'the main checkout has uncommitted changes' };
+  } catch (err) {
+    return { updated: false, reason: err.error || err.message };
+  }
+  try {
+    await execGitArgs(['pull', '--ff-only', 'origin', branch], projectPath, { timeout: PUSH_TIMEOUT_MS });
+    return { updated: true, reason: null };
+  } catch (err) {
+    return { updated: false, reason: err.error || err.message };
+  }
+}
+
 // ─── Orchestration helpers ────────────────────────────────
 //
 // Worker worktrees for orchestration live under .frame/worktrees/<slug> on a
@@ -714,6 +796,12 @@ module.exports = {
   commitAll,
   discardAll,
   listIgnoredCandidates,
+  // PR flow helpers (workspace-pr-flow)
+  revCount,
+  upstreamOf,
+  pushBranch,
+  commitSubjects,
+  fastForwardIfOn,
   // Orchestration helpers
   orchWorktreePath,
   getHeadSha,

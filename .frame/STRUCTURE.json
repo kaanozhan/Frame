@@ -2662,6 +2662,10 @@
         "commitAll",
         "discardAll",
         "listIgnoredCandidates",
+        "upstreamOf",
+        "pushBranch",
+        "commitSubjects",
+        "fastForwardIfOn",
         "getHeadSha",
         "branchExists",
         "createOrchWorktree",
@@ -2859,28 +2863,69 @@
           ],
           "purpose": "Ignored, untracked paths in the main checkout — the candidates `copyFiles`"
         },
+        "revCount": {
+          "line": 518,
+          "params": [
+            "cwd",
+            "range"
+          ],
+          "purpose": "`git rev-list --count <range>` in `cwd`; 0 when the range does not resolve."
+        },
+        "upstreamOf": {
+          "line": 529,
+          "params": [
+            "cwd"
+          ],
+          "purpose": "The upstream of the checked-out branch (`origin/ws/teal`), or null."
+        },
+        "pushBranch": {
+          "line": 543,
+          "params": [
+            "cwd",
+            "branch",
+            "{ setUpstream = false } = {}"
+          ],
+          "purpose": "Push `branch` from `cwd`. With `setUpstream`, `git push -u origin <branch>`"
+        },
+        "commitSubjects": {
+          "line": 555,
+          "params": [
+            "cwd",
+            "range",
+            "max = 50"
+          ],
+          "purpose": "Commit subjects in `range`, newest first (`git log --format=%s`), at most `max`."
+        },
+        "fastForwardIfOn": {
+          "line": 569,
+          "params": [
+            "projectPath",
+            "branch"
+          ],
+          "purpose": "After a PR merges: fast-forward the main checkout's `branch` from origin —"
+        },
         "orchWorktreePath": {
-          "line": 516,
+          "line": 598,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 520,
+          "line": 602,
           "params": [
             "projectPath"
           ]
         },
         "branchExists": {
-          "line": 529,
+          "line": 611,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 543,
+          "line": 625,
           "params": [
             "projectPath",
             "slug"
@@ -2888,7 +2933,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 564,
+          "line": 646,
           "params": [
             "projectPath",
             "slug",
@@ -2897,7 +2942,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 579,
+          "line": 661,
           "params": [
             "projectPath",
             "slug",
@@ -2906,7 +2951,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 596,
+          "line": 678,
           "params": [
             "projectPath",
             "slug"
@@ -2914,7 +2959,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 615,
+          "line": 697,
           "params": [
             "projectPath",
             "slug"
@@ -2922,14 +2967,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 631,
+          "line": 713,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 651,
+          "line": 733,
           "params": [
             "ipcMain"
           ],
@@ -2951,7 +2996,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 26033,
+      "sizeBytes": 29452,
       "extraction": {
         "status": "parsed"
       },
@@ -2961,6 +3006,7 @@
           "addWorkspaceWorktree": "d78c10d4c9ceebc5",
           "addWorktree": "9d5960b0200f2941",
           "commitAll": "0a26f011c0016854",
+          "commitSubjects": "f6193395316a2fc0",
           "createBranch": "b25c5d90b1a1893a",
           "createOrchWorktree": "360f17a3e8ed35d7",
           "defaultRemoteBranch": "2b8cac1668d02128",
@@ -2968,6 +3014,7 @@
           "discardAll": "0a14d294029f8935",
           "execGit": "eb4919d0bef0003b",
           "execGitArgs": "ab6b29b207a1cf6b",
+          "fastForwardIfOn": "501459df58132b5e",
           "fetchBranch": "5fbf03b136ac7bf3",
           "init": "4ed6c1db9529d664",
           "isWorkMerged": "39ca7ffa9b37d991",
@@ -2978,11 +3025,14 @@
           "loadWorktrees": "e1f5dd6ccfd9f107",
           "localBranchExists": "d399d1abf0bf3f60",
           "mergeWorkToIntegration": "5fdd31c529fff0f9",
+          "pushBranch": "c8d00a721133a471",
           "removeOrchWorktree": "ee09f7af04806f80",
           "removeWorkspaceWorktree": "3f14e3547c30a6c2",
           "removeWorktree": "679ea312f5b749d1",
+          "revCount": "01cb38e9254e5fe0",
           "setupIPC": "b41c7437e6910eb5",
           "switchBranch": "7059dba0b5b50f79",
+          "upstreamOf": "84d76c6eee8271fe",
           "worktreeChangedFiles": "d674ac8f88bfbf50",
           "worktreeStatus": "971fca8791873b46"
         }
@@ -3422,6 +3472,7 @@
         "setProjectPath",
         "setupIPC",
         "checkAccess",
+        "runGh",
         "loadIssues",
         "loadPullRequests",
         "checkoutPullRequest",
@@ -3457,23 +3508,33 @@
           ],
           "purpose": "Run one gh (or git) command with the repaired PATH and a timeout."
         },
+        "runGh": {
+          "line": 75,
+          "params": [
+            "args",
+            "cwd",
+            "{ stdin = null",
+            "timeout = 60000 } = {}"
+          ],
+          "purpose": "Run gh with an argv array — no shell, so a PR title or body (which the user"
+        },
         "checkGhCli": {
-          "line": 72,
+          "line": 95,
           "purpose": "Check if gh CLI is available"
         },
         "checkGhAuth": {
-          "line": 80,
+          "line": 103,
           "purpose": "Is gh signed in to any host? `gh auth status` exits non-zero when not."
         },
         "checkGitHubRepo": {
-          "line": 88,
+          "line": 111,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if current directory is a git repo with GitHub remote"
         },
         "checkAccess": {
-          "line": 110,
+          "line": 133,
           "params": [
             "projectPath",
             "force = false"
@@ -3481,20 +3542,20 @@
           "purpose": "The one access check (D6): gh present → signed in → GitHub remote."
         },
         "accessError": {
-          "line": 136,
+          "line": 159,
           "params": [
             "access"
           ],
           "purpose": "The legacy error string for a failed access check, or null when the"
         },
         "normalizeState": {
-          "line": 143,
+          "line": 166,
           "params": [
             "state"
           ]
         },
         "loadIssues": {
-          "line": 151,
+          "line": 174,
           "params": [
             "projectPath",
             "state = 'open'"
@@ -3502,7 +3563,7 @@
           "purpose": "Load GitHub issues for current project"
         },
         "loadPullRequests": {
-          "line": 173,
+          "line": 196,
           "params": [
             "projectPath",
             "state = 'open'"
@@ -3510,7 +3571,7 @@
           "purpose": "Load pull requests (G4) with the same open / closed / all filter as issues."
         },
         "checkoutPullRequest": {
-          "line": 196,
+          "line": 219,
           "params": [
             "projectPath",
             "number"
@@ -3518,14 +3579,14 @@
           "purpose": "`gh pr checkout <n>`, refused on a dirty tree the way SWITCH_GIT_BRANCH"
         },
         "openIssue": {
-          "line": 227,
+          "line": 250,
           "params": [
             "url"
           ],
           "purpose": "Open issue in browser"
         },
         "setupIPC": {
-          "line": 236,
+          "line": 259,
           "params": [
             "ipcMain"
           ],
@@ -3542,7 +3603,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 8785,
+      "sizeBytes": 9692,
       "extraction": {
         "status": "parsed"
       },
@@ -3560,6 +3621,7 @@
           "loadPullRequests": "3b563ff80e99da62",
           "openIssue": "86e3e2d02079b0a6",
           "run": "cc52199c0df8bd09",
+          "runGh": "b11e9d254c12090f",
           "setProjectPath": "ae0c2410e953ee3a",
           "setupIPC": "b41c7437e6910eb5"
         }
@@ -30334,6 +30396,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e6655d6786a52a666a68b104c28481e995be8c543531e468559870c9dd33739d"
+    "revision": "a138c4311cab147c689ea8466ebc7d31a6370dbc4e6542cb9030ca7ed6a31f8b"
   }
 }
