@@ -6,3 +6,11 @@ Added `src/shared/reviewModel.js`: `parseNumstat` (`-z` entries incl. binary `-\
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T02 — Review git in main: REVIEW_FILES and REVIEW_FILE_DIFF
+
+REVIEW_FILES lists every change since the merge base (origin/<base>, else local base): committed + uncommitted tracked files with status, +/- and content hash, plus untracked files with line counts. REVIEW_FILE_DIFF returns one file's diff vs the merge base (or --no-index for untracked) with binary detection and the 2 MB ceiling.
+
+_Captured: 2026-11-10 · src/main/gitDiffManager.js,src/shared/ipcChannels.js file change(s)_
+
+---

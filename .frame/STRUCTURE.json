@@ -3042,30 +3042,75 @@
       "file": "src/main/gitDiffManager.js",
       "description": "Git Diff Manager",
       "exports": [
-        "setupIPC"
+        "setupIPC",
+        "reviewFiles",
+        "reviewFileDiff"
       ],
       "depends": [
         "child_process",
         "path",
         "shared/ipcChannels",
-        "logger"
+        "logger",
+        "fs",
+        "shared/reviewModel"
       ],
       "functions": {
         "setupIPC": {
-          "line": 22,
+          "line": 24,
           "params": [
             "ipcMain"
           ]
         },
         "runDiff": {
-          "line": 61,
+          "line": 66,
           "params": [
             "cwd",
             "args"
           ]
         },
+        "mergeBaseOf": {
+          "line": 106,
+          "params": [
+            "root",
+            "base"
+          ],
+          "purpose": "Merge base of HEAD with origin/<base>, else with the local <base>."
+        },
+        "hashFiles": {
+          "line": 116,
+          "params": [
+            "root",
+            "paths"
+          ],
+          "purpose": "Content hashes for existing files, `{ path: sha }`, in chunks."
+        },
+        "countLines": {
+          "line": 131,
+          "params": [
+            "root",
+            "paths"
+          ],
+          "purpose": "Line counts for small text untracked files (shown as +N)."
+        },
+        "reviewFiles": {
+          "line": 146,
+          "params": [
+            "root",
+            "base"
+          ]
+        },
+        "reviewFileDiff": {
+          "line": 168,
+          "params": [
+            "root",
+            "{ mergeBase",
+            "path",
+            "oldPath",
+            "untracked }"
+          ]
+        },
         "detectBinary": {
-          "line": 91,
+          "line": 179,
           "params": [
             "diff"
           ]
@@ -3073,16 +3118,23 @@
       },
       "ipc": {
         "listens": [
+          "REVIEW_FILES",
+          "REVIEW_FILE_DIFF",
           "GET_GIT_DIFF"
         ],
         "emits": []
       },
-      "sizeBytes": 3168,
+      "sizeBytes": 6996,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "0299aa02feeefaa6"
+        "description": "0299aa02feeefaa6",
+        "purposes": {
+          "countLines": "bfa70b7035b8b261",
+          "hashFiles": "19cd5d5118516359",
+          "mergeBaseOf": "15e006dc59b1759b"
+        }
       }
     },
     "main/gitExclude": {
@@ -23716,7 +23768,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 15790,
+      "sizeBytes": 16140,
       "extraction": {
         "status": "parsed"
       },
@@ -29705,6 +29757,18 @@
         "direction": "",
         "description": ""
       }
+    },
+    "review": {
+      "REVIEW_FILES": {
+        "name": "review-files",
+        "direction": "",
+        "description": ""
+      },
+      "REVIEW_FILE_DIFF": {
+        "name": "review-file-diff",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -30900,6 +30964,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "9dd41f7cef38488b2de0ae63926c6601fe2136b27e69c9e1fbf5bc7c3142acce"
+    "revision": "a308fcfde5f1fbaf6bdaa99da44954daa4063490a0d9b51ff3c70799fb01c366"
   }
 }

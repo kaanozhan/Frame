@@ -15,11 +15,16 @@ const { execFile } = require('child_process');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 const logger = require('./logger');
+const fs = require('fs');
+const { parseNumstat, mergeChangedFiles, MAX_DIFF_BYTES } = require('../shared/reviewModel');
 
 const MAX_BUFFER = 20 * 1024 * 1024;
 const DIFF_TIMEOUT_MS = 15000;
 
 function setupIPC(ipcMain) {
+  ipcMain.handle(IPC.REVIEW_FILES, async (_event, { root, base } = {}) => reviewFiles(root, base));
+  ipcMain.handle(IPC.REVIEW_FILE_DIFF, async (_event, payload = {}) => reviewFileDiff(payload.root, payload));
+
   ipcMain.handle(IPC.GET_GIT_DIFF, async (_event, payload) => {
     const { projectPath, relPath, staged } = payload || {};
     if (!projectPath || !relPath) {
@@ -88,10 +93,93 @@ function runDiff(cwd, args) {
   });
 }
 
+// ─── Workspace review (workspace-review) ──────────────────
+//
+// Everything a workspace changes since the merge base with its base branch:
+// committed and uncommitted tracked changes (`git diff <merge-base>` compares
+// the working tree with that commit) plus untracked files. Read-only.
+
+const HASH_CHUNK = 200;
+const UNTRACKED_LINE_COUNT_MAX = 1024 * 1024;
+
+/** Merge base of HEAD with origin/<base>, else with the local <base>. */
+async function mergeBaseOf(root, base) {
+  for (const ref of [`origin/${base}`, base]) {
+    const out = await runDiff(root, ['merge-base', ref, 'HEAD']);
+    const sha = out.stdout.trim();
+    if (/^[0-9a-f]{7,40}$/.test(sha)) return sha;
+  }
+  return null;
+}
+
+/** Content hashes for existing files, `{ path: sha }`, in chunks. */
+async function hashFiles(root, paths) {
+  const hashes = {};
+  const existing = paths.filter((p) => {
+    try { return fs.statSync(path.join(root, p)).isFile(); } catch (_) { return false; }
+  });
+  for (let i = 0; i < existing.length; i += HASH_CHUNK) {
+    const chunk = existing.slice(i, i + HASH_CHUNK);
+    const out = await runDiff(root, ['hash-object', '--', ...chunk]);
+    const lines = out.stdout.split('\n').map((l) => l.trim());
+    chunk.forEach((p, j) => { if (lines[j]) hashes[p] = lines[j]; });
+  }
+  return hashes;
+}
+
+/** Line counts for small text untracked files (shown as +N). */
+function countLines(root, paths) {
+  const out = {};
+  for (const p of paths) {
+    try {
+      const abs = path.join(root, p);
+      if (fs.statSync(abs).size > UNTRACKED_LINE_COUNT_MAX) continue;
+      const buf = fs.readFileSync(abs);
+      if (buf.includes(0)) continue;
+      const text = buf.toString('utf8');
+      out[p] = text ? text.split('\n').length - (text.endsWith('\n') ? 1 : 0) : 0;
+    } catch (_) { /* unreadable — no count */ }
+  }
+  return out;
+}
+
+async function reviewFiles(root, base) {
+  if (!root) return { error: 'No workspace', mergeBase: null, files: [] };
+  const mergeBase = await mergeBaseOf(root, base || 'main');
+  if (!mergeBase) return { error: `No common history with ${base || 'main'}`, mergeBase: null, files: [] };
+  const [numstat, nameStatus, untrackedOut] = await Promise.all([
+    runDiff(root, ['diff', '-z', '-M', '--numstat', mergeBase]),
+    runDiff(root, ['diff', '-z', '-M', '--name-status', mergeBase]),
+    runDiff(root, ['ls-files', '--others', '--exclude-standard', '-z'])
+  ]);
+  const untracked = untrackedOut.stdout.split('\0').filter(Boolean);
+  const trackedPaths = parseNumstat(numstat.stdout).map((n) => n.path);
+  const hashes = await hashFiles(root, [...new Set([...trackedPaths, ...untracked])]);
+  const files = mergeChangedFiles({
+    numstat: numstat.stdout,
+    nameStatus: nameStatus.stdout,
+    untracked,
+    hashes,
+    untrackedLines: countLines(root, untracked)
+  });
+  return { error: null, mergeBase, files };
+}
+
+async function reviewFileDiff(root, { mergeBase, path: rel, oldPath, untracked }) {
+  if (!root || !rel) return { diff: '', isBinary: false, tooLarge: false };
+  const args = untracked
+    ? ['diff', '--no-index', '--', '/dev/null', rel]
+    : ['diff', '-M', mergeBase, '--', ...(oldPath ? [oldPath] : []), rel];
+  const out = await runDiff(root, args);
+  const diff = out.stdout || '';
+  if (Buffer.byteLength(diff, 'utf8') > MAX_DIFF_BYTES) return { diff: '', isBinary: false, tooLarge: true };
+  return { diff, isBinary: detectBinary(diff), tooLarge: false };
+}
+
 function detectBinary(diff) {
   if (!diff) return false;
   // `git diff` line for binaries: "Binary files a/foo and b/foo differ"
   return /^Binary files .* differ$/m.test(diff);
 }
 
-module.exports = { setupIPC };
+module.exports = { setupIPC, reviewFiles, reviewFileDiff };
