@@ -1,7 +1,7 @@
 {
   "slug": "server-workspace-panels",
   "title": "Panels for server workspaces",
-  "phase": "implementing",
+  "phase": "done",
   "generated_task_ids": [
     "task-spec-server-workspace-panels-T01",
     "task-spec-server-workspace-panels-T02",
@@ -14,7 +14,7 @@
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-11-10T14:07:10.755Z",
-  "updated_at": "2026-11-10T14:31:30.459Z",
-  "last_phase_at": "2026-11-10T14:31:30.459Z",
+  "updated_at": "2026-11-10T14:45:19.066Z",
+  "last_phase_at": "2026-11-10T14:45:19.066Z",
   "implement_mode": "guided"
 }
