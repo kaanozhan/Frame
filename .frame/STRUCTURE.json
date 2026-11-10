@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-09",
+  "lastUpdated": "2026-11-10",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -14345,14 +14345,28 @@
       "exports": [
         "SCOPES",
         "PHASES",
+        "SORTS",
         "buildGridModel"
       ],
       "depends": [
         "../shared/doneWindow"
       ],
       "functions": {
+        "dateValue": {
+          "line": 43,
+          "params": [
+            "s"
+          ]
+        },
+        "sortByDate": {
+          "line": 48,
+          "params": [
+            "list",
+            "sort"
+          ]
+        },
         "buildGridModel": {
-          "line": 38,
+          "line": 56,
           "params": [
             "{\n  specs = []",
             "scope = 'all'",
@@ -14360,11 +14374,12 @@
             "searchMatches = null",
             "windowDays = 0",
             "showOlder = false",
+            "sort = 'newest'",
             "now = Date.now("
           ]
         }
       },
-      "sizeBytes": 3232,
+      "sizeBytes": 4026,
       "extraction": {
         "status": "parsed"
       },
@@ -14406,76 +14421,76 @@
       ],
       "functions": {
         "init": {
-          "line": 68
+          "line": 75
         },
         "setupIPCListeners": {
-          "line": 105
+          "line": 112
         },
         "setInlineHost": {
-          "line": 160,
+          "line": 167,
           "params": [
             "host"
           ]
         },
         "mountInline": {
-          "line": 165,
+          "line": 172,
           "params": [
             "container"
           ],
           "purpose": "Mount into the center content area and load data. Called by the host."
         },
         "notifyDetached": {
-          "line": 175,
+          "line": 182,
           "purpose": "The host swapped the center to another view — reset without routing."
         },
         "_load": {
-          "line": 186
+          "line": 193
         },
         "show": {
-          "line": 219
+          "line": 226
         },
         "hide": {
-          "line": 229
+          "line": 236
         },
         "toggle": {
-          "line": 240
+          "line": 247
         },
         "renderFilters": {
-          "line": 255,
+          "line": 262,
           "params": [
             "model"
           ],
           "purpose": "The filter row, painted from the same model the grid is painted from so"
         },
         "gridModel": {
-          "line": 299
+          "line": 319
         },
         "setupSearch": {
-          "line": 312
+          "line": 333
         },
         "runSearch": {
-          "line": 326,
+          "line": 347,
           "params": [
             "rawQuery"
           ]
         },
         "clearSearch": {
-          "line": 349
+          "line": 370
         },
         "renderGrid": {
-          "line": 360
+          "line": 381
         },
         "wireOlderTile": {
-          "line": 409
+          "line": 430
         },
         "renderCard": {
-          "line": 416,
+          "line": 437,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 477,
+          "line": 498,
           "params": [
             "slug",
             "{ instant = false } = {}"
@@ -14483,26 +14498,26 @@
           "purpose": "Open a spec in the drawer. `instant` is the top-bar chip path: the grid"
         },
         "clearSelection": {
-          "line": 504,
+          "line": 525,
           "params": [
             "{ notify = true } = {}"
           ],
           "purpose": "Close the drawer. `notify: false` is for the host-driven teardown"
         },
         "reloadDetail": {
-          "line": 517
+          "line": 538
         },
         "renderDetailHeader": {
-          "line": 544
+          "line": 565
         },
         "runSpecCommand": {
-          "line": 630,
+          "line": 651,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 641,
+          "line": 662,
           "params": [
             "tab",
             "label",
@@ -14510,44 +14525,44 @@
           ]
         },
         "renderDetailBody": {
-          "line": 647
+          "line": 668
         },
         "renderTasksTabBody": {
-          "line": 698
+          "line": 719
         },
         "renderSpecTaskRow": {
-          "line": 735,
+          "line": 756,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 784
+          "line": 805
         },
         "handleSpecTaskAction": {
-          "line": 797,
+          "line": 818,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 808
+          "line": 829
         },
         "tasksTabLabel": {
-          "line": 814,
+          "line": 835,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 823,
+          "line": 844,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 828,
+          "line": 849,
           "params": [
             "iso"
           ]
@@ -14566,7 +14581,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 34495,
+      "sizeBytes": 35459,
       "extraction": {
         "status": "parsed"
       },
@@ -22689,7 +22704,7 @@
           "purpose": "Split done items into `recent` (inside the window) and `older`, keeping"
         }
       },
-      "sizeBytes": 2907,
+      "sizeBytes": 2906,
       "extraction": {
         "status": "parsed"
       },
@@ -24694,7 +24709,7 @@
         "src/shared/doneWindow"
       ],
       "functions": {},
-      "sizeBytes": 5218,
+      "sizeBytes": 5208,
       "extraction": {
         "status": "parsed"
       },
@@ -26854,7 +26869,7 @@
           "purpose": "5 active (one per phase) + 3 recent done + 38 older done = 46, the"
         }
       },
-      "sizeBytes": 6520,
+      "sizeBytes": 7766,
       "extraction": {
         "status": "parsed"
       },
@@ -29893,6 +29908,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "43aebb74d4f5368535990e7f995b66f546f256077e663bb85d5195a7a5bef393"
+    "revision": "f8a4a0de8b61c52fa051c42483cc523f1d54668dab07285c359def28c96d1ed5"
   }
 }

@@ -146,3 +146,28 @@ test('an unknown scope falls back to all; defaults are safe', () => {
   assert.equal(m.visible.length, 46);
   assert.deepEqual(buildGridModel().visible, []);
 });
+
+test('sort orders visible by updated_at: newest first by default, oldest on request', () => {
+  const specs = [
+    { slug: 'mid', phase: 'done', updated_at: ago(5) },
+    { slug: 'new', phase: 'planned', updated_at: ago(1) },
+    { slug: 'old', phase: 'done', updated_at: ago(40) }
+  ];
+  const n = buildGridModel({ specs, scope: 'all', now: NOW });
+  assert.equal(n.sort, 'newest');
+  assert.deepEqual(slugs(n), ['new', 'mid', 'old']);
+  const o = buildGridModel({ specs, scope: 'all', sort: 'oldest', now: NOW });
+  assert.equal(o.sort, 'oldest');
+  assert.deepEqual(slugs(o), ['old', 'mid', 'new']);
+});
+
+test('sort falls back to created_at, puts undated specs oldest, and ignores unknown values', () => {
+  const specs = [
+    { slug: 'undated', phase: 'specified' },
+    { slug: 'created', phase: 'specified', created_at: ago(2) },
+    { slug: 'updated', phase: 'specified', updated_at: ago(3) }
+  ];
+  assert.deepEqual(slugs(buildGridModel({ specs, scope: 'active', now: NOW })), ['created', 'updated', 'undated']);
+  assert.deepEqual(slugs(buildGridModel({ specs, scope: 'active', sort: 'oldest', now: NOW })), ['undated', 'updated', 'created']);
+  assert.equal(buildGridModel({ specs, sort: 'sideways', now: NOW }).sort, 'newest');
+});

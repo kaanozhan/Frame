@@ -3748,6 +3748,16 @@ History: sidebar-project-section put the switcher above the rail-and-panel split
 
 Changed: `index.html` markup moved out of `.lane-bar-launcher`; switcher CSS moved from `app-header.css` to `project-section.css` (full panel width, 28px); the header's `:not()` button selectors dropped the switcher classes; the tour's switcher step points right; the Guide text and shell sketch show it atop the sidebar (region renamed `sidebar-switcher`).
 
+### [2026-11-02] Specs board shows every spec by default; date sort beside the scope control
+
+User's report (Turkish, verbatim): "specs ekranına girdiğimde totalde 20 gibi bir spec gördüm, bizim daha fazla speci imiz vardı kontrol eder misin?" — 81 specs on disk (14 not done, 68 done), but the board showed ~19: the 14 live ones plus the 5 done specs updated in the last 30 days. The other 63 sat behind the "Show N older" ghost tile at the end of the grid (boards-done-window D2/D3).
+
+Follow-up (verbatim): "older specs i load etme var ama bulması kolay değil, pek hoşuma gitmedi. hepsini görmek isterim, tarihe göre sıralama özelliği getirelim. all, active, done kısmının yanına sağına yerleştirebiliriz bence. tarihe göre sıralamada, eskiden yeniye ve yeniden eskiye sıralama ekleyelim."
+
+This explicitly overturns boards-done-window D3 for specs: `DEFAULT_DONE_WINDOW.specs` is now `0` (All); tasks stay at 7 days. The Project Settings "Done specs shown" select still works for anyone who wants a window back, so the ghost tile only appears when a project opts in.
+
+Added: a "Newest / Oldest" segmented control right of All / Active / Done (`specsDashboard.js`, reuses `.specs-filter-scope` styling plus `.specs-filter-sort`). The order lives in the pure `specs/filterModel.js` (`sort` param, `SORTS` export): by `updated_at`, falling back to `created_at`, undated specs count as oldest, ties keep input order. Newest is the default (same as the previous `listSpecs` order); the choice is session state and survives scope picks.
+
 ### [2026-11-09] Self-hosted Frame — direction, workspace model, files to copy (discussion, no spec yet)
 
 Context: the user brought a brief from another session ("Frame Server — Self-Hosted Mode", 2026-11-07: FrameClient/FrameServer/SandboxProvider, phases 0–3), that session's full transcript, and a PoC write-up from yet another session ("Frame Enterprise & Self-Hosted PoC": `poc/frame-server` branch with an electron-main shim, a WebSocket hub with numbered/replayed messages, a terminal registry keeping 1 MB per terminal, a browser ipcRenderer shim, File › Connect to Server over an SSH tunnel; ran on a Hetzner box, 1223 tests green). The PoC branch is not in this repo or on origin. User's goal (verbatim): "benim ilk hedefim frame e self hosted özelliğini verebilmek. enterprise ile beraber gelecek şeyleri aynı anda yapıp işi uzatmak istemiyorum."

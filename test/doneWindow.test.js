@@ -24,29 +24,29 @@ const NOW = Date.parse('2026-09-13T12:00:00Z');
 const daysAgo = (d) => new Date(NOW - d * DAY_MS).toISOString();
 
 test('defaults and options are what Project Settings offers', () => {
-  assert.deepEqual(DEFAULT_DONE_WINDOW, { tasks: 7, specs: 30 });
+  assert.deepEqual(DEFAULT_DONE_WINDOW, { tasks: 7, specs: 0 });
   assert.deepEqual(WINDOW_OPTIONS, [7, 30, 90, 0]);
 });
 
 test('normalizeDoneWindow: missing, null and garbage fall back per key', () => {
-  assert.deepEqual(normalizeDoneWindow(undefined), { tasks: 7, specs: 30 });
-  assert.deepEqual(normalizeDoneWindow(null), { tasks: 7, specs: 30 });
-  assert.deepEqual(normalizeDoneWindow('30'), { tasks: 7, specs: 30 });
-  assert.deepEqual(normalizeDoneWindow({}), { tasks: 7, specs: 30 });
-  assert.deepEqual(normalizeDoneWindow({ tasks: null, specs: 'soon' }), { tasks: 7, specs: 30 });
-  assert.deepEqual(normalizeDoneWindow({ tasks: 15, specs: -1 }), { tasks: 7, specs: 30 });
-  assert.deepEqual(normalizeDoneWindow({ tasks: NaN, specs: Infinity }), { tasks: 7, specs: 30 });
+  assert.deepEqual(normalizeDoneWindow(undefined), { tasks: 7, specs: 0 });
+  assert.deepEqual(normalizeDoneWindow(null), { tasks: 7, specs: 0 });
+  assert.deepEqual(normalizeDoneWindow('30'), { tasks: 7, specs: 0 });
+  assert.deepEqual(normalizeDoneWindow({}), { tasks: 7, specs: 0 });
+  assert.deepEqual(normalizeDoneWindow({ tasks: null, specs: 'soon' }), { tasks: 7, specs: 0 });
+  assert.deepEqual(normalizeDoneWindow({ tasks: 15, specs: -1 }), { tasks: 7, specs: 0 });
+  assert.deepEqual(normalizeDoneWindow({ tasks: NaN, specs: Infinity }), { tasks: 7, specs: 0 });
 });
 
 test('normalizeDoneWindow: valid values pass, one bad key does not spoil the other', () => {
   assert.deepEqual(normalizeDoneWindow({ tasks: 90, specs: 0 }), { tasks: 90, specs: 0 });
-  assert.deepEqual(normalizeDoneWindow({ tasks: 30 }), { tasks: 30, specs: 30 });
+  assert.deepEqual(normalizeDoneWindow({ tasks: 30 }), { tasks: 30, specs: 0 });
   assert.deepEqual(normalizeDoneWindow({ tasks: 'x', specs: 7 }), { tasks: 7, specs: 7 });
 });
 
 test('normalizeDoneWindow: numeric strings in the option set are accepted', () => {
   assert.deepEqual(normalizeDoneWindow({ tasks: '30', specs: ' 0 ' }), { tasks: 30, specs: 0 });
-  assert.deepEqual(normalizeDoneWindow({ tasks: '12' }), { tasks: 7, specs: 30 });
+  assert.deepEqual(normalizeDoneWindow({ tasks: '12' }), { tasks: 7, specs: 0 });
 });
 
 test('normalizeDoneWindow never mutates its input', () => {

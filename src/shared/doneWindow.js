@@ -14,7 +14,7 @@
 const DAY_MS = 86400000;
 
 /** Days of done items a board shows before the reveal control. 0 = all. */
-const DEFAULT_DONE_WINDOW = Object.freeze({ tasks: 7, specs: 30 });
+const DEFAULT_DONE_WINDOW = Object.freeze({ tasks: 7, specs: 0 });
 
 /** The values Project Settings offers; anything else falls back. */
 const WINDOW_OPTIONS = Object.freeze([7, 30, 90, 0]);
