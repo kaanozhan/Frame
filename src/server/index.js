@@ -130,7 +130,10 @@ function start(argv = process.argv.slice(2)) {
   const bind = bindRule(args.bind);
   if (bind.warning) console.warn(`[frame-server] WARNING: ${bind.warning}`);
 
-  const parts = [require('./terminals').setup({ shim, registerMethods, broadcast })];
+  const parts = [
+    require('./terminals').setup({ shim, registerMethods, broadcast }),
+    require('./projects').setup({ shim, registerMethods, broadcast })
+  ];
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 * 1024 });
   wss.on('connection', onConnection);

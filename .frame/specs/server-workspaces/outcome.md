@@ -30,3 +30,11 @@ Added src/server/terminals.js: Frame's ptyManager runs inside Frame Server throu
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T05 — Server projects, workspaces and tool checks; install notes
+
+Added src/server/projects.js: projects.ensure clones by remote into ~/frame/projects/<dir> once and registers it in the server's project registry (a project without a usable remote is refused), projects.list, workspaces.list/create/archive/rename through Initiative 1's workspaceManager, tools.check, and a workspaces.updated event; wired into src/server/index.js. Extracted aiToolManager.checkToolAvailable from the CHECK_AI_TOOL_AVAILABLE handler (it may take the tool definition, so the server can check a desktop custom tool). Deviation: serverRouting.normalizeRemoteUrl now keeps path remotes as file:/abs/path (needed for a server on the same machine and for tests). Wrote src/server/README.md (requirements, install, systemd user unit with linger, Connect, security, files).
+
+_Captured: 2026-11-10 · 6 file change(s)_
+
+---

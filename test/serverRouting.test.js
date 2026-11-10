@@ -25,7 +25,9 @@ test('normalizeRemoteUrl folds the common remote forms', () => {
     'https://user@github.com/KaanOzhan/frame'
   ]) assert.equal(R.normalizeRemoteUrl(u), want, u);
   assert.equal(R.normalizeRemoteUrl('git@gitlab.example.com:group/sub/proj.git'), 'gitlab.example.com/group/sub/proj');
-  assert.equal(R.normalizeRemoteUrl('/srv/repos/x.git'), null, 'a local path is not a remote');
+  assert.equal(R.normalizeRemoteUrl('/srv/Repos/x.git'), 'file:/srv/Repos/x', 'a path remote is kept as file:');
+  assert.equal(R.normalizeRemoteUrl('file:///srv/Repos/x.git/'), 'file:/srv/Repos/x');
+  assert.equal(R.normalizeRemoteUrl('not a url'), null);
   assert.equal(R.normalizeRemoteUrl(''), null);
   assert.equal(R.sameRemote('git@github.com:a/b.git', 'https://github.com/A/B'), true);
   assert.equal(R.sameRemote('git@github.com:a/b.git', 'https://github.com/a/c'), false);
@@ -37,6 +39,7 @@ test('projectDirName reuses the same remote and disambiguates by owner', () => {
   assert.equal(R.projectDirName('git@github.com:other/frame.git', { frame: 'github.com/kaan/frame' }), 'frame-other');
   assert.equal(R.projectDirName('git@github.com:other/frame.git', { frame: 'x', 'frame-other': 'y' }), 'frame-other-2');
   assert.equal(R.projectDirName('nope'), null);
+  assert.equal(R.projectDirName('/srv/git/tool.git'), 'tool');
 });
 
 test('parseSshConfigHosts lists aliases without patterns', () => {

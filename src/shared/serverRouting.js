@@ -25,11 +25,15 @@ function serverTerminalId(n) {
  * `git@github.com:Owner/Repo.git`, `https://github.com/Owner/Repo`,
  * `ssh://git@github.com:22/Owner/Repo.git/` → `github.com/owner/repo`.
  * Host and path are lower-cased (GitHub/GitLab names are case-insensitive).
- * Null for anything that is not a recognisable remote.
+ * A path remote becomes `file:/abs/path` (case kept). Null for anything else.
  */
 function normalizeRemoteUrl(url) {
   let s = String(url || '').trim();
   if (!s) return null;
+  // A path remote (`/srv/git/x.git`, `file:///srv/git/x.git`) only means
+  // something on a machine that has that path — kept, but marked as such.
+  const local = /^(?:file:\/\/)?(\/.+?)(?:\.git)?\/*$/i.exec(s);
+  if (local) return `file:${local[1]}`;
   let host;
   let rest;
   const scp = /^(?:[^@/\s]+@)?([^:/\s]+):(?!\/\/)(.+)$/.exec(s);

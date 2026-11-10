@@ -534,6 +534,7 @@
       "exports": [
         "init",
         "getAvailableTools",
+        "checkToolAvailable",
         "getActiveTool",
         "setActiveTool",
         "getConfig",
@@ -647,15 +648,25 @@
           "line": 335,
           "purpose": "Setup IPC handlers"
         },
+        "checkToolAvailable": {
+          "line": 356,
+          "params": [
+            "{ toolId",
+            "projectPath = null",
+            "launchFlags = null",
+            "tool"
+          ],
+          "purpose": "Is the tool's CLI installed where this process runs? Returns"
+        },
         "getCommand": {
-          "line": 403,
+          "line": 412,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 411,
+          "line": 420,
           "purpose": "Get the start command for active tool"
         }
       },
@@ -670,7 +681,7 @@
           "AI_TOOL_CHANGED"
         ]
       },
-      "sizeBytes": 13375,
+      "sizeBytes": 13795,
       "extraction": {
         "status": "parsed"
       },
@@ -678,6 +689,7 @@
         "description": "7c6a8c7f4d291274",
         "purposes": {
           "addCustomTool": "297745ae8198d2c4",
+          "checkToolAvailable": "3093304003f41032",
           "detectDefaultTool": "f194adbdb14c9418",
           "getActiveTool": "237800ae961989c7",
           "getAvailableTools": "c70e0d189af459d9",
@@ -23151,6 +23163,20 @@
         }
       }
     },
+    "server/README": {
+      "file": "src/server/README.md",
+      "description": "Frame Server",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 3719,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cde943181d8a0498"
+      }
+    },
     "server/electronShim": {
       "file": "src/server/electronShim.js",
       "description": "electronShim — lets Frame's main-process managers run headless inside",
@@ -23223,7 +23249,8 @@
         "ws",
         "shared/serverProtocol",
         "shared/serverSecurity",
-        "terminals"
+        "terminals",
+        "projects"
       ],
       "functions": {
         "parseArgs": {
@@ -23277,7 +23304,7 @@
           ]
         }
       },
-      "sizeBytes": 6648,
+      "sizeBytes": 6727,
       "extraction": {
         "status": "parsed"
       },
@@ -23287,6 +23314,45 @@
           "loadToken": "464690852d26c700",
           "registerMethods": "ef386b7d3e2ed91b"
         }
+      }
+    },
+    "server/projects": {
+      "file": "src/server/projects.js",
+      "description": "Server projects and workspaces (server-workspaces spec, T5).",
+      "exports": [
+        "setup",
+        "projectsRoot"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "shared/ipcChannels",
+        "shared/serverRouting",
+        "main/projectRegistry",
+        "main/workspaceManager",
+        "main/gitBranchesManager",
+        "main/aiToolManager"
+      ],
+      "functions": {
+        "projectsRoot": {
+          "line": 25
+        },
+        "setup": {
+          "line": 29,
+          "params": [
+            "{ shim",
+            "registerMethods",
+            "broadcast }"
+          ]
+        }
+      },
+      "sizeBytes": 4892,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "5f26061ae03cf303"
       }
     },
     "server/screenMirror": {
@@ -24522,14 +24588,14 @@
           "purpose": "`git@github.com:Owner/Repo.git`, `https://github.com/Owner/Repo`,"
         },
         "sameRemote": {
-          "line": 51,
+          "line": 55,
           "params": [
             "a",
             "b"
           ]
         },
         "projectDirName": {
-          "line": 62,
+          "line": 66,
           "params": [
             "url",
             "taken = {}"
@@ -24537,14 +24603,14 @@
           "purpose": "Folder name for a clone of `url` under the server's projects root."
         },
         "parseSshConfigHosts": {
-          "line": 80,
+          "line": 84,
           "params": [
             "text"
           ],
           "purpose": "Host aliases from an OpenSSH client config: every name on a `Host` line,"
         }
       },
-      "sizeBytes": 3434,
+      "sizeBytes": 3713,
       "extraction": {
         "status": "parsed"
       },
@@ -28082,7 +28148,7 @@
         "src/shared/serverRouting"
       ],
       "functions": {},
-      "sizeBytes": 2486,
+      "sizeBytes": 2710,
       "extraction": {
         "status": "parsed"
       },
@@ -31681,7 +31747,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 343,
+        "parsed": 345,
         "unsupported": 86,
         "partial": 0
       }
@@ -31728,9 +31794,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 520,
+      "visitedEntries": 522,
       "traversedDirectories": 83,
-      "eligibleFiles": 429,
+      "eligibleFiles": 431,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -31747,7 +31813,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 429,
+      "indexedFiles": 431,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -31755,6 +31821,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "7aff6c6d12a5abde0eddecde7b5fc7cea56e53a77eb6eb6fa7cab3debc22d419"
+    "revision": "155a8554b40c0eaf7adc9aed382863e7b1ea46fb1dc790c473af1d79450070e0"
   }
 }
