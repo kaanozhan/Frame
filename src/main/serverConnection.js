@@ -253,7 +253,10 @@ async function preflight(host, mySession, { protocolOk = true } = {}) {
   if (d.action === 'error') throw new Error(d.reason);
   const inst = d.probe && d.probe.installed;
   const info = { action: d.action, reason: d.reason, desktopVersion: d.desktopVersion, dev: d.dev, current: inst ? inst.current : null, previous: inst ? inst.previous : null, manual: !!(inst && inst.manual) };
-  if (d.action !== 'none') {
+  // Nothing to talk to (not installed), or a server this Frame cannot talk
+  // to (another protocol): wait for the user. An older but compatible server
+  // is connected to, so its running agents can be named before any update.
+  if (d.action === 'install' || (d.action !== 'none' && !protocolOk)) {
     setStatus({ state: d.action === 'install' ? 'needs-install' : 'needs-update', error: null, install: info });
     return 'wait';
   }
@@ -378,9 +381,14 @@ async function runAction(kind, { host: given, confirmAgents = false } = {}) {
   const host = given || status.host || (userSettings.get(SETTING) || {}).host;
   if (!host) return { error: 'Choose a server first.' };
   if (busy) return { error: 'An install is already running.' };
-  if (kind !== 'install' && !confirmAgents && isConnected()) {
-    const agents = await installer().runningAgents();
-    if (agents.length) return { error: null, needsConsent: true, agents };
+  if (kind !== 'install' && !confirmAgents) {
+    if (isConnected()) {
+      const agents = await installer().runningAgents();
+      if (agents.length) return { error: null, needsConsent: true, agents };
+    } else if (status.install && status.install.current) {
+      // Not connected (another protocol): its terminals cannot be listed, so ask in general.
+      return { error: null, needsConsent: true, agents: null };
+    }
   }
   busy = true;
   disconnect({ forget: false, quiet: true });

@@ -482,3 +482,48 @@
 
 /* Editor status for a server workspace's file (server-workspace-panels) */
 #editor-status.readonly { color: var(--info, #a6c0f0); }
+
+/* Install, update and check-up in the Connect dialog (server-install-update) */
+.server-connect-modal { --modal-width: 560px; }
+.sc-panel { margin-top: 12px; display: grid; gap: 8px; }
+.sc-install-reason { margin: 0; font-size: 12px; color: var(--text-secondary); }
+.sc-progress {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sc-consent { padding: 10px 12px; border: 1px solid var(--warning); border-radius: var(--radius-sm); }
+.sc-consent p { margin: 0; font-size: 12px; color: var(--text-primary); }
+.sc-agents { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); }
+.sc-consent-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.sc-doctor-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); }
+.sc-link { padding: 0; border: none; background: none; color: var(--text-tertiary); font-size: 11px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.sc-link:hover { color: var(--text-primary); }
+.sc-doctor-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sc-check { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 12px; }
+.sc-check-mark { font-weight: 700; color: var(--success); }
+.sc-check.missing .sc-check-mark { color: var(--warning); }
+.sc-check.optional .sc-check-mark { color: var(--text-muted); }
+.sc-check-label { color: var(--text-primary); }
+.sc-check-detail { color: var(--text-tertiary); }
+.sc-fix { display: flex; gap: 6px; align-items: center; margin-top: 3px; min-width: 0; }
+.sc-fix code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 3px 6px; border-radius: var(--radius-sm); background: var(--bg-tertiary); font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.sb-server[data-state="needs-install"] .sb-server-dot,
+.sb-server[data-state="needs-update"] .sb-server-dot,
+.sb-server[data-state="installing"] .sb-server-dot { background: var(--warning); }
+.sc-status[data-state="needs-install"],
+.sc-status[data-state="needs-update"],
+.sc-status[data-state="installing"] { color: var(--warning); }
+.sc-panel[hidden], .sc-progress[hidden], .sc-agents[hidden] { display: none; }
+.server-connect-modal .task-run-modal-footer { flex-wrap: wrap; }
+.server-connect-modal .task-run-modal-footer .task-run-btn { white-space: nowrap; }

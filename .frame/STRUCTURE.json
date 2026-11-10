@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 106208,
+      "sizeBytes": 107437,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -5697,21 +5697,21 @@
           "purpose": "Probe the host before connecting: 'go', or 'wait' after setting"
         },
         "loop": {
-          "line": 269,
+          "line": 272,
           "params": [
             "host",
             "mySession"
           ]
         },
         "connect": {
-          "line": 297,
+          "line": 300,
           "params": [
             "host"
           ],
           "purpose": "Connect to `host` (an ssh alias or user@host), remember it, auto-connect next launch."
         },
         "disconnect": {
-          "line": 311,
+          "line": 314,
           "params": [
             "{ forget = true",
             "quiet = false } = {}"
@@ -5719,7 +5719,7 @@
           "purpose": "Stop and close everything; `forget` drops auto-connect for next launch."
         },
         "call": {
-          "line": 326,
+          "line": 329,
           "params": [
             "method",
             "params = {}",
@@ -5728,7 +5728,7 @@
           "purpose": "A request to the server. Rejects when not connected or on timeout."
         },
         "send": {
-          "line": 337,
+          "line": 340,
           "params": [
             "method",
             "params = {}"
@@ -5736,7 +5736,7 @@
           "purpose": "Fire-and-forget request (terminal input): errors are only logged."
         },
         "on": {
-          "line": 342,
+          "line": 345,
           "params": [
             "name",
             "fn"
@@ -5744,18 +5744,18 @@
           "purpose": "Subscribe to a server event channel (`terminal.output`, …) or `connected` / `disconnected` / `status`."
         },
         "sshHosts": {
-          "line": 349,
+          "line": 352,
           "purpose": "Host aliases from ~/.ssh/config for the Connect dialog."
         },
         "init": {
-          "line": 359,
+          "line": 362,
           "params": [
             "window",
             "version"
           ]
         },
         "runAction": {
-          "line": 377,
+          "line": 380,
           "params": [
             "kind",
             "{ host",
@@ -5764,7 +5764,7 @@
           "purpose": "Run an installer action for the current (or given) host with progress,"
         },
         "setupIPC": {
-          "line": 406,
+          "line": 414,
           "params": [
             "ipcMain"
           ]
@@ -5786,7 +5786,7 @@
           "SERVER_INSTALL_PROGRESS"
         ]
       },
-      "sizeBytes": 17603,
+      "sizeBytes": 18111,
       "extraction": {
         "status": "parsed"
       },
@@ -14845,51 +14845,91 @@
       ],
       "functions": {
         "getStatus": {
-          "line": 29
+          "line": 44
         },
         "onChange": {
-          "line": 33,
+          "line": 48,
           "params": [
             "cb"
           ]
         },
+        "updateAvailable": {
+          "line": 53,
+          "params": [
+            "s"
+          ]
+        },
         "apply": {
-          "line": 38,
+          "line": 57,
           "params": [
             "next"
           ]
         },
+        "isOpen": {
+          "line": 82
+        },
         "init": {
-          "line": 56
+          "line": 86
+        },
+        "loadDoctor": {
+          "line": 122,
+          "params": [
+            "force = false"
+          ]
+        },
+        "finishIfClean": {
+          "line": 134,
+          "purpose": "A connect started here closes the dialog once the check-up has nothing to fix."
+        },
+        "el": {
+          "line": 141,
+          "params": [
+            "tag",
+            "cls",
+            "text"
+          ]
         },
         "renderModal": {
-          "line": 71
+          "line": 148
         },
         "open": {
-          "line": 83
+          "line": 230
         },
         "close": {
-          "line": 102
+          "line": 245
         },
         "connect": {
-          "line": 107
+          "line": 251
+        },
+        "runAction": {
+          "line": 265,
+          "params": [
+            "kind",
+            "confirmAgents = false"
+          ],
+          "purpose": "Install, update or roll back; update and rollback first ask about running agents."
         },
         "disconnect": {
-          "line": 118
+          "line": 286
         }
       },
       "ipc": {
         "listens": [
-          "SERVER_STATUS_CHANGED"
+          "SERVER_STATUS_CHANGED",
+          "SERVER_INSTALL_PROGRESS"
         ],
         "emits": []
       },
-      "sizeBytes": 4610,
+      "sizeBytes": 12934,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "7868383166b7aa4c"
+        "description": "7868383166b7aa4c",
+        "purposes": {
+          "finishIfClean": "a2e9197d02c9e7fd",
+          "runAction": "e59630369215a83f"
+        }
       }
     },
     "renderer/sessionRestore": {
@@ -17395,7 +17435,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 10900,
+      "sizeBytes": 13645,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -33034,6 +33074,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "43d986085dc6062efd0f87636f8eec1f9c5b983332d98a32bace7dafb4d5dacc"
+    "revision": "9c0a82ac11570a86c0a2a2af7cd598cd36b731d9b6407b43dfb34e2305a65697"
   }
 }

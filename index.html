@@ -1474,10 +1474,29 @@
         </div>
         <p id="sc-status" class="sc-status" data-state="off"></p>
         <p id="sc-error" class="nw-error" role="alert"></p>
+        <!-- Install / update (server-install-update) -->
+        <div id="sc-install" class="sc-panel" hidden>
+          <p id="sc-install-reason" class="sc-install-reason"></p>
+          <pre id="sc-progress" class="sc-progress" hidden></pre>
+        </div>
+        <div id="sc-consent" class="sc-panel sc-consent" hidden>
+          <p id="sc-consent-text"></p>
+          <ul id="sc-agents" class="sc-agents"></ul>
+          <div class="sc-consent-actions">
+            <button type="button" id="sc-later" class="task-run-btn task-run-btn-cancel">Later</button>
+            <button type="button" id="sc-confirm" class="task-run-btn task-run-btn-primary">Update now</button>
+          </div>
+        </div>
+        <div id="sc-doctor" class="sc-panel" hidden>
+          <div class="sc-doctor-head"><span>Server check-up</span><button type="button" id="sc-recheck" class="sc-link">Check again</button></div>
+          <ul id="sc-doctor-list" class="sc-doctor-list"></ul>
+        </div>
       </div>
       <div class="task-run-modal-footer">
         <button type="button" id="sc-disconnect" class="task-run-btn task-run-btn-cancel sc-disconnect" hidden>Disconnect</button>
+        <button type="button" id="sc-rollback" class="task-run-btn task-run-btn-cancel" hidden>Roll back</button>
         <button type="button" id="sc-cancel" class="task-run-btn task-run-btn-cancel">Close</button>
+        <button type="button" id="sc-install-btn" class="task-run-btn task-run-btn-primary" hidden>Install Frame Server</button>
         <button type="button" id="sc-connect" class="task-run-btn task-run-btn-primary">Connect</button>
       </div>
     </div>

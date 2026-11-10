@@ -54,3 +54,11 @@ serverConnection probes the host before the first attempt of a session (serverIn
 _Captured: 2026-11-10 · 3 file change(s)_
 
 ---
+
+## T08 — Install, update, consent and check-up in the Connect dialog
+
+The Connect dialog now shows, by state: 'Frame Server is not installed' with Install; an available update ('the server runs X; update to Y?') with Update while connected; live installer progress lines; a consent box before update or rollback naming running agents ('claude in main', with 'Update now' / 'Later') or a general warning when the server speaks another protocol; the server check-up once connected (✓ / ! / optional, each missing item with its fix command and a Copy button, 'Check again'); 'Roll back to <previous>'. A connect started from the dialog closes it only when the check-up is clean and no update is pending. Toasts announce needs-install/needs-update and an available update once per version. Deviation from T07: an older but protocol-compatible server is now connected to (with the update offered) instead of blocking, so its running agents can be named before updating; only a protocol mismatch blocks with needs-update (serverConnection.js).
+
+_Captured: 2026-11-10 · 4 file change(s)_
+
+---
