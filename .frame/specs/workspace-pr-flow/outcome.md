@@ -38,3 +38,11 @@ Added `src/renderer/workspacePr.js`: keeps the current project's `WORKSPACE_GIT_
 _Captured: 2026-11-10 · 4 file change(s)_
 
 ---
+
+## T06 — Build Create PR
+
+Added the `#create-pr-modal` dialog (`index.html`, task-run modal shell, styles in `workspaces.css`) and `workspacePr.openCreatePr`: asks main for `WORKSPACE_PR_DRAFT`, shows `branch → base · N commits`, prefills title and body, lets the user edit them and tick draft, and creates through `WORKSPACE_PR_CREATE` (button reads 'Pushing and creating…'; errors stay in the dialog; ⌘↩ creates, Esc cancels). The row menu offers 'Create Pull Request…' until the workspace has an open/draft PR, disabled with the gh/auth/remote reason when PR actions are unavailable; `workspace.createPr` (⌘⌥P) in the command registry and File menu. Live over CDP with the fake gh: the dialog opened prefilled from the commit ('add pr file', `feat/kaan/blue → main · 1 commit`), the edited title and draft reached gh as argv (`--title 'Add the PR file' … --draft`), and the row turned into `PR #101 · draft · 1 check running`.
+
+_Captured: 2026-11-10 · 5 file change(s)_
+
+---

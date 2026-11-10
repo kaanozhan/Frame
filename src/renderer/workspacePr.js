@@ -111,12 +111,18 @@ function menuItems(ws) {
   const s = rowState(ws.id);
   const items = [];
   items.push({ id: 'pr:push', label: s && s.unpushed ? `Push (${s.unpushed})` : 'Push' });
+  const blocked = prBlockedReason();
+  const hasOpenPr = !!(s && s.pr && (s.pr.state === 'open' || s.pr.state === 'draft'));
+  if (!hasOpenPr) {
+    items.push({ id: 'pr:create', label: 'Create Pull Request…', disabled: !!blocked, title: blocked || '' });
+  }
   return items;
 }
 
 /** Run a PR-flow menu action for a workspace. Returns true when it was ours. */
 function runAction(id, ws) {
   if (id === 'pr:push') { push(ws); return true; }
+  if (id === 'pr:create') { openCreatePr(ws); return true; }
   return false;
 }
 
@@ -134,6 +140,86 @@ async function push(ws) {
   return result;
 }
 
+/**
+ * The Create PR dialog: main composes the title/body (from the workspace's
+ * spec, else its commits), the user edits them and picks draft, and main
+ * pushes and runs `gh pr create`.
+ */
+async function openCreatePr(ws) {
+  const blocked = prBlockedReason();
+  if (blocked) {
+    notify.error(blocked);
+    return;
+  }
+  const modal = document.getElementById('create-pr-modal');
+  if (!modal) return;
+  const projectPath = state.getProjectPath();
+  const titleEl = modal.querySelector('#cpr-title');
+  const bodyEl = modal.querySelector('#cpr-body');
+  const draftEl = modal.querySelector('#cpr-draft');
+  const errorEl = modal.querySelector('#cpr-error');
+  const createBtn = modal.querySelector('#cpr-create');
+  const cancelBtn = modal.querySelector('#cpr-cancel');
+
+  const draft = await ipcRenderer.invoke(IPC.WORKSPACE_PR_DRAFT, { projectPath, id: ws.id });
+  if (!draft || draft.error) {
+    notify.error((draft && draft.error) || 'Could not prepare the pull request');
+    return;
+  }
+  modal.querySelector('#cpr-summary').textContent = `${draft.branch} → ${draft.base} · ${draft.commits} commit${draft.commits === 1 ? '' : 's'}`;
+  titleEl.value = draft.title;
+  bodyEl.value = draft.body;
+  draftEl.checked = false;
+  errorEl.textContent = '';
+  createBtn.disabled = false;
+  createBtn.textContent = 'Create pull request';
+  modal.classList.add('visible');
+  titleEl.focus();
+  titleEl.select();
+
+  await new Promise((resolve) => {
+    const cleanup = () => {
+      modal.classList.remove('visible');
+      createBtn.removeEventListener('click', onCreate);
+      cancelBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('keydown', onKey);
+      modal.removeEventListener('mousedown', onBackdrop);
+      resolve();
+    };
+    const onCancel = () => { if (!createBtn.disabled) cleanup(); };
+    const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onCreate(); }
+    };
+    const onCreate = async () => {
+      if (createBtn.disabled) return;
+      if (!titleEl.value.trim()) {
+        errorEl.textContent = 'A pull request needs a title.';
+        return;
+      }
+      createBtn.disabled = true;
+      createBtn.textContent = 'Pushing and creating…';
+      const result = await ipcRenderer.invoke(IPC.WORKSPACE_PR_CREATE, {
+        projectPath, id: ws.id, title: titleEl.value, body: bodyEl.value, draft: draftEl.checked
+      });
+      if (!result || result.error) {
+        errorEl.textContent = (result && result.error) || 'Could not create the pull request.';
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create pull request';
+        return;
+      }
+      createBtn.disabled = false;
+      notify.success(result.url ? `Pull request created — ${result.url}` : 'Pull request created');
+      cleanup();
+    };
+    createBtn.addEventListener('click', onCreate);
+    cancelBtn.addEventListener('click', onCancel);
+    modal.addEventListener('keydown', onKey);
+    modal.addEventListener('mousedown', onBackdrop);
+  });
+}
+
 module.exports = {
   init,
   refresh,
@@ -144,5 +230,6 @@ module.exports = {
   rowBadgesHtml,
   menuItems,
   runAction,
-  push
+  push,
+  openCreatePr
 };

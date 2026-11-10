@@ -1428,6 +1428,32 @@
     </div>
   </div>
 
+  <!-- Create a pull request from a workspace (workspace-pr-flow): Frame prefills, the user edits -->
+  <div id="create-pr-modal" class="task-run-modal new-workspace-modal create-pr-modal" role="dialog" aria-modal="true" aria-labelledby="cpr-title-h">
+    <div class="task-run-modal-container">
+      <div class="task-run-modal-header">
+        <h3 id="cpr-title-h">Create pull request</h3>
+        <p id="cpr-summary"></p>
+      </div>
+      <div class="task-run-modal-body">
+        <div class="task-run-section">
+          <label for="cpr-title" class="task-run-section-label">Title</label>
+          <input type="text" id="cpr-title" class="task-run-input" spellcheck="true">
+        </div>
+        <div class="task-run-section">
+          <label for="cpr-body" class="task-run-section-label">Description</label>
+          <textarea id="cpr-body" class="task-run-input cpr-body" rows="10" spellcheck="true"></textarea>
+          <label class="task-run-radio cpr-draft"><input type="checkbox" id="cpr-draft"><span>Open as draft</span></label>
+        </div>
+        <p id="cpr-error" class="nw-error" role="alert"></p>
+      </div>
+      <div class="task-run-modal-footer">
+        <button type="button" id="cpr-cancel" class="task-run-btn task-run-btn-cancel">Cancel</button>
+        <button type="button" id="cpr-create" class="task-run-btn task-run-btn-primary">Create pull request</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Archive a workspace with uncommitted changes (workspaces spec): never auto-commits -->
   <div id="archive-workspace-modal" class="task-run-modal new-workspace-modal" role="dialog" aria-modal="true" aria-labelledby="aw-title">
     <div class="task-run-modal-container">

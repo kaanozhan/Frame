@@ -957,6 +957,17 @@ function registerCommands() {
     }
   });
   r({
+    id: 'workspace.createPr',
+    title: 'Create Pull Request…',
+    category: 'Workspace',
+    shortcut: 'CmdOrCtrl+Alt+P',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').openCreatePr(ws);
+    }
+  });
+  r({
     id: 'workspace.archive',
     title: 'Archive Workspace…',
     category: 'Workspace',

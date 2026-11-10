@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 100596,
+      "sizeBytes": 102027,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -4062,43 +4062,43 @@
           "purpose": "Get menu template based on active AI tool"
         },
         "openSettings": {
-          "line": 251
+          "line": 252
         },
         "buildAICommandsSubmenu": {
-          "line": 262,
+          "line": 263,
           "params": [
             "tool"
           ],
           "purpose": "Build the AI-tool root's submenu: Start first, then the tool's slash"
         },
         "buildToolSwitcherSubmenu": {
-          "line": 311,
+          "line": 312,
           "purpose": "Build tool switcher submenu"
         },
         "buildThemeSubmenu": {
-          "line": 332,
+          "line": 333,
           "purpose": "View › Theme: one radio item per registry entry, the current one checked."
         },
         "sendCommand": {
-          "line": 347,
+          "line": 348,
           "params": [
             "command"
           ],
           "purpose": "Send command to terminal"
         },
         "sendAppCommand": {
-          "line": 357,
+          "line": 358,
           "params": [
             "commandId"
           ],
           "purpose": "Run a renderer command by its command-registry id (the menu's one"
         },
         "openHistoryFile": {
-          "line": 366,
+          "line": 367,
           "purpose": "Open history file in default editor"
         },
         "createMenu": {
-          "line": 380,
+          "line": 381,
           "purpose": "Create and set application menu"
         }
       },
@@ -4112,7 +4112,7 @@
           "RUN_APP_COMMAND"
         ]
       },
-      "sizeBytes": 11600,
+      "sizeBytes": 11678,
       "extraction": {
         "status": "parsed"
       },
@@ -11856,11 +11856,11 @@
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1096,
+          "line": 1107,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1121,
+          "line": 1132,
           "params": [
             "err"
           ],
@@ -11880,7 +11880,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 41333,
+      "sizeBytes": 41689,
       "extraction": {
         "status": "parsed"
       },
@@ -16412,7 +16412,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 7816,
+      "sizeBytes": 8122,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -17904,7 +17904,8 @@
         "rowBadgesHtml",
         "menuItems",
         "runAction",
-        "push"
+        "push",
+        "openCreatePr"
       ],
       "depends": [
         "electron",
@@ -17966,7 +17967,7 @@
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 118,
+          "line": 123,
           "params": [
             "id",
             "ws"
@@ -17974,10 +17975,17 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 125,
+          "line": 131,
           "params": [
             "ws"
           ]
+        },
+        "openCreatePr": {
+          "line": 148,
+          "params": [
+            "ws"
+          ],
+          "purpose": "The Create PR dialog: main composes the title/body (from the workspace's"
         }
       },
       "ipc": {
@@ -17986,7 +17994,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 5498,
+      "sizeBytes": 9016,
       "extraction": {
         "status": "parsed"
       },
@@ -17995,6 +18003,7 @@
         "purposes": {
           "access": "07aeb542835bc462",
           "menuItems": "6cf670bca1da203e",
+          "openCreatePr": "6e7d7f5676838d2d",
           "prBlockedReason": "24c624a5061312d9",
           "refresh": "8faf0bd876257b8e",
           "rowBadgesHtml": "299a6e285b813ca9",
@@ -30740,6 +30749,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2b5e01cae03be5fd4701d6b9fe68db7646a24a8dc4aa31c69b0da1c5354704f3"
+    "revision": "12aa90e3f35cabd9e64f78f5416b6cf88aab8f9181f259a91f5c92b372ba1ead"
   }
 }

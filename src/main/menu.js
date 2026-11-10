@@ -99,6 +99,7 @@ function getMenuTemplate() {
     label: 'File',
     submenu: [
       cmd('New Workspace…', 'workspace.new', 'CmdOrCtrl+Shift+N'),
+      cmd('Create Pull Request…', 'workspace.createPr', 'CmdOrCtrl+Alt+P'),
       SEP,
       cmd('Add Project…', 'project.add'),
       cmd('Create New Project…', 'project.create'),

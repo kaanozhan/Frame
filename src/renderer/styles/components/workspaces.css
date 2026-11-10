@@ -382,3 +382,18 @@
   opacity: 0.45;
   cursor: default;
 }
+
+/* ---------- Create PR dialog ---------- */
+
+.create-pr-modal { --modal-width: 620px; }
+
+.create-pr-modal .task-run-input { width: 100%; box-sizing: border-box; }
+
+.cpr-body {
+  min-height: 180px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.cpr-draft { margin-top: 8px; }
