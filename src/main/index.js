@@ -34,6 +34,7 @@ const projectInsights = require('./projectInsights');
 const gitBranchesManager = require('./gitBranchesManager');
 const workspaceManager = require('./workspaceManager');
 const workspaceGitState = require('./workspaceGitState');
+const serverConnection = require('./serverConnection');
 const aiToolManager = require('./aiToolManager');
 const claudeSessionsManager = require('./claudeSessionsManager');
 const codexSessionsManager = require('./codexSessionsManager');
@@ -231,6 +232,7 @@ function setupAllIPC() {
   gitBranchesManager.setupIPC(ipcMain);
   workspaceManager.setupIPC(ipcMain);
   workspaceGitState.setupIPC(ipcMain);
+  serverConnection.setupIPC(ipcMain);
   claudeSessionsManager.setupIPC(ipcMain);
   codexSessionsManager.setupIPC(ipcMain);
   updateChecker.setupIPC();
@@ -370,6 +372,7 @@ function initModulesWithWindow(window) {
   specManager.init(window);
   orchestrationManager.init(window);
   activityLog.attachWindow(window);
+  serverConnection.init(window, app.getVersion());
 }
 
 // Initialize Aptabase and build the PostHog client. Aptabase MUST run before
@@ -428,6 +431,8 @@ app.on('before-quit', (e) => {
 // will-quit only fires after before-quit's live-agent confirmation passed.
 app.on('will-quit', () => {
   structureLifecycle.disposeAll();
+  // Close the SSH tunnel; server terminals keep running on the server.
+  serverConnection.disconnect({ forget: false, quiet: true });
 });
 
 app.on('window-all-closed', () => {

@@ -3772,6 +3772,7 @@
         "gitBranchesManager",
         "workspaceManager",
         "workspaceGitState",
+        "serverConnection",
         "aiToolManager",
         "claudeSessionsManager",
         "codexSessionsManager",
@@ -3788,26 +3789,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 63,
+          "line": 64,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 81,
+          "line": 82,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 182
+          "line": 183
         },
         "setupAllIPC": {
-          "line": 212,
+          "line": 213,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 308,
+          "line": 310,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 356,
+          "line": 358,
           "params": [
             "window"
           ],
@@ -3830,7 +3831,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 16173,
+      "sizeBytes": 16453,
       "extraction": {
         "status": "parsed"
       },
@@ -5480,6 +5481,188 @@
           "resizeTerminal": "810c8f104494f695",
           "setupIPC": "9454079ed67a9898",
           "writeToTerminal": "6e7ca448a2aac555"
+        }
+      }
+    },
+    "main/serverConnection": {
+      "file": "src/main/serverConnection.js",
+      "description": "Server connection — the desktop's link to Frame Server",
+      "exports": [
+        "init",
+        "setupIPC",
+        "connect",
+        "disconnect",
+        "call",
+        "send",
+        "on",
+        "getStatus",
+        "isConnected",
+        "sshHosts"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "net",
+        "path",
+        "child_process",
+        "events",
+        "ws",
+        "shared/ipcChannels",
+        "shared/serverProtocol",
+        "shared/serverSecurity",
+        "shared/serverRouting",
+        "userSettings",
+        "logger"
+      ],
+      "functions": {
+        "sshBin": {
+          "line": 56
+        },
+        "setStatus": {
+          "line": 60,
+          "params": [
+            "next"
+          ]
+        },
+        "getStatus": {
+          "line": 66
+        },
+        "isConnected": {
+          "line": 70
+        },
+        "teardown": {
+          "line": 75,
+          "purpose": "Close the socket and the tunnel of the current attempt."
+        },
+        "readConnectionInfo": {
+          "line": 90,
+          "params": [
+            "host"
+          ]
+        },
+        "freePort": {
+          "line": 110
+        },
+        "waitForPort": {
+          "line": 122,
+          "params": [
+            "port",
+            "child",
+            "timeoutMs"
+          ]
+        },
+        "openSocket": {
+          "line": 142,
+          "params": [
+            "port",
+            "token"
+          ]
+        },
+        "runOnce": {
+          "line": 170,
+          "params": [
+            "host",
+            "mySession"
+          ]
+        },
+        "scheduleRetry": {
+          "line": 209,
+          "params": [
+            "host",
+            "mySession",
+            "error"
+          ]
+        },
+        "loop": {
+          "line": 219,
+          "params": [
+            "host",
+            "mySession"
+          ]
+        },
+        "connect": {
+          "line": 236,
+          "params": [
+            "host"
+          ],
+          "purpose": "Connect to `host` (an ssh alias or user@host), remember it, auto-connect next launch."
+        },
+        "disconnect": {
+          "line": 249,
+          "params": [
+            "{ forget = true",
+            "quiet = false } = {}"
+          ],
+          "purpose": "Stop and close everything; `forget` drops auto-connect for next launch."
+        },
+        "call": {
+          "line": 264,
+          "params": [
+            "method",
+            "params = {}",
+            "timeoutMs = CALL_TIMEOUT_MS"
+          ],
+          "purpose": "A request to the server. Rejects when not connected or on timeout."
+        },
+        "send": {
+          "line": 275,
+          "params": [
+            "method",
+            "params = {}"
+          ],
+          "purpose": "Fire-and-forget request (terminal input): errors are only logged."
+        },
+        "on": {
+          "line": 280,
+          "params": [
+            "name",
+            "fn"
+          ],
+          "purpose": "Subscribe to a server event channel (`terminal.output`, …) or `connected` / `disconnected` / `status`."
+        },
+        "sshHosts": {
+          "line": 287,
+          "purpose": "Host aliases from ~/.ssh/config for the Connect dialog."
+        },
+        "init": {
+          "line": 297,
+          "params": [
+            "window",
+            "version"
+          ]
+        },
+        "setupIPC": {
+          "line": 306,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SERVER_STATUS",
+          "SERVER_CONNECT",
+          "SERVER_DISCONNECT",
+          "SERVER_SSH_HOSTS"
+        ],
+        "emits": [
+          "SERVER_STATUS_CHANGED"
+        ]
+      },
+      "sizeBytes": 12850,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "c3d73bda50b74553",
+        "purposes": {
+          "call": "3d272e9aef327e0e",
+          "connect": "9a900e7bcee40c1c",
+          "disconnect": "3dfceaa7c643a728",
+          "on": "d506c03c81c7c5d4",
+          "send": "be070ddd2afbc83d",
+          "sshHosts": "340c95bacd938b66",
+          "teardown": "dd50e7cc8459b3e9"
         }
       }
     },
@@ -24240,7 +24423,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 16531,
+      "sizeBytes": 17220,
       "extraction": {
         "status": "parsed"
       },
@@ -30582,6 +30765,33 @@
         "direction": "",
         "description": ""
       }
+    },
+    "server": {
+      "SERVER_STATUS": {
+        "name": "server-status",
+        "direction": "",
+        "description": ""
+      },
+      "SERVER_CONNECT": {
+        "name": "server-connect",
+        "direction": "",
+        "description": ""
+      },
+      "SERVER_DISCONNECT": {
+        "name": "server-disconnect",
+        "direction": "",
+        "description": ""
+      },
+      "SERVER_SSH_HOSTS": {
+        "name": "server-ssh-hosts",
+        "direction": "",
+        "description": ""
+      },
+      "SERVER_STATUS_CHANGED": {
+        "name": "server-status-changed",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -31358,6 +31568,11 @@
     ],
     "server": [
       {
+        "module": "main/serverConnection",
+        "file": "src/main/serverConnection.js",
+        "description": "Server connection — the desktop's link to Frame Server"
+      },
+      {
         "module": "shared/serverProtocol",
         "file": "src/shared/serverProtocol.js",
         "description": "serverProtocol — the messages between Frame desktop and Frame Server"
@@ -31747,7 +31962,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 345,
+        "parsed": 346,
         "unsupported": 86,
         "partial": 0
       }
@@ -31794,9 +32009,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 522,
+      "visitedEntries": 523,
       "traversedDirectories": 83,
-      "eligibleFiles": 431,
+      "eligibleFiles": 432,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -31813,7 +32028,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 431,
+      "indexedFiles": 432,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -31821,6 +32036,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "155a8554b40c0eaf7adc9aed382863e7b1ea46fb1dc790c473af1d79450070e0"
+    "revision": "fc34b4b579a49e35470e0f53731826b35f9c88733bfcf64665f82f8e2fec937b"
   }
 }

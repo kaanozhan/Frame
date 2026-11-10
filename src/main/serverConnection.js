@@ -1,0 +1,317 @@
+/**
+ * Server connection — the desktop's link to Frame Server
+ * (server-workspaces spec, T2/B1).
+ *
+ * One server at a time. Connecting is a loop that runs the user's own `ssh`:
+ *
+ *   1. `ssh <host> cat ~/.frame-server/connection.json`  → port + token
+ *   2. `ssh -N -L 127.0.0.1:<local>:127.0.0.1:<port> <host>` (the tunnel)
+ *   3. WebSocket through the tunnel with the Bearer token and the desktop
+ *      Origin; both sides say hello (same protocol) → connected
+ *
+ * When the tunnel or socket drops, everything in flight fails, the status
+ * becomes "reconnecting" and the loop starts again with backoff until the
+ * user disconnects. Frame stores no SSH secrets: `BatchMode=yes` means a host
+ * that needs a typed password cannot be used (keys, agent, Tailscale SSH can).
+ *
+ * Main-process modules use `call(method, params)` and `on(channel, fn)`;
+ * the renderer sees SERVER_STATUS_CHANGED and the SERVER_* invokes.
+ * `FRAME_SSH` overrides the ssh binary (tests use a stand-in).
+ */
+
+const fs = require('fs');
+const os = require('os');
+const net = require('net');
+const path = require('path');
+const { execFile, spawn } = require('child_process');
+const { EventEmitter } = require('events');
+const WebSocket = require('ws');
+const { IPC } = require('../shared/ipcChannels');
+const P = require('../shared/serverProtocol');
+const { DESKTOP_ORIGIN } = require('../shared/serverSecurity');
+const { parseSshConfigHosts } = require('../shared/serverRouting');
+const userSettings = require('./userSettings');
+const logger = require('./logger');
+
+const SETTING = 'server';
+const BACKOFF_MS = [1000, 2000, 5000, 10000, 30000];
+const SSH_TIMEOUT_MS = 20000;
+const TUNNEL_READY_MS = 15000;
+const CALL_TIMEOUT_MS = 30000;
+const SSH_OPTS = ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10'];
+
+let mainWindow = null;
+let frameVersion = '0.0.0';
+const bus = new EventEmitter();
+bus.setMaxListeners(50);
+
+let status = { state: 'off', host: null, error: null, frameVersion: null, platform: null };
+let session = 0;          // bumps on every connect/disconnect; stale loops stop
+let tunnel = null;        // ChildProcess
+let socket = null;        // WebSocket
+let pending = P.createPending();
+let attempt = 0;
+let retryTimer = null;
+
+function sshBin() {
+  return process.env.FRAME_SSH || 'ssh';
+}
+
+function setStatus(next) {
+  status = { ...status, ...next };
+  bus.emit('status', status);
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.SERVER_STATUS_CHANGED, status);
+}
+
+function getStatus() {
+  return status;
+}
+
+function isConnected() {
+  return status.state === 'connected';
+}
+
+/** Close the socket and the tunnel of the current attempt. */
+function teardown() {
+  if (socket) {
+    try { socket.removeAllListeners(); socket.terminate(); } catch (_) { /* gone */ }
+    socket = null;
+  }
+  if (tunnel) {
+    try { tunnel.removeAllListeners(); tunnel.kill(); } catch (_) { /* gone */ }
+    tunnel = null;
+  }
+  pending.rejectAll('Disconnected from the server.');
+  pending = P.createPending();
+}
+
+// ─── The loop ─────────────────────────────────────────────────
+
+function readConnectionInfo(host) {
+  return new Promise((resolve, reject) => {
+    execFile(sshBin(), [...SSH_OPTS, host, 'cat ~/.frame-server/connection.json'], { timeout: SSH_TIMEOUT_MS, maxBuffer: 64 * 1024 }, (err, stdout, stderr) => {
+      if (err) {
+        const text = String(stderr || err.message || '').trim();
+        if (/No such file/i.test(text)) return reject(new Error(`Frame Server is not running on ${host} (no ~/.frame-server/connection.json). See src/server/README.md to install it.`));
+        if (/Permission denied|Host key verification|Could not resolve|Connection refused|timed out/i.test(text)) return reject(new Error(`ssh ${host}: ${text.split('\n').pop()}`));
+        return reject(new Error(text ? `ssh ${host}: ${text.split('\n').pop()}` : `ssh ${host} failed`));
+      }
+      try {
+        const info = JSON.parse(stdout);
+        if (!info || !Number.isInteger(info.port) || typeof info.token !== 'string') throw new Error('incomplete');
+        resolve(info);
+      } catch (_) {
+        reject(new Error(`Frame Server on ${host} left an unreadable connection.json — restart it.`));
+      }
+    });
+  });
+}
+
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+function waitForPort(port, child, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const exit = (code) => { if (!done) { done = true; reject(new Error(`The SSH tunnel closed (exit ${code}).`)); } };
+    child.once('exit', exit);
+    const tryOnce = () => {
+      if (done) return;
+      const s = net.connect(port, '127.0.0.1');
+      s.once('connect', () => { s.destroy(); done = true; child.removeListener('exit', exit); resolve(); });
+      s.once('error', () => {
+        s.destroy();
+        if (Date.now() > deadline) { done = true; child.removeListener('exit', exit); reject(new Error('The SSH tunnel did not come up in time.')); }
+        else setTimeout(tryOnce, 150);
+      });
+    };
+    tryOnce();
+  });
+}
+
+function openSocket(port, token) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
+      headers: { Authorization: `Bearer ${token}`, Origin: DESKTOP_ORIGIN },
+      handshakeTimeout: 10000,
+      maxPayload: 16 * 1024 * 1024
+    });
+    let greeted = false;
+    ws.once('unexpected-response', (req, res) => reject(new Error(res.statusCode === 401 ? 'The server refused the token — restart Frame Server or reconnect.' : `The server answered HTTP ${res.statusCode}.`)));
+    ws.once('error', (err) => { if (!greeted) reject(err); });
+    ws.on('message', (data) => {
+      const decoded = P.decode(data.toString());
+      if (!decoded.ok) return;
+      const msg = decoded.msg;
+      if (!greeted) {
+        const check = P.checkHello(msg, frameVersion);
+        if (!check.ok) { ws.close(); reject(new Error(check.error)); return; }
+        greeted = true;
+        ws.send(P.encode(P.hello(frameVersion)));
+        resolve({ ws, serverVersion: msg.frameVersion });
+        return;
+      }
+      if (msg.type === 'res') pending.settle(msg);
+      else if (msg.type === 'event') bus.emit(`event:${msg.channel}`, msg.payload);
+    });
+  });
+}
+
+async function runOnce(host, mySession) {
+  const info = await readConnectionInfo(host);
+  if (mySession !== session) return;
+  const localPort = await freePort();
+  const child = spawn(sshBin(), [...SSH_OPTS, '-N', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3',
+    '-L', `127.0.0.1:${localPort}:127.0.0.1:${info.port}`, host], { stdio: ['ignore', 'ignore', 'pipe'] });
+  tunnel = child;
+  let tunnelErr = '';
+  child.stderr.on('data', (d) => { tunnelErr = (tunnelErr + d.toString()).slice(-2000); });
+  try {
+    await waitForPort(localPort, child, TUNNEL_READY_MS);
+  } catch (err) {
+    throw new Error(tunnelErr.trim() ? `${err.message} ${tunnelErr.trim().split('\n').pop()}` : err.message);
+  }
+  if (mySession !== session) return;
+  const { ws, serverVersion } = await openSocket(localPort, info.token);
+  if (mySession !== session) { ws.terminate(); return; }
+  socket = ws;
+  let ping = null;
+  try {
+    ping = await call('server.ping', {}, 10000);
+  } catch (_) { /* the hello already proved the link */ }
+  attempt = 0;
+  setStatus({ state: 'connected', error: null, frameVersion: serverVersion || null, platform: ping ? `${ping.platform}-${ping.arch}` : null });
+  logger.info('server', `connected to ${host} (Frame ${serverVersion})`);
+  bus.emit('connected', status);
+
+  const lost = (why) => {
+    if (mySession !== session) return;
+    logger.warn('server', `connection to ${host} lost: ${why}`);
+    teardown();
+    bus.emit('disconnected', status);
+    scheduleRetry(host, mySession, `Connection lost (${why}).`);
+  };
+  ws.on('close', (code) => lost(`socket closed ${code}`));
+  ws.on('error', (err) => lost(err.message));
+  child.on('exit', (code) => lost(`tunnel exited ${code}`));
+}
+
+function scheduleRetry(host, mySession, error) {
+  if (mySession !== session) return;
+  const delay = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)];
+  attempt += 1;
+  // A link that never came up stays "error" (still retrying); a lost one is "reconnecting".
+  setStatus({ state: status.state === 'error' ? 'error' : 'reconnecting', error });
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(() => loop(host, mySession), delay);
+}
+
+async function loop(host, mySession) {
+  if (mySession !== session) return;
+  try {
+    await runOnce(host, mySession);
+  } catch (err) {
+    if (mySession !== session) return;
+    teardown();
+    logger.warn('server', `connect to ${host} failed: ${err.message}`);
+    // Never connected yet in this session → error state, still retrying.
+    if (status.state === 'connecting') setStatus({ state: 'error', error: err.message });
+    scheduleRetry(host, mySession, err.message);
+  }
+}
+
+// ─── Public API ───────────────────────────────────────────────
+
+/** Connect to `host` (an ssh alias or user@host), remember it, auto-connect next launch. */
+function connect(host) {
+  const h = String(host || '').trim();
+  if (!h || /\s/.test(h) || h.startsWith('-')) return { error: 'Enter an SSH host such as "myserver" or "me@server.example.com".' };
+  disconnect({ forget: false, quiet: true });
+  session += 1;
+  attempt = 0;
+  userSettings.set(SETTING, { host: h, autoConnect: true });
+  setStatus({ state: 'connecting', host: h, error: null, frameVersion: null, platform: null });
+  loop(h, session);
+  return { error: null, status };
+}
+
+/** Stop and close everything; `forget` drops auto-connect for next launch. */
+function disconnect({ forget = true, quiet = false } = {}) {
+  const wasUp = status.state === 'connected';
+  session += 1;
+  clearTimeout(retryTimer);
+  teardown();
+  if (forget) {
+    const saved = userSettings.get(SETTING);
+    if (saved && saved.host) userSettings.set(SETTING, { host: saved.host, autoConnect: false });
+  }
+  if (!quiet) setStatus({ state: 'off', error: null, frameVersion: null, platform: null });
+  if (wasUp) bus.emit('disconnected', status);
+  return { error: null, status };
+}
+
+/** A request to the server. Rejects when not connected or on timeout. */
+function call(method, params = {}, timeoutMs = CALL_TIMEOUT_MS) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    return Promise.reject(new Error(status.host ? `Not connected to ${status.host}.` : 'Not connected to a server.'));
+  }
+  const id = pending.nextId();
+  const p = pending.add(id, timeoutMs);
+  socket.send(P.encode(P.request(id, method, params)));
+  return p;
+}
+
+/** Fire-and-forget request (terminal input): errors are only logged. */
+function send(method, params = {}) {
+  call(method, params).catch((err) => logger.warn('server', `${method} failed: ${err.message}`));
+}
+
+/** Subscribe to a server event channel (`terminal.output`, …) or `connected` / `disconnected` / `status`. */
+function on(name, fn) {
+  const key = ['connected', 'disconnected', 'status'].includes(name) ? name : `event:${name}`;
+  bus.on(key, fn);
+  return () => bus.removeListener(key, fn);
+}
+
+/** Host aliases from ~/.ssh/config for the Connect dialog. */
+function sshHosts() {
+  try {
+    return parseSshConfigHosts(fs.readFileSync(path.join(os.homedir(), '.ssh', 'config'), 'utf8'));
+  } catch (_) {
+    return [];
+  }
+}
+
+/** Attach the (re)created window; on the first call, auto-connect when the user left it connected. */
+let started = false;
+function init(window, version) {
+  mainWindow = window;
+  if (version) frameVersion = version;
+  if (started) return;
+  started = true;
+  const saved = userSettings.get(SETTING);
+  if (saved && saved.host && saved.autoConnect) connect(saved.host);
+}
+
+function setupIPC(ipcMain) {
+  ipcMain.removeHandler(IPC.SERVER_STATUS);
+  ipcMain.removeHandler(IPC.SERVER_CONNECT);
+  ipcMain.removeHandler(IPC.SERVER_DISCONNECT);
+  ipcMain.removeHandler(IPC.SERVER_SSH_HOSTS);
+  ipcMain.handle(IPC.SERVER_STATUS, () => ({ ...status, saved: userSettings.get(SETTING) }));
+  ipcMain.handle(IPC.SERVER_CONNECT, (event, { host } = {}) => connect(host));
+  ipcMain.handle(IPC.SERVER_DISCONNECT, () => disconnect({ forget: true }));
+  ipcMain.handle(IPC.SERVER_SSH_HOSTS, () => sshHosts());
+}
+
+module.exports = { init, setupIPC, connect, disconnect, call, send, on, getStatus, isConnected, sshHosts };

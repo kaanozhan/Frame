@@ -38,3 +38,11 @@ Added src/server/projects.js: projects.ensure clones by remote into ~/frame/proj
 _Captured: 2026-11-10 · 6 file change(s)_
 
 ---
+
+## T06 — Desktop connection to Frame Server over SSH
+
+Added src/main/serverConnection.js: a connect loop that runs the user's ssh with BatchMode (read ~/.frame-server/connection.json, open ssh -N -L to a free local port, WebSocket with Bearer token and the desktop Origin, hello/version check, server.ping), call/send/on for main modules, status pushed as SERVER_STATUS_CHANGED, reconnect with 1–30 s backoff, disconnect that turns auto-connect off, and ~/.ssh/config host suggestions; auto-connects on launch when left connected and closes the tunnel on will-quit. Added the SERVER_* channels and wiring in src/main/index.js. Deviation: src/main/userSettings.js needed no change (its generic get/set stores the 'server' key). FRAME_SSH lets tests substitute ssh.
+
+_Captured: 2026-11-10 · 3 file change(s)_
+
+---

@@ -252,6 +252,12 @@ const IPC = {
   WORKSPACE_PR_DRAFT: 'workspace-pr-draft',          // renderer → main (invoke): { projectPath, id } → { error, title, body, base, branch }
   WORKSPACE_PR_CREATE: 'workspace-pr-create',        // renderer → main (invoke): { projectPath, id, title, body, draft } → { error, url }
   WORKSPACE_PR_MERGE: 'workspace-pr-merge',          // renderer → main (invoke): { projectPath, id } → { error, method, fastForward, archived }        // renderer → main (invoke): { projectPath, id } → { error, copied } — Frame tooling into the worktree (spec-in-workspace)
+  // Frame Server connection (server-workspaces)
+  SERVER_STATUS: 'server-status',                    // renderer → main (invoke): → { state: off|connecting|connected|reconnecting|error, host, error, frameVersion, platform, saved }
+  SERVER_CONNECT: 'server-connect',                  // renderer → main (invoke): { host } → { error, status }
+  SERVER_DISCONNECT: 'server-disconnect',            // renderer → main (invoke): → { error, status }
+  SERVER_SSH_HOSTS: 'server-ssh-hosts',              // renderer → main (invoke): → string[] (Host aliases from ~/.ssh/config)
+  SERVER_STATUS_CHANGED: 'server-status-changed',    // main → renderer: status (as SERVER_STATUS)
   // Update from base (update-from-base)
   WORKSPACE_UPDATE_FROM_BASE: 'workspace-update-from-base', // renderer → main (invoke): { projectPath, id } → { state: updated|up-to-date|conflict|dirty, base, commits?, files?, count?, fetchNote? } | { error }
   WORKSPACE_UPDATE_ABORT: 'workspace-update-abort',         // renderer → main (invoke): { projectPath, id } → { error, aborted }
