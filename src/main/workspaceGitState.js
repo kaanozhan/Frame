@@ -114,8 +114,79 @@ async function collect(projectPath) {
 
 function send(payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IPC.WORKSPACE_GIT_STATE, payload);
+    mainWindow.webContents.send(IPC.WORKSPACE_GIT_STATE, withServer(payload));
   }
+}
+
+// ─── Server workspaces (server-workspace-panels) ──────────────
+//
+// A server workspace's git and PR state is read on Frame Server by its own
+// workspaceGitState (gh as the server user) and pushed as `pr.state`. Here it
+// is kept per desktop project and merged into every WORKSPACE_GIT_STATE, the
+// server's GitHub access kept apart as `serverAccess`. Actions on a server
+// workspace go to the server by id.
+
+const serverState = new Map(); // desktop projectPath → last server payload
+let serverWired = false;
+
+function serverLocationOf(id) {
+  try { return require('./workspaceManager').serverLocation(id); } catch (_) { return null; }
+}
+
+function serverProjectOf(projectPath) {
+  try {
+    const hit = require('./workspaceManager').serverRoots().find((r) => r.projectPath === projectPath);
+    return hit || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function withServer(payload) {
+  if (!payload || !payload.projectPath) return payload;
+  const { mergeGitStatePayloads } = require('../shared/serverRouting');
+  return mergeGitStatePayloads(payload, serverState.get(payload.projectPath) || null, payload.projectPath);
+}
+
+function wireServer() {
+  if (serverWired) return;
+  serverWired = true;
+  const sc = require('./serverConnection');
+  sc.on('pr.state', (payload) => {
+    if (!payload || !payload.projectPath) return;
+    let roots = [];
+    try { roots = require('./workspaceManager').serverRoots(); } catch (_) { roots = []; }
+    const local = roots.find((r) => r.serverProjectPath === payload.projectPath);
+    if (!local) return;
+    serverState.set(local.projectPath, payload);
+    if (local.projectPath === watchedProject) {
+      send(lastState.get(local.projectPath) || { projectPath: local.projectPath, access: null, workspaces: {} });
+    }
+  });
+  sc.on('disconnected', () => serverState.clear());
+}
+
+/** Ask the server for its state of `projectPath`'s server workspaces (and make it push changes). */
+async function refreshServer(projectPath) {
+  const sp = serverProjectOf(projectPath);
+  const sc = require('./serverConnection');
+  if (!sp || !sc.isConnected()) return;
+  try {
+    const payload = await sc.call('pr.refresh', { projectPath: sp.serverProjectPath }, 120000);
+    if (payload) serverState.set(projectPath, payload);
+  } catch (err) {
+    logger.warn('workspaces', `server git state failed: ${err.message}`);
+  }
+}
+
+/** Run a PR-flow action of a server workspace on the server, or return null for a local one. */
+function onServer(method, id, params) {
+  const loc = serverLocationOf(id);
+  if (!loc) return null;
+  const sc = require('./serverConnection');
+  if (!sc.isConnected()) return Promise.resolve({ error: `${loc.host || 'The server'} is offline — reconnect to continue.` });
+  return sc.call(method, { projectPath: loc.serverProjectPath, id, ...params }, 11 * 60 * 1000)
+    .catch((err) => ({ error: err.message }));
 }
 
 /**
@@ -326,10 +397,12 @@ async function abortUpdate(projectPath, id) {
 
 function setupIPC(ipcMain) {
   // The renderer names the project it shows; that project is the one polled.
+  try { wireServer(); } catch (err) { logger.warn('workspaces', `server git state not wired: ${err.message}`); }
   ipcMain.handle(IPC.WORKSPACE_GIT_REFRESH, async (event, { projectPath } = {}) => {
     if (!projectPath) return null;
     watchedProject = projectPath;
-    return refresh(projectPath);
+    const [local] = await Promise.all([refresh(projectPath), refreshServer(projectPath)]);
+    return withServer(local || { projectPath, access: null, workspaces: {} });
   });
   const guarded = (fn) => async (event, payload = {}) => {
     try {
@@ -339,12 +412,12 @@ function setupIPC(ipcMain) {
       return { error: err.message || String(err) };
     }
   };
-  ipcMain.handle(IPC.WORKSPACE_PUSH, guarded(({ projectPath, id }) => push(projectPath, id)));
-  ipcMain.handle(IPC.WORKSPACE_PR_DRAFT, guarded(({ projectPath, id }) => prDraft(projectPath, id)));
-  ipcMain.handle(IPC.WORKSPACE_PR_CREATE, guarded(({ projectPath, id, title, body, draft }) => prCreate(projectPath, id, { title, body, draft })));
-  ipcMain.handle(IPC.WORKSPACE_PR_MERGE, guarded(({ projectPath, id }) => merge(projectPath, id)));
-  ipcMain.handle(IPC.WORKSPACE_UPDATE_FROM_BASE, guarded(({ projectPath, id }) => updateFromBase(projectPath, id)));
-  ipcMain.handle(IPC.WORKSPACE_UPDATE_ABORT, guarded(({ projectPath, id }) => abortUpdate(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_PUSH, guarded(({ projectPath, id }) => onServer('pr.push', id) || push(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_PR_DRAFT, guarded(({ projectPath, id }) => onServer('pr.draft', id) || prDraft(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_PR_CREATE, guarded(({ projectPath, id, title, body, draft }) => onServer('pr.create', id, { title, body, draft }) || prCreate(projectPath, id, { title, body, draft })));
+  ipcMain.handle(IPC.WORKSPACE_PR_MERGE, guarded(({ projectPath, id }) => onServer('pr.merge', id) || merge(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_UPDATE_FROM_BASE, guarded(({ projectPath, id }) => onServer('update.run', id) || updateFromBase(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_UPDATE_ABORT, guarded(({ projectPath, id }) => onServer('update.abort', id) || abortUpdate(projectPath, id)));
 }
 
 module.exports = { init, setupIPC, refresh, setWatched, getState, activeWorkspaces, push, prDraft, prCreate, merge, updateFromBase, abortUpdate, PR_FIELDS };

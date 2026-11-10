@@ -7485,9 +7485,11 @@
         "githubManager",
         "pollGate",
         "logger",
+        "workspaceManager",
+        "shared/serverRouting",
+        "serverConnection",
         "frameProject",
-        "specManager",
-        "workspaceManager"
+        "specManager"
       ],
       "functions": {
         "init": {
@@ -7531,42 +7533,79 @@
             "payload"
           ]
         },
+        "serverLocationOf": {
+          "line": 132,
+          "params": [
+            "id"
+          ]
+        },
+        "serverProjectOf": {
+          "line": 136,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "withServer": {
+          "line": 145,
+          "params": [
+            "payload"
+          ]
+        },
+        "wireServer": {
+          "line": 151
+        },
+        "refreshServer": {
+          "line": 170,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Ask the server for its state of `projectPath`'s server workspaces (and make it push changes)."
+        },
+        "onServer": {
+          "line": 183,
+          "params": [
+            "method",
+            "id",
+            "params"
+          ],
+          "purpose": "Run a PR-flow action of a server workspace on the server, or return null for a local one."
+        },
         "refresh": {
-          "line": 125,
+          "line": 196,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-read and push the state of `projectPath`'s workspaces. Calls that land"
         },
         "setWatched": {
-          "line": 150,
+          "line": 221,
           "params": [
             "projectPath"
           ],
           "purpose": "Make `projectPath` the polled and pushed project (Frame Server's pr.refresh)."
         },
         "getState": {
-          "line": 155,
+          "line": 226,
           "params": [
             "projectPath"
           ],
           "purpose": "The last state read for a project, or null."
         },
         "recordOf": {
-          "line": 164,
+          "line": 235,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "settingsOf": {
-          "line": 168,
+          "line": 239,
           "params": [
             "projectPath"
           ]
         },
         "push": {
-          "line": 174,
+          "line": 245,
           "params": [
             "projectPath",
             "id"
@@ -7574,7 +7613,7 @@
           "purpose": "Push a workspace's branch; the first push sets `origin/<branch>` as upstream."
         },
         "heldSpec": {
-          "line": 188,
+          "line": 259,
           "params": [
             "projectPath",
             "id"
@@ -7582,7 +7621,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 202,
+          "line": 273,
           "params": [
             "projectPath",
             "id"
@@ -7590,7 +7629,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 212,
+          "line": 283,
           "params": [
             "projectPath",
             "id",
@@ -7601,7 +7640,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 239,
+          "line": 310,
           "params": [
             "projectPath",
             "id"
@@ -7609,14 +7648,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 279,
+          "line": 350,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 315,
+          "line": 386,
           "params": [
             "projectPath",
             "id"
@@ -7624,7 +7663,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 327,
+          "line": 398,
           "params": [
             "ipcMain"
           ]
@@ -7644,7 +7683,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 15043,
+      "sizeBytes": 18417,
       "extraction": {
         "status": "parsed"
       },
@@ -7655,10 +7694,12 @@
           "getState": "dbc9f664ea1c334c",
           "heldSpec": "e5bb998202c6ad99",
           "merge": "c5b756ff9e37571f",
+          "onServer": "e4870351bcb6a358",
           "prCreate": "33db61ed0da6f9aa",
           "prDraft": "62d68c7cdebe2e3d",
           "push": "01dc3b998b8c53d9",
           "refresh": "0316824b93954fd9",
+          "refreshServer": "404974b72a7202ce",
           "rowState": "114f885ae19483b9",
           "setWatched": "7bd7c78f889f5744"
         }
@@ -32449,6 +32490,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "f94afd8849fd13476ef9bf367e0247e0ec6b86c8eadfd55d839e8912eb2af1c3"
+    "revision": "9f1041655d5ea508787bc1f670688fb9552c0d39174224120206b40b9f5e90b3"
   }
 }

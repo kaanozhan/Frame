@@ -38,3 +38,11 @@ GET_GIT_DIFF, REVIEW_FILES and REVIEW_FILE_DIFF (gitDiffManager.js) and LOAD_GIT
 _Captured: 2026-11-10 · 3 file change(s)_
 
 ---
+
+## T06 — PR flow and update from base routed in main
+
+workspaceGitState keeps the server's pr.state per desktop project and merges it into every WORKSPACE_GIT_STATE push (mergeGitStatePayloads, serverAccess kept apart); WORKSPACE_GIT_REFRESH refreshes the local project and asks the server's pr.refresh in parallel, returning the merged payload; push, draft, create, merge, update and abort for a server workspace go to the server by id (offline answers '<host> is offline — reconnect to continue.'); server state is dropped on disconnect.
+
+_Captured: 2026-11-10 · 1 file change(s)_
+
+---
