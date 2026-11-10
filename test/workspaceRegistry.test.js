@@ -135,12 +135,19 @@ test('remove drops a record', () => {
 });
 
 test('normalizeSettings falls back per key and cleans the branch prefix', () => {
-  assert.deepEqual(reg.normalizeSettings(undefined), { setupScript: '', copyFiles: ['.env*'], branchPrefix: 'ws' });
+  assert.deepEqual(reg.normalizeSettings(undefined), { setupScript: '', copyFiles: ['.env*'], branchPrefix: 'ws', mergeMethod: null, archiveOnMerge: true });
   assert.deepEqual(
     reg.normalizeSettings({ setupScript: 'npm install', copyFiles: ['.env', 3, '  ', ' *.pem '], branchPrefix: ' Feat//Me/ ' }),
-    { setupScript: 'npm install', copyFiles: ['.env', '*.pem'], branchPrefix: 'feat/me' }
+    { setupScript: 'npm install', copyFiles: ['.env', '*.pem'], branchPrefix: 'feat/me', mergeMethod: null, archiveOnMerge: true }
   );
   assert.deepEqual(reg.normalizeSettings({ copyFiles: [] }).copyFiles, [], 'an explicit empty list stays empty');
   assert.equal(reg.normalizeSettings({ branchPrefix: '///' }).branchPrefix, 'ws');
   assert.equal(reg.normalizeSettings({ setupScript: 42 }).setupScript, '');
+});
+
+test('normalizeSettings: merge method and archive-on-merge (workspace-pr-flow)', () => {
+  assert.equal(reg.normalizeSettings({ mergeMethod: 'rebase' }).mergeMethod, 'rebase');
+  assert.equal(reg.normalizeSettings({ mergeMethod: 'octopus' }).mergeMethod, null);
+  assert.equal(reg.normalizeSettings({ archiveOnMerge: false }).archiveOnMerge, false);
+  assert.equal(reg.normalizeSettings({ archiveOnMerge: 'no' }).archiveOnMerge, true);
 });

@@ -27,7 +27,10 @@ const MAIN_ID = 'main';
 const DEFAULT_SETTINGS = Object.freeze({
   setupScript: '',
   copyFiles: Object.freeze(['.env*']),
-  branchPrefix: 'ws'
+  branchPrefix: 'ws',
+  // workspace-pr-flow: null = the first method the repository allows.
+  mergeMethod: null,
+  archiveOnMerge: true
 });
 
 const ERR = Object.freeze({
@@ -214,7 +217,9 @@ function normalizeSettings(raw) {
   const cleanedPrefix = typeof src.branchPrefix === 'string'
     ? src.branchPrefix.trim().toLowerCase().replace(/[^a-z0-9._\/-]+/g, '-').replace(/\/+/g, '/').replace(/^[/.-]+|[/.-]+$/g, '')
     : '';
-  return { setupScript, copyFiles, branchPrefix: cleanedPrefix || DEFAULT_SETTINGS.branchPrefix };
+  const mergeMethod = ['squash', 'merge', 'rebase'].includes(src.mergeMethod) ? src.mergeMethod : DEFAULT_SETTINGS.mergeMethod;
+  const archiveOnMerge = typeof src.archiveOnMerge === 'boolean' ? src.archiveOnMerge : DEFAULT_SETTINGS.archiveOnMerge;
+  return { setupScript, copyFiles, branchPrefix: cleanedPrefix || DEFAULT_SETTINGS.branchPrefix, mergeMethod, archiveOnMerge };
 }
 
 /** Strip transient fields before persisting. */

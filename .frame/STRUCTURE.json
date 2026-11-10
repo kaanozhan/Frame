@@ -23327,6 +23327,104 @@
         "description": "30513a7499948b34"
       }
     },
+    "shared/prFlow": {
+      "file": "src/shared/prFlow.js",
+      "description": "prFlow — the rules behind a workspace's way out: push, pull request,",
+      "exports": [
+        "parseCount",
+        "checksSummary",
+        "mapPrView",
+        "sectionLead",
+        "composePr",
+        "pickMergeMethod",
+        "fixChecksPrompt",
+        "isPushable",
+        "MERGE_ORDER"
+      ],
+      "depends": [],
+      "functions": {
+        "parseCount": {
+          "line": 11,
+          "params": [
+            "stdout"
+          ],
+          "purpose": "Integer from `git rev-list --count` output; 0 for anything unreadable."
+        },
+        "checksSummary": {
+          "line": 20,
+          "params": [
+            "rollup"
+          ],
+          "purpose": "Fold `statusCheckRollup` into counts. CheckRun entries carry"
+        },
+        "mapPrView": {
+          "line": 46,
+          "params": [
+            "json"
+          ],
+          "purpose": "`gh pr view --json number,url,state,isDraft,mergeable,mergeStateStatus,"
+        },
+        "sectionLead": {
+          "line": 65,
+          "params": [
+            "markdown",
+            "heading"
+          ],
+          "purpose": "The first paragraph under a markdown `## <heading>`, trimmed; '' when absent."
+        },
+        "composePr": {
+          "line": 87,
+          "params": [
+            "{ spec = null",
+            "commits = []",
+            "branch = '' } = {}"
+          ],
+          "purpose": "Title and body for a workspace's PR."
+        },
+        "pickMergeMethod": {
+          "line": 114,
+          "params": [
+            "allowed",
+            "setting"
+          ],
+          "purpose": "The merge method to use: the project's setting when the repo allows it,"
+        },
+        "fixChecksPrompt": {
+          "line": 129,
+          "params": [
+            "{ branch",
+            "number",
+            "failingNames = [] }"
+          ],
+          "purpose": "The prompt \"Fix failing checks\" hands the workspace's agent. It names the"
+        },
+        "isPushable": {
+          "line": 142,
+          "params": [
+            "{ branch",
+            "base }"
+          ],
+          "purpose": "A workspace branch may be pushed unless it is (or names) its own base."
+        }
+      },
+      "sizeBytes": 6463,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "072077b6c9489cf9",
+        "purposes": {
+          "checksSummary": "5bacb8007cad8133",
+          "composePr": "79db7faf7577e5c8",
+          "fixChecksPrompt": "12c4e5bb6f83be44",
+          "isPushable": "20e43c7377899394",
+          "mapPrView": "886ffc419a78fdac",
+          "parseCount": "e0e6116d342409ca",
+          "pickMergeMethod": "b92b46d28d104dd3",
+          "sectionLead": "7dbdd518e09a59cd"
+        }
+      }
+    },
     "shared/uiZoom": {
       "file": "src/shared/uiZoom.js",
       "description": "UI zoom ladder — the five interface sizes Frame offers (ui-zoom-steps spec).",
@@ -23472,7 +23570,7 @@
       "depends": [],
       "functions": {
         "fail": {
-          "line": 42,
+          "line": 45,
           "params": [
             "code",
             "message",
@@ -23480,47 +23578,47 @@
           ]
         },
         "list": {
-          "line": 46,
+          "line": 49,
           "params": [
             "records"
           ]
         },
         "normalizePath": {
-          "line": 51,
+          "line": 54,
           "params": [
             "p"
           ],
           "purpose": "Normalise a filesystem path for comparison: forward slashes, no trailing slash."
         },
         "isActive": {
-          "line": 55,
+          "line": 58,
           "params": [
             "record"
           ]
         },
         "activeOf": {
-          "line": 60,
+          "line": 63,
           "params": [
             "records"
           ],
           "purpose": "Active workspaces, in stored order."
         },
         "archivedOf": {
-          "line": 65,
+          "line": 68,
           "params": [
             "records"
           ],
           "purpose": "Archived workspaces, newest archive first."
         },
         "findById": {
-          "line": 71,
+          "line": 74,
           "params": [
             "records",
             "id"
           ]
         },
         "findByBranch": {
-          "line": 76,
+          "line": 79,
           "params": [
             "records",
             "branch",
@@ -23529,7 +23627,7 @@
           "purpose": "The active workspace holding `branch`, else null. `excludeId` skips one record."
         },
         "findByName": {
-          "line": 81,
+          "line": 84,
           "params": [
             "records",
             "name",
@@ -23537,14 +23635,14 @@
           ]
         },
         "branchInUse": {
-          "line": 86,
+          "line": 89,
           "params": [
             "holder",
             "branch"
           ]
         },
         "createRecord": {
-          "line": 94,
+          "line": 97,
           "params": [
             "{ id",
             "name",
@@ -23556,7 +23654,7 @@
           "purpose": "Build a new record. `now` is an ISO string supplied by the caller so the"
         },
         "add": {
-          "line": 108,
+          "line": 111,
           "params": [
             "records",
             "fields"
@@ -23564,7 +23662,7 @@
           "purpose": "Add a workspace. Refused when the branch or name is taken, or fields are missing."
         },
         "replace": {
-          "line": 121,
+          "line": 124,
           "params": [
             "records",
             "id",
@@ -23572,7 +23670,7 @@
           ]
         },
         "archive": {
-          "line": 135,
+          "line": 138,
           "params": [
             "records",
             "id",
@@ -23581,7 +23679,7 @@
           "purpose": "Archive a workspace: it keeps its branch but stops holding it."
         },
         "restore": {
-          "line": 143,
+          "line": 146,
           "params": [
             "records",
             "id"
@@ -23589,7 +23687,7 @@
           "purpose": "Restore an archived workspace. Refused when its branch is now open elsewhere (C3)."
         },
         "rename": {
-          "line": 156,
+          "line": 159,
           "params": [
             "records",
             "id",
@@ -23599,7 +23697,7 @@
           "purpose": "Rename a workspace's short name and/or branch. The folder path is not"
         },
         "remove": {
-          "line": 177,
+          "line": 180,
           "params": [
             "records",
             "id"
@@ -23607,7 +23705,7 @@
           "purpose": "Drop a record entirely (the \"Remove record\" action for a missing workspace)."
         },
         "reconcile": {
-          "line": 189,
+          "line": 192,
           "params": [
             "records",
             "rows"
@@ -23615,21 +23713,21 @@
           "purpose": "Mark active records whose worktree no longer appears in `git worktree list`"
         },
         "normalizeSettings": {
-          "line": 208,
+          "line": 211,
           "params": [
             "raw"
           ],
           "purpose": "Read `settings.workspaces` defensively: a missing or hand-mangled value"
         },
         "toStored": {
-          "line": 221,
+          "line": 226,
           "params": [
             "records"
           ],
           "purpose": "Strip transient fields before persisting."
         }
       },
-      "sizeBytes": 8842,
+      "sizeBytes": 9236,
       "extraction": {
         "status": "parsed"
       },
@@ -26491,6 +26589,24 @@
         "description": "07a1b690e2e82a79"
       }
     },
+    "test/prFlow.test": {
+      "file": "test/prFlow.test.js",
+      "description": "prFlow — push, PR, checks and merge rules (workspace-pr-flow spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/prFlow"
+      ],
+      "functions": {},
+      "sizeBytes": 5790,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a50a1b013a69c595"
+      }
+    },
     "test/projectAgnostic.test": {
       "file": "test/projectAgnostic.test.js",
       "description": "Cross-project fixture suite (T02+). The committed golden STRUCTURE.json in",
@@ -27967,7 +28083,7 @@
           "line": 23
         }
       },
-      "sizeBytes": 6716,
+      "sizeBytes": 7239,
       "extraction": {
         "status": "parsed"
       },
@@ -30144,7 +30260,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 325,
+        "parsed": 327,
         "unsupported": 85,
         "partial": 0
       }
@@ -30191,9 +30307,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 500,
+      "visitedEntries": 502,
       "traversedDirectories": 82,
-      "eligibleFiles": 410,
+      "eligibleFiles": 412,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -30210,7 +30326,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 410,
+      "indexedFiles": 412,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -30218,6 +30334,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e7a29dcd10ab83bd781b80e0bf2d7187f2110e0bd70cf2780f9a0d2ba2bf46de"
+    "revision": "e6655d6786a52a666a68b104c28481e995be8c543531e468559870c9dd33739d"
   }
 }
