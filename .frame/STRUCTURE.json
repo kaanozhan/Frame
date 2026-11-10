@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 104424,
+      "sizeBytes": 105915,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -4172,43 +4172,43 @@
           "purpose": "Get menu template based on active AI tool"
         },
         "openSettings": {
-          "line": 253
+          "line": 255
         },
         "buildAICommandsSubmenu": {
-          "line": 264,
+          "line": 266,
           "params": [
             "tool"
           ],
           "purpose": "Build the AI-tool root's submenu: Start first, then the tool's slash"
         },
         "buildToolSwitcherSubmenu": {
-          "line": 313,
+          "line": 315,
           "purpose": "Build tool switcher submenu"
         },
         "buildThemeSubmenu": {
-          "line": 334,
+          "line": 336,
           "purpose": "View › Theme: one radio item per registry entry, the current one checked."
         },
         "sendCommand": {
-          "line": 349,
+          "line": 351,
           "params": [
             "command"
           ],
           "purpose": "Send command to terminal"
         },
         "sendAppCommand": {
-          "line": 359,
+          "line": 361,
           "params": [
             "commandId"
           ],
           "purpose": "Run a renderer command by its command-registry id (the menu's one"
         },
         "openHistoryFile": {
-          "line": 368,
+          "line": 370,
           "purpose": "Open history file in default editor"
         },
         "createMenu": {
-          "line": 382,
+          "line": 384,
           "purpose": "Create and set application menu"
         }
       },
@@ -4222,7 +4222,7 @@
           "RUN_APP_COMMAND"
         ]
       },
-      "sizeBytes": 11749,
+      "sizeBytes": 11813,
       "extraction": {
         "status": "parsed"
       },
@@ -12137,6 +12137,7 @@
         "workspaceSection",
         "newWorkspaceModal",
         "workspacePr",
+        "serverConnect",
         "paletteSources",
         "agentDispatch"
       ],
@@ -12146,34 +12147,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 353,
+          "line": 355,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 461,
+          "line": 463,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 592,
+          "line": 594,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 631,
+          "line": 633,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 657,
+          "line": 659,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1191,
+          "line": 1206,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1216,
+          "line": 1231,
           "params": [
             "err"
           ],
@@ -12193,7 +12194,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 44463,
+      "sizeBytes": 44948,
       "extraction": {
         "status": "parsed"
       },
@@ -14312,6 +14313,72 @@
         }
       }
     },
+    "renderer/serverConnect": {
+      "file": "src/renderer/serverConnect.js",
+      "description": "Connect to Server — the renderer side of the Frame Server link",
+      "exports": [
+        "init",
+        "open",
+        "close",
+        "getStatus",
+        "onChange",
+        "disconnect",
+        "LABELS"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "notify"
+      ],
+      "functions": {
+        "getStatus": {
+          "line": 29
+        },
+        "onChange": {
+          "line": 33,
+          "params": [
+            "cb"
+          ]
+        },
+        "apply": {
+          "line": 38,
+          "params": [
+            "next"
+          ]
+        },
+        "init": {
+          "line": 56
+        },
+        "renderModal": {
+          "line": 71
+        },
+        "open": {
+          "line": 83
+        },
+        "close": {
+          "line": 102
+        },
+        "connect": {
+          "line": 107
+        },
+        "disconnect": {
+          "line": 118
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SERVER_STATUS_CHANGED"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 4610,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7868383166b7aa4c"
+      }
+    },
     "renderer/sessionRestore": {
       "file": "src/renderer/sessionRestore.js",
       "description": "Session restore — the renderer half (restore-ai-sessions-on-relaunch).",
@@ -15674,6 +15741,7 @@
         "statusBar/branchPicker",
         "statusBar/noticeTray",
         "githubPanel",
+        "serverConnect",
         "terminal"
       ],
       "functions": {
@@ -15681,32 +15749,35 @@
           "line": 77
         },
         "_buildZoom": {
-          "line": 111
+          "line": 112
         },
         "_buildNoticeTray": {
-          "line": 152
+          "line": 153
+        },
+        "_buildServer": {
+          "line": 175
         },
         "_buildBranch": {
-          "line": 169
+          "line": 197
         },
         "_manageBranches": {
-          "line": 224,
+          "line": 252,
           "purpose": "\"Manage branches…\" — the GitHub view's Branches section, where delete,"
         },
         "_renderBranch": {
-          "line": 231,
+          "line": 259,
           "params": [
             "branch"
           ]
         },
         "_buildDockIcons": {
-          "line": 246
+          "line": 274
         },
         "_buildAgentSlot": {
-          "line": 296
+          "line": 324
         },
         "updateAgents": {
-          "line": 346,
+          "line": 374,
           "params": [
             "states",
             "counts"
@@ -15714,34 +15785,34 @@
           "purpose": "Fed by projectStatusBadges on every recompute — one traversal for every"
         },
         "_projectName": {
-          "line": 378,
+          "line": 406,
           "params": [
             "path"
           ]
         },
         "_renderAgents": {
-          "line": 382
+          "line": 410
         },
         "_renderMenu": {
-          "line": 419
+          "line": 447
         },
         "_paintMenuHighlight": {
-          "line": 446
+          "line": 474
         },
         "_activateRow": {
-          "line": 455,
+          "line": 483,
           "params": [
             "row"
           ]
         },
         "_onMenuKeydown": {
-          "line": 460,
+          "line": 488,
           "params": [
             "e"
           ]
         },
         "_focus": {
-          "line": 482,
+          "line": 510,
           "params": [
             "projectPath",
             "terminalId"
@@ -15749,26 +15820,26 @@
           "purpose": "A click switches project when the agent lives elsewhere, then opens its"
         },
         "_toggleMenu": {
-          "line": 492
+          "line": 520
         },
         "_openMenu": {
-          "line": 496
+          "line": 524
         },
         "_closeMenu": {
-          "line": 512,
+          "line": 540,
           "params": [
             "{ refocus = false } = {}"
           ]
         },
         "updateUsage": {
-          "line": 524,
+          "line": 552,
           "params": [
             "data"
           ],
           "purpose": "Paint both meters from a usage push."
         },
         "updateItem": {
-          "line": 553,
+          "line": 581,
           "params": [
             "item",
             "usage",
@@ -15777,7 +15848,7 @@
           ]
         },
         "formatResetTime": {
-          "line": 576,
+          "line": 604,
           "params": [
             "isoString"
           ],
@@ -15795,7 +15866,7 @@
           "LOAD_CLAUDE_USAGE"
         ]
       },
-      "sizeBytes": 22344,
+      "sizeBytes": 23608,
       "extraction": {
         "status": "parsed"
       },
@@ -16811,7 +16882,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 8744,
+      "sizeBytes": 9841,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -31573,6 +31644,11 @@
         "description": "Server connection — the desktop's link to Frame Server"
       },
       {
+        "module": "renderer/serverConnect",
+        "file": "src/renderer/serverConnect.js",
+        "description": "Connect to Server — the renderer side of the Frame Server link"
+      },
+      {
         "module": "shared/serverProtocol",
         "file": "src/shared/serverProtocol.js",
         "description": "serverProtocol — the messages between Frame desktop and Frame Server"
@@ -31962,7 +32038,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 346,
+        "parsed": 347,
         "unsupported": 86,
         "partial": 0
       }
@@ -32009,9 +32085,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 523,
+      "visitedEntries": 524,
       "traversedDirectories": 83,
-      "eligibleFiles": 432,
+      "eligibleFiles": 433,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32028,7 +32104,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 432,
+      "indexedFiles": 433,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32036,6 +32112,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "fc34b4b579a49e35470e0f53731826b35f9c88733bfcf64665f82f8e2fec937b"
+    "revision": "fbe786301d3ac8f089c3cff6793a3f88227bbbdb6d951b20a33b570529ae4d1a"
   }
 }

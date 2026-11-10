@@ -297,6 +297,8 @@ function init() {
   // Git / PR state of each workspace (workspace-pr-flow), before the list
   // that draws it.
   require('./workspacePr').init();
+  // Frame Server link (server-workspaces): status + the Connect dialog.
+  require('./serverConnect').init();
   newWorkspaceModal.init();
   workspaceSection.setActions({
     onNew: () => newWorkspaceModal.open(),
@@ -1070,6 +1072,19 @@ function registerCommands() {
       const ws = require('./workspaceSection').selectedWorkspace();
       if (ws) require('./workspaceSection').startRename(ws, 'name');
     }
+  });
+  r({
+    id: 'server.connect',
+    title: 'Connect to Server…',
+    category: 'Server',
+    run: () => require('./serverConnect').open()
+  });
+  r({
+    id: 'server.disconnect',
+    title: 'Disconnect from Server',
+    category: 'Server',
+    when: () => require('./serverConnect').getStatus().state !== 'off',
+    run: () => require('./serverConnect').disconnect()
   });
   r({
     id: 'project.add',

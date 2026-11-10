@@ -46,3 +46,11 @@ Added src/main/serverConnection.js: a connect loop that runs the user's ssh with
 _Captured: 2026-11-10 · 3 file change(s)_
 
 ---
+
+## T07 — Connect to Server in the UI
+
+Added src/renderer/serverConnect.js and its #server-connect-modal in index.html (SSH host with ~/.ssh/config suggestions, live status line with the server's version and platform, the error under it, Connect/Reconnect, Disconnect, closes itself once its connect succeeds; toasts on connect and on a lost link), File ▸ Connect to Server… in src/main/menu.js, server.connect / server.disconnect palette commands and init in src/renderer/index.js, and a status-bar button in src/renderer/statusBar.js (server glyph, host, state dot; hidden until a server is used; click opens the dialog). Styles went to workspaces.css.
+
+_Captured: 2026-11-10 · 6 file change(s)_
+
+---

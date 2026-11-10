@@ -1454,6 +1454,30 @@
     </div>
   </div>
 
+  <!-- Connect to a Frame Server over SSH (server-workspaces) -->
+  <div id="server-connect-modal" class="task-run-modal new-workspace-modal server-connect-modal" role="dialog" aria-modal="true" aria-labelledby="sc-title">
+    <div class="task-run-modal-container">
+      <div class="task-run-modal-header">
+        <h3 id="sc-title">Connect to Server</h3>
+        <p>Run server workspaces on your own machine. Frame connects with your <code>ssh</code> — keys, agent and ~/.ssh/config apply — and needs Frame Server running there.</p>
+      </div>
+      <div class="task-run-modal-body">
+        <div class="task-run-section">
+          <label for="sc-host" class="task-run-section-label">SSH host</label>
+          <input type="text" id="sc-host" class="task-run-input" list="sc-hosts" placeholder="myserver or me@server.example.com" spellcheck="false" autocomplete="off">
+          <datalist id="sc-hosts"></datalist>
+        </div>
+        <p id="sc-status" class="sc-status" data-state="off"></p>
+        <p id="sc-error" class="nw-error" role="alert"></p>
+      </div>
+      <div class="task-run-modal-footer">
+        <button type="button" id="sc-disconnect" class="task-run-btn task-run-btn-cancel sc-disconnect" hidden>Disconnect</button>
+        <button type="button" id="sc-cancel" class="task-run-btn task-run-btn-cancel">Close</button>
+        <button type="button" id="sc-connect" class="task-run-btn task-run-btn-primary">Connect</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Update from base stopped on conflicts (update-from-base) -->
   <div id="update-conflict-modal" class="task-run-modal new-workspace-modal update-conflict-modal" role="dialog" aria-modal="true" aria-labelledby="uc-title">
     <div class="task-run-modal-container">

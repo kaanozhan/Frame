@@ -418,3 +418,27 @@
 }
 .uc-files li + li { margin-top: 3px; }
 .uc-hint { margin: 10px 0 0; font-size: 12px; color: var(--text-tertiary); }
+
+/* ─── Frame Server (server-workspaces) ─── */
+.server-connect-modal { --modal-width: 520px; }
+.server-connect-modal .task-run-modal-header p code { font-family: var(--font-mono); font-size: 11px; }
+.server-connect-modal .task-run-input { width: 100%; box-sizing: border-box; font-family: var(--font-mono); }
+.sc-status { margin: 8px 0 0; font-size: 12px; color: var(--text-secondary); }
+.sc-status[data-state="connected"] { color: var(--success); }
+.sc-status[data-state="error"] { color: var(--error); }
+.sc-status[data-state="connecting"],
+.sc-status[data-state="reconnecting"] { color: var(--warning); }
+.sc-disconnect { margin-right: auto; }
+
+.sb-server-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-left: 6px;
+  background: var(--text-muted);
+  flex: 0 0 auto;
+}
+.sb-server[data-state="connected"] .sb-server-dot { background: var(--success); }
+.sb-server[data-state="connecting"] .sb-server-dot,
+.sb-server[data-state="reconnecting"] .sb-server-dot { background: var(--warning); }
+.sb-server[data-state="error"] .sb-server-dot { background: var(--error); }
