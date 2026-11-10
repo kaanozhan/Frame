@@ -105,6 +105,9 @@ function init() {
   // composes lanes + agentDispatch; opened from the command palette / Home.
   orchestrator.setHost(multiTerminalUI);
 
+  // Workspace review (workspace-review) — a section tab over a workspace's changes.
+  require('./reviewSection').setHost(multiTerminalUI);
+
   // Initialize project list UI
   projectListUI.init('projects-list', (projectPath) => {
     state.setProjectPath(projectPath);
@@ -945,6 +948,17 @@ function registerCommands() {
     shortcut: 'CmdOrCtrl+Shift+N',
     when: () => !!state.getProjectPath(),
     run: () => require('./newWorkspaceModal').open()
+  });
+  r({
+    id: 'workspace.review',
+    title: 'Review Changes…',
+    category: 'Workspace',
+    shortcut: 'CmdOrCtrl+Alt+R',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./reviewSection').open(ws);
+    }
   });
   r({
     id: 'workspace.push',

@@ -14,3 +14,11 @@ REVIEW_FILES lists every change since the merge base (origin/<base>, else local 
 _Captured: 2026-11-10 · src/main/gitDiffManager.js,src/shared/ipcChannels.js file change(s)_
 
 ---
+
+## T03 — Review tab: file list, diffs, viewed state; opened from the row menu, palette and ⌘⌥R
+
+A Review tab opens over a workspace's changes: left, every changed file (status, +/-) under 'N files · M left'; right, the selected file's diff with Split/Unified. Viewed ticks move to the next unreviewed file, persist per workspace in localStorage and drop when a file's content changes. Opened from 'Review Changes…' (first PR item in the workspace menu), the palette command workspace.review and File ▸ Review Changes… (⌘⌥R); each selects the workspace first.
+
+_Captured: 2026-11-10 · src/renderer/reviewSection.js,src/renderer/workspacePr.js,src/renderer/index.js,src/main/menu.js,src/renderer/styles/components/review.css,src/renderer/styles/main.css file change(s)_
+
+---

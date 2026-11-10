@@ -4114,43 +4114,43 @@
           "purpose": "Get menu template based on active AI tool"
         },
         "openSettings": {
-          "line": 252
+          "line": 253
         },
         "buildAICommandsSubmenu": {
-          "line": 263,
+          "line": 264,
           "params": [
             "tool"
           ],
           "purpose": "Build the AI-tool root's submenu: Start first, then the tool's slash"
         },
         "buildToolSwitcherSubmenu": {
-          "line": 312,
+          "line": 313,
           "purpose": "Build tool switcher submenu"
         },
         "buildThemeSubmenu": {
-          "line": 333,
+          "line": 334,
           "purpose": "View › Theme: one radio item per registry entry, the current one checked."
         },
         "sendCommand": {
-          "line": 348,
+          "line": 349,
           "params": [
             "command"
           ],
           "purpose": "Send command to terminal"
         },
         "sendAppCommand": {
-          "line": 358,
+          "line": 359,
           "params": [
             "commandId"
           ],
           "purpose": "Run a renderer command by its command-registry id (the menu's one"
         },
         "openHistoryFile": {
-          "line": 367,
+          "line": 368,
           "purpose": "Open history file in default editor"
         },
         "createMenu": {
-          "line": 381,
+          "line": 382,
           "purpose": "Create and set application menu"
         }
       },
@@ -4164,7 +4164,7 @@
           "RUN_APP_COMMAND"
         ]
       },
-      "sizeBytes": 11678,
+      "sizeBytes": 11749,
       "extraction": {
         "status": "parsed"
       },
@@ -11872,6 +11872,7 @@
         "tooltip",
         "ipcWatchdog",
         "../package.json",
+        "reviewSection",
         "statusBar",
         "workspaceSection",
         "newWorkspaceModal",
@@ -11885,34 +11886,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 350,
+          "line": 353,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 458,
+          "line": 461,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 589,
+          "line": 592,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 628,
+          "line": 631,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 654,
+          "line": 657,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1135,
+          "line": 1149,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1160,
+          "line": 1174,
           "params": [
             "err"
           ],
@@ -11932,7 +11933,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 42599,
+      "sizeBytes": 43085,
       "extraction": {
         "status": "parsed"
       },
@@ -13807,6 +13808,77 @@
           "appTheme": "407d91c24f8e3b85",
           "expectReport": "762a7a1760cf0876",
           "open": "01cb5d3da463ffc2"
+        }
+      }
+    },
+    "renderer/reviewSection": {
+      "file": "src/renderer/reviewSection.js",
+      "description": "Review Section — review a workspace's changes before the PR",
+      "exports": [],
+      "depends": [
+        "electron",
+        "diff2html",
+        "shared/ipcChannels",
+        "shared/reviewModel",
+        "state",
+        "htmlUtils",
+        "workspaceSection"
+      ],
+      "functions": {
+        "setHost": {
+          "line": 30,
+          "params": [
+            "h"
+          ]
+        },
+        "viewedScope": {
+          "line": 36,
+          "params": [
+            "projectPath",
+            "workspaceId"
+          ]
+        },
+        "readAllViewed": {
+          "line": 40
+        },
+        "loadViewed": {
+          "line": 49,
+          "params": [
+            "scope"
+          ]
+        },
+        "saveViewed": {
+          "line": 54,
+          "params": [
+            "scope",
+            "viewed"
+          ]
+        },
+        "open": {
+          "line": 67,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Open the review of a workspace record (`{ id, name, path, branch, base }`)."
+        },
+        "createViewport": {
+          "line": 82
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GIT_STATUS_DATA"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 12231,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "c3ff8b03a46b341c",
+        "purposes": {
+          "open": "7e9725f4a393e8de"
         }
       }
     },
@@ -16314,6 +16386,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/review.css": {
+      "file": "src/renderer/styles/components/review.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 3598,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/components/sample-banner.css": {
       "file": "src/renderer/styles/components/sample-banner.css",
       "description": "",
@@ -16488,7 +16572,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3555,
+      "sizeBytes": 3588,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -17969,6 +18053,7 @@
         "notify",
         "htmlUtils",
         "shared/prFlow",
+        "reviewSection",
         "workspaceSection",
         "agentDispatch"
       ],
@@ -18025,7 +18110,7 @@
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 136,
+          "line": 137,
           "params": [
             "id",
             "ws"
@@ -18033,34 +18118,34 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 147,
+          "line": 149,
           "params": [
             "ws"
           ]
         },
         "openCreatePr": {
-          "line": 164,
+          "line": 166,
           "params": [
             "ws"
           ],
           "purpose": "The Create PR dialog: main composes the title/body (from the workspace's"
         },
         "fixChecks": {
-          "line": 245,
+          "line": 247,
           "params": [
             "ws"
           ],
           "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
         },
         "merge": {
-          "line": 265,
+          "line": 267,
           "params": [
             "ws"
           ],
           "purpose": "Merge the workspace's PR with the project's method (main decides: the"
         },
         "openOnGitHub": {
-          "line": 287,
+          "line": 289,
           "params": [
             "ws"
           ],
@@ -18075,7 +18160,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 12363,
+      "sizeBytes": 12506,
       "extraction": {
         "status": "parsed"
       },
@@ -30487,6 +30572,18 @@
         "description": "Session restore — the renderer half (restore-ai-sessions-on-relaunch)."
       }
     ],
+    "review": [
+      {
+        "module": "renderer/reviewSection",
+        "file": "src/renderer/reviewSection.js",
+        "description": "Review Section — review a workspace's changes before the PR"
+      },
+      {
+        "module": "shared/reviewModel",
+        "file": "src/shared/reviewModel.js",
+        "description": "reviewModel — the rules behind a workspace review (workspace-review spec)."
+      }
+    ],
     "rows": [
       {
         "module": "renderer/home/agentRows",
@@ -30514,6 +30611,11 @@
         "module": "renderer/reportSection",
         "file": "src/renderer/reportSection.js",
         "description": "Report Section Module"
+      },
+      {
+        "module": "renderer/reviewSection",
+        "file": "src/renderer/reviewSection.js",
+        "description": "Review Section — review a workspace's changes before the PR"
       },
       {
         "module": "renderer/sectionRail",
@@ -30890,8 +30992,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 331,
-        "unsupported": 85,
+        "parsed": 332,
+        "unsupported": 86,
         "partial": 0
       }
     },
@@ -30937,9 +31039,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 506,
+      "visitedEntries": 508,
       "traversedDirectories": 82,
-      "eligibleFiles": 416,
+      "eligibleFiles": 418,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -30956,7 +31058,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 416,
+      "indexedFiles": 418,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -30964,6 +31066,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "a308fcfde5f1fbaf6bdaa99da44954daa4063490a0d9b51ff3c70799fb01c366"
+    "revision": "86cc69c965032186022d26b7684046b41d55b727832fc03a4910c64242f4ce02"
   }
 }

@@ -111,6 +111,7 @@ function menuItems(ws) {
   if (ws.missing) return [];
   const s = rowState(ws.id);
   const items = [];
+  items.push({ id: 'pr:review', label: 'Review Changes…' });
   items.push({ id: 'pr:push', label: s && s.unpushed ? `Push (${s.unpushed})` : 'Push' });
   const blocked = prBlockedReason();
   const hasOpenPr = !!(s && s.pr && (s.pr.state === 'open' || s.pr.state === 'draft'));
@@ -134,6 +135,7 @@ function menuItems(ws) {
 
 /** Run a PR-flow menu action for a workspace. Returns true when it was ours. */
 function runAction(id, ws) {
+  if (id === 'pr:review') { require('./reviewSection').open(ws); return true; }
   if (id === 'pr:push') { push(ws); return true; }
   if (id === 'pr:create') { openCreatePr(ws); return true; }
   if (id === 'pr:fix') { fixChecks(ws); return true; }
