@@ -19,7 +19,8 @@
     "dist": "npm run build && electron-builder --mac --dir --publish never",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
     "dist:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --publish never",
-    "server": "node src/server/index.js"
+    "server": "node src/server/index.js",
+    "server:package": "node scripts/build-server-package.js"
   },
   "keywords": [
     "electron",

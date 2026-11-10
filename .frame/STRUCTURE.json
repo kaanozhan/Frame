@@ -8081,7 +8081,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4210,
+      "sizeBytes": 4272,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -19278,6 +19278,59 @@
         }
       }
     },
+    "scripts/build-server-package": {
+      "file": "scripts/build-server-package.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "child_process",
+        "node-pty"
+      ],
+      "functions": {
+        "arg": {
+          "line": 28,
+          "params": [
+            "name",
+            "fallback"
+          ]
+        },
+        "platformName": {
+          "line": 33
+        },
+        "run": {
+          "line": 40,
+          "params": [
+            "cmd",
+            "args",
+            "cwd"
+          ]
+        },
+        "copy": {
+          "line": 44,
+          "params": [
+            "src",
+            "dest"
+          ]
+        },
+        "sha256": {
+          "line": 48,
+          "params": [
+            "file"
+          ]
+        },
+        "main": {
+          "line": 52
+        }
+      },
+      "sizeBytes": 4872,
+      "extraction": {
+        "status": "parsed"
+      }
+    },
     "scripts/check-freshness": {
       "file": "scripts/check-freshness.js",
       "description": "",
@@ -20991,6 +21044,29 @@
       },
       "provenance": {
         "description": "32ac7921fd767895"
+      }
+    },
+    "scripts/smoke-server-package": {
+      "file": "scripts/smoke-server-package.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "fail": {
+          "line": 38,
+          "params": [
+            "msg"
+          ]
+        }
+      },
+      "sizeBytes": 6008,
+      "extraction": {
+        "status": "parsed"
       }
     },
     "scripts/spec-command-hint": {
@@ -23738,6 +23814,18 @@
       },
       "provenance": {
         "description": "cde943181d8a0498"
+      }
+    },
+    "server/bin/frame-server": {
+      "file": "src/server/bin/frame-server",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 4590,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
       }
     },
     "server/electronShim": {
@@ -32544,8 +32632,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 351,
-        "unsupported": 86,
+        "parsed": 353,
+        "unsupported": 87,
         "partial": 0
       }
     },
@@ -32591,9 +32679,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 528,
-      "traversedDirectories": 83,
-      "eligibleFiles": 437,
+      "visitedEntries": 532,
+      "traversedDirectories": 84,
+      "eligibleFiles": 440,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32610,7 +32698,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 437,
+      "indexedFiles": 440,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32618,6 +32706,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "33197f195a80b8a2a5f15bd9bec2d803a82b11c686b747516aed7de6b3bec14a"
+    "revision": "e7fb3e927d486407f25c00b3be99cd6aec0c6e6560c91d6ecbc2d1ccec54d851"
   }
 }
