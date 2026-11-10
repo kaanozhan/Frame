@@ -9,6 +9,11 @@
  * A file can be ticked as viewed; the tick is remembered per workspace on
  * this machine and drops when the file's content changes (reviewModel).
  *
+ * A click on a new-side line number opens an inline comment box under that
+ * line; saved comments wait in the pending list (left column) with edit and
+ * remove, and their rows carry a marker. Pending comments live in memory for
+ * as long as the tab is open.
+ *
  * Git runs in main (REVIEW_FILES / REVIEW_FILE_DIFF) as the user's own git;
  * this module only draws. A workspace switch disposes section tabs, so one
  * review tab always belongs to one workspace.
@@ -17,7 +22,7 @@
 const { ipcRenderer } = require('electron');
 const { html: renderDiffHtml } = require('diff2html');
 const { IPC } = require('../shared/ipcChannels');
-const { reconcileViewed, viewedSummary } = require('../shared/reviewModel');
+const { reconcileViewed, viewedSummary, lineAnchor } = require('../shared/reviewModel');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 
@@ -94,6 +99,11 @@ function createViewport() {
   let listReq = 0;
   let diffReq = 0;
   let refreshTimer = null;
+  let comments = [];         // [{ id, path, line, text, body }]
+  let editing = null;        // { id?, path, line, text, body } — the open comment box
+  let commentSeq = 0;
+  let diffScroll = { path: null, top: 0 };
+  let sideScroll = 0;
 
   const onGitStatus = () => {
     if (!ref) return;
@@ -112,6 +122,8 @@ function createViewport() {
     ref = next;
     scope = viewedScope(ref.projectPath, ref.workspaceId);
     if (!same) {
+      comments = [];
+      editing = null;
       files = [];
       selected = null;
       diff = { path: null, text: '', message: '', loading: false };
@@ -190,7 +202,182 @@ function createViewport() {
   function select(p) {
     if (!p || p === selected) return;
     selected = p;
+    editing = null;
     loadDiff(false);
+  }
+
+  // ─── Comments ──────────────────────────────────────────────
+
+  function openComment(anchor) {
+    const existing = comments.find((c) => c.path === selected && c.line === anchor.line);
+    editing = existing
+      ? { id: existing.id, path: existing.path, line: existing.line, text: existing.text, body: existing.body }
+      : { path: selected, line: anchor.line, text: anchor.text, body: '' };
+    changed();
+  }
+
+  function saveComment() {
+    if (!editing) return;
+    const body = String(editing.body || '').trim();
+    if (!body) { cancelComment(); return; }
+    if (editing.id) {
+      const c = comments.find((x) => x.id === editing.id);
+      if (c) c.body = body;
+    } else {
+      comments.push({ id: `c${++commentSeq}`, path: editing.path, line: editing.line, text: editing.text, body });
+    }
+    editing = null;
+    changed();
+  }
+
+  function cancelComment() {
+    editing = null;
+    changed();
+  }
+
+  function removeComment(id) {
+    comments = comments.filter((c) => c.id !== id);
+    if (editing && editing.id === id) editing = null;
+    changed();
+  }
+
+  function editComment(id) {
+    const c = comments.find((x) => x.id === id);
+    if (!c) return;
+    if (c.path !== selected) { selected = c.path; loadDiff(false); }
+    editing = { id: c.id, path: c.path, line: c.line, text: c.text, body: c.body };
+    changed();
+  }
+
+  /** New-side rows of the rendered diff: Map(line → <tr>). */
+  function newSideRows(hostEl) {
+    const rows = new Map();
+    if (mode === 'line-by-line') {
+      hostEl.querySelectorAll('td.d2h-code-linenumber .line-num2').forEach((n) => {
+        const line = parseInt(n.textContent.trim(), 10);
+        if (line > 0) rows.set(line, n.closest('tr'));
+      });
+    } else {
+      const sides = hostEl.querySelectorAll('.d2h-file-side-diff');
+      const right = sides[sides.length - 1];
+      if (!right) return rows;
+      right.querySelectorAll('td.d2h-code-side-linenumber').forEach((td) => {
+        const line = parseInt(td.textContent.trim(), 10);
+        if (line > 0) rows.set(line, td.closest('tr'));
+      });
+    }
+    return rows;
+  }
+
+  /** The clicked new-side line number cell → anchor, or null. */
+  function anchorFromClick(target, hostEl) {
+    let newLine = '';
+    let tr = null;
+    const unified = target.closest('td.d2h-code-linenumber');
+    const side = target.closest('td.d2h-code-side-linenumber');
+    if (unified && hostEl.contains(unified)) {
+      const n = unified.querySelector('.line-num2');
+      newLine = n ? n.textContent : '';
+      tr = unified.closest('tr');
+    } else if (side && hostEl.contains(side)) {
+      const sides = [...hostEl.querySelectorAll('.d2h-file-side-diff')];
+      if (sides.indexOf(side.closest('.d2h-file-side-diff')) !== sides.length - 1) return null; // old side
+      newLine = side.textContent;
+      tr = side.closest('tr');
+    } else {
+      return null;
+    }
+    const prefix = tr && tr.querySelector('.d2h-code-line-prefix');
+    const ctn = tr && tr.querySelector('.d2h-code-line-ctn');
+    const code = `${prefix ? prefix.textContent : ''}${ctn ? ctn.textContent : ''}`.replace(/\u00a0/g, ' ');
+    return lineAnchor({ newLine, code });
+  }
+
+  /** Markers on commented rows and the open comment box under its row. */
+  function decorateDiff(hostEl) {
+    const rows = newSideRows(hostEl);
+    hostEl.querySelectorAll('tr').forEach((tr) => {
+      const num = tr.querySelector('td.d2h-code-linenumber, td.d2h-code-side-linenumber');
+      if (num) num.title = '';
+    });
+    for (const [line, tr] of rows) {
+      const num = tr.querySelector('td.d2h-code-linenumber, td.d2h-code-side-linenumber');
+      if (num) { num.classList.add('review-commentable'); num.title = `Comment on line ${line}`; }
+    }
+    for (const c of comments) {
+      if (c.path !== selected) continue;
+      const tr = rows.get(c.line);
+      if (tr) { tr.classList.add('review-commented'); tr.title = c.body; }
+    }
+    if (!editing || editing.path !== selected) return;
+    const tr = rows.get(editing.line);
+    if (!tr) return;
+    const cols = tr.children.length || 2;
+    const boxRow = document.createElement('tr');
+    boxRow.className = 'review-comment-row';
+    boxRow.innerHTML = `
+      <td colspan="${cols}">
+        <div class="review-comment-box">
+          <div class="review-comment-label">Comment on line ${editing.line}</div>
+          <textarea class="review-comment-input" rows="3" placeholder="What should change here? (⌘↵ to save, Esc to cancel)">${escapeHtml(editing.body)}</textarea>
+          <div class="review-comment-actions">
+            ${editing.id ? '<button type="button" class="review-btn danger" data-act="remove">Remove</button>' : ''}
+            <span class="review-spacer"></span>
+            <button type="button" class="review-btn" data-act="cancel">Cancel</button>
+            <button type="button" class="review-btn primary" data-act="save">${editing.id ? 'Save' : 'Add comment'}</button>
+          </div>
+        </div>
+      </td>`;
+    tr.after(boxRow);
+    // Split view: a spacer of the same height keeps the old side aligned.
+    if (mode !== 'line-by-line') {
+      const sides = hostEl.querySelectorAll('.d2h-file-side-diff');
+      const leftRows = sides.length > 1 ? sides[0].querySelectorAll('tbody tr') : [];
+      const idx = [...tr.parentElement.children].indexOf(tr);
+      const leftTr = leftRows[idx];
+      if (leftTr) {
+        const spacer = document.createElement('tr');
+        spacer.className = 'review-comment-spacer';
+        spacer.innerHTML = `<td colspan="${leftTr.children.length || 2}"></td>`;
+        leftTr.after(spacer);
+        requestAnimationFrame(() => { spacer.style.height = `${boxRow.offsetHeight}px`; });
+      }
+    }
+    const input = boxRow.querySelector('textarea');
+    input.addEventListener('input', () => { if (editing) editing.body = input.value; });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveComment(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelComment(); }
+    });
+    boxRow.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.act === 'save') saveComment();
+      else if (b.dataset.act === 'cancel') cancelComment();
+      else if (b.dataset.act === 'remove') removeComment(editing.id);
+    }));
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+
+  function pendingHtml() {
+    if (!comments.length) return '';
+    const sorted = comments.slice().sort((a, b) => (a.path === b.path ? a.line - b.line : a.path.localeCompare(b.path)));
+    return `
+      <div class="review-pending">
+        <div class="review-pending-header">Comments <span class="review-pending-count">${comments.length}</span></div>
+        <ul class="review-comments">
+          ${sorted.map((c) => `
+            <li class="review-comment" data-id="${c.id}">
+              <div class="review-comment-where" data-act="goto">${escapeHtml(c.path)}:${c.line}</div>
+              ${c.text ? `<div class="review-comment-code">${escapeHtml(c.text)}</div>` : ''}
+              <div class="review-comment-body">${escapeHtml(c.body)}</div>
+              <div class="review-comment-tools">
+                <button type="button" class="review-link" data-act="edit">Edit</button>
+                <button type="button" class="review-link" data-act="remove">Remove</button>
+              </div>
+            </li>`).join('')}
+        </ul>
+        <div class="review-send-slot"></div>
+      </div>`;
   }
 
   function toggleViewed(p) {
@@ -274,7 +461,7 @@ function createViewport() {
             </div>
             <div class="review-summary">${escapeHtml(header)}</div>
           </div>
-          <div class="review-side-body">${listHtml()}</div>
+          <div class="review-side-body">${listHtml()}${pendingHtml()}</div>
         </div>
         <div class="review-main">${diffHtml()}</div>
       </div>`;
@@ -283,7 +470,32 @@ function createViewport() {
     const hostEl = el.querySelector('.review-diff-host');
     if (hostEl && f && diff.path === f.path && diff.text) {
       hostEl.innerHTML = renderDiffHtml(diff.text, { drawFileList: false, matching: 'lines', outputFormat: mode });
+      decorateDiff(hostEl);
+      hostEl.addEventListener('click', (e) => {
+        const anchor = anchorFromClick(e.target, hostEl);
+        if (anchor) openComment(anchor);
+      });
     }
+
+    // Re-renders replace the DOM; keep both columns where the user left them.
+    const diffBody = el.querySelector('.review-diff-body');
+    if (diffBody) {
+      if (f && diffScroll.path === f.path) diffBody.scrollTop = diffScroll.top;
+      diffBody.addEventListener('scroll', () => { diffScroll = { path: selected, top: diffBody.scrollTop }; });
+    }
+    const sideBody = el.querySelector('.review-side-body');
+    if (sideBody) {
+      sideBody.scrollTop = sideScroll;
+      sideBody.addEventListener('scroll', () => { sideScroll = sideBody.scrollTop; });
+    }
+
+    el.querySelectorAll('.review-comment [data-act]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const id = b.closest('.review-comment').dataset.id;
+        if (b.dataset.act === 'remove') removeComment(id);
+        else editComment(id);
+      });
+    });
 
     el.querySelectorAll('.review-file').forEach((row) => {
       row.addEventListener('click', (e) => {

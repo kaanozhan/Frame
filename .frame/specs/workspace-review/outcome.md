@@ -22,3 +22,11 @@ A Review tab opens over a workspace's changes: left, every changed file (status,
 _Captured: 2026-11-10 · src/renderer/reviewSection.js,src/renderer/workspacePr.js,src/renderer/index.js,src/main/menu.js,src/renderer/styles/components/review.css,src/renderer/styles/main.css file change(s)_
 
 ---
+
+## T04 — Line comments in the review tab
+
+Clicking a new-side line number (split or unified) opens an inline comment box under the line (⌘↵ saves, Esc cancels); in split view a matching spacer keeps the old side aligned. Saved comments wait in a Comments list under the files (path:line, quoted code, text) with Edit and Remove, and the commented row is marked. Scroll positions survive re-renders; comments live in memory while the tab is open.
+
+_Captured: 2026-11-10 · src/renderer/reviewSection.js,src/renderer/styles/components/review.css file change(s)_
+
+---
