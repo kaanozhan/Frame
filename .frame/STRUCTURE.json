@@ -23222,7 +23222,8 @@
         "electronShim",
         "ws",
         "shared/serverProtocol",
-        "shared/serverSecurity"
+        "shared/serverSecurity",
+        "terminals"
       ],
       "functions": {
         "parseArgs": {
@@ -23276,7 +23277,7 @@
           ]
         }
       },
-      "sizeBytes": 6419,
+      "sizeBytes": 6648,
       "extraction": {
         "status": "parsed"
       },
@@ -23315,6 +23316,42 @@
       },
       "provenance": {
         "description": "3e1a03f2467a9a7e"
+      }
+    },
+    "server/terminals": {
+      "file": "src/server/terminals.js",
+      "description": "Server terminals — the PTYs of server workspaces (server-workspaces spec, T4).",
+      "exports": [
+        "setup",
+        "toServerId",
+        "toLocalId"
+      ],
+      "depends": [
+        "shared/ipcChannels",
+        "shared/serverRouting",
+        "screenMirror",
+        "main/ptyManager"
+      ],
+      "functions": {
+        "setup": {
+          "line": 32,
+          "params": [
+            "{ shim",
+            "registerMethods",
+            "broadcast }"
+          ],
+          "purpose": "Wire terminals into the server: `shim` is the installed electron shim,"
+        }
+      },
+      "sizeBytes": 5280,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "6ce7f00c207acc45",
+        "purposes": {
+          "setup": "b1faf5b173071512"
+        }
       }
     },
     "shared/activityEvents": {
@@ -31512,6 +31549,11 @@
         "module": "renderer/terminalsView",
         "file": "src/renderer/terminalsView.js",
         "description": "Terminals View Module"
+      },
+      {
+        "module": "server/terminals",
+        "file": "src/server/terminals.js",
+        "description": "Server terminals — the PTYs of server workspaces (server-workspaces spec, T4)."
       }
     ],
     "tour": [
@@ -31639,7 +31681,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 342,
+        "parsed": 343,
         "unsupported": 86,
         "partial": 0
       }
@@ -31686,9 +31728,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 519,
+      "visitedEntries": 520,
       "traversedDirectories": 83,
-      "eligibleFiles": 428,
+      "eligibleFiles": 429,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -31705,7 +31747,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 428,
+      "indexedFiles": 429,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -31713,6 +31755,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "ad605731d0d3db32c2506ebfa510c1fb02c5f96bee6b9ef5c9e8662cca8509fe"
+    "revision": "7aff6c6d12a5abde0eddecde7b5fc7cea56e53a77eb6eb6fa7cab3debc22d419"
   }
 }

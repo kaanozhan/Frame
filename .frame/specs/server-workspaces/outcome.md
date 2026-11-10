@@ -22,3 +22,11 @@ Added src/server/screenMirror.js: a headless xterm (xterm-headless 5.3.0) with t
 _Captured: 2026-11-10 · 4 file change(s)_
 
 ---
+
+## T04 — Server terminals with screen persistence
+
+Added src/server/terminals.js: Frame's ptyManager runs inside Frame Server through the shim's fake window, its term-<n> ids exposed as srv-<n>; each PTY feeds a screen mirror; terminals.create/input/resize/destroy/list/attach plus terminal.output/process/destroyed events broadcast to connected desktops; stop() kills every PTY. Wired into src/server/index.js and its shutdown. NOT verified on Linux: Docker Desktop was not running and no Linux host was available, so node-pty on Linux stays to be proven on the user's server — deviation from the plan's step 3.
+
+_Captured: 2026-11-10 · 2 file change(s)_
+
+---

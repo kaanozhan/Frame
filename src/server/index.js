@@ -130,6 +130,8 @@ function start(argv = process.argv.slice(2)) {
   const bind = bindRule(args.bind);
   if (bind.warning) console.warn(`[frame-server] WARNING: ${bind.warning}`);
 
+  const parts = [require('./terminals').setup({ shim, registerMethods, broadcast })];
+
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 * 1024 });
   wss.on('connection', onConnection);
   const server = http.createServer((req, res) => {
@@ -159,6 +161,9 @@ function start(argv = process.argv.slice(2)) {
   const stop = () => {
     try { fs.rmSync(path.join(HOME, 'connection.json'), { force: true }); } catch (_) { /* best effort */ }
     for (const c of clients) c.ws.close(1001, 'server stopping');
+    for (const part of parts) {
+      try { part.stop(); } catch (err) { console.error(`[frame-server] stop failed: ${err.message}`); }
+    }
     server.close();
     process.exit(0);
   };
