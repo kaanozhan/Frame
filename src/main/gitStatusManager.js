@@ -47,19 +47,72 @@ function init(window) {
   window.on('focus', () => pushStatus());
 }
 
-function setupIPC(ipcMain) {
-  ipcMain.on(IPC.WATCH_GIT_STATUS, (event, projectPath) => {
+// ─── Server workspaces (server-workspace-panels) ──────────────
+//
+// One watch at a time, as before — but it may be on the server: watching a
+// server workspace's folder stops the local watcher and asks Frame Server to
+// watch it (its own gitStatusManager); the server's status comes back as
+// `git.status` and goes to the window as GIT_STATUS_DATA. A reconnect
+// re-issues the watch.
+
+let remoteWatch = null; // { entry, root }
+let remoteWired = false;
+
+function serverPanels() {
+  return require('./serverPanels');
+}
+
+function wireRemote() {
+  if (remoteWired) return;
+  remoteWired = true;
+  const sc = require('./serverConnection');
+  sc.on('git.status', (payload) => {
+    if (!remoteWatch || !payload || payload.projectPath !== remoteWatch.root) return;
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.GIT_STATUS_DATA, payload);
+  });
+  sc.on('connected', () => {
+    if (remoteWatch) serverPanels().call(remoteWatch.entry, 'git.watch', { root: remoteWatch.root }).catch(() => {});
+  });
+}
+
+function unwatchRemote() {
+  if (!remoteWatch) return;
+  const { entry } = remoteWatch;
+  remoteWatch = null;
+  serverPanels().call(entry, 'git.unwatch', {}).catch(() => {});
+}
+
+function watch(projectPath) {
+  const entry = projectPath && serverPanels().rootOf(projectPath);
+  if (!entry) {
+    unwatchRemote();
     startWatching(projectPath);
+    return;
+  }
+  stopWatching();
+  remoteWatch = { entry, root: projectPath };
+  serverPanels().call(entry, 'git.watch', { root: projectPath }).catch((err) => {
+    logger.warn('gitStatus', `server watch failed: ${err.message}`);
+  });
+}
+
+function setupIPC(ipcMain) {
+  try { wireRemote(); } catch (err) { logger.warn('gitStatus', `server status not wired: ${err.message}`); }
+
+  ipcMain.on(IPC.WATCH_GIT_STATUS, (event, projectPath) => {
+    watch(projectPath);
   });
 
   ipcMain.on(IPC.UNWATCH_GIT_STATUS, () => {
+    unwatchRemote();
     stopWatching();
   });
 
   // On-demand refresh (e.g. the Changes tab was opened). Silent unless the
   // status actually changed — see lastSerialized de-dupe in pushStatus().
   ipcMain.on(IPC.REFRESH_GIT_STATUS, () => {
-    pushStatus();
+    if (remoteWatch) serverPanels().call(remoteWatch.entry, 'git.refresh', {}).catch(() => {});
+    else pushStatus();
   });
 }
 

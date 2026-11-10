@@ -2703,7 +2703,8 @@
         "shared/ipcChannels",
         "shared/frameConstants",
         "gitBranchRefs",
-        "shared/gitRefNames"
+        "shared/gitRefNames",
+        "serverPanels"
       ],
       "functions": {
         "init": {
@@ -3052,7 +3053,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 31851,
+      "sizeBytes": 32338,
       "extraction": {
         "status": "parsed"
       },
@@ -3114,7 +3115,8 @@
         "shared/ipcChannels",
         "logger",
         "fs",
-        "shared/reviewModel"
+        "shared/reviewModel",
+        "serverPanels"
       ],
       "functions": {
         "gitDiff": {
@@ -3131,14 +3133,14 @@
           ]
         },
         "runDiff": {
-          "line": 73,
+          "line": 82,
           "params": [
             "cwd",
             "args"
           ]
         },
         "mergeBaseOf": {
-          "line": 113,
+          "line": 122,
           "params": [
             "root",
             "base"
@@ -3146,7 +3148,7 @@
           "purpose": "Merge base of HEAD with origin/<base>, else with the local <base>."
         },
         "hashFiles": {
-          "line": 123,
+          "line": 132,
           "params": [
             "root",
             "paths"
@@ -3154,7 +3156,7 @@
           "purpose": "Content hashes for existing files, `{ path: sha }`, in chunks."
         },
         "countLines": {
-          "line": 138,
+          "line": 147,
           "params": [
             "root",
             "paths"
@@ -3162,14 +3164,14 @@
           "purpose": "Line counts for small text untracked files (shown as +N)."
         },
         "reviewFiles": {
-          "line": 153,
+          "line": 162,
           "params": [
             "root",
             "base"
           ]
         },
         "reviewFileDiff": {
-          "line": 175,
+          "line": 184,
           "params": [
             "root",
             "{ mergeBase",
@@ -3179,7 +3181,7 @@
           ]
         },
         "detectBinary": {
-          "line": 186,
+          "line": 195,
           "params": [
             "diff"
           ]
@@ -3193,7 +3195,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 7226,
+      "sizeBytes": 7946,
       "extraction": {
         "status": "parsed"
       },
@@ -3471,7 +3473,9 @@
         "fsSafe",
         "activityLog",
         "logger",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "serverPanels",
+        "serverConnection"
       ],
       "functions": {
         "init": {
@@ -3480,14 +3484,29 @@
             "window"
           ]
         },
+        "serverPanels": {
+          "line": 61
+        },
+        "wireRemote": {
+          "line": 65
+        },
+        "unwatchRemote": {
+          "line": 78
+        },
+        "watch": {
+          "line": 85,
+          "params": [
+            "projectPath"
+          ]
+        },
         "setupIPC": {
-          "line": 50,
+          "line": 99,
           "params": [
             "ipcMain"
           ]
         },
         "gitDirFromDotGitFile": {
-          "line": 71,
+          "line": 124,
           "params": [
             "contents",
             "worktreePath"
@@ -3495,66 +3514,66 @@
           "purpose": "The git dir a `.git` *file* points at (`gitdir: <path>`), resolved against"
         },
         "resolveGitDir": {
-          "line": 78,
+          "line": 131,
           "params": [
             "projectPath"
           ],
           "purpose": "The real git dir for `projectPath`: `.git` itself, or where a `.git` file points."
         },
         "startWatching": {
-          "line": 91,
+          "line": 144,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 149
+          "line": 202
         },
         "isGitInternalPath": {
-          "line": 169,
+          "line": 222,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
         "isIgnoredWorktreePath": {
-          "line": 188,
+          "line": 241,
           "params": [
             "filename"
           ],
           "purpose": "Paths the working-tree watcher does not care about."
         },
         "isGitBookkeeping": {
-          "line": 215,
+          "line": 268,
           "params": [
             "filename"
           ],
           "purpose": "Is this .git event just bookkeeping rather than a real repository change?"
         },
         "scheduleRefresh": {
-          "line": 221,
+          "line": 274,
           "params": [
             "watcher"
           ]
         },
         "pushStatus": {
-          "line": 239
+          "line": 292
         },
         "readGitStatus": {
-          "line": 290,
+          "line": 343,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 321,
+          "line": 374,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 378,
+          "line": 431,
           "params": [
             "index",
             "worktree"
@@ -3569,10 +3588,11 @@
           "REFRESH_GIT_STATUS"
         ],
         "emits": [
+          "GIT_STATUS_DATA",
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 14394,
+      "sizeBytes": 16275,
       "extraction": {
         "status": "parsed"
       },
@@ -32429,6 +32449,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "043464e490c7c94d861b23deedf20a13cde4c2dee11310e859365d92f7e127f4"
+    "revision": "f94afd8849fd13476ef9bf367e0247e0ec6b86c8eadfd55d839e8912eb2af1c3"
   }
 }

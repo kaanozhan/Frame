@@ -795,13 +795,20 @@ async function listOrchBranches(projectPath) {
  */
 function setupIPC(ipcMain) {
   // Load branches
+  // A server workspace's branches live on the server (server-workspace-panels).
+  const serverPanels = require('./serverPanels');
+  const remote = (p, method, params) => {
+    const entry = p && serverPanels.rootOf(p);
+    return entry ? serverPanels.call(entry, method, params).catch((err) => ({ error: err.message, branches: [] })) : null;
+  };
+
   ipcMain.handle(IPC.LOAD_GIT_BRANCHES, async (event, projectPath) => {
-    return await loadBranches(projectPath);
+    return (await remote(projectPath, 'git.branches', { root: projectPath })) || loadBranches(projectPath);
   });
 
   // Switch branch
   ipcMain.handle(IPC.SWITCH_GIT_BRANCH, async (event, { projectPath, branchName }) => {
-    return await switchBranch(projectPath, branchName);
+    return (await remote(projectPath, 'git.switch', { root: projectPath, branchName })) || switchBranch(projectPath, branchName);
   });
 
   // Create branch

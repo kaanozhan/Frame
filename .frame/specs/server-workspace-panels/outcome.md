@@ -30,3 +30,11 @@ Added src/main/serverPanels.js (rootOf via workspaceManager.serverRoots() and se
 _Captured: 2026-11-10 · 4 file change(s)_
 
 ---
+
+## T05 — Desktop routing for diff, review, branches and git status
+
+GET_GIT_DIFF, REVIEW_FILES and REVIEW_FILE_DIFF (gitDiffManager.js) and LOAD_GIT_BRANCHES / SWITCH_GIT_BRANCH (gitBranchesManager.js) route by path to git.diff / review.* / git.branches / git.switch, answering in each channel's usual shape with the offline error when disconnected. gitStatusManager keeps one watch: watching a server root stops the local watcher and starts git.watch on the server, its git.status events reach the window as GIT_STATUS_DATA for that root only, a reconnect re-issues the watch, REFRESH asks git.refresh, and watching a local root unwatches the server.
+
+_Captured: 2026-11-10 · 3 file change(s)_
+
+---

@@ -60,10 +60,19 @@ async function gitDiff(payload) {
 }
 
 function setupIPC(ipcMain) {
-  ipcMain.handle(IPC.REVIEW_FILES, async (_event, { root, base } = {}) => reviewFiles(root, base));
-  ipcMain.handle(IPC.REVIEW_FILE_DIFF, async (_event, payload = {}) => reviewFileDiff(payload.root, payload));
+  // Server workspaces are diffed and reviewed on the server (server-workspace-panels).
+  const serverPanels = require('./serverPanels');
+  const remote = (p, method, params, fallback) => {
+    const entry = p && serverPanels.rootOf(p);
+    return entry ? serverPanels.call(entry, method, params).catch((err) => fallback(err.message)) : null;
+  };
+  ipcMain.handle(IPC.REVIEW_FILES, async (_event, { root, base } = {}) =>
+    remote(root, 'review.files', { root, base }, (error) => ({ error, mergeBase: null, files: [] })) || reviewFiles(root, base));
+  ipcMain.handle(IPC.REVIEW_FILE_DIFF, async (_event, payload = {}) =>
+    remote(payload.root, 'review.fileDiff', payload, (error) => ({ diff: '', isBinary: false, tooLarge: false, error })) || reviewFileDiff(payload.root, payload));
 
-  ipcMain.handle(IPC.GET_GIT_DIFF, async (_event, payload) => gitDiff(payload));
+  ipcMain.handle(IPC.GET_GIT_DIFF, async (_event, payload) =>
+    remote(payload && payload.projectPath, 'git.diff', payload || {}, (error) => ({ diff: '', isBinary: false, isUntracked: false, error })) || gitDiff(payload));
 }
 
 // Set on the first ENOENT from the git binary — see gitStatusManager.
