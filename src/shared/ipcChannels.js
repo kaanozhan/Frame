@@ -244,7 +244,14 @@ const IPC = {
   WORKSPACE_RENAME: 'workspace-rename',              // renderer → main (invoke): { projectPath, id, name?, branch? } → { error, workspace }
   WORKSPACE_REMOVE_RECORD: 'workspace-remove-record', // renderer → main (invoke): { projectPath, id } → { error } (missing/archived records only)
   WORKSPACES_UPDATED: 'workspaces-updated',          // main → renderer: { projectPath } after any workspace change
-  WORKSPACE_PROVISION: 'workspace-provision',        // renderer → main (invoke): { projectPath, id } → { error, copied } — Frame tooling into the worktree (spec-in-workspace)
+  WORKSPACE_PROVISION: 'workspace-provision',
+  // Workspace PR flow (workspace-pr-flow)
+  WORKSPACE_GIT_STATE: 'workspace-git-state',        // main → renderer: { projectPath, access: { gh, authed, repoName }, workspaces: { [id]: RowState } }
+  WORKSPACE_GIT_REFRESH: 'workspace-git-refresh',    // renderer → main (invoke): { projectPath } → payload; also makes it the polled project
+  WORKSPACE_PUSH: 'workspace-push',                  // renderer → main (invoke): { projectPath, id } → { error, dirty }
+  WORKSPACE_PR_DRAFT: 'workspace-pr-draft',          // renderer → main (invoke): { projectPath, id } → { error, title, body, base, branch }
+  WORKSPACE_PR_CREATE: 'workspace-pr-create',        // renderer → main (invoke): { projectPath, id, title, body, draft } → { error, url }
+  WORKSPACE_PR_MERGE: 'workspace-pr-merge',          // renderer → main (invoke): { projectPath, id } → { error, method, fastForward, archived }        // renderer → main (invoke): { projectPath, id } → { error, copied } — Frame tooling into the worktree (spec-in-workspace)
   GIT_DEFAULT_BRANCH: 'git-default-branch',          // renderer → main (invoke): projectPath → { error, branch, hasOrigin }
   GET_WORKSPACE_SETTINGS: 'get-workspace-settings',  // renderer → main (invoke): projectPath → { setupScript, copyFiles, branchPrefix, frameProject }
   SET_WORKSPACE_SETTINGS: 'set-workspace-settings',  // renderer → main (invoke): { projectPath, settings } → normalised settings | { error }

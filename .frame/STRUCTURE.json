@@ -3603,7 +3603,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 9692,
+      "sizeBytes": 9836,
       "extraction": {
         "status": "parsed"
       },
@@ -3662,6 +3662,7 @@
         "projectInsights",
         "gitBranchesManager",
         "workspaceManager",
+        "workspaceGitState",
         "aiToolManager",
         "claudeSessionsManager",
         "codexSessionsManager",
@@ -3678,26 +3679,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 62,
+          "line": 63,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 80,
+          "line": 81,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 181
+          "line": 182
         },
         "setupAllIPC": {
-          "line": 211,
+          "line": 212,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 306,
+          "line": 308,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 354,
+          "line": 356,
           "params": [
             "window"
           ],
@@ -3720,7 +3721,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 16042,
+      "sizeBytes": 16173,
       "extraction": {
         "status": "parsed"
       },
@@ -7015,6 +7016,112 @@
         }
       }
     },
+    "main/workspaceGitState": {
+      "file": "src/main/workspaceGitState.js",
+      "description": "Workspace Git State — each workspace's way out, as seen from main",
+      "exports": [
+        "init",
+        "setupIPC",
+        "refresh",
+        "getState",
+        "activeWorkspaces",
+        "PR_FIELDS"
+      ],
+      "depends": [
+        "fs",
+        "shared/ipcChannels",
+        "shared/workspaceRegistry",
+        "shared/prFlow",
+        "projectRegistry",
+        "gitBranchesManager",
+        "githubManager",
+        "pollGate",
+        "logger"
+      ],
+      "functions": {
+        "init": {
+          "line": 40,
+          "params": [
+            "window"
+          ]
+        },
+        "activeWorkspaces": {
+          "line": 50,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "prFor": {
+          "line": 60,
+          "params": [
+            "projectPath",
+            "branch"
+          ]
+        },
+        "rowState": {
+          "line": 71,
+          "params": [
+            "projectPath",
+            "ws",
+            "access",
+            "previous"
+          ],
+          "purpose": "RowState for one workspace (see the plan's data shapes)."
+        },
+        "collect": {
+          "line": 92,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "send": {
+          "line": 112,
+          "params": [
+            "payload"
+          ]
+        },
+        "refresh": {
+          "line": 122,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Re-read and push the state of `projectPath`'s workspaces. Calls that land"
+        },
+        "getState": {
+          "line": 147,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The last state read for a project, or null."
+        },
+        "setupIPC": {
+          "line": 151,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "WORKSPACE_GIT_REFRESH"
+        ],
+        "emits": [
+          "WORKSPACE_GIT_STATE"
+        ]
+      },
+      "sizeBytes": 5731,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "c09496f4e94b4afe",
+        "purposes": {
+          "getState": "dbc9f664ea1c334c",
+          "refresh": "0316824b93954fd9",
+          "rowState": "114f885ae19483b9"
+        }
+      }
+    },
     "main/workspaceManager": {
       "file": "src/main/workspaceManager.js",
       "description": "Workspace Manager — the main-process side of workspaces (workspaces spec).",
@@ -7045,6 +7152,7 @@
         "userSettings",
         "logger",
         "specManager",
+        "workspaceGitState",
         "frameProject"
       ],
       "functions": {
@@ -7069,51 +7177,51 @@
           ]
         },
         "expandHome": {
-          "line": 64,
+          "line": 66,
           "params": [
             "p"
           ]
         },
         "workspacesRoot": {
-          "line": 72,
+          "line": 74,
           "purpose": "Where this machine keeps workspace folders (machine-local user setting)."
         },
         "projectDir": {
-          "line": 77,
+          "line": 79,
           "params": [
             "projectPath"
           ]
         },
         "settingsFor": {
-          "line": 81,
+          "line": 83,
           "params": [
             "projectPath"
           ]
         },
         "records": {
-          "line": 86,
+          "line": 88,
           "params": [
             "projectPath"
           ]
         },
         "persist": {
-          "line": 90,
+          "line": 92,
           "params": [
             "projectPath",
             "next"
           ]
         },
         "listDir": {
-          "line": 94,
+          "line": 96,
           "params": [
             "dir"
           ]
         },
         "newId": {
-          "line": 98
+          "line": 100
         },
         "copyIgnoredFiles": {
-          "line": 107,
+          "line": 109,
           "params": [
             "projectPath",
             "worktreePath"
@@ -7121,21 +7229,21 @@
           "purpose": "Copy the `copyFiles` selection from the main checkout into a worktree."
         },
         "list": {
-          "line": 132,
+          "line": 134,
           "params": [
             "projectPath"
           ],
           "purpose": "Records reconciled against `git worktree list`; `isRepo` false when git cannot read the project."
         },
         "status": {
-          "line": 148,
+          "line": 150,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 162,
+          "line": 164,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -7145,14 +7253,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 241,
+          "line": 243,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 257,
+          "line": 259,
           "params": [
             "projectPath",
             "id",
@@ -7162,7 +7270,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 296,
+          "line": 298,
           "params": [
             "projectPath",
             "id"
@@ -7170,7 +7278,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 321,
+          "line": 323,
           "params": [
             "projectPath",
             "id",
@@ -7180,7 +7288,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 345,
+          "line": 347,
           "params": [
             "projectPath",
             "id"
@@ -7188,7 +7296,7 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 361,
+          "line": 363,
           "params": [
             "ipcMain"
           ]
@@ -7210,7 +7318,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 16159,
+      "sizeBytes": 16276,
       "extraction": {
         "status": "parsed"
       },
@@ -23381,7 +23489,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 14882,
+      "sizeBytes": 15790,
       "extraction": {
         "status": "parsed"
       },
@@ -28628,6 +28736,36 @@
         "name": "workspace-provision",
         "direction": "",
         "description": ""
+      },
+      "WORKSPACE_GIT_STATE": {
+        "name": "workspace-git-state",
+        "direction": "",
+        "description": ""
+      },
+      "WORKSPACE_GIT_REFRESH": {
+        "name": "workspace-git-refresh",
+        "direction": "",
+        "description": ""
+      },
+      "WORKSPACE_PUSH": {
+        "name": "workspace-push",
+        "direction": "",
+        "description": ""
+      },
+      "WORKSPACE_PR_DRAFT": {
+        "name": "workspace-pr-draft",
+        "direction": "",
+        "description": ""
+      },
+      "WORKSPACE_PR_CREATE": {
+        "name": "workspace-pr-create",
+        "direction": "",
+        "description": ""
+      },
+      "WORKSPACE_PR_MERGE": {
+        "name": "workspace-pr-merge",
+        "direction": "",
+        "description": ""
       }
     },
     "frame": {
@@ -29502,6 +29640,11 @@
         "description": "gitSharing — is Frame's context shared with the repo, or local to this machine?"
       },
       {
+        "module": "main/workspaceGitState",
+        "file": "src/main/workspaceGitState.js",
+        "description": "Workspace Git State — each workspace's way out, as seen from main"
+      },
+      {
         "module": "shared/gitRefNames",
         "file": "src/shared/gitRefNames.js",
         "description": "gitRefNames — is this string a branch name git would accept?"
@@ -30070,6 +30213,11 @@
         "description": "Update State Module"
       },
       {
+        "module": "main/workspaceGitState",
+        "file": "src/main/workspaceGitState.js",
+        "description": "Workspace Git State — each workspace's way out, as seen from main"
+      },
+      {
         "module": "renderer/dock/dockState",
         "file": "src/renderer/dock/dockState.js",
         "description": "Dock state — pure (dock-panel-readonly-views spec, D2)."
@@ -30257,6 +30405,11 @@
     ],
     "workspace": [
       {
+        "module": "main/workspaceGitState",
+        "file": "src/main/workspaceGitState.js",
+        "description": "Workspace Git State — each workspace's way out, as seen from main"
+      },
+      {
         "module": "main/workspaceManager",
         "file": "src/main/workspaceManager.js",
         "description": "Workspace Manager — the main-process side of workspaces (workspaces spec)."
@@ -30322,7 +30475,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 327,
+        "parsed": 328,
         "unsupported": 85,
         "partial": 0
       }
@@ -30369,9 +30522,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 502,
+      "visitedEntries": 503,
       "traversedDirectories": 82,
-      "eligibleFiles": 412,
+      "eligibleFiles": 413,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -30388,7 +30541,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 412,
+      "indexedFiles": 413,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -30396,6 +30549,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "a138c4311cab147c689ea8466ebc7d31a6370dbc4e6542cb9030ca7ed6a31f8b"
+    "revision": "c94d01bb34a3e9aa25659a750383e9c0744f9bc1a586bdc2a743f3de59010e90"
   }
 }

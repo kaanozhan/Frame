@@ -83,9 +83,9 @@ async function runGh(args, cwd, { stdin = null, timeout = 60000 } = {}) {
         error: error ? ((stderr || '').trim() || error.message) : null
       });
     });
-    if (stdin != null && child.stdin) {
-      child.stdin.end(String(stdin));
-    }
+    // Always close stdin: with a body it carries `--body-file -`, without
+    // one a never-closed pipe could leave a command waiting for input.
+    if (child.stdin) child.stdin.end(stdin != null ? String(stdin) : undefined);
   });
 }
 

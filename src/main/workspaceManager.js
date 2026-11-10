@@ -59,6 +59,8 @@ function notify(projectPath) {
   } catch (err) {
     logger.warn('workspaces', `could not refresh spec watchers: ${err.message}`);
   }
+  // …and so does their git / PR state (workspace-pr-flow).
+  require('./workspaceGitState').refresh(projectPath);
 }
 
 function expandHome(p) {

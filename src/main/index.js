@@ -33,6 +33,7 @@ const claudeUsageManager = require('./claudeUsageManager');
 const projectInsights = require('./projectInsights');
 const gitBranchesManager = require('./gitBranchesManager');
 const workspaceManager = require('./workspaceManager');
+const workspaceGitState = require('./workspaceGitState');
 const aiToolManager = require('./aiToolManager');
 const claudeSessionsManager = require('./claudeSessionsManager');
 const codexSessionsManager = require('./codexSessionsManager');
@@ -229,6 +230,7 @@ function setupAllIPC() {
   projectInsights.setupIPC(ipcMain);
   gitBranchesManager.setupIPC(ipcMain);
   workspaceManager.setupIPC(ipcMain);
+  workspaceGitState.setupIPC(ipcMain);
   claudeSessionsManager.setupIPC(ipcMain);
   codexSessionsManager.setupIPC(ipcMain);
   updateChecker.setupIPC();
@@ -362,6 +364,7 @@ function initModulesWithWindow(window) {
   projectInsights.init(window);
   gitBranchesManager.init(window);
   workspaceManager.init(window);
+  workspaceGitState.init(window);
   claudeSessionsManager.init(window);
   gitStatusManager.init(window);
   specManager.init(window);

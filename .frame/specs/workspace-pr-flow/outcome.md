@@ -14,3 +14,11 @@ _Captured: 2026-11-10 · 4 file change(s)_
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T03 — Add workspaceGitState in main
+
+Added `src/main/workspaceGitState.js`: per active workspace it reads uncommitted count, upstream, unpushed (`@{u}..HEAD`, or `origin/<base>..HEAD` without an upstream) and behind (`HEAD..origin/<base>`), and — only when gh access is authed with a GitHub repo and the branch is pushed or had a PR last time — `gh pr view <branch> --json …` mapped through `prFlow.mapPrView`; pushes `WORKSPACE_GIT_STATE` for the watched project (set by `WORKSPACE_GIT_REFRESH`), with one `pollGate.gatedInterval` (3 min), a per-window focus refresh, coalesced concurrent refreshes, and a refresh from `workspaceManager.notify`. Channels for the whole PR flow went into `ipcChannels.js`; wired in `src/main/index.js` (re-entrant: the poller is created once, focus is per window). Also made `githubManager.runGh` always close stdin — a fake gh used for testing hung on an open pipe, and a real command could too. Smoke-tested with a fake `gh` on the scratch login PATH: before push `{ dirty 1, unpushed 1, upstream no, pr null }`, after push and a PR `{ unpushed 0, upstream yes, pr #7 open, 1 failing check 'lint', 1 comment, ready false }`.
+
+_Captured: 2026-11-10 · 5 file change(s)_
+
+---
