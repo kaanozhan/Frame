@@ -40,6 +40,18 @@
         "reason": "no-extractor"
       }
     },
+    ".github/workflows/server-package.yml": {
+      "file": ".github/workflows/server-package.yml",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 2501,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     ".gitignore": {
       "file": ".gitignore",
       "description": "",
@@ -32633,7 +32645,7 @@
       "coverage": "complete",
       "counts": {
         "parsed": 353,
-        "unsupported": 87,
+        "unsupported": 88,
         "partial": 0
       }
     },
@@ -32679,9 +32691,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 532,
+      "visitedEntries": 533,
       "traversedDirectories": 84,
-      "eligibleFiles": 440,
+      "eligibleFiles": 441,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32698,7 +32710,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 440,
+      "indexedFiles": 441,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32706,6 +32718,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e7fb3e927d486407f25c00b3be99cd6aec0c6e6560c91d6ecbc2d1ccec54d851"
+    "revision": "cbcb0170b23474e224984da6f5cc73e6095726f5ac9bbbb1a7a4dd566df32e7c"
   }
 }

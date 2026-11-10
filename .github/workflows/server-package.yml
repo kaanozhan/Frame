@@ -1,0 +1,79 @@
+# Frame Server packages (server-install-update spec).
+#
+# Builds the Frame Server package on real Linux machines — x64 and arm64 —
+# and smoke-boots each one (terminal through node-pty, screen mirror, clone
+# and workspace) before anyone installs it. Pull requests that touch the
+# server run build + smoke; a published release also attaches every package,
+# its .sha256 and the install script to that release, so Connect to Server
+# can download them. The desktop release itself is built elsewhere; this
+# only adds the server assets to it.
+name: Server package
+
+on:
+  pull_request:
+    paths:
+      - 'src/server/**'
+      - 'src/main/**'
+      - 'src/shared/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/server-package.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x64
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write   # gh release upload on release events
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Release tag matches package.json
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "Release tag v$tag does not match package.json version $version" >&2
+            exit 1
+          fi
+
+      - name: Build the package
+        run: node scripts/build-server-package.js --out dist-server
+
+      - name: Smoke-boot the package
+        run: node scripts/smoke-server-package.js dist-server/frame-server-*-${{ matrix.platform }}.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frame-server-${{ matrix.platform }}
+          path: dist-server/
+          retention-days: 14
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" dist-server/* --clobber
+          if [ "${{ matrix.platform }}" = "linux-x64" ]; then
+            gh release upload "$GITHUB_REF_NAME" scripts/install-frame-server.sh --clobber
+          fi

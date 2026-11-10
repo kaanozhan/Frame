@@ -14,3 +14,11 @@ Added src/server/bin/frame-server (bash: run with the bundled Node, status [--js
 _Captured: 2026-11-10 · 4 file change(s)_
 
 ---
+
+## T03 — CI workflow for server packages
+
+Added .github/workflows/server-package.yml: on pull requests touching src/server, src/main, src/shared, scripts, package files or the workflow (and on manual dispatch) it builds the package with Node 20 on ubuntu-24.04 (linux-x64) and ubuntu-24.04-arm (linux-arm64) and runs the smoke test; on a published release it first checks that the tag matches package.json, then uploads each package and .sha256 (and, once, scripts/install-frame-server.sh) to that release with gh. Not yet run on GitHub: nothing has been pushed, and no local Actions runner or Docker daemon was available.
+
+_Captured: 2026-11-10 · 1 file change(s)_
+
+---
