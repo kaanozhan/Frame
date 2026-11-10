@@ -591,7 +591,23 @@ function applyCutDecoration() {
   });
 }
 
+/**
+ * Server workspaces are read-only in the tree for now
+ * (server-workspace-panels): their files are on the server, which has no
+ * trash. True — after saying so — when `p` is under a server workspace.
+ */
+function refuseOnServer(...paths) {
+  let rows = [];
+  try { rows = require('./workspaceSection').getWorkspaces().filter((w) => w.location === 'server'); } catch (_) { rows = []; }
+  const { serverRootFor } = require('../shared/serverRouting');
+  const roots = rows.map((w) => w.path);
+  if (!paths.some((p) => p && serverRootFor(p, roots))) return false;
+  notify.info('File actions on server workspaces come in a later update.');
+  return true;
+}
+
 async function pasteInto(destDir) {
+  if (fileClipboard && refuseOnServer(destDir, fileClipboard.path)) return;
   if (!fileClipboard || !destDir) return;
   const { path: source, mode } = fileClipboard;
   const result = await ipcRenderer.invoke(IPC.FILE_TREE_PASTE, { source, mode, destDir });
@@ -618,6 +634,7 @@ function findItem(p) {
  * keyboard navigation and row click (open file / toggle folder) don't fire.
  */
 function startRename(targetPath) {
+  if (refuseOnServer(targetPath)) return;
   const item = findItem(targetPath);
   if (!item) return;
   const nameEl = item.querySelector('span:last-child');
@@ -670,6 +687,7 @@ function startRename(targetPath) {
 }
 
 function confirmDelete(target) {
+  if (target && refuseOnServer(target.path)) return;
   const name = baseName(target.path);
   taskConfirmModal.open({
     heading: target.isDirectory ? 'Delete folder?' : 'Delete file?',

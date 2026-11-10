@@ -20,6 +20,7 @@ let isPreviewMode = false;
 let currentEditingFile = null;
 let originalContent = '';
 let isModified = false;
+let readOnlyFile = false; // a server workspace's file (server-workspace-panels)
 let onFileTreeRefreshCallback = null;
 let openedFromSource = null; // Track where the file was opened from ('fileTree', 'terminal', etc.)
 
@@ -87,6 +88,10 @@ function closeEditor() {
  */
 function saveFile() {
   if (!currentEditingFile) return;
+  if (readOnlyFile) {
+    updateStatus('Read-only: this file is on the server — editing comes in a later update', 'error');
+    return;
+  }
 
   const content = editorTextarea.value;
   ipcRenderer.send(IPC.WRITE_FILE, {
@@ -212,13 +217,21 @@ function setupIPC() {
       currentEditingFile = result.filePath;
       originalContent = result.content;
       isModified = false;
+      // A server workspace's file (server-workspace-panels): read-only for now.
+      readOnlyFile = !!result.readOnly;
+      if (editorTextarea) editorTextarea.readOnly = readOnlyFile;
+      const saveButton = document.getElementById('btn-editor-save');
+      if (saveButton) {
+        saveButton.disabled = readOnlyFile;
+        saveButton.title = readOnlyFile ? 'Editing files of a server workspace comes in a later update' : '';
+      }
 
       // Update UI
       if (editorFilename) editorFilename.textContent = result.fileName;
       if (editorExt) editorExt.textContent = result.extension.toUpperCase() || 'FILE';
       if (editorTextarea) editorTextarea.value = result.content;
       if (editorPath) editorPath.textContent = result.filePath;
-      updateStatus('Ready', '');
+      updateStatus(readOnlyFile ? 'Read-only · on the server' : 'Ready', readOnlyFile ? 'readonly' : '');
 
       // Markdown: show preview by default, show toggle button
       const isMd = result.extension.toLowerCase() === 'md';
@@ -243,6 +256,7 @@ function setupIPC() {
       if (editorTextarea && !isMd) editorTextarea.focus();
     } else {
       console.error('Error opening file:', result.error);
+      if (result.readOnly) require('./notify').error(`Couldn't open ${result.fileName || 'the file'}: ${result.error}`);
     }
   });
 

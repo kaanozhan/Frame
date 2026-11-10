@@ -54,3 +54,11 @@ workspacePr.access(ws) / prBlockedReason(ws) now take the workspace: server work
 _Captured: 2026-11-10 · 3 file change(s)_
 
 ---
+
+## T08 — Server workspaces in the panels
+
+src/renderer/index.js loads the file tree (and with it the routed git watch) for a connected server workspace, shows '<host> is offline — reconnect…' in the tree otherwise, and reloads or blanks it when the link comes back or drops while one is selected. fileTreeUI refuses rename, delete and paste under a server workspace up front (before the 'Move to Trash?' confirm) with 'File actions on server workspaces come in a later update.'. The editor opens server files read-only: the textarea is read-only, Save is disabled with a tooltip, the status reads 'Read-only · on the server', a forced save explains why, and a failed server read is surfaced as an error toast. Style for the read-only status in workspaces.css.
+
+_Captured: 2026-11-10 · 4 file change(s)_
+
+---

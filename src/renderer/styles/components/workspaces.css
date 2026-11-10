@@ -479,3 +479,6 @@
   background: var(--warning);
   pointer-events: none;
 }
+
+/* Editor status for a server workspace's file (server-workspace-panels) */
+#editor-status.readonly { color: var(--info, #a6c0f0); }

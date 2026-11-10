@@ -9964,18 +9964,19 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "marked"
+        "marked",
+        "notify"
       ],
       "functions": {
         "init": {
-          "line": 29,
+          "line": 30,
           "params": [
             "onRefreshFileTree"
           ],
           "purpose": "Initialize editor module"
         },
         "openFile": {
-          "line": 49,
+          "line": 50,
           "params": [
             "filePath",
             "source = 'terminal'"
@@ -9983,15 +9984,15 @@
           "purpose": "Open file in editor"
         },
         "closeEditor": {
-          "line": 57,
+          "line": 58,
           "purpose": "Close editor"
         },
         "saveFile": {
-          "line": 88,
+          "line": 89,
           "purpose": "Save file"
         },
         "updateStatus": {
-          "line": 101,
+          "line": 106,
           "params": [
             "status",
             "className = ''"
@@ -9999,27 +10000,27 @@
           "purpose": "Update editor status"
         },
         "checkModified": {
-          "line": 111,
+          "line": 116,
           "purpose": "Check if content is modified"
         },
         "togglePreview": {
-          "line": 125,
+          "line": 130,
           "purpose": "Toggle between raw text and rendered markdown preview"
         },
         "setupEventHandlers": {
-          "line": 142,
+          "line": 147,
           "purpose": "Setup event handlers"
         },
         "setupIPC": {
-          "line": 208,
+          "line": 213,
           "purpose": "Setup IPC listeners"
         },
         "isEditorOpen": {
-          "line": 276,
+          "line": 290,
           "purpose": "Check if editor is open"
         },
         "getCurrentFile": {
-          "line": 283,
+          "line": 297,
           "purpose": "Get currently editing file path"
         }
       },
@@ -10033,7 +10034,7 @@
           "WRITE_FILE"
         ]
       },
-      "sizeBytes": 8150,
+      "sizeBytes": 9010,
       "extraction": {
         "status": "parsed"
       },
@@ -10214,7 +10215,9 @@
         "electron",
         "shared/ipcChannels",
         "notify",
-        "taskConfirmModal"
+        "taskConfirmModal",
+        "workspaceSection",
+        "shared/serverRouting"
       ],
       "functions": {
         "init": {
@@ -10365,33 +10368,40 @@
           "line": 583,
           "purpose": "Dim the row that is cut and waiting for a paste."
         },
+        "refuseOnServer": {
+          "line": 599,
+          "params": [
+            "...paths"
+          ],
+          "purpose": "Server workspaces are read-only in the tree for now"
+        },
         "pasteInto": {
-          "line": 594,
+          "line": 609,
           "params": [
             "destDir"
           ]
         },
         "findItem": {
-          "line": 609,
+          "line": 625,
           "params": [
             "p"
           ]
         },
         "startRename": {
-          "line": 620,
+          "line": 636,
           "params": [
             "targetPath"
           ],
           "purpose": "Inline rename: the name span becomes an input. Enter or blur commits,"
         },
         "confirmDelete": {
-          "line": 672,
+          "line": 689,
           "params": [
             "target"
           ]
         },
         "applyGitStatusDecoration": {
-          "line": 697,
+          "line": 715,
           "purpose": "Walk every rendered .file-item and apply the git status class matching its"
         }
       },
@@ -10407,7 +10417,7 @@
           "WATCH_GIT_STATUS"
         ]
       },
-      "sizeBytes": 23675,
+      "sizeBytes": 24510,
       "extraction": {
         "status": "parsed"
       },
@@ -10425,6 +10435,7 @@
           "init": "fe2f0b37b985b9d3",
           "loadFileTree": "f5f202d33ac5c2d2",
           "refreshFileTree": "a4776e68c4db602a",
+          "refuseOnServer": "27cb155f66bbb705",
           "renderFileTree": "c72a5a14c2b731e9",
           "setOnFileClick": "afd80fa6df989f16",
           "setProjectPathGetter": "0e3ea361f9bf955b",
@@ -12418,9 +12429,9 @@
         "reviewSection",
         "statusBar",
         "workspaceSection",
+        "serverConnect",
         "newWorkspaceModal",
         "workspacePr",
-        "serverConnect",
         "paletteSources",
         "agentDispatch"
       ],
@@ -12430,34 +12441,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 370,
+          "line": 387,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 478,
+          "line": 495,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 609,
+          "line": 626,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 648,
+          "line": 665,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 674,
+          "line": 691,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1221,
+          "line": 1238,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1246,
+          "line": 1263,
           "params": [
             "err"
           ],
@@ -12478,7 +12489,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 45749,
+      "sizeBytes": 46557,
       "extraction": {
         "status": "parsed"
       },
@@ -17172,7 +17183,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 10766,
+      "sizeBytes": 10900,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -32490,6 +32501,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "fbc231c802439f465d86e13e47e1253728c8d3fe43e75190333180c22eb2a108"
+    "revision": "f3f5461c2bf050f12acaa84e2b8c3568f13d61eccdfafb3b69f31ac3ca76e16c"
   }
 }

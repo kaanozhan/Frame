@@ -261,24 +261,41 @@ function init() {
   // Selecting a workspace re-points the checkout-bound views at its folder:
   // the file tree (which also moves the git-status watch, so Changes and the
   // branch label follow) and the dock's open tab.
-  state.onWorkspaceChange((ws) => {
-    // A server workspace's folder is on the server (server-workspaces):
-    // its terminals work here; files, Changes and review come later.
-    const rec = ws && require('./workspaceSection').getWorkspaces().find((w) => w.id === ws.id);
-    if (rec && rec.location === 'server') {
-      ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
-      fileTreeUI.clearFileTree();
-      const tree = document.getElementById('file-tree');
-      if (tree) {
-        const note = document.createElement('div');
-        note.className = 'ws-server-placeholder';
-        note.textContent = `“${rec.name}” runs on ${rec.host || 'the server'}. Its terminals and agents work here; files, Changes and review for server workspaces come in a later update.`;
-        tree.replaceChildren(note);
-      }
-    } else if (ws && ws.root) {
-      fileTreeUI.loadFileTree(ws.root);
+  // A server workspace's folder is on the server: its tree and git status
+  // are read there (server-workspace-panels); while its server is offline
+  // the tree says so instead of showing stale or local files.
+  const showServerOffline = (rec) => {
+    ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
+    fileTreeUI.clearFileTree();
+    const tree = document.getElementById('file-tree');
+    if (tree) {
+      const note = document.createElement('div');
+      note.className = 'ws-server-placeholder';
+      note.textContent = `${rec.host || 'The server'} is offline — reconnect (File ▸ Connect to Server…) to see “${rec.name}”. Its terminals and agents keep running there.`;
+      tree.replaceChildren(note);
     }
+  };
+  const serverRecordOf = (ws) => {
+    const rec = ws && require('./workspaceSection').getWorkspaces().find((w) => w.id === ws.id);
+    return rec && rec.location === 'server' ? rec : null;
+  };
+  const loadCheckout = (ws) => {
+    const rec = serverRecordOf(ws);
+    const up = require('./serverConnect').getStatus().state === 'connected';
+    if (rec && (rec.offline || !up)) showServerOffline(rec);
+    else if (ws && ws.root) fileTreeUI.loadFileTree(ws.root);
+  };
+  state.onWorkspaceChange((ws) => {
+    loadCheckout(ws);
     dock.remountActive();
+  });
+  // The link to a selected server workspace's server came back or dropped.
+  require('./serverConnect').onChange((s, prev) => {
+    if (s.state === prev.state) return;
+    const ws = state.getWorkspace();
+    if (!serverRecordOf(ws)) return;
+    if (s.state === 'connected') setTimeout(() => loadCheckout(state.getWorkspace()), 800); // after the list reloads
+    else if (prev.state === 'connected') showServerOffline(serverRecordOf(ws));
   });
 
   // Setup Frame status change listener
