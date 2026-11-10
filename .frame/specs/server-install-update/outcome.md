@@ -22,3 +22,11 @@ Added .github/workflows/server-package.yml: on pull requests touching src/server
 _Captured: 2026-11-10 · 1 file change(s)_
 
 ---
+
+## T04 — The single installer script
+
+Added scripts/install-frame-server.sh: verified release download (curl/wget, SHA-256 from the release's .sha256 before unpacking; exit 10 when GitHub is unreachable so the desktop can upload), --package-file with --checksum, --from-source (checks Node >= 18, npm, make, g++, python3 and stops with the apt command; builds with npm ci --omit=dev --ignore-scripts and npm rebuild node-pty), the versions/<v> layout with current/previous and ~/.frame-server/bin/frame-server, a systemd user unit with linger (default home only) or a setsid/nohup detached process, a health check on connection.json's version and pid with automatic rollback (the failed version is removed and previous restored), --rollback, --service-only, pruning to 3 versions, progress lines and a final FRAME_INSTALL_RESULT JSON with exit codes 0/2/10–15. src/server/index.js now reports the installed package's VERSION (dev builds included) instead of package.json's. Not covered on this Mac: the systemd path (no systemd) — CI and a real server cover it.
+
+_Captured: 2026-11-10 · 2 file change(s)_
+
+---

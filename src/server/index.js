@@ -22,8 +22,18 @@ const http = require('http');
 const pkg = require('../../package.json');
 const shim = require('./electronShim');
 
+// An installed package carries its exact version (a dev build's is
+// `<version>-dev+<sha>`) in VERSION next to app/; a checkout uses package.json.
+const FRAME_VERSION = (() => {
+  try {
+    const v = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'VERSION'), 'utf8').trim();
+    if (v) return v;
+  } catch (_) { /* not an installed package */ }
+  return pkg.version;
+})();
+
 const HOME = process.env.FRAME_SERVER_HOME || path.join(os.homedir(), '.frame-server');
-shim.install({ home: HOME, version: pkg.version });
+shim.install({ home: HOME, version: FRAME_VERSION });
 
 const { WebSocketServer } = require('ws');
 const P = require('../shared/serverProtocol');
@@ -82,7 +92,7 @@ function broadcast(channel, payload) {
 }
 
 registerMethods({
-  'server.ping': async () => ({ pong: true, frameVersion: pkg.version, platform: process.platform, arch: process.arch })
+  'server.ping': async () => ({ pong: true, frameVersion: FRAME_VERSION, platform: process.platform, arch: process.arch })
 });
 
 async function handleRequest(client, msg) {
@@ -99,13 +109,13 @@ async function handleRequest(client, msg) {
 function onConnection(ws) {
   const client = { ws, ready: false };
   clients.add(client);
-  ws.send(P.encode(P.hello(pkg.version)));
+  ws.send(P.encode(P.hello(FRAME_VERSION)));
   ws.on('message', (data) => {
     const decoded = P.decode(data.toString());
     if (!decoded.ok) return ws.close(1002, decoded.error.slice(0, 120));
     const msg = decoded.msg;
     if (!client.ready) {
-      const check = P.checkHello(msg, pkg.version);
+      const check = P.checkHello(msg, FRAME_VERSION);
       if (!check.ok) return ws.close(1002, check.error.slice(0, 120));
       client.ready = true;
       return undefined;
@@ -154,8 +164,8 @@ function start(argv = process.argv.slice(2)) {
 
   server.listen(args.port, bind.host, () => {
     const { port } = server.address();
-    const file = writeConnectionFile({ port, token, protocol: P.PROTOCOL_VERSION, frameVersion: pkg.version, pid: process.pid, origin: DESKTOP_ORIGIN });
-    console.log(`[frame-server] Frame ${pkg.version} listening on ${bind.host}:${port} (protocol ${P.PROTOCOL_VERSION}); connection details in ${file}`);
+    const file = writeConnectionFile({ port, token, protocol: P.PROTOCOL_VERSION, frameVersion: FRAME_VERSION, pid: process.pid, origin: DESKTOP_ORIGIN });
+    console.log(`[frame-server] Frame ${FRAME_VERSION} listening on ${bind.host}:${port} (protocol ${P.PROTOCOL_VERSION}); connection details in ${file}`);
   });
   server.on('error', (err) => {
     console.error(`[frame-server] ${err.message}`);

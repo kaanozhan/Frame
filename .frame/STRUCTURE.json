@@ -20384,6 +20384,18 @@
         "status": "parsed"
       }
     },
+    "scripts/install-frame-server.sh": {
+      "file": "scripts/install-frame-server.sh",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 14951,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "scripts/intent-map.json": {
       "file": "scripts/intent-map.json",
       "description": "",
@@ -23918,30 +23930,30 @@
       ],
       "functions": {
         "parseArgs": {
-          "line": 34,
+          "line": 44,
           "params": [
             "argv"
           ]
         },
         "loadToken": {
-          "line": 47,
+          "line": 57,
           "purpose": "The install's token: created once (0600) and kept across restarts."
         },
         "writeConnectionFile": {
-          "line": 59,
+          "line": 69,
           "params": [
             "info"
           ]
         },
         "registerMethods": {
-          "line": 72,
+          "line": 82,
           "params": [
             "table"
           ],
           "purpose": "Register request handlers: `{ 'terminals.create': async (params, client) => result }`."
         },
         "broadcast": {
-          "line": 77,
+          "line": 87,
           "params": [
             "channel",
             "payload"
@@ -23949,31 +23961,39 @@
           "purpose": "Send an event to every connected desktop."
         },
         "handleRequest": {
-          "line": 88,
+          "line": 98,
           "params": [
             "client",
             "msg"
           ]
         },
         "onConnection": {
-          "line": 99,
+          "line": 109,
           "params": [
             "ws"
           ]
         },
         "start": {
-          "line": 122,
+          "line": 132,
           "params": [
             "argv = process.argv.slice(2"
           ]
+        },
+        "FRAME_VERSION": {
+          "line": 27,
+          "params": [
+            "("
+          ],
+          "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 6796,
+      "sizeBytes": 7192,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "purposes": {
+          "FRAME_VERSION": "de5e5754642d8164",
           "broadcast": "0d6ffe9a733b1cf1",
           "loadToken": "464690852d26c700",
           "registerMethods": "ef386b7d3e2ed91b"
@@ -32645,7 +32665,7 @@
       "coverage": "complete",
       "counts": {
         "parsed": 353,
-        "unsupported": 88,
+        "unsupported": 89,
         "partial": 0
       }
     },
@@ -32691,9 +32711,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 533,
+      "visitedEntries": 534,
       "traversedDirectories": 84,
-      "eligibleFiles": 441,
+      "eligibleFiles": 442,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32710,7 +32730,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 441,
+      "indexedFiles": 442,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32718,6 +32738,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "cbcb0170b23474e224984da6f5cc73e6095726f5ac9bbbb1a7a4dd566df32e7c"
+    "revision": "74e0d7ea2231a481c3d35e9c2f29fece6361c535a6cfba05432591abac996ff5"
   }
 }
