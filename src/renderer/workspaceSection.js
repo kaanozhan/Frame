@@ -474,6 +474,32 @@ async function removeRecord(ws) {
   await load();
 }
 
+// ─── Specs that live in workspaces (spec-in-workspace) ───────
+
+/** A small chip naming the workspace a spec lives in; '' for main. */
+function workspaceChipHtml(ws) {
+  if (!ws) return '';
+  return `<span class="ws-chip" title="In workspace ${escapeHtml(ws.name)} · ${escapeHtml(ws.branch || '')}">${escapeHtml(ws.name)}</span>`;
+}
+
+/**
+ * Select the checkout a spec lives in (its workspace, or main). Returns true
+ * when the selection changed — the caller then re-opens its view, because a
+ * workspace switch lands the center on that workspace's terminals.
+ */
+function selectSpecWorkspace(ws) {
+  const current = state.getWorkspace();
+  if (!current) return false;
+  if (ws) {
+    if (current.id === ws.id) return false;
+    select({ id: ws.id, path: ws.root, name: ws.name, branch: ws.branch });
+    return true;
+  }
+  if (current.id === state.MAIN_WORKSPACE_ID) return false;
+  select(null);
+  return true;
+}
+
 /** Active workspaces of the current project, as last loaded. */
 function getWorkspaces() {
   return workspaces.slice();
@@ -487,6 +513,8 @@ module.exports = {
   setActions,
   getWorkspaces,
   selectedWorkspace,
+  workspaceChipHtml,
+  selectSpecWorkspace,
   archiveWorkspace,
   startRename
 };

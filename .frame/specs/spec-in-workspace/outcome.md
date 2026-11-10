@@ -46,3 +46,11 @@ _Captured: 2026-11-10 · 7 file change(s)_
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T07 — Show which workspace a spec lives in
+
+`workspaceSection.js` exports `workspaceChipHtml` (a small accent chip with the workspace name, '' for main) and `selectSpecWorkspace` (select the spec's workspace or main; true when the selection changed). The chip shows on spec cards (`specsDashboard.js`), spec panel rows (`specPanel.js`) and Home's Active Specs rows (`home/widgets/activeSpecs.js`); opening from any of them selects the spec's checkout first — the card path re-mounts the grid and opens the drawer instantly when the switch moved the center to the workspace's terminals (`openFromGrid`), the Home row opens its section tab after the switch because a switch drops pinned tabs. Styles in `workspaces.css`. Live over CDP: on main, the `routing-demo` card carried a `denim` chip; clicking it selected `denim` and opened the drawer, and its Generate Plan staged `routing-demo__spec.plan.md` in the `denim` worktree and opened the lane there.
+
+_Captured: 2026-11-10 · 5 file change(s)_
+
+---

@@ -11320,10 +11320,11 @@
         "../widgetShell",
         "../../specsDashboard",
         "../../agentDispatch",
+        "../../workspaceSection",
         "../../specSection"
       ],
       "functions": {},
-      "sizeBytes": 3390,
+      "sizeBytes": 3779,
       "extraction": {
         "status": "parsed"
       },
@@ -14148,7 +14149,8 @@
         "htmlUtils",
         "specNextAction",
         "specsDashboard",
-        "agentDispatch"
+        "agentDispatch",
+        "workspaceSection"
       ],
       "functions": {
         "init": {
@@ -14187,31 +14189,31 @@
           "line": 165
         },
         "renderSpecRow": {
-          "line": 196,
+          "line": 201,
           "params": [
             "spec"
           ]
         },
         "openDetail": {
-          "line": 219,
+          "line": 225,
           "params": [
             "slug"
           ]
         },
         "reloadDetail": {
-          "line": 225
+          "line": 231
         },
         "renderDetail": {
-          "line": 233
+          "line": 239
         },
         "runSpecCommand": {
-          "line": 306,
+          "line": 312,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 318,
+          "line": 324,
           "params": [
             "tab",
             "label",
@@ -14219,91 +14221,91 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 324
+          "line": 330
         },
         "tasksTabLabel": {
-          "line": 330,
+          "line": 336,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 339,
+          "line": 345,
           "params": [
             "tab"
           ]
         },
         "renderPlanReportRow": {
-          "line": 366,
+          "line": 372,
           "purpose": "\"View Plan Report\" — shown above the rendered plan only when the spec"
         },
         "attachPlanReportHandler": {
-          "line": 374
+          "line": 380
         },
         "renderImplementReportRow": {
-          "line": 390,
+          "line": 396,
           "purpose": "\"View Implementation Report\" — shown above the task list only when the spec"
         },
         "attachImplementReportHandler": {
-          "line": 398
+          "line": 404
         },
         "renderTasksTabBody": {
-          "line": 410
+          "line": 416
         },
         "renderSpecTaskRow": {
-          "line": 450,
+          "line": 456,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 499
+          "line": 505
         },
         "handleSpecTaskAction": {
-          "line": 512,
+          "line": 518,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 531,
+          "line": 537,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 545
+          "line": 551
         },
         "showNewSpecPrompt": {
-          "line": 561
+          "line": 567
         },
         "showSuggestionModal": {
-          "line": 644,
+          "line": 650,
           "params": [
             "projectPath"
           ]
         },
         "showRenameModal": {
-          "line": 711,
+          "line": 717,
           "params": [
             "status"
           ]
         },
         "showInlineError": {
-          "line": 804,
+          "line": 810,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 824,
+          "line": 830,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 834,
+          "line": 840,
           "params": [
             "iso"
           ]
@@ -14323,7 +14325,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 33334,
+      "sizeBytes": 33666,
       "extraction": {
         "status": "parsed"
       },
@@ -14562,6 +14564,8 @@
         "specPanel",
         "agentDispatch",
         "taskInfoModal",
+        "workspaceSection",
+        "terminal",
         "specSection"
       ],
       "functions": {
@@ -14625,17 +14629,24 @@
         "renderGrid": {
           "line": 381
         },
+        "openFromGrid": {
+          "line": 435,
+          "params": [
+            "slug"
+          ],
+          "purpose": "A card click. A spec living in another checkout (spec-in-workspace) selects"
+        },
         "wireOlderTile": {
-          "line": 430
+          "line": 447
         },
         "renderCard": {
-          "line": 437,
+          "line": 454,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 498,
+          "line": 516,
           "params": [
             "slug",
             "{ instant = false } = {}"
@@ -14643,26 +14654,26 @@
           "purpose": "Open a spec in the drawer. `instant` is the top-bar chip path: the grid"
         },
         "clearSelection": {
-          "line": 525,
+          "line": 543,
           "params": [
             "{ notify = true } = {}"
           ],
           "purpose": "Close the drawer. `notify: false` is for the host-driven teardown"
         },
         "reloadDetail": {
-          "line": 538
+          "line": 556
         },
         "renderDetailHeader": {
-          "line": 565
+          "line": 583
         },
         "runSpecCommand": {
-          "line": 651,
+          "line": 669,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 662,
+          "line": 680,
           "params": [
             "tab",
             "label",
@@ -14670,44 +14681,44 @@
           ]
         },
         "renderDetailBody": {
-          "line": 668
+          "line": 686
         },
         "renderTasksTabBody": {
-          "line": 719
+          "line": 737
         },
         "renderSpecTaskRow": {
-          "line": 756,
+          "line": 774,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 805
+          "line": 823
         },
         "handleSpecTaskAction": {
-          "line": 818,
+          "line": 836,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 829
+          "line": 847
         },
         "tasksTabLabel": {
-          "line": 835,
+          "line": 853,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 844,
+          "line": 862,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 849,
+          "line": 867,
           "params": [
             "iso"
           ]
@@ -14726,7 +14737,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 35459,
+      "sizeBytes": 36130,
       "extraction": {
         "status": "parsed"
       },
@@ -14736,6 +14747,7 @@
           "clearSelection": "61ad7ecd9504c904",
           "mountInline": "47b57e9624c1212d",
           "notifyDetached": "3437e8377be016c0",
+          "openFromGrid": "3c5452e3032b9428",
           "renderFilters": "1cad3b52c3b515b1",
           "selectCard": "4cc841bddc5a8aa2"
         }
@@ -16157,7 +16169,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5850,
+      "sizeBytes": 6387,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -17647,6 +17659,8 @@
         "setActions",
         "getWorkspaces",
         "selectedWorkspace",
+        "workspaceChipHtml",
+        "selectSpecWorkspace",
         "archiveWorkspace",
         "startRename"
       ],
@@ -17802,8 +17816,22 @@
             "ws"
           ]
         },
+        "workspaceChipHtml": {
+          "line": 480,
+          "params": [
+            "ws"
+          ],
+          "purpose": "A small chip naming the workspace a spec lives in; '' for main."
+        },
+        "selectSpecWorkspace": {
+          "line": 490,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
+        },
         "getWorkspaces": {
-          "line": 478,
+          "line": 504,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -17813,7 +17841,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 19338,
+      "sizeBytes": 20324,
       "extraction": {
         "status": "parsed"
       },
@@ -17825,8 +17853,10 @@
           "closeWorkspaceTerminals": "22a7c42ea098a240",
           "getWorkspaces": "0eab879c07f7a326",
           "load": "e807754c516c9be1",
+          "selectSpecWorkspace": "7d88cec82ca928f9",
           "selectedWorkspace": "fa1da8f5f604bd70",
-          "setActions": "4f2a1450120dc24f"
+          "setActions": "4f2a1450120dc24f",
+          "workspaceChipHtml": "f678cae99043073b"
         }
       }
     },
@@ -30177,6 +30207,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e9836032e7f06320070246635b51316e0948315ba1ff683659e1b7fd1cb21096"
+    "revision": "0e1bd2c2431816b2ee61d235ac489db150731ac536d763a4b4155159693f4e67"
   }
 }

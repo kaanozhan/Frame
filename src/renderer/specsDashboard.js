@@ -422,9 +422,26 @@ function renderGrid() {
   gridEl.innerHTML = filtered.map(renderCard).join('') + olderTile;
   gridEl.querySelectorAll('.specs-card').forEach(card => {
     if (card.dataset.malformed) return; // nothing to open — the reason is on the card
-    card.addEventListener('click', () => selectCard(card.dataset.slug));
+    card.addEventListener('click', () => openFromGrid(card.dataset.slug));
   });
   wireOlderTile();
+}
+
+/**
+ * A card click. A spec living in another checkout (spec-in-workspace) selects
+ * that workspace first; the switch lands the center on its terminals, so the
+ * grid is mounted again and the drawer opened over it.
+ */
+function openFromGrid(slug) {
+  const spec = specs.find((s) => s && s.slug === slug);
+  const switched = spec ? require('./workspaceSection').selectSpecWorkspace(spec.workspace) : false;
+  if (!switched) {
+    selectCard(slug);
+    return;
+  }
+  const ui = require('./terminal').getMultiTerminalUI();
+  if (ui) ui.showSpecsGrid();
+  selectCard(slug, { instant: true });
 }
 
 function wireOlderTile() {
@@ -470,6 +487,7 @@ function renderCard(spec) {
         ${require('./agentDispatch').specStatusDotHtml(spec.slug)}
         <span class="spec-phase-badge phase-${spec.phase}">${phaseLabel}</span>
         ${spec.ai_tool ? `<span class="specs-card-ai">${escapeHtml(spec.ai_tool)}</span>` : ''}
+        ${require('./workspaceSection').workspaceChipHtml(spec.workspace)}
       </div>
       <div class="specs-card-title">${escapeHtml(spec.title)}</div>
       <div class="specs-card-slug">${escapeHtml(spec.slug)}</div>

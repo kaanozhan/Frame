@@ -293,3 +293,30 @@
 .settings-text-input:disabled { opacity: 0.5; }
 
 #settings-workspaces-note { margin: 0 0 8px; }
+
+/* ---------- Where a spec lives (spec-in-workspace) ---------- */
+
+.ws-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 0 6px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--accent-subtle, rgba(143, 240, 174, 0.15));
+  color: var(--accent-primary);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.ws-chip::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
