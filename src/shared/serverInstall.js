@@ -177,4 +177,22 @@ function doctorItems(raw = {}) {
   return items;
 }
 
-module.exports = { RELEASE_BASE, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems };
+const AGENT_NAMES = ['claude', 'codex', 'gemini', 'aider'];
+
+/**
+ * The server terminals running an agent, from `terminals.list` (each with its
+ * last process info): `[{ terminalId, workspaceId, agent }]`. Used to ask
+ * before an update or rollback ends them.
+ */
+function agentTerminals(list) {
+  const out = [];
+  for (const t of list || []) {
+    const p = (t && t.process) || {};
+    const tokens = [p.processName, ...String(p.commandLine || '').split(/\s+/)].filter(Boolean);
+    const agent = tokens.map((x) => String(x).split('/').pop().toLowerCase()).find((x) => AGENT_NAMES.includes(x));
+    if (agent) out.push({ terminalId: t.terminalId, workspaceId: t.workspaceId, agent });
+  }
+  return out;
+}
+
+module.exports = { RELEASE_BASE, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems };

@@ -38,3 +38,11 @@ Added src/server/doctor.js with server.doctor, registered in src/server/index.js
 _Captured: 2026-11-10 · 4 file change(s)_
 
 ---
+
+## T06 — Desktop installer over SSH
+
+Added src/main/serverInstaller.js: probe (uname plus frame-server status --json, or a hand-run server's connection.json), decide (installDecision with this desktop's version, `<v>-dev+<sha>` when running from source), install (released desktop: the server downloads and verifies the release package; on installer exit 10 the desktop downloads asset and checksum over HTTPS following redirects and streams them over SSH; desktop from source: streams `git archive HEAD` and the server builds it), rollback, and runningAgents (terminals.list → serverInstall.agentTerminals, named by workspace) for the consent. The installer script is streamed with `bash -s --`, its progress lines forwarded and its FRAME_INSTALL_RESULT parsed. Added agentTerminals to src/shared/serverInstall.js with a test, and scripts/install-frame-server.sh to the desktop's packaged files (package.json) so a packaged app can send it.
+
+_Captured: 2026-11-10 · 4 file change(s)_
+
+---

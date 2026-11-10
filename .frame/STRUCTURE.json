@@ -5769,6 +5769,160 @@
         }
       }
     },
+    "main/serverInstaller": {
+      "file": "src/main/serverInstaller.js",
+      "description": "Server installer — installs, updates and rolls back Frame Server on a host",
+      "exports": [
+        "probe",
+        "decide",
+        "install",
+        "rollback",
+        "runningAgents",
+        "desktopVersion",
+        "parseResult"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "https",
+        "http",
+        "child_process",
+        "shared/serverInstall",
+        "logger",
+        "electron",
+        "serverConnection",
+        "workspaceManager"
+      ],
+      "functions": {
+        "sshBin": {
+          "line": 37
+        },
+        "appRoot": {
+          "line": 41
+        },
+        "releaseBase": {
+          "line": 45
+        },
+        "ssh": {
+          "line": 53,
+          "params": [
+            "host",
+            "command",
+            "{ input = null",
+            "onLine = null",
+            "timeout = INSTALL_TIMEOUT_MS } = {}"
+          ],
+          "purpose": "Run `command` on `host`. `input` is a string, Buffer or readable stream"
+        },
+        "sshFailure": {
+          "line": 81,
+          "params": [
+            "host",
+            "res"
+          ]
+        },
+        "desktopVersion": {
+          "line": 91,
+          "purpose": "This desktop's version; a desktop running from source is `<v>-dev+<sha>`."
+        },
+        "probe": {
+          "line": 117,
+          "params": [
+            "host"
+          ],
+          "purpose": "What is on the host: `{ error?, unameS, unameM, installed: { current, previous,"
+        },
+        "decide": {
+          "line": 141,
+          "params": [
+            "host",
+            "{ protocolOk = true } = {}"
+          ],
+          "purpose": "`{ action, reason, desktopVersion, dev, probe }` for a host."
+        },
+        "parseResult": {
+          "line": 151,
+          "params": [
+            "stdout"
+          ]
+        },
+        "scriptPath": {
+          "line": 157
+        },
+        "runInstaller": {
+          "line": 162,
+          "params": [
+            "host",
+            "args",
+            "onProgress"
+          ],
+          "purpose": "Run the installer on the host with `args` (already shell-safe words)."
+        },
+        "download": {
+          "line": 174,
+          "params": [
+            "url",
+            "dest",
+            "redirects = 5"
+          ],
+          "purpose": "GET with redirects into a file (GitHub release assets redirect to a CDN)."
+        },
+        "upload": {
+          "line": 199,
+          "params": [
+            "host",
+            "localFile",
+            "remotePath"
+          ],
+          "purpose": "Stream a local file to `remotePath` on the host."
+        },
+        "sourceTarball": {
+          "line": 206,
+          "purpose": "Source tarball of this checkout (`git archive HEAD`) in a temp file."
+        },
+        "install": {
+          "line": 220,
+          "params": [
+            "host",
+            "{ onProgress = ("
+          ],
+          "purpose": "Install (or update to) this desktop's version on `host`."
+        },
+        "rollback": {
+          "line": 266,
+          "params": [
+            "host",
+            "{ onProgress = ("
+          ],
+          "purpose": "Back to the previous installed version."
+        },
+        "runningAgents": {
+          "line": 274,
+          "purpose": "Agents running on the connected server, for the update consent:"
+        }
+      },
+      "sizeBytes": 12965,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7fdc46c234b744b8",
+        "purposes": {
+          "decide": "0738a41e287e260c",
+          "desktopVersion": "639bd22113ab3f4f",
+          "download": "ad6ee30a70b88128",
+          "install": "6e2a66696ee4a130",
+          "probe": "2158df60b3610f80",
+          "rollback": "23dd8ebb82206cdf",
+          "runInstaller": "abd93531c2e1e083",
+          "runningAgents": "81bbfab219c30112",
+          "sourceTarball": "4b937ba131ee06e0",
+          "ssh": "f1c96c4f0d9c7fc6",
+          "upload": "782257c93830a4f1"
+        }
+      }
+    },
     "main/serverPanels": {
       "file": "src/main/serverPanels.js",
       "description": "Server panels — the desktop half of routing a server workspace's panels",
@@ -8093,7 +8247,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4272,
+      "sizeBytes": 4313,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -25265,6 +25419,7 @@
       "description": "serverInstall — the rules behind installing and updating Frame Server",
       "exports": [
         "RELEASE_BASE",
+        "agentTerminals",
         "assetFor",
         "releaseUrl",
         "parseVersion",
@@ -25335,15 +25490,23 @@
             "raw = {}"
           ],
           "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
+        },
+        "agentTerminals": {
+          "line": 187,
+          "params": [
+            "list"
+          ],
+          "purpose": "The server terminals running an agent, from `terminals.list` (each with its"
         }
       },
-      "sizeBytes": 7916,
+      "sizeBytes": 8642,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "955ca6f14ff11f5a",
         "purposes": {
+          "agentTerminals": "c151db453b750331",
           "assetFor": "6891ea64a3c6b3ea",
           "compareVersions": "efd0728fd35f2db1",
           "doctorItems": "dd574ec4d6cee2a5",
@@ -29022,7 +29185,7 @@
         "src/shared/serverInstall"
       ],
       "functions": {},
-      "sizeBytes": 5228,
+      "sizeBytes": 5935,
       "extraction": {
         "status": "parsed"
       },
@@ -32317,6 +32480,11 @@
         "description": "Server connection — the desktop's link to Frame Server"
       },
       {
+        "module": "main/serverInstaller",
+        "file": "src/main/serverInstaller.js",
+        "description": "Server installer — installs, updates and rolls back Frame Server on a host"
+      },
+      {
         "module": "main/serverPanels",
         "file": "src/main/serverPanels.js",
         "description": "Server panels — the desktop half of routing a server workspace's panels"
@@ -32721,7 +32889,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 354,
+        "parsed": 355,
         "unsupported": 89,
         "partial": 0
       }
@@ -32768,9 +32936,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 535,
+      "visitedEntries": 536,
       "traversedDirectories": 84,
-      "eligibleFiles": 443,
+      "eligibleFiles": 444,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32787,7 +32955,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 443,
+      "indexedFiles": 444,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32795,6 +32963,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "ef1e2ef40d86e05cc67d28f91230cdce91325e89aa143f093203f9fe97dde859"
+    "revision": "6eca5100729377dcd5c0c21fd128447f1a1321486929bd0f7bcc944dcf573c2b"
   }
 }

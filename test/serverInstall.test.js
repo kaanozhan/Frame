@@ -54,6 +54,20 @@ test('parseChecksum reads sha256sum output and bare digests', () => {
   assert.equal(I.parseChecksum('not a checksum', 'y'), null);
 });
 
+test('agentTerminals finds agents by process name or command line', () => {
+  const list = [
+    { terminalId: 'srv-1', workspaceId: 'w1', process: { processName: 'claude' } },
+    { terminalId: 'srv-2', workspaceId: 'w1', process: { processName: 'node', commandLine: 'node /usr/lib/node_modules/@openai/codex/bin/codex' } },
+    { terminalId: 'srv-3', workspaceId: 'w2', process: { processName: 'bash' } },
+    { terminalId: 'srv-4', workspaceId: 'w2', process: null }
+  ];
+  assert.deepEqual(I.agentTerminals(list), [
+    { terminalId: 'srv-1', workspaceId: 'w1', agent: 'claude' },
+    { terminalId: 'srv-2', workspaceId: 'w1', agent: 'codex' }
+  ]);
+  assert.deepEqual(I.agentTerminals(null), []);
+});
+
 test('systemdUnit runs the current version and restarts on failure', () => {
   const u = I.systemdUnit();
   assert.match(u, /ExecStart=%h\/\.frame-server\/current\/bin\/frame-server run/);

@@ -125,6 +125,7 @@
       "scripts/toolVocabulary.js",
       "scripts/redact.js",
       "scripts/activity-log.js",
+      "scripts/install-frame-server.sh",
       "node_modules/**/*",
       "!node_modules/**/*.md",
       "!node_modules/**/test/**",
