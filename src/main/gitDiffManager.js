@@ -21,42 +21,49 @@ const { parseNumstat, mergeChangedFiles, MAX_DIFF_BYTES } = require('../shared/r
 const MAX_BUFFER = 20 * 1024 * 1024;
 const DIFF_TIMEOUT_MS = 15000;
 
+/**
+ * One file's diff for the diff tab: staged (`--cached`), working tree, or a
+ * synthesized diff for an untracked file. Exported so Frame Server answers
+ * the same call for server workspaces (server-workspace-panels).
+ */
+async function gitDiff(payload) {
+  const { projectPath, relPath, staged } = payload || {};
+  if (!projectPath || !relPath) {
+    return { diff: '', isBinary: false, isUntracked: false };
+  }
+
+  if (staged) {
+    const out = await runDiff(projectPath, ['diff', '--cached', '--', relPath]);
+    return { diff: out.stdout, isBinary: detectBinary(out.stdout), isUntracked: false };
+  }
+
+  // Working-tree path. If the file is untracked, `git diff` returns nothing,
+  // so fall back to `git diff --no-index /dev/null <path>` to synthesize a diff.
+  const tracked = await runDiff(projectPath, ['diff', '--', relPath]);
+  if (tracked.stdout && tracked.stdout.trim().length > 0) {
+    return { diff: tracked.stdout, isBinary: detectBinary(tracked.stdout), isUntracked: false };
+  }
+
+  const absPath = path.isAbsolute(relPath) ? relPath : path.join(projectPath, relPath);
+  const untracked = await runDiff(projectPath, [
+    'diff',
+    '--no-index',
+    '--',
+    '/dev/null',
+    absPath
+  ]);
+  return {
+    diff: untracked.stdout,
+    isBinary: detectBinary(untracked.stdout),
+    isUntracked: true
+  };
+}
+
 function setupIPC(ipcMain) {
   ipcMain.handle(IPC.REVIEW_FILES, async (_event, { root, base } = {}) => reviewFiles(root, base));
   ipcMain.handle(IPC.REVIEW_FILE_DIFF, async (_event, payload = {}) => reviewFileDiff(payload.root, payload));
 
-  ipcMain.handle(IPC.GET_GIT_DIFF, async (_event, payload) => {
-    const { projectPath, relPath, staged } = payload || {};
-    if (!projectPath || !relPath) {
-      return { diff: '', isBinary: false, isUntracked: false };
-    }
-
-    if (staged) {
-      const out = await runDiff(projectPath, ['diff', '--cached', '--', relPath]);
-      return { diff: out.stdout, isBinary: detectBinary(out.stdout), isUntracked: false };
-    }
-
-    // Working-tree path. If the file is untracked, `git diff` returns nothing,
-    // so fall back to `git diff --no-index /dev/null <path>` to synthesize a diff.
-    const tracked = await runDiff(projectPath, ['diff', '--', relPath]);
-    if (tracked.stdout && tracked.stdout.trim().length > 0) {
-      return { diff: tracked.stdout, isBinary: detectBinary(tracked.stdout), isUntracked: false };
-    }
-
-    const absPath = path.isAbsolute(relPath) ? relPath : path.join(projectPath, relPath);
-    const untracked = await runDiff(projectPath, [
-      'diff',
-      '--no-index',
-      '--',
-      '/dev/null',
-      absPath
-    ]);
-    return {
-      diff: untracked.stdout,
-      isBinary: detectBinary(untracked.stdout),
-      isUntracked: true
-    };
-  });
+  ipcMain.handle(IPC.GET_GIT_DIFF, async (_event, payload) => gitDiff(payload));
 }
 
 // Set on the first ENOENT from the git binary — see gitStatusManager.
@@ -182,4 +189,4 @@ function detectBinary(diff) {
   return /^Binary files .* differ$/m.test(diff);
 }
 
-module.exports = { setupIPC, reviewFiles, reviewFileDiff };
+module.exports = { setupIPC, gitDiff, reviewFiles, reviewFileDiff };

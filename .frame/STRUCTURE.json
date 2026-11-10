@@ -3102,6 +3102,7 @@
       "description": "Git Diff Manager",
       "exports": [
         "setupIPC",
+        "gitDiff",
         "reviewFiles",
         "reviewFileDiff"
       ],
@@ -3114,21 +3115,28 @@
         "shared/reviewModel"
       ],
       "functions": {
+        "gitDiff": {
+          "line": 29,
+          "params": [
+            "payload"
+          ],
+          "purpose": "One file's diff for the diff tab: staged (`--cached`), working tree, or a"
+        },
         "setupIPC": {
-          "line": 24,
+          "line": 62,
           "params": [
             "ipcMain"
           ]
         },
         "runDiff": {
-          "line": 66,
+          "line": 73,
           "params": [
             "cwd",
             "args"
           ]
         },
         "mergeBaseOf": {
-          "line": 106,
+          "line": 113,
           "params": [
             "root",
             "base"
@@ -3136,7 +3144,7 @@
           "purpose": "Merge base of HEAD with origin/<base>, else with the local <base>."
         },
         "hashFiles": {
-          "line": 116,
+          "line": 123,
           "params": [
             "root",
             "paths"
@@ -3144,7 +3152,7 @@
           "purpose": "Content hashes for existing files, `{ path: sha }`, in chunks."
         },
         "countLines": {
-          "line": 131,
+          "line": 138,
           "params": [
             "root",
             "paths"
@@ -3152,14 +3160,14 @@
           "purpose": "Line counts for small text untracked files (shown as +N)."
         },
         "reviewFiles": {
-          "line": 146,
+          "line": 153,
           "params": [
             "root",
             "base"
           ]
         },
         "reviewFileDiff": {
-          "line": 168,
+          "line": 175,
           "params": [
             "root",
             "{ mergeBase",
@@ -3169,7 +3177,7 @@
           ]
         },
         "detectBinary": {
-          "line": 179,
+          "line": 186,
           "params": [
             "diff"
           ]
@@ -3183,7 +3191,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 6996,
+      "sizeBytes": 7226,
       "extraction": {
         "status": "parsed"
       },
@@ -3191,6 +3199,7 @@
         "description": "0299aa02feeefaa6",
         "purposes": {
           "countLines": "bfa70b7035b8b261",
+          "gitDiff": "ade083fe1ea1df7a",
           "hashFiles": "19cd5d5118516359",
           "mergeBaseOf": "15e006dc59b1759b"
         }
@@ -3446,6 +3455,9 @@
       "exports": [
         "init",
         "setupIPC",
+        "startWatching",
+        "stopWatching",
+        "pushStatus",
         "isIgnoredWorktreePath",
         "gitDirFromDotGitFile",
         "resolveGitDir"
@@ -3558,7 +3570,7 @@
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 14353,
+      "sizeBytes": 14394,
       "extraction": {
         "status": "parsed"
       },
@@ -23654,7 +23666,8 @@
         "shared/serverProtocol",
         "shared/serverSecurity",
         "terminals",
-        "projects"
+        "projects",
+        "panels"
       ],
       "functions": {
         "parseArgs": {
@@ -23708,7 +23721,7 @@
           ]
         }
       },
-      "sizeBytes": 6727,
+      "sizeBytes": 6796,
       "extraction": {
         "status": "parsed"
       },
@@ -23718,6 +23731,41 @@
           "loadToken": "464690852d26c700",
           "registerMethods": "ef386b7d3e2ed91b"
         }
+      }
+    },
+    "server/panels": {
+      "file": "src/server/panels.js",
+      "description": "Server panels — what a server workspace's panels ask Frame Server",
+      "exports": [
+        "setup",
+        "MAX_READ_BYTES"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/ipcChannels",
+        "main/fileTree",
+        "main/fileEditor",
+        "main/gitStatusManager",
+        "main/gitDiffManager",
+        "main/gitBranchesManager"
+      ],
+      "functions": {
+        "setup": {
+          "line": 23,
+          "params": [
+            "{ shim",
+            "registerMethods",
+            "broadcast }"
+          ]
+        }
+      },
+      "sizeBytes": 3153,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "71a30c620a81bae1"
       }
     },
     "server/projects": {
@@ -32214,7 +32262,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 347,
+        "parsed": 348,
         "unsupported": 86,
         "partial": 0
       }
@@ -32261,9 +32309,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 524,
+      "visitedEntries": 525,
       "traversedDirectories": 83,
-      "eligibleFiles": 433,
+      "eligibleFiles": 434,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -32280,7 +32328,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 433,
+      "indexedFiles": 434,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -32288,6 +32336,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "42357b323c1f3ab597c8236577fa48b90fdad2627e9c85e333e7c69a4cd7e559"
+    "revision": "723aece19f6cb97c5a95be2b05022aebbca0ab9dd5adb50a455f3d5eab5fbea5"
   }
 }

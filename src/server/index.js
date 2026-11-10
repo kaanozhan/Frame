@@ -132,7 +132,8 @@ function start(argv = process.argv.slice(2)) {
 
   const parts = [
     require('./terminals').setup({ shim, registerMethods, broadcast }),
-    require('./projects').setup({ shim, registerMethods, broadcast })
+    require('./projects').setup({ shim, registerMethods, broadcast }),
+    require('./panels').setup({ shim, registerMethods, broadcast })
   ];
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 * 1024 });

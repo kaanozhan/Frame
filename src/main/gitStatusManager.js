@@ -403,4 +403,4 @@ function classify(index, worktree) {
   return 'modified';
 }
 
-module.exports = { init, setupIPC, isIgnoredWorktreePath, gitDirFromDotGitFile, resolveGitDir };
+module.exports = { init, setupIPC, startWatching, stopWatching, pushStatus, isIgnoredWorktreePath, gitDirFromDotGitFile, resolveGitDir };
