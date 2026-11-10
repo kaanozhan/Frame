@@ -1,0 +1,10 @@
+---
+keywords: review, diff, comments, viewed, workspace, agent, prompt, merge base, untracked
+related: workspaces, workspace-pr-flow, spec-in-workspace
+---
+Workspaces got a review before the PR. "Review Changes…" (first PR item in a workspace's row menu, palette `workspace.review`, File menu, ⌘⌥R) selects the workspace and opens a Review tab in the center: the left column lists every file the workspace changes since its merge base with `origin/<base>` (else the local base) — committed, uncommitted and untracked — with A/M/D/R/U and +/-, under "N files · M left"; the right column shows the selected file's diff (Split/Unified). Viewed ticks advance to the next unreviewed file, persist per workspace in localStorage `frame-review-viewed` as `{ [projectPath#workspaceId]: { [path]: contentHash } }` and drop when the content changes. Clicking a new-side line number opens an inline comment box; saved comments wait in a pending list (edit/remove, marked rows) and "Send review (n)" sends them as one prompt (`composeReviewPrompt`: path:line, quoted line, comment, then "run tests, commit, do not push") to the workspace's most recently active agent lane or a new one via `agentDispatch.dispatch`.
+Why this path: a center section tab keeps the terminals full width (rejected: a Conductor-style right git panel); sending to the existing agent keeps its context (rejected: always a new lane); viewed state survives restarts (rejected: session only).
+Rules for future work: git for the review lives in main (`gitDiffManager` `REVIEW_FILES` / `REVIEW_FILE_DIFF`), argv only, read-only, 2 MB diff ceiling; parsing and prompt rules are pure in `src/shared/reviewModel.js` with tests. Only new-side lines take comments; pending comments are in memory and vanish with the tab. The old diff tab (`diffSection`, `GET_GIT_DIFF`) is unchanged. Send was verified with a fake `claude` script lane — no real agent ran.
+Followups: updating a workspace from its base (update-from-base); comments could later go to the PR on GitHub; a review tab's lane picker refreshes only on re-render.
+
+Chain: spec.md → plan.md → tasks.md → outcome.md
