@@ -23869,6 +23869,10 @@
       "file": "src/shared/prFlow.js",
       "description": "prFlow — the rules behind a workspace's way out: push, pull request,",
       "exports": [
+        "parseConflicts",
+        "updateMenuState",
+        "conflictPrompt",
+        "updateMessage",
         "parseCount",
         "checksSummary",
         "mapPrView",
@@ -23943,9 +23947,42 @@
             "base }"
           ],
           "purpose": "A workspace branch may be pushed unless it is (or names) its own base."
+        },
+        "parseConflicts": {
+          "line": 151,
+          "params": [
+            "stdout"
+          ],
+          "purpose": "`git diff --name-only --diff-filter=U -z` → conflicted paths, in order, no duplicates."
+        },
+        "updateMenuState": {
+          "line": 166,
+          "params": [
+            "{ behind = 0",
+            "merging = false",
+            "conflicts = []",
+            "base = 'main' } = {}"
+          ],
+          "purpose": "The update items a workspace row offers: `[{ id, label }]`."
+        },
+        "conflictPrompt": {
+          "line": 179,
+          "params": [
+            "{ branch",
+            "base = 'main'",
+            "files = [] }"
+          ],
+          "purpose": "The prompt that hands an update's conflicts to an agent in the workspace."
+        },
+        "updateMessage": {
+          "line": 192,
+          "params": [
+            "result"
+          ],
+          "purpose": "One sentence for the user about an update's result."
         }
       },
-      "sizeBytes": 6463,
+      "sizeBytes": 9252,
       "extraction": {
         "status": "parsed"
       },
@@ -23954,12 +23991,16 @@
         "purposes": {
           "checksSummary": "5bacb8007cad8133",
           "composePr": "79db7faf7577e5c8",
+          "conflictPrompt": "1c20db3486ce6d8c",
           "fixChecksPrompt": "12c4e5bb6f83be44",
           "isPushable": "20e43c7377899394",
           "mapPrView": "886ffc419a78fdac",
+          "parseConflicts": "35eac48b8bf0d2d4",
           "parseCount": "e0e6116d342409ca",
           "pickMergeMethod": "b92b46d28d104dd3",
-          "sectionLead": "7dbdd518e09a59cd"
+          "sectionLead": "7dbdd518e09a59cd",
+          "updateMenuState": "ff74f58a1c2a5de4",
+          "updateMessage": "c1eef6571d356a69"
         }
       }
     },
@@ -27233,7 +27274,7 @@
         "src/shared/prFlow"
       ],
       "functions": {},
-      "sizeBytes": 5790,
+      "sizeBytes": 8001,
       "extraction": {
         "status": "parsed"
       },
@@ -31070,6 +31111,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e5d932cb18700498b4dc6c39c940ad1078bd5cd4667d0f413c141c596bfc248c"
+    "revision": "0cbd2c0eefe8f775723a519c5227766c65c32db3cd66f7d5408c0d4e4ad86f75"
   }
 }

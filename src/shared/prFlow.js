@@ -145,7 +145,75 @@ function isPushable({ branch, base }) {
   return true;
 }
 
+// ─── Update from base (update-from-base spec) ─────────────────
+
+/** `git diff --name-only --diff-filter=U -z` → conflicted paths, in order, no duplicates. */
+function parseConflicts(stdout) {
+  const out = [];
+  for (const p of String(stdout || '').split('\0')) {
+    const path = p.replace(/^\n+|\n+$/g, '');
+    if (path && !out.includes(path)) out.push(path);
+  }
+  return out;
+}
+
+/**
+ * The update items a workspace row offers: `[{ id, label }]`.
+ * Merging → resolve with an agent and abort; otherwise "Update from <base>",
+ * with the behind count when it is known (it reflects the last fetch, so the
+ * item shows even at 0 — the action fetches first).
+ */
+function updateMenuState({ behind = 0, merging = false, conflicts = [], base = 'main' } = {}) {
+  const b = base || 'main';
+  if (merging) {
+    const n = (conflicts || []).length;
+    return [
+      { id: 'update:resolve', label: n ? `Resolve Conflicts with Agent (${n})` : 'Finish Merge with Agent' },
+      { id: 'update:abort', label: 'Abort Update' }
+    ];
+  }
+  return [{ id: 'update:run', label: behind > 0 ? `Update from ${b} (${behind})` : `Update from ${b}` }];
+}
+
+/** The prompt that hands an update's conflicts to an agent in the workspace. */
+function conflictPrompt({ branch, base = 'main', files = [] }) {
+  const list = files.length ? files.map((f) => `- ${f}`).join('\n') : '- (run `git status` to list them)';
+  return [
+    `Merging \`origin/${base}\` into this workspace's branch \`${branch}\` stopped on conflicts in:`,
+    '',
+    list,
+    '',
+    `Resolve each conflict, keeping the intent of both this branch and ${base}. Then run the project's tests, stage the resolved files and complete the merge with \`git commit --no-edit\`.`,
+    'Do not push — the user pushes from Frame. If a conflict cannot be resolved safely, stop and explain instead of guessing.'
+  ].join('\n');
+}
+
+/** One sentence for the user about an update's result. */
+function updateMessage(result) {
+  const r = result || {};
+  const note = r.fetchNote ? ` (${r.fetchNote})` : '';
+  if (r.error) return `Update failed: ${r.error}`;
+  switch (r.state) {
+    case 'updated':
+      return `Merged ${r.commits} commit${r.commits === 1 ? '' : 's'} from ${r.base || 'the base'} — not pushed${note}`;
+    case 'up-to-date':
+      return `Already up to date with ${r.base || 'the base'}${note}`;
+    case 'dirty':
+      return `Commit or stash your ${r.count} uncommitted change${r.count === 1 ? '' : 's'} first`;
+    case 'conflict': {
+      const n = (r.files || []).length;
+      return `Update stopped on ${n} conflicted file${n === 1 ? '' : 's'}`;
+    }
+    default:
+      return 'Update finished';
+  }
+}
+
 module.exports = {
+  parseConflicts,
+  updateMenuState,
+  conflictPrompt,
+  updateMessage,
   parseCount,
   checksSummary,
   mapPrView,

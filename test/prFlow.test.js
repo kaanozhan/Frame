@@ -13,7 +13,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  parseCount, checksSummary, mapPrView, sectionLead, composePr, pickMergeMethod, fixChecksPrompt, isPushable
+  parseCount, checksSummary, mapPrView, sectionLead, composePr, pickMergeMethod, fixChecksPrompt, isPushable,
+  parseConflicts, updateMenuState, conflictPrompt, updateMessage
 } = require('../src/shared/prFlow');
 
 test('parseCount reads rev-list output and never returns garbage', () => {
@@ -111,4 +112,38 @@ test('isPushable refuses the base branch', () => {
   assert.equal(isPushable({ branch: 'main', base: 'main' }), false);
   assert.equal(isPushable({ branch: 'origin/main', base: 'main' }), false);
   assert.equal(isPushable({ branch: '', base: 'main' }), false);
+});
+
+// ─── update-from-base ─────────────────────────────────────────
+
+test('parseConflicts reads the -z list without duplicates', () => {
+  assert.deepEqual(parseConflicts('a.js\0dir/b c.js\0a.js\0'), ['a.js', 'dir/b c.js']);
+  assert.deepEqual(parseConflicts(''), []);
+  assert.deepEqual(parseConflicts(null), []);
+});
+
+test('updateMenuState offers update, or resolve and abort while merging', () => {
+  assert.deepEqual(updateMenuState({ behind: 3, base: 'main' }), [{ id: 'update:run', label: 'Update from main (3)' }]);
+  assert.deepEqual(updateMenuState({ behind: 0, base: 'dev' }), [{ id: 'update:run', label: 'Update from dev' }], 'shown at 0: the count may be stale');
+  assert.deepEqual(updateMenuState({ merging: true, conflicts: ['a', 'b'], behind: 4 }).map((i) => i.label),
+    ['Resolve Conflicts with Agent (2)', 'Abort Update']);
+  assert.equal(updateMenuState({ merging: true, conflicts: [] })[0].label, 'Finish Merge with Agent');
+});
+
+test('conflictPrompt names the base, branch and files and forbids pushing', () => {
+  const p = conflictPrompt({ branch: 'ws/teal', base: 'main', files: ['a.js', 'b/c.js'] });
+  assert.match(p, /`origin\/main`/);
+  assert.match(p, /`ws\/teal`/);
+  assert.match(p, /- a\.js\n- b\/c\.js/);
+  assert.match(p, /git commit --no-edit/);
+  assert.match(p, /Do not push/);
+});
+
+test('updateMessage describes every result', () => {
+  assert.equal(updateMessage({ state: 'updated', commits: 2, base: 'main' }), 'Merged 2 commits from main — not pushed');
+  assert.equal(updateMessage({ state: 'updated', commits: 1, base: 'main', fetchNote: 'offline' }), 'Merged 1 commit from main — not pushed (offline)');
+  assert.equal(updateMessage({ state: 'up-to-date', base: 'main' }), 'Already up to date with main');
+  assert.equal(updateMessage({ state: 'dirty', count: 1 }), 'Commit or stash your 1 uncommitted change first');
+  assert.equal(updateMessage({ state: 'conflict', files: ['a', 'b'] }), 'Update stopped on 2 conflicted files');
+  assert.equal(updateMessage({ error: 'boom' }), 'Update failed: boom');
 });
