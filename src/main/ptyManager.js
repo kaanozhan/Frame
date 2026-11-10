@@ -473,7 +473,75 @@ function hasTerminal(terminalId) {
 /**
  * Setup IPC handlers for multi-terminal
  */
+// ─── Server terminals (server-workspaces) ─────────────────────
+//
+// A terminal of a server workspace runs on Frame Server: its create goes
+// there, its `srv-` id routes input/resize/destroy there, and the server's
+// output/process/destroyed events come back as the same IPC the renderer
+// already handles. Local teardown (reload reconcile, quit) only ever sees
+// local PTYs, so server terminals outlive this window.
+
+const { isServerTerminalId } = require('../shared/serverRouting');
+const serverTerminals = new Map(); // srv id → { projectPath (local), workspaceId }
+
+function serverLocationOf(workspaceId) {
+  if (!workspaceId || workspaceId === 'main') return null;
+  try {
+    return require('./workspaceManager').serverLocation(workspaceId);
+  } catch (_) {
+    return null;
+  }
+}
+
+function server() {
+  return require('./serverConnection');
+}
+
+async function createServerTerminal(loc, { cwd, projectPath, workspaceId, shell, cols, rows }) {
+  const res = await server().call('terminals.create', {
+    projectPath: loc.serverProjectPath,
+    workspaceId,
+    cwd: cwd || loc.path,
+    shell: shell || null,
+    cols: cols || 80,
+    rows: rows || 24
+  });
+  serverTerminals.set(res.terminalId, { projectPath, workspaceId });
+  return res.terminalId;
+}
+
+/** Local project/workspace of a server terminal this window knows, or null. */
+function serverTerminalInfo(terminalId) {
+  return serverTerminals.get(terminalId) || null;
+}
+
+/** Remember a server terminal found on reconnect (adopted by the renderer). */
+function noteServerTerminal(terminalId, info) {
+  serverTerminals.set(terminalId, info);
+}
+
+let serverEventsWired = false;
+function wireServerEvents() {
+  if (serverEventsWired) return;
+  serverEventsWired = true;
+  const sc = server();
+  const toWindow = (channel, payload) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
+  };
+  sc.on('terminal.output', (p) => { if (p && p.terminalId) toWindow(IPC.TERMINAL_OUTPUT_ID, { terminalId: p.terminalId, data: p.data }); });
+  sc.on('terminal.process', (p) => {
+    if (p && p.terminalId) toWindow(IPC.TERMINAL_PROCESS_DATA, { terminalId: p.terminalId, processName: p.processName, shellName: p.shellName, commandLine: p.commandLine });
+  });
+  sc.on('terminal.destroyed', (p) => {
+    if (!p || !p.terminalId) return;
+    serverTerminals.delete(p.terminalId);
+    toWindow(IPC.TERMINAL_DESTROYED, { terminalId: p.terminalId, exitCode: p.exitCode });
+  });
+}
+
 function setupIPC(ipcMain) {
+  try { wireServerEvents(); } catch (err) { logger.warn('ptyManager', `server terminal events not wired: ${err.message}`); }
+
   // Get available shells
   ipcMain.on(IPC.GET_AVAILABLE_SHELLS, (event) => {
     try {
@@ -506,6 +574,13 @@ function setupIPC(ipcMain) {
         workspaceId = data.workspaceId || 'main';
       }
 
+      const loc = serverLocationOf(workspaceId);
+      if (loc) {
+        createServerTerminal(loc, { cwd: workingDir, projectPath, workspaceId, shell: shellPath, cols: data && data.cols, rows: data && data.rows })
+          .then((terminalId) => event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true }))
+          .catch((err) => event.reply(IPC.TERMINAL_CREATED, { success: false, error: `Server terminal: ${err.message}` }));
+        return;
+      }
       const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv, workspaceId);
       event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true });
     } catch (error) {
@@ -516,17 +591,31 @@ function setupIPC(ipcMain) {
 
   // Destroy terminal
   ipcMain.on(IPC.TERMINAL_DESTROY, (event, terminalId) => {
+    if (isServerTerminalId(terminalId)) {
+      serverTerminals.delete(terminalId);
+      server().send('terminals.destroy', { terminalId });
+      return;
+    }
     destroyTerminal(terminalId);
   });
 
   // Input to specific terminal
   ipcMain.on(IPC.TERMINAL_INPUT_ID, (event, { terminalId, data }) => {
+    if (isServerTerminalId(terminalId)) {
+      // Held while the link is down: the renderer shows the reconnecting banner.
+      if (server().isConnected()) server().send('terminals.input', { terminalId, data });
+      return;
+    }
     writeToTerminal(terminalId, data);
     promptLogger.logInput(data);
   });
 
   // Resize specific terminal
   ipcMain.on(IPC.TERMINAL_RESIZE_ID, (event, { terminalId, cols, rows }) => {
+    if (isServerTerminalId(terminalId)) {
+      if (server().isConnected()) server().send('terminals.resize', { terminalId, cols, rows });
+      return;
+    }
     resizeTerminal(terminalId, cols, rows);
   });
 }
@@ -547,5 +636,7 @@ module.exports = {
   wasDestroyedOnRequest,
   getLastOutputAt,
   getAvailableShells,
+  serverTerminalInfo,
+  noteServerTerminal,
   setupIPC
 };

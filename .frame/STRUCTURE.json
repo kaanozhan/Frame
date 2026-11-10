@@ -554,7 +554,9 @@
         "logger",
         "analytics",
         "envPath",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "workspaceManager",
+        "serverConnection"
       ],
       "functions": {
         "init": {
@@ -649,7 +651,7 @@
           "purpose": "Setup IPC handlers"
         },
         "checkToolAvailable": {
-          "line": 356,
+          "line": 377,
           "params": [
             "{ toolId",
             "projectPath = null",
@@ -659,14 +661,14 @@
           "purpose": "Is the tool's CLI installed where this process runs? Returns"
         },
         "getCommand": {
-          "line": 412,
+          "line": 433,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 420,
+          "line": 441,
           "purpose": "Get the start command for active tool"
         }
       },
@@ -681,7 +683,7 @@
           "AI_TOOL_CHANGED"
         ]
       },
-      "sizeBytes": 13795,
+      "sizeBytes": 14711,
       "extraction": {
         "status": "parsed"
       },
@@ -5303,6 +5305,8 @@
         "wasDestroyedOnRequest",
         "getLastOutputAt",
         "getAvailableShells",
+        "serverTerminalInfo",
+        "noteServerTerminal",
         "setupIPC"
       ],
       "depends": [
@@ -5314,7 +5318,10 @@
         "pollGate",
         "sessionRestore",
         "child_process",
-        "fs"
+        "fs",
+        "shared/serverRouting",
+        "workspaceManager",
+        "serverConnection"
       ],
       "functions": {
         "flushOutput": {
@@ -5435,12 +5442,50 @@
           ],
           "purpose": "Check if terminal exists"
         },
+        "serverLocationOf": {
+          "line": 487,
+          "params": [
+            "workspaceId"
+          ]
+        },
+        "server": {
+          "line": 496
+        },
+        "createServerTerminal": {
+          "line": 500,
+          "params": [
+            "loc",
+            "{ cwd",
+            "projectPath",
+            "workspaceId",
+            "shell",
+            "cols",
+            "rows }"
+          ]
+        },
+        "serverTerminalInfo": {
+          "line": 514,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Local project/workspace of a server terminal this window knows, or null."
+        },
+        "noteServerTerminal": {
+          "line": 519,
+          "params": [
+            "terminalId",
+            "info"
+          ],
+          "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
+        },
+        "wireServerEvents": {
+          "line": 524
+        },
         "setupIPC": {
-          "line": 476,
+          "line": 542,
           "params": [
             "ipcMain"
-          ],
-          "purpose": "Setup IPC handlers for multi-terminal"
+          ]
         }
       },
       "ipc": {
@@ -5454,10 +5499,11 @@
         "emits": [
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED",
-          "TERMINAL_PROCESS_DATA"
+          "TERMINAL_PROCESS_DATA",
+          "channel"
         ]
       },
-      "sizeBytes": 17875,
+      "sizeBytes": 21588,
       "extraction": {
         "status": "parsed"
       },
@@ -5478,8 +5524,9 @@
           "getTerminalsByProject": "479a57ca5c66839c",
           "hasTerminal": "b3801ea1d7b0ad94",
           "init": "a7cc4fe0948dfdd7",
+          "noteServerTerminal": "34da8c9dde687e61",
           "resizeTerminal": "810c8f104494f695",
-          "setupIPC": "9454079ed67a9898",
+          "serverTerminalInfo": "907874f886605317",
           "writeToTerminal": "6e7ca448a2aac555"
         }
       }
@@ -8199,11 +8246,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 243,
+          "line": 249,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 278,
+          "line": 284,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -8211,7 +8258,7 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_trackAgentRunWhenReady": {
-          "line": 303,
+          "line": 309,
           "params": [
             "terminalId",
             "toolId"
@@ -8219,17 +8266,17 @@
           "purpose": "`agent_run_started` means the CLI came up — the bar dispatch() already"
         },
         "_startAgentInNewFrame": {
-          "line": 312
+          "line": 318
         },
         "resumeClaudeSession": {
-          "line": 338,
+          "line": 344,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a Claude Code session from the sessions list."
         },
         "resumeAgentSession": {
-          "line": 365,
+          "line": 371,
           "params": [
             "tool",
             "sessionId",
@@ -8242,7 +8289,7 @@
           "purpose": "Resume a Claude Code or Codex session in a new terminal of `projectPath`"
         },
         "_askNewOrRestart": {
-          "line": 408,
+          "line": 414,
           "params": [
             "frameName",
             "hasAgent"
@@ -8250,7 +8297,7 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "_selectSpecWorkspace": {
-          "line": 473,
+          "line": 479,
           "params": [
             "projectPath",
             "slug"
@@ -8258,14 +8305,14 @@
           "purpose": "Select the checkout a spec lives in; returns its root (main = projectPath)."
         },
         "_workspaceForNewSpec": {
-          "line": 496,
+          "line": 502,
           "params": [
             "projectPath"
           ],
           "purpose": "The workspace a new spec is written in: the selected one, or — from main —"
         },
         "dispatchSpecCommand": {
-          "line": 519,
+          "line": 525,
           "params": [
             "{ slug",
             "title = null",
@@ -8273,7 +8320,7 @@
           ]
         },
         "_dispatchImplement": {
-          "line": 597,
+          "line": 603,
           "params": [
             "{ slug",
             "title",
@@ -8283,107 +8330,107 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "_isSpecCreatorLane": {
-          "line": 704,
+          "line": 710,
           "params": [
             "terminalId"
           ],
           "purpose": "Still open, and still carrying the transient name we gave it."
         },
         "_onSpecData": {
-          "line": 720,
+          "line": 726,
           "params": [
             "specs"
           ],
           "purpose": "A new slug appeared — attach it to the lane that produced it."
         },
         "_bindSpecCreatorLane": {
-          "line": 740,
+          "line": 746,
           "params": [
             "terminalId",
             "slug"
           ]
         },
         "dispatchSpecNew": {
-          "line": 776,
+          "line": 782,
           "params": [
             "description"
           ],
           "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
         },
         "getSpecLaneInfo": {
-          "line": 870,
+          "line": 876,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 894,
+          "line": 900,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 915,
+          "line": 921,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 919,
+          "line": 925,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 923,
+          "line": 929,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 940,
+          "line": 946,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 948,
+          "line": 954,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 971,
+          "line": 977,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 979,
+          "line": 985,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 997,
+          "line": 1003,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 1007,
+          "line": 1013,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 1016,
+          "line": 1022,
           "params": [
             "frameName",
             "specName"
@@ -8391,14 +8438,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 1057,
+          "line": 1063,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 1086,
+          "line": 1092,
           "params": [
             "terminalId",
             "message"
@@ -8417,7 +8464,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 45714,
+      "sizeBytes": 46227,
       "extraction": {
         "status": "parsed"
       },
@@ -32203,6 +32250,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "977f4aecbdbe02c86a825bdf2689675b239ed046b8f504a9eadb51447e717730"
+    "revision": "7a0471883e47eac52d7b1003ce5e9835e97c9a34d3484860d9a1980f7521c8a3"
   }
 }

@@ -62,3 +62,11 @@ workspaceManager now lists the connected server's workspaces next to local ones 
 _Captured: 2026-11-10 · 9 file change(s)_
 
 ---
+
+## T09 — Route terminals to the server in main
+
+ptyManager's IPC now sends a server workspace's TERMINAL_CREATE to terminals.create (cwd defaulting to the server worktree) and routes srv- input/resize/destroy through serverConnection, holding input and resizes while the link is down; the server's terminal.output/process/destroyed events come back as TERMINAL_OUTPUT_ID / TERMINAL_PROCESS_DATA / TERMINAL_DESTROYED. destroyExcept and destroyAll needed no change: they only ever iterate local PTYs, so srv- terminals are already out of reach (plan expected guards). CHECK_AI_TOOL_AVAILABLE takes the lane's workspaceId and, for a server workspace, asks tools.check with this side's tool definition; agentDispatch passes it and words a miss as 'not found on <host> — install it and sign in there'.
+
+_Captured: 2026-11-10 · 3 file change(s)_
+
+---

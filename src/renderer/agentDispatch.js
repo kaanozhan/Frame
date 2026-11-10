@@ -141,9 +141,12 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     // otherwise the lane shows "command not found" and the prompt is lost.
     let check;
     try {
+      const lane = multiTerminalUI.getManager().getTerminal(targetId);
       check = await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, {
         toolId: chosenToolId,
         projectPath: state.getProjectPath(),
+        // Server workspaces check the CLI on the server (server-workspaces).
+        workspaceId: (lane && lane.state && lane.state.workspaceId) || 'main',
         launchFlags
       });
     } catch (err) {
@@ -152,11 +155,14 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     }
     if (!check || !check.available) {
       const name = (check && check.name) || chosenToolId;
-      const why = check && check.reason === 'timeout'
-        ? 'availability check timed out — try again'
-        : check && check.reason === 'spawn-error'
-          ? 'could not run the probe shell'
-          : 'not found on your system';
+      const where = check && check.onServer ? `on ${check.onServer === true ? 'the server' : check.onServer}` : 'on your system';
+      const why = check && check.reason === 'server'
+        ? `could not reach the server (${check.error || 'not connected'})`
+        : check && check.reason === 'timeout'
+          ? 'availability check timed out — try again'
+          : check && check.reason === 'spawn-error'
+            ? 'could not run the probe shell'
+            : `not found ${where} — install it and sign in there`;
       return _fail(targetId, `${name} CLI: ${why}`);
     }
 

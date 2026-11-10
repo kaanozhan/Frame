@@ -344,7 +344,28 @@ function setupIPC() {
   });
 
   ipcMain.removeHandler(IPC.CHECK_AI_TOOL_AVAILABLE);
-  ipcMain.handle(IPC.CHECK_AI_TOOL_AVAILABLE, async (event, payload = {}) => checkToolAvailable(payload));
+  ipcMain.handle(IPC.CHECK_AI_TOOL_AVAILABLE, async (event, payload = {}) => {
+    // A lane of a server workspace runs its CLI on the server: check there
+    // (server-workspaces), with this side's tool definition.
+    let loc = null;
+    if (payload.workspaceId && payload.workspaceId !== 'main') {
+      try { loc = require('./workspaceManager').serverLocation(payload.workspaceId); } catch (_) { loc = null; }
+    }
+    if (loc) {
+      try {
+        const res = await require('./serverConnection').call('tools.check', {
+          toolId: payload.toolId,
+          tool: getAvailableTools()[payload.toolId] || null,
+          launchFlags: payload.launchFlags || null,
+          projectPath: loc.serverProjectPath
+        });
+        return { ...res, onServer: loc.host || true };
+      } catch (err) {
+        return { available: false, resolvedCommand: null, name: payload.toolId || null, reason: 'server', error: err.message, onServer: loc.host || true };
+      }
+    }
+    return checkToolAvailable(payload);
+  });
 }
 
 /**
