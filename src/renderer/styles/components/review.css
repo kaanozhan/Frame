@@ -358,3 +358,32 @@
 }
 
 .review-link:hover { color: var(--text-primary); }
+
+/* ── Send the review ── */
+.review-send {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-sm) var(--space-md) 0;
+}
+
+.review-send-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.review-send-target {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.review-send-btn { align-self: stretch; padding: 6px 10px; }

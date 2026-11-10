@@ -30,3 +30,11 @@ Clicking a new-side line number (split or unified) opens an inline comment box u
 _Captured: 2026-11-10 · src/renderer/reviewSection.js,src/renderer/styles/components/review.css file change(s)_
 
 ---
+
+## T05 — Send the review to an agent
+
+Under the pending comments a 'Send to' picker lists the workspace's agent lanes (most recently active first, the default) plus 'New agent'; 'Send review (n)' composes the prompt with composeReviewPrompt and dispatches it through agentDispatch to that lane or a new one, labels the lane 'review: <branch>' and clears the list. A failed dispatch shows an error and keeps the comments and the choice.
+
+_Captured: 2026-11-10 · src/renderer/reviewSection.js,src/renderer/styles/components/review.css file change(s)_
+
+---

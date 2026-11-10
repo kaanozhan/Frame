@@ -12,7 +12,9 @@
  * A click on a new-side line number opens an inline comment box under that
  * line; saved comments wait in the pending list (left column) with edit and
  * remove, and their rows carry a marker. Pending comments live in memory for
- * as long as the tab is open.
+ * as long as the tab is open. "Send review" hands them to an agent as one
+ * prompt: to one of the workspace's agent lanes (default the most recently
+ * active) or a new one, then clears the list.
  *
  * Git runs in main (REVIEW_FILES / REVIEW_FILE_DIFF) as the user's own git;
  * this module only draws. A workspace switch disposes section tabs, so one
@@ -22,9 +24,11 @@
 const { ipcRenderer } = require('electron');
 const { html: renderDiffHtml } = require('diff2html');
 const { IPC } = require('../shared/ipcChannels');
-const { reconcileViewed, viewedSummary, lineAnchor } = require('../shared/reviewModel');
+const { reconcileViewed, viewedSummary, lineAnchor, composeReviewPrompt } = require('../shared/reviewModel');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
+const notify = require('./notify');
+const laneStatus = require('./laneStatus');
 
 const VIEWED_KEY = 'frame-review-viewed';
 const REFRESH_DEBOUNCE_MS = 600;
@@ -104,6 +108,8 @@ function createViewport() {
   let commentSeq = 0;
   let diffScroll = { path: null, top: 0 };
   let sideScroll = 0;
+  let sendTarget = null;     // terminal id, 'new', or null for the default
+  let sending = false;
 
   const onGitStatus = () => {
     if (!ref) return;
@@ -358,6 +364,72 @@ function createViewport() {
     input.setSelectionRange(input.value.length, input.value.length);
   }
 
+  // ─── Sending ───────────────────────────────────────────────
+
+  /** The workspace's terminals running an agent, most recently active first. */
+  function agentLanes() {
+    if (!ref) return [];
+    let terms = [];
+    try {
+      const ui = require('./terminal').getMultiTerminalUI();
+      terms = ui ? ui.getManager().getTerminalsInScope(ref.projectPath, ref.workspaceId) : [];
+    } catch (_) {
+      terms = [];
+    }
+    return terms
+      .map((t) => ({ id: t.id, name: t.customName || t.name || 'Terminal', st: laneStatus.getStatus(t.id) }))
+      .filter((l) => l.st && l.st.agentName)
+      .sort((a, b) => (b.st.lastActivityAt || 0) - (a.st.lastActivityAt || 0));
+  }
+
+  function resolvedTarget(lanes) {
+    if (sendTarget === 'new') return 'new';
+    if (sendTarget && lanes.some((l) => l.id === sendTarget)) return sendTarget;
+    return lanes.length ? lanes[0].id : 'new';
+  }
+
+  async function sendReview() {
+    if (sending || !comments.length || !ref) return;
+    const target = resolvedTarget(agentLanes());
+    const prompt = composeReviewPrompt({ branch: ref.branch || ref.name, comments });
+    sending = true;
+    changed();
+    let res;
+    try {
+      res = await require('./agentDispatch').dispatch({
+        ...(target === 'new' ? { createNew: true } : { terminalId: target }),
+        prompt,
+        assignment: { kind: 'task', label: `review: ${ref.branch || ref.name}`, ref: `review-${ref.workspaceId}` }
+      });
+    } catch (err) {
+      res = { success: false, error: (err && err.message) || String(err) };
+    }
+    sending = false;
+    if (res && res.success) {
+      const n = comments.length;
+      comments = [];
+      editing = null;
+      notify.success(`Sent ${n} review comment${n === 1 ? '' : 's'} to the agent`);
+    } else {
+      notify.error(`Could not send the review: ${(res && res.error) || 'unknown error'}`);
+    }
+    changed();
+  }
+
+  function sendHtml() {
+    const lanes = agentLanes();
+    const target = resolvedTarget(lanes);
+    const options = lanes.map((l) => `<option value="${escapeHtml(l.id)}"${l.id === target ? ' selected' : ''}>${escapeHtml(l.name)} · ${escapeHtml(l.st.agentName)}</option>`).join('')
+      + `<option value="new"${target === 'new' ? ' selected' : ''}>New agent</option>`;
+    return `
+      <div class="review-send">
+        <label class="review-send-label">Send to
+          <select class="review-send-target">${options}</select>
+        </label>
+        <button type="button" class="review-btn primary review-send-btn" ${sending ? 'disabled' : ''}>${sending ? 'Sending…' : `Send review (${comments.length})`}</button>
+      </div>`;
+  }
+
   function pendingHtml() {
     if (!comments.length) return '';
     const sorted = comments.slice().sort((a, b) => (a.path === b.path ? a.line - b.line : a.path.localeCompare(b.path)));
@@ -376,7 +448,7 @@ function createViewport() {
               </div>
             </li>`).join('')}
         </ul>
-        <div class="review-send-slot"></div>
+        ${sendHtml()}
       </div>`;
   }
 
@@ -488,6 +560,11 @@ function createViewport() {
       sideBody.scrollTop = sideScroll;
       sideBody.addEventListener('scroll', () => { sideScroll = sideBody.scrollTop; });
     }
+
+    const targetSel = el.querySelector('.review-send-target');
+    if (targetSel) targetSel.addEventListener('change', () => { sendTarget = targetSel.value; });
+    const sendBtn = el.querySelector('.review-send-btn');
+    if (sendBtn) sendBtn.addEventListener('click', sendReview);
 
     el.querySelectorAll('.review-comment [data-act]').forEach((b) => {
       b.addEventListener('click', () => {

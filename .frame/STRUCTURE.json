@@ -13822,47 +13822,51 @@
         "shared/reviewModel",
         "state",
         "htmlUtils",
-        "workspaceSection"
+        "notify",
+        "laneStatus",
+        "workspaceSection",
+        "terminal",
+        "agentDispatch"
       ],
       "functions": {
         "setHost": {
-          "line": 35,
+          "line": 39,
           "params": [
             "h"
           ]
         },
         "viewedScope": {
-          "line": 41,
+          "line": 45,
           "params": [
             "projectPath",
             "workspaceId"
           ]
         },
         "readAllViewed": {
-          "line": 45
+          "line": 49
         },
         "loadViewed": {
-          "line": 54,
+          "line": 58,
           "params": [
             "scope"
           ]
         },
         "saveViewed": {
-          "line": 59,
+          "line": 63,
           "params": [
             "scope",
             "viewed"
           ]
         },
         "open": {
-          "line": 72,
+          "line": 76,
           "params": [
             "ws"
           ],
           "purpose": "Open the review of a workspace record (`{ id, name, path, branch, base }`)."
         },
         "createViewport": {
-          "line": 87
+          "line": 91
         }
       },
       "ipc": {
@@ -13871,7 +13875,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 21555,
+      "sizeBytes": 24916,
       "extraction": {
         "status": "parsed"
       },
@@ -16392,7 +16396,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 7027,
+      "sizeBytes": 7603,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -31066,6 +31070,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "79c186f1a141029d8e927a3b74c8147e96879f6dd9ca484656587ff2136a1d8d"
+    "revision": "e5d932cb18700498b4dc6c39c940ad1078bd5cd4667d0f413c141c596bfc248c"
   }
 }
