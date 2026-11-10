@@ -18,7 +18,8 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "dist": "npm run build && electron-builder --mac --dir --publish never",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
-    "dist:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --publish never"
+    "dist:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --publish never",
+    "server": "node src/server/index.js"
   },
   "keywords": [
     "electron",
@@ -48,6 +49,7 @@
     "marked": "^17.0.5",
     "node-pty": "^1.0.0",
     "posthog-node": "^5.52.5",
+    "ws": "^8.22.2",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
   },

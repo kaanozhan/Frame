@@ -7591,7 +7591,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 219753,
+      "sizeBytes": 220373,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -7603,7 +7603,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4075,
+      "sizeBytes": 4138,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -23151,6 +23151,143 @@
         }
       }
     },
+    "server/electronShim": {
+      "file": "src/server/electronShim.js",
+      "description": "electronShim — lets Frame's main-process managers run headless inside",
+      "exports": [
+        "install",
+        "onSend",
+        "fakeWindow"
+      ],
+      "depends": [
+        "electron",
+        "module",
+        "path",
+        "os",
+        "fs"
+      ],
+      "functions": {
+        "install": {
+          "line": 55,
+          "params": [
+            "{ home = path.join(os.homedir("
+          ],
+          "purpose": "Install the hooks. `home` is the server's state folder (~/.frame-server),"
+        },
+        "onSend": {
+          "line": 102,
+          "params": [
+            "fn"
+          ],
+          "purpose": "Listen to everything the managers send to \"the window\". Returns an unsubscribe."
+        },
+        "noop": {
+          "line": 46
+        }
+      },
+      "ipc": {
+        "listens": [],
+        "emits": [
+          "channel"
+        ]
+      },
+      "sizeBytes": 3932,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "bb2f627d5fea0ee8",
+        "purposes": {
+          "install": "74debebdefa8ef4d",
+          "onSend": "9d9f5559296ed2e1"
+        }
+      }
+    },
+    "server/index": {
+      "file": "src/server/index.js",
+      "description": "",
+      "exports": [
+        "start",
+        "registerMethods",
+        "broadcast",
+        "parseArgs",
+        "HOME"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "http",
+        "../package.json",
+        "electronShim",
+        "ws",
+        "shared/serverProtocol",
+        "shared/serverSecurity"
+      ],
+      "functions": {
+        "parseArgs": {
+          "line": 34,
+          "params": [
+            "argv"
+          ]
+        },
+        "loadToken": {
+          "line": 47,
+          "purpose": "The install's token: created once (0600) and kept across restarts."
+        },
+        "writeConnectionFile": {
+          "line": 59,
+          "params": [
+            "info"
+          ]
+        },
+        "registerMethods": {
+          "line": 72,
+          "params": [
+            "table"
+          ],
+          "purpose": "Register request handlers: `{ 'terminals.create': async (params, client) => result }`."
+        },
+        "broadcast": {
+          "line": 77,
+          "params": [
+            "channel",
+            "payload"
+          ],
+          "purpose": "Send an event to every connected desktop."
+        },
+        "handleRequest": {
+          "line": 88,
+          "params": [
+            "client",
+            "msg"
+          ]
+        },
+        "onConnection": {
+          "line": 99,
+          "params": [
+            "ws"
+          ]
+        },
+        "start": {
+          "line": 122,
+          "params": [
+            "argv = process.argv.slice(2"
+          ]
+        }
+      },
+      "sizeBytes": 6419,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "broadcast": "0d6ffe9a733b1cf1",
+          "loadToken": "464690852d26c700",
+          "registerMethods": "ef386b7d3e2ed91b"
+        }
+      }
+    },
     "shared/activityEvents": {
       "file": "src/shared/activityEvents.js",
       "description": "Activity events — pure policy module.",
@@ -31433,7 +31570,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 338,
+        "parsed": 340,
         "unsupported": 86,
         "partial": 0
       }
@@ -31480,9 +31617,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 514,
-      "traversedDirectories": 82,
-      "eligibleFiles": 424,
+      "visitedEntries": 517,
+      "traversedDirectories": 83,
+      "eligibleFiles": 426,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -31499,7 +31636,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 424,
+      "indexedFiles": 426,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -31507,6 +31644,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5dc49d149b53409739fc617adbb1cf5a4b43e49df144d30e3403ef4d11a1c177"
+    "revision": "0efd988a654ab9a0f793499aad884f80adf921dbdfa9871fbac71293f4b01394"
   }
 }

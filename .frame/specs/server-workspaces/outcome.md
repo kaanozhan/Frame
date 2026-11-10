@@ -6,3 +6,11 @@ Added src/shared/serverProtocol.js (hello/req/res/event validate, decode, builde
 _Captured: 2026-11-10 · 6 file change(s)_
 
 ---
+
+## T02 — Frame Server skeleton
+
+Added src/server/electronShim.js (Electron stubs via Module._load, analytics and the prompt log replaced by no-ops, electron-log suppressed so the logger falls back to the console, and a fake window whose sends reach onSend listeners) and src/server/index.js (--port/--bind, token kept 0600 in ~/.frame-server/token across restarts, connection.json 0600 removed on SIGTERM, WebSocket-only HTTP server with checkUpgrade before handleUpgrade, hello/version handshake, method registry with server.ping, broadcast). Added ws and the 'server' npm script. FRAME_SERVER_HOME overrides ~/.frame-server for tests.
+
+_Captured: 2026-11-10 · 4 file change(s)_
+
+---
