@@ -14,3 +14,11 @@ Added src/server/panels.js (registered in src/server/index.js): files.tree, file
 _Captured: 2026-11-10 · 5 file change(s)_
 
 ---
+
+## T03 — Server PR flow and update methods
+
+Added pr.refresh / pr.push / pr.draft / pr.create / pr.merge and update.run / update.abort to src/server/panels.js, all running the server's own workspaceGitState (git and gh as the server user, workspace-pr-flow rules unchanged); its WORKSPACE_GIT_STATE pushes are broadcast as pr.state. Added workspaceGitState.setWatched so pr.refresh makes the server project the polled and pushed one.
+
+_Captured: 2026-11-10 · 2 file change(s)_
+
+---

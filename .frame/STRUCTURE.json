@@ -7384,6 +7384,7 @@
         "init",
         "setupIPC",
         "refresh",
+        "setWatched",
         "getState",
         "activeWorkspaces",
         "push",
@@ -7457,28 +7458,35 @@
           ],
           "purpose": "Re-read and push the state of `projectPath`'s workspaces. Calls that land"
         },
-        "getState": {
+        "setWatched": {
           "line": 150,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Make `projectPath` the polled and pushed project (Frame Server's pr.refresh)."
+        },
+        "getState": {
+          "line": 155,
           "params": [
             "projectPath"
           ],
           "purpose": "The last state read for a project, or null."
         },
         "recordOf": {
-          "line": 159,
+          "line": 164,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "settingsOf": {
-          "line": 163,
+          "line": 168,
           "params": [
             "projectPath"
           ]
         },
         "push": {
-          "line": 169,
+          "line": 174,
           "params": [
             "projectPath",
             "id"
@@ -7486,7 +7494,7 @@
           "purpose": "Push a workspace's branch; the first push sets `origin/<branch>` as upstream."
         },
         "heldSpec": {
-          "line": 183,
+          "line": 188,
           "params": [
             "projectPath",
             "id"
@@ -7494,7 +7502,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 197,
+          "line": 202,
           "params": [
             "projectPath",
             "id"
@@ -7502,7 +7510,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 207,
+          "line": 212,
           "params": [
             "projectPath",
             "id",
@@ -7513,7 +7521,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 234,
+          "line": 239,
           "params": [
             "projectPath",
             "id"
@@ -7521,14 +7529,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 274,
+          "line": 279,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 310,
+          "line": 315,
           "params": [
             "projectPath",
             "id"
@@ -7536,7 +7544,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 322,
+          "line": 327,
           "params": [
             "ipcMain"
           ]
@@ -7556,7 +7564,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 14859,
+      "sizeBytes": 15043,
       "extraction": {
         "status": "parsed"
       },
@@ -7571,7 +7579,8 @@
           "prDraft": "62d68c7cdebe2e3d",
           "push": "01dc3b998b8c53d9",
           "refresh": "0316824b93954fd9",
-          "rowState": "114f885ae19483b9"
+          "rowState": "114f885ae19483b9",
+          "setWatched": "7bd7c78f889f5744"
         }
       }
     },
@@ -23748,11 +23757,12 @@
         "main/fileEditor",
         "main/gitStatusManager",
         "main/gitDiffManager",
-        "main/gitBranchesManager"
+        "main/gitBranchesManager",
+        "main/workspaceGitState"
       ],
       "functions": {
         "setup": {
-          "line": 23,
+          "line": 25,
           "params": [
             "{ shim",
             "registerMethods",
@@ -23760,7 +23770,7 @@
           ]
         }
       },
-      "sizeBytes": 3153,
+      "sizeBytes": 4354,
       "extraction": {
         "status": "parsed"
       },
@@ -32336,6 +32346,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "723aece19f6cb97c5a95be2b05022aebbca0ab9dd5adb50a455f3d5eab5fbea5"
+    "revision": "7f759939dc4f6c43b90a385ed720893b330245539c127cb22c459bbe93f04928"
   }
 }

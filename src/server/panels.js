@@ -11,7 +11,9 @@
  *   git.watch / git.unwatch / git.refresh        gitStatusManager → event git.status
  *   git.diff / git.branches / git.switch         gitDiffManager, gitBranchesManager
  *   review.files / review.fileDiff               gitDiffManager (workspace-review)
- *   pr.* / update.*                              workspaceGitState (T03)
+ *   pr.refresh / pr.push / pr.draft /            workspaceGitState → event pr.state
+ *   pr.create / pr.merge / update.run /          (gh and git run here, as the server user;
+ *   update.abort                                  workspace-pr-flow rules unchanged)
  */
 
 const fs = require('fs');
@@ -26,10 +28,13 @@ function setup({ shim, registerMethods, broadcast }) {
   const gitStatus = require('../main/gitStatusManager');
   const gitDiff = require('../main/gitDiffManager');
   const git = require('../main/gitBranchesManager');
+  const prState = require('../main/workspaceGitState');
   gitStatus.init(shim.fakeWindow);
+  prState.init(shim.fakeWindow);
 
   shim.onSend((channel, payload) => {
     if (channel === IPC.GIT_STATUS_DATA) broadcast('git.status', payload || {});
+    else if (channel === IPC.WORKSPACE_GIT_STATE) broadcast('pr.state', payload || {});
   });
 
   const need = (v, what) => {
@@ -54,7 +59,17 @@ function setup({ shim, registerMethods, broadcast }) {
     'git.branches': async ({ root } = {}) => git.loadBranches(need(root, 'root')),
     'git.switch': async ({ root, branchName } = {}) => git.switchBranch(need(root, 'root'), need(branchName, 'branch')),
     'review.files': async ({ root, base } = {}) => gitDiff.reviewFiles(need(root, 'root'), base),
-    'review.fileDiff': async (params = {}) => gitDiff.reviewFileDiff(need(params.root, 'root'), params)
+    'review.fileDiff': async (params = {}) => gitDiff.reviewFileDiff(need(params.root, 'root'), params),
+    'pr.refresh': async ({ projectPath } = {}) => {
+      prState.setWatched(need(projectPath, 'project'));
+      return prState.refresh(projectPath);
+    },
+    'pr.push': async ({ projectPath, id } = {}) => prState.push(need(projectPath, 'project'), id),
+    'pr.draft': async ({ projectPath, id } = {}) => prState.prDraft(need(projectPath, 'project'), id),
+    'pr.create': async ({ projectPath, id, title, body, draft } = {}) => prState.prCreate(need(projectPath, 'project'), id, { title, body, draft }),
+    'pr.merge': async ({ projectPath, id } = {}) => prState.merge(need(projectPath, 'project'), id),
+    'update.run': async ({ projectPath, id } = {}) => prState.updateFromBase(need(projectPath, 'project'), id),
+    'update.abort': async ({ projectPath, id } = {}) => prState.abortUpdate(need(projectPath, 'project'), id)
   });
 
   return {

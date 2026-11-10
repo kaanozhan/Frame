@@ -146,6 +146,11 @@ function refresh(projectPath) {
   return run;
 }
 
+/** Make `projectPath` the polled and pushed project (Frame Server's pr.refresh). */
+function setWatched(projectPath) {
+  if (projectPath) watchedProject = projectPath;
+}
+
 /** The last state read for a project, or null. */
 function getState(projectPath) {
   return lastState.get(projectPath) || null;
@@ -342,4 +347,4 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.WORKSPACE_UPDATE_ABORT, guarded(({ projectPath, id }) => abortUpdate(projectPath, id)));
 }
 
-module.exports = { init, setupIPC, refresh, getState, activeWorkspaces, push, prDraft, prCreate, merge, updateFromBase, abortUpdate, PR_FIELDS };
+module.exports = { init, setupIPC, refresh, setWatched, getState, activeWorkspaces, push, prDraft, prCreate, merge, updateFromBase, abortUpdate, PR_FIELDS };
