@@ -34,7 +34,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 923,
+      "sizeBytes": 1070,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -32501,6 +32501,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "f3f5461c2bf050f12acaa84e2b8c3568f13d61eccdfafb3b69f31ac3ca76e16c"
+    "revision": "ee216d0ec4737301c6f2261f82cfb56d07b05f24e0779fa30470248b7e8a0d20"
   }
 }

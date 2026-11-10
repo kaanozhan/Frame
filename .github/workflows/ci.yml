@@ -4,10 +4,11 @@
 # repos — so "works on any project" is asserted by a machine, not by
 # eyeballing Frame's own repo.
 #
-# No `npm ci` on purpose: the suite uses Node's built-in runner and
-# repo-local modules only (verified by running it without node_modules),
-# and postinstall (electron-rebuild) would need Electron binaries — slow
-# and fragile for zero benefit here.
+# Dependencies install with `--ignore-scripts`: the Frame Server tests
+# (server-workspaces) load real packages (xterm-headless for the screen
+# mirror), while postinstall (electron-rebuild) and Electron's own binary
+# download stay skipped — they would be slow and fragile for zero benefit
+# here. The rest of the suite still uses Node's built-in runner only.
 name: CI
 
 on:
@@ -27,4 +28,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - run: npm ci --ignore-scripts
       - run: npm test
