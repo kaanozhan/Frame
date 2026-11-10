@@ -23822,6 +23822,102 @@
         }
       }
     },
+    "shared/reviewModel": {
+      "file": "src/shared/reviewModel.js",
+      "description": "reviewModel — the rules behind a workspace review (workspace-review spec).",
+      "exports": [
+        "MAX_DIFF_BYTES",
+        "parseNumstat",
+        "parseNameStatus",
+        "mergeChangedFiles",
+        "reconcileViewed",
+        "viewedSummary",
+        "lineAnchor",
+        "composeReviewPrompt"
+      ],
+      "depends": [],
+      "functions": {
+        "nulFields": {
+          "line": 15,
+          "params": [
+            "stdout"
+          ]
+        },
+        "parseNumstat": {
+          "line": 26,
+          "params": [
+            "stdout"
+          ],
+          "purpose": "`git diff -z --numstat <base>` → `[{ path, oldPath?, added, removed, binary }]`."
+        },
+        "parseNameStatus": {
+          "line": 54,
+          "params": [
+            "stdout"
+          ],
+          "purpose": "`git diff -z --name-status <base>` → `{ [path]: { status, oldPath? } }`."
+        },
+        "mergeChangedFiles": {
+          "line": 84,
+          "params": [
+            "{ numstat = ''",
+            "nameStatus = ''",
+            "untracked = []",
+            "hashes = {}",
+            "untrackedLines = {} } = {}"
+          ],
+          "purpose": "The review's file list: tracked changes (numstat + name-status) plus"
+        },
+        "reconcileViewed": {
+          "line": 114,
+          "params": [
+            "files",
+            "viewed"
+          ],
+          "purpose": "Keep only viewed ticks that still describe the file on disk: the path is"
+        },
+        "viewedSummary": {
+          "line": 125,
+          "params": [
+            "files",
+            "viewed"
+          ],
+          "purpose": "`{ total, viewed, remaining }` for the header."
+        },
+        "lineAnchor": {
+          "line": 137,
+          "params": [
+            "{ newLine",
+            "code }"
+          ],
+          "purpose": "Where a click in the diff points: the new-side line number and its code."
+        },
+        "composeReviewPrompt": {
+          "line": 148,
+          "params": [
+            "{ branch",
+            "comments = [] }"
+          ],
+          "purpose": "The prompt that carries a review to the agent: one entry per comment"
+        }
+      },
+      "sizeBytes": 6166,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cc3cf2531a7a3542",
+        "purposes": {
+          "composeReviewPrompt": "5b1a37e2a58812e5",
+          "lineAnchor": "f8c0bd1c553c5f17",
+          "mergeChangedFiles": "5f18c54ca0dfed03",
+          "parseNameStatus": "9b5c73808e616a8e",
+          "parseNumstat": "f852ad4fee4c0bc3",
+          "reconcileViewed": "79b6a198245b67a0",
+          "viewedSummary": "e48001f7847fbbcc"
+        }
+      }
+    },
     "shared/uiZoom": {
       "file": "src/shared/uiZoom.js",
       "description": "UI zoom ladder — the five interface sizes Frame offers (ui-zoom-steps spec).",
@@ -27133,6 +27229,24 @@
         "description": "bd894ce766feb6b8"
       }
     },
+    "test/reviewModel.test": {
+      "file": "test/reviewModel.test.js",
+      "description": "reviewModel — workspace review rules (workspace-review spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/reviewModel"
+      ],
+      "functions": {},
+      "sizeBytes": 4722,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4a2577f22d647b51"
+      }
+    },
     "test/scriptsProjectRoot.test": {
       "file": "test/scriptsProjectRoot.test.js",
       "description": "Shipped-script project-root tests (non-invasive-overlay T03).",
@@ -30105,6 +30219,11 @@
         "module": "renderer/tasks/listModel",
         "file": "src/renderer/tasks/listModel.js",
         "description": "Tasks screen list model — what the grid lists for a given scope, status,"
+      },
+      {
+        "module": "shared/reviewModel",
+        "file": "src/shared/reviewModel.js",
+        "description": "reviewModel — the rules behind a workspace review (workspace-review spec)."
       }
     ],
     "names": [
@@ -30707,7 +30826,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 329,
+        "parsed": 331,
         "unsupported": 85,
         "partial": 0
       }
@@ -30754,9 +30873,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 504,
+      "visitedEntries": 506,
       "traversedDirectories": 82,
-      "eligibleFiles": 414,
+      "eligibleFiles": 416,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -30773,7 +30892,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 414,
+      "indexedFiles": 416,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -30781,6 +30900,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "d31db26b2ddf0f9a5daaadcb62c2cc4932fccb2807b984c842f8eb1a5ff3187e"
+    "revision": "9dd41f7cef38488b2de0ae63926c6601fe2136b27e69c9e1fbf5bc7c3142acce"
   }
 }
