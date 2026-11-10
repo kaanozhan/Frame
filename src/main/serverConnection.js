@@ -14,6 +14,14 @@
  * user disconnects. Frame stores no SSH secrets: `BatchMode=yes` means a host
  * that needs a typed password cannot be used (keys, agent, Tailscale SSH can).
  *
+ * Before the first attempt of a session (and whenever the server is found
+ * not running) the host is probed (serverInstaller): a missing or outdated
+ * Frame Server — or one speaking another protocol — sets `needs-install` /
+ * `needs-update` and the loop waits for the user instead of retrying; an
+ * installed but stopped one is started. Install, update and rollback run
+ * through SERVER_INSTALL / SERVER_UPDATE / SERVER_ROLLBACK with progress on
+ * SERVER_INSTALL_PROGRESS (server-install-update spec).
+ *
  * Main-process modules use `call(method, params)` and `on(channel, fn)`;
  * the renderer sees SERVER_STATUS_CHANGED and the SERVER_* invokes.
  * `FRAME_SSH` overrides the ssh binary (tests use a stand-in).
@@ -45,7 +53,8 @@ let frameVersion = '0.0.0';
 const bus = new EventEmitter();
 bus.setMaxListeners(50);
 
-let status = { state: 'off', host: null, error: null, frameVersion: null, platform: null };
+let status = { state: 'off', host: null, error: null, frameVersion: null, platform: null, install: null };
+let preflighted = false;  // the host was probed in this session
 let session = 0;          // bumps on every connect/disconnect; stale loops stop
 let tunnel = null;        // ChildProcess
 let socket = null;        // WebSocket
@@ -92,7 +101,11 @@ function readConnectionInfo(host) {
     execFile(sshBin(), [...SSH_OPTS, host, 'cat ~/.frame-server/connection.json'], { timeout: SSH_TIMEOUT_MS, maxBuffer: 64 * 1024 }, (err, stdout, stderr) => {
       if (err) {
         const text = String(stderr || err.message || '').trim();
-        if (/No such file/i.test(text)) return reject(new Error(`Frame Server is not running on ${host} (no ~/.frame-server/connection.json). See src/server/README.md to install it.`));
+        if (/No such file/i.test(text)) {
+          const e = new Error(`Frame Server is not running on ${host}.`);
+          e.notRunning = true;
+          return reject(e);
+        }
         if (/Permission denied|Host key verification|Could not resolve|Connection refused|timed out/i.test(text)) return reject(new Error(`ssh ${host}: ${text.split('\n').pop()}`));
         return reject(new Error(text ? `ssh ${host}: ${text.split('\n').pop()}` : `ssh ${host} failed`));
       }
@@ -155,7 +168,13 @@ function openSocket(port, token) {
       const msg = decoded.msg;
       if (!greeted) {
         const check = P.checkHello(msg, frameVersion);
-        if (!check.ok) { ws.close(); reject(new Error(check.error)); return; }
+        if (!check.ok) {
+          ws.close();
+          const e = new Error(check.error);
+          e.protocol = true;
+          reject(e);
+          return;
+        }
         greeted = true;
         ws.send(P.encode(P.hello(frameVersion)));
         resolve({ ws, serverVersion: msg.frameVersion });
@@ -216,13 +235,55 @@ function scheduleRetry(host, mySession, error) {
   retryTimer = setTimeout(() => loop(host, mySession), delay);
 }
 
+function installer() {
+  return require('./serverInstaller');
+}
+
+function progress(line) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.SERVER_INSTALL_PROGRESS, { host: status.host, line });
+}
+
+/**
+ * Probe the host before connecting: 'go', or 'wait' after setting
+ * needs-install / needs-update. Starts an installed but stopped server.
+ */
+async function preflight(host, mySession, { protocolOk = true } = {}) {
+  const d = await installer().decide(host, { protocolOk });
+  if (mySession !== session) return 'stale';
+  if (d.action === 'error') throw new Error(d.reason);
+  const inst = d.probe && d.probe.installed;
+  const info = { action: d.action, reason: d.reason, desktopVersion: d.desktopVersion, dev: d.dev, current: inst ? inst.current : null, previous: inst ? inst.previous : null, manual: !!(inst && inst.manual) };
+  if (d.action !== 'none') {
+    setStatus({ state: d.action === 'install' ? 'needs-install' : 'needs-update', error: null, install: info });
+    return 'wait';
+  }
+  setStatus({ install: info });
+  if (inst && !inst.running && !inst.manual) {
+    progress(`Starting Frame Server ${inst.current}`);
+    const r = await installer().start(host, { onProgress: progress });
+    if (!r.ok) throw new Error(r.message || 'Frame Server did not start.');
+  }
+  return 'go';
+}
+
 async function loop(host, mySession) {
   if (mySession !== session) return;
   try {
+    if (!preflighted) {
+      const go = await preflight(host, mySession);
+      if (go !== 'go') return;
+      preflighted = true;
+    }
     await runOnce(host, mySession);
   } catch (err) {
     if (mySession !== session) return;
     teardown();
+    if (err.protocol) {
+      // The server speaks another protocol: that is an update, not a retry.
+      try { await preflight(host, mySession, { protocolOk: false }); } catch (_) { /* reported below */ }
+      if (status.state === 'needs-update') return;
+    }
+    if (err.notRunning) preflighted = false; // probe again: it may need starting or installing
     logger.warn('server', `connect to ${host} failed: ${err.message}`);
     // Never connected yet in this session → error state, still retrying.
     if (status.state === 'connecting') setStatus({ state: 'error', error: err.message });
@@ -239,8 +300,9 @@ function connect(host) {
   disconnect({ forget: false, quiet: true });
   session += 1;
   attempt = 0;
+  preflighted = false;
   userSettings.set(SETTING, { host: h, autoConnect: true });
-  setStatus({ state: 'connecting', host: h, error: null, frameVersion: null, platform: null });
+  setStatus({ state: 'connecting', host: h, error: null, frameVersion: null, platform: null, install: null });
   loop(h, session);
   return { error: null, status };
 }
@@ -303,7 +365,56 @@ function init(window, version) {
   if (saved && saved.host && saved.autoConnect) connect(saved.host);
 }
 
+// ─── Install / update / rollback (server-install-update) ───────
+
+let busy = false;
+
+/**
+ * Run an installer action for the current (or given) host with progress,
+ * then connect again. Update and rollback first ask about running agents:
+ * without `confirmAgents` they return `{ needsConsent, agents }`.
+ */
+async function runAction(kind, { host: given, confirmAgents = false } = {}) {
+  const host = given || status.host || (userSettings.get(SETTING) || {}).host;
+  if (!host) return { error: 'Choose a server first.' };
+  if (busy) return { error: 'An install is already running.' };
+  if (kind !== 'install' && !confirmAgents && isConnected()) {
+    const agents = await installer().runningAgents();
+    if (agents.length) return { error: null, needsConsent: true, agents };
+  }
+  busy = true;
+  disconnect({ forget: false, quiet: true });
+  setStatus({ state: 'installing', host, error: null });
+  let result;
+  try {
+    result = kind === 'rollback'
+      ? await installer().rollback(host, { onProgress: progress })
+      : await installer().install(host, { onProgress: progress });
+  } catch (err) {
+    result = { ok: false, message: err.message };
+  } finally {
+    busy = false;
+  }
+  if (result && result.ok) {
+    connect(host);
+    return { error: null, result };
+  }
+  setStatus({ state: 'error', error: (result && result.message) || 'The install failed.' });
+  return { error: (result && result.message) || 'The install failed.', result };
+}
+
 function setupIPC(ipcMain) {
+  ipcMain.removeHandler(IPC.SERVER_INSTALL);
+  ipcMain.removeHandler(IPC.SERVER_UPDATE);
+  ipcMain.removeHandler(IPC.SERVER_ROLLBACK);
+  ipcMain.removeHandler(IPC.SERVER_DOCTOR);
+  ipcMain.handle(IPC.SERVER_INSTALL, (event, opts = {}) => runAction('install', opts));
+  ipcMain.handle(IPC.SERVER_UPDATE, (event, opts = {}) => runAction('update', opts));
+  ipcMain.handle(IPC.SERVER_ROLLBACK, (event, opts = {}) => runAction('rollback', opts));
+  ipcMain.handle(IPC.SERVER_DOCTOR, async () => {
+    if (!isConnected()) return { error: 'Not connected.', items: [] };
+    try { return { error: null, ...(await call('server.doctor', {}, 30000)) }; } catch (err) { return { error: err.message, items: [] }; }
+  });
   ipcMain.removeHandler(IPC.SERVER_STATUS);
   ipcMain.removeHandler(IPC.SERVER_CONNECT);
   ipcMain.removeHandler(IPC.SERVER_DISCONNECT);
@@ -314,4 +425,4 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.SERVER_SSH_HOSTS, () => sshHosts());
 }
 
-module.exports = { init, setupIPC, connect, disconnect, call, send, on, getStatus, isConnected, sshHosts };
+module.exports = { init, setupIPC, connect, disconnect, call, send, on, getStatus, isConnected, sshHosts, runAction };

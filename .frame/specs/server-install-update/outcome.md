@@ -46,3 +46,11 @@ Added src/main/serverInstaller.js: probe (uname plus frame-server status --json,
 _Captured: 2026-11-10 · 4 file change(s)_
 
 ---
+
+## T07 — Install states and IPC in the server connection
+
+serverConnection probes the host before the first attempt of a session (serverInstaller.decide): a missing or outdated server sets needs-install / needs-update with the reason, desktop version and current/previous, and the loop waits instead of retrying; an installed but stopped server is started (installer --service-only, progress shown); a server found not running mid-session is probed again; a protocol mismatch in hello becomes needs-update. runAction(install|update|rollback) asks about running agents first (returns needsConsent with the list unless confirmAgents), disconnects, sets installing, runs the installer with SERVER_INSTALL_PROGRESS lines, then connects again or reports the error. Added SERVER_INSTALL, SERVER_UPDATE, SERVER_ROLLBACK, SERVER_INSTALL_PROGRESS and SERVER_DOCTOR, and serverInstaller.start.
+
+_Captured: 2026-11-10 · 3 file change(s)_
+
+---

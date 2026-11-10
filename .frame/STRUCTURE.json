@@ -5600,7 +5600,8 @@
         "on",
         "getStatus",
         "isConnected",
-        "sshHosts"
+        "sshHosts",
+        "runAction"
       ],
       "depends": [
         "fs",
@@ -5615,39 +5616,40 @@
         "shared/serverSecurity",
         "shared/serverRouting",
         "userSettings",
-        "logger"
+        "logger",
+        "serverInstaller"
       ],
       "functions": {
         "sshBin": {
-          "line": 56
+          "line": 65
         },
         "setStatus": {
-          "line": 60,
+          "line": 69,
           "params": [
             "next"
           ]
         },
         "getStatus": {
-          "line": 66
+          "line": 75
         },
         "isConnected": {
-          "line": 70
+          "line": 79
         },
         "teardown": {
-          "line": 75,
+          "line": 84,
           "purpose": "Close the socket and the tunnel of the current attempt."
         },
         "readConnectionInfo": {
-          "line": 90,
+          "line": 99,
           "params": [
             "host"
           ]
         },
         "freePort": {
-          "line": 110
+          "line": 123
         },
         "waitForPort": {
-          "line": 122,
+          "line": 135,
           "params": [
             "port",
             "child",
@@ -5655,43 +5657,61 @@
           ]
         },
         "openSocket": {
-          "line": 142,
+          "line": 155,
           "params": [
             "port",
             "token"
           ]
         },
         "runOnce": {
-          "line": 170,
+          "line": 189,
           "params": [
             "host",
             "mySession"
           ]
         },
         "scheduleRetry": {
-          "line": 209,
+          "line": 228,
           "params": [
             "host",
             "mySession",
             "error"
           ]
         },
+        "installer": {
+          "line": 238
+        },
+        "progress": {
+          "line": 242,
+          "params": [
+            "line"
+          ]
+        },
+        "preflight": {
+          "line": 250,
+          "params": [
+            "host",
+            "mySession",
+            "{ protocolOk = true } = {}"
+          ],
+          "purpose": "Probe the host before connecting: 'go', or 'wait' after setting"
+        },
         "loop": {
-          "line": 219,
+          "line": 269,
           "params": [
             "host",
             "mySession"
           ]
         },
         "connect": {
-          "line": 236,
+          "line": 297,
           "params": [
             "host"
           ],
           "purpose": "Connect to `host` (an ssh alias or user@host), remember it, auto-connect next launch."
         },
         "disconnect": {
-          "line": 249,
+          "line": 311,
           "params": [
             "{ forget = true",
             "quiet = false } = {}"
@@ -5699,7 +5719,7 @@
           "purpose": "Stop and close everything; `forget` drops auto-connect for next launch."
         },
         "call": {
-          "line": 264,
+          "line": 326,
           "params": [
             "method",
             "params = {}",
@@ -5708,7 +5728,7 @@
           "purpose": "A request to the server. Rejects when not connected or on timeout."
         },
         "send": {
-          "line": 275,
+          "line": 337,
           "params": [
             "method",
             "params = {}"
@@ -5716,7 +5736,7 @@
           "purpose": "Fire-and-forget request (terminal input): errors are only logged."
         },
         "on": {
-          "line": 280,
+          "line": 342,
           "params": [
             "name",
             "fn"
@@ -5724,18 +5744,27 @@
           "purpose": "Subscribe to a server event channel (`terminal.output`, …) or `connected` / `disconnected` / `status`."
         },
         "sshHosts": {
-          "line": 287,
+          "line": 349,
           "purpose": "Host aliases from ~/.ssh/config for the Connect dialog."
         },
         "init": {
-          "line": 297,
+          "line": 359,
           "params": [
             "window",
             "version"
           ]
         },
+        "runAction": {
+          "line": 377,
+          "params": [
+            "kind",
+            "{ host",
+            "confirmAgents = false } = {}"
+          ],
+          "purpose": "Run an installer action for the current (or given) host with progress,"
+        },
         "setupIPC": {
-          "line": 306,
+          "line": 406,
           "params": [
             "ipcMain"
           ]
@@ -5743,16 +5772,21 @@
       },
       "ipc": {
         "listens": [
+          "SERVER_INSTALL",
+          "SERVER_UPDATE",
+          "SERVER_ROLLBACK",
+          "SERVER_DOCTOR",
           "SERVER_STATUS",
           "SERVER_CONNECT",
           "SERVER_DISCONNECT",
           "SERVER_SSH_HOSTS"
         ],
         "emits": [
-          "SERVER_STATUS_CHANGED"
+          "SERVER_STATUS_CHANGED",
+          "SERVER_INSTALL_PROGRESS"
         ]
       },
-      "sizeBytes": 12850,
+      "sizeBytes": 17603,
       "extraction": {
         "status": "parsed"
       },
@@ -5763,6 +5797,8 @@
           "connect": "9a900e7bcee40c1c",
           "disconnect": "3dfceaa7c643a728",
           "on": "d506c03c81c7c5d4",
+          "preflight": "cfc43aea06f65ae3",
+          "runAction": "9b65ddc86d34721f",
           "send": "be070ddd2afbc83d",
           "sshHosts": "340c95bacd938b66",
           "teardown": "dd50e7cc8459b3e9"
@@ -5776,6 +5812,7 @@
         "probe",
         "decide",
         "install",
+        "start",
         "rollback",
         "runningAgents",
         "desktopVersion",
@@ -5889,8 +5926,16 @@
           ],
           "purpose": "Install (or update to) this desktop's version on `host`."
         },
-        "rollback": {
+        "start": {
           "line": 266,
+          "params": [
+            "host",
+            "{ onProgress = ("
+          ],
+          "purpose": "Start the installed current version (after a reboot, or a stopped process)."
+        },
+        "rollback": {
+          "line": 271,
           "params": [
             "host",
             "{ onProgress = ("
@@ -5898,11 +5943,11 @@
           "purpose": "Back to the previous installed version."
         },
         "runningAgents": {
-          "line": 274,
+          "line": 279,
           "purpose": "Agents running on the connected server, for the update consent:"
         }
       },
-      "sizeBytes": 12965,
+      "sizeBytes": 13180,
       "extraction": {
         "status": "parsed"
       },
@@ -5919,6 +5964,7 @@
           "runningAgents": "81bbfab219c30112",
           "sourceTarball": "4b937ba131ee06e0",
           "ssh": "f1c96c4f0d9c7fc6",
+          "start": "6237c6e433eb8bbb",
           "upload": "782257c93830a4f1"
         }
       }
@@ -25171,7 +25217,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 17433,
+      "sizeBytes": 18093,
       "extraction": {
         "status": "parsed"
       },
@@ -31686,6 +31732,31 @@
         "name": "server-status-changed",
         "direction": "",
         "description": ""
+      },
+      "SERVER_INSTALL": {
+        "name": "server-install",
+        "direction": "",
+        "description": ""
+      },
+      "SERVER_UPDATE": {
+        "name": "server-update",
+        "direction": "",
+        "description": ""
+      },
+      "SERVER_ROLLBACK": {
+        "name": "server-rollback",
+        "direction": "",
+        "description": ""
+      },
+      "SERVER_INSTALL_PROGRESS": {
+        "name": "server-install-progress",
+        "direction": "",
+        "description": ""
+      },
+      "SERVER_DOCTOR": {
+        "name": "server-doctor",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -32963,6 +33034,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6eca5100729377dcd5c0c21fd128447f1a1321486929bd0f7bcc944dcf573c2b"
+    "revision": "43d986085dc6062efd0f87636f8eec1f9c5b983332d98a32bace7dafb4d5dacc"
   }
 }

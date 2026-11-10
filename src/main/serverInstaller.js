@@ -262,6 +262,11 @@ async function install(host, { onProgress = () => {}, version: forcedVersion = n
   }
 }
 
+/** Start the installed current version (after a reboot, or a stopped process). */
+async function start(host, { onProgress = () => {} } = {}) {
+  return runInstaller(host, ['--service-only'], onProgress);
+}
+
 /** Back to the previous installed version. */
 async function rollback(host, { onProgress = () => {} } = {}) {
   return runInstaller(host, ['--rollback'], onProgress);
@@ -283,4 +288,4 @@ async function runningAgents() {
   return I.agentTerminals(list).map((a) => ({ ...a, workspace: names.get(a.workspaceId) || a.workspaceId }));
 }
 
-module.exports = { probe, decide, install, rollback, runningAgents, desktopVersion, parseResult };
+module.exports = { probe, decide, install, start, rollback, runningAgents, desktopVersion, parseResult };

@@ -259,6 +259,11 @@ const IPC = {
   SERVER_SSH_HOSTS: 'server-ssh-hosts',              // renderer → main (invoke): → string[] (Host aliases from ~/.ssh/config)
   SERVER_STATUS_CHANGED: 'server-status-changed',    // main → renderer: status (as SERVER_STATUS)
   TERMINAL_ADOPT: 'terminal-adopt',                  // renderer → main (invoke): { projectPath } → [{ terminalId, projectPath, workspaceId, screen, cols, rows }] (the server's live terminals of that project)
+  SERVER_INSTALL: 'server-install',                  // renderer → main (invoke): { host? } → { error, result }   (server-install-update)
+  SERVER_UPDATE: 'server-update',                    // renderer → main (invoke): { host?, confirmAgents? } → { error, result } | { needsConsent, agents }
+  SERVER_ROLLBACK: 'server-rollback',                // renderer → main (invoke): { host?, confirmAgents? } → { error, result } | { needsConsent, agents }
+  SERVER_INSTALL_PROGRESS: 'server-install-progress',// main → renderer: { host, line }
+  SERVER_DOCTOR: 'server-doctor',                    // renderer → main (invoke): → { error, raw, items }
   // Update from base (update-from-base)
   WORKSPACE_UPDATE_FROM_BASE: 'workspace-update-from-base', // renderer → main (invoke): { projectPath, id } → { state: updated|up-to-date|conflict|dirty, base, commits?, files?, count?, fetchNote? } | { error }
   WORKSPACE_UPDATE_ABORT: 'workspace-update-abort',         // renderer → main (invoke): { projectPath, id } → { error, aborted }
