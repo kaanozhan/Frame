@@ -24962,6 +24962,8 @@
       "file": "src/shared/serverRouting.js",
       "description": "serverRouting — which things live on the server and how desktop and",
       "exports": [
+        "serverRootFor",
+        "mergeGitStatePayloads",
         "SERVER_TERMINAL_PREFIX",
         "isServerTerminalId",
         "serverTerminalId",
@@ -25012,18 +25014,37 @@
             "text"
           ],
           "purpose": "Host aliases from an OpenSSH client config: every name on a `Host` line,"
+        },
+        "serverRootFor": {
+          "line": 105,
+          "params": [
+            "p",
+            "roots"
+          ],
+          "purpose": "The server workspace folder `p` is (or lies under), or null. `roots` are"
+        },
+        "mergeGitStatePayloads": {
+          "line": 123,
+          "params": [
+            "local",
+            "server",
+            "projectPath"
+          ],
+          "purpose": "One WORKSPACE_GIT_STATE payload for a desktop project: its local"
         }
       },
-      "sizeBytes": 3713,
+      "sizeBytes": 5182,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "ce59a75408de331b",
         "purposes": {
+          "mergeGitStatePayloads": "629c850743c162fe",
           "normalizeRemoteUrl": "afe713da10725c06",
           "parseSshConfigHosts": "c6b2dbdf7edb7f8d",
-          "projectDirName": "aa19e2a8bd1a94e9"
+          "projectDirName": "aa19e2a8bd1a94e9",
+          "serverRootFor": "fcf9225415cd0e81"
         }
       }
     },
@@ -28552,7 +28573,7 @@
         "src/shared/serverRouting"
       ],
       "functions": {},
-      "sizeBytes": 2710,
+      "sizeBytes": 4635,
       "extraction": {
         "status": "parsed"
       },
@@ -32267,6 +32288,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "83f505903cf332a0433ba81b6689cde419b0ae224d26b9ee3618d9677a7e47b4"
+    "revision": "42357b323c1f3ab597c8236577fa48b90fdad2627e9c85e333e7c69a4cd7e559"
   }
 }

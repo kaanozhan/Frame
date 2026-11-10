@@ -96,7 +96,43 @@ function parseSshConfigHosts(text) {
   return out;
 }
 
+/**
+ * The server workspace folder `p` is (or lies under), or null. `roots` are
+ * server-side absolute folders; the longest match wins and the match is
+ * separator-safe (`/w/ab` is not under `/w/a`). Used to route panel calls
+ * (file tree, file reads, git, review) to Frame Server by path.
+ */
+function serverRootFor(p, roots) {
+  if (typeof p !== 'string' || !p) return null;
+  const path = p.length > 1 ? p.replace(/\/+$/, '') : p;
+  let best = null;
+  for (const raw of roots || []) {
+    if (typeof raw !== 'string' || !raw) continue;
+    const root = raw.length > 1 ? raw.replace(/\/+$/, '') : raw;
+    if ((path === root || path.startsWith(`${root}/`)) && (!best || root.length > best.length)) best = root;
+  }
+  return best;
+}
+
+/**
+ * One WORKSPACE_GIT_STATE payload for a desktop project: its local
+ * workspaces' rows plus the server workspaces' rows from Frame Server's own
+ * `workspaceGitState`. The server's GitHub access is kept apart
+ * (`serverAccess`) — its `gh` is not the desktop's.
+ */
+function mergeGitStatePayloads(local, server, projectPath) {
+  const none = { gh: false, authed: false, repoName: null };
+  return {
+    projectPath: projectPath || (local && local.projectPath) || null,
+    access: (local && local.access) || none,
+    serverAccess: server ? (server.access || none) : null,
+    workspaces: { ...((local && local.workspaces) || {}), ...((server && server.workspaces) || {}) }
+  };
+}
+
 module.exports = {
+  serverRootFor,
+  mergeGitStatePayloads,
   SERVER_TERMINAL_PREFIX,
   isServerTerminalId,
   serverTerminalId,

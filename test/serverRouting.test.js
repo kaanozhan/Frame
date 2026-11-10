@@ -57,3 +57,28 @@ test('parseSshConfigHosts lists aliases without patterns', () => {
   assert.deepEqual(R.parseSshConfigHosts(cfg), ['hetzner', 'box2', 'mini']);
   assert.deepEqual(R.parseSshConfigHosts(''), []);
 });
+
+test('serverRootFor matches a root or a path under it, separator-safe, longest first', () => {
+  const roots = ['/home/u/frame/workspaces/app/teal', '/home/u/frame/workspaces/app/te', '/srv/x/'];
+  assert.equal(R.serverRootFor('/home/u/frame/workspaces/app/teal', roots), '/home/u/frame/workspaces/app/teal');
+  assert.equal(R.serverRootFor('/home/u/frame/workspaces/app/teal/src/a.js', roots), '/home/u/frame/workspaces/app/teal');
+  assert.equal(R.serverRootFor('/home/u/frame/workspaces/app/teal/', roots), '/home/u/frame/workspaces/app/teal');
+  assert.equal(R.serverRootFor('/home/u/frame/workspaces/app/tealx/a.js', roots), null, '/teal is not a prefix of /tealx');
+  assert.equal(R.serverRootFor('/home/u/frame/workspaces/app/te/a', roots), '/home/u/frame/workspaces/app/te');
+  assert.equal(R.serverRootFor('/srv/x/y', roots), '/srv/x');
+  assert.equal(R.serverRootFor('/Users/me/app', roots), null);
+  assert.equal(R.serverRootFor('', roots), null);
+  assert.equal(R.serverRootFor('/a', null), null);
+});
+
+test('mergeGitStatePayloads joins rows and keeps the server gh apart', () => {
+  const local = { projectPath: '/Users/me/app', access: { gh: true, authed: true, repoName: 'me/app' }, workspaces: { a1: { dirty: 1 } } };
+  const server = { projectPath: '/home/u/frame/projects/app', access: { gh: true, authed: false, repoName: 'me/app' }, workspaces: { s1: { dirty: 0, unpushed: 2 } } };
+  const m = R.mergeGitStatePayloads(local, server, '/Users/me/app');
+  assert.equal(m.projectPath, '/Users/me/app');
+  assert.deepEqual(m.access, local.access);
+  assert.deepEqual(m.serverAccess, server.access);
+  assert.deepEqual(Object.keys(m.workspaces).sort(), ['a1', 's1']);
+  assert.equal(R.mergeGitStatePayloads(local, null, '/Users/me/app').serverAccess, null, 'no server, no serverAccess');
+  assert.deepEqual(R.mergeGitStatePayloads(null, server, '/p').access, { gh: false, authed: false, repoName: null });
+});
