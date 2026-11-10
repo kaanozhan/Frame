@@ -14,7 +14,7 @@ const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const notify = require('./notify');
 const { escapeHtml } = require('./htmlUtils');
-const { fixChecksPrompt } = require('../shared/prFlow');
+const { fixChecksPrompt, updateMenuState, updateMessage } = require('../shared/prFlow');
 
 let current = null;          // last WORKSPACE_GIT_STATE payload for the current project
 const listeners = new Set();
@@ -92,6 +92,10 @@ function rowBadgesHtml(ws) {
   if (!s || ws.missing) return '';
   const parts = [];
   if (s.dirty) parts.push(`<span class="ws-badge dirty" title="${s.dirty} uncommitted change${s.dirty === 1 ? '' : 's'}">●${s.dirty}</span>`);
+  if (s.merging) {
+    const n = (s.conflicts || []).length;
+    parts.push(`<span class="ws-badge merging" title="Update from ${escapeHtml(ws.base || 'the base')} stopped${n ? ` on ${n} conflicted file${n === 1 ? '' : 's'}` : ''} — resolve or abort from the menu">⚠ merging</span>`);
+  }
   if (s.unpushed) parts.push(`<span class="ws-badge ahead" title="${s.unpushed} commit${s.unpushed === 1 ? '' : 's'} not pushed">↑${s.unpushed}</span>`);
   if (s.behind) parts.push(`<span class="ws-badge behind" title="${s.behind} commit${s.behind === 1 ? '' : 's'} behind ${escapeHtml(ws.base || 'its base')}">↓${s.behind}</span>`);
   if (s.pr) {
@@ -112,6 +116,9 @@ function menuItems(ws) {
   const s = rowState(ws.id);
   const items = [];
   items.push({ id: 'pr:review', label: 'Review Changes…' });
+  for (const it of updateMenuState({ behind: s ? s.behind : 0, merging: !!(s && s.merging), conflicts: s ? s.conflicts : [], base: ws.base })) {
+    if (it.id === 'update:run') items.push(it);
+  }
   items.push({ id: 'pr:push', label: s && s.unpushed ? `Push (${s.unpushed})` : 'Push' });
   const blocked = prBlockedReason();
   const hasOpenPr = !!(s && s.pr && (s.pr.state === 'open' || s.pr.state === 'draft'));
@@ -135,6 +142,7 @@ function menuItems(ws) {
 
 /** Run a PR-flow menu action for a workspace. Returns true when it was ours. */
 function runAction(id, ws) {
+  if (id === 'update:run') { updateFromBase(ws); return true; }
   if (id === 'pr:review') { require('./reviewSection').open(ws); return true; }
   if (id === 'pr:push') { push(ws); return true; }
   if (id === 'pr:create') { openCreatePr(ws); return true; }
@@ -285,6 +293,33 @@ async function merge(ws) {
   return result;
 }
 
+// ─── Update from base (update-from-base) ──────────────────────
+
+const updating = new Set(); // workspace ids with an update in flight
+
+/**
+ * Fetch the base and merge it into the workspace branch (main decides; see
+ * workspaceGitState.updateFromBase). Nothing is pushed.
+ */
+async function updateFromBase(ws) {
+  if (!ws || updating.has(ws.id)) return null;
+  updating.add(ws.id);
+  notify.info(`Updating ${ws.name} from ${ws.base || 'main'}…`);
+  let result;
+  try {
+    result = await ipcRenderer.invoke(IPC.WORKSPACE_UPDATE_FROM_BASE, { projectPath: state.getProjectPath(), id: ws.id });
+  } catch (err) {
+    result = { error: (err && err.message) || String(err) };
+  } finally {
+    updating.delete(ws.id);
+  }
+  const text = updateMessage(result);
+  if (!result || result.error || result.state === 'dirty' || result.state === 'conflict') notify.error(text);
+  else if (result.state === 'updated') notify.success(text);
+  else notify.info(text);
+  return result;
+}
+
 /** Open the workspace's PR in the browser (same channel the GitHub panel uses). */
 function openOnGitHub(ws) {
   const s = rowState(ws.id);
@@ -305,5 +340,6 @@ module.exports = {
   openCreatePr,
   fixChecks,
   openOnGitHub,
-  merge
+  merge,
+  updateFromBase
 };

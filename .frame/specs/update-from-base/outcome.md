@@ -22,3 +22,11 @@ Added updateFromBase and abortUpdate to src/main/workspaceGitState.js with IPC c
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T04 — Update from the row and the palette
+
+Added 'Update from <base> (n)' to the workspace row menu from prFlow.updateMenuState, the updateFromBase(ws) action with an in-flight guard and a toast from updateMessage, a red '⚠ merging' badge, and the workspace.updateFromBase palette command (hidden while merging); reviewSection reloads its file list when its workspace's row key (unpushed, behind, dirty, merging) changes. Only the update:run item is rendered in this task; the resolve/abort items arrive with their actions in T05. Files: workspacePr.js, index.js, reviewSection.js, workspaces.css, plus the bundle build.
+
+_Captured: 2026-11-10 · 5 file change(s)_
+
+---

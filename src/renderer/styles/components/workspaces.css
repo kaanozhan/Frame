@@ -397,3 +397,6 @@
 }
 
 .cpr-draft { margin-top: 8px; }
+
+/* Update from base stopped half-way (update-from-base) */
+.ws-badge.merging { color: var(--error); font-weight: 600; }

@@ -118,6 +118,19 @@ function createViewport() {
   };
   ipcRenderer.on(IPC.GIT_STATUS_DATA, onGitStatus);
 
+  // An update from base (or any commit, push or abort) changes the branch
+  // under the review: reload when this workspace's row state moves.
+  let rowKey = null;
+  const unsubscribeRow = require('./workspacePr').onChange(() => {
+    if (!ref) return;
+    const s = require('./workspacePr').rowState(ref.workspaceId);
+    const key = s ? [s.unpushed, s.behind, s.dirty, s.merging].join('|') : null;
+    if (key === rowKey) return;
+    const first = rowKey === null;
+    rowKey = key;
+    if (!first) loadFiles(true);
+  });
+
   function changed() {
     if (host) host.notifySectionChanged();
   }
@@ -595,6 +608,7 @@ function createViewport() {
 
   function dispose() {
     ipcRenderer.removeListener(IPC.GIT_STATUS_DATA, onGitStatus);
+    unsubscribeRow();
     clearTimeout(refreshTimer);
     ref = null;
   }

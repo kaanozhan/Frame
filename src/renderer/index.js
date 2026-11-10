@@ -961,6 +961,20 @@ function registerCommands() {
     }
   });
   r({
+    id: 'workspace.updateFromBase',
+    title: 'Update Workspace from Base',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!ws && !(s && s.merging);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').updateFromBase(ws);
+    }
+  });
+  r({
     id: 'workspace.push',
     title: 'Push Workspace',
     category: 'Workspace',

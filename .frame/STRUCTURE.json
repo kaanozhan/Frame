@@ -11974,11 +11974,11 @@
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1149,
+          "line": 1163,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1174,
+          "line": 1188,
           "params": [
             "err"
           ],
@@ -11998,7 +11998,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 43085,
+      "sizeBytes": 43548,
       "extraction": {
         "status": "parsed"
       },
@@ -13890,6 +13890,7 @@
         "notify",
         "laneStatus",
         "workspaceSection",
+        "workspacePr",
         "terminal",
         "agentDispatch"
       ],
@@ -13940,7 +13941,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 24916,
+      "sizeBytes": 25464,
       "extraction": {
         "status": "parsed"
       },
@@ -16617,7 +16618,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 8122,
+      "sizeBytes": 8243,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -18113,7 +18114,8 @@
         "openCreatePr",
         "fixChecks",
         "openOnGitHub",
-        "merge"
+        "merge",
+        "updateFromBase"
       ],
       "depends": [
         "electron",
@@ -18172,14 +18174,14 @@
           "purpose": "Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR."
         },
         "menuItems": {
-          "line": 110,
+          "line": 114,
           "params": [
             "ws"
           ],
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 137,
+          "line": 144,
           "params": [
             "id",
             "ws"
@@ -18187,34 +18189,41 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 149,
+          "line": 157,
           "params": [
             "ws"
           ]
         },
         "openCreatePr": {
-          "line": 166,
+          "line": 174,
           "params": [
             "ws"
           ],
           "purpose": "The Create PR dialog: main composes the title/body (from the workspace's"
         },
         "fixChecks": {
-          "line": 247,
+          "line": 255,
           "params": [
             "ws"
           ],
           "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
         },
         "merge": {
-          "line": 267,
+          "line": 275,
           "params": [
             "ws"
           ],
           "purpose": "Merge the workspace's PR with the project's method (main decides: the"
         },
+        "updateFromBase": {
+          "line": 304,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Fetch the base and merge it into the workspace branch (main decides; see"
+        },
         "openOnGitHub": {
-          "line": 289,
+          "line": 324,
           "params": [
             "ws"
           ],
@@ -18229,7 +18238,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 12506,
+      "sizeBytes": 14137,
       "extraction": {
         "status": "parsed"
       },
@@ -18246,7 +18255,8 @@
           "refresh": "8faf0bd876257b8e",
           "rowBadgesHtml": "299a6e285b813ca9",
           "rowState": "4f19edd01cc50b2a",
-          "runAction": "116f81971cd5dbb7"
+          "runAction": "116f81971cd5dbb7",
+          "updateFromBase": "c7ba999ebabec872"
         }
       }
     },
@@ -31186,6 +31196,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "ff3aa0458721c395553bd8635949fe09d76d92a3092a8876fe1e1222983bdee5"
+    "revision": "7f5268ad0760bc0905a8822b1c5bd797d2edc1c0f24bcb73c21550133c2e9513"
   }
 }
