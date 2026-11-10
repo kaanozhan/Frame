@@ -291,6 +291,9 @@ function init() {
   // (workspaces spec). Restoring a workspace reruns the setup script.
   const workspaceSection = require('./workspaceSection');
   const newWorkspaceModal = require('./newWorkspaceModal');
+  // Git / PR state of each workspace (workspace-pr-flow), before the list
+  // that draws it.
+  require('./workspacePr').init();
   newWorkspaceModal.init();
   workspaceSection.setActions({
     onNew: () => newWorkspaceModal.open(),
@@ -942,6 +945,16 @@ function registerCommands() {
     shortcut: 'CmdOrCtrl+Shift+N',
     when: () => !!state.getProjectPath(),
     run: () => require('./newWorkspaceModal').open()
+  });
+  r({
+    id: 'workspace.push',
+    title: 'Push Workspace',
+    category: 'Workspace',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').push(ws);
+    }
   });
   r({
     id: 'workspace.archive',

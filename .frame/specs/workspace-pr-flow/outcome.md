@@ -30,3 +30,11 @@ _Captured: 2026-11-10 · 5 file change(s)_
 _Captured: 2026-11-10 · 1 file change(s)_
 
 ---
+
+## T05 — Show git state on workspace rows and add Push
+
+Added `src/renderer/workspacePr.js`: keeps the current project's `WORKSPACE_GIT_STATE` (asks main with `WORKSPACE_GIT_REFRESH` on init and project change, which also makes that project the polled one), renders row badges (●uncommitted, ↑unpushed, ↓behind, `#n` coloured by draft/open/merged/closed with a passing/failing/pending checks dot and a tooltip naming failing checks and comments) and row-menu items, and owns the Push action (confirms first when there are uncommitted changes, then toasts). `workspaceSection.js` renders the badges under the labels, puts the PR items above its own with a separator and routes their clicks through `runAction`; `index.js` inits it and registers `workspace.push`; badge styles in `workspaces.css`. Live over CDP with a fake gh on the scratch PATH: a commit showed `↑1`, the menu offered `Push (1)`, pushing cleared it, and a PR with a failing check showed `#55` with a red dot titled `PR #55 · open · 1 failing: lint · 1 comment`.
+
+_Captured: 2026-11-10 · 4 file change(s)_
+
+---

@@ -24,6 +24,7 @@ const laneStatus = require('./laneStatus');
 const notify = require('./notify');
 const { escapeHtml } = require('./htmlUtils');
 const rollup = require('./workspaces/rollup');
+const workspacePr = require('./workspacePr');
 
 let rootEl = null;
 let menuEl = null;
@@ -80,6 +81,8 @@ function init() {
     load({ reselect: true });
   });
   state.onWorkspaceChange(() => scheduleRender());
+  // Git / PR state per workspace (workspace-pr-flow).
+  workspacePr.onChange(() => scheduleRender());
   laneStatus.onChange(() => scheduleRender());
   ipcRenderer.on(IPC.WORKSPACES_UPDATED, (event, { projectPath } = {}) => {
     if (projectPath && projectPath === state.getProjectPath()) load();
@@ -199,7 +202,7 @@ function rowHtml(ws, { selectedId, sums }) {
   return `
     <div class="ws-row${on}${missing}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="button" aria-pressed="${!!on}">
       ${dotHtml(rollup.summaryFor(sums, ws.id))}
-      <span class="ws-labels">${primary}${secondary}${specLine}</span>
+      <span class="ws-labels">${primary}${secondary}${specLine}${workspacePr.rowBadgesHtml(ws)}</span>
       ${trailing}
     </div>`;
 }
@@ -315,11 +318,18 @@ let menuTarget = null;
 
 function showMenu(ws, x, y) {
   menuTarget = ws;
-  menuEl.innerHTML = [
+  // The PR flow's actions first (push, PR…), then the workspace's own.
+  const prItems = workspacePr.menuItems(ws);
+  const items = [
+    ...prItems,
+    ...(prItems.length ? [{ separator: true }] : []),
     { id: 'rename', label: 'Rename…' },
     { id: 'rename-branch', label: 'Rename branch…' },
     { id: 'archive', label: 'Archive…', danger: true }
-  ].map((a) => `<button class="context-menu-item${a.danger ? ' danger' : ''}" data-menu="${a.id}" type="button">${a.label}</button>`).join('');
+  ];
+  menuEl.innerHTML = items.map((a) => a.separator
+    ? '<div class="context-menu-separator"></div>'
+    : `<button class="context-menu-item${a.danger ? ' danger' : ''}" data-menu="${escapeHtml(a.id)}" type="button"${a.disabled ? ' disabled' : ''}${a.title ? ` title="${escapeHtml(a.title)}"` : ''}>${escapeHtml(a.label)}</button>`).join('');
   menuEl.classList.add('visible');
   menuEl.style.position = 'fixed';
   menuEl.style.zIndex = '1000';
@@ -338,6 +348,7 @@ function onMenuClick(e) {
   if (!item || !menuTarget) return;
   const ws = menuTarget;
   hideMenu();
+  if (workspacePr.runAction(item.dataset.menu, ws)) return;
   if (item.dataset.menu === 'rename') startRename(ws, 'name');
   else if (item.dataset.menu === 'rename-branch') startRename(ws, 'branch');
   else if (item.dataset.menu === 'archive') archiveWorkspace(ws);

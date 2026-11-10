@@ -341,3 +341,44 @@
 }
 
 .ws-spec:hover { text-decoration: underline; }
+
+/* ---------- Git / PR state on a row (workspace-pr-flow) ---------- */
+
+.ws-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.ws-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-badge.dirty { color: var(--warning); }
+.ws-badge.ahead { color: var(--text-secondary); }
+.ws-badge.pr { color: var(--accent-primary); }
+.ws-badge.pr.draft { color: var(--text-tertiary); }
+.ws-badge.pr.merged { color: var(--info, #a6c0f0); }
+.ws-badge.pr.closed { color: var(--text-muted); text-decoration: line-through; }
+
+.ws-checks {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.ws-checks.passing { background: var(--success); }
+.ws-checks.failing { background: var(--error); }
+.ws-checks.pending { background: var(--warning); }
+
+.workspace-context-menu .context-menu-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

@@ -11823,6 +11823,7 @@
         "statusBar",
         "workspaceSection",
         "newWorkspaceModal",
+        "workspacePr",
         "paletteSources",
         "agentDispatch"
       ],
@@ -11832,34 +11833,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 347,
+          "line": 350,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 455,
+          "line": 458,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 586,
+          "line": 589,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 625,
+          "line": 628,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 651,
+          "line": 654,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1083,
+          "line": 1096,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1108,
+          "line": 1121,
           "params": [
             "err"
           ],
@@ -11879,7 +11880,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 40900,
+      "sizeBytes": 41333,
       "extraction": {
         "status": "parsed"
       },
@@ -16411,7 +16412,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 6838,
+      "sizeBytes": 7816,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -17890,6 +17891,118 @@
         }
       }
     },
+    "renderer/workspacePr": {
+      "file": "src/renderer/workspacePr.js",
+      "description": "Workspace PR — each workspace's way out, in the renderer",
+      "exports": [
+        "init",
+        "refresh",
+        "onChange",
+        "rowState",
+        "access",
+        "prBlockedReason",
+        "rowBadgesHtml",
+        "menuItems",
+        "runAction",
+        "push"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "notify",
+        "htmlUtils"
+      ],
+      "functions": {
+        "onChange": {
+          "line": 21,
+          "params": [
+            "cb"
+          ]
+        },
+        "emit": {
+          "line": 26
+        },
+        "refresh": {
+          "line": 33,
+          "purpose": "Ask main for fresh state of the current project (and make it the polled one)."
+        },
+        "init": {
+          "line": 47
+        },
+        "rowState": {
+          "line": 62,
+          "params": [
+            "id"
+          ],
+          "purpose": "Row state of a workspace, or null before the first read."
+        },
+        "access": {
+          "line": 67,
+          "purpose": "GitHub access of the current project: `{ gh, authed, repoName }`."
+        },
+        "prBlockedReason": {
+          "line": 72,
+          "purpose": "Why PR actions are unavailable, or null when they are."
+        },
+        "checksDot": {
+          "line": 80,
+          "params": [
+            "pr"
+          ]
+        },
+        "rowBadgesHtml": {
+          "line": 89,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR."
+        },
+        "menuItems": {
+          "line": 109,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
+        },
+        "runAction": {
+          "line": 118,
+          "params": [
+            "id",
+            "ws"
+          ],
+          "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
+        },
+        "push": {
+          "line": 125,
+          "params": [
+            "ws"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "WORKSPACE_GIT_STATE"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 5498,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "6f7f1921665ca854",
+        "purposes": {
+          "access": "07aeb542835bc462",
+          "menuItems": "6cf670bca1da203e",
+          "prBlockedReason": "24c624a5061312d9",
+          "refresh": "8faf0bd876257b8e",
+          "rowBadgesHtml": "299a6e285b813ca9",
+          "rowState": "4f19edd01cc50b2a",
+          "runAction": "116f81971cd5dbb7"
+        }
+      }
+    },
     "renderer/workspaceSection": {
       "file": "src/renderer/workspaceSection.js",
       "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07).",
@@ -17914,47 +18027,48 @@
         "notify",
         "htmlUtils",
         "workspaces/rollup",
+        "workspacePr",
         "terminal",
         "specsDashboard"
       ],
       "functions": {
         "setActions": {
-          "line": 49,
+          "line": 50,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 53
+          "line": 54
         },
         "load": {
-          "line": 105,
+          "line": 108,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 135,
+          "line": 138,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 148
+          "line": 151
         },
         "summaries": {
-          "line": 158
+          "line": 161
         },
         "dotHtml": {
-          "line": 175,
+          "line": 178,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 180,
+          "line": 183,
           "params": [
             "ws",
             "{ selectedId",
@@ -17962,34 +18076,34 @@
           ]
         },
         "render": {
-          "line": 207
+          "line": 210
         },
         "findWs": {
-          "line": 258,
+          "line": 261,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 262,
+          "line": 265,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 291,
+          "line": 294,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 303,
+          "line": 306,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 316,
+          "line": 319,
           "params": [
             "ws",
             "x",
@@ -17997,39 +18111,39 @@
           ]
         },
         "hideMenu": {
-          "line": 332
+          "line": 342
         },
         "onMenuClick": {
-          "line": 336,
+          "line": 346,
           "params": [
             "e"
           ]
         },
         "openNew": {
-          "line": 348
+          "line": 359
         },
         "startRename": {
-          "line": 356,
+          "line": 367,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 361,
+          "line": 372,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 381,
+          "line": 392,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "openHeldSpec": {
-          "line": 403,
+          "line": 414,
           "params": [
             "ws",
             "slug"
@@ -18037,14 +18151,14 @@
           "purpose": "Select a workspace and open the spec it holds in the specs drawer."
         },
         "closeWorkspaceTerminals": {
-          "line": 412,
+          "line": 423,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 425,
+          "line": 436,
           "params": [
             "ws",
             "count"
@@ -18052,37 +18166,37 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 482,
+          "line": 493,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 488,
+          "line": 499,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 501,
+          "line": 512,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 510,
+          "line": 521,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 520,
+          "line": 531,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 534,
+          "line": 545,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -18093,7 +18207,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 21893,
+      "sizeBytes": 22522,
       "extraction": {
         "status": "parsed"
       },
@@ -30497,6 +30611,11 @@
         "description": "New Workspace Modal (workspaces spec, T08)."
       },
       {
+        "module": "renderer/workspacePr",
+        "file": "src/renderer/workspacePr.js",
+        "description": "Workspace PR — each workspace's way out, in the renderer"
+      },
+      {
         "module": "renderer/workspaceSection",
         "file": "src/renderer/workspaceSection.js",
         "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07)."
@@ -30547,7 +30666,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 328,
+        "parsed": 329,
         "unsupported": 85,
         "partial": 0
       }
@@ -30594,9 +30713,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 503,
+      "visitedEntries": 504,
       "traversedDirectories": 82,
-      "eligibleFiles": 413,
+      "eligibleFiles": 414,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -30613,7 +30732,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 413,
+      "indexedFiles": 414,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -30621,6 +30740,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4a2d9cef881c05048217570363b1ab6010e92d273dfe3d072d86518be2995945"
+    "revision": "2b5e01cae03be5fd4701d6b9fe68db7646a24a8dc4aa31c69b0da1c5354704f3"
   }
 }
