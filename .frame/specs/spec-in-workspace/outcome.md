@@ -14,3 +14,11 @@ Added `src/main/workspaceTooling.js`: `provision` copies `provisionEntries` (bin
 _Captured: 2026-11-10 · 3 file change(s)_
 
 ---
+
+## T03 — Make specManager root-aware
+
+Instead of threading a root parameter through every function as the plan sketched, `specManager.js` gained a per-project `specLocations` map (slug → `{ root, workspace }`, rebuilt by `refreshSpecLocations` from main plus every active workspace whose folder exists, workspace winning a slug clash) and `getSpecDir` resolves through it — so status reads/writes, phase reconcile, reports, getSpec, update, delete and the tasks.md import all act on the right checkout with unchanged signatures, while tasks.json stays read through `projectPath`. `listSpecs` iterates the map and tags/sorts through `mergeSpecLists` (so `LIST_SPECS`/`SPEC_DATA` carry the merged list), `searchSpecs` covers every checkout, `getSpec` returns `workspace`, and `renameSpec` keeps the folder in its checkout and registers the new slug's location (without that, the post-move status write landed a stray folder in main). Smoke-tested on the scratch project: a slug in both places resolves to the workspace copy, a workspace-only spec is tagged, rename stays in the worktree, and after a local-mode archive both specs show from main.
+
+_Captured: 2026-11-10 · 1 file change(s)_
+
+---

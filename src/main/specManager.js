@@ -24,6 +24,9 @@ const analytics = require('./analytics');
 const { diffSpecLifecycle, renameSpecLifecycle } = require('./analyticsEvents');
 const activityLog = require('./activityLog');
 const perfMonitor = require('./perfMonitor');
+const projectRegistry = require('./projectRegistry');
+const workspaceRegistry = require('../shared/workspaceRegistry');
+const { mergeSpecLists } = require('../shared/workspaceSpecs');
 
 const STATUS_FILE = 'status.json';
 const SPEC_FILE = 'spec.md';
@@ -66,8 +69,76 @@ function getSpecsRoot(projectPath) {
   return frameStore.specsRoot(projectPath);
 }
 
+// ─── Where a spec lives (spec-in-workspace) ─────────────────
+//
+// Specs are written inside a workspace's worktree and ride its branch, so a
+// project's specs live in more than one checkout: the main one (`projectPath`)
+// and each active workspace's folder. `specLocations` maps every slug of a
+// project to its checkout; getSpecDir resolves through it, so every reader and
+// writer below (status, phase, reports, tasks import, rename, delete) acts on
+// the right folder without knowing about workspaces. Task state never moves:
+// tasks.json is always read and written through `projectPath`.
+//
+// A slug present in main and in a workspace resolves to the workspace (the
+// copy being worked on); between two workspaces the first listed wins — the
+// same rule as shared/workspaceSpecs.mergeSpecLists.
+
+const specLocations = new Map(); // projectPath → Map<slug, { root, workspace }>
+
+/** Active workspaces of a project whose folder exists: `[{ id, name, branch, root }]`. */
+function activeWorkspaceRoots(projectPath) {
+  let records = [];
+  try {
+    records = workspaceRegistry.activeOf(projectRegistry.getWorkspaceRecords(projectPath));
+  } catch (_) {
+    return [];
+  }
+  return records
+    .filter((r) => r && r.path && r.path !== projectPath && fs.existsSync(r.path))
+    .map((r) => ({ id: r.id, name: r.name, branch: r.branch || null, root: r.path }));
+}
+
+function specFolderNames(root) {
+  try {
+    return fs.readdirSync(frameStore.specsRoot(root), { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch (_) {
+    return [];
+  }
+}
+
+/** Re-read which checkout holds each slug of `projectPath`. */
+function refreshSpecLocations(projectPath) {
+  const map = new Map();
+  for (const slug of specFolderNames(projectPath)) {
+    map.set(slug, { root: projectPath, workspace: null });
+  }
+  const claimed = new Set();
+  for (const ws of activeWorkspaceRoots(projectPath)) {
+    for (const slug of specFolderNames(ws.root)) {
+      if (claimed.has(slug)) continue;
+      claimed.add(slug);
+      map.set(slug, { root: ws.root, workspace: ws });
+    }
+  }
+  specLocations.set(projectPath, map);
+  return map;
+}
+
+/** The checkout a slug lives in (main when unknown — where a new spec would go). */
+function specLocation(projectPath, slug) {
+  const map = specLocations.get(projectPath) || refreshSpecLocations(projectPath);
+  return map.get(slug) || { root: projectPath, workspace: null };
+}
+
+/** Root folder for a slug: its workspace's worktree, or the main checkout. */
+function specRoot(projectPath, slug) {
+  return specLocation(projectPath, slug).root;
+}
+
 function getSpecDir(projectPath, slug) {
-  return frameStore.resolveSpecDir(projectPath, slug);
+  return frameStore.resolveSpecDir(specRoot(projectPath, slug), slug);
 }
 
 // ─── Validation ────────────────────────────────────────────
@@ -238,15 +309,11 @@ function buildSpecCatalog(projectPath) {
 // ─── Public API ────────────────────────────────────────────
 
 function listSpecs(projectPath) {
-  const root = getSpecsRoot(projectPath);
-  if (!fs.existsSync(root)) return [];
-  let entries;
-  try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
-  } catch (err) {
-    console.error('specManager: listSpecs readdir failed', err);
-    return [];
-  }
+  // Every checkout of the project: main plus active workspaces. Each slug is
+  // read from the one checkout that holds it (see specLocations).
+  const locations = refreshSpecLocations(projectPath);
+  if (locations.size === 0) return [];
+  const entries = Array.from(locations.keys()).map((name) => ({ name, isDirectory: () => true }));
 
   // Load tasks once so reconcilePhase can look at task statuses (the
   // implementing → done transition is task-driven). Cheap on the order
@@ -318,13 +385,16 @@ function listSpecs(projectPath) {
       ...(reports.length ? { reports } : {})
     });
   }
-  // Malformed first: a spec Frame cannot read needs a human, and sorting it
-  // by a timestamp it doesn't have buried it under everything else.
-  specs.sort((a, b) => {
-    if (!!a.malformed !== !!b.malformed) return a.malformed ? -1 : 1;
-    return (b.updated_at || '').localeCompare(a.updated_at || '');
-  });
-  return specs;
+  // Tag each spec with its workspace (null = main) and keep listSpecs' order.
+  const tagged = specs.map((spec) => ({ spec, loc: locations.get(spec.slug) || { workspace: null } }));
+  const mainSpecs = tagged.filter((t) => !t.loc.workspace).map((t) => t.spec);
+  const byWorkspace = new Map();
+  for (const t of tagged) {
+    if (!t.loc.workspace) continue;
+    if (!byWorkspace.has(t.loc.workspace.id)) byWorkspace.set(t.loc.workspace.id, { workspace: t.loc.workspace, specs: [] });
+    byWorkspace.get(t.loc.workspace.id).specs.push(t.spec);
+  }
+  return mergeSpecLists(mainSpecs, Array.from(byWorkspace.values()));
 }
 
 /**
@@ -1056,7 +1126,9 @@ function getSpec(projectPath, slug) {
     // implement.defaultMode → null), so the modal's preselection and the
     // next-action button's label read one authoritative value instead of
     // re-deriving the resolution in the renderer.
-    implementHint: resolveImplementLaunchHint(projectPath, slug)
+    implementHint: resolveImplementLaunchHint(projectPath, slug),
+    // Where the spec lives (spec-in-workspace): null = the main checkout.
+    workspace: specLocation(projectPath, slug).workspace || null
   };
 }
 
@@ -1108,18 +1180,10 @@ function readSpecReport(projectPath, slug, kind) {
 function searchSpecs(projectPath, query) {
   const q = (query || '').trim().toLowerCase();
   if (!q) return null;
-  const root = getSpecsRoot(projectPath);
-  if (!fs.existsSync(root)) return [];
-  let entries;
-  try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
-  } catch (err) {
-    console.error('specManager: searchSpecs readdir failed', err);
-    return [];
-  }
+  // Main and every active workspace (spec-in-workspace).
+  const entries = Array.from(refreshSpecLocations(projectPath).keys()).map((name) => ({ name }));
   const matches = [];
   for (const ent of entries) {
-    if (!ent.isDirectory()) continue;
     const body = readFileSafe(path.join(getSpecDir(projectPath, ent.name), SPEC_FILE));
     if (body && body.toLowerCase().includes(q)) matches.push(ent.name);
   }
@@ -1193,7 +1257,8 @@ function renameSpec(projectPath, oldSlug, opts) {
       return { error: `slug too long (max ${SLUG_MAX_LEN} chars)` };
     }
     if (candidate !== oldSlug) {
-      const collidingDir = getSpecDir(projectPath, candidate);
+      // The renamed folder stays in the checkout that holds the spec.
+      const collidingDir = frameStore.resolveSpecDir(specRoot(projectPath, oldSlug), candidate);
       if (fs.existsSync(collidingDir)) return { error: 'slug already in use' };
 
       // Move folder first; if anything fails after this, we still have data
@@ -1201,6 +1266,9 @@ function renameSpec(projectPath, oldSlug, opts) {
         fs.renameSync(oldDir, collidingDir);
         folderRenamed = true;
         newSlug = candidate;
+        // The new slug lives where the old one did (main or its workspace).
+        const known = specLocations.get(projectPath);
+        if (known) known.set(candidate, specLocation(projectPath, oldSlug));
       } catch (err) {
         return { error: 'could not rename folder: ' + err.message };
       }
