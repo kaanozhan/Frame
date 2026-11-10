@@ -24214,6 +24214,202 @@
         }
       }
     },
+    "shared/serverProtocol": {
+      "file": "src/shared/serverProtocol.js",
+      "description": "serverProtocol — the messages between Frame desktop and Frame Server",
+      "exports": [
+        "PROTOCOL_VERSION",
+        "validate",
+        "decode",
+        "encode",
+        "hello",
+        "request",
+        "reply",
+        "failure",
+        "event",
+        "checkHello",
+        "createPending"
+      ],
+      "depends": [],
+      "functions": {
+        "isPlainObject": {
+          "line": 19,
+          "params": [
+            "v"
+          ]
+        },
+        "validate": {
+          "line": 24,
+          "params": [
+            "msg"
+          ],
+          "purpose": "Why `msg` is not a valid protocol message, or null when it is."
+        },
+        "decode": {
+          "line": 50,
+          "params": [
+            "text"
+          ],
+          "purpose": "Text → `{ ok: true, msg }` or `{ ok: false, error }`. Never throws."
+        },
+        "encode": {
+          "line": 61,
+          "params": [
+            "msg"
+          ]
+        },
+        "checkHello": {
+          "line": 72,
+          "params": [
+            "msg",
+            "ownFrameVersion"
+          ],
+          "purpose": "Is the other side's hello compatible? `{ ok, error }` naming both versions."
+        },
+        "createPending": {
+          "line": 88,
+          "purpose": "Pending requests by id: `add(id, timeoutMs)` → promise that settles when"
+        }
+      },
+      "sizeBytes": 4895,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "466a0777668d4966",
+        "purposes": {
+          "checkHello": "75f9f3775120a8a7",
+          "createPending": "398abfca6ec410f1",
+          "decode": "81289f320bad8316",
+          "validate": "31cbd9bcf6fd3db3"
+        }
+      }
+    },
+    "shared/serverRouting": {
+      "file": "src/shared/serverRouting.js",
+      "description": "serverRouting — which things live on the server and how desktop and",
+      "exports": [
+        "SERVER_TERMINAL_PREFIX",
+        "isServerTerminalId",
+        "serverTerminalId",
+        "normalizeRemoteUrl",
+        "sameRemote",
+        "projectDirName",
+        "parseSshConfigHosts"
+      ],
+      "depends": [],
+      "functions": {
+        "isServerTerminalId": {
+          "line": 16,
+          "params": [
+            "id"
+          ]
+        },
+        "serverTerminalId": {
+          "line": 20,
+          "params": [
+            "n"
+          ]
+        },
+        "normalizeRemoteUrl": {
+          "line": 30,
+          "params": [
+            "url"
+          ],
+          "purpose": "`git@github.com:Owner/Repo.git`, `https://github.com/Owner/Repo`,"
+        },
+        "sameRemote": {
+          "line": 51,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "projectDirName": {
+          "line": 62,
+          "params": [
+            "url",
+            "taken = {}"
+          ],
+          "purpose": "Folder name for a clone of `url` under the server's projects root."
+        },
+        "parseSshConfigHosts": {
+          "line": 80,
+          "params": [
+            "text"
+          ],
+          "purpose": "Host aliases from an OpenSSH client config: every name on a `Host` line,"
+        }
+      },
+      "sizeBytes": 3434,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ce59a75408de331b",
+        "purposes": {
+          "normalizeRemoteUrl": "afe713da10725c06",
+          "parseSshConfigHosts": "c6b2dbdf7edb7f8d",
+          "projectDirName": "aa19e2a8bd1a94e9"
+        }
+      }
+    },
+    "shared/serverSecurity": {
+      "file": "src/shared/serverSecurity.js",
+      "description": "serverSecurity — the few rules that keep Frame Server from becoming a",
+      "exports": [
+        "DESKTOP_ORIGIN",
+        "generateToken",
+        "tokensEqual",
+        "checkUpgrade",
+        "bindRule"
+      ],
+      "depends": [
+        "crypto"
+      ],
+      "functions": {
+        "generateToken": {
+          "line": 19,
+          "purpose": "A fresh random token (256 bits, URL-safe)."
+        },
+        "tokensEqual": {
+          "line": 24,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Constant-time token comparison; false for anything that is not two non-empty strings."
+        },
+        "checkUpgrade": {
+          "line": 38,
+          "params": [
+            "headers",
+            "token"
+          ],
+          "purpose": "Decide a WebSocket upgrade from its headers (lower-case keys, as Node"
+        },
+        "bindRule": {
+          "line": 56,
+          "params": [
+            "requested"
+          ],
+          "purpose": "Where to listen. Default 127.0.0.1; any other address is honoured but"
+        }
+      },
+      "sizeBytes": 2619,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "66bab393753dfbb5",
+        "purposes": {
+          "bindRule": "ce6665e982523329",
+          "checkUpgrade": "43f3ff871e2cce21",
+          "generateToken": "85541e44695bec62",
+          "tokensEqual": "9711a2c2a5362cd8"
+        }
+      }
+    },
     "shared/uiZoom": {
       "file": "src/shared/uiZoom.js",
       "description": "UI zoom ladder — the five interface sizes Frame offers (ui-zoom-steps spec).",
@@ -27615,6 +27811,60 @@
         }
       }
     },
+    "test/serverProtocol.test": {
+      "file": "test/serverProtocol.test.js",
+      "description": "serverProtocol — desktop ↔ Frame Server messages (server-workspaces spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/serverProtocol"
+      ],
+      "functions": {},
+      "sizeBytes": 2807,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "53feb2bccb916eff"
+      }
+    },
+    "test/serverRouting.test": {
+      "file": "test/serverRouting.test.js",
+      "description": "serverRouting — naming across desktop and server (server-workspaces spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/serverRouting"
+      ],
+      "functions": {},
+      "sizeBytes": 2486,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "dc627a4fd79e5adc"
+      }
+    },
+    "test/serverSecurity.test": {
+      "file": "test/serverSecurity.test.js",
+      "description": "serverSecurity — Frame Server's guard rails (server-workspaces spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/serverSecurity"
+      ],
+      "functions": {},
+      "sizeBytes": 2116,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "5fab4ba84d6c4f58"
+      }
+    },
     "test/sessionHookInstall.test": {
       "file": "test/sessionHookInstall.test.js",
       "description": "Session report hook install/remove (restore-ai-sessions-on-relaunch).",
@@ -30797,6 +31047,28 @@
         "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07)."
       }
     ],
+    "server": [
+      {
+        "module": "shared/serverProtocol",
+        "file": "src/shared/serverProtocol.js",
+        "description": "serverProtocol — the messages between Frame desktop and Frame Server"
+      },
+      {
+        "module": "shared/serverRouting",
+        "file": "src/shared/serverRouting.js",
+        "description": "serverRouting — which things live on the server and how desktop and"
+      },
+      {
+        "module": "shared/serverSecurity",
+        "file": "src/shared/serverSecurity.js",
+        "description": "serverSecurity — the few rules that keep Frame Server from becoming a"
+      },
+      {
+        "module": "templates/sample-project/src/api/server",
+        "file": "src/templates/sample-project/src/api/server.js",
+        "description": "Express server — app factory"
+      }
+    ],
     "session": [
       {
         "module": "main/sessionRestore",
@@ -31161,7 +31433,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 332,
+        "parsed": 338,
         "unsupported": 86,
         "partial": 0
       }
@@ -31208,9 +31480,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 508,
+      "visitedEntries": 514,
       "traversedDirectories": 82,
-      "eligibleFiles": 418,
+      "eligibleFiles": 424,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -31227,7 +31499,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 418,
+      "indexedFiles": 424,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -31235,6 +31507,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "a38de7d5efc96d068c38b251b28482a0d23ae7bd4f77d462e2870f58f0d47387"
+    "revision": "5dc49d149b53409739fc617adbb1cf5a4b43e49df144d30e3403ef4d11a1c177"
   }
 }
