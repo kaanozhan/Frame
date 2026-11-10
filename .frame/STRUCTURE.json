@@ -290,7 +290,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 102027,
+      "sizeBytes": 103336,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -11856,11 +11856,11 @@
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1121,
+          "line": 1135,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1146,
+          "line": 1160,
           "params": [
             "err"
           ],
@@ -11880,7 +11880,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 42160,
+      "sizeBytes": 42599,
       "extraction": {
         "status": "parsed"
       },
@@ -13326,86 +13326,86 @@
           "line": 49
         },
         "syncFromProject": {
-          "line": 259
+          "line": 264
         },
         "setWorkspacesNote": {
-          "line": 269,
+          "line": 274,
           "params": [
             "message"
           ]
         },
         "paintWorkspaceSettings": {
-          "line": 275,
+          "line": 280,
           "params": [
             "settings"
           ]
         },
         "syncWorkspaceSettings": {
-          "line": 285,
+          "line": 292,
           "purpose": "Read `settings.workspaces`. Defaults show for a project without Frame —"
         },
         "saveWorkspaceSettings": {
-          "line": 300,
+          "line": 309,
           "params": [
             "settings"
           ]
         },
         "renderDoneWindow": {
-          "line": 320,
+          "line": 329,
           "purpose": "Paint both window selects from the store. With no project open there is"
         },
         "setDoneWindowNote": {
-          "line": 332,
+          "line": 341,
           "params": [
             "message"
           ]
         },
         "syncFrameSetup": {
-          "line": 349,
+          "line": 358,
           "purpose": "Setup and removal are two surfaces. A project without `.frame/` gets the"
         },
         "syncMigrationDecision": {
-          "line": 365,
+          "line": 374,
           "purpose": "Shown only while this project still has something to answer. The decision"
         },
         "syncDefaultProject": {
-          "line": 385,
+          "line": 394,
           "purpose": "The launch-project row. It is hidden outright below two projects: with one"
         },
         "syncSpecDrivenToggle": {
-          "line": 411,
+          "line": 420,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "renderGitSharing": {
-          "line": 436,
+          "line": 445,
           "params": [
             "stateObj"
           ],
           "purpose": "Paint the sharing row from main's state object. `error` means the project"
         },
         "syncGitSharing": {
-          "line": 452
+          "line": 461
         },
         "setRemoveFrameNote": {
-          "line": 466,
+          "line": 475,
           "params": [
             "message"
           ]
         },
         "setGitSharingWarning": {
-          "line": 472,
+          "line": 481,
           "params": [
             "message"
           ]
         },
         "setSpecDrivenNote": {
-          "line": 478,
+          "line": 487,
           "params": [
             "message"
           ]
         }
       },
-      "sizeBytes": 19696,
+      "sizeBytes": 20469,
       "extraction": {
         "status": "parsed"
       },
@@ -17907,7 +17907,8 @@
         "push",
         "openCreatePr",
         "fixChecks",
-        "openOnGitHub"
+        "openOnGitHub",
+        "merge"
       ],
       "depends": [
         "electron",
@@ -17972,7 +17973,7 @@
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 130,
+          "line": 136,
           "params": [
             "id",
             "ws"
@@ -17980,27 +17981,34 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 140,
+          "line": 147,
           "params": [
             "ws"
           ]
         },
         "openCreatePr": {
-          "line": 157,
+          "line": 164,
           "params": [
             "ws"
           ],
           "purpose": "The Create PR dialog: main composes the title/body (from the workspace's"
         },
         "fixChecks": {
-          "line": 238,
+          "line": 245,
           "params": [
             "ws"
           ],
           "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
         },
+        "merge": {
+          "line": 265,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Merge the workspace's PR with the project's method (main decides: the"
+        },
         "openOnGitHub": {
-          "line": 254,
+          "line": 287,
           "params": [
             "ws"
           ],
@@ -18015,7 +18023,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 10589,
+      "sizeBytes": 12363,
       "extraction": {
         "status": "parsed"
       },
@@ -18025,6 +18033,7 @@
           "access": "07aeb542835bc462",
           "fixChecks": "04c4c6acd7c5b223",
           "menuItems": "6cf670bca1da203e",
+          "merge": "69bc6adb5bacd318",
           "openCreatePr": "6e7d7f5676838d2d",
           "openOnGitHub": "b2731eff4841fa86",
           "prBlockedReason": "24c624a5061312d9",
@@ -30772,6 +30781,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "8d50ae5a4db2724f058a6852e13d2440fe41af57857706f3d3e10fc30943d7e5"
+    "revision": "d31db26b2ddf0f9a5daaadcb62c2cc4932fccb2807b984c842f8eb1a5ff3187e"
   }
 }

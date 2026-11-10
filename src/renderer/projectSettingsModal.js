@@ -96,6 +96,8 @@ function init() {
     setup: document.getElementById('settings-ws-setup'),
     copy: document.getElementById('settings-ws-copy'),
     prefix: document.getElementById('settings-ws-prefix'),
+    mergeMethod: document.getElementById('settings-ws-merge-method'),
+    archiveOnMerge: document.getElementById('settings-ws-archive-on-merge'),
     note: document.getElementById('settings-workspaces-note')
   };
   // Each field saves only its own key, so a field still showing another
@@ -103,6 +105,9 @@ function init() {
   if (wsEls.setup) wsEls.setup.addEventListener('change', () => saveWorkspaceSettings({ setupScript: wsEls.setup.value }));
   if (wsEls.copy) wsEls.copy.addEventListener('change', () => saveWorkspaceSettings({ copyFiles: wsEls.copy.value.split(/\r?\n/) }));
   if (wsEls.prefix) wsEls.prefix.addEventListener('change', () => saveWorkspaceSettings({ branchPrefix: wsEls.prefix.value }));
+  // workspace-pr-flow: merge method ('' = repository default) and archive-after-merge.
+  if (wsEls.mergeMethod) wsEls.mergeMethod.addEventListener('change', () => saveWorkspaceSettings({ mergeMethod: wsEls.mergeMethod.value || null }));
+  if (wsEls.archiveOnMerge) wsEls.archiveOnMerge.addEventListener('change', () => saveWorkspaceSettings({ archiveOnMerge: wsEls.archiveOnMerge.checked }));
 
   overlay = settingsOverlay.create('project-settings-overlay', syncFromProject);
   if (!overlay) return;
@@ -276,6 +281,8 @@ function paintWorkspaceSettings(settings) {
   wsEls.setup.value = settings.setupScript || '';
   wsEls.copy.value = (settings.copyFiles || []).join('\n');
   wsEls.prefix.value = settings.branchPrefix || '';
+  if (wsEls.mergeMethod) wsEls.mergeMethod.value = settings.mergeMethod || '';
+  if (wsEls.archiveOnMerge) wsEls.archiveOnMerge.checked = settings.archiveOnMerge !== false;
 }
 
 /**
@@ -291,7 +298,9 @@ async function syncWorkspaceSettings() {
   } catch (_) { /* leave the fields empty */ }
   const editable = !!(settings && settings.frameProject);
   if (settings) paintWorkspaceSettings(settings);
-  for (const el of [wsEls.setup, wsEls.copy, wsEls.prefix]) el.disabled = !editable;
+  for (const el of [wsEls.setup, wsEls.copy, wsEls.prefix, wsEls.mergeMethod, wsEls.archiveOnMerge]) {
+    if (el) el.disabled = !editable;
+  }
   setWorkspacesNote(!projectPath
     ? 'Open a project to change this.'
     : editable ? null : 'Initialize Frame to customize — new workspaces use these defaults until then.');

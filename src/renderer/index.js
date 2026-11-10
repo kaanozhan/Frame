@@ -982,6 +982,20 @@ function registerCommands() {
     }
   });
   r({
+    id: 'workspace.merge',
+    title: 'Merge Pull Request',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!(s && s.pr && s.pr.ready);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').merge(ws);
+    }
+  });
+  r({
     id: 'workspace.archive',
     title: 'Archive Workspace…',
     category: 'Workspace',

@@ -120,6 +120,12 @@ function menuItems(ws) {
   if (s && s.pr && hasOpenPr && s.pr.checks && s.pr.checks.failing) {
     items.push({ id: 'pr:fix', label: `Fix Failing Checks (${s.pr.checks.failing})`, title: (s.pr.checks.failingNames || []).join(', ') });
   }
+  if (s && s.pr && hasOpenPr) {
+    const why = s.pr.ready ? '' : s.pr.state === 'draft' ? 'Draft pull requests cannot be merged'
+      : !s.pr.mergeable ? 'Not mergeable (conflicts or unknown)'
+      : s.pr.checks.failing ? 'Checks are failing' : s.pr.checks.pending ? 'Checks are still running' : '';
+    items.push({ id: 'pr:merge', label: `Merge PR #${s.pr.number}`, disabled: !s.pr.ready || !!blocked, title: blocked || why });
+  }
   if (s && s.pr && s.pr.url) {
     items.push({ id: 'pr:open', label: `Open PR #${s.pr.number} on GitHub` });
   }
@@ -132,6 +138,7 @@ function runAction(id, ws) {
   if (id === 'pr:create') { openCreatePr(ws); return true; }
   if (id === 'pr:fix') { fixChecks(ws); return true; }
   if (id === 'pr:open') { openOnGitHub(ws); return true; }
+  if (id === 'pr:merge') { merge(ws); return true; }
   return false;
 }
 
@@ -250,6 +257,32 @@ async function fixChecks(ws) {
   });
 }
 
+/**
+ * Merge the workspace's PR with the project's method (main decides: the
+ * setting, else the repository's first allowed). Main then fast-forwards the
+ * main checkout when safe and archives the workspace when the setting is on.
+ */
+async function merge(ws) {
+  const s = rowState(ws.id);
+  if (!s || !s.pr || !s.pr.ready) {
+    notify.info('This pull request is not ready to merge.');
+    return null;
+  }
+  if (!window.confirm(`Merge PR #${s.pr.number} (${ws.branch} → ${ws.base || 'main'}) with the project's merge method?`)) return null;
+  const result = await ipcRenderer.invoke(IPC.WORKSPACE_PR_MERGE, { projectPath: state.getProjectPath(), id: ws.id });
+  if (!result || result.error) {
+    notify.error(`Merge failed: ${(result && result.error) || 'unknown error'}`);
+    return result;
+  }
+  const notes = [`Merged PR #${result.number} (${result.method})`];
+  if (result.fastForward && result.fastForward.updated) notes.push(`main checkout updated`);
+  else if (result.fastForward && result.fastForward.reason) notes.push(`main checkout not updated: ${result.fastForward.reason}`);
+  if (result.archived) notes.push('workspace archived');
+  else if (result.archiveNote) notes.push(result.archiveNote);
+  notify.success(notes.join(' · '));
+  return result;
+}
+
 /** Open the workspace's PR in the browser (same channel the GitHub panel uses). */
 function openOnGitHub(ws) {
   const s = rowState(ws.id);
@@ -269,5 +302,6 @@ module.exports = {
   push,
   openCreatePr,
   fixChecks,
-  openOnGitHub
+  openOnGitHub,
+  merge
 };

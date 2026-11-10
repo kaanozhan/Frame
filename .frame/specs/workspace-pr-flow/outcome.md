@@ -54,3 +54,11 @@ The row already showed passing/failing/pending with failing names in its tooltip
 _Captured: 2026-11-10 · 2 file change(s)_
 
 ---
+
+## T08 — Add Merge
+
+Row menu 'Merge PR #n' (disabled with the reason: draft, not mergeable, checks failing or running, or no gh access) and the `workspace.merge` command call `workspacePr.merge`: confirm, then `WORKSPACE_PR_MERGE`, and one toast summing up method, whether the main checkout was fast-forwarded (or why not) and whether the workspace was archived (or why not). Project Settings → Workspaces gained 'Merge method' (Repository default / Squash / Merge commit / Rebase → `mergeMethod`) and 'Archive after merge' (`archiveOnMerge`), saved per field and disabled with the others for non-Frame projects (`projectSettingsModal.js`, `index.html`). Live over CDP with the fake gh: Rebase saved to `.frame/config.json`, a green PR's menu offered 'Merge PR #101', merging called `gh pr merge 101 --rebase`, and the workspace left the list (archived). Last task: wrote `digest.md` and set the phase to done.
+
+_Captured: 2026-11-10 · 5 file change(s)_
+
+---

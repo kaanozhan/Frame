@@ -1679,6 +1679,28 @@
             </div>
             <input type="text" id="settings-ws-prefix" class="settings-text-input" spellcheck="false" placeholder="ws">
           </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-ws-merge-method">Merge method</label>
+              <p class="settings-row-desc">How Frame merges a workspace's pull request. <em>Repository default</em> uses the first one the repository allows: squash, merge, then rebase.</p>
+            </div>
+            <select class="settings-select" id="settings-ws-merge-method">
+              <option value="">Repository default</option>
+              <option value="squash">Squash</option>
+              <option value="merge">Merge commit</option>
+              <option value="rebase">Rebase</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <label class="settings-row-label" for="settings-ws-archive-on-merge">Archive after merge</label>
+              <p class="settings-row-desc">Archive the workspace once its pull request is merged. The branch is kept and the workspace can be restored.</p>
+            </div>
+            <label class="settings-switch">
+              <input type="checkbox" id="settings-ws-archive-on-merge" />
+              <span class="settings-switch-slider"></span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
