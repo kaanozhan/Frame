@@ -1091,18 +1091,12 @@ function arraysEqual(a, b) {
 }
 
 function syncAllSpecTasks(projectPath) {
-  const root = getSpecsRoot(projectPath);
-  if (!fs.existsSync(root)) return;
-  let entries;
-  try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const ent of entries) {
-    if (!ent.isDirectory()) continue;
-    if (fs.existsSync(path.join(root, ent.name, TASKS_FILE))) {
-      syncTasksFromMarkdown(projectPath, ent.name);
+  // Every checkout of the project (spec-in-workspace): a workspace spec's
+  // tasks.md is read from its worktree and imported into main's tasks.json —
+  // task state never lives on a branch.
+  for (const slug of refreshSpecLocations(projectPath).keys()) {
+    if (fs.existsSync(path.join(getSpecDir(projectPath, slug), TASKS_FILE))) {
+      syncTasksFromMarkdown(projectPath, slug);
     }
   }
 }
@@ -1350,6 +1344,75 @@ function renameSpec(projectPath, oldSlug, opts) {
 let specsBurst = { fires: 0, files: new Set() };
 let specTasksFires = 0;
 
+/**
+ * One handler for every specs folder of the watched project — main's and each
+ * workspace's — so a change anywhere lands in the same debounced push.
+ */
+function specsWatchHandler(projectPath) {
+  return (_event, filename) => {
+    // Our own writeStatus calls fire this watcher too — drop them.
+    if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
+      activityLog.record('watch.suppressed', { watcher: 'specs', reason: 'self-write' });
+      return;
+    }
+    specsBurst.fires += 1;
+    if (filename) specsBurst.files.add(String(filename));
+    if (watchDebounce) clearTimeout(watchDebounce);
+    watchDebounce = setTimeout(() => {
+      // Reported when the debounce flushes, so the record carries what the
+      // burst actually was rather than one row per raw fs event.
+      activityLog.record('watch.fired', {
+        watcher: 'specs',
+        changes: specsBurst.files.size || specsBurst.fires,
+        collapsed: specsBurst.fires,
+        triggered: 'push'
+      });
+      specsBurst = { fires: 0, files: new Set() };
+      pushSpecData(projectPath);
+    }, WATCH_DEBOUNCE_MS);
+  };
+}
+
+// Specs folders of the watched project's active workspaces (spec-in-workspace):
+// root → watcher. Recomputed whenever workspaces change.
+const workspaceSpecWatchers = new Map();
+
+function closeWorkspaceSpecWatchers() {
+  for (const watcher of workspaceSpecWatchers.values()) {
+    try { watcher.close(); } catch (_) { /* ignore */ }
+  }
+  workspaceSpecWatchers.clear();
+}
+
+/**
+ * Watch each active workspace's `.frame/specs` alongside main's, then push
+ * the merged list. Called after every workspace mutation (workspaceManager)
+ * and when the watch starts. A no-op for a project that is not the one
+ * being watched.
+ */
+function refreshWorkspaceWatchers(projectPath) {
+  if (!projectPath || projectPath !== activeWatchedProject) return;
+  const wanted = new Set(activeWorkspaceRoots(projectPath).map((ws) => ws.root));
+  for (const [root, watcher] of workspaceSpecWatchers) {
+    if (wanted.has(root)) continue;
+    try { watcher.close(); } catch (_) { /* ignore */ }
+    workspaceSpecWatchers.delete(root);
+  }
+  for (const root of wanted) {
+    if (workspaceSpecWatchers.has(root)) continue;
+    const dir = frameStore.specsRoot(root);
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      const watcher = fsSafe.safeWatch(dir, { recursive: true }, specsWatchHandler(projectPath),
+        () => { workspaceSpecWatchers.delete(root); });
+      if (watcher) workspaceSpecWatchers.set(root, watcher);
+    } catch (err) {
+      console.error('specManager: workspace specs watch failed', root, err.message);
+    }
+  }
+  pushSpecData(projectPath);
+}
+
 function startWatching(projectPath) {
   stopWatching();
   if (!projectPath) return;
@@ -1385,28 +1448,7 @@ function startWatching(projectPath) {
     return;
   }
   try {
-    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, (_event, filename) => {
-      // Our own writeStatus calls fire this watcher too — drop them.
-      if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
-        activityLog.record('watch.suppressed', { watcher: 'specs', reason: 'self-write' });
-        return;
-      }
-      specsBurst.fires += 1;
-      if (filename) specsBurst.files.add(String(filename));
-      if (watchDebounce) clearTimeout(watchDebounce);
-      watchDebounce = setTimeout(() => {
-        // Reported when the debounce flushes, so the record carries what the
-        // burst actually was rather than one row per raw fs event.
-        activityLog.record('watch.fired', {
-          watcher: 'specs',
-          changes: specsBurst.files.size || specsBurst.fires,
-          collapsed: specsBurst.fires,
-          triggered: 'push'
-        });
-        specsBurst = { fires: 0, files: new Set() };
-        pushSpecData(projectPath);
-      }, WATCH_DEBOUNCE_MS);
-    }, () => { activeWatcher = null; });
+    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, specsWatchHandler(projectPath), () => { activeWatcher = null; });
     activeWatchedProject = projectPath;
   } catch (err) {
     console.error('specManager: fs.watch failed', err);
@@ -1446,8 +1488,9 @@ function startWatching(projectPath) {
     }
   }
 
-  // Initial snapshot so the panel paints something immediately
-  pushSpecData(projectPath);
+  // Workspaces' specs folders (spec-in-workspace); this also pushes the
+  // initial snapshot so the panel paints something immediately.
+  refreshWorkspaceWatchers(projectPath);
 }
 
 function stopWatching() {
@@ -1459,6 +1502,7 @@ function stopWatching() {
     try { activeTasksWatcher.close(); } catch (err) { /* ignore */ }
   }
   activeTasksWatcher = null;
+  closeWorkspaceSpecWatchers();
   activeWatchedProject = null;
   busySpecSlugs.clear();
   // specLifecycle is kept: it is per project, and a spec created while the
@@ -1667,6 +1711,7 @@ function setupIPC(ipcMain) {
 module.exports = {
   init,
   setupIPC,
+  refreshWorkspaceWatchers,
   // Exported for tests
   validateSpecStatus,
   repairSpecStatus,

@@ -22,3 +22,11 @@ Instead of threading a root parameter through every function as the plan sketche
 _Captured: 2026-11-10 · 1 file change(s)_
 
 ---
+
+## T04 — Watch workspace specs folders and import their tasks
+
+`specManager.js` factored its specs watcher callback into `specsWatchHandler` and added `refreshWorkspaceWatchers(projectPath)`: one recursive watcher per active workspace's `.frame/specs` (created if missing) next to main's, closed when the workspace goes, all funnelled into the same debounced `pushSpecData`; `startWatching` ends with it (which also pushes the initial snapshot) and `stopWatching` closes them. `syncAllSpecTasks` now walks every checkout's slugs, so a workspace spec's tasks.md imports into main's tasks.json. `workspaceManager.notify` calls `refreshWorkspaceWatchers` after every mutation (lazy require). Smoke-tested with a fake window: a spec written into a new workspace pushed as `watched@peach:2` with its T01/T02 imported into main's tasks.json, and after archive it pushed as `watched@main:2` (local-mode hand-back).
+
+_Captured: 2026-11-10 · 2 file change(s)_
+
+---

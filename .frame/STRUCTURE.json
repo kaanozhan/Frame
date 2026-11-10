@@ -5645,6 +5645,7 @@
       "exports": [
         "init",
         "setupIPC",
+        "refreshWorkspaceWatchers",
         "repairSpecStatus",
         "listSpecs",
         "searchSpecs",
@@ -6047,14 +6048,14 @@
           ]
         },
         "getSpec": {
-          "line": 1110,
+          "line": 1104,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1151,
+          "line": 1145,
           "params": [
             "projectPath",
             "slug",
@@ -6063,7 +6064,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1180,
+          "line": 1174,
           "params": [
             "projectPath",
             "query"
@@ -6071,7 +6072,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1193,
+          "line": 1187,
           "params": [
             "projectPath",
             "slug",
@@ -6079,14 +6080,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1217,
+          "line": 1211,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1234,
+          "line": 1228,
           "params": [
             "projectPath",
             "oldSlug",
@@ -6094,55 +6095,72 @@
           ],
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
+        "specsWatchHandler": {
+          "line": 1351,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "One handler for every specs folder of the watched project — main's and each"
+        },
+        "closeWorkspaceSpecWatchers": {
+          "line": 1380
+        },
+        "refreshWorkspaceWatchers": {
+          "line": 1393,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Watch each active workspace's `.frame/specs` alongside main's, then push"
+        },
         "startWatching": {
-          "line": 1353,
+          "line": 1416,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1453
+          "line": 1496
         },
         "markSpecNewLaunch": {
-          "line": 1506,
+          "line": 1550,
           "params": [
             "projectPath"
           ]
         },
         "consumeSpecNewLaunch": {
-          "line": 1512,
+          "line": 1556,
           "params": [
             "projectPath"
           ]
         },
         "resolveSpecOrigin": {
-          "line": 1528,
+          "line": 1572,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackSpecLifecycle": {
-          "line": 1539,
+          "line": 1583,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1567,
+          "line": 1611,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1591,
+          "line": 1635,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1595,
+          "line": 1639,
           "params": [
             "ipcMain"
           ]
@@ -6169,7 +6187,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 73118,
+      "sizeBytes": 75047,
       "extraction": {
         "status": "parsed"
       },
@@ -6186,6 +6204,7 @@
           "malformedSpec": "8d1f316ef92d3106",
           "readSpecReport": "9c5b897e277cfa95",
           "refreshSpecLocations": "2b62eb2faa809ce4",
+          "refreshWorkspaceWatchers": "733f07be2e271921",
           "renameSpec": "019862008944a815",
           "repairSpecStatus": "9b737d9077551273",
           "reportAssetRel": "9ae732fdee04f35d",
@@ -6195,6 +6214,7 @@
           "specLocation": "4655e5ba85a04400",
           "specNewPromptFilename": "f040681603f82c98",
           "specRoot": "9532b9928312db1c",
+          "specsWatchHandler": "3a40ae42b16ad131",
           "writeImplementPermissions": "e2f719c000546433"
         }
       }
@@ -6959,6 +6979,7 @@
         "gitBranchesManager",
         "userSettings",
         "logger",
+        "specManager",
         "frameProject"
       ],
       "functions": {
@@ -6983,51 +7004,51 @@
           ]
         },
         "expandHome": {
-          "line": 56,
+          "line": 64,
           "params": [
             "p"
           ]
         },
         "workspacesRoot": {
-          "line": 64,
+          "line": 72,
           "purpose": "Where this machine keeps workspace folders (machine-local user setting)."
         },
         "projectDir": {
-          "line": 69,
+          "line": 77,
           "params": [
             "projectPath"
           ]
         },
         "settingsFor": {
-          "line": 73,
+          "line": 81,
           "params": [
             "projectPath"
           ]
         },
         "records": {
-          "line": 78,
+          "line": 86,
           "params": [
             "projectPath"
           ]
         },
         "persist": {
-          "line": 82,
+          "line": 90,
           "params": [
             "projectPath",
             "next"
           ]
         },
         "listDir": {
-          "line": 86,
+          "line": 94,
           "params": [
             "dir"
           ]
         },
         "newId": {
-          "line": 90
+          "line": 98
         },
         "copyIgnoredFiles": {
-          "line": 99,
+          "line": 107,
           "params": [
             "projectPath",
             "worktreePath"
@@ -7035,21 +7056,21 @@
           "purpose": "Copy the `copyFiles` selection from the main checkout into a worktree."
         },
         "list": {
-          "line": 124,
+          "line": 132,
           "params": [
             "projectPath"
           ],
           "purpose": "Records reconciled against `git worktree list`; `isRepo` false when git cannot read the project."
         },
         "status": {
-          "line": 140,
+          "line": 148,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 154,
+          "line": 162,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -7059,14 +7080,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 233,
+          "line": 241,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 249,
+          "line": 257,
           "params": [
             "projectPath",
             "id",
@@ -7076,7 +7097,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 288,
+          "line": 296,
           "params": [
             "projectPath",
             "id"
@@ -7084,7 +7105,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 313,
+          "line": 321,
           "params": [
             "projectPath",
             "id",
@@ -7094,7 +7115,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 337,
+          "line": 345,
           "params": [
             "projectPath",
             "id"
@@ -7102,7 +7123,7 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 353,
+          "line": 361,
           "params": [
             "ipcMain"
           ]
@@ -7124,7 +7145,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 15754,
+      "sizeBytes": 16159,
       "extraction": {
         "status": "parsed"
       },
@@ -30127,6 +30148,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "c215c4fc582e1792c6a4e15f1755d489e30fd3a0f82adcc4d56330e636fdd161"
+    "revision": "42ab85f2df6e1e94a471ad8dfafd6580b62de282fae3b2e4b4bf5bf4181449cc"
   }
 }

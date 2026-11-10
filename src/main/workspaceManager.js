@@ -51,6 +51,14 @@ function notify(projectPath) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IPC.WORKSPACES_UPDATED, { projectPath });
   }
+  // Specs follow their workspaces (spec-in-workspace): watch the new set of
+  // specs folders and push the merged list. Lazily required — specManager
+  // pulls in frameProject, which this module only needs at call time.
+  try {
+    require('./specManager').refreshWorkspaceWatchers(projectPath);
+  } catch (err) {
+    logger.warn('workspaces', `could not refresh spec watchers: ${err.message}`);
+  }
 }
 
 function expandHome(p) {
