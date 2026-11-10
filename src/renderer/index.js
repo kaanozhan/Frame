@@ -968,6 +968,20 @@ function registerCommands() {
     }
   });
   r({
+    id: 'workspace.fixChecks',
+    title: 'Fix Failing Checks',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!(s && s.pr && s.pr.checks && s.pr.checks.failing);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').fixChecks(ws);
+    }
+  });
+  r({
     id: 'workspace.archive',
     title: 'Archive Workspace…',
     category: 'Workspace',

@@ -11856,11 +11856,11 @@
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1107,
+          "line": 1121,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1132,
+          "line": 1146,
           "params": [
             "err"
           ],
@@ -11880,7 +11880,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 41689,
+      "sizeBytes": 42160,
       "extraction": {
         "status": "parsed"
       },
@@ -17905,69 +17905,74 @@
         "menuItems",
         "runAction",
         "push",
-        "openCreatePr"
+        "openCreatePr",
+        "fixChecks",
+        "openOnGitHub"
       ],
       "depends": [
         "electron",
         "shared/ipcChannels",
         "state",
         "notify",
-        "htmlUtils"
+        "htmlUtils",
+        "shared/prFlow",
+        "workspaceSection",
+        "agentDispatch"
       ],
       "functions": {
         "onChange": {
-          "line": 21,
+          "line": 22,
           "params": [
             "cb"
           ]
         },
         "emit": {
-          "line": 26
+          "line": 27
         },
         "refresh": {
-          "line": 33,
+          "line": 34,
           "purpose": "Ask main for fresh state of the current project (and make it the polled one)."
         },
         "init": {
-          "line": 47
+          "line": 48
         },
         "rowState": {
-          "line": 62,
+          "line": 63,
           "params": [
             "id"
           ],
           "purpose": "Row state of a workspace, or null before the first read."
         },
         "access": {
-          "line": 67,
+          "line": 68,
           "purpose": "GitHub access of the current project: `{ gh, authed, repoName }`."
         },
         "prBlockedReason": {
-          "line": 72,
+          "line": 73,
           "purpose": "Why PR actions are unavailable, or null when they are."
         },
         "checksDot": {
-          "line": 80,
+          "line": 81,
           "params": [
             "pr"
           ]
         },
         "rowBadgesHtml": {
-          "line": 89,
+          "line": 90,
           "params": [
             "ws"
           ],
           "purpose": "Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR."
         },
         "menuItems": {
-          "line": 109,
+          "line": 110,
           "params": [
             "ws"
           ],
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 123,
+          "line": 130,
           "params": [
             "id",
             "ws"
@@ -17975,26 +17980,42 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 131,
+          "line": 140,
           "params": [
             "ws"
           ]
         },
         "openCreatePr": {
-          "line": 148,
+          "line": 157,
           "params": [
             "ws"
           ],
           "purpose": "The Create PR dialog: main composes the title/body (from the workspace's"
+        },
+        "fixChecks": {
+          "line": 238,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
+        },
+        "openOnGitHub": {
+          "line": 254,
+          "params": [
+            "ws"
+          ],
+          "purpose": "Open the workspace's PR in the browser (same channel the GitHub panel uses)."
         }
       },
       "ipc": {
         "listens": [
           "WORKSPACE_GIT_STATE"
         ],
-        "emits": []
+        "emits": [
+          "OPEN_GITHUB_ISSUE"
+        ]
       },
-      "sizeBytes": 9016,
+      "sizeBytes": 10589,
       "extraction": {
         "status": "parsed"
       },
@@ -18002,8 +18023,10 @@
         "description": "6f7f1921665ca854",
         "purposes": {
           "access": "07aeb542835bc462",
+          "fixChecks": "04c4c6acd7c5b223",
           "menuItems": "6cf670bca1da203e",
           "openCreatePr": "6e7d7f5676838d2d",
+          "openOnGitHub": "b2731eff4841fa86",
           "prBlockedReason": "24c624a5061312d9",
           "refresh": "8faf0bd876257b8e",
           "rowBadgesHtml": "299a6e285b813ca9",
@@ -30749,6 +30772,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "12aa90e3f35cabd9e64f78f5416b6cf88aab8f9181f259a91f5c92b372ba1ead"
+    "revision": "8d50ae5a4db2724f058a6852e13d2440fe41af57857706f3d3e10fc30943d7e5"
   }
 }

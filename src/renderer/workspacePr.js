@@ -14,6 +14,7 @@ const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const notify = require('./notify');
 const { escapeHtml } = require('./htmlUtils');
+const { fixChecksPrompt } = require('../shared/prFlow');
 
 let current = null;          // last WORKSPACE_GIT_STATE payload for the current project
 const listeners = new Set();
@@ -116,6 +117,12 @@ function menuItems(ws) {
   if (!hasOpenPr) {
     items.push({ id: 'pr:create', label: 'Create Pull Request…', disabled: !!blocked, title: blocked || '' });
   }
+  if (s && s.pr && hasOpenPr && s.pr.checks && s.pr.checks.failing) {
+    items.push({ id: 'pr:fix', label: `Fix Failing Checks (${s.pr.checks.failing})`, title: (s.pr.checks.failingNames || []).join(', ') });
+  }
+  if (s && s.pr && s.pr.url) {
+    items.push({ id: 'pr:open', label: `Open PR #${s.pr.number} on GitHub` });
+  }
   return items;
 }
 
@@ -123,6 +130,8 @@ function menuItems(ws) {
 function runAction(id, ws) {
   if (id === 'pr:push') { push(ws); return true; }
   if (id === 'pr:create') { openCreatePr(ws); return true; }
+  if (id === 'pr:fix') { fixChecks(ws); return true; }
+  if (id === 'pr:open') { openOnGitHub(ws); return true; }
   return false;
 }
 
@@ -220,6 +229,33 @@ async function openCreatePr(ws) {
   });
 }
 
+/**
+ * Hand the failing checks to an agent in the workspace: select it, then a new
+ * lane gets a prompt naming the PR, the checks and the commands that show
+ * their logs (prFlow.fixChecksPrompt). The agent fixes and commits; the user
+ * pushes.
+ */
+async function fixChecks(ws) {
+  const s = rowState(ws.id);
+  if (!s || !s.pr || !s.pr.checks || !s.pr.checks.failing) {
+    notify.info('No failing checks on this workspace’s pull request.');
+    return null;
+  }
+  require('./workspaceSection').select(ws);
+  const prompt = fixChecksPrompt({ branch: ws.branch, number: s.pr.number, failingNames: s.pr.checks.failingNames || [] });
+  return require('./agentDispatch').dispatch({
+    createNew: true,
+    prompt,
+    assignment: { kind: 'task', label: `fix checks: #${s.pr.number}`, ref: `pr-${s.pr.number}` }
+  });
+}
+
+/** Open the workspace's PR in the browser (same channel the GitHub panel uses). */
+function openOnGitHub(ws) {
+  const s = rowState(ws.id);
+  if (s && s.pr && s.pr.url) ipcRenderer.send(IPC.OPEN_GITHUB_ISSUE, s.pr.url);
+}
+
 module.exports = {
   init,
   refresh,
@@ -231,5 +267,7 @@ module.exports = {
   menuItems,
   runAction,
   push,
-  openCreatePr
+  openCreatePr,
+  fixChecks,
+  openOnGitHub
 };

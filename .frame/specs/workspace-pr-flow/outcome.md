@@ -46,3 +46,11 @@ Added the `#create-pr-modal` dialog (`index.html`, task-run modal shell, styles 
 _Captured: 2026-11-10 · 5 file change(s)_
 
 ---
+
+## T07 — Add checks and fixes
+
+The row already showed passing/failing/pending with failing names in its tooltip (T05); this task added the actions: 'Fix Failing Checks (n)' (tooltip lists them) selects the workspace and dispatches `prFlow.fixChecksPrompt` to a new agent lane through `agentDispatch.dispatch`, labelled `fix checks: #n`; 'Open PR #n on GitHub' sends the URL over the existing `OPEN_GITHUB_ISSUE` channel (shell.openExternal); `workspace.fixChecks` palette command, enabled only when the selected workspace's PR has failing checks. Live over CDP with the fake gh: a failing 'unit tests' check produced both menu items, and Fix selected `blue` and opened a lane in its worktree; prompt delivery itself is the existing dispatch path (agent readiness, text-then-Enter), not re-tested — the isolated test home has no logged-in CLI. 'Open on GitHub' was not clicked live, to avoid opening a real browser.
+
+_Captured: 2026-11-10 · 2 file change(s)_
+
+---
