@@ -252,6 +252,9 @@ const IPC = {
   WORKSPACE_PR_DRAFT: 'workspace-pr-draft',          // renderer → main (invoke): { projectPath, id } → { error, title, body, base, branch }
   WORKSPACE_PR_CREATE: 'workspace-pr-create',        // renderer → main (invoke): { projectPath, id, title, body, draft } → { error, url }
   WORKSPACE_PR_MERGE: 'workspace-pr-merge',          // renderer → main (invoke): { projectPath, id } → { error, method, fastForward, archived }        // renderer → main (invoke): { projectPath, id } → { error, copied } — Frame tooling into the worktree (spec-in-workspace)
+  // Update from base (update-from-base)
+  WORKSPACE_UPDATE_FROM_BASE: 'workspace-update-from-base', // renderer → main (invoke): { projectPath, id } → { state: updated|up-to-date|conflict|dirty, base, commits?, files?, count?, fetchNote? } | { error }
+  WORKSPACE_UPDATE_ABORT: 'workspace-update-abort',         // renderer → main (invoke): { projectPath, id } → { error, aborted }
   // Workspace review (workspace-review)
   REVIEW_FILES: 'review-files',                      // renderer → main (invoke): { root, base } → { error, mergeBase, files: ReviewFile[] }
   REVIEW_FILE_DIFF: 'review-file-diff',              // renderer → main (invoke): { root, mergeBase, path, oldPath?, untracked } → { diff, isBinary, tooLarge }

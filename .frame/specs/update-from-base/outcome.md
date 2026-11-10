@@ -14,3 +14,11 @@ Added trackedDirtyCount, mergeInProgress, conflictedFiles (raw -z list for prFlo
 _Captured: 2026-11-10 · 1 file change(s)_
 
 ---
+
+## T03 — updateFromBase and abortUpdate in main
+
+Added updateFromBase and abortUpdate to src/main/workspaceGitState.js with IPC channels WORKSPACE_UPDATE_FROM_BASE / WORKSPACE_UPDATE_ABORT in src/shared/ipcChannels.js; rowState now carries merging and conflicts. The update returns an existing conflict instead of starting another, refuses tracked-dirty worktrees, fetches (falling back to the last fetched origin/<base> with a note), reports up to date at 0 behind, merges, and aborts a merge that stopped without conflicts; every path ends in refresh(projectPath).
+
+_Captured: 2026-11-10 · 2 file change(s)_
+
+---

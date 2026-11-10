@@ -7126,6 +7126,8 @@
         "prDraft",
         "prCreate",
         "merge",
+        "updateFromBase",
+        "abortUpdate",
         "PR_FIELDS"
       ],
       "depends": [
@@ -7173,46 +7175,46 @@
           "purpose": "RowState for one workspace (see the plan's data shapes)."
         },
         "collect": {
-          "line": 92,
+          "line": 95,
           "params": [
             "projectPath"
           ]
         },
         "send": {
-          "line": 112,
+          "line": 115,
           "params": [
             "payload"
           ]
         },
         "refresh": {
-          "line": 122,
+          "line": 125,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-read and push the state of `projectPath`'s workspaces. Calls that land"
         },
         "getState": {
-          "line": 147,
+          "line": 150,
           "params": [
             "projectPath"
           ],
           "purpose": "The last state read for a project, or null."
         },
         "recordOf": {
-          "line": 156,
+          "line": 159,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "settingsOf": {
-          "line": 160,
+          "line": 163,
           "params": [
             "projectPath"
           ]
         },
         "push": {
-          "line": 166,
+          "line": 169,
           "params": [
             "projectPath",
             "id"
@@ -7220,7 +7222,7 @@
           "purpose": "Push a workspace's branch; the first push sets `origin/<branch>` as upstream."
         },
         "heldSpec": {
-          "line": 180,
+          "line": 183,
           "params": [
             "projectPath",
             "id"
@@ -7228,7 +7230,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 194,
+          "line": 197,
           "params": [
             "projectPath",
             "id"
@@ -7236,7 +7238,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 204,
+          "line": 207,
           "params": [
             "projectPath",
             "id",
@@ -7247,15 +7249,30 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 231,
+          "line": 234,
           "params": [
             "projectPath",
             "id"
           ],
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
+        "updateFromBase": {
+          "line": 274,
+          "params": [
+            "projectPath",
+            "id"
+          ]
+        },
+        "abortUpdate": {
+          "line": 310,
+          "params": [
+            "projectPath",
+            "id"
+          ],
+          "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
+        },
         "setupIPC": {
-          "line": 264,
+          "line": 322,
           "params": [
             "ipcMain"
           ]
@@ -7267,19 +7284,22 @@
           "WORKSPACE_PUSH",
           "WORKSPACE_PR_DRAFT",
           "WORKSPACE_PR_CREATE",
-          "WORKSPACE_PR_MERGE"
+          "WORKSPACE_PR_MERGE",
+          "WORKSPACE_UPDATE_FROM_BASE",
+          "WORKSPACE_UPDATE_ABORT"
         ],
         "emits": [
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 11962,
+      "sizeBytes": 14859,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "c09496f4e94b4afe",
         "purposes": {
+          "abortUpdate": "ccf71da4251b70e6",
           "getState": "dbc9f664ea1c334c",
           "heldSpec": "e5bb998202c6ad99",
           "merge": "c5b756ff9e37571f",
@@ -23902,7 +23922,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 16140,
+      "sizeBytes": 16531,
       "extraction": {
         "status": "parsed"
       },
@@ -29334,6 +29354,16 @@
         "name": "workspace-pr-merge",
         "direction": "",
         "description": ""
+      },
+      "WORKSPACE_UPDATE_FROM_BASE": {
+        "name": "workspace-update-from-base",
+        "direction": "",
+        "description": ""
+      },
+      "WORKSPACE_UPDATE_ABORT": {
+        "name": "workspace-update-abort",
+        "direction": "",
+        "description": ""
       }
     },
     "frame": {
@@ -31156,6 +31186,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4734f64df5efa3fb90ac3a5c7fcfa1066be19e32665f6938bcb768099f1dcd0b"
+    "revision": "ff3aa0458721c395553bd8635949fe09d76d92a3092a8876fe1e1222983bdee5"
   }
 }

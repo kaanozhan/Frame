@@ -20,7 +20,7 @@
 const fs = require('fs');
 const { IPC } = require('../shared/ipcChannels');
 const registry = require('../shared/workspaceRegistry');
-const { mapPrView, parseCount, composePr, pickMergeMethod, isPushable } = require('../shared/prFlow');
+const { mapPrView, parseCount, composePr, pickMergeMethod, isPushable, parseConflicts } = require('../shared/prFlow');
 const projectRegistry = require('./projectRegistry');
 const git = require('./gitBranchesManager');
 const github = require('./githubManager');
@@ -80,12 +80,15 @@ async function rowState(projectPath, ws, access, previous) {
   // Only ask GitHub about branches that can have a PR: pushed ones, or ones
   // that had a PR last time (its upstream may have been removed after merge).
   const pr = prUsable && (upstream || (previous && previous.pr)) ? await prFor(projectPath, ws.branch) : null;
+  const merging = await git.mergeInProgress(ws.path);
   return {
     dirty: parseCount(st.count),
     unpushed,
     behind,
     hasUpstream: !!upstream,
-    pr
+    pr,
+    merging,
+    conflicts: merging ? parseConflicts(await git.conflictedFiles(ws.path)) : []
   };
 }
 
@@ -261,6 +264,61 @@ async function merge(projectPath, id) {
   return { error: null, method, number: current.number, fastForward, archived, archiveNote };
 }
 
+// ─── Update from base (update-from-base) ──────────────────────
+//
+// Fetch the base and merge `origin/<base>` into the workspace branch. Never a
+// rebase, never a push; refuses tracked uncommitted changes so an abort can
+// never touch the user's own work. A conflict is left in place (MERGE_HEAD)
+// for an agent to resolve or the user to abort — the row shows it until then.
+
+async function updateFromBase(projectPath, id) {
+  const ws = recordOf(projectPath, id);
+  if (!ws) return { error: 'This workspace is not available.' };
+  const base = ws.base || 'main';
+  try {
+    if (await git.mergeInProgress(ws.path)) {
+      return { state: 'conflict', base, files: parseConflicts(await git.conflictedFiles(ws.path)) };
+    }
+    const dirty = await git.trackedDirtyCount(ws.path);
+    if (dirty) return { state: 'dirty', base, count: dirty };
+
+    let fetchNote = null;
+    const fetched = await git.fetchBranch(ws.path, base);
+    if (!fetched.fetched) {
+      const known = await git.revCount(ws.path, `origin/${base}`);
+      if (!known) return { error: `Could not fetch ${base}: ${fetched.error || 'unknown error'}` };
+      fetchNote = `could not fetch — used the last fetched origin/${base}`;
+    }
+    const behind = await git.revCount(ws.path, `HEAD..origin/${base}`);
+    if (!behind) return { state: 'up-to-date', base, ...(fetchNote ? { fetchNote } : {}) };
+
+    const merged = await git.mergeRef(ws.path, `origin/${base}`);
+    if (merged.ok) return { state: 'updated', base, commits: behind, ...(fetchNote ? { fetchNote } : {}) };
+
+    if (await git.mergeInProgress(ws.path)) {
+      const files = parseConflicts(await git.conflictedFiles(ws.path));
+      if (files.length) return { state: 'conflict', base, files };
+      await git.abortMerge(ws.path); // stopped for another reason — leave the branch as it was
+    }
+    return { error: merged.error || 'The merge failed.' };
+  } finally {
+    refresh(projectPath);
+  }
+}
+
+/** Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists. */
+async function abortUpdate(projectPath, id) {
+  const ws = recordOf(projectPath, id);
+  if (!ws) return { error: 'This workspace is not available.' };
+  try {
+    if (!(await git.mergeInProgress(ws.path))) return { error: null, aborted: false };
+    const res = await git.abortMerge(ws.path);
+    return { error: res.error, aborted: !res.error };
+  } finally {
+    refresh(projectPath);
+  }
+}
+
 function setupIPC(ipcMain) {
   // The renderer names the project it shows; that project is the one polled.
   ipcMain.handle(IPC.WORKSPACE_GIT_REFRESH, async (event, { projectPath } = {}) => {
@@ -280,6 +338,8 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.WORKSPACE_PR_DRAFT, guarded(({ projectPath, id }) => prDraft(projectPath, id)));
   ipcMain.handle(IPC.WORKSPACE_PR_CREATE, guarded(({ projectPath, id, title, body, draft }) => prCreate(projectPath, id, { title, body, draft })));
   ipcMain.handle(IPC.WORKSPACE_PR_MERGE, guarded(({ projectPath, id }) => merge(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_UPDATE_FROM_BASE, guarded(({ projectPath, id }) => updateFromBase(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_UPDATE_ABORT, guarded(({ projectPath, id }) => abortUpdate(projectPath, id)));
 }
 
-module.exports = { init, setupIPC, refresh, getState, activeWorkspaces, push, prDraft, prCreate, merge, PR_FIELDS };
+module.exports = { init, setupIPC, refresh, getState, activeWorkspaces, push, prDraft, prCreate, merge, updateFromBase, abortUpdate, PR_FIELDS };
