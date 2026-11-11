@@ -48,4 +48,26 @@ function consentText({ kind, agents, host }) {
   return `Frame could not list the terminals running on ${host}. ${verb} restarts Frame Server and ends any terminals and agents running there.`;
 }
 
-module.exports = { initial, onStatus, startAction, endAction, actionsDisabled, consentText };
+/**
+ * The command a check-up item's "Open terminal" types into a server home
+ * terminal (server-onboarding), or null when there is nothing to type: the
+ * item is ready, has no fix, or its fix is not a single line.
+ */
+function fixTerminalFor(item) {
+  if (!item || item.ok || typeof item.fix !== 'string') return null;
+  const fix = item.fix.trim();
+  if (!fix || /[\r\n]/.test(fix)) return null;
+  return fix;
+}
+
+/** A fix terminal was opened: the next time the dialog opens, check again. */
+function noteFixOpened(model) {
+  return { ...model, recheckPending: true };
+}
+
+/** `{ recheck, model }`: whether this open should re-run the check-up, consuming the flag. */
+function takeRecheck(model) {
+  return { recheck: !!model.recheckPending, model: { ...model, recheckPending: false } };
+}
+
+module.exports = { initial, onStatus, startAction, endAction, actionsDisabled, consentText, fixTerminalFor, noteFixOpened, takeRecheck };

@@ -37,3 +37,21 @@ test('consent text: named agents, or a general warning when they could not be li
   assert.match(general, /could not list/i);
   assert.match(general, /Rolling back/);
 });
+
+// ─── server-onboarding T06: sign in from the check-up ────────
+
+test('fixTerminalFor: a missing item with a fix command opens a terminal with it; others do not', () => {
+  assert.equal(M.fixTerminalFor({ id: 'claude', ok: false, fix: 'claude # then sign in' }), 'claude # then sign in');
+  assert.equal(M.fixTerminalFor({ id: 'gh', ok: false, optional: true, fix: 'gh auth login && gh auth setup-git' }), 'gh auth login && gh auth setup-git', 'optional items too');
+  assert.equal(M.fixTerminalFor({ id: 'git', ok: true, fix: 'x' }), null, 'ready items get no button');
+  assert.equal(M.fixTerminalFor({ id: 'error', ok: false, detail: 'Check-up failed' }), null, 'nothing to type');
+  assert.equal(M.fixTerminalFor({ id: 'x', ok: false, fix: 'line one\nline two' }), null, 'never a multi-line command');
+});
+
+test('a fix terminal makes the next open of the dialog check again, once', () => {
+  let m = M.noteFixOpened(M.initial());
+  const first = M.takeRecheck(m);
+  assert.equal(first.recheck, true);
+  const second = M.takeRecheck(first.model);
+  assert.equal(second.recheck, false);
+});

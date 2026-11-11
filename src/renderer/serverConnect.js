@@ -108,7 +108,10 @@ function init() {
   $('#sc-later').addEventListener('click', () => { consent = null; renderModal(); });
   $('#sc-confirm').addEventListener('click', () => { const kind = consent && consent.kind; consent = null; if (kind) runAction(kind, true); });
   $('#sc-recheck').addEventListener('click', () => loadDoctor(true));
+  $('#sc-open-terminal').addEventListener('click', () => openServerTerminal(null));
   $('#sc-doctor-list').addEventListener('click', async (e) => {
+    const term = e.target.closest('button[data-terminal-fix]');
+    if (term) { openServerTerminal(term.dataset.terminalFix); return; }
     const btn = e.target.closest('button[data-fix]');
     if (!btn) return;
     try { await navigator.clipboard.writeText(btn.dataset.fix); btn.textContent = 'Copied'; } catch (_) { btn.textContent = 'Copy failed'; }
@@ -214,6 +217,14 @@ function renderModal() {
         copy.type = 'button';
         copy.dataset.fix = i.fix;
         fix.appendChild(copy);
+        // Run it on the server without leaving Frame (server-onboarding).
+        const typed = model.fixTerminalFor(i);
+        if (typed) {
+          const open = el('button', 'sc-link', 'Open terminal');
+          open.type = 'button';
+          open.dataset.terminalFix = typed;
+          fix.appendChild(open);
+        }
         body.appendChild(fix);
       }
       li.appendChild(body);
@@ -243,9 +254,31 @@ async function open() {
   input.value = status.host || (status.saved && status.saved.host) || '';
   renderModal();
   modal.classList.add('visible');
-  if (status.state === 'connected') loadDoctor();
+  // Back from a fix terminal (a sign-in): check again rather than show the old result.
+  const t = model.takeRecheck(m);
+  m = t.model;
+  if (status.state === 'connected') loadDoctor(t.recheck);
   input.focus();
   input.select();
+}
+
+/**
+ * A terminal on the server, in its home folder, in the current view
+ * (server-onboarding). With `command`, that check-up fix is typed in for the
+ * user to run; the dialog closes so the terminal has the screen, and checks
+ * again when it is opened next.
+ */
+async function openServerTerminal(command) {
+  if (status.state !== 'connected') return;
+  m = model.noteFixOpened(m);
+  close();
+  try {
+    const ui = require('./terminal').getMultiTerminalUI();
+    const id = await ui.getManager().createServerHomeTerminal({ command });
+    ui.enterLane(id);
+  } catch (err) {
+    notify.error(`Could not open a terminal on ${status.host}: ${err.message}`);
+  }
 }
 
 function close() {

@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 108329,
+      "sizeBytes": 108435,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -15188,7 +15188,8 @@
         "electron",
         "shared/ipcChannels",
         "notify",
-        "serverConnectModel"
+        "serverConnectModel",
+        "terminal"
       ],
       "functions": {
         "getStatus": {
@@ -15219,17 +15220,17 @@
           "line": 88
         },
         "loadDoctor": {
-          "line": 124,
+          "line": 127,
           "params": [
             "force = false"
           ]
         },
         "finishIfClean": {
-          "line": 137,
+          "line": 140,
           "purpose": "A connect started here closes the dialog once the check-up has nothing to fix."
         },
         "el": {
-          "line": 144,
+          "line": 147,
           "params": [
             "tag",
             "cls",
@@ -15237,19 +15238,26 @@
           ]
         },
         "renderModal": {
-          "line": 151
+          "line": 154
         },
         "open": {
-          "line": 236
+          "line": 247
+        },
+        "openServerTerminal": {
+          "line": 271,
+          "params": [
+            "command"
+          ],
+          "purpose": "A terminal on the server, in its home folder, in the current view"
         },
         "close": {
-          "line": 251
+          "line": 284
         },
         "connect": {
-          "line": 257
+          "line": 290
         },
         "runAction": {
-          "line": 271,
+          "line": 304,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -15257,7 +15265,7 @@
           "purpose": "Install, update or roll back; update and rollback first ask about running agents."
         },
         "disconnect": {
-          "line": 303
+          "line": 336
         }
       },
       "ipc": {
@@ -15267,7 +15275,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 13315,
+      "sizeBytes": 14674,
       "extraction": {
         "status": "parsed"
       },
@@ -15275,6 +15283,7 @@
         "description": "7868383166b7aa4c",
         "purposes": {
           "finishIfClean": "a2e9197d02c9e7fd",
+          "openServerTerminal": "fc20434ecda7664f",
           "runAction": "e59630369215a83f"
         }
       }
@@ -15288,7 +15297,10 @@
         "startAction",
         "endAction",
         "actionsDisabled",
-        "consentText"
+        "consentText",
+        "fixTerminalFor",
+        "noteFixOpened",
+        "takeRecheck"
       ],
       "depends": [],
       "functions": {
@@ -15333,9 +15345,30 @@
             "host }"
           ],
           "purpose": "The consent sentence before an update or rollback: the named agents, or —"
+        },
+        "fixTerminalFor": {
+          "line": 56,
+          "params": [
+            "item"
+          ],
+          "purpose": "The command a check-up item's \"Open terminal\" types into a server home"
+        },
+        "noteFixOpened": {
+          "line": 64,
+          "params": [
+            "model"
+          ],
+          "purpose": "A fix terminal was opened: the next time the dialog opens, check again."
+        },
+        "takeRecheck": {
+          "line": 69,
+          "params": [
+            "model"
+          ],
+          "purpose": "`{ recheck, model }`: whether this open should re-run the check-up, consuming the flag."
         }
       },
-      "sizeBytes": 2107,
+      "sizeBytes": 2945,
       "extraction": {
         "status": "parsed"
       },
@@ -15344,8 +15377,11 @@
         "purposes": {
           "actionsDisabled": "3e6061c94ac5afcb",
           "consentText": "a557c7dd43a3daf5",
+          "fixTerminalFor": "6e5a610698ef2253",
+          "noteFixOpened": "5d7254c09662482c",
           "onStatus": "1ab27b09a2985abb",
-          "startAction": "c3ff148edfeb056c"
+          "startAction": "c3ff148edfeb056c",
+          "takeRecheck": "1fb3d495fab1fea2"
         }
       }
     },
@@ -30284,7 +30320,7 @@
         "src/renderer/serverConnectModel"
       ],
       "functions": {},
-      "sizeBytes": 2067,
+      "sizeBytes": 3184,
       "extraction": {
         "status": "parsed"
       },
@@ -34476,6 +34512,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "7a84d7f572c6ce61b02840020eb56483096112ee60aebf168be2dcb038bc0f07"
+    "revision": "5edf5390ee4843df966b9c379edadc9d55624e5753660935088dcc02d4ecd8fa"
   }
 }

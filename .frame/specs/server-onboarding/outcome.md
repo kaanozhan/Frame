@@ -38,3 +38,11 @@ TERMINAL_CREATE with `location: 'server-home'` makes ptyManager open a home term
 _Captured: 2026-11-11 · 5 file change(s)_
 
 ---
+
+## T06 — Sign in from the Connect dialog
+
+Added serverConnectModel.fixTerminalFor (a missing check-up item's single-line fix command, else null), noteFixOpened and takeRecheck. The Connect dialog's check-up head has "Open terminal on server", and every missing item with a fix gets "Open terminal" beside Copy: both close the dialog, open a `Server · <host>` home terminal in the current view (T05) and enter its lane, with the item's command typed and not run. The next time the dialog opens it re-runs the check-up once, so a finished sign-in shows as ready. The live check ran against a package built from this tree in a local stand-in home, not the field-test server: that run belongs to the user's first-time-user test.
+
+_Captured: 2026-11-11 · 4 file change(s)_
+
+---
