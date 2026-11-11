@@ -2693,6 +2693,8 @@
         "ARCHIVE_TIMEOUT_MS",
         "listIgnoredCandidates",
         "listIgnoredIn",
+        "createBundle",
+        "rootCommit",
         "upstreamOf",
         "upstreamOfBranch",
         "pushBranch",
@@ -2909,8 +2911,23 @@
           ],
           "purpose": "Ignored, untracked paths in the main checkout — the candidates `copyFiles`"
         },
+        "createBundle": {
+          "line": 566,
+          "params": [
+            "projectPath",
+            "dest"
+          ],
+          "purpose": "The project's committed history as one file (server-onboarding): HEAD,"
+        },
+        "rootCommit": {
+          "line": 576,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The project's root commit (the lowest-sorted parentless commit of HEAD), or null."
+        },
         "listIgnoredIn": {
-          "line": 563,
+          "line": 586,
           "params": [
             "projectPath",
             "dir"
@@ -2918,7 +2935,7 @@
           "purpose": "Ignored, untracked files inside one collapsed ignored folder `dir` (copyFiles, L10)."
         },
         "revCount": {
-          "line": 584,
+          "line": 607,
           "params": [
             "cwd",
             "range"
@@ -2926,7 +2943,7 @@
           "purpose": "`git rev-list --count <range>` in `cwd`; 0 when the range does not resolve."
         },
         "upstreamOfBranch": {
-          "line": 596,
+          "line": 619,
           "params": [
             "cwd",
             "branch"
@@ -2934,13 +2951,13 @@
           "purpose": "`branch`'s upstream as seen from `cwd` (`origin/develop`, or a local name), or null."
         },
         "upstreamOf": {
-          "line": 607,
+          "line": 630,
           "params": [
             "cwd"
           ]
         },
         "pushBranch": {
-          "line": 621,
+          "line": 644,
           "params": [
             "cwd",
             "args"
@@ -2948,7 +2965,7 @@
           "purpose": "Run a push built by prFlow.pushArgs in `cwd` — always an explicit"
         },
         "commitSubjects": {
-          "line": 632,
+          "line": 655,
           "params": [
             "cwd",
             "range",
@@ -2957,7 +2974,7 @@
           "purpose": "Commit subjects in `range`, newest first (`git log --format=%s`), at most `max`."
         },
         "fastForwardIfOn": {
-          "line": 646,
+          "line": 669,
           "params": [
             "projectPath",
             "branch"
@@ -2965,14 +2982,14 @@
           "purpose": "After a PR merges: fast-forward the main checkout's `branch` from origin —"
         },
         "trackedDirtyCount": {
-          "line": 675,
+          "line": 698,
           "params": [
             "cwd"
           ],
           "purpose": "Uncommitted changes to tracked files (untracked files never block a merge on their own)."
         },
         "mergeHeadIn": {
-          "line": 687,
+          "line": 710,
           "params": [
             "cwd",
             "ref"
@@ -2980,21 +2997,21 @@
           "purpose": "Is MERGE_HEAD a commit of `ref` (the merge Frame's update started), not one the user or an agent began?"
         },
         "mergeInProgress": {
-          "line": 697,
+          "line": 720,
           "params": [
             "cwd"
           ],
           "purpose": "Is a merge stopped half-way (MERGE_HEAD present)?"
         },
         "conflictedFiles": {
-          "line": 707,
+          "line": 730,
           "params": [
             "cwd"
           ],
           "purpose": "Raw `-z` list of unmerged paths (parse with prFlow.parseConflicts); '' when none or unreadable."
         },
         "mergeRef": {
-          "line": 721,
+          "line": 744,
           "params": [
             "cwd",
             "ref"
@@ -3002,34 +3019,34 @@
           "purpose": "`git merge --no-edit <ref>` → `{ ok, error }`; never throws."
         },
         "abortMerge": {
-          "line": 732,
+          "line": 755,
           "params": [
             "cwd"
           ],
           "purpose": "`git merge --abort` → `{ error }`."
         },
         "orchWorktreePath": {
-          "line": 747,
+          "line": 770,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 751,
+          "line": 774,
           "params": [
             "projectPath"
           ]
         },
         "branchExists": {
-          "line": 760,
+          "line": 783,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 774,
+          "line": 797,
           "params": [
             "projectPath",
             "slug"
@@ -3037,7 +3054,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 795,
+          "line": 818,
           "params": [
             "projectPath",
             "slug",
@@ -3046,7 +3063,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 810,
+          "line": 833,
           "params": [
             "projectPath",
             "slug",
@@ -3055,7 +3072,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 827,
+          "line": 850,
           "params": [
             "projectPath",
             "slug"
@@ -3063,7 +3080,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 846,
+          "line": 869,
           "params": [
             "projectPath",
             "slug"
@@ -3071,14 +3088,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 862,
+          "line": 885,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 882,
+          "line": 905,
           "params": [
             "ipcMain"
           ],
@@ -3100,7 +3117,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 37252,
+      "sizeBytes": 38088,
       "extraction": {
         "status": "parsed"
       },
@@ -3114,6 +3131,7 @@
           "commitSubjects": "f6193395316a2fc0",
           "conflictedFiles": "37b3d6551b0cd495",
           "createBranch": "b25c5d90b1a1893a",
+          "createBundle": "137125c05b40b858",
           "createOrchWorktree": "360f17a3e8ed35d7",
           "defaultRemoteBranch": "2b8cac1668d02128",
           "deleteBranch": "558fdff79656691b",
@@ -3140,6 +3158,7 @@
           "removeWorkspaceWorktree": "3f14e3547c30a6c2",
           "removeWorktree": "679ea312f5b749d1",
           "revCount": "01cb38e9254e5fe0",
+          "rootCommit": "0a50c3094d48d898",
           "setupIPC": "b41c7437e6910eb5",
           "switchBranch": "7059dba0b5b50f79",
           "trackedDirtyCount": "9504f62bbad64673",
@@ -5886,7 +5905,8 @@
         "rollback",
         "runningAgents",
         "desktopVersion",
-        "parseResult"
+        "parseResult",
+        "upload"
       ],
       "depends": [
         "fs",
@@ -6017,7 +6037,7 @@
           "purpose": "Agents running on the connected server, for the update consent:"
         }
       },
-      "sizeBytes": 14382,
+      "sizeBytes": 14390,
       "extraction": {
         "status": "parsed"
       },
@@ -8062,7 +8082,8 @@
         "workspaceGitState",
         "frameProject",
         "serverConnection",
-        "shared/serverRouting"
+        "shared/serverRouting",
+        "serverInstaller"
       ],
       "functions": {
         "init": {
@@ -8161,16 +8182,37 @@
             "projectPath"
           ]
         },
-        "serverProjectFor": {
+        "localIdentity": {
           "line": 190,
           "params": [
-            "projectPath",
-            "{ ensure = false } = {}"
+            "projectPath"
           ],
-          "purpose": "The server's clone of `projectPath` (by remote), cloning it when `ensure`."
+          "purpose": "How the server knows `projectPath`: its remote, its root commit, and the key (serverRouting.projectKey)."
+        },
+        "findOnServer": {
+          "line": 198,
+          "params": [
+            "projectPath",
+            "id"
+          ],
+          "purpose": "The server's clone of `projectPath`, matched by remote or (no remote) by root commit; null when none."
+        },
+        "ensureOnServer": {
+          "line": 212,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Make sure the server has `projectPath` (server-onboarding): the existing"
+        },
+        "serverProjectFor": {
+          "line": 241,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The server's clone of `projectPath`, or null (cached per host; matched by remote or root commit)."
         },
         "toServerRow": {
-          "line": 211,
+          "line": 249,
           "params": [
             "row",
             "serverProjectPath",
@@ -8178,24 +8220,24 @@
           ]
         },
         "listServer": {
-          "line": 215,
+          "line": 253,
           "params": [
             "projectPath"
           ]
         },
         "serverRoots": {
-          "line": 238,
+          "line": 276,
           "purpose": "Every known server workspace folder (server-workspace-panels): what panel"
         },
         "serverLocation": {
-          "line": 249,
+          "line": 287,
           "params": [
             "workspaceId"
           ],
           "purpose": "Where a workspace id lives on the server, or null when it is not a server workspace."
         },
         "serverCall": {
-          "line": 257,
+          "line": 295,
           "params": [
             "method",
             "projectPath",
@@ -8204,7 +8246,7 @@
           ]
         },
         "createOnServer": {
-          "line": 266,
+          "line": 304,
           "params": [
             "projectPath",
             "{ from",
@@ -8213,35 +8255,35 @@
           ]
         },
         "notifyRenderer": {
-          "line": 285,
+          "line": 323,
           "params": [
             "projectPath"
           ],
           "purpose": "Tell the renderer only (no spec/git refresh — those are local concerns)."
         },
         "wireServerEvents": {
-          "line": 290
+          "line": 328
         },
         "list": {
-          "line": 309,
+          "line": 347,
           "params": [
             "projectPath"
           ]
         },
         "realPath": {
-          "line": 317,
+          "line": 355,
           "params": [
             "p"
           ]
         },
         "listLocal": {
-          "line": 321,
+          "line": 359,
           "params": [
             "projectPath"
           ]
         },
         "withBase": {
-          "line": 340,
+          "line": 378,
           "params": [
             "projectPath",
             "rows"
@@ -8249,7 +8291,7 @@
           "purpose": "Records stored before workspaces knew their base (`base: null`) read as the"
         },
         "baseForBranch": {
-          "line": 347,
+          "line": 385,
           "params": [
             "projectPath",
             "branch"
@@ -8257,14 +8299,14 @@
           "purpose": "The base to prefill for a workspace opened from `branch` (decision B2)."
         },
         "status": {
-          "line": 356,
+          "line": 394,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 375,
+          "line": 413,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -8275,14 +8317,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 480,
+          "line": 518,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 496,
+          "line": 534,
           "params": [
             "projectPath",
             "id",
@@ -8293,7 +8335,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 551,
+          "line": 589,
           "params": [
             "projectPath",
             "id"
@@ -8301,7 +8343,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 576,
+          "line": 614,
           "params": [
             "projectPath",
             "id",
@@ -8311,7 +8353,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 610,
+          "line": 648,
           "params": [
             "projectPath",
             "id"
@@ -8319,13 +8361,13 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 626,
+          "line": 664,
           "params": [
             "ipcMain"
           ]
         },
         "archiveQueued": {
-          "line": 653,
+          "line": 691,
           "params": [
             "projectPath",
             "id",
@@ -8352,7 +8394,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 28997,
+      "sizeBytes": 30965,
       "extraction": {
         "status": "parsed"
       },
@@ -8366,6 +8408,9 @@
           "create": "49e97b4073070fcc",
           "currentEntries": "15be72a4b1278675",
           "currentHost": "7074067f14ad1110",
+          "ensureOnServer": "c326fa3b714bfd7e",
+          "findOnServer": "ac3fecfc41ab83b9",
+          "localIdentity": "45f45e051f23b3c6",
           "notifyRenderer": "f9f667afbfb4fe2c",
           "removeRecord": "cfa0e770acc4b861",
           "rename": "3e9545571f850334",
@@ -8373,7 +8418,7 @@
           "rowsFor": "4514664a6659fead",
           "serialize": "e12d4daf0f07ad77",
           "serverLocation": "a527f36a1d60a981",
-          "serverProjectFor": "e6b28242755cee20",
+          "serverProjectFor": "2a58c87ef6d7487c",
           "serverRoots": "a6296ff018796775",
           "withBase": "5fcc74b573fe69cf",
           "workspacesRoot": "c775b00e7f51ade2"
@@ -13373,14 +13418,14 @@
           "line": 172
         },
         "waitForSetupToFinish": {
-          "line": 224,
+          "line": 230,
           "params": [
             "terminalId"
           ],
           "purpose": "Resolve when `terminalId` has run something and come back to its shell prompt."
         },
         "runSetupThenAgent": {
-          "line": 251,
+          "line": 257,
           "params": [
             "{ setupScript",
             "toolId = null",
@@ -13390,7 +13435,7 @@
           "purpose": "In the selected workspace: run the setup script (if any) in a \"setup\""
         },
         "openAgent": {
-          "line": 286,
+          "line": 292,
           "params": [
             "{ toolId",
             "prompt",
@@ -13399,7 +13444,7 @@
           ]
         }
       },
-      "sizeBytes": 12854,
+      "sizeBytes": 13257,
       "extraction": {
         "status": "parsed"
       },
@@ -24816,7 +24861,7 @@
           ]
         }
       },
-      "sizeBytes": 8303,
+      "sizeBytes": 8469,
       "extraction": {
         "status": "parsed"
       },
@@ -30485,6 +30530,41 @@
         "description": "5fab4ba84d6c4f58"
       }
     },
+    "test/serverSendProject.test": {
+      "file": "test/serverSendProject.test.js",
+      "description": "The desktop sends a project to Frame Server as a git bundle",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "events",
+        "src/main/projectRegistry",
+        "src/main/workspaceManager"
+      ],
+      "functions": {
+        "project": {
+          "line": 69,
+          "params": [
+            "{ remote = null } = {}"
+          ]
+        },
+        "reset": {
+          "line": 79
+        }
+      },
+      "sizeBytes": 6682,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "fcf3f8ab11a04e0e"
+      }
+    },
     "test/serverSocket.test": {
       "file": "test/serverSocket.test.js",
       "description": "Frame Server listens on a Unix socket (server-hardening S8).",
@@ -34291,7 +34371,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 376,
+        "parsed": 377,
         "unsupported": 91,
         "partial": 0
       }
@@ -34338,9 +34418,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 561,
+      "visitedEntries": 562,
       "traversedDirectories": 86,
-      "eligibleFiles": 467,
+      "eligibleFiles": 468,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34357,7 +34437,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 467,
+      "indexedFiles": 468,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34365,6 +34445,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "42d6d86a89dca419e38ada3364d4228fea88eaf9603505277fb4a3ebb1eceb6e"
+    "revision": "4470d0e8e4ef96efc99c9fb21a4150be8c517a24e15f2cc0e977b9d44771fc68"
   }
 }

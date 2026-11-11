@@ -305,4 +305,4 @@ async function runningAgents() {
   return I.agentTerminals(list).map((a) => ({ ...a, workspace: names.get(a.workspaceId) || a.workspaceId }));
 }
 
-module.exports = { probe, decide, install, start, rollback, runningAgents, desktopVersion, parseResult };
+module.exports = { probe, decide, install, start, rollback, runningAgents, desktopVersion, parseResult, upload };

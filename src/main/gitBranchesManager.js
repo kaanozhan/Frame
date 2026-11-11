@@ -559,6 +559,29 @@ async function listIgnoredCandidates(projectPath) {
   }
 }
 
+/**
+ * The project's committed history as one file (server-onboarding): HEAD,
+ * every local branch and tag — what a clone needs, nothing uncommitted.
+ */
+async function createBundle(projectPath, dest) {
+  try {
+    await execGitArgs(['bundle', 'create', '-q', dest, 'HEAD', '--branches', '--tags'], projectPath, { timeout: 10 * 60 * 1000 });
+    return { error: null };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
+/** The project's root commit (the lowest-sorted parentless commit of HEAD), or null. */
+async function rootCommit(projectPath) {
+  try {
+    const { stdout } = await execGitArgs(['rev-list', '--max-parents=0', 'HEAD'], projectPath);
+    return stdout.split('\n').map((s) => s.trim()).filter(Boolean).sort()[0] || null;
+  } catch (_) {
+    return null;
+  }
+}
+
 /** Ignored, untracked files inside one collapsed ignored folder `dir` (copyFiles, L10). */
 async function listIgnoredIn(projectPath, dir) {
   try {
@@ -970,6 +993,8 @@ module.exports = {
   ARCHIVE_TIMEOUT_MS,
   listIgnoredCandidates,
   listIgnoredIn,
+  createBundle,
+  rootCommit,
   // PR flow helpers (workspace-pr-flow)
   revCount,
   upstreamOf,

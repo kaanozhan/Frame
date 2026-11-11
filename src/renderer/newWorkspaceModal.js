@@ -207,6 +207,12 @@ async function submit() {
   if (result.fetch && !result.fetch.skipped && !result.fetch.fetched) {
     notify.info(`Couldn't fetch origin/${result.workspace.base} — started from the local copy.`);
   }
+  if (result.sent) {
+    // The project went to the server as a git bundle (server-onboarding):
+    // committed history only — say what stayed here.
+    const n = Number(result.sent.uncommitted) || 0;
+    notify.info(`Sent this project's committed history to the server.${n ? ` ${n} uncommitted change${n === 1 ? '' : 's'} stayed on this Mac — commit and push them to use them there.` : ''}`);
+  }
 
   const section = require('./workspaceSection');
   await section.load();

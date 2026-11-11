@@ -186,26 +186,64 @@ async function originOf(projectPath) {
   }
 }
 
-/** The server's clone of `projectPath` (by remote), cloning it when `ensure`. */
-async function serverProjectFor(projectPath, { ensure = false } = {}) {
+/** How the server knows `projectPath`: its remote, its root commit, and the key (serverRouting.projectKey). */
+async function localIdentity(projectPath) {
   const origin = await originOf(projectPath);
-  if (!origin) {
-    if (ensure) throw new Error('This project has no git remote — push it to a remote first, then create a server workspace.');
-    return null;
+  const root = await git.rootCommit(projectPath);
+  const { projectKey } = require('../shared/serverRouting');
+  return { origin, root, key: projectKey({ originUrl: origin, root }) };
+}
+
+/** The server's clone of `projectPath`, matched by remote or (no remote) by root commit; null when none. */
+async function findOnServer(projectPath, id) {
+  const { sameRemote } = require('../shared/serverRouting');
+  const clones = (await server().call('projects.list', {})) || [];
+  const hit = clones.find((c) => (c.remote && id.origin && (c.remote === id.key || sameRemote(c.remote, id.origin)))
+    || (!id.origin && c.root && id.root && c.root === id.root));
+  return hit ? hit.projectPath : null;
+}
+
+/**
+ * Make sure the server has `projectPath` (server-onboarding): the existing
+ * clone, else the project's committed history sent as a git bundle over SSH
+ * and cloned there (`projects.receive`). Nothing uncommitted is sent; the
+ * count left behind is returned as `sent.uncommitted`.
+ */
+async function ensureOnServer(projectPath) {
+  const id = await localIdentity(projectPath);
+  if (!id.key) throw new Error('This project has no commits yet — commit something first, then create a server workspace.');
+  const existing = await findOnServer(projectPath, id);
+  if (existing) return { serverProjectPath: existing, sent: null };
+
+  const crypto = require('crypto');
+  const name = `receive-${crypto.randomBytes(6).toString('hex')}.bundle`;
+  const local = path.join(os.tmpdir(), `frame-${name}`);
+  try {
+    const made = await git.createBundle(projectPath, local);
+    if (made.error) throw new Error(`Could not package the project: ${made.error}`);
+    const host = server().getStatus().host;
+    await require('./serverInstaller').upload(host, local, `.frame-server/tmp/${name}`);
+    let res;
+    try {
+      res = await server().call('projects.receive', { bundlePath: name, originUrl: id.origin, root: id.root, name: path.basename(projectPath) }, 11 * 60 * 1000);
+    } catch (err) {
+      if (/Unknown method/i.test(err.message)) throw new Error(`Update Frame Server on ${host} to send projects from this Mac (Connect to Server ▸ Update).`);
+      throw err;
+    }
+    const st = await git.worktreeStatus(projectPath);
+    return { serverProjectPath: res.projectPath, sent: { uncommitted: Number(st.count) || 0 } };
+  } finally {
+    try { fs.rmSync(local, { force: true }); } catch (_) { /* gone */ }
   }
-  if (ensure) {
-    const res = await server().call('projects.ensure', { originUrl: origin }, 11 * 60 * 1000);
-    return res.projectPath;
-  }
+}
+
+/** The server's clone of `projectPath`, or null (cached per host; matched by remote or root commit). */
+async function serverProjectFor(projectPath) {
   const cached = rowsFor(projectPath);
   if (cached && cached.serverProjectPath) return cached.serverProjectPath;
-  const { sameRemote } = require('../shared/serverRouting');
-  const clones = await server().call('projects.list', {});
-  const { normalizeRemoteUrl } = require('../shared/serverRouting');
-  const want = normalizeRemoteUrl(origin);
-  // The server reports normalized remotes; compare in that form.
-  const hit = (clones || []).find((c) => c.remote && (c.remote === want || sameRemote(c.remote, origin)));
-  return hit ? hit.projectPath : null;
+  const id = await localIdentity(projectPath);
+  if (!id.key) return null;
+  return findOnServer(projectPath, id);
 }
 
 function toServerRow(row, serverProjectPath, host) {
@@ -266,7 +304,7 @@ function serverCall(method, projectPath, id, extra = {}) {
 async function createOnServer(projectPath, { from, base, branch }) {
   if (!server().isConnected()) return { error: 'Connect to a server first (File ▸ Connect to Server…).' };
   try {
-    const sp = await serverProjectFor(projectPath, { ensure: true });
+    const { serverProjectPath: sp, sent } = await ensureOnServer(projectPath);
     const res = await server().call('workspaces.create', { projectPath: sp, from, base, branch }, 11 * 60 * 1000);
     if (!res || res.error) return { error: (res && res.error) || 'Could not create the workspace on the server.' };
     const host = server().getStatus().host;
@@ -275,7 +313,7 @@ async function createOnServer(projectPath, { from, base, branch }) {
     entry.rows = [...entry.rows.filter((r) => r.id !== workspace.id), workspace];
     serverRows.set(projectPath, entry);
     notifyRenderer(projectPath);
-    return { error: null, workspace, copied: [], fetch: res.fetch, setupScript: res.setupScript, location: 'server' };
+    return { error: null, workspace, copied: [], fetch: res.fetch, setupScript: res.setupScript, location: 'server', ...(sent ? { sent } : {}) };
   } catch (err) {
     return { error: err.message };
   }

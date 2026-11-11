@@ -120,8 +120,10 @@ function setup({ shim, registerMethods, broadcast }) {
      * bundle and any partial folder are removed whatever happens.
      */
     'projects.receive': async ({ bundlePath, originUrl = null, root = null, name = '' } = {}) => {
-      const bundle = path.resolve(String(bundlePath || ''));
+      // A bare name is an upload in `<server home>/tmp` (the desktop uploads
+      // relative to the SSH login folder); an absolute path must point there.
       const uploads = uploadsDir();
+      const bundle = path.resolve(uploads, String(bundlePath || ''));
       if (path.dirname(bundle) !== uploads || !/^receive-[A-Za-z0-9._-]+\.bundle$/.test(path.basename(bundle))) {
         throw new Error(`The bundle must be an upload in ${uploads}.`);
       }

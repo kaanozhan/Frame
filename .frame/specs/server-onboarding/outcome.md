@@ -6,3 +6,11 @@ Added serverRouting.projectKey (normalized remote, else `root:<sha>`) and projec
 _Captured: 2026-11-11 · 5 file change(s)_
 
 ---
+
+## T02 — Send a project from the desktop
+
+Added gitBranchesManager.createBundle (`git bundle create … HEAD --branches --tags`) and rootCommit, and exported serverInstaller.upload. workspaceManager.ensureOnServer replaces the server-side clone-by-remote for new server workspaces: it finds an existing server clone by remote or, for a remote-less project, by root commit; otherwise it bundles the project to a temp file, uploads it to `.frame-server/tmp/receive-<random>.bundle` (relative to the SSH login folder), calls `projects.receive` with the bare name, returns `sent.uncommitted` from the worktree status, and turns "Unknown method" into "Update Frame Server on <host> to send projects from this Mac"; the local temp bundle is removed in `finally`. serverProjectFor (listing) matches remote-less projects by root too. The New Workspace dialog says only committed history was sent and how many uncommitted changes stayed. Deviation: projects.receive (T01) now resolves a bare bundle name against `<server home>/tmp`, since the upload path is relative to the login folder; the containment check is unchanged. `projects.ensure` stays on the server for older desktops but the desktop no longer calls it.
+
+_Captured: 2026-11-11 · 6 file change(s)_
+
+---
