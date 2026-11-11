@@ -31,10 +31,16 @@ process.env.GIT_CONFIG_NOSYSTEM = '1';
 process.env.GIT_AUTHOR_NAME = process.env.GIT_COMMITTER_NAME = 'Frame Test';
 process.env.GIT_AUTHOR_EMAIL = process.env.GIT_COMMITTER_EMAIL = 'test@frame.local';
 
+// Tests that need `gh` replace runGh for their duration (restored by withGh).
+const GH_NONE = async () => ({ ok: false, error: 'gh is stubbed in tests', stdout: '' });
 const GITHUB_STUB = {
   checkAccess: async () => ({ gh: false, authed: false, repoName: null }),
-  runGh: async () => ({ ok: false, error: 'gh is stubbed in tests', stdout: '' })
+  runGh: GH_NONE
 };
+async function withGh(fake, fn) {
+  GITHUB_STUB.runGh = fake;
+  try { return await fn(); } finally { GITHUB_STUB.runGh = GH_NONE; }
+}
 const EXTERNAL_STUBS = {
   '@aptabase/electron/main': { initialize() {}, trackEvent() {} },
   'posthog-node': { PostHog: class { capture() {} captureException() {} identify() {} shutdown() { return Promise.resolve(); } } },
@@ -185,4 +191,80 @@ test('L13d: the review diff refuses a merge base that is not a commit id', async
   assert.equal(fs.existsSync(out), false, 'git wrote no file');
   const files = await gitDiffManager.reviewFiles(project, '--upload-pack=x');
   assert.ok(files.error, 'an option as base is refused');
+});
+
+// ─── L3 / L5 / L11: archive never loses commits ──────────────
+
+/** A workspace whose worktree has one commit on a detached HEAD that no branch holds. */
+async function detachedWithCommit() {
+  const { project, remote } = makeProject();
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  const wt = created.workspace.path;
+  gitWrite(['checkout', '-q', '--detach'], wt);
+  fs.writeFileSync(path.join(wt, 'lost.txt'), 'only here\n');
+  gitWrite(['add', '.'], wt);
+  gitWrite(['commit', '-qm', 'detached work'], wt);
+  return { project, remote, ws: created.workspace, wt, sha: git(['rev-parse', 'HEAD'], wt) };
+}
+
+test('L3: archive refuses to drop commits on a detached HEAD and status reports them', async () => {
+  const { project, ws, wt, sha } = await detachedWithCommit();
+  const st = await workspaceManager.status(project, ws.id);
+  assert.equal(st.head.detached, true);
+  assert.equal(st.head.unreachable, 1);
+  const res = await workspaceManager.archive(project, ws.id, {});
+  assert.ok(res.headOff, 'archive stops and reports the commits');
+  assert.equal(res.headOff.unreachable, 1);
+  assert.equal(fs.existsSync(wt), true, 'the worktree is still there');
+  assert.equal(git(['cat-file', '-t', sha], project), 'commit');
+});
+
+test('L3: archive with rescue keeps the commits on a rescue branch, then removes the worktree', async () => {
+  const { project, ws, wt, sha } = await detachedWithCommit();
+  const res = await workspaceManager.archive(project, ws.id, { rescue: true });
+  assert.equal(res.error, null, res.error);
+  const rescue = `${ws.branch}-rescue-${sha.slice(0, 7)}`;
+  assert.equal(git(['rev-parse', `refs/heads/${rescue}`], project), sha, 'the rescue branch holds the commit');
+  assert.equal(fs.existsSync(wt), false, 'the worktree is gone');
+  assert.ok(projectRegistry.getWorkspaceRecords(project).find((r) => r.id === ws.id).archivedAt);
+});
+
+test('L3: archive after merge does not remove a worktree with unreachable commits', async () => {
+  const { project, ws, wt } = await detachedWithCommit();
+  const pr = { number: 7, url: 'https://example/pr/7', state: 'OPEN', isDraft: false, mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN', reviewDecision: '', statusCheckRollup: [], comments: [], headRefName: ws.branch, baseRefName: 'main' };
+  let merged = false;
+  const res = await withGh(async (args) => {
+    if (args[0] === 'pr' && args[1] === 'view') return { ok: true, stdout: JSON.stringify(merged ? { ...pr, state: 'MERGED' } : pr) };
+    if (args[0] === 'repo') return { ok: true, stdout: JSON.stringify({ squashMergeAllowed: true, mergeCommitAllowed: true, rebaseMergeAllowed: true }) };
+    if (args[0] === 'pr' && args[1] === 'merge') { merged = true; return { ok: true, stdout: '' }; }
+    return { ok: false, error: 'unexpected', stdout: '' };
+  }, () => workspaceGitState.merge(project, ws.id));
+  assert.equal(res.error, null, res.error);
+  assert.equal(res.archived, false);
+  assert.match(String(res.archiveNote), /not on any branch/);
+  assert.equal(fs.existsSync(wt), true, 'the worktree is kept');
+});
+
+test('L5: an archive and a create on the same project never overwrite each other', async () => {
+  const { project } = makeProject();
+  const first = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(first.error, null, first.error);
+  const handlers = {};
+  workspaceManager.setupIPC({ handle: (ch, fn) => { handlers[ch] = fn; }, on() {}, removeHandler() {} });
+  const { IPC } = require('../src/shared/ipcChannels');
+  const [created, archived] = await Promise.all([
+    handlers[IPC.WORKSPACE_CREATE]({}, { projectPath: project, from: 'new', base: 'main' }),
+    workspaceManager.archiveQueued(project, first.workspace.id, {})
+  ]);
+  assert.equal(created.error, null, created.error);
+  assert.equal(archived.error, null, archived.error);
+  const recs = projectRegistry.getWorkspaceRecords(project);
+  assert.ok(recs.find((r) => r.id === first.workspace.id).archivedAt, 'the archive stuck');
+  assert.ok(recs.find((r) => r.id === created.workspace.id && !r.archivedAt), 'the new workspace is recorded');
+});
+
+test('L11: archive commit and discard get a timeout long enough for hooks', () => {
+  const git = require('../src/main/gitBranchesManager');
+  assert.ok(git.ARCHIVE_TIMEOUT_MS >= 60000);
 });

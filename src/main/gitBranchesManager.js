@@ -468,12 +468,47 @@ async function worktreeStatus(worktreePath) {
   }
 }
 
+/**
+ * Archive's commit and discard run the user's hooks (pre-commit, lint) and
+ * may touch many files: the 10 s default cuts them off half-way
+ * (workspace-hardening L11).
+ */
+const ARCHIVE_TIMEOUT_MS = 120000;
+
+/**
+ * Where a worktree's HEAD stands: on `branch` or not, and how many commits
+ * it holds that no branch, remote branch or tag reaches — the commits that
+ * removing the worktree would lose (workspace-hardening L3).
+ */
+async function headState(worktreePath, branch) {
+  if (!worktreePath) return { error: 'Missing parameters' };
+  try {
+    let onRef = null;
+    try {
+      const { stdout } = await execGitArgs(['symbolic-ref', '-q', '--short', 'HEAD'], worktreePath);
+      onRef = stdout.trim() || null;
+    } catch (_) { onRef = null; }
+    const { stdout: sha } = await execGitArgs(['rev-parse', 'HEAD'], worktreePath);
+    const { stdout: count } = await execGitArgs(['rev-list', '--count', 'HEAD', '--not', '--branches', '--remotes', '--tags'], worktreePath);
+    return {
+      error: null,
+      detached: onRef === null,
+      onBranch: !!branch && onRef === branch,
+      ref: onRef,
+      sha: sha.trim(),
+      unreachable: parseInt(count.trim(), 10) || 0
+    };
+  } catch (err) {
+    return { error: err.error || err.message };
+  }
+}
+
 /** Stage everything and commit it with `message` (the archive dialog's "commit"). */
 async function commitAll(worktreePath, message) {
   if (!worktreePath || !message) return { error: 'Missing parameters' };
   try {
-    await execGitArgs(['add', '-A'], worktreePath);
-    await execGitArgs(['commit', '-m', message], worktreePath);
+    await execGitArgs(['add', '-A'], worktreePath, { timeout: ARCHIVE_TIMEOUT_MS });
+    await execGitArgs(['commit', '-m', message], worktreePath, { timeout: ARCHIVE_TIMEOUT_MS });
     return { error: null };
   } catch (err) {
     return { error: err.error || err.message };
@@ -488,8 +523,8 @@ async function commitAll(worktreePath, message) {
 async function discardAll(worktreePath) {
   if (!worktreePath) return { error: 'Missing parameters' };
   try {
-    await execGitArgs(['reset', '--hard'], worktreePath);
-    await execGitArgs(['clean', '-fd'], worktreePath);
+    await execGitArgs(['reset', '--hard'], worktreePath, { timeout: ARCHIVE_TIMEOUT_MS });
+    await execGitArgs(['clean', '-fd'], worktreePath, { timeout: ARCHIVE_TIMEOUT_MS });
     return { error: null };
   } catch (err) {
     return { error: err.error || err.message };
@@ -866,6 +901,8 @@ module.exports = {
   worktreeStatus,
   commitAll,
   discardAll,
+  headState,
+  ARCHIVE_TIMEOUT_MS,
   listIgnoredCandidates,
   // PR flow helpers (workspace-pr-flow)
   revCount,

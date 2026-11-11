@@ -2689,6 +2689,8 @@
         "worktreeStatus",
         "commitAll",
         "discardAll",
+        "headState",
+        "ARCHIVE_TIMEOUT_MS",
         "listIgnoredCandidates",
         "upstreamOf",
         "pushBranch",
@@ -2874,8 +2876,16 @@
           ],
           "purpose": "Uncommitted state of a worktree: `{ error, dirty, count }` from `git status --porcelain`."
         },
+        "headState": {
+          "line": 483,
+          "params": [
+            "worktreePath",
+            "branch"
+          ],
+          "purpose": "Where a worktree's HEAD stands: on `branch` or not, and how many commits"
+        },
         "commitAll": {
-          "line": 472,
+          "line": 507,
           "params": [
             "worktreePath",
             "message"
@@ -2883,21 +2893,21 @@
           "purpose": "Stage everything and commit it with `message` (the archive dialog's \"commit\")."
         },
         "discardAll": {
-          "line": 488,
+          "line": 523,
           "params": [
             "worktreePath"
           ],
           "purpose": "Throw away uncommitted work (the archive dialog's \"discard\"): tracked"
         },
         "listIgnoredCandidates": {
-          "line": 505,
+          "line": 540,
           "params": [
             "projectPath"
           ],
           "purpose": "Ignored, untracked paths in the main checkout — the candidates `copyFiles`"
         },
         "revCount": {
-          "line": 527,
+          "line": 562,
           "params": [
             "cwd",
             "range"
@@ -2905,14 +2915,14 @@
           "purpose": "`git rev-list --count <range>` in `cwd`; 0 when the range does not resolve."
         },
         "upstreamOf": {
-          "line": 538,
+          "line": 573,
           "params": [
             "cwd"
           ],
           "purpose": "The upstream of the checked-out branch (`origin/ws/teal`), or null."
         },
         "pushBranch": {
-          "line": 552,
+          "line": 587,
           "params": [
             "cwd",
             "args"
@@ -2920,7 +2930,7 @@
           "purpose": "Run a push built by prFlow.pushArgs in `cwd` — always an explicit"
         },
         "commitSubjects": {
-          "line": 563,
+          "line": 598,
           "params": [
             "cwd",
             "range",
@@ -2929,7 +2939,7 @@
           "purpose": "Commit subjects in `range`, newest first (`git log --format=%s`), at most `max`."
         },
         "fastForwardIfOn": {
-          "line": 577,
+          "line": 612,
           "params": [
             "projectPath",
             "branch"
@@ -2937,28 +2947,28 @@
           "purpose": "After a PR merges: fast-forward the main checkout's `branch` from origin —"
         },
         "trackedDirtyCount": {
-          "line": 606,
+          "line": 641,
           "params": [
             "cwd"
           ],
           "purpose": "Uncommitted changes to tracked files (untracked files never block a merge on their own)."
         },
         "mergeInProgress": {
-          "line": 616,
+          "line": 651,
           "params": [
             "cwd"
           ],
           "purpose": "Is a merge stopped half-way (MERGE_HEAD present)?"
         },
         "conflictedFiles": {
-          "line": 626,
+          "line": 661,
           "params": [
             "cwd"
           ],
           "purpose": "Raw `-z` list of unmerged paths (parse with prFlow.parseConflicts); '' when none or unreadable."
         },
         "mergeRef": {
-          "line": 636,
+          "line": 671,
           "params": [
             "cwd",
             "ref"
@@ -2966,34 +2976,34 @@
           "purpose": "`git merge --no-edit <ref>` → `{ ok, error }`; never throws."
         },
         "abortMerge": {
-          "line": 647,
+          "line": 682,
           "params": [
             "cwd"
           ],
           "purpose": "`git merge --abort` → `{ error }`."
         },
         "orchWorktreePath": {
-          "line": 662,
+          "line": 697,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 666,
+          "line": 701,
           "params": [
             "projectPath"
           ]
         },
         "branchExists": {
-          "line": 675,
+          "line": 710,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 689,
+          "line": 724,
           "params": [
             "projectPath",
             "slug"
@@ -3001,7 +3011,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 710,
+          "line": 745,
           "params": [
             "projectPath",
             "slug",
@@ -3010,7 +3020,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 725,
+          "line": 760,
           "params": [
             "projectPath",
             "slug",
@@ -3019,7 +3029,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 742,
+          "line": 777,
           "params": [
             "projectPath",
             "slug"
@@ -3027,7 +3037,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 761,
+          "line": 796,
           "params": [
             "projectPath",
             "slug"
@@ -3035,14 +3045,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 777,
+          "line": 812,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 797,
+          "line": 832,
           "params": [
             "ipcMain"
           ],
@@ -3064,7 +3074,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 32474,
+      "sizeBytes": 33910,
       "extraction": {
         "status": "parsed"
       },
@@ -3086,6 +3096,7 @@
           "execGitArgs": "ab6b29b207a1cf6b",
           "fastForwardIfOn": "501459df58132b5e",
           "fetchBranch": "5fbf03b136ac7bf3",
+          "headState": "3eae62e2f2328ce8",
           "init": "4ed6c1db9529d664",
           "isWorkMerged": "39ca7ffa9b37d991",
           "isWorkingTreeClean": "077fc8ab2e75ee0d",
@@ -7860,14 +7871,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 352,
+          "line": 355,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 388,
+          "line": 391,
           "params": [
             "projectPath",
             "id"
@@ -7875,7 +7886,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 400,
+          "line": 403,
           "params": [
             "ipcMain"
           ]
@@ -7895,7 +7906,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 18596,
+      "sizeBytes": 18901,
       "extraction": {
         "status": "parsed"
       },
@@ -7930,6 +7941,7 @@
         "status",
         "create",
         "archive",
+        "archiveQueued",
         "restore",
         "rename",
         "removeRecord"
@@ -8118,7 +8130,7 @@
           ]
         },
         "create": {
-          "line": 314,
+          "line": 317,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -8129,24 +8141,25 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 399,
+          "line": 402,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 415,
+          "line": 418,
           "params": [
             "projectPath",
             "id",
             "{ action",
-            "message } = {}"
+            "message",
+            "rescue = false } = {}"
           ],
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 456,
+          "line": 473,
           "params": [
             "projectPath",
             "id"
@@ -8154,7 +8167,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 481,
+          "line": 498,
           "params": [
             "projectPath",
             "id",
@@ -8164,7 +8177,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 508,
+          "line": 525,
           "params": [
             "projectPath",
             "id"
@@ -8172,10 +8185,19 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 524,
+          "line": 541,
           "params": [
             "ipcMain"
           ]
+        },
+        "archiveQueued": {
+          "line": 567,
+          "params": [
+            "projectPath",
+            "id",
+            "opts"
+          ],
+          "purpose": "`archive` behind the per-project queue, for callers outside IPC (merge's archive-on-merge)."
         }
       },
       "ipc": {
@@ -8195,7 +8217,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 23770,
+      "sizeBytes": 24999,
       "extraction": {
         "status": "parsed"
       },
@@ -8203,6 +8225,7 @@
         "description": "2f45bc510e7fcb99",
         "purposes": {
           "archive": "fcdb1c172d8f3513",
+          "archiveQueued": "242a31457821bc65",
           "copyIgnoredFiles": "7e0ac6d8b34d7685",
           "create": "49e97b4073070fcc",
           "notifyRenderer": "f9f667afbfb4fe2c",
@@ -24365,7 +24388,7 @@
           ]
         }
       },
-      "sizeBytes": 5017,
+      "sizeBytes": 5050,
       "extraction": {
         "status": "parsed"
       },
@@ -30604,22 +30627,31 @@
         "src/main/projectRegistry",
         "src/main/workspaceManager",
         "src/main/workspaceGitState",
-        "src/main/gitDiffManager"
+        "src/main/gitDiffManager",
+        "src/shared/ipcChannels",
+        "src/main/gitBranchesManager"
       ],
       "functions": {
+        "withGh": {
+          "line": 40,
+          "params": [
+            "fake",
+            "fn"
+          ]
+        },
         "git": {
-          "line": 71,
+          "line": 77,
           "params": [
             "args",
             "cwd"
           ]
         },
         "makeProject": {
-          "line": 77,
+          "line": 83,
           "purpose": "A project cloned from a bare remote with one commit on main, registered with Frame."
         },
         "gitWrite": {
-          "line": 100,
+          "line": 106,
           "params": [
             "args",
             "cwd"
@@ -30627,20 +30659,25 @@
           "purpose": "A test's own mutating git command inside a worktree. Every workspace"
         },
         "remoteSha": {
-          "line": 111,
+          "line": 117,
           "params": [
             "remote",
             "ref"
           ]
+        },
+        "detachedWithCommit": {
+          "line": 199,
+          "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
         }
       },
-      "sizeBytes": 9201,
+      "sizeBytes": 13858,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "7ed6394517203fcb",
         "purposes": {
+          "detachedWithCommit": "1ae72021c5522d03",
           "gitWrite": "e08d17cebb278718",
           "makeProject": "7f672baea984bab4"
         }
@@ -33147,6 +33184,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e18d580cb2c8c7dca5e44da9dd9bbe4b89981529e7bdb27bf709950ef952d719"
+    "revision": "b6fa14f1ff990e85c6a3aff1f5d5a8cc0cb2dd1069c842a4dc49c74fafce5cdc"
   }
 }

@@ -100,7 +100,7 @@ function setup({ shim, registerMethods, broadcast }) {
     'workspaces.list': async ({ projectPath } = {}) => workspaceManager.list(needProject(projectPath)),
     'workspaces.create': async ({ projectPath, from, base, branch } = {}) => workspaceManager.create(needProject(projectPath), { from, base, branch }),
     'workspaces.status': async ({ projectPath, id } = {}) => workspaceManager.status(needProject(projectPath), id),
-    'workspaces.archive': async ({ projectPath, id, action, message } = {}) => workspaceManager.archive(needProject(projectPath), id, { action, message }),
+    'workspaces.archive': async ({ projectPath, id, action, message, rescue } = {}) => workspaceManager.archive(needProject(projectPath), id, { action, message, rescue: rescue === true }),
     'workspaces.rename': async ({ projectPath, id, name, branch } = {}) => workspaceManager.rename(needProject(projectPath), id, { name, branch }),
     'tools.check': async ({ toolId, tool = null, launchFlags = null, projectPath = null } = {}) => aiToolManager.checkToolAvailable({ toolId, tool, launchFlags, projectPath })
   });

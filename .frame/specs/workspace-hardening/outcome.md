@@ -6,3 +6,11 @@ Added prFlow.pushArgs: every push names `origin refs/heads/B:refs/heads/B`, adds
 _Captured: 2026-11-11 · 9 file change(s)_
 
 ---
+
+## T02 — Make archive keep commits
+
+Added gitBranchesManager.headState (symbolic-ref, rev-parse, `rev-list --count HEAD --not --branches --remotes --tags`) and include it as `head` in workspaceManager.status. archive now re-reads it after the commit/discard step: commits no branch, remote branch or tag holds stop the archive with `{ headOff }` and the worktree stays; `rescue: true` first creates `<branch>-rescue-<shortsha>` at HEAD, then removes the worktree. The server route passes `rescue` through. archiveQueued puts archive behind the per-project queue; workspaceGitState.merge uses it and reports `not archived: N commits not on any branch would be lost` instead of removing. Archive's add/commit/reset/clean run with ARCHIVE_TIMEOUT_MS (120 s). The rescue dialog in the renderer is T03.
+
+_Captured: 2026-11-11 · 5 file change(s)_
+
+---

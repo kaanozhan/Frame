@@ -300,7 +300,10 @@ async function status(projectPath, id) {
   if (routed) return routed;
   const record = registry.findById(records(projectPath), id);
   if (!record) return { error: `No workspace "${id}".`, dirty: false, count: 0 };
-  return git.worktreeStatus(record.path);
+  const st = await git.worktreeStatus(record.path);
+  if (st.error) return st;
+  const head = await git.headState(record.path, record.branch);
+  return { ...st, head: head.error ? null : head };
 }
 
 // ─── Mutations ───────────────────────────────────────────────
@@ -412,8 +415,8 @@ async function refExists(ref, projectPath) {
  * worktree is then removed (`--force`, which also drops ignored copies such
  * as `.env` and `node_modules`); the branch is kept.
  */
-async function archive(projectPath, id, { action, message } = {}) {
-  const routed = serverCall('workspaces.archive', projectPath, id, { action, message });
+async function archive(projectPath, id, { action, message, rescue = false } = {}) {
+  const routed = serverCall('workspaces.archive', projectPath, id, { action, message, rescue });
   if (routed) return routed;
   const current = records(projectPath);
   const record = registry.findById(current, id);
@@ -433,6 +436,20 @@ async function archive(projectPath, id, { action, message } = {}) {
         if (d.error) return { error: d.error };
       } else {
         return { error: null, dirty: true, count: st.count };
+      }
+    }
+    // Commits no branch holds (a detached HEAD, or a branch switched away
+    // from) would go with the worktree. Stop and report them unless the user
+    // chose a rescue branch (workspace-hardening L3, decision B1).
+    const head = await git.headState(record.path, record.branch);
+    if (head.error) return { error: head.error };
+    if (head.unreachable > 0) {
+      if (!rescue) return { error: null, headOff: { unreachable: head.unreachable, sha: head.sha, detached: head.detached, ref: head.ref } };
+      const rescueBranch = `${record.branch}-rescue-${head.sha.slice(0, 7)}`;
+      try {
+        await git.execGitArgs(['branch', '--', rescueBranch, head.sha], projectPath);
+      } catch (err) {
+        return { error: `Could not create ${rescueBranch}: ${err.error || err.message}` };
       }
     }
     // Local gitSharing mode: specs written here were never committed — bring
@@ -546,6 +563,11 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.WORKSPACE_REMOVE_RECORD, guarded(({ projectPath, id }) => serialize(projectPath, () => removeRecord(projectPath, id))));
 }
 
+/** `archive` behind the per-project queue, for callers outside IPC (merge's archive-on-merge). */
+function archiveQueued(projectPath, id, opts) {
+  return serialize(projectPath, () => archive(projectPath, id, opts));
+}
+
 module.exports = {
   init,
   setupIPC,
@@ -556,6 +578,7 @@ module.exports = {
   status,
   create,
   archive,
+  archiveQueued,
   restore,
   rename,
   removeRecord

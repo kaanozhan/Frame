@@ -333,9 +333,12 @@ async function merge(projectPath, id) {
   let archived = false;
   let archiveNote = null;
   if (settings.archiveOnMerge) {
-    const a = await require('./workspaceManager').archive(projectPath, id, {});
-    archived = !!(a && !a.error && !a.dirty);
+    // Behind the per-project queue so a concurrent create cannot overwrite
+    // the record (workspace-hardening L5).
+    const a = await require('./workspaceManager').archiveQueued(projectPath, id, {});
+    archived = !!(a && !a.error && !a.dirty && !a.headOff);
     if (a && a.dirty) archiveNote = 'not archived: the workspace has uncommitted changes';
+    else if (a && a.headOff) archiveNote = `not archived: ${a.headOff.unreachable} commit${a.headOff.unreachable === 1 ? '' : 's'} not on any branch would be lost`;
     else if (a && a.error) archiveNote = `not archived: ${a.error}`;
   }
   refresh(projectPath);
