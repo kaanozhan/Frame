@@ -20851,7 +20851,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 16251,
+      "sizeBytes": 18140,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -25851,6 +25851,7 @@
       "description": "serverInstall — the rules behind installing and updating Frame Server",
       "exports": [
         "RELEASE_BASE",
+        "INSTALL_EXIT",
         "agentTerminals",
         "assetFor",
         "releaseUrl",
@@ -25864,7 +25865,7 @@
       "depends": [],
       "functions": {
         "assetFor": {
-          "line": 18,
+          "line": 31,
           "params": [
             "unameS",
             "unameM",
@@ -25873,7 +25874,7 @@
           "purpose": "The package for a server from `uname -s` / `uname -m`:"
         },
         "releaseUrl": {
-          "line": 31,
+          "line": 44,
           "params": [
             "version",
             "asset"
@@ -25881,13 +25882,13 @@
           "purpose": "Where a release asset is downloaded from."
         },
         "parseVersion": {
-          "line": 35,
+          "line": 48,
           "params": [
             "v"
           ]
         },
         "compareVersions": {
-          "line": 46,
+          "line": 59,
           "params": [
             "a",
             "b"
@@ -25895,7 +25896,7 @@
           "purpose": "-1 / 0 / 1 like semver: numbers first, a prerelease (`2.9.0-dev`) sorts"
         },
         "installDecision": {
-          "line": 70,
+          "line": 83,
           "params": [
             "{ installed = null",
             "desktopVersion",
@@ -25905,7 +25906,7 @@
           "purpose": "What to do with a server: `{ action, reason }`, action one of"
         },
         "parseChecksum": {
-          "line": 94,
+          "line": 107,
           "params": [
             "text",
             "fileName"
@@ -25913,25 +25914,25 @@
           "purpose": "The hex SHA-256 for `fileName` in a checksum file (`<hex>  <name>`,"
         },
         "systemdUnit": {
-          "line": 108,
+          "line": 121,
           "purpose": "The systemd user unit that runs the current version."
         },
         "doctorItems": {
-          "line": 131,
+          "line": 144,
           "params": [
             "raw = {}"
           ],
           "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
         },
         "agentTerminals": {
-          "line": 187,
+          "line": 200,
           "params": [
             "list"
           ],
           "purpose": "The server terminals running an agent, from `terminals.list` (each with its"
         }
       },
-      "sizeBytes": 8642,
+      "sizeBytes": 9039,
       "extraction": {
         "status": "parsed"
       },
@@ -29143,9 +29144,23 @@
           "params": [
             "box"
           ]
+        },
+        "breakVersion": {
+          "line": 182,
+          "params": [
+            "home",
+            "version"
+          ]
+        },
+        "link": {
+          "line": 181,
+          "params": [
+            "home",
+            "name"
+          ]
         }
       },
-      "sizeBytes": 8709,
+      "sizeBytes": 13833,
       "extraction": {
         "status": "parsed"
       },
@@ -29785,10 +29800,12 @@
       "depends": [
         "node:test",
         "node:assert/strict",
-        "src/shared/serverInstall"
+        "src/shared/serverInstall",
+        "fs",
+        "path"
       ],
       "functions": {},
-      "sizeBytes": 5935,
+      "sizeBytes": 6876,
       "extraction": {
         "status": "parsed"
       },
@@ -33685,6 +33702,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "db2d6cbd389960f23aa4e87358d79dc77483140136ba6bb7799af009eb90fed0"
+    "revision": "78fc3bc1d93cf1abfa00a7545eb9d9638e85d85810ce4a5aadbb80844b3bbf8f"
   }
 }

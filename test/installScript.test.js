@@ -174,3 +174,93 @@ test('S7: a pid file naming an unrelated process is not signalled and reads as n
   assert.equal(again.result && again.result.ok, true, again.out);
   assert.ok(alive(stranger.pid), 'the unrelated process was not killed');
 });
+
+// ─── S3: a failure with nothing to fall back to leaves nothing running ──
+
+const FAST_FAIL = { FRAME_INSTALL_HEALTH_SECONDS: '2' };
+const link = (home, name) => { try { return path.basename(fs.readlinkSync(path.join(home, name))); } catch (_) { return null; } };
+function breakVersion(home, version) {
+  fs.copyFileSync(path.join(FIX, 'index-bad.js'), path.join(home, 'versions', version, 'app', 'src', 'server', 'index.js'));
+}
+
+test('S3: a failed first install on a systemd host disables the unit and leaves no dangling links', { skip: REAL_SYSTEMD }, () => {
+  const box = sandbox();
+  const home = path.join(box.home, '.frame-server');
+  const r = install(box, ['--package-file', makePackage(box, '9.0.0', { good: false })], FAST_FAIL);
+  assert.equal(r.result && r.result.ok, false, r.out);
+  assert.equal(r.code, 13);
+  assert.equal(fs.existsSync(path.join(box.systemd, 'enabled')), false, 'the unit is not left enabled');
+  assert.equal(fs.existsSync(path.join(box.home, '.config', 'systemd', 'user', 'frame-server.service')), false, 'the unit file is removed');
+  assert.match(box.stubLog(), /systemctl --user disable/);
+  assert.equal(link(home, 'current'), null, 'no current link to a deleted version');
+  assert.equal(link(home, 'bin/frame-server'), null, 'no bin link');
+});
+
+test('S3: a failed first detached install leaves no current link and no process', () => {
+  const box = sandbox();
+  const home = path.join(box.dir, 'other-home');
+  const r = install(box, ['--home', home, '--service', 'detached', '--package-file', makePackage(box, '9.0.0', { good: false })], FAST_FAIL);
+  assert.equal(r.code, 13, r.out);
+  assert.equal(link(home, 'current'), null);
+  assert.equal(fs.existsSync(path.join(home, 'server.pid')), false);
+});
+
+test('S3: a failed --service-only stops and disables the unit', { skip: REAL_SYSTEMD }, () => {
+  const box = sandbox();
+  const home = path.join(box.home, '.frame-server');
+  assert.equal(install(box, ['--package-file', makePackage(box, '9.0.0')]).code, 0);
+  breakVersion(home, '9.0.0');
+  const r = install(box, ['--service-only'], FAST_FAIL);
+  assert.equal(r.code, 13, r.out);
+  assert.equal(fs.existsSync(path.join(box.systemd, 'enabled')), false, 'not left restarting');
+  assert.equal(link(home, 'current'), '9.0.0', 'the installed version stays installed');
+});
+
+// ─── S5: rollback keeps its target ───────────────────────────
+
+test('S5: a failed rollback leaves current and previous as they were', () => {
+  const box = sandbox();
+  const home = path.join(box.dir, 'other-home');
+  const args = ['--home', home, '--service', 'detached'];
+  assert.equal(install(box, [...args, '--package-file', makePackage(box, '9.0.0')]).code, 0);
+  assert.equal(install(box, [...args, '--package-file', makePackage(box, '9.0.1')]).code, 0);
+  breakVersion(home, '9.0.0');
+  const r = install(box, [...args, '--rollback'], FAST_FAIL);
+  assert.equal(r.code, 13, r.out);
+  assert.equal(link(home, 'current'), '9.0.1');
+  assert.equal(link(home, 'previous'), '9.0.0', 'previous still names the rollback target');
+  assert.equal(JSON.parse(frameServer(box, home, ['status', '--json'])).runningVersion, '9.0.1');
+});
+
+test('S5: a failed reinstall of the previous version keeps the installed copy', () => {
+  const box = sandbox();
+  const home = path.join(box.dir, 'other-home');
+  const args = ['--home', home, '--service', 'detached'];
+  assert.equal(install(box, [...args, '--package-file', makePackage(box, '9.0.0')]).code, 0);
+  assert.equal(install(box, [...args, '--package-file', makePackage(box, '9.0.1')]).code, 0);
+  const r = install(box, [...args, '--package-file', makePackage(box, '9.0.0', { good: false })], FAST_FAIL);
+  assert.equal(r.code, 13, r.out);
+  assert.equal(link(home, 'current'), '9.0.1');
+  assert.equal(link(home, 'previous'), '9.0.0');
+  const index = fs.readFileSync(path.join(home, 'versions', '9.0.0', 'app', 'src', 'server', 'index.js'), 'utf8');
+  assert.match(index, /writeFileSync/, 'the good 9.0.0 copy is back');
+});
+
+// ─── S10: one installer at a time ────────────────────────────
+
+test('S10: a second installer exits with code 16 while one runs; a stale lock is taken over', () => {
+  const box = sandbox();
+  const home = path.join(box.dir, 'other-home');
+  const args = ['--home', home, '--service', 'detached'];
+  fs.mkdirSync(path.join(home, 'install.lock'), { recursive: true });
+  fs.writeFileSync(path.join(home, 'install.lock', 'pid'), String(process.pid)); // alive
+  const busy = install(box, [...args, '--package-file', makePackage(box, '9.0.0')]);
+  assert.equal(busy.code, 16, busy.out);
+  assert.equal(busy.result.code, 16);
+  assert.equal(link(home, 'current'), null, 'nothing was installed');
+
+  fs.writeFileSync(path.join(home, 'install.lock', 'pid'), '999999'); // dead
+  const ok = install(box, [...args, '--package-file', makePackage(box, '9.0.0')]);
+  assert.equal(ok.code, 0, ok.out);
+  assert.equal(fs.existsSync(path.join(home, 'install.lock')), false, 'the lock is released');
+});

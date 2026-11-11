@@ -11,6 +11,19 @@
 
 const RELEASE_BASE = 'https://github.com/kaanozhan/Frame/releases/download';
 
+/** Exit codes of scripts/install-frame-server.sh (also the result line's `code`). */
+const INSTALL_EXIT = Object.freeze({
+  OK: 0,
+  USAGE: 2,
+  DOWNLOAD_UNAVAILABLE: 10,
+  CHECKSUM_MISMATCH: 11,
+  MISSING_BUILD_TOOLS: 12,
+  START_FAILED: 13,
+  UNSUPPORTED_PLATFORM: 14,
+  NOTHING_TO_ROLL_BACK: 15,
+  BUSY: 16 // another install is running for that home (server-hardening S10)
+});
+
 /**
  * The package for a server from `uname -s` / `uname -m`:
  * `{ platform, asset, checksum }` or `{ error }`.
@@ -195,4 +208,4 @@ function agentTerminals(list) {
   return out;
 }
 
-module.exports = { RELEASE_BASE, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems };
+module.exports = { RELEASE_BASE, INSTALL_EXIT, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems };

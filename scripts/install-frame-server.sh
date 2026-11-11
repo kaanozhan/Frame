@@ -24,7 +24,7 @@
 #   FRAME_INSTALL_RESULT {"ok":…,"version":…,"service":…,"rolledBack":…,"code":…,"message":…}
 # Exit codes: 0 ok · 2 usage · 10 download unavailable · 11 checksum mismatch
 #             12 missing build tools · 13 start failed (rolled back) · 14 unsupported platform
-#             15 nothing to roll back to
+#             15 nothing to roll back to · 16 another install is running
 set -uo pipefail
 
 RELEASE_BASE="${FRAME_RELEASE_BASE:-https://github.com/kaanozhan/Frame/releases/download}"
@@ -72,6 +72,22 @@ done
 export FRAME_SERVER_HOME="$HOME_DIR"
 mkdir -p "$HOME_DIR/versions" "$HOME_DIR/tmp" "$HOME_DIR/bin"
 chmod 700 "$HOME_DIR"
+
+# One installer at a time per home (S10): an atomic mkdir lock holding our
+# pid. A live holder → exit 16; a dead one's lock is taken over once. One
+# EXIT trap releases the lock and removes the stage.
+LOCK="$HOME_DIR/install.lock"
+STAGE=""
+take_lock() {
+  if mkdir "$LOCK" 2>/dev/null; then echo $$ > "$LOCK/pid"; return 0; fi
+  local holder
+  holder="$(cat "$LOCK/pid" 2>/dev/null || true)"
+  if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then return 1; fi
+  rm -rf "$LOCK"
+  mkdir "$LOCK" 2>/dev/null && echo $$ > "$LOCK/pid"
+}
+take_lock || die 16 "another install is running for $HOME_DIR (pid $(cat "$LOCK/pid" 2>/dev/null || echo ?)) — wait for it to finish"
+trap '[ -n "$STAGE" ] && rm -rf "$STAGE"; [ "$(cat "$LOCK/pid" 2>/dev/null)" = "$$" ] && rm -rf "$LOCK"' EXIT
 
 # ─── Helpers ──────────────────────────────────────────────────
 
@@ -192,6 +208,18 @@ start_server() {
   fi
 }
 
+# Nothing to fall back to: leave nothing running or restarting (S3). The unit
+# is disabled and removed (systemd), or the detached server stopped.
+quiesce() {
+  if uses_systemd; then
+    systemctl --user disable --now frame-server >/dev/null 2>&1 || true
+    rm -f "$HOME/.config/systemd/user/frame-server.service"
+    systemctl --user daemon-reload >/dev/null 2>&1 || true
+  fi
+  stop_server
+  say "Frame Server is stopped: there is no working version to run"
+}
+
 # Wait until the running server reports version $1.
 healthy() {
   [ "$SERVICE" = "none" ] && return 0
@@ -234,8 +262,12 @@ activate() { # new_version old_version
     ln -sfn "$HOME_DIR/versions/$2" "$HOME_DIR/current"
     stop_server
     start_server
-    healthy "$2" || say "the previous version $2 did not start either"
+    healthy "$2" && return 1
+    say "the previous version $2 did not start either"
   fi
+  # A reinstall of the running version is restored by its caller; anything
+  # else has nothing left to run.
+  [ "${3:-}" = "keep" ] || quiesce
   return 1
 }
 
@@ -248,8 +280,12 @@ if [ "$MODE" = "rollback" ]; then
   VERSION="$prev"
   say "rolling back from ${cur:-none} to $prev"
   ln -sfn "$HOME_DIR/versions/$prev" "$HOME_DIR/current"
-  [ -n "$cur" ] && ln -sfn "$HOME_DIR/versions/$cur" "$HOME_DIR/previous"
-  if activate "$prev" "$cur"; then result true "$prev" "$SERVICE_USED" false 0 "Rolled back to $prev"; exit 0; fi
+  if activate "$prev" "$cur"; then
+    # Only now does the old current become the rollback target (S5): a
+    # failed rollback leaves current and previous exactly as they were.
+    [ -n "$cur" ] && ln -sfn "$HOME_DIR/versions/$cur" "$HOME_DIR/previous"
+    result true "$prev" "$SERVICE_USED" false 0 "Rolled back to $prev"; exit 0
+  fi
   result false "$prev" "$SERVICE_USED" true 13 "Frame Server $prev did not start; restored $cur"; exit 13
 fi
 if [ "$MODE" = "service" ]; then
@@ -266,7 +302,6 @@ PLATFORM="$(platform)"
 [ -n "$PLATFORM" ] || die 14 "unsupported platform $(uname -s) $(uname -m) — Frame Server packages exist for Linux x86_64 and aarch64"
 STAGE="$HOME_DIR/tmp/install-$$"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
-trap 'rm -rf "$STAGE"' EXIT
 
 if [ -n "$SOURCE_FILE" ]; then
   # Build from source with this machine's tools.
@@ -330,33 +365,40 @@ fi
 OLD="$(link_target "$HOME_DIR/current")"
 OLD_PREV="$(link_target "$HOME_DIR/previous")"
 TARGET="$HOME_DIR/versions/$VERSION"
-if [ "$OLD" = "$VERSION" ]; then
-  # Reinstalling the running version: keep the old copy aside until the new one starts.
+REINSTALL_CURRENT=""
+if [ -d "$TARGET" ]; then
+  # An installed copy of this version (the running one, or the rollback
+  # target): keep it aside until the new one starts, and put it back on
+  # failure (S5).
   mv "$TARGET" "$TARGET.replaced.$$"
-  OLD=""
-elif [ -d "$TARGET" ]; then
-  # An installed but idle copy of this version: replace it outright.
-  rm -rf "${TARGET:?}"
+  if [ "$OLD" = "$VERSION" ]; then OLD=""; REINSTALL_CURRENT=1; fi
 fi
 rm -rf "$TARGET.partial" && mv "$PKGDIR" "$TARGET.partial" && mv "$TARGET.partial" "$TARGET" || die 2 "could not place $VERSION"
 switch_to "$VERSION"
 say "installed $VERSION in $TARGET"
 
-if activate "$VERSION" "$OLD"; then
+if activate "$VERSION" "$OLD" "${REINSTALL_CURRENT:+keep}"; then
   rm -rf "$TARGET.replaced.$$"
   prune
   say "Frame Server $VERSION is running ($SERVICE_USED)"
   result true "$VERSION" "$SERVICE_USED" false 0 "Frame Server $VERSION is running"
   exit 0
 fi
-if [ -d "$TARGET.replaced.$$" ]; then
+if [ -n "$REINSTALL_CURRENT" ]; then
   # A reinstall of the running version failed: put the old copy back.
   rm -rf "$TARGET"; mv "$TARGET.replaced.$$" "$TARGET"
-  stop_server; start_server; healthy "$VERSION" || true
+  stop_server; start_server
+  healthy "$VERSION" || quiesce
 else
-  # The new version never ran: drop it and leave current/previous as they were.
+  # The new version never ran: drop it, restore an installed copy it
+  # replaced, and leave current/previous as they were.
   rm -rf "${TARGET:?}"
+  [ -d "$TARGET.replaced.$$" ] && mv "$TARGET.replaced.$$" "$TARGET"
   if [ -n "$OLD_PREV" ]; then ln -sfn "$HOME_DIR/versions/$OLD_PREV" "$HOME_DIR/previous"; else rm -f "$HOME_DIR/previous"; fi
+  if [ -z "$OLD" ]; then
+    # A first install: nothing may point at the deleted version.
+    rm -f "$HOME_DIR/current" "$HOME_DIR/bin/frame-server"
+  fi
 fi
 result false "$VERSION" "$SERVICE_USED" true 13 "Frame Server $VERSION did not start; ${OLD:-nothing} restored"
 exit 13

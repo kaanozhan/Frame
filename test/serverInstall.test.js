@@ -95,3 +95,17 @@ test('doctorItems: one ready agent is enough; missing items carry fixes', () => 
   assert.match(manual.detail, /by hand/);
   assert.match(manual.fix, /install-service/);
 });
+
+test('INSTALL_EXIT names the installer exit codes, including 16 for a running install (server-hardening S10)', () => {
+  assert.equal(I.INSTALL_EXIT.BUSY, 16);
+  assert.equal(I.INSTALL_EXIT.START_FAILED, 13);
+  assert.equal(I.INSTALL_EXIT.DOWNLOAD_UNAVAILABLE, 10);
+  // Every code the script documents is named.
+  const script = require('fs').readFileSync(require('path').join(__dirname, '..', 'scripts', 'install-frame-server.sh'), 'utf8');
+  const block = script.slice(script.indexOf('# Exit codes:')).split('\n');
+  const lines = [block[0]];
+  for (const l of block.slice(1)) { if (/^#\s{4,}/.test(l)) lines.push(l); else break; }
+  const documented = [...lines.join(' ').matchAll(/(?:^|[:·]\s*)(\d+) [a-z]/g)].map((m) => Number(m[1]));
+  assert.ok(documented.includes(16) && documented.includes(0), `parsed ${documented}`);
+  for (const c of documented) assert.ok(Object.values(I.INSTALL_EXIT).includes(c), `code ${c} is named`);
+});
