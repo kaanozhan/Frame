@@ -34,7 +34,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 1070,
+      "sizeBytes": 2456,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -46,7 +46,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 2501,
+      "sizeBytes": 4924,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -5903,25 +5903,25 @@
           "purpose": "Run `command` on `host`. `input` is a string, Buffer or readable stream"
         },
         "sshFailure": {
-          "line": 81,
+          "line": 89,
           "params": [
             "host",
             "res"
           ]
         },
         "desktopVersion": {
-          "line": 91,
+          "line": 99,
           "purpose": "This desktop's version; a desktop running from source is `<v>-dev+<sha>`."
         },
         "probe": {
-          "line": 120,
+          "line": 128,
           "params": [
             "host"
           ],
           "purpose": "What is on the host: `{ error?, unameS, unameM, installed: { current, previous,"
         },
         "decide": {
-          "line": 147,
+          "line": 155,
           "params": [
             "host",
             "{ protocolOk = true } = {}"
@@ -5929,16 +5929,16 @@
           "purpose": "`{ action, reason, desktopVersion, dev, probe }` for a host."
         },
         "parseResult": {
-          "line": 157,
+          "line": 165,
           "params": [
             "stdout"
           ]
         },
         "scriptPath": {
-          "line": 163
+          "line": 171
         },
         "runInstaller": {
-          "line": 168,
+          "line": 176,
           "params": [
             "host",
             "args",
@@ -5947,7 +5947,7 @@
           "purpose": "Run the installer on the host with `args` (already shell-safe words)."
         },
         "download": {
-          "line": 180,
+          "line": 188,
           "params": [
             "url",
             "dest",
@@ -5956,7 +5956,7 @@
           "purpose": "GET with redirects into a file (GitHub release assets redirect to a CDN)."
         },
         "upload": {
-          "line": 205,
+          "line": 213,
           "params": [
             "host",
             "localFile",
@@ -5965,11 +5965,11 @@
           "purpose": "Stream a local file to `remotePath` on the host."
         },
         "sourceTarball": {
-          "line": 212,
+          "line": 220,
           "purpose": "Source tarball of this checkout (`git archive HEAD`) in a temp file."
         },
         "install": {
-          "line": 226,
+          "line": 234,
           "params": [
             "host",
             "{ onProgress = ("
@@ -5977,7 +5977,7 @@
           "purpose": "Install (or update to) this desktop's version on `host`."
         },
         "start": {
-          "line": 272,
+          "line": 280,
           "params": [
             "host",
             "{ onProgress = ("
@@ -5985,7 +5985,7 @@
           "purpose": "Start the installed current version (after a reboot, or a stopped process)."
         },
         "rollback": {
-          "line": 277,
+          "line": 285,
           "params": [
             "host",
             "{ onProgress = ("
@@ -5993,11 +5993,11 @@
           "purpose": "Back to the previous installed version."
         },
         "runningAgents": {
-          "line": 287,
+          "line": 295,
           "purpose": "Agents running on the connected server, for the update consent:"
         }
       },
-      "sizeBytes": 13993,
+      "sizeBytes": 14382,
       "extraction": {
         "status": "parsed"
       },
@@ -20931,7 +20931,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 18140,
+      "sizeBytes": 19415,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -24373,7 +24373,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 6278,
+      "sizeBytes": 6646,
       "extraction": {
         "status": "parsed"
       },
@@ -29239,7 +29239,7 @@
           "purpose": "A package tarball for `version`; `good` decides whether its server starts."
         },
         "install": {
-          "line": 78,
+          "line": 83,
           "params": [
             "box",
             "args",
@@ -29248,7 +29248,7 @@
           "purpose": "Run the installer; returns { code, lines, result, out }."
         },
         "frameServer": {
-          "line": 90,
+          "line": 95,
           "params": [
             "box",
             "home",
@@ -29256,45 +29256,55 @@
           ]
         },
         "alive": {
-          "line": 95,
+          "line": 100,
           "params": [
             "pid"
           ]
         },
         "serverPid": {
-          "line": 99,
+          "line": 104,
           "params": [
             "home"
           ]
         },
         "stopEverything": {
-          "line": 103,
+          "line": 108,
           "params": [
             "box"
           ]
         },
         "breakVersion": {
-          "line": 182,
+          "line": 187,
           "params": [
             "home",
             "version"
           ]
         },
+        "fakeLinux": {
+          "line": 276,
+          "params": [
+            "box",
+            "{ getconf",
+            "ldd }"
+          ],
+          "purpose": "A Linux host whose C library says `libc` (getconf) / `ldd` text."
+        },
         "link": {
-          "line": 181,
+          "line": 186,
           "params": [
             "home",
             "name"
           ]
         }
       },
-      "sizeBytes": 13833,
+      "sizeBytes": 17725,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "5866640ebe81a6f1",
         "purposes": {
+          "fakeLinux": "df38d145b44afd05",
           "install": "986c7b4211054489",
           "makePackage": "3569e84b622a49ed",
           "sandbox": "290f5d0eb2b0eeed"
@@ -33920,6 +33930,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6384f1b4acb212ed85a03c6f1821c704c311c1cf1c3d0f5296c21bf375387b18"
+    "revision": "46517f611f07eed79a29c0eee302f7868c8456d3505679ce464ced1e5f84e56e"
   }
 }

@@ -30,3 +30,11 @@ runOnce now tags every failure after connection.json was read (tunnel, socket, h
 _Captured: 2026-11-11 · 5 file change(s)_
 
 ---
+
+## T05 — Build packages for glibc 2.28 and run the systemd path in CI
+
+server-package.yml now builds each package inside quay.io/pypa/manylinux_2_28 (x64, aarch64) with node-gyp pointed at /opt/python, smoke-boots it there, then a new old-distros job boots it with its own Node and installs it with the real script on rockylinux:8, debian:11 and ubuntu:20.04 for both architectures; release upload moved to its own job after both. The installer refuses glibc older than 2.28 and musl before installing a package (exit 14, naming the requirement and supported distributions; builds from source are not checked), and the README states the floor. ci.yml gains a `systemd` job that enables linger, waits for a user session and runs the install-script tests with FRAME_TEST_SYSTEMD=1 (a new real-systemd scenario: unit runs, a broken update rolls back, cleanup), or warns that the runner has no session. Deviation: the harness exposed a real bug outside the task — serverInstaller.ssh crashed with an uncaught EPIPE when the remote `bash -s` exited before reading the whole (now larger) script; stdin errors are now ignored, since the exit code and result line carry the outcome. Followup: the workflows have not run yet; the first push shows whether the manylinux containers and the runner's systemd session behave as written.
+
+_Captured: 2026-11-11 · 6 file change(s)_
+
+---

@@ -300,6 +300,27 @@ fi
 
 PLATFORM="$(platform)"
 [ -n "$PLATFORM" ] || die 14 "unsupported platform $(uname -s) $(uname -m) — Frame Server packages exist for Linux x86_64 and aarch64"
+
+# Packages are built against glibc 2.28 (the floor of the bundled Node 20):
+# refuse older glibc and musl up front, naming the requirement (S2). A build
+# from source uses this machine's own Node, so it is not checked here.
+GLIBC_FLOOR="2.28"
+check_libc() {
+  local v ldd_out
+  v="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')"
+  if [ -z "$v" ]; then
+    ldd_out="$(ldd --version 2>&1 || true)"
+    case "$ldd_out" in
+      *musl*) die 14 "Frame Server packages need glibc $GLIBC_FLOOR or newer; this system uses musl (Alpine and similar) — use Debian 10+, Ubuntu 20.04+, RHEL/Rocky/Alma 8+ or Amazon Linux 2023" ;;
+    esac
+    v="$(printf '%s\n' "$ldd_out" | sed -n 's/.* \([0-9][0-9]*\.[0-9][0-9]*\)$/\1/p' | head -n1)"
+  fi
+  [ -n "$v" ] || { say "warning: could not read the glibc version; Frame Server needs glibc $GLIBC_FLOOR or newer"; return 0; }
+  if [ "$(printf '%s\n%s\n' "$GLIBC_FLOOR" "$v" | sort -t. -k1,1n -k2,2n | head -n1)" != "$GLIBC_FLOOR" ]; then
+    die 14 "Frame Server packages need glibc $GLIBC_FLOOR or newer; this system has glibc $v — use Debian 10+, Ubuntu 20.04+, RHEL/Rocky/Alma 8+ or Amazon Linux 2023 (Amazon Linux 2 and CentOS 7 are too old)"
+  fi
+}
+case "$PLATFORM" in linux-*) [ -n "$SOURCE_FILE" ] || check_libc ;; esac
 STAGE="$HOME_DIR/tmp/install-$$"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 

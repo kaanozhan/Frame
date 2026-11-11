@@ -52,7 +52,7 @@ Installer options for special cases are `--package-file FILE --checksum HEX`, `-
 
 ## Requirements on the server
 
-- Linux x86_64 or aarch64. A macOS server works with the manual install below.
+- Linux x86_64 or aarch64 with **glibc 2.28 or newer** — the floor of the bundled Node 20. That is Debian 10+, Ubuntu 20.04+, RHEL / Rocky / Alma 8+, Fedora, and Amazon Linux 2023. Packages are built on glibc 2.28 and tested on Rocky Linux 8, Debian 11 and Ubuntu 20.04. Amazon Linux 2, CentOS 7 and musl systems (Alpine) are not supported; the installer stops with exit code 14 and says why. A macOS server works with the manual install below.
 - `curl` or `wget`, `tar`, and `sha256sum` or `shasum`. Packages bundle Node 20 and a prebuilt `node-pty`, so no compiler is needed.
 - The agent CLIs you use, installed and **signed in on the server as your user**. Frame never handles model credentials.
 - Git access to your repositories, through an SSH key or `gh auth setup-git`, because the server clones from your remote.

@@ -73,7 +73,15 @@ function ssh(host, command, { input = null, onLine = null, timeout = INSTALL_TIM
       if (onLine && pendingLine.trim()) onLine(pendingLine);
       resolve({ code: code == null ? 1 : code, stdout, stderr });
     });
-    if (input && typeof input.pipe === 'function') input.pipe(child.stdin);
+    // The remote `bash -s` may exit before reading all of the script (a
+    // mode that ends early, a lock, an error): writing the rest then fails
+    // with EPIPE. The exit code and result line say what happened, so a
+    // closed stdin is not an error — and must never become an uncaught one.
+    child.stdin.on('error', () => {});
+    if (input && typeof input.pipe === 'function') {
+      input.on('error', () => {});
+      input.pipe(child.stdin);
+    }
     else child.stdin.end(input || '');
   });
 }

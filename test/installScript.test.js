@@ -68,6 +68,11 @@ function makePackage(box, version, { good = true } = {}) {
   fs.chmodSync(path.join(top, 'bin', 'frame-server'), 0o755);
   fs.copyFileSync(path.join(FIX, good ? 'index-good.js' : 'index-bad.js'), path.join(top, 'app', 'src', 'server', 'index.js'));
   fs.writeFileSync(path.join(top, 'VERSION'), `${version}\n`);
+  // The package's own Node, as in a real package (a systemd unit has no
+  // setup-node PATH): a link to the Node running the tests.
+  fs.mkdirSync(path.join(top, 'node', 'bin'), { recursive: true });
+  fs.rmSync(path.join(top, 'node', 'bin', 'node'), { force: true });
+  fs.symlinkSync(process.execPath, path.join(top, 'node', 'bin', 'node'));
   const tarball = path.join(box.pkgs, `frame-server-${version}-${good ? 'good' : 'bad'}.tar.gz`);
   const r = spawnSync('tar', ['-czf', tarball, '-C', path.dirname(top), path.basename(top)]);
   assert.equal(r.status, 0, String(r.stderr));
@@ -263,4 +268,67 @@ test('S10: a second installer exits with code 16 while one runs; a stale lock is
   const ok = install(box, [...args, '--package-file', makePackage(box, '9.0.0')]);
   assert.equal(ok.code, 0, ok.out);
   assert.equal(fs.existsSync(path.join(home, 'install.lock')), false, 'the lock is released');
+});
+
+// ─── S2: the glibc floor ─────────────────────────────────────
+
+/** A Linux host whose C library says `libc` (getconf) / `ldd` text. */
+function fakeLinux(box, { getconf, ldd }) {
+  fs.writeFileSync(path.join(box.bin, 'uname'), '#!/bin/sh\ncase "$1" in -s) echo Linux;; -m) echo x86_64;; *) echo Linux x86_64;; esac\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(box.bin, 'getconf'), getconf ? `#!/bin/sh\n[ "$1" = GNU_LIBC_VERSION ] && echo "${getconf}" && exit 0\nexit 1\n` : '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(box.bin, 'ldd'), `#!/bin/sh\necho "${ldd || ''}" >&2\nexit 1\n`, { mode: 0o755 });
+}
+
+test('S2: glibc older than 2.28 is refused, naming the requirement', { skip: REAL_SYSTEMD }, () => {
+  const box = sandbox();
+  fakeLinux(box, { getconf: 'glibc 2.26' });
+  const home = path.join(box.dir, 'other-home');
+  const r = install(box, ['--home', home, '--service', 'detached', '--package-file', makePackage(box, '9.0.0')]);
+  assert.equal(r.code, 14, r.out);
+  assert.match(r.result.message, /glibc 2\.28 or newer/);
+  assert.match(r.result.message, /2\.26/);
+  assert.equal(link(home, 'current'), null, 'nothing installed');
+});
+
+test('S2: musl is refused, naming the requirement', { skip: REAL_SYSTEMD }, () => {
+  const box = sandbox();
+  fakeLinux(box, { getconf: null, ldd: 'musl libc (x86_64) Version 1.2.4' });
+  const r = install(box, ['--home', path.join(box.dir, 'other-home'), '--service', 'detached', '--package-file', makePackage(box, '9.0.0')]);
+  assert.equal(r.code, 14, r.out);
+  assert.match(r.result.message, /musl/);
+  assert.match(r.result.message, /glibc 2\.28/);
+});
+
+test('S2: glibc 2.28 and newer install', { skip: REAL_SYSTEMD }, () => {
+  const box = sandbox();
+  fakeLinux(box, { getconf: 'glibc 2.28' });
+  const r = install(box, ['--home', path.join(box.dir, 'other-home'), '--service', 'detached', '--package-file', makePackage(box, '9.0.0')]);
+  assert.equal(r.code, 0, r.out);
+});
+
+// ─── C1: the real systemd path (CI job with FRAME_TEST_SYSTEMD=1) ──
+
+test('C1: real systemd — install runs as a user unit, a broken update rolls back, the unit is removed after', { skip: !REAL_SYSTEMD }, () => {
+  const box = sandbox();
+  // The unit's ExecStart is %h/.frame-server: this run uses the real home.
+  const realHome = os.homedir();
+  const env = { HOME: realHome, FRAME_INSTALL_HEALTH_SECONDS: '15' };
+  const home = path.join(realHome, '.frame-server');
+  const sys = (...a) => spawnSync('systemctl', ['--user', ...a], { encoding: 'utf8' });
+  try {
+    const first = install(box, ['--package-file', makePackage(box, '9.0.0')], env);
+    assert.equal(first.code, 0, first.out + first.err);
+    assert.equal(first.result.service, 'systemd');
+    assert.equal(sys('is-active', 'frame-server').status, 0, 'the unit runs');
+    const bad = install(box, ['--package-file', makePackage(box, '9.0.1', { good: false })], env);
+    assert.equal(bad.code, 13, bad.out);
+    assert.equal(link(home, 'current'), '9.0.0');
+    assert.equal(sys('is-active', 'frame-server').status, 0, 'the old version runs again');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(home, 'connection.json'), 'utf8')).frameVersion, '9.0.0');
+  } finally {
+    sys('disable', '--now', 'frame-server');
+    fs.rmSync(path.join(realHome, '.config', 'systemd', 'user', 'frame-server.service'), { force: true });
+    sys('daemon-reload');
+    fs.rmSync(home, { recursive: true, force: true });
+  }
 });
