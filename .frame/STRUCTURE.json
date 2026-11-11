@@ -24832,8 +24832,12 @@
         "xterm-addon-serialize"
       ],
       "functions": {
+        "loadXterm": {
+          "line": 20,
+          "purpose": "xterm-headless 5.3 decides it runs in Node from `typeof navigator`, at load."
+        },
         "createMirror": {
-          "line": 19,
+          "line": 34,
           "params": [
             "{ cols = 80",
             "rows = 24",
@@ -24841,12 +24845,15 @@
           ]
         }
       },
-      "sizeBytes": 1985,
+      "sizeBytes": 2654,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "3e1a03f2467a9a7e"
+        "description": "3e1a03f2467a9a7e",
+        "purposes": {
+          "loadXterm": "4b95af42b3ca39f2"
+        }
       }
     },
     "server/terminals": {
@@ -30096,6 +30103,24 @@
         "description": "6a6416dbb4814173"
       }
     },
+    "test/screenMirrorNode22.test": {
+      "file": "test/screenMirrorNode22.test.js",
+      "description": "The screen mirror loads on Node 21+ (field test, 2026-11-11): Node 21 added",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/server/screenMirror"
+      ],
+      "functions": {},
+      "sizeBytes": 1158,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "6e323812eb4199b2"
+      }
+    },
     "test/scriptsProjectRoot.test": {
       "file": "test/scriptsProjectRoot.test.js",
       "description": "Shipped-script project-root tests (non-invasive-overlay T03).",
@@ -34203,7 +34228,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 374,
+        "parsed": 375,
         "unsupported": 91,
         "partial": 0
       }
@@ -34250,9 +34275,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 559,
+      "visitedEntries": 560,
       "traversedDirectories": 86,
-      "eligibleFiles": 465,
+      "eligibleFiles": 466,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34269,7 +34294,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 465,
+      "indexedFiles": 466,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34277,6 +34302,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "c259787a3d465ae76d7441a73c967c5ea47d55c923ff9c83058c88df4b2bf906"
+    "revision": "c8f2fe54e8ff5a88c3f34eeecb3aab6325cedee58ee33306bd4a326cdf8547ef"
   }
 }

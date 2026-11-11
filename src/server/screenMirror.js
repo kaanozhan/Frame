@@ -11,8 +11,23 @@
  * Same parser generation as the renderer (`xterm` 5.3 ↔ `xterm-headless` 5.3).
  */
 
-const { Terminal } = require('xterm-headless');
-const { SerializeAddon } = require('xterm-addon-serialize');
+/**
+ * xterm-headless 5.3 decides it runs in Node from `typeof navigator`, at load.
+ * Node 21+ has a global `navigator`, so it takes the browser path, touches
+ * `window` and throws — Frame Server died at start on a Node 22 host (field
+ * test, 2026-11-11). Hide the global while the modules load, then put it back.
+ */
+function loadXterm() {
+  const desc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const hide = !!(desc && desc.configurable);
+  if (hide) delete globalThis.navigator;
+  try {
+    return { Terminal: require('xterm-headless').Terminal, SerializeAddon: require('xterm-addon-serialize').SerializeAddon };
+  } finally {
+    if (hide) Object.defineProperty(globalThis, 'navigator', desc);
+  }
+}
+const { Terminal, SerializeAddon } = loadXterm();
 
 const DEFAULT_SCROLLBACK = 1000;
 
