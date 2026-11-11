@@ -78,3 +78,11 @@ src/server/index.js drops clients through one dropClient() and runs the new onLa
 _Captured: 2026-11-11 · 4 file change(s)_
 
 ---
+
+## T11 — Serve Frame Server on a Unix socket
+
+Frame Server now listens on `~/.frame-server/server.sock` by default (home forced to 0700, socket created under umask 077 and chmod 0600), refuses to start when a live server answers on it and replaces a stale file; connection.json names `socket` instead of `port`. `--port N` still opts into TCP, and the server falls back to a random localhost port when the socket path would not fit sun_path. The desktop forwards a socket in a private 0700 temp folder with `-o StreamLocalBindUnlink=yes -L <local>:<remote socket>` (falling back to a local TCP port for long local paths), connects with `ws+unix:`, removes the folder on teardown, and maps sshd's "administratively prohibited" to a message naming `AllowStreamLocalForwarding`. PROTOCOL_VERSION is 2, so a new desktop meeting an old (TCP, protocol 1) server reaches needs-update; deviation: an old desktop meeting a new server fails earlier, at its connection.json check ("unreadable connection.json"), not at needs-update — it only affects desktops older than this change. The smoke script now runs the server as users do (socket) and checks the socket's mode; README covers the socket and the sshd setting.
+
+_Captured: 2026-11-11 · 11 file change(s)_
+
+---

@@ -5683,16 +5683,33 @@
           "purpose": "Close the socket and the tunnel of the current attempt."
         },
         "readConnectionInfo": {
-          "line": 101,
+          "line": 102,
           "params": [
             "host"
           ]
         },
         "freePort": {
-          "line": 125
+          "line": 128
+        },
+        "removeLocalSocketDir": {
+          "line": 145
+        },
+        "forwardFor": {
+          "line": 152,
+          "params": [
+            "info"
+          ],
+          "purpose": "`{ args, target }`: ssh -L arguments and where the desktop then connects."
+        },
+        "forwardRefused": {
+          "line": 171,
+          "params": [
+            "text"
+          ],
+          "purpose": "The sshd refused to forward to a socket: say what to change (S8)."
         },
         "waitForPort": {
-          "line": 137,
+          "line": 177,
           "params": [
             "port",
             "child",
@@ -5700,21 +5717,21 @@
           ]
         },
         "openSocket": {
-          "line": 157,
+          "line": 197,
           "params": [
-            "port",
+            "target",
             "token"
           ]
         },
         "runOnce": {
-          "line": 200,
+          "line": 241,
           "params": [
             "host",
             "mySession"
           ]
         },
         "openLink": {
-          "line": 214,
+          "line": 255,
           "params": [
             "host",
             "mySession",
@@ -5722,7 +5739,7 @@
           ]
         },
         "scheduleRetry": {
-          "line": 258,
+          "line": 307,
           "params": [
             "host",
             "mySession",
@@ -5730,16 +5747,16 @@
           ]
         },
         "installer": {
-          "line": 268
+          "line": 317
         },
         "progress": {
-          "line": 272,
+          "line": 321,
           "params": [
             "line"
           ]
         },
         "preflight": {
-          "line": 280,
+          "line": 329,
           "params": [
             "host",
             "mySession",
@@ -5748,21 +5765,21 @@
           "purpose": "Probe the host before connecting: 'go', or 'wait' after setting"
         },
         "loop": {
-          "line": 307,
+          "line": 356,
           "params": [
             "host",
             "mySession"
           ]
         },
         "connect": {
-          "line": 335,
+          "line": 384,
           "params": [
             "host"
           ],
           "purpose": "Connect to `host` (an ssh alias or user@host), remember it, auto-connect next launch."
         },
         "disconnect": {
-          "line": 349,
+          "line": 398,
           "params": [
             "{ forget = true",
             "quiet = false } = {}"
@@ -5770,7 +5787,7 @@
           "purpose": "Stop and close everything; `forget` drops auto-connect for next launch."
         },
         "call": {
-          "line": 364,
+          "line": 413,
           "params": [
             "method",
             "params = {}",
@@ -5779,7 +5796,7 @@
           "purpose": "A request to the server. Rejects when not connected or on timeout."
         },
         "send": {
-          "line": 375,
+          "line": 424,
           "params": [
             "method",
             "params = {}"
@@ -5787,7 +5804,7 @@
           "purpose": "Fire-and-forget request (terminal input): errors are only logged."
         },
         "on": {
-          "line": 380,
+          "line": 429,
           "params": [
             "name",
             "fn"
@@ -5795,18 +5812,18 @@
           "purpose": "Subscribe to a server event channel (`terminal.output`, …) or `connected` / `disconnected` / `status`."
         },
         "sshHosts": {
-          "line": 387,
+          "line": 436,
           "purpose": "Host aliases from ~/.ssh/config for the Connect dialog."
         },
         "init": {
-          "line": 397,
+          "line": 446,
           "params": [
             "window",
             "version"
           ]
         },
         "runAction": {
-          "line": 415,
+          "line": 464,
           "params": [
             "kind",
             "{ host",
@@ -5815,7 +5832,7 @@
           "purpose": "Run an installer action for the current (or given) host with progress,"
         },
         "setupIPC": {
-          "line": 451,
+          "line": 500,
           "params": [
             "ipcMain"
           ]
@@ -5837,7 +5854,7 @@
           "SERVER_INSTALL_PROGRESS"
         ]
       },
-      "sizeBytes": 20058,
+      "sizeBytes": 22276,
       "extraction": {
         "status": "parsed"
       },
@@ -5847,6 +5864,8 @@
           "call": "3d272e9aef327e0e",
           "connect": "9a900e7bcee40c1c",
           "disconnect": "3dfceaa7c643a728",
+          "forwardFor": "0752cc6bf78bc6c2",
+          "forwardRefused": "f27ef921bd77ca30",
           "on": "d506c03c81c7c5d4",
           "preflight": "cfc43aea06f65ae3",
           "runAction": "9b65ddc86d34721f",
@@ -21721,7 +21740,7 @@
           ]
         }
       },
-      "sizeBytes": 6008,
+      "sizeBytes": 6388,
       "extraction": {
         "status": "parsed"
       }
@@ -24465,7 +24484,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 6646,
+      "sizeBytes": 7103,
       "extraction": {
         "status": "parsed"
       },
@@ -24601,6 +24620,8 @@
         "registerMethods",
         "broadcast",
         "parseArgs",
+        "prepareSocket",
+        "listen",
         "onConnection",
         "onLastClientGone",
         "HOME"
@@ -24615,6 +24636,7 @@
         "ws",
         "shared/serverProtocol",
         "shared/serverSecurity",
+        "net",
         "terminals",
         "projects",
         "panels",
@@ -24622,30 +24644,47 @@
       ],
       "functions": {
         "parseArgs": {
-          "line": 44,
+          "line": 51,
           "params": [
             "argv"
           ]
         },
+        "prepareSocket": {
+          "line": 67,
+          "params": [
+            "sockPath"
+          ],
+          "purpose": "Make `sockPath` free to listen on: a live server answering there is an"
+        },
+        "listen": {
+          "line": 87,
+          "params": [
+            "server",
+            "{ home",
+            "port",
+            "host }"
+          ],
+          "purpose": "Listen on the home's socket (umask 077, then chmod 0600), or on TCP when"
+        },
         "loadToken": {
-          "line": 57,
+          "line": 106,
           "purpose": "The install's token: created once (0600) and kept across restarts."
         },
         "writeConnectionFile": {
-          "line": 69,
+          "line": 118,
           "params": [
             "info"
           ]
         },
         "registerMethods": {
-          "line": 82,
+          "line": 131,
           "params": [
             "table"
           ],
           "purpose": "Register request handlers: `{ 'terminals.create': async (params, client) => result }`."
         },
         "broadcast": {
-          "line": 87,
+          "line": 136,
           "params": [
             "channel",
             "payload"
@@ -24653,32 +24692,32 @@
           "purpose": "Send an event to every connected desktop."
         },
         "handleRequest": {
-          "line": 98,
+          "line": 147,
           "params": [
             "client",
             "msg"
           ]
         },
         "onLastClientGone": {
-          "line": 112,
+          "line": 161,
           "params": [
             "fn"
           ]
         },
         "dropClient": {
-          "line": 116,
+          "line": 165,
           "params": [
             "client"
           ]
         },
         "onConnection": {
-          "line": 124,
+          "line": 173,
           "params": [
             "ws"
           ]
         },
         "start": {
-          "line": 147,
+          "line": 196,
           "params": [
             "argv = process.argv.slice(2"
           ]
@@ -24691,7 +24730,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 7863,
+      "sizeBytes": 10380,
       "extraction": {
         "status": "parsed"
       },
@@ -24699,7 +24738,9 @@
         "purposes": {
           "FRAME_VERSION": "de5e5754642d8164",
           "broadcast": "0d6ffe9a733b1cf1",
+          "listen": "ca4de6738dfc5b8e",
           "loadToken": "464690852d26c700",
+          "prepareSocket": "66d5272a2e51f4cf",
           "registerMethods": "ef386b7d3e2ed91b"
         }
       }
@@ -26176,33 +26217,33 @@
       "depends": [],
       "functions": {
         "isPlainObject": {
-          "line": 19,
+          "line": 22,
           "params": [
             "v"
           ]
         },
         "validate": {
-          "line": 24,
+          "line": 27,
           "params": [
             "msg"
           ],
           "purpose": "Why `msg` is not a valid protocol message, or null when it is."
         },
         "decode": {
-          "line": 50,
+          "line": 53,
           "params": [
             "text"
           ],
           "purpose": "Text → `{ ok: true, msg }` or `{ ok: false, error }`. Never throws."
         },
         "encode": {
-          "line": 61,
+          "line": 64,
           "params": [
             "msg"
           ]
         },
         "checkHello": {
-          "line": 72,
+          "line": 75,
           "params": [
             "msg",
             "ownFrameVersion"
@@ -26210,11 +26251,11 @@
           "purpose": "Is the other side's hello compatible? `{ ok, error }` naming both versions."
         },
         "createPending": {
-          "line": 88,
+          "line": 91,
           "purpose": "Pending requests by id: `add(id, timeoutMs)` → promise that settles when"
         }
       },
-      "sizeBytes": 4895,
+      "sizeBytes": 5096,
       "extraction": {
         "status": "parsed"
       },
@@ -28343,14 +28384,15 @@
         "fs",
         "path",
         "crypto",
-        "os"
+        "os",
+        "http"
       ],
       "functions": {
         "mode": {
-          "line": 14
+          "line": 15
         }
       },
-      "sizeBytes": 1945,
+      "sizeBytes": 2407,
       "extraction": {
         "status": "parsed"
       },
@@ -28388,10 +28430,11 @@
       "exports": [],
       "depends": [
         "net",
-        "child_process"
+        "child_process",
+        "fs"
       ],
       "functions": {},
-      "sizeBytes": 1597,
+      "sizeBytes": 2756,
       "extraction": {
         "status": "parsed"
       }
@@ -30185,7 +30228,7 @@
           ]
         }
       },
-      "sizeBytes": 7189,
+      "sizeBytes": 8611,
       "extraction": {
         "status": "parsed"
       },
@@ -30310,7 +30353,7 @@
         "src/shared/serverProtocol"
       ],
       "functions": {},
-      "sizeBytes": 2807,
+      "sizeBytes": 3086,
       "extraction": {
         "status": "parsed"
       },
@@ -30352,6 +30395,29 @@
       },
       "provenance": {
         "description": "5fab4ba84d6c4f58"
+      }
+    },
+    "test/serverSocket.test": {
+      "file": "test/serverSocket.test.js",
+      "description": "Frame Server listens on a Unix socket (server-hardening S8).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "net",
+        "http",
+        "path",
+        "src/server/index"
+      ],
+      "functions": {},
+      "sizeBytes": 1946,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "1c2fd5404ac60a75"
       }
     },
     "test/sessionHookInstall.test": {
@@ -34137,7 +34203,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 373,
+        "parsed": 374,
         "unsupported": 91,
         "partial": 0
       }
@@ -34184,9 +34250,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 558,
+      "visitedEntries": 559,
       "traversedDirectories": 86,
-      "eligibleFiles": 464,
+      "eligibleFiles": 465,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34203,7 +34269,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 464,
+      "indexedFiles": 465,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34211,6 +34277,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "a935db7aa33b61c0f84c17e6dce0ef0d89e9623d8bdc9524d723763171f9015c"
+    "revision": "c259787a3d465ae76d7441a73c967c5ea47d55c923ff9c83058c88df4b2bf906"
   }
 }

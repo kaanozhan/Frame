@@ -13,7 +13,10 @@
  * later spec). Pure apart from timers in the pending-request table.
  */
 
-const PROTOCOL_VERSION = 1;
+// 2: the server listens on a Unix socket and connection.json names `socket`
+// instead of `port` (server-hardening S8) — older desktops cannot reach it,
+// so the mismatch is surfaced as an update.
+const PROTOCOL_VERSION = 2;
 const TYPES = new Set(['hello', 'req', 'res', 'event']);
 
 function isPlainObject(v) {

@@ -61,3 +61,8 @@ test('pending requests settle by id, time out, and fail on disconnect', async ()
   await assert.rejects(b, /gone/);
   assert.equal(p.size, 0);
 });
+
+test('protocol 2: the socket transport (server-hardening S8) is a protocol change', () => {
+  assert.equal(P.PROTOCOL_VERSION, 2);
+  assert.equal(P.checkHello({ type: 'hello', protocol: 1, frameVersion: '2.9.0' }, '3.0.0').ok, false, 'a protocol-1 peer is told to update');
+});

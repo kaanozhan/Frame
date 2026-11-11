@@ -39,18 +39,67 @@ const { WebSocketServer } = require('ws');
 const P = require('../shared/serverProtocol');
 const { generateToken, checkUpgrade, bindRule, DESKTOP_ORIGIN } = require('../shared/serverSecurity');
 
-const DEFAULT_PORT = 47821;
+const net = require('net');
+
+// The server listens on a Unix socket in its home (0700 dir, 0600 socket):
+// no TCP port another local user could squat while the server is down to
+// receive the desktop's token, and no port clash between two users on one
+// host (server-hardening S8). `--port N` opts into TCP (manual runs, tests).
+const SOCKET_NAME = 'server.sock';
+const MAX_SOCKET_PATH = 100; // sun_path is 104 (macOS) / 108 (Linux) bytes
 
 function parseArgs(argv) {
-  const out = { port: DEFAULT_PORT, bind: null };
+  const out = { port: null, bind: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--port') out.port = parseInt(argv[++i], 10);
     else if (a === '--bind') out.bind = argv[++i];
     else if (a === '--help' || a === '-h') out.help = true;
   }
-  if (!Number.isInteger(out.port) || out.port < 0 || out.port > 65535) throw new Error('--port must be 0–65535');
+  if (out.port !== null && (!Number.isInteger(out.port) || out.port < 0 || out.port > 65535)) throw new Error('--port must be 0–65535');
   return out;
+}
+
+/**
+ * Make `sockPath` free to listen on: a live server answering there is an
+ * error (never two servers for one home); a stale file is removed.
+ */
+function prepareSocket(sockPath) {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(sockPath)) return resolve();
+    const probe = net.connect(sockPath);
+    probe.once('connect', () => {
+      probe.destroy();
+      reject(new Error(`another Frame Server is already running for this home (${sockPath})`));
+    });
+    probe.once('error', () => {
+      try { fs.rmSync(sockPath, { force: true }); } catch (_) { /* gone */ }
+      resolve();
+    });
+  });
+}
+
+/**
+ * Listen on the home's socket (umask 077, then chmod 0600), or on TCP when
+ * `--port` was given or the socket path is too long for sun_path.
+ * Resolves with the connection.json fields: `{ socket }` or `{ port }`.
+ */
+async function listen(server, { home, port, host }) {
+  const sockPath = path.join(home, SOCKET_NAME);
+  if (port === null && sockPath.length <= MAX_SOCKET_PATH) {
+    await prepareSocket(sockPath);
+    const old = process.umask(0o077);
+    try {
+      await new Promise((resolve, reject) => { server.once('error', reject); server.listen(sockPath, () => { server.removeListener('error', reject); resolve(); }); });
+    } finally {
+      process.umask(old);
+    }
+    fs.chmodSync(sockPath, 0o600);
+    return { socket: sockPath };
+  }
+  if (port === null) console.warn(`[frame-server] WARNING: ${sockPath} is too long for a socket; listening on a random localhost port instead.`);
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port || 0, host, () => { server.removeListener('error', reject); resolve(); }); });
+  return { port: server.address().port };
 }
 
 /** The install's token: created once (0600) and kept across restarts. */
@@ -147,10 +196,11 @@ function onConnection(ws) {
 function start(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   if (args.help) {
-    console.log('Usage: node src/server/index.js [--port 47821] [--bind 127.0.0.1]');
+    console.log('Usage: node src/server/index.js [--port N] [--bind 127.0.0.1]   (default: the Unix socket ~/.frame-server/server.sock)');
     return null;
   }
   fs.mkdirSync(HOME, { recursive: true, mode: 0o700 });
+  fs.chmodSync(HOME, 0o700); // also when it already existed (S8)
   const token = loadToken();
   const bind = bindRule(args.bind);
   if (bind.warning) console.warn(`[frame-server] WARNING: ${bind.warning}`);
@@ -181,18 +231,18 @@ function start(argv = process.argv.slice(2)) {
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
   });
 
-  server.listen(args.port, bind.host, () => {
-    const { port } = server.address();
-    const file = writeConnectionFile({ port, token, protocol: P.PROTOCOL_VERSION, frameVersion: FRAME_VERSION, pid: process.pid, origin: DESKTOP_ORIGIN });
-    console.log(`[frame-server] Frame ${FRAME_VERSION} listening on ${bind.host}:${port} (protocol ${P.PROTOCOL_VERSION}); connection details in ${file}`);
-  });
-  server.on('error', (err) => {
+  listen(server, { home: HOME, port: args.port, host: bind.host }).then((where) => {
+    const file = writeConnectionFile({ ...where, token, protocol: P.PROTOCOL_VERSION, frameVersion: FRAME_VERSION, pid: process.pid, origin: DESKTOP_ORIGIN });
+    console.log(`[frame-server] Frame ${FRAME_VERSION} listening on ${where.socket || `${bind.host}:${where.port}`} (protocol ${P.PROTOCOL_VERSION}); connection details in ${file}`);
+    server.on('error', (err) => console.error(`[frame-server] ${err.message}`));
+  }).catch((err) => {
     console.error(`[frame-server] ${err.message}`);
     process.exit(1);
   });
 
   const stop = () => {
     try { fs.rmSync(path.join(HOME, 'connection.json'), { force: true }); } catch (_) { /* best effort */ }
+    try { fs.rmSync(path.join(HOME, SOCKET_NAME), { force: true }); } catch (_) { /* best effort */ }
     for (const c of clients) c.ws.close(1001, 'server stopping');
     for (const part of parts) {
       try { part.stop(); } catch (err) { console.error(`[frame-server] stop failed: ${err.message}`); }
@@ -205,6 +255,6 @@ function start(argv = process.argv.slice(2)) {
   return { server, wss };
 }
 
-module.exports = { start, registerMethods, broadcast, parseArgs, onConnection, onLastClientGone, HOME };
+module.exports = { start, registerMethods, broadcast, parseArgs, prepareSocket, listen, onConnection, onLastClientGone, HOME };
 
 if (require.main === module) start();

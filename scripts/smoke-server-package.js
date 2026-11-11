@@ -54,7 +54,8 @@ function fail(msg) {
   git(['commit', '-qm', 'init'], seed);
   git(['push', '-q', origin, 'main'], seed);
 
-  server = spawn(path.join(pkgDir, 'bin', 'frame-server'), ['run', '--port', '0'], {
+  // As users run it: on the home's Unix socket (server-hardening S8).
+  server = spawn(path.join(pkgDir, 'bin', 'frame-server'), ['run'], {
     env: { ...process.env, FRAME_SERVER_HOME: path.join(home, '.frame-server'), FRAME_SERVER_PROJECTS: path.join(home, 'frame', 'projects'), HOME: home },
     stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -70,7 +71,13 @@ function fail(msg) {
   const mode = (fs.statSync(conn).mode & 0o777).toString(8);
   if (mode !== '600') fail(`connection.json mode is ${mode}, expected 600`);
 
-  const ws = new WebSocket(`ws://127.0.0.1:${info.port}`, { headers: { Authorization: `Bearer ${info.token}`, Origin: 'frame-desktop' } });
+  if (info.socket) {
+    const sockMode = (fs.statSync(info.socket).mode & 0o777).toString(8);
+    if (sockMode !== '600') fail(`server.sock mode is ${sockMode}, expected 600`);
+  }
+  const url = info.socket ? `ws+unix://${info.socket}:/` : `ws://127.0.0.1:${info.port}`;
+  console.log(`[smoke] connecting to ${info.socket || `port ${info.port}`}`);
+  const ws = new WebSocket(url, { headers: { Authorization: `Bearer ${info.token}`, Origin: 'frame-desktop' } });
   const pending = P.createPending();
   let output = '';
   const call = (method, params) => {

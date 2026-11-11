@@ -146,3 +146,31 @@ test('S10: a second update or rollback while one is checking agents is refused',
   assert.match(String(b.error), /already running/, `second call: ${JSON.stringify(b)}`);
   assert.ok(a, 'the first ran');
 });
+
+// ─── S8: Frame Server on a Unix socket ───────────────────────
+
+test('S8: the desktop forwards to the server\'s socket and connects', async () => {
+  sc.connect('box'); // the S10 rollback above ended in an error state
+  await waitFor(() => sc.isConnected(), 20000, 'connected');
+  fs.writeFileSync(path.join(SERVER_HOME, 'fake-socket'), '');
+  const before = remotePid();
+  process.kill(before, 'SIGKILL'); // restarted by the reconnect, now on the socket
+  await waitFor(() => sc.isConnected() && remotePid() !== before, 25000, 'a reconnect over the socket');
+  const info = JSON.parse(fs.readFileSync(path.join(SERVER_HOME, 'connection.json'), 'utf8'));
+  assert.ok(info.socket && !info.port, 'connection.json names a socket, no port');
+  const ping = await sc.call('server.ping', {});
+  assert.equal(ping.platform, 'linux');
+});
+
+test('S8: an sshd that refuses socket forwarding gets a message naming the setting', async () => {
+  sc.disconnect({ forget: false, quiet: true });
+  process.env.FAKE_SSH_NO_STREAMLOCAL = '1';
+  try {
+    sc.connect('box');
+    await waitFor(() => /AllowStreamLocalForwarding/.test(String(sc.getStatus().error)), 15000, 'the sshd message');
+  } finally {
+    delete process.env.FAKE_SSH_NO_STREAMLOCAL;
+    sc.disconnect({ forget: false, quiet: true });
+    fs.rmSync(path.join(SERVER_HOME, 'fake-socket'), { force: true });
+  }
+});

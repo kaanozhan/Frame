@@ -61,7 +61,7 @@ Installer options for special cases are `--package-file FILE --checksum HEX`, `-
 ## Security
 
 - **Access is your SSH.** Frame stores no SSH passwords or keys and runs your own `ssh`.
-- **Localhost only.** Frame Server listens on `127.0.0.1`. `--bind <address>` listens elsewhere and prints a warning. Prefer SSH or Tailscale over opening a port.
+- **A private socket, no port.** Frame Server listens on the Unix socket `~/.frame-server/server.sock` (folder 0700, socket 0600), so no other user on the server can connect to it or take its place while it is down, and two users on one host do not clash. Frame forwards to it with `ssh -L <local socket>:<server socket>`, which needs `AllowStreamLocalForwarding yes` in the server's sshd (the OpenSSH default); Frame names the setting when it is off. `--port N` (with `--bind <address>`, which prints a warning) listens on TCP instead for manual setups.
 - **Token.** A random 256-bit token is created on first run in `~/.frame-server/token` (mode 0600) and is required on every connection. To rotate it, delete the file and restart.
 - **No browsers.** Connections that carry a browser `Origin` are refused.
 - **Verified packages.** A package is installed only after its SHA-256 matches the release's checksum file. A failed or partial download never replaces a working version.
@@ -73,7 +73,7 @@ Installer options for special cases are `--package-file FILE --checksum HEX`, `-
 | `~/.frame-server/versions/<v>/` | installed versions (`node/`, `app/`, `bin/frame-server`, `VERSION`) |
 | `~/.frame-server/current`, `previous` | symlinks to the running and the previous version |
 | `~/.frame-server/bin/frame-server` | the `frame-server` command |
-| `~/.frame-server/token`, `connection.json` | access token and, while running, port/token/version (both 0600) |
+| `~/.frame-server/token`, `connection.json` | access token and, while running, socket path (or port), token and version (both 0600); `server.sock` is the socket itself (0600) |
 | `~/.frame-server/server.log` | log when running as a background process (systemd: `journalctl --user -u frame-server`) |
 | `~/.config/systemd/user/frame-server.service` | the user service |
 | `~/frame/projects/<repo>` | the server's clone of each project |

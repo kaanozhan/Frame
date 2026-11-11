@@ -92,6 +92,7 @@ function teardown() {
     try { tunnel.removeAllListeners(); tunnel.kill(); } catch (_) { /* gone */ }
     tunnel = null;
   }
+  removeLocalSocketDir();
   pending.rejectAll('Disconnected from the server.');
   pending = P.createPending();
 }
@@ -113,7 +114,9 @@ function readConnectionInfo(host) {
       }
       try {
         const info = JSON.parse(stdout);
-        if (!info || !Number.isInteger(info.port) || typeof info.token !== 'string') throw new Error('incomplete');
+        // A socket (server-hardening S8) or, from an older or --port server, a TCP port.
+        const where = (typeof info.socket === 'string' && info.socket.startsWith('/')) || Number.isInteger(info.port);
+        if (!info || !where || typeof info.token !== 'string') throw new Error('incomplete');
         resolve(info);
       } catch (_) {
         reject(new Error(`Frame Server on ${host} left an unreadable connection.json — restart it.`));
@@ -134,6 +137,43 @@ function freePort() {
   });
 }
 
+// The local end of the tunnel: a socket in a private temp folder, or a
+// localhost port when that path would not fit sun_path.
+const MAX_LOCAL_SOCKET = 100;
+let localSocketDir = null;
+
+function removeLocalSocketDir() {
+  if (!localSocketDir) return;
+  try { fs.rmSync(localSocketDir, { recursive: true, force: true }); } catch (_) { /* gone */ }
+  localSocketDir = null;
+}
+
+/** `{ args, target }`: ssh -L arguments and where the desktop then connects. */
+async function forwardFor(info) {
+  if (!info.socket) {
+    const port = await freePort();
+    return { args: ['-L', `127.0.0.1:${port}:127.0.0.1:${info.port}`], target: { port } };
+  }
+  removeLocalSocketDir();
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-ssh-'));
+  fs.chmodSync(dir, 0o700);
+  const sock = path.join(dir, 's');
+  if (sock.length <= MAX_LOCAL_SOCKET) {
+    localSocketDir = dir;
+    return { args: ['-o', 'StreamLocalBindUnlink=yes', '-L', `${sock}:${info.socket}`], target: { path: sock } };
+  }
+  fs.rmSync(dir, { recursive: true, force: true });
+  const port = await freePort();
+  return { args: ['-L', `127.0.0.1:${port}:${info.socket}`], target: { port } };
+}
+
+/** The sshd refused to forward to a socket: say what to change (S8). */
+function forwardRefused(text) {
+  return /administratively prohibited/i.test(text || '')
+    ? new Error('The server\'s sshd does not allow forwarding to Frame Server\'s socket. Set `AllowStreamLocalForwarding yes` in /etc/ssh/sshd_config (or a Match block for your user) and restart sshd.')
+    : null;
+}
+
 function waitForPort(port, child, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   return new Promise((resolve, reject) => {
@@ -142,7 +182,7 @@ function waitForPort(port, child, timeoutMs) {
     child.once('exit', exit);
     const tryOnce = () => {
       if (done) return;
-      const s = net.connect(port, '127.0.0.1');
+      const s = typeof port === 'object' ? (port.path ? net.connect(port.path) : net.connect(port.port, '127.0.0.1')) : net.connect(port, '127.0.0.1');
       s.once('connect', () => { s.destroy(); done = true; child.removeListener('exit', exit); resolve(); });
       s.once('error', () => {
         s.destroy();
@@ -154,9 +194,10 @@ function waitForPort(port, child, timeoutMs) {
   });
 }
 
-function openSocket(port, token) {
+function openSocket(target, token) {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
+    const url = target && target.path ? `ws+unix://${target.path}:/` : `ws://127.0.0.1:${target && target.port != null ? target.port : target}`;
+    const ws = new WebSocket(url, {
       headers: { Authorization: `Bearer ${token}`, Origin: DESKTOP_ORIGIN },
       handshakeTimeout: 10000,
       maxPayload: 16 * 1024 * 1024
@@ -212,19 +253,27 @@ async function runOnce(host, mySession) {
 }
 
 async function openLink(host, mySession, info) {
-  const localPort = await freePort();
+  const forward = await forwardFor(info);
   const child = spawn(sshBin(), [...SSH_OPTS, '-N', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3',
-    '-L', `127.0.0.1:${localPort}:127.0.0.1:${info.port}`, host], { stdio: ['ignore', 'ignore', 'pipe'] });
+    ...forward.args, host], { stdio: ['ignore', 'ignore', 'pipe'] });
   tunnel = child;
   let tunnelErr = '';
   child.stderr.on('data', (d) => { tunnelErr = (tunnelErr + d.toString()).slice(-2000); });
   try {
-    await waitForPort(localPort, child, TUNNEL_READY_MS);
+    await waitForPort(forward.target, child, TUNNEL_READY_MS);
   } catch (err) {
-    throw new Error(tunnelErr.trim() ? `${err.message} ${tunnelErr.trim().split('\n').pop()}` : err.message);
+    throw forwardRefused(tunnelErr) || new Error(tunnelErr.trim() ? `${err.message} ${tunnelErr.trim().split('\n').pop()}` : err.message);
   }
   if (mySession !== session) return;
-  const { ws, serverVersion } = await openSocket(localPort, info.token);
+  let opened;
+  try {
+    opened = await openSocket(forward.target, info.token);
+  } catch (err) {
+    // ssh reports a refused socket forward only when a connection is made.
+    await new Promise((r) => setTimeout(r, 100));
+    throw forwardRefused(tunnelErr) || err;
+  }
+  const { ws, serverVersion } = opened;
   if (mySession !== session) { ws.terminate(); return; }
   socket = ws;
   // Watch the link from the moment it exists: a close during the ping below
