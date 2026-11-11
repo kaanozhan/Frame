@@ -2,9 +2,17 @@
   "slug": "server-onboarding",
   "title": "Server onboarding: sign-ins and sending a project",
   "phase": "tasks_generated",
-  "generated_task_ids": [],
+  "generated_task_ids": [
+    "task-spec-server-onboarding-T01",
+    "task-spec-server-onboarding-T02",
+    "task-spec-server-onboarding-T03",
+    "task-spec-server-onboarding-T04",
+    "task-spec-server-onboarding-T05",
+    "task-spec-server-onboarding-T06"
+  ],
   "ai_tool": "claude-code",
   "created_at": "2026-11-11T14:02:14.000Z",
-  "updated_at": "2026-11-11T14:10:50.492Z",
-  "last_phase_at": "2026-11-11T14:10:50.492Z"
+  "updated_at": "2026-11-11T14:10:50.811Z",
+  "last_phase_at": "2026-11-11T14:10:50.492Z",
+  "implement_mode": "guided"
 }
