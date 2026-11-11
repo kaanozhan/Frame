@@ -387,3 +387,14 @@
 }
 
 .review-send-btn { align-self: stretch; padding: 6px 10px; }
+
+/* A comment whose line changed since it was written (workspace-hardening R9). */
+.review-outdated {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-family: var(--font-sans, inherit);
+  font-size: 10px;
+  color: var(--text-tertiary, #999);
+  border: 1px solid var(--border-subtle, rgba(127, 127, 127, 0.35));
+}

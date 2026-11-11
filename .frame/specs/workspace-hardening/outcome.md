@@ -62,3 +62,11 @@ scopeGuard.js gains scopeGuard(scope, current) (still / sameProject) and selecti
 _Captured: 2026-11-11 · 6 file change(s)_
 
 ---
+
+## T09 — Keep review state through errors and edits
+
+reviewModel.js gains applyFileList (a failed load keeps files, ticks and merge base and reports the error above the list), remainingAfterSend (only the comments a send carried leave the list), newSideLines + reanchor (when a file's diff reloads, a comment stays on its line if the quoted text is still there, follows the text to the nearest line if it moved, else is marked outdated — shown in the pending list and sent flagged by composeReviewPrompt) and pruneScopes. reviewSection.js keeps one comment box for the viewport's life, re-attached on every render: the typed text, caret and selection survive, and focus comes back only if the box had it (a blur followed by a re-attach in the same task does not count). Clicking another line or file, or editing another comment, keeps a non-empty draft as a pending comment; a draft whose line leaves the diff is kept and marked outdated. Counts and status are coerced/escaped in the review file list and the workspace row badges. Viewed ticks of workspaces that no longer exist are pruned when a review opens; saved terminal sessions of gone workspaces are pruned on every workspace list load, and a removed project's workspace session keys go with it.
+
+_Captured: 2026-11-11 · 8 file change(s)_
+
+---

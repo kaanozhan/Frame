@@ -4,6 +4,7 @@
  */
 
 const { ipcRenderer, clipboard } = require('electron');
+const { pruneScopes } = require('../shared/reviewModel');
 const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { IPC } = require('../shared/ipcChannels');
@@ -828,11 +829,30 @@ class TerminalManager {
   clearProjectSession(projectPath) {
     const sessionKey = projectPath || GLOBAL_PROJECT_KEY;
     try {
-      const allSessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}');
+      // The project's workspace sessions (`<path>#<id>`) go with it (R14).
+      const allSessions = pruneScopes(JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}'), sessionKey, []);
       delete allSessions[sessionKey];
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(allSessions));
     } catch (err) {
       console.error('Failed to clear terminal session:', err);
+    }
+  }
+
+  /**
+   * Forget saved sessions of `projectPath`'s workspaces that no longer exist
+   * (R14) — stale keys otherwise take slots in the 20-session cap and evict
+   * live ones.
+   */
+  pruneWorkspaceSessions(projectPath, liveIds) {
+    if (!projectPath) return;
+    try {
+      const allSessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}');
+      const next = pruneScopes(allSessions, projectPath, liveIds);
+      if (Object.keys(next).length !== Object.keys(allSessions).length) {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(next));
+      }
+    } catch (err) {
+      console.error('Failed to prune terminal sessions:', err);
     }
   }
 

@@ -93,3 +93,84 @@ test('composeReviewPrompt lists every comment in file and line order', () => {
 test('the diff size ceiling is 2 MB', () => {
   assert.equal(MAX_DIFF_BYTES, 2 * 1024 * 1024);
 });
+
+// ─── workspace-hardening R4, R5, R9, R14 ─────────────────────
+
+test('applyFileList: a failed load keeps the files, the ticks and the merge base', () => {
+  const { applyFileList } = require('../src/shared/reviewModel');
+  const prev = { files: [{ path: 'a.js', hash: 'h1' }], viewed: { 'a.js': 'h1' }, mergeBase: 'abc1234' };
+  const out = applyFileList(prev, { error: 'git timed out', files: [], mergeBase: null });
+  assert.deepEqual(out.files, prev.files);
+  assert.deepEqual(out.viewed, { 'a.js': 'h1' });
+  assert.equal(out.mergeBase, 'abc1234');
+  assert.equal(out.error, 'git timed out');
+  const ok = applyFileList(prev, { error: null, files: [{ path: 'a.js', hash: 'h2' }], mergeBase: 'def5678' });
+  assert.deepEqual(ok.viewed, {}, 'a changed file drops its tick');
+  assert.equal(ok.error, '');
+});
+
+test('remainingAfterSend: comments added during a send stay pending', () => {
+  const { remainingAfterSend } = require('../src/shared/reviewModel');
+  const comments = [{ id: 'c1' }, { id: 'c2' }, { id: 'c3' }];
+  assert.deepEqual(remainingAfterSend(comments, ['c1', 'c2']), [{ id: 'c3' }]);
+});
+
+const DIFF = [
+  'diff --git a/a.js b/a.js',
+  '--- a/a.js',
+  '+++ b/a.js',
+  '@@ -1,3 +1,4 @@',
+  ' one',
+  '-two',
+  '+TWO',
+  '+inserted',
+  ' three',
+  '@@ -10,2 +11,2 @@',
+  ' ten',
+  '-eleven',
+  '+ELEVEN',
+  '\\ No newline at end of file'
+].join('\n');
+
+test('newSideLines: new-side line numbers and their text', () => {
+  const { newSideLines } = require('../src/shared/reviewModel');
+  const lines = newSideLines(DIFF);
+  assert.equal(lines.get(1), 'one');
+  assert.equal(lines.get(2), 'TWO');
+  assert.equal(lines.get(3), 'inserted');
+  assert.equal(lines.get(4), 'three');
+  assert.equal(lines.get(11), 'ten');
+  assert.equal(lines.get(12), 'ELEVEN');
+  assert.equal(lines.has(5), false);
+});
+
+test('reanchor: same text stays, moved text follows, gone text is outdated', () => {
+  const { reanchor, newSideLines } = require('../src/shared/reviewModel');
+  const lines = newSideLines(DIFF);
+  const comments = [
+    { id: 'a', path: 'a.js', line: 2, text: 'TWO', body: 'x' },
+    { id: 'b', path: 'a.js', line: 3, text: 'three', body: 'y' },
+    { id: 'c', path: 'a.js', line: 7, text: 'vanished', body: 'z' },
+    { id: 'd', path: 'b.js', line: 1, text: 'other file', body: 'w' }
+  ];
+  const out = reanchor(comments, 'a.js', lines);
+  assert.deepEqual(out.find((c) => c.id === 'a'), comments[0]);
+  assert.equal(out.find((c) => c.id === 'b').line, 4, 'followed its text');
+  assert.equal(out.find((c) => c.id === 'b').outdated, undefined);
+  assert.equal(out.find((c) => c.id === 'c').outdated, true);
+  assert.equal(out.find((c) => c.id === 'c').line, 7);
+  assert.deepEqual(out.find((c) => c.id === 'd'), comments[3], 'other files untouched');
+});
+
+test('composeReviewPrompt flags outdated comments', () => {
+  const { composeReviewPrompt } = require('../src/shared/reviewModel');
+  const text = composeReviewPrompt({ branch: 'b', comments: [{ path: 'a.js', line: 7, text: 'gone', body: 'fix', outdated: true }] });
+  assert.match(text, /a\.js:7 \(outdated/);
+});
+
+test('pruneScopes: drops this project\'s keys of workspaces that are gone', () => {
+  const { pruneScopes } = require('../src/shared/reviewModel');
+  const all = { '/p': 1, '/p#w1': 2, '/p#gone': 3, '/q#gone': 4 };
+  assert.deepEqual(pruneScopes(all, '/p', ['w1']), { '/p': 1, '/p#w1': 2, '/q#gone': 4 });
+  assert.deepEqual(pruneScopes(all, '/p', []), { '/p': 1, '/q#gone': 4 });
+});

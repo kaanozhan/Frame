@@ -14752,22 +14752,30 @@
             "scope"
           ]
         },
+        "pruneViewed": {
+          "line": 66,
+          "params": [
+            "projectPath",
+            "liveIds"
+          ],
+          "purpose": "Forget viewed ticks of `projectPath`'s workspaces that no longer exist"
+        },
         "saveViewed": {
-          "line": 62,
+          "line": 73,
           "params": [
             "scope",
             "viewed"
           ]
         },
         "open": {
-          "line": 75,
+          "line": 86,
           "params": [
             "ws"
           ],
           "purpose": "Open the review of a workspace record (`{ id, name, path, branch, base }`)."
         },
         "createViewport": {
-          "line": 90
+          "line": 101
         }
       },
       "ipc": {
@@ -14776,14 +14784,15 @@
         ],
         "emits": []
       },
-      "sizeBytes": 25014,
+      "sizeBytes": 29953,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "c3ff8b03a46b341c",
         "purposes": {
-          "open": "7e9725f4a393e8de"
+          "open": "7e9725f4a393e8de",
+          "pruneViewed": "9e060d57aeebae3a"
         }
       }
     },
@@ -17472,7 +17481,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 7603,
+      "sizeBytes": 7934,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -18741,6 +18750,7 @@
       ],
       "depends": [
         "electron",
+        "shared/reviewModel",
         "xterm",
         "xterm-addon-fit",
         "shared/ipcChannels",
@@ -18750,20 +18760,20 @@
       ],
       "functions": {
         "getTerminalTheme": {
-          "line": 15,
+          "line": 16,
           "purpose": "Terminal theme for the current app theme (themes.js owns the palettes)."
         },
         "escapePathForShell": {
-          "line": 33,
+          "line": 34,
           "params": [
             "p"
           ]
         },
         "installGlobalDropGuard": {
-          "line": 49
+          "line": 50
         },
         "terminalName": {
-          "line": 64,
+          "line": 65,
           "params": [
             "n"
           ],
@@ -18787,7 +18797,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 34937,
+      "sizeBytes": 35780,
       "extraction": {
         "status": "parsed"
       },
@@ -19198,14 +19208,14 @@
           "purpose": "Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR."
         },
         "menuItems": {
-          "line": 124,
+          "line": 127,
           "params": [
             "ws"
           ],
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 154,
+          "line": 157,
           "params": [
             "id",
             "ws"
@@ -19213,40 +19223,40 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 169,
+          "line": 172,
           "params": [
             "ws"
           ]
         },
         "openCreatePrOnce": {
-          "line": 197,
+          "line": 200,
           "params": [
             "ws"
           ]
         },
         "fixChecks": {
-          "line": 278,
+          "line": 281,
           "params": [
             "ws"
           ],
           "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
         },
         "merge": {
-          "line": 298,
+          "line": 301,
           "params": [
             "ws"
           ],
           "purpose": "Merge the workspace's PR with the project's method (main decides: the"
         },
         "updateFromBase": {
-          "line": 331,
+          "line": 334,
           "params": [
             "ws"
           ],
           "purpose": "Fetch the base and merge it into the workspace branch (main decides; see"
         },
         "workspaceAgentLanes": {
-          "line": 365,
+          "line": 368,
           "params": [
             "projectPath",
             "workspaceId"
@@ -19254,14 +19264,14 @@
           "purpose": "A workspace's terminals running an agent, most recently active first:"
         },
         "askConflictChoiceOnce": {
-          "line": 386,
+          "line": 389,
           "params": [
             "ws",
             "files"
           ]
         },
         "resolveConflicts": {
-          "line": 419,
+          "line": 422,
           "params": [
             "ws",
             "files = null",
@@ -19270,7 +19280,7 @@
           "purpose": "Hand a stopped update to an agent in the workspace: the most recently"
         },
         "abortUpdate": {
-          "line": 440,
+          "line": 443,
           "params": [
             "ws",
             "{ confirmed = false",
@@ -19279,7 +19289,7 @@
           "purpose": "Abort a stopped update (`git merge --abort`): the branch goes back to where it was."
         },
         "openOnGitHub": {
-          "line": 450,
+          "line": 453,
           "params": [
             "ws"
           ],
@@ -19294,7 +19304,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 20540,
+      "sizeBytes": 20903,
       "extraction": {
         "status": "parsed"
       },
@@ -19367,25 +19377,25 @@
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 149,
+          "line": 156,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 163
+          "line": 170
         },
         "summaries": {
-          "line": 173
+          "line": 180
         },
         "dotHtml": {
-          "line": 190,
+          "line": 197,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 195,
+          "line": 202,
           "params": [
             "ws",
             "{ selectedId",
@@ -19393,34 +19403,34 @@
           ]
         },
         "render": {
-          "line": 223
+          "line": 230
         },
         "findWs": {
-          "line": 274,
+          "line": 281,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 278,
+          "line": 285,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 307,
+          "line": 314,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 319,
+          "line": 326,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 332,
+          "line": 339,
           "params": [
             "ws",
             "x",
@@ -19428,39 +19438,39 @@
           ]
         },
         "hideMenu": {
-          "line": 357
+          "line": 364
         },
         "onMenuClick": {
-          "line": 361,
+          "line": 368,
           "params": [
             "e"
           ]
         },
         "openNew": {
-          "line": 374
+          "line": 381
         },
         "startRename": {
-          "line": 382,
+          "line": 389,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 387,
+          "line": 394,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 407,
+          "line": 414,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 448,
+          "line": 455,
           "params": [
             "ws",
             "head"
@@ -19468,7 +19478,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 454,
+          "line": 461,
           "params": [
             "ws",
             "head"
@@ -19476,7 +19486,7 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "openHeldSpec": {
-          "line": 491,
+          "line": 498,
           "params": [
             "ws",
             "slug"
@@ -19484,14 +19494,14 @@
           "purpose": "Select a workspace and open the spec it holds in the specs drawer."
         },
         "closeWorkspaceTerminals": {
-          "line": 500,
+          "line": 507,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 513,
+          "line": 520,
           "params": [
             "ws",
             "count"
@@ -19499,37 +19509,37 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 571,
+          "line": 578,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 577,
+          "line": 584,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 590,
+          "line": 597,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 599,
+          "line": 606,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 609,
+          "line": 616,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 623,
+          "line": 630,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -19540,7 +19550,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 27160,
+      "sizeBytes": 27512,
       "extraction": {
         "status": "parsed"
       },
@@ -25694,6 +25704,11 @@
       "file": "src/shared/reviewModel.js",
       "description": "reviewModel — the rules behind a workspace review (workspace-review spec).",
       "exports": [
+        "applyFileList",
+        "remainingAfterSend",
+        "newSideLines",
+        "reanchor",
+        "pruneScopes",
         "MAX_DIFF_BYTES",
         "parseNumstat",
         "parseNameStatus",
@@ -25767,21 +25782,67 @@
             "comments = [] }"
           ],
           "purpose": "The prompt that carries a review to the agent: one entry per comment"
+        },
+        "applyFileList": {
+          "line": 168,
+          "params": [
+            "prev",
+            "res"
+          ],
+          "purpose": "Apply a REVIEW_FILES reply. A failed load keeps what is shown — files,"
+        },
+        "remainingAfterSend": {
+          "line": 183,
+          "params": [
+            "comments",
+            "sentIds"
+          ],
+          "purpose": "Comments still pending after a send: the ones it did not carry (R5)."
+        },
+        "newSideLines": {
+          "line": 189,
+          "params": [
+            "diffText"
+          ],
+          "purpose": "New-side lines of a unified diff: Map(line number → text without the +/space prefix)."
+        },
+        "reanchor": {
+          "line": 213,
+          "params": [
+            "comments",
+            "path",
+            "lines"
+          ],
+          "purpose": "Re-anchor `path`'s comments after its diff reloads (R9): a comment whose"
+        },
+        "pruneScopes": {
+          "line": 239,
+          "params": [
+            "all",
+            "projectPath",
+            "liveIds"
+          ],
+          "purpose": "Drop `projectPath`'s per-workspace keys (`<projectPath>#<id>`) whose"
         }
       },
-      "sizeBytes": 6166,
+      "sizeBytes": 9473,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "cc3cf2531a7a3542",
         "purposes": {
+          "applyFileList": "ef0b619250545cd9",
           "composeReviewPrompt": "5b1a37e2a58812e5",
           "lineAnchor": "f8c0bd1c553c5f17",
           "mergeChangedFiles": "5f18c54ca0dfed03",
+          "newSideLines": "83d57367ce1c03a3",
           "parseNameStatus": "9b5c73808e616a8e",
           "parseNumstat": "f852ad4fee4c0bc3",
+          "pruneScopes": "764e8a8592779e05",
+          "reanchor": "c5bc8a0f1e23379c",
           "reconcileViewed": "79b6a198245b67a0",
+          "remainingAfterSend": "f012f9e07b6b19d6",
           "viewedSummary": "e48001f7847fbbcc"
         }
       }
@@ -29467,7 +29528,7 @@
         "src/shared/reviewModel"
       ],
       "functions": {},
-      "sizeBytes": 4722,
+      "sizeBytes": 8247,
       "extraction": {
         "status": "parsed"
       },
@@ -33492,6 +33553,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "bdf8c2bb7c10bb6861d7621207c0b9ede7d4d992c635723835e6565702535750"
+    "revision": "25869a51c777fd21d6ed5aeb12d26d4522af2eb39879fdc42b6b1782859e696c"
   }
 }

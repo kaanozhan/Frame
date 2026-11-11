@@ -149,7 +149,7 @@ function composeReviewPrompt({ branch, comments = [] }) {
   const sorted = (comments || []).slice().sort((a, b) => (a.path === b.path ? a.line - b.line : a.path.localeCompare(b.path)));
   const lines = [`Review comments on this workspace's changes (branch \`${branch}\`). Address each one:`, ''];
   sorted.forEach((c, i) => {
-    lines.push(`${i + 1}. ${c.path}:${c.line}`);
+    lines.push(`${i + 1}. ${c.path}:${c.line}${c.outdated ? ' (outdated — the line changed since this comment)' : ''}`);
     if (c.text) lines.push(`   > ${c.text}`);
     lines.push(`   ${String(c.body || '').trim().replace(/\n+/g, ' ')}`);
     lines.push('');
@@ -158,7 +158,101 @@ function composeReviewPrompt({ branch, comments = [] }) {
   return lines.join('\n');
 }
 
+// ─── workspace-hardening (R4, R5, R9, R14) ──────────────────
+
+/**
+ * Apply a REVIEW_FILES reply. A failed load keeps what is shown — files,
+ * viewed ticks and merge base — and reports the error (R4); a good one
+ * replaces the list and keeps only ticks whose content is unchanged.
+ */
+function applyFileList(prev, res) {
+  const before = prev || {};
+  if (!res || res.error) {
+    return {
+      files: before.files || [],
+      viewed: before.viewed || {},
+      mergeBase: before.mergeBase || null,
+      error: (res && res.error) || 'Could not load the changes.'
+    };
+  }
+  const files = res.files || [];
+  return { files, viewed: reconcileViewed(files, before.viewed || {}), mergeBase: res.mergeBase || null, error: '' };
+}
+
+/** Comments still pending after a send: the ones it did not carry (R5). */
+function remainingAfterSend(comments, sentIds) {
+  const sent = new Set(sentIds || []);
+  return (comments || []).filter((c) => !sent.has(c.id));
+}
+
+/** New-side lines of a unified diff: Map(line number → text without the +/space prefix). */
+function newSideLines(diffText) {
+  const out = new Map();
+  let line = 0;
+  let inHunk = false;
+  for (const raw of String(diffText || '').split('\n')) {
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(raw);
+    if (hunk) { line = parseInt(hunk[1], 10); inHunk = true; continue; }
+    if (!inHunk) continue;
+    if (raw.startsWith('diff --git')) { inHunk = false; continue; }
+    if (raw.startsWith('+') || raw.startsWith(' ')) {
+      out.set(line, raw.slice(1).replace(/\s+$/, ''));
+      line += 1;
+    }
+    // '-' lines are old-side only; '\ No newline' is a marker.
+  }
+  return out;
+}
+
+/**
+ * Re-anchor `path`'s comments after its diff reloads (R9): a comment whose
+ * line still holds its quoted text stays; one whose text moved follows it
+ * (nearest match); one whose text is gone is marked outdated and is sent
+ * flagged. Comments with no quoted text keep their line.
+ */
+function reanchor(comments, path, lines) {
+  return (comments || []).map((c) => {
+    if (c.path !== path || !c.text) return c;
+    if (lines.get(c.line) === c.text) {
+      if (!c.outdated) return c;
+      const { outdated, ...rest } = c;
+      return rest;
+    }
+    let best = null;
+    for (const [n, text] of lines) {
+      if (text !== c.text) continue;
+      if (best === null || Math.abs(n - c.line) < Math.abs(best - c.line)) best = n;
+    }
+    if (best !== null) {
+      const { outdated, ...rest } = c;
+      return { ...rest, line: best };
+    }
+    return c.outdated ? c : { ...c, outdated: true };
+  });
+}
+
+/**
+ * Drop `projectPath`'s per-workspace keys (`<projectPath>#<id>`) whose
+ * workspace is not in `liveIds` (R14). The bare project key (main) and other
+ * projects' keys stay. Returns a new object.
+ */
+function pruneScopes(all, projectPath, liveIds) {
+  const live = new Set(liveIds || []);
+  const prefix = `${projectPath}#`;
+  const out = {};
+  for (const [key, value] of Object.entries(all || {})) {
+    if (key.startsWith(prefix) && !live.has(key.slice(prefix.length))) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 module.exports = {
+  applyFileList,
+  remainingAfterSend,
+  newSideLines,
+  reanchor,
+  pruneScopes,
   MAX_DIFF_BYTES,
   parseNumstat,
   parseNameStatus,

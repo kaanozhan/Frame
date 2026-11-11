@@ -24,7 +24,7 @@
 const { ipcRenderer } = require('electron');
 const { html: renderDiffHtml } = require('diff2html');
 const { IPC } = require('../shared/ipcChannels');
-const { reconcileViewed, viewedSummary, lineAnchor, composeReviewPrompt } = require('../shared/reviewModel');
+const { viewedSummary, lineAnchor, composeReviewPrompt, applyFileList, remainingAfterSend, newSideLines, reanchor, pruneScopes } = require('../shared/reviewModel');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
@@ -57,6 +57,17 @@ function readAllViewed() {
 function loadViewed(scope) {
   const v = readAllViewed()[scope];
   return v && typeof v === 'object' ? v : {};
+}
+
+/**
+ * Forget viewed ticks of `projectPath`'s workspaces that no longer exist
+ * (R14): they otherwise accumulate forever under one localStorage key.
+ */
+function pruneViewed(projectPath, liveIds) {
+  const all = readAllViewed();
+  const next = pruneScopes(all, projectPath, liveIds);
+  if (Object.keys(next).length === Object.keys(all).length) return;
+  try { localStorage.setItem(VIEWED_KEY, JSON.stringify(next)); } catch (_) { /* private mode */ }
 }
 
 function saveViewed(scope, viewed) {
@@ -109,6 +120,10 @@ function createViewport() {
   let sideScroll = 0;
   let sendTarget = null;     // terminal id, 'new', or null for the default
   let sending = false;
+  // One comment box for the viewport's life (R8): re-attached on every render
+  // instead of rebuilt, so the caret, selection and typed text survive.
+  let box = null;            // { row, input, key, fresh, hadFocus }
+  let openSeq = 0;           // each opened draft gets its own box contents
 
   const onGitStatus = () => {
     if (!ref) return;
@@ -146,6 +161,12 @@ function createViewport() {
       selected = null;
       diff = { path: null, text: '', message: '', loading: false };
       viewed = loadViewed(scope);
+      // The workspace list knows which workspaces still exist; prune the
+      // ticks of the others only when that list is this project's (R14).
+      const live = require('./workspaceSection').getWorkspaces();
+      if (state.getProjectPath() === ref.projectPath && live.some((w) => w.id === ref.workspaceId)) {
+        pruneViewed(ref.projectPath, live.map((w) => w.id));
+      }
     }
     loadFiles(same);
   }
@@ -162,12 +183,15 @@ function createViewport() {
     }
     if (id !== listReq) return;
     listLoading = false;
-    listError = (res && res.error) || '';
     const prevBase = mergeBase;
-    mergeBase = (res && res.mergeBase) || null;
     const prevHash = selected ? (files.find((f) => f.path === selected) || {}).hash : undefined;
-    files = (res && res.files) || [];
-    viewed = reconcileViewed(files, viewed);
+    // A failed load keeps the list and the ticks on screen (R4).
+    const next = applyFileList({ files, viewed, mergeBase }, res);
+    listError = next.error;
+    if (listError) { changed(); return; }
+    files = next.files;
+    viewed = next.viewed;
+    mergeBase = next.mergeBase;
     saveViewed(scope, viewed);
     if (!selected || !files.some((f) => f.path === selected)) {
       const first = files.find((f) => !isViewed(f)) || files[0];
@@ -206,6 +230,8 @@ function createViewport() {
     else if (res && res.isBinary) message = 'Binary file — diff not shown';
     else if (!res || !String(res.diff || '').trim()) message = f.status === 'R' ? 'Renamed without changes' : 'No changes to show';
     diff = { path: f.path, text: message ? '' : res.diff, message, loading: false };
+    // The file may have changed since its comments were written (R9).
+    if (!message) comments = reanchor(comments, f.path, newSideLines(res.diff));
     changed();
   }
 
@@ -219,18 +245,35 @@ function createViewport() {
 
   function select(p) {
     if (!p || p === selected) return;
+    keepDraft();
     selected = p;
     editing = null;
     loadDiff(false);
   }
 
+  /** A draft with text becomes a pending comment instead of being dropped (R8). */
+  function keepDraft() {
+    if (!editing || !String(editing.body || '').trim()) { editing = null; return null; }
+    const body = String(editing.body).trim();
+    let c = editing.id ? comments.find((x) => x.id === editing.id) : null;
+    if (c) c.body = body;
+    else {
+      c = { id: `c${++commentSeq}`, path: editing.path, line: editing.line, text: editing.text, body };
+      comments.push(c);
+    }
+    editing = null;
+    return c;
+  }
+
   // ─── Comments ──────────────────────────────────────────────
 
   function openComment(anchor) {
+    if (editing && editing.path === selected && editing.line === anchor.line) return; // already open there
+    keepDraft();
     const existing = comments.find((c) => c.path === selected && c.line === anchor.line);
     editing = existing
-      ? { id: existing.id, path: existing.path, line: existing.line, text: existing.text, body: existing.body }
-      : { path: selected, line: anchor.line, text: anchor.text, body: '' };
+      ? { id: existing.id, path: existing.path, line: existing.line, text: existing.text, body: existing.body, seq: ++openSeq }
+      : { path: selected, line: anchor.line, text: anchor.text, body: '', seq: ++openSeq };
     changed();
   }
 
@@ -262,8 +305,9 @@ function createViewport() {
   function editComment(id) {
     const c = comments.find((x) => x.id === id);
     if (!c) return;
+    if (!(editing && editing.id === id)) keepDraft();
     if (c.path !== selected) { selected = c.path; loadDiff(false); }
-    editing = { id: c.id, path: c.path, line: c.line, text: c.text, body: c.body };
+    editing = { id: c.id, path: c.path, line: c.line, text: c.text, body: c.body, seq: ++openSeq };
     changed();
   }
 
@@ -323,29 +367,24 @@ function createViewport() {
       if (num) { num.classList.add('review-commentable'); num.title = `Comment on line ${line}`; }
     }
     for (const c of comments) {
-      if (c.path !== selected) continue;
+      if (c.path !== selected || c.outdated) continue; // an outdated comment's line now holds other code
       const tr = rows.get(c.line);
       if (tr) { tr.classList.add('review-commented'); tr.title = c.body; }
     }
     if (!editing || editing.path !== selected) return;
     const tr = rows.get(editing.line);
-    if (!tr) return;
+    if (!tr) {
+      // The draft's line left the diff: keep its text as a pending comment
+      // (marked outdated by the re-anchor) rather than losing it (R8).
+      if (rows.size) {
+        const kept = keepDraft();
+        if (kept) kept.outdated = true;
+        queueMicrotask(changed);
+      }
+      return;
+    }
     const cols = tr.children.length || 2;
-    const boxRow = document.createElement('tr');
-    boxRow.className = 'review-comment-row';
-    boxRow.innerHTML = `
-      <td colspan="${cols}">
-        <div class="review-comment-box">
-          <div class="review-comment-label">Comment on line ${editing.line}</div>
-          <textarea class="review-comment-input" rows="3" placeholder="What should change here? (⌘↵ to save, Esc to cancel)">${escapeHtml(editing.body)}</textarea>
-          <div class="review-comment-actions">
-            ${editing.id ? '<button type="button" class="review-btn danger" data-act="remove">Remove</button>' : ''}
-            <span class="review-spacer"></span>
-            <button type="button" class="review-btn" data-act="cancel">Cancel</button>
-            <button type="button" class="review-btn primary" data-act="save">${editing.id ? 'Save' : 'Add comment'}</button>
-          </div>
-        </div>
-      </td>`;
+    const boxRow = commentBox(cols);
     tr.after(boxRow);
     // Split view: a spacer of the same height keeps the old side aligned.
     if (mode !== 'line-by-line') {
@@ -361,19 +400,74 @@ function createViewport() {
         requestAnimationFrame(() => { spacer.style.height = `${boxRow.offsetHeight}px`; });
       }
     }
-    const input = boxRow.querySelector('textarea');
-    input.addEventListener('input', () => { if (editing) editing.body = input.value; });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveComment(); }
-      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelComment(); }
-    });
-    boxRow.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
-      if (b.dataset.act === 'save') saveComment();
-      else if (b.dataset.act === 'cancel') cancelComment();
-      else if (b.dataset.act === 'remove') removeComment(editing.id);
-    }));
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
+    // Focus: a box just opened takes it; a re-attached one gets it back only
+    // if it had it, with the caret and selection where they were.
+    const input = box.input;
+    if (box.fresh) {
+      box.fresh = false;
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    } else if (box.hadFocus && document.activeElement !== input) {
+      // The element keeps its own caret and selection while detached.
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      input.focus();
+      input.setSelectionRange(start, end);
+    }
+  }
+
+  /** The one comment box, built once and updated for the current draft. */
+  function commentBox(cols) {
+    if (!box) {
+      const row = document.createElement('tr');
+      row.className = 'review-comment-row';
+      row.innerHTML = `
+        <td>
+          <div class="review-comment-box">
+            <div class="review-comment-label"></div>
+            <textarea class="review-comment-input" rows="3" placeholder="What should change here? (⌘↵ to save, Esc to cancel)"></textarea>
+            <div class="review-comment-actions">
+              <button type="button" class="review-btn danger" data-act="remove">Remove</button>
+              <span class="review-spacer"></span>
+              <button type="button" class="review-btn" data-act="cancel">Cancel</button>
+              <button type="button" class="review-btn primary" data-act="save"></button>
+            </div>
+          </div>
+        </td>`;
+      const input = row.querySelector('textarea');
+      input.addEventListener('input', () => { if (editing) editing.body = input.value; });
+      // Whether the user was typing here. A re-render clears the section
+      // (which blurs the box) and re-attaches it in the same task: a blur
+      // only counts when no re-attach followed it.
+      input.addEventListener('focus', () => { box.hadFocus = true; });
+      input.addEventListener('blur', () => {
+        box.reattached = false;
+        queueMicrotask(() => { if (!box.reattached) box.hadFocus = false; });
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveComment(); }
+        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelComment(); }
+      });
+      row.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
+        if (b.dataset.act === 'save') saveComment();
+        else if (b.dataset.act === 'cancel') cancelComment();
+        else if (b.dataset.act === 'remove' && editing) removeComment(editing.id);
+      }));
+      box = { row, input, key: null, fresh: false, hadFocus: false };
+    }
+    const key = editing.seq;
+    if (box.key !== key) {
+      // Another draft: load its text. The same draft keeps what is typed.
+      box.key = key;
+      box.input.value = editing.body || '';
+      box.fresh = true;
+    }
+    box.reattached = true;
+    box.row.querySelector('td').colSpan = cols;
+    box.row.querySelector('.review-comment-label').textContent = `Comment on line ${Number(editing.line) || 0}`;
+    box.row.querySelector('[data-act="remove"]').hidden = !editing.id;
+    box.row.querySelector('[data-act="save"]').textContent = editing.id ? 'Save' : 'Add comment';
+    return box.row;
   }
 
   // ─── Sending ───────────────────────────────────────────────
@@ -392,7 +486,8 @@ function createViewport() {
   async function sendReview() {
     if (sending || !comments.length || !ref) return;
     const target = resolvedTarget(agentLanes());
-    const prompt = composeReviewPrompt({ branch: ref.branch || ref.name, comments });
+    const sent = comments.slice();
+    const prompt = composeReviewPrompt({ branch: ref.branch || ref.name, comments: sent });
     sending = true;
     changed();
     let res;
@@ -407,9 +502,11 @@ function createViewport() {
     }
     sending = false;
     if (res && res.success) {
-      const n = comments.length;
-      comments = [];
-      editing = null;
+      const n = sent.length;
+      // Only what was sent leaves the list: comments added while the send
+      // was in flight stay pending (R5).
+      comments = remainingAfterSend(comments, sent.map((c) => c.id));
+      if (editing && editing.id && !comments.some((c) => c.id === editing.id)) editing = null;
       notify.success(`Sent ${n} review comment${n === 1 ? '' : 's'} to the agent`);
     } else {
       notify.error(`Could not send the review: ${(res && res.error) || 'unknown error'}`);
@@ -439,8 +536,8 @@ function createViewport() {
         <div class="review-pending-header">Comments <span class="review-pending-count">${comments.length}</span></div>
         <ul class="review-comments">
           ${sorted.map((c) => `
-            <li class="review-comment" data-id="${c.id}">
-              <div class="review-comment-where" data-act="goto">${escapeHtml(c.path)}:${c.line}</div>
+            <li class="review-comment" data-id="${escapeHtml(c.id)}">
+              <div class="review-comment-where" data-act="goto">${escapeHtml(c.path)}:${Number(c.line) || 0}${c.outdated ? ' <span class="review-outdated" title="The line changed since this comment">outdated</span>' : ''}</div>
               ${c.text ? `<div class="review-comment-code">${escapeHtml(c.text)}</div>` : ''}
               <div class="review-comment-body">${escapeHtml(c.body)}</div>
               <div class="review-comment-tools">
@@ -477,15 +574,18 @@ function createViewport() {
 
   function fileRowHtml(f) {
     const v = isViewed(f);
+    const added = Number(f.added) || 0;
+    const removed = Number(f.removed) || 0;
     const counts = f.binary ? '<span class="review-bin">bin</span>'
-      : `${f.added ? `<span class="review-add">+${f.added}</span>` : ''}${f.removed ? `<span class="review-del">−${f.removed}</span>` : ''}`;
+      : `${added ? `<span class="review-add">+${added}</span>` : ''}${removed ? `<span class="review-del">−${removed}</span>` : ''}`;
+    const status = escapeHtml(f.status);
     const slash = f.path.lastIndexOf('/');
     const dir = slash >= 0 ? f.path.slice(0, slash + 1) : '';
     const base = slash >= 0 ? f.path.slice(slash + 1) : f.path;
     return `
       <li class="review-file${f.path === selected ? ' active' : ''}${v ? ' viewed' : ''}" data-path="${escapeHtml(f.path)}" title="${escapeHtml(f.oldPath ? `${f.oldPath} → ${f.path}` : f.path)}">
         <input type="checkbox" class="review-viewed" data-path="${escapeHtml(f.path)}" ${v ? 'checked' : ''} title="Viewed" aria-label="Mark ${escapeHtml(f.path)} viewed">
-        <span class="review-status s-${f.status}" title="${STATUS_LABEL[f.status] || f.status}">${f.status}</span>
+        <span class="review-status s-${status}" title="${escapeHtml(STATUS_LABEL[f.status] || f.status)}">${status}</span>
         <span class="review-name"><span class="review-dir">${escapeHtml(dir)}</span>${escapeHtml(base)}</span>
         <span class="review-counts">${counts}</span>
       </li>`;
@@ -493,9 +593,10 @@ function createViewport() {
 
   function listHtml() {
     if (listLoading && !files.length) return '<div class="review-empty">Loading changes…</div>';
-    if (listError) return `<div class="review-empty">${escapeHtml(listError)}</div>`;
+    const err = listError ? `<div class="review-empty review-list-error">${escapeHtml(listError)}</div>` : '';
+    if (listError && !files.length) return err;
     if (!files.length) return `<div class="review-empty">No changes against ${escapeHtml(ref ? ref.base : 'the base')}.</div>`;
-    return `<ul class="review-files">${files.map(fileRowHtml).join('')}</ul>`;
+    return `${err}<ul class="review-files">${files.map(fileRowHtml).join('')}</ul>`;
   }
 
   function diffHtml() {
@@ -504,7 +605,7 @@ function createViewport() {
     const v = isViewed(f);
     const head = `
       <div class="review-diff-header">
-        <span class="review-status s-${f.status}">${f.status}</span>
+        <span class="review-status s-${escapeHtml(f.status)}">${escapeHtml(f.status)}</span>
         <span class="review-diff-path">${escapeHtml(f.oldPath ? `${f.oldPath} → ${f.path}` : f.path)}</span>
         <label class="review-diff-viewed"><input type="checkbox" class="review-viewed" data-path="${escapeHtml(f.path)}" ${v ? 'checked' : ''}> Viewed</label>
         <div class="diff-section-modes" role="group" aria-label="Diff display mode">

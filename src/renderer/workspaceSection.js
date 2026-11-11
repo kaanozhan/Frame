@@ -126,6 +126,13 @@ async function load({ reselect = false } = {}) {
   isRepo = !!(result && result.isRepo);
   workspaces = (result && result.workspaces) || [];
   archived = (result && result.archived) || [];
+  // Saved terminal sessions of workspaces that are gone free their slots (R14).
+  if (result && !result.error && result.isRepo) {
+    try {
+      const ui = require('./terminal').getMultiTerminalUI();
+      if (ui) ui.getManager().pruneWorkspaceSessions(projectPath, workspaces.map((w) => w.id));
+    } catch (_) { /* terminals not ready yet */ }
+  }
 
   const selected = state.getWorkspace();
   if (pendingReselect === projectPath) {

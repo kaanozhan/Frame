@@ -98,8 +98,11 @@ function checksDot(pr) {
 /** Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR. */
 function rowBadgesHtml(ws) {
   if (ws.offline) return ''; // the last known server state would be stale
-  const s = rowState(ws.id);
-  if (!s || ws.missing) return '';
+  const raw = rowState(ws.id);
+  if (!raw || ws.missing) return '';
+  // Counts come from main (or the server); never interpolate them uncoerced (R12).
+  const s = { ...raw, dirty: Number(raw.dirty) || 0, unpushed: Number(raw.unpushed) || 0, behind: Number(raw.behind) || 0,
+    pr: raw.pr ? { ...raw.pr, number: Number(raw.pr.number) || 0, comments: Number(raw.pr.comments) || 0, state: String(raw.pr.state || '') } : null };
   const parts = [];
   if (s.dirty) parts.push(`<span class="ws-badge dirty" title="${s.dirty} uncommitted change${s.dirty === 1 ? '' : 's'}">●${s.dirty}</span>`);
   if (s.merging) {
