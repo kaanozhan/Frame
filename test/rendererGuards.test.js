@@ -57,3 +57,31 @@ test('exclusive: a throwing call frees the gate', async () => {
   await assert.rejects(run());
   await assert.rejects(run(), /x/, 'not refused as busy');
 });
+
+// ─── R3 / R6 / R11: scope after an await ─────────────────────
+
+test('scopeGuard: still() holds only while the same project and workspace are selected', () => {
+  const { scopeGuard } = require('../src/renderer/scopeGuard');
+  let current = { projectPath: '/p', workspaceId: 'w1' };
+  const guard = scopeGuard({ projectPath: '/p', workspaceId: 'w1' }, () => current);
+  assert.equal(guard.still(), true);
+  current = { projectPath: '/p', workspaceId: 'main' };
+  assert.equal(guard.still(), false, 'another workspace');
+  current = { projectPath: '/q', workspaceId: 'w1' };
+  assert.equal(guard.still(), false, 'another project');
+  assert.equal(guard.sameProject(), false);
+  current = { projectPath: '/p', workspaceId: 'main' };
+  assert.equal(guard.sameProject(), true);
+});
+
+test('selectionChange: same, meta (renamed branch) or switch', () => {
+  const { selectionChange } = require('../src/renderer/scopeGuard');
+  const a = { id: 'w1', root: '/r/w1', name: 'w1', branch: 'feat/a' };
+  assert.equal(selectionChange(a, { ...a }), 'same');
+  assert.equal(selectionChange(a, { ...a, branch: 'feat/b' }), 'meta');
+  assert.equal(selectionChange(a, { ...a, name: 'renamed' }), 'meta');
+  assert.equal(selectionChange(a, { ...a, id: 'w2', root: '/r/w2' }), 'switch');
+  assert.equal(selectionChange(null, a), 'switch');
+  assert.equal(selectionChange(a, null), 'switch');
+  assert.equal(selectionChange(null, null), 'same');
+});

@@ -19,6 +19,7 @@
 
 const { ipcRenderer } = require('electron');
 const { enterSubmits } = require('./modalKeys');
+const { scopeGuard } = require('./scopeGuard');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const notify = require('./notify');
@@ -209,6 +210,12 @@ async function submit() {
 
   const section = require('./workspaceSection');
   await section.load();
+  // The user may have switched project while the create ran (R6): the new
+  // workspace is listed there; nothing is selected or started here.
+  if (state.getProjectPath() !== projectPath) {
+    notify.info(`Workspace "${result.workspace.name}" was created in ${projectPath.split('/').pop()}.`);
+    return;
+  }
   section.select(result.workspace);
   runSetupThenAgent({ setupScript: result.setupScript, toolId, prompt });
 }
@@ -246,41 +253,45 @@ async function runSetupThenAgent({ setupScript, toolId = null, prompt = '', open
   if (!ui) return;
   const manager = ui.getManager();
   const script = (setupScript || '').trim();
+  // Everything here belongs to the workspace selected now — the new (or
+  // restored) one — even if the user selects another while the setup script
+  // runs (R3). Its terminals are created for it explicitly, and the view only
+  // follows them while it is still selected.
+  const guard = scopeGuard(state.currentScope(), state.currentScope);
+  const target = { projectPath: guard.projectPath, workspaceId: guard.workspaceId, cwd: state.getWorkspaceRoot() };
 
   if (script) {
     let setupId = null;
     try {
-      setupId = await manager.createTerminal({});
+      setupId = await manager.createTerminal({ ...target });
       if (setupId) manager.renameTerminal(setupId, SETUP_TERMINAL_NAME);
     } catch (err) {
       console.error('newWorkspaceModal: setup terminal failed', err);
     }
     if (setupId) {
-      ui.enterLane(setupId);
+      if (guard.still()) ui.enterLane(setupId);
       await new Promise((r) => setTimeout(r, SETTLE_MS));
-      ui.sendCommand(script, setupId);
+      if (guard.still()) ui.sendCommand(script, setupId);
+      else manager.sendCommand(script, setupId);
       await waitForSetupToFinish(setupId);
     } else {
       notify.error('Could not open a terminal for the setup script.');
     }
   }
-  if (withAgent) await openAgent({ toolId, prompt });
+  if (!withAgent) return;
+  if (!guard.sameProject()) return; // another project now: the agent is not started anywhere
+  await openAgent({ toolId, prompt, target, enter: guard.still() });
 }
 
-async function openAgent({ toolId, prompt }) {
-  const agentDispatch = require('./agentDispatch');
-  if (prompt) {
-    await agentDispatch.dispatch({ createNew: true, toolId, prompt });
-    return;
-  }
+async function openAgent({ toolId, prompt, target, enter = true }) {
   const ui = multiTerminalUI();
   const aiToolSelector = require('./aiToolSelector');
   const tools = aiToolSelector.getAvailableTools() || {};
   const tool = (toolId && tools[toolId]) || aiToolSelector.getCurrentTool();
-  if (!tool || !tool.command) return;
+  if (!prompt && (!tool || !tool.command)) return;
   let id = null;
   try {
-    id = await ui.getManager().createTerminal({});
+    id = await ui.getManager().createTerminal({ ...target });
   } catch (err) {
     console.error('newWorkspaceModal: agent terminal failed', err);
   }
@@ -288,8 +299,12 @@ async function openAgent({ toolId, prompt }) {
     notify.error('Could not open a terminal for the agent — the workspace may be at its terminal limit.');
     return;
   }
-  ui.enterLane(id);
-  setTimeout(() => ui.sendCommand(tool.command, id), SETTLE_MS);
+  if (prompt) {
+    await require('./agentDispatch').dispatch({ terminalId: id, toolId, prompt, enter });
+    return;
+  }
+  if (enter) ui.enterLane(id);
+  setTimeout(() => (enter ? ui.sendCommand(tool.command, id) : ui.getManager().sendCommand(tool.command, id)), SETTLE_MS);
 }
 
 module.exports = { init, open, close, runSetupThenAgent };

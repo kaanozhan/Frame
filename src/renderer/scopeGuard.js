@@ -37,4 +37,33 @@ function exclusive(fn, { onBusy = null, queue = false } = {}) {
   };
 }
 
-module.exports = { exclusive };
+/**
+ * A follow-up that runs after an await (setup script, create, conflict
+ * choice) belongs to the project and workspace it started in (R3, R6).
+ * `current()` returns `{ projectPath, workspaceId }` of the live selection.
+ */
+function scopeGuard(scope, current) {
+  const now = () => current() || {};
+  return {
+    projectPath: scope.projectPath,
+    workspaceId: scope.workspaceId,
+    /** Still on the same project and workspace? */
+    still: () => now().projectPath === scope.projectPath && now().workspaceId === scope.workspaceId,
+    /** Still on the same project (the workspace may differ)? */
+    sameProject: () => now().projectPath === scope.projectPath
+  };
+}
+
+/**
+ * How a selection differs from the next one (R11): `same`, `meta` (same
+ * workspace, its branch or name changed — update in place) or `switch`.
+ */
+function selectionChange(prev, next) {
+  if (!prev && !next) return 'same';
+  if (!prev || !next) return 'switch';
+  if (prev.id !== next.id || prev.root !== next.root) return 'switch';
+  if ((prev.branch || null) !== (next.branch || null) || (prev.name || null) !== (next.name || null)) return 'meta';
+  return 'same';
+}
+
+module.exports = { exclusive, scopeGuard, selectionChange };

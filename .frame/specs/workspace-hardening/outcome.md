@@ -54,3 +54,11 @@ New src/renderer/modalKeys.js: enterSubmits(target, keys) — Enter confirms onl
 _Captured: 2026-11-11 · 6 file change(s)_
 
 ---
+
+## T08 — Keep work after an await on its own workspace
+
+scopeGuard.js gains scopeGuard(scope, current) (still / sameProject) and selectionChange(prev, next) (same / meta / switch); state.js gains currentScope() and updateWorkspaceMeta({ branch, name }). runSetupThenAgent captures the selected workspace at its start and creates the setup and agent terminals for it explicitly (projectPath, workspaceId, cwd); it only enters their lanes while that workspace is still selected, and starts no agent after a project switch. The new-workspace submit selects nothing when the project changed during the create. The conflict follow-up (resolve / abort) carries the project the update started in; resolve refuses to select a workspace of another project. workspaceSection.load keeps a pending reselect until a load for that project applies it (an overtaken load no longer loses the remembered workspace), and a renamed branch or name updates the selection in place instead of the no-op re-select that provisioned on every refresh.
+
+_Captured: 2026-11-11 · 6 file change(s)_
+
+---

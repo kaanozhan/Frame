@@ -330,11 +330,14 @@ const updating = new Set(); // workspace ids with an update in flight
  */
 async function updateFromBase(ws) {
   if (!ws || updating.has(ws.id)) return null;
+  // The project this update is for: the conflict follow-up acts on it, never
+  // on whatever is selected when the user answers (R6).
+  const projectPath = state.getProjectPath();
   updating.add(ws.id);
   notify.info(`Updating ${ws.name} from ${ws.base || 'main'}…`);
   let result;
   try {
-    result = await ipcRenderer.invoke(IPC.WORKSPACE_UPDATE_FROM_BASE, { projectPath: state.getProjectPath(), id: ws.id });
+    result = await ipcRenderer.invoke(IPC.WORKSPACE_UPDATE_FROM_BASE, { projectPath, id: ws.id });
   } catch (err) {
     result = { error: (err && err.message) || String(err) };
   } finally {
@@ -344,8 +347,8 @@ async function updateFromBase(ws) {
   if (result && result.state === 'conflict') {
     notify.error(text);
     const choice = await askConflictChoice(ws, result.files || []);
-    if (choice === 'resolve') await resolveConflicts(ws, result.files);
-    else if (choice === 'abort') await abortUpdate(ws, { confirmed: true });
+    if (choice === 'resolve') await resolveConflicts(ws, result.files, { projectPath });
+    else if (choice === 'abort') await abortUpdate(ws, { confirmed: true, projectPath });
     return result;
   }
   if (!result || result.error || result.state === 'dirty') notify.error(text);
@@ -413,11 +416,17 @@ function askConflictChoiceOnce(ws, files) {
  * active agent lane, else a new one. The agent resolves and commits; the
  * user pushes.
  */
-async function resolveConflicts(ws, files = null) {
+async function resolveConflicts(ws, files = null, { projectPath = state.getProjectPath() } = {}) {
+  if (state.getProjectPath() !== projectPath) {
+    // Another project is open now: selecting this workspace would pair it
+    // with the wrong project (R6). The row keeps offering "Resolve".
+    notify.info(`"${ws.name}" is in another project — open it to hand the conflicts to an agent.`);
+    return null;
+  }
   const s = rowState(ws.id);
   const list = files || (s && s.conflicts) || [];
   require('./workspaceSection').select(ws);
-  const lanes = workspaceAgentLanes(state.getProjectPath(), ws.id);
+  const lanes = workspaceAgentLanes(projectPath, ws.id);
   const prompt = conflictPrompt({ branch: ws.branch, base: ws.base || 'main', files: list });
   const assignment = { kind: 'task', label: `merge ${ws.base || 'main'}: conflicts`, ref: `update-${ws.id}` };
   const res = await require('./agentDispatch').dispatch(lanes.length
@@ -428,9 +437,9 @@ async function resolveConflicts(ws, files = null) {
 }
 
 /** Abort a stopped update (`git merge --abort`): the branch goes back to where it was. */
-async function abortUpdate(ws, { confirmed = false } = {}) {
+async function abortUpdate(ws, { confirmed = false, projectPath = state.getProjectPath() } = {}) {
   if (!confirmed && !window.confirm(`Abort the update of "${ws.name}"? The branch goes back to where it was before the merge.`)) return null;
-  const result = await ipcRenderer.invoke(IPC.WORKSPACE_UPDATE_ABORT, { projectPath: state.getProjectPath(), id: ws.id });
+  const result = await ipcRenderer.invoke(IPC.WORKSPACE_UPDATE_ABORT, { projectPath, id: ws.id });
   if (!result || result.error) notify.error(`Abort failed: ${(result && result.error) || 'unknown error'}`);
   else if (result.aborted) notify.success(`Update aborted — ${ws.branch} is back where it was`);
   else notify.info('No update in progress.');

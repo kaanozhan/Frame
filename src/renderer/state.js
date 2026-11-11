@@ -130,6 +130,25 @@ function setWorkspace(ws) {
   onWorkspaceChangeCallbacks.forEach((cb) => cb(now, prev));
 }
 
+/**
+ * The selected workspace's branch or name changed (a rename) — update it in
+ * place. Not a switch: terminals and listeners stay as they are (R11).
+ */
+function updateWorkspaceMeta({ branch, name } = {}) {
+  if (!currentWorkspace) return;
+  currentWorkspace = {
+    ...currentWorkspace,
+    ...(branch !== undefined ? { branch: branch || null } : {}),
+    ...(name !== undefined ? { name: name || currentWorkspace.id } : {})
+  };
+}
+
+/** `{ projectPath, workspaceId }` of the live selection — what scopeGuard compares against. */
+function currentScope() {
+  const ws = getWorkspace();
+  return { projectPath: currentProjectPath, workspaceId: ws ? ws.id : MAIN_WORKSPACE_ID };
+}
+
 /** Register a callback for workspace selection changes: (workspace, previous). */
 function onWorkspaceChange(callback) {
   onWorkspaceChangeCallbacks.push(callback);
@@ -554,6 +573,8 @@ module.exports = {
   getWorkspace,
   getWorkspaceRoot,
   setWorkspace,
+  updateWorkspaceMeta,
+  currentScope,
   onWorkspaceChange,
   getRememberedWorkspaceId,
   setMultiTerminalUI,

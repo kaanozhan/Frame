@@ -19,6 +19,7 @@
 
 const { ipcRenderer } = require('electron');
 const { enterSubmits } = require('./modalKeys');
+const { selectionChange } = require('./scopeGuard');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const laneStatus = require('./laneStatus');
@@ -33,6 +34,7 @@ let loadedFor = null;          // project path the list below belongs to
 let isRepo = false;
 let workspaces = [];           // active records (some may be `missing`)
 let archived = [];
+let pendingReselect = null; // projectPath whose remembered workspace a load still has to select (R10)
 let showArchived = false;
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
 let renderScheduled = false;
@@ -109,6 +111,9 @@ function init() {
 async function load({ reselect = false } = {}) {
   const projectPath = state.getProjectPath();
   if (!projectPath) return;
+  // Sticky: a reselect asked for by a load that a newer load overtakes is
+  // still applied by whichever load finishes for this project (R10).
+  if (reselect) pendingReselect = projectPath;
   const seq = ++loadSeq;
   let result;
   try {
@@ -123,7 +128,8 @@ async function load({ reselect = false } = {}) {
   archived = (result && result.archived) || [];
 
   const selected = state.getWorkspace();
-  if (reselect) {
+  if (pendingReselect === projectPath) {
+    pendingReselect = null;
     const wanted = state.getRememberedWorkspaceId(projectPath);
     const ws = workspaces.find((w) => w.id === wanted && !w.missing);
     if (ws) select(ws);
@@ -131,7 +137,11 @@ async function load({ reselect = false } = {}) {
     // The selected workspace was archived, removed or went missing: back to main.
     const still = workspaces.find((w) => w.id === selected.id && !w.missing);
     if (!still) state.setWorkspace(null);
-    else if (still.branch !== selected.branch) select(still); // renamed branch
+    else if (selectionChange(selected, { id: still.id, root: still.path, name: still.name, branch: still.branch }) === 'meta') {
+      // Renamed branch or name: update in place — selecting again was a
+      // no-op that provisioned the worktree on every refresh (R11).
+      state.updateWorkspaceMeta({ branch: still.branch, name: still.name });
+    }
   }
   render();
 }

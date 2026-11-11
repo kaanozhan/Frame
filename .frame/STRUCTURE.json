@@ -13214,6 +13214,7 @@
       "depends": [
         "electron",
         "modalKeys",
+        "scopeGuard",
         "shared/ipcChannels",
         "state",
         "notify",
@@ -13227,48 +13228,48 @@
       ],
       "functions": {
         "init": {
-          "line": 37
+          "line": 38
         },
         "prefillBaseForBranch": {
-          "line": 63
+          "line": 64
         },
         "multiTerminalUI": {
-          "line": 73
+          "line": 74
         },
         "toolOptionsHtml": {
-          "line": 77
+          "line": 78
         },
         "syncFrom": {
-          "line": 89
+          "line": 90
         },
         "open": {
-          "line": 98
+          "line": 99
         },
         "syncLocation": {
-          "line": 139,
+          "line": 140,
           "purpose": "Location (server-workspaces): \"This Mac\", or the server Frame is"
         },
         "close": {
-          "line": 160
+          "line": 161
         },
         "setBusy": {
-          "line": 165,
+          "line": 166,
           "params": [
             "on"
           ]
         },
         "submit": {
-          "line": 171
+          "line": 172
         },
         "waitForSetupToFinish": {
-          "line": 217,
+          "line": 224,
           "params": [
             "terminalId"
           ],
           "purpose": "Resolve when `terminalId` has run something and come back to its shell prompt."
         },
         "runSetupThenAgent": {
-          "line": 244,
+          "line": 251,
           "params": [
             "{ setupScript",
             "toolId = null",
@@ -13278,14 +13279,16 @@
           "purpose": "In the selected workspace: run the setup script (if any) in a \"setup\""
         },
         "openAgent": {
-          "line": 270,
+          "line": 286,
           "params": [
             "{ toolId",
-            "prompt }"
+            "prompt",
+            "target",
+            "enter = true }"
           ]
         }
       },
-      "sizeBytes": 11688,
+      "sizeBytes": 12829,
       "extraction": {
         "status": "parsed"
       },
@@ -14817,7 +14820,9 @@
       "file": "src/renderer/scopeGuard.js",
       "description": "scopeGuard — keep dialogs and follow-ups on the request that started them",
       "exports": [
-        "exclusive"
+        "exclusive",
+        "scopeGuard",
+        "selectionChange"
       ],
       "depends": [],
       "functions": {
@@ -14829,16 +14834,34 @@
             "queue = false } = {}"
           ],
           "purpose": "Wrap an async dialog flow so only one request runs at a time."
+        },
+        "scopeGuard": {
+          "line": 45,
+          "params": [
+            "scope",
+            "current"
+          ],
+          "purpose": "A follow-up that runs after an await (setup script, create, conflict"
+        },
+        "selectionChange": {
+          "line": 61,
+          "params": [
+            "prev",
+            "next"
+          ],
+          "purpose": "How a selection differs from the next one (R11): `same`, `meta` (same"
         }
       },
-      "sizeBytes": 1198,
+      "sizeBytes": 2382,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "b4af9de2a89a0845",
         "purposes": {
-          "exclusive": "a4f36a4c8427677a"
+          "exclusive": "a4f36a4c8427677a",
+          "scopeGuard": "825fb189b3ead2be",
+          "selectionChange": "a5bcfd4def91623e"
         }
       }
     },
@@ -16168,6 +16191,8 @@
         "getWorkspace",
         "getWorkspaceRoot",
         "setWorkspace",
+        "updateWorkspaceMeta",
+        "currentScope",
         "onWorkspaceChange",
         "getRememberedWorkspaceId",
         "setMultiTerminalUI",
@@ -16236,135 +16261,147 @@
           ],
           "purpose": "Select a workspace of the current project. Pass `null` or an object with"
         },
+        "updateWorkspaceMeta": {
+          "line": 137,
+          "params": [
+            "{ branch",
+            "name } = {}"
+          ],
+          "purpose": "The selected workspace's branch or name changed (a rename) — update it in"
+        },
+        "currentScope": {
+          "line": 147,
+          "purpose": "`{ projectPath, workspaceId }` of the live selection — what scopeGuard compares against."
+        },
         "onWorkspaceChange": {
-          "line": 134,
+          "line": 153,
           "params": [
             "callback"
           ],
           "purpose": "Register a callback for workspace selection changes: (workspace, previous)."
         },
         "setMultiTerminalUI": {
-          "line": 141,
+          "line": 160,
           "params": [
             "ui"
           ],
           "purpose": "Set MultiTerminalUI reference for terminal session management"
         },
         "setProjectPath": {
-          "line": 148,
+          "line": 167,
           "params": [
             "path"
           ],
           "purpose": "Set project path and switch terminal session"
         },
         "onProjectChange": {
-          "line": 186,
+          "line": 205,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for project change"
         },
         "getIsFrameProject": {
-          "line": 193,
+          "line": 212,
           "purpose": "Get Frame project status"
         },
         "setIsFrameProject": {
-          "line": 200,
+          "line": 219,
           "params": [
             "isFrame"
           ],
           "purpose": "Set Frame project status"
         },
         "noteFrameRemoved": {
-          "line": 226,
+          "line": 245,
           "params": [
             "projectPath"
           ],
           "purpose": "Frame was removed from this project (Settings → Workflow). Flip the flag so"
         },
         "onFrameStatusChange": {
-          "line": 237,
+          "line": 256,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame status change"
         },
         "onFrameInitialized": {
-          "line": 244,
+          "line": 263,
           "params": [
             "callback"
           ],
           "purpose": "Register callback for Frame project initialized"
         },
         "updateFrameUI": {
-          "line": 251,
+          "line": 270,
           "purpose": "Update Frame-related UI"
         },
         "initializeAsFrameProject": {
-          "line": 266,
+          "line": 285,
           "purpose": "Initialize current project as Frame project"
         },
         "showInitializeFrameModal": {
-          "line": 275,
+          "line": 294,
           "purpose": "Show custom initialize Frame modal"
         },
         "hideInitializeFrameModal": {
-          "line": 288,
+          "line": 307,
           "purpose": "Hide initialize Frame modal"
         },
         "dismissInitPrompt": {
-          "line": 300,
+          "line": 319,
           "purpose": "Dismiss the prompt without initializing (\"Not Now\" / close / Escape /"
         },
         "handleInitializeFrame": {
-          "line": 311,
+          "line": 330,
           "purpose": "Handle initialize Frame confirmation"
         },
         "setupInitFrameModalListeners": {
-          "line": 332,
+          "line": 351,
           "purpose": "Setup initialize Frame modal listeners"
         },
         "showInitSpotlight": {
-          "line": 358,
+          "line": 377,
           "purpose": "Show spotlight tour for the initialize button (first time only)"
         },
         "dismissSpotlight": {
-          "line": 399,
+          "line": 418,
           "purpose": "Dismiss spotlight and mark as seen"
         },
         "setupSpotlightListeners": {
-          "line": 410,
+          "line": 429,
           "purpose": "Setup spotlight tour listeners"
         },
         "updateProjectUI": {
-          "line": 452,
+          "line": 471,
           "purpose": "Update project UI elements"
         },
         "selectProjectFolder": {
-          "line": 476,
+          "line": 495,
           "purpose": "Request folder selection"
         },
         "createNewProject": {
-          "line": 483,
+          "line": 502,
           "purpose": "Request new project creation"
         },
         "openSampleProject": {
-          "line": 493,
+          "line": 512,
           "purpose": "Open the bundled sample project. Main copies it into the user-data"
         },
         "getIsSampleProject": {
-          "line": 500,
+          "line": 519,
           "purpose": "Check whether the current project is the bundled sample."
         },
         "onSampleChange": {
-          "line": 508,
+          "line": 527,
           "params": [
             "callback"
           ],
           "purpose": "Register a callback fired whenever the current project's"
         },
         "setupIPC": {
-          "line": 515,
+          "line": 534,
           "purpose": "Setup IPC listeners"
         }
       },
@@ -16383,7 +16420,7 @@
           "OPEN_SAMPLE_PROJECT"
         ]
       },
-      "sizeBytes": 17745,
+      "sizeBytes": 18471,
       "extraction": {
         "status": "parsed"
       },
@@ -16391,6 +16428,7 @@
         "description": "90880f08517c10ee",
         "purposes": {
           "createNewProject": "f1e1e01bac518329",
+          "currentScope": "46afeca4cfd9e368",
           "dismissInitPrompt": "ec78f0e2599dda47",
           "dismissSpotlight": "de3db676c64554b0",
           "getIsFrameProject": "cdfa50f7cbf08247",
@@ -16421,7 +16459,8 @@
           "showInitSpotlight": "572521f7a083b52a",
           "showInitializeFrameModal": "046b9ffd7b939a18",
           "updateFrameUI": "7a59a044dc05346b",
-          "updateProjectUI": "5409c6e25b0cc1ff"
+          "updateProjectUI": "5409c6e25b0cc1ff",
+          "updateWorkspaceMeta": "2a38fc2091d7e7c1"
         }
       }
     },
@@ -19207,7 +19246,7 @@
           "purpose": "Fetch the base and merge it into the workspace branch (main decides; see"
         },
         "workspaceAgentLanes": {
-          "line": 362,
+          "line": 365,
           "params": [
             "projectPath",
             "workspaceId"
@@ -19215,30 +19254,32 @@
           "purpose": "A workspace's terminals running an agent, most recently active first:"
         },
         "askConflictChoiceOnce": {
-          "line": 383,
+          "line": 386,
           "params": [
             "ws",
             "files"
           ]
         },
         "resolveConflicts": {
-          "line": 416,
+          "line": 419,
           "params": [
             "ws",
-            "files = null"
+            "files = null",
+            "{ projectPath = state.getProjectPath("
           ],
           "purpose": "Hand a stopped update to an agent in the workspace: the most recently"
         },
         "abortUpdate": {
-          "line": 431,
+          "line": 440,
           "params": [
             "ws",
-            "{ confirmed = false } = {}"
+            "{ confirmed = false",
+            "projectPath = state.getProjectPath("
           ],
           "purpose": "Abort a stopped update (`git merge --abort`): the branch goes back to where it was."
         },
         "openOnGitHub": {
-          "line": 441,
+          "line": 450,
           "params": [
             "ws"
           ],
@@ -19253,7 +19294,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 19987,
+      "sizeBytes": 20540,
       "extraction": {
         "status": "parsed"
       },
@@ -19296,6 +19337,7 @@
       "depends": [
         "electron",
         "modalKeys",
+        "scopeGuard",
         "shared/ipcChannels",
         "state",
         "laneStatus",
@@ -19308,42 +19350,42 @@
       ],
       "functions": {
         "setActions": {
-          "line": 51,
+          "line": 53,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 55
+          "line": 57
         },
         "load": {
-          "line": 109,
+          "line": 111,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 139,
+          "line": 149,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 153
-        },
-        "summaries": {
           "line": 163
         },
+        "summaries": {
+          "line": 173
+        },
         "dotHtml": {
-          "line": 180,
+          "line": 190,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 185,
+          "line": 195,
           "params": [
             "ws",
             "{ selectedId",
@@ -19351,34 +19393,34 @@
           ]
         },
         "render": {
-          "line": 213
+          "line": 223
         },
         "findWs": {
-          "line": 264,
+          "line": 274,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 268,
+          "line": 278,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 297,
+          "line": 307,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 309,
+          "line": 319,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 322,
+          "line": 332,
           "params": [
             "ws",
             "x",
@@ -19386,39 +19428,39 @@
           ]
         },
         "hideMenu": {
-          "line": 347
+          "line": 357
         },
         "onMenuClick": {
-          "line": 351,
+          "line": 361,
           "params": [
             "e"
           ]
         },
         "openNew": {
-          "line": 364
+          "line": 374
         },
         "startRename": {
-          "line": 372,
+          "line": 382,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 377,
+          "line": 387,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 397,
+          "line": 407,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 438,
+          "line": 448,
           "params": [
             "ws",
             "head"
@@ -19426,7 +19468,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 444,
+          "line": 454,
           "params": [
             "ws",
             "head"
@@ -19434,7 +19476,7 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "openHeldSpec": {
-          "line": 481,
+          "line": 491,
           "params": [
             "ws",
             "slug"
@@ -19442,14 +19484,14 @@
           "purpose": "Select a workspace and open the spec it holds in the specs drawer."
         },
         "closeWorkspaceTerminals": {
-          "line": 490,
+          "line": 500,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 503,
+          "line": 513,
           "params": [
             "ws",
             "count"
@@ -19457,37 +19499,37 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 561,
+          "line": 571,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 567,
+          "line": 577,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 580,
+          "line": 590,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 589,
+          "line": 599,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 599,
+          "line": 609,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 613,
+          "line": 623,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -19498,7 +19540,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 26485,
+      "sizeBytes": 27160,
       "extraction": {
         "status": "parsed"
       },
@@ -29355,7 +29397,7 @@
         "src/renderer/scopeGuard"
       ],
       "functions": {},
-      "sizeBytes": 2497,
+      "sizeBytes": 3977,
       "extraction": {
         "status": "parsed"
       },
@@ -33450,6 +33492,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "41fe51180f323c8a2bce5c89b1fafe3f55f5ac5704312f50f0dde80445bdb2fa"
+    "revision": "bdf8c2bb7c10bb6861d7621207c0b9ede7d4d992c635723835e6565702535750"
   }
 }
