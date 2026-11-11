@@ -110,6 +110,33 @@ function projectDirName(url, taken = {}) {
 }
 
 /**
+ * How the server knows a project (server-onboarding): its normalized remote,
+ * else `root:<sha>` — the root commit of a project with no remote — else null.
+ */
+function projectKey({ originUrl = null, root = null } = {}) {
+  const norm = originUrl ? normalizeRemoteUrl(originUrl) : null;
+  if (norm) return norm;
+  if (typeof root === 'string' && /^[0-9a-f]{40}([0-9a-f]{24})?$/.test(root)) return `root:${root}`;
+  return null;
+}
+
+/**
+ * The server folder for a project: remote-named as before, else its folder
+ * name made safe, with `-2`, `-3` … when another project holds the name.
+ * `taken` is `{ dir: key }`; a folder already holding this project is reused.
+ */
+function projectDirNameFor({ originUrl = null, root = null, name = '' } = {}, taken = {}) {
+  if (originUrl && normalizeRemoteUrl(originUrl)) return projectDirName(originUrl, taken);
+  const key = projectKey({ root });
+  const base = String(name || '').toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^[-.]+|[-.]+$/g, '') || 'project';
+  for (let i = 1; i < 100; i++) {
+    const dir = i === 1 ? base : `${base}-${i}`;
+    if (!Object.prototype.hasOwnProperty.call(taken, dir) || taken[dir] === key) return dir;
+  }
+  return null;
+}
+
+/**
  * Host aliases from an OpenSSH client config: every name on a `Host` line,
  * without patterns (`*`, `?`, `!`). `Match` blocks are skipped.
  */
@@ -200,5 +227,7 @@ module.exports = {
   normalizeRemoteUrl,
   sameRemote,
   projectDirName,
+  projectDirNameFor,
+  projectKey,
   parseSshConfigHosts
 };

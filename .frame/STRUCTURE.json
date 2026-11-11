@@ -24800,11 +24800,15 @@
         "main/aiToolManager"
       ],
       "functions": {
+        "uploadsDir": {
+          "line": 26,
+          "purpose": "Where uploads land: `<server home>/tmp` (server-onboarding)."
+        },
         "projectsRoot": {
-          "line": 25
+          "line": 31
         },
         "setup": {
-          "line": 29,
+          "line": 35,
           "params": [
             "{ shim",
             "registerMethods",
@@ -24812,12 +24816,15 @@
           ]
         }
       },
-      "sizeBytes": 5050,
+      "sizeBytes": 8303,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "5f26061ae03cf303"
+        "description": "5f26061ae03cf303",
+        "purposes": {
+          "uploadsDir": "c862c9bfa77aafd5"
+        }
       }
     },
     "server/screenMirror": {
@@ -26291,6 +26298,8 @@
         "normalizeRemoteUrl",
         "sameRemote",
         "projectDirName",
+        "projectDirNameFor",
+        "projectKey",
         "parseSshConfigHosts"
       ],
       "depends": [],
@@ -26346,15 +26355,33 @@
           ],
           "purpose": "Folder name for a clone of `url` under the server's projects root."
         },
-        "parseSshConfigHosts": {
+        "projectKey": {
           "line": 116,
+          "params": [
+            "{ originUrl = null",
+            "root = null } = {}"
+          ],
+          "purpose": "How the server knows a project (server-onboarding): its normalized remote,"
+        },
+        "projectDirNameFor": {
+          "line": 128,
+          "params": [
+            "{ originUrl = null",
+            "root = null",
+            "name = '' } = {}",
+            "taken = {}"
+          ],
+          "purpose": "The server folder for a project: remote-named as before, else its folder"
+        },
+        "parseSshConfigHosts": {
+          "line": 143,
           "params": [
             "text"
           ],
           "purpose": "Host aliases from an OpenSSH client config: every name on a `Host` line,"
         },
         "serverRootFor": {
-          "line": 137,
+          "line": 164,
           "params": [
             "p",
             "roots"
@@ -26362,7 +26389,7 @@
           "purpose": "The server workspace folder `p` is (or lies under), or null. `roots` are"
         },
         "mergeGitStatePayloads": {
-          "line": 155,
+          "line": 182,
           "params": [
             "local",
             "server",
@@ -26371,7 +26398,7 @@
           "purpose": "One WORKSPACE_GIT_STATE payload for a desktop project: its local"
         },
         "routeOf": {
-          "line": 175,
+          "line": 202,
           "params": [
             "p",
             "ctx",
@@ -26381,7 +26408,7 @@
           "purpose": "Where a panel call goes (server-hardening T6): `{ remote: rootEntry }` or"
         }
       },
-      "sizeBytes": 7930,
+      "sizeBytes": 9185,
       "extraction": {
         "status": "parsed"
       },
@@ -26394,6 +26421,8 @@
           "parseServerTerminalId": "ac26e1ccb8a2f96c",
           "parseSshConfigHosts": "c6b2dbdf7edb7f8d",
           "projectDirName": "aa19e2a8bd1a94e9",
+          "projectDirNameFor": "2bff504b17637e2a",
+          "projectKey": "c829493d8a4b9fc2",
           "routeOf": "c4b1b9aaf9c977fc",
           "serverRootFor": "fcf9225415cd0e81",
           "serverTerminalId": "be0d191633b998ba"
@@ -30368,6 +30397,40 @@
         "description": "a69c302e3b657690"
       }
     },
+    "test/serverProjects.test": {
+      "file": "test/serverProjects.test.js",
+      "description": "Frame Server receives a project from a git bundle (server-onboarding T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects"
+      ],
+      "functions": {
+        "localRepo": {
+          "line": 27,
+          "params": [
+            "{ remote = null } = {}"
+          ],
+          "purpose": "A local repo with two commits on main and a feature branch; returns { dir, root, bundle }."
+        }
+      },
+      "sizeBytes": 5128,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7bbacf9208526c71",
+        "purposes": {
+          "localRepo": "08e593b4175a153e"
+        }
+      }
+    },
     "test/serverProtocol.test": {
       "file": "test/serverProtocol.test.js",
       "description": "serverProtocol — desktop ↔ Frame Server messages (server-workspaces spec, T01).",
@@ -30396,7 +30459,7 @@
         "src/shared/serverRouting"
       ],
       "functions": {},
-      "sizeBytes": 7055,
+      "sizeBytes": 8200,
       "extraction": {
         "status": "parsed"
       },
@@ -34228,7 +34291,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 375,
+        "parsed": 376,
         "unsupported": 91,
         "partial": 0
       }
@@ -34275,9 +34338,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 560,
+      "visitedEntries": 561,
       "traversedDirectories": 86,
-      "eligibleFiles": 466,
+      "eligibleFiles": 467,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34294,7 +34357,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 466,
+      "indexedFiles": 467,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34302,6 +34365,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "c8f2fe54e8ff5a88c3f34eeecb3aab6325cedee58ee33306bd4a326cdf8547ef"
+    "revision": "42d6d86a89dca419e38ada3364d4228fea88eaf9603505277fb4a3ebb1eceb6e"
   }
 }

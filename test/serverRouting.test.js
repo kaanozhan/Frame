@@ -123,3 +123,22 @@ test('routeOf: the workspace id decides; the path only without one', () => {
   assert.equal(R.routeOf(samePath, null, roots, locations).remote.id, 'srv-ws', 'no context: the old path rule');
   assert.deepEqual(R.routeOf('/other', null, roots, locations), { local: true });
 });
+
+// ─── server-onboarding: project identity and folder names ────
+
+test('projectKey: the normalized remote, else root:<sha>, else null', () => {
+  assert.equal(R.projectKey({ originUrl: 'git@github.com:Me/App.git' }), 'github.com/me/app');
+  const sha = 'a'.repeat(40);
+  assert.equal(R.projectKey({ originUrl: null, root: sha }), `root:${sha}`);
+  assert.equal(R.projectKey({ originUrl: 'not a url', root: 'nothex' }), null);
+  assert.equal(R.projectKey({}), null);
+});
+
+test('projectDirNameFor: remote names as before; a remote-less project uses its folder name, kept unique', () => {
+  const sha = 'b'.repeat(40);
+  assert.equal(R.projectDirNameFor({ originUrl: 'https://github.com/me/app' }, {}), 'app');
+  assert.equal(R.projectDirNameFor({ root: sha, name: 'My Notes!' }, {}), 'my-notes');
+  assert.equal(R.projectDirNameFor({ root: sha, name: 'notes' }, { notes: `root:${sha}` }), 'notes', 'the same project reuses its folder');
+  assert.equal(R.projectDirNameFor({ root: sha, name: 'notes' }, { notes: 'github.com/x/notes' }), 'notes-2');
+  assert.equal(R.projectDirNameFor({ root: sha, name: '...' }, {}), 'project');
+});

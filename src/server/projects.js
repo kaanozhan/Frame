@@ -18,9 +18,15 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
-const { normalizeRemoteUrl, projectDirName } = require('../shared/serverRouting');
+const { normalizeRemoteUrl, projectDirName, projectDirNameFor, projectKey } = require('../shared/serverRouting');
 
 const CLONE_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** Where uploads land: `<server home>/tmp` (server-onboarding). */
+function uploadsDir() {
+  const home = process.env.FRAME_SERVER_HOME || path.join(os.homedir(), '.frame-server');
+  return path.resolve(home, 'tmp');
+}
 
 function projectsRoot() {
   return path.resolve(process.env.FRAME_SERVER_PROJECTS || path.join(os.homedir(), 'frame', 'projects'));
@@ -47,14 +53,28 @@ function setup({ shim, registerMethods, broadcast }) {
     }
   }
 
-  /** `{ dirName: normalizedRemote }` for every clone under the projects root. */
+  async function rootOf(dir) {
+    try {
+      const { stdout } = await git.execGitArgs(['config', '--get', 'frame.root'], dir);
+      return stdout.trim() || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * `{ dirName: key }` for every clone under the projects root: the
+   * normalized remote, else `root:<sha>` from `frame.root` (a project sent
+   * without a remote), else `unknown:<dir>`. Partial folders are skipped.
+   */
   async function clones() {
     const root = projectsRoot();
     let names = [];
-    try { names = fs.readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name); } catch (_) { names = []; }
+    try { names = fs.readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith('.')).map((d) => d.name); } catch (_) { names = []; }
     const out = {};
     for (const name of names) {
-      out[name] = normalizeRemoteUrl(await remoteOf(path.join(root, name))) || `unknown:${name}`;
+      const dir = path.join(root, name);
+      out[name] = projectKey({ originUrl: await remoteOf(dir), root: await rootOf(dir) }) || `unknown:${name}`;
     }
     return out;
   }
@@ -93,9 +113,58 @@ function setup({ shim, registerMethods, broadcast }) {
       register(projectPath);
       return { projectPath, cloned };
     },
+    /**
+     * A project sent from the desktop as a git bundle (server-onboarding):
+     * cloned into a partial folder, `origin` pointed at the project's remote
+     * (or removed), `frame.root` recorded, then renamed into place. The
+     * bundle and any partial folder are removed whatever happens.
+     */
+    'projects.receive': async ({ bundlePath, originUrl = null, root = null, name = '' } = {}) => {
+      const bundle = path.resolve(String(bundlePath || ''));
+      const uploads = uploadsDir();
+      if (path.dirname(bundle) !== uploads || !/^receive-[A-Za-z0-9._-]+\.bundle$/.test(path.basename(bundle))) {
+        throw new Error(`The bundle must be an upload in ${uploads}.`);
+      }
+      let partial = null;
+      try {
+        const key = projectKey({ originUrl, root });
+        if (!key) throw new Error('This project has neither a usable remote nor a root commit.');
+        const taken = await clones();
+        const dir = projectDirNameFor({ originUrl, root, name }, taken);
+        if (!dir) throw new Error('Could not choose a folder for this project on the server.');
+        const projectPath = path.join(projectsRoot(), dir);
+        if (taken[dir] === key) {
+          register(projectPath);
+          return { projectPath, cloned: false };
+        }
+        fs.mkdirSync(projectsRoot(), { recursive: true });
+        partial = path.join(projectsRoot(), `.${dir}.partial-${process.pid}`);
+        fs.rmSync(partial, { recursive: true, force: true });
+        try {
+          await git.execGitArgs(['clone', '-q', '--', bundle, partial], projectsRoot(), { timeout: CLONE_TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024 });
+        } catch (err) {
+          throw new Error(`The project bundle could not be cloned: ${err.error || err.message}`);
+        }
+        if (originUrl && normalizeRemoteUrl(originUrl)) await git.execGitArgs(['remote', 'set-url', 'origin', originUrl], partial);
+        else await git.execGitArgs(['remote', 'remove', 'origin'], partial);
+        if (root) await git.execGitArgs(['config', 'frame.root', root], partial);
+        fs.renameSync(partial, projectPath);
+        partial = null;
+        register(projectPath);
+        return { projectPath, cloned: true };
+      } finally {
+        fs.rmSync(bundle, { force: true });
+        if (partial) fs.rmSync(partial, { recursive: true, force: true });
+      }
+    },
     'projects.list': async () => {
       const taken = await clones();
-      return Object.entries(taken).map(([dir, remote]) => ({ projectPath: path.join(projectsRoot(), dir), remote }));
+      const out = [];
+      for (const [dir, key] of Object.entries(taken)) {
+        const projectPath = path.join(projectsRoot(), dir);
+        out.push({ projectPath, remote: key.startsWith('root:') || key.startsWith('unknown:') ? null : key, root: await rootOf(projectPath) });
+      }
+      return out;
     },
     'workspaces.list': async ({ projectPath } = {}) => workspaceManager.list(needProject(projectPath)),
     'workspaces.create': async ({ projectPath, from, base, branch } = {}) => workspaceManager.create(needProject(projectPath), { from, base, branch }),
