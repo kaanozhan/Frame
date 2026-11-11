@@ -13,7 +13,8 @@ Findings, by id (file:line as of commit `2a592fd`):
 
 **Data loss and wrong target**
 - **L1 Push can land on the base branch.** With an upstream set, `pushBranch` runs a bare `git push`, and `isPushable` compares names only. A branch whose upstream is `origin/main` pushes to main under `push.default=upstream`. A "from branch" workspace stores `base: null`, so the base branch itself passes. (`workspaceGitState.js:248`, `gitBranchesManager.js:552`, `prFlow.js:142`)
-- **L2 Branch rename takes option text.** `git branch -m <old> <new>` runs with unvalidated user text. Renaming an archived workspace's branch to `-f` overwrites the workspace branch and its commits lose their ref. (`workspaceManager.js:483`)
+- **L2 Branch rename takes option text.** `git branch -m <old> <new>` runs with unvalidated user text. Renaming an archived workspace's branch to `-f` renames the main checkout's current branch (for example `main`) over the workspace branch: `main` disappears and the workspace commits lose their ref (reproduced 2026-11-11). (`workspaceManager.js:483`)
+- **X1 Create passes base and branch text into git argv unvalidated.** A base of `--upload-pack=<command>` makes `git fetch origin <base>` run that command (reproduced 2026-11-11). It is reachable from the New Workspace dialog and from the server's `workspaces.create`. Added after the plan-time evidence pass. (`workspaceManager.js:330`, `gitBranchesManager.js:417`)
 - **L3 Archive drops commits made on a detached HEAD.** The only guard is `status --porcelain` before `worktree remove --force`. "Archive after merge" reaches this with no dialog. (`workspaceManager.js:419`)
 - **R1 Enter always confirms the archive dialog,** even with focus on Cancel and "Discard" selected. The New Workspace dialog has the same pattern. (`workspaceSection.js:477`, `newWorkspaceModal.js:48`)
 - **R2 The Create PR dialog is re-entrant.** ⌘⌥P while it is open, or two opens in a row, leaves stale listeners. The next create can use another workspace's id. (`workspacePr.js:185`)
@@ -46,14 +47,14 @@ Findings, by id (file:line as of commit `2a592fd`):
 - **L13e** `specLocation` uses a map refreshed only for the watched project. (`specManager.js:131`)
 - **R9** Review comment anchors are never re-based after the file changes. (`reviewSection.js:325`)
 - **R12** Counts and status values are interpolated into HTML without coercion. (`workspacePr.js:103`, `reviewSection.js:488`)
-- **R14** `frame-review-viewed` and per-workspace terminal session keys are never pruned.
+- **R14** `frame-review-viewed` is never pruned. Terminal session keys are capped at 20 by recency, but stale workspace keys evict live ones and survive project removal.
 
 ## Goal
 
 Every finding above is either fixed or explicitly accepted with its reason recorded. The workspace rules then hold in every path:
 
 - **Push never reaches the base.** A push always names its target, `origin <branch>`. It is refused when the branch is the base or its upstream is the base.
-- **No branch name is ever read as an option.** Names are validated with the existing `isValidBranchName` and passed after `--`.
+- **No branch name or ref text is ever read as an option.** Names are validated with the existing `isValidBranchName` at every entry point (create, fetch, rename, push), and passed after `--` where git allows it.
 - **Archive never loses commits.** A worktree whose HEAD is not on its branch, or has commits no branch holds, is not removed without the user's explicit choice.
 - **Dialogs do what the focused control says.** Enter on Cancel cancels. One dialog serves one request at a time, and every action after an await uses the project and workspace it was started for.
 - **A workspace knows its base.** One opened from an existing branch records a real base, not an assumed `main`.
@@ -73,6 +74,7 @@ Every finding above is either fixed or explicitly accepted with its reason recor
 
 - When a workspace branch's upstream is the base branch (or the branch is the base), then Push refuses with a clear reason and nothing reaches the base, under every `push.default`.
 - When a branch is renamed to a name starting with `-` or otherwise invalid, then the rename is refused and no git command runs.
+- When a workspace is created with a base or branch that is not a valid branch name (for example `--upload-pack=…`), then the create is refused and no git command runs with it.
 - When a workspace whose HEAD is detached with commits no branch holds is archived, including by "archive after merge", then the worktree is not removed until the user chooses what happens to those commits.
 - When Enter is pressed with focus on Cancel in the archive or New Workspace dialog, then the dialog cancels.
 - When Create PR is invoked while its dialog is open or its draft is loading, then one dialog exists, the typed text is kept, and the PR is created for the workspace shown.

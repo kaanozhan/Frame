@@ -13,7 +13,7 @@ Findings, by id (file:line as of commit `2a592fd`):
 
 **Install, update and service**
 - **S1 A progress line corrupts the result line on systemd hosts.** `start_server` runs inside a command substitution, so its "linger is off…" message is captured into the service name. The desktop cannot parse `FRAME_INSTALL_RESULT` and reports a failed install although the server is running. (`install-frame-server.sh:149`, `serverInstaller.js:151`)
-- **S2 Packages are built on ubuntu-24.04 (glibc 2.39).** node-pty is compiled there, so on Debian 11, Ubuntu 20.04, RHEL 8 or Amazon Linux 2 the server may crash on load. A released desktop has no fallback. The smoke test only runs on the build runner, so it cannot see this. (`server-package.yml:35`)
+- **S2 Packages are built on ubuntu-24.04 (glibc 2.39).** node-pty is compiled there, so on Debian 11, Ubuntu 20.04 or RHEL 8 the server may crash on load. (The bundled Node 20 itself needs glibc 2.28, so Amazon Linux 2 cannot be supported at all; corrected at plan time.) A released desktop has no fallback. The smoke test only runs on the build runner, so it cannot see this. (`server-package.yml:35`)
 - **S3 A failed first install leaves the systemd unit crash-looping.** With no version to go back to, the unit is never stopped or disabled. (`install-frame-server.sh:203`, `:326`)
 - **S5 A failed rollback loses the rollback target.** `previous` is repointed before the health check and never restored. Reinstalling the version that equals `previous` deletes it up front. (`install-frame-server.sh:220`, `:309`)
 - **S6 `stop_server` ignores `--home`.** On a systemd host, any run against another home stops the user's real service and its agents. (`install-frame-server.sh:126`)
