@@ -37,6 +37,7 @@ const WebSocket = require('ws');
 const { IPC } = require('../shared/ipcChannels');
 const P = require('../shared/serverProtocol');
 const { DESKTOP_ORIGIN } = require('../shared/serverSecurity');
+const { consentNeeded } = require('../shared/serverInstall');
 const { parseSshConfigHosts } = require('../shared/serverRouting');
 const userSettings = require('./userSettings');
 const logger = require('./logger');
@@ -381,25 +382,27 @@ async function runAction(kind, { host: given, confirmAgents = false } = {}) {
   const host = given || status.host || (userSettings.get(SETTING) || {}).host;
   if (!host) return { error: 'Choose a server first.' };
   if (busy) return { error: 'An install is already running.' };
-  if (kind !== 'install' && !confirmAgents) {
-    if (isConnected()) {
-      const agents = await installer().runningAgents();
-      if (agents.length) return { error: null, needsConsent: true, agents };
-    } else if (status.install && status.install.current) {
-      // Not connected (another protocol): its terminals cannot be listed, so ask in general.
-      return { error: null, needsConsent: true, agents: null };
-    }
-  }
+  // Taken before the first await: two clicks can no longer both pass the
+  // check while the agent list loads (server-hardening S10).
   busy = true;
-  disconnect({ forget: false, quiet: true });
-  setStatus({ state: 'installing', host, error: null });
   let result;
   try {
-    result = kind === 'rollback'
-      ? await installer().rollback(host, { onProgress: progress })
-      : await installer().install(host, { onProgress: progress });
-  } catch (err) {
-    result = { ok: false, message: err.message };
+    if (kind !== 'install' && !confirmAgents) {
+      const connected = isConnected();
+      const agents = connected ? await installer().runningAgents() : null;
+      const installed = !!(status.install && status.install.current);
+      // Unknown (unreadable list, or not connected) asks in general (S9).
+      if (consentNeeded({ connected, agents, installed })) return { error: null, needsConsent: true, agents };
+    }
+    disconnect({ forget: false, quiet: true });
+    setStatus({ state: 'installing', host, error: null });
+    try {
+      result = kind === 'rollback'
+        ? await installer().rollback(host, { onProgress: progress })
+        : await installer().install(host, { onProgress: progress });
+    } catch (err) {
+      result = { ok: false, message: err.message };
+    }
   } finally {
     busy = false;
   }

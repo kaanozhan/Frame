@@ -109,3 +109,11 @@ test('INSTALL_EXIT names the installer exit codes, including 16 for a running in
   assert.ok(documented.includes(16) && documented.includes(0), `parsed ${documented}`);
   for (const c of documented) assert.ok(Object.values(I.INSTALL_EXIT).includes(c), `code ${c} is named`);
 });
+
+test('consentNeeded: ask whenever running agents cannot be ruled out (server-hardening S9)', () => {
+  assert.equal(I.consentNeeded({ connected: true, agents: [], installed: true }), false, 'listed, none running');
+  assert.equal(I.consentNeeded({ connected: true, agents: [{ agent: 'claude' }], installed: true }), true);
+  assert.equal(I.consentNeeded({ connected: true, agents: null, installed: true }), true, 'the list could not be read');
+  assert.equal(I.consentNeeded({ connected: false, agents: null, installed: true }), true, 'not connected but installed');
+  assert.equal(I.consentNeeded({ connected: false, agents: null, installed: false }), false, 'nothing installed, nothing to end');
+});

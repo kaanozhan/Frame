@@ -5655,6 +5655,7 @@
         "shared/ipcChannels",
         "shared/serverProtocol",
         "shared/serverSecurity",
+        "shared/serverInstall",
         "shared/serverRouting",
         "userSettings",
         "logger",
@@ -5662,35 +5663,35 @@
       ],
       "functions": {
         "sshBin": {
-          "line": 65
+          "line": 66
         },
         "setStatus": {
-          "line": 69,
+          "line": 70,
           "params": [
             "next"
           ]
         },
         "getStatus": {
-          "line": 75
+          "line": 76
         },
         "isConnected": {
-          "line": 79
+          "line": 80
         },
         "teardown": {
-          "line": 84,
+          "line": 85,
           "purpose": "Close the socket and the tunnel of the current attempt."
         },
         "readConnectionInfo": {
-          "line": 99,
+          "line": 100,
           "params": [
             "host"
           ]
         },
         "freePort": {
-          "line": 123
+          "line": 124
         },
         "waitForPort": {
-          "line": 135,
+          "line": 136,
           "params": [
             "port",
             "child",
@@ -5698,21 +5699,21 @@
           ]
         },
         "openSocket": {
-          "line": 155,
+          "line": 156,
           "params": [
             "port",
             "token"
           ]
         },
         "runOnce": {
-          "line": 189,
+          "line": 190,
           "params": [
             "host",
             "mySession"
           ]
         },
         "scheduleRetry": {
-          "line": 228,
+          "line": 229,
           "params": [
             "host",
             "mySession",
@@ -5720,16 +5721,16 @@
           ]
         },
         "installer": {
-          "line": 238
+          "line": 239
         },
         "progress": {
-          "line": 242,
+          "line": 243,
           "params": [
             "line"
           ]
         },
         "preflight": {
-          "line": 250,
+          "line": 251,
           "params": [
             "host",
             "mySession",
@@ -5738,21 +5739,21 @@
           "purpose": "Probe the host before connecting: 'go', or 'wait' after setting"
         },
         "loop": {
-          "line": 272,
+          "line": 273,
           "params": [
             "host",
             "mySession"
           ]
         },
         "connect": {
-          "line": 300,
+          "line": 301,
           "params": [
             "host"
           ],
           "purpose": "Connect to `host` (an ssh alias or user@host), remember it, auto-connect next launch."
         },
         "disconnect": {
-          "line": 314,
+          "line": 315,
           "params": [
             "{ forget = true",
             "quiet = false } = {}"
@@ -5760,7 +5761,7 @@
           "purpose": "Stop and close everything; `forget` drops auto-connect for next launch."
         },
         "call": {
-          "line": 329,
+          "line": 330,
           "params": [
             "method",
             "params = {}",
@@ -5769,7 +5770,7 @@
           "purpose": "A request to the server. Rejects when not connected or on timeout."
         },
         "send": {
-          "line": 340,
+          "line": 341,
           "params": [
             "method",
             "params = {}"
@@ -5777,7 +5778,7 @@
           "purpose": "Fire-and-forget request (terminal input): errors are only logged."
         },
         "on": {
-          "line": 345,
+          "line": 346,
           "params": [
             "name",
             "fn"
@@ -5785,18 +5786,18 @@
           "purpose": "Subscribe to a server event channel (`terminal.output`, …) or `connected` / `disconnected` / `status`."
         },
         "sshHosts": {
-          "line": 352,
+          "line": 353,
           "purpose": "Host aliases from ~/.ssh/config for the Connect dialog."
         },
         "init": {
-          "line": 362,
+          "line": 363,
           "params": [
             "window",
             "version"
           ]
         },
         "runAction": {
-          "line": 380,
+          "line": 381,
           "params": [
             "kind",
             "{ host",
@@ -5805,7 +5806,7 @@
           "purpose": "Run an installer action for the current (or given) host with progress,"
         },
         "setupIPC": {
-          "line": 414,
+          "line": 417,
           "params": [
             "ipcMain"
           ]
@@ -5827,7 +5828,7 @@
           "SERVER_INSTALL_PROGRESS"
         ]
       },
-      "sizeBytes": 18111,
+      "sizeBytes": 18332,
       "extraction": {
         "status": "parsed"
       },
@@ -5984,11 +5985,11 @@
           "purpose": "Back to the previous installed version."
         },
         "runningAgents": {
-          "line": 279,
+          "line": 281,
           "purpose": "Agents running on the connected server, for the update consent:"
         }
       },
-      "sizeBytes": 13180,
+      "sizeBytes": 13359,
       "extraction": {
         "status": "parsed"
       },
@@ -15026,7 +15027,8 @@
       "depends": [
         "electron",
         "shared/ipcChannels",
-        "notify"
+        "notify",
+        "serverConnectModel"
       ],
       "functions": {
         "getStatus": {
@@ -15051,23 +15053,23 @@
           ]
         },
         "isOpen": {
-          "line": 82
+          "line": 84
         },
         "init": {
-          "line": 86
+          "line": 88
         },
         "loadDoctor": {
-          "line": 122,
+          "line": 124,
           "params": [
             "force = false"
           ]
         },
         "finishIfClean": {
-          "line": 134,
+          "line": 137,
           "purpose": "A connect started here closes the dialog once the check-up has nothing to fix."
         },
         "el": {
-          "line": 141,
+          "line": 144,
           "params": [
             "tag",
             "cls",
@@ -15075,19 +15077,19 @@
           ]
         },
         "renderModal": {
-          "line": 148
+          "line": 151
         },
         "open": {
-          "line": 230
+          "line": 236
         },
         "close": {
-          "line": 245
-        },
-        "connect": {
           "line": 251
         },
+        "connect": {
+          "line": 257
+        },
         "runAction": {
-          "line": 265,
+          "line": 271,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -15095,7 +15097,7 @@
           "purpose": "Install, update or roll back; update and rollback first ask about running agents."
         },
         "disconnect": {
-          "line": 286
+          "line": 303
         }
       },
       "ipc": {
@@ -15105,7 +15107,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 12934,
+      "sizeBytes": 13315,
       "extraction": {
         "status": "parsed"
       },
@@ -15114,6 +15116,76 @@
         "purposes": {
           "finishIfClean": "a2e9197d02c9e7fd",
           "runAction": "e59630369215a83f"
+        }
+      }
+    },
+    "renderer/serverConnectModel": {
+      "file": "src/renderer/serverConnectModel.js",
+      "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12).",
+      "exports": [
+        "initial",
+        "onStatus",
+        "startAction",
+        "endAction",
+        "actionsDisabled",
+        "consentText"
+      ],
+      "depends": [],
+      "functions": {
+        "initial": {
+          "line": 10
+        },
+        "onStatus": {
+          "line": 15,
+          "params": [
+            "model",
+            "prev",
+            "next"
+          ],
+          "purpose": "Apply a status change from main."
+        },
+        "startAction": {
+          "line": 23,
+          "params": [
+            "model"
+          ],
+          "purpose": "Start an install / update / rollback: `{ allowed, model }`."
+        },
+        "endAction": {
+          "line": 28,
+          "params": [
+            "model"
+          ]
+        },
+        "actionsDisabled": {
+          "line": 33,
+          "params": [
+            "model",
+            "status"
+          ],
+          "purpose": "Whether the dialog's action buttons are disabled."
+        },
+        "consentText": {
+          "line": 42,
+          "params": [
+            "{ kind",
+            "agents",
+            "host }"
+          ],
+          "purpose": "The consent sentence before an update or rollback: the named agents, or —"
+        }
+      },
+      "sizeBytes": 2107,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7de28fe97c16e7c4",
+        "purposes": {
+          "actionsDisabled": "3e6061c94ac5afcb",
+          "consentText": "a557c7dd43a3daf5",
+          "onStatus": "1ab27b09a2985abb",
+          "startAction": "c3ff148edfeb056c"
         }
       }
     },
@@ -25852,6 +25924,7 @@
       "exports": [
         "RELEASE_BASE",
         "INSTALL_EXIT",
+        "consentNeeded",
         "agentTerminals",
         "assetFor",
         "releaseUrl",
@@ -25930,9 +26003,18 @@
             "list"
           ],
           "purpose": "The server terminals running an agent, from `terminals.list` (each with its"
+        },
+        "consentNeeded": {
+          "line": 217,
+          "params": [
+            "{ connected",
+            "agents",
+            "installed }"
+          ],
+          "purpose": "Whether an update or rollback must ask first (server-hardening S9): when"
         }
       },
-      "sizeBytes": 9039,
+      "sizeBytes": 9491,
       "extraction": {
         "status": "parsed"
       },
@@ -25942,6 +26024,7 @@
           "agentTerminals": "c151db453b750331",
           "assetFor": "6891ea64a3c6b3ea",
           "compareVersions": "efd0728fd35f2db1",
+          "consentNeeded": "c7ac0d601f835fd7",
           "doctorItems": "dd574ec4d6cee2a5",
           "installDecision": "e84479a8fb5b69bd",
           "parseChecksum": "691d502f346e91f0",
@@ -29793,6 +29876,24 @@
         }
       }
     },
+    "test/serverConnectModel.test": {
+      "file": "test/serverConnectModel.test.js",
+      "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/serverConnectModel"
+      ],
+      "functions": {},
+      "sizeBytes": 2067,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7de28fe97c16e7c4"
+      }
+    },
     "test/serverInstall.test": {
       "file": "test/serverInstall.test.js",
       "description": "serverInstall — installing and updating Frame Server (server-install-update spec, T01).",
@@ -29805,7 +29906,7 @@
         "path"
       ],
       "functions": {},
-      "sizeBytes": 6876,
+      "sizeBytes": 7579,
       "extraction": {
         "status": "parsed"
       },
@@ -32523,6 +32624,18 @@
         "description": "Command Registry"
       }
     ],
+    "connect": [
+      {
+        "module": "renderer/serverConnect",
+        "file": "src/renderer/serverConnect.js",
+        "description": "Connect to Server — the renderer side of the Frame Server link"
+      },
+      {
+        "module": "renderer/serverConnectModel",
+        "file": "src/renderer/serverConnectModel.js",
+        "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12)."
+      }
+    ],
     "crash": [
       {
         "module": "main/crashGuard",
@@ -32927,6 +33040,11 @@
     ],
     "model": [
       {
+        "module": "renderer/serverConnectModel",
+        "file": "src/renderer/serverConnectModel.js",
+        "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12)."
+      },
+      {
         "module": "renderer/specs/filterModel",
         "file": "src/renderer/specs/filterModel.js",
         "description": "Specs dashboard filter model — what the grid shows for a given scope,"
@@ -33232,6 +33350,11 @@
         "module": "renderer/serverConnect",
         "file": "src/renderer/serverConnect.js",
         "description": "Connect to Server — the renderer side of the Frame Server link"
+      },
+      {
+        "module": "renderer/serverConnectModel",
+        "file": "src/renderer/serverConnectModel.js",
+        "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12)."
       },
       {
         "module": "shared/serverInstall",
@@ -33628,7 +33751,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 364,
+        "parsed": 366,
         "unsupported": 91,
         "partial": 0
       }
@@ -33675,9 +33798,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 549,
+      "visitedEntries": 551,
       "traversedDirectories": 86,
-      "eligibleFiles": 455,
+      "eligibleFiles": 457,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -33694,7 +33817,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 455,
+      "indexedFiles": 457,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -33702,6 +33825,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "78fc3bc1d93cf1abfa00a7545eb9d9638e85d85810ce4a5aadbb80844b3bbf8f"
+    "revision": "9da6bb175946e91bba5e651823f50da296d4fe52e73bfe8f5821b5d9ab1b544a"
   }
 }

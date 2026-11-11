@@ -208,4 +208,15 @@ function agentTerminals(list) {
   return out;
 }
 
-module.exports = { RELEASE_BASE, INSTALL_EXIT, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems };
+/**
+ * Whether an update or rollback must ask first (server-hardening S9): when
+ * agents run, when the list could not be read (`agents === null`), or when
+ * the server cannot be asked at all but something is installed. Unknown
+ * never reads as "none running".
+ */
+function consentNeeded({ connected, agents, installed }) {
+  if (connected) return agents === null || agents === undefined || agents.length > 0;
+  return !!installed;
+}
+
+module.exports = { RELEASE_BASE, INSTALL_EXIT, consentNeeded, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems };

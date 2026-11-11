@@ -14,3 +14,11 @@ Added quiesce() to the install script: when a version fails and nothing can run 
 _Captured: 2026-11-11 · 4 file change(s)_
 
 ---
+
+## T03 — Ask for consent when the agent list is unknown; serialise desktop actions; Connect dialog model
+
+runningAgents() now returns null when the server's terminals cannot be listed (not connected, error, timeout, non-array), and the new pure serverInstall.consentNeeded asks whenever agents are running, unknown, or the server cannot be asked while something is installed. serverConnection.runAction takes `busy` before its first await and releases it in one finally, so two clicks can no longer both pass while the agent list loads. New src/renderer/serverConnectModel.js holds the dialog's progress, check-up and in-flight action: progress and the check-up clear only when main reports `installing`, a second action while one is in flight does nothing, action buttons are disabled meanwhile, and the general consent text says Frame could not list the terminals; serverConnect.js draws from it. The harness test for concurrent actions moves to T04, where the connection harness is built.
+
+_Captured: 2026-11-11 · 7 file change(s)_
+
+---

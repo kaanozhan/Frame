@@ -19,15 +19,15 @@
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const notify = require('./notify');
+const model = require('./serverConnectModel');
 
 let status = { state: 'off', host: null, error: null, frameVersion: null, platform: null, saved: null, install: null };
 const listeners = new Set();
 let modal = null;
 let wantClose = false;      // close once the connect this dialog started succeeds (and the check-up is clean)
-let progressLines = [];
+// Progress lines, the check-up and the in-flight action (serverConnectModel).
+let m = model.initial();
 let consent = null;         // { kind: 'update'|'rollback', agents: [...]|null }
-let doctor = null;          // { items } | { error }
-let doctorFor = null;       // host the check-up belongs to
 let notifiedUpdate = null;  // host+version an "update available" toast was shown for
 
 const LABELS = {
@@ -57,6 +57,8 @@ function updateAvailable(s) {
 function apply(next) {
   const prev = status;
   status = { ...status, ...next };
+  // Progress and the check-up reset when main starts an install, not on a click (S12).
+  m = model.onStatus(m, prev, status);
   for (const cb of listeners) {
     try { cb(status, prev); } catch (err) { console.error('serverConnect listener failed', err); }
   }
@@ -88,8 +90,8 @@ function init() {
   ipcRenderer.on(IPC.SERVER_STATUS_CHANGED, (event, s) => apply(s || {}));
   ipcRenderer.on(IPC.SERVER_INSTALL_PROGRESS, (event, { line } = {}) => {
     if (!line) return;
-    progressLines.push(line);
-    if (progressLines.length > 200) progressLines = progressLines.slice(-200);
+    const lines = [...m.progressLines, line];
+    m = { ...m, progressLines: lines.length > 200 ? lines.slice(-200) : lines };
     if (isOpen()) renderModal();
   });
   ipcRenderer.invoke(IPC.SERVER_STATUS).then((s) => {
@@ -121,19 +123,20 @@ function init() {
 
 async function loadDoctor(force = false) {
   if (status.state !== 'connected') return;
-  if (!force && doctor && doctorFor === status.host) { finishIfClean(); return; }
-  doctorFor = status.host;
+  if (!force && m.doctor && m.doctorFor === status.host) { finishIfClean(); return; }
+  const host = status.host;
   let res;
   try { res = await ipcRenderer.invoke(IPC.SERVER_DOCTOR); } catch (err) { res = { error: err.message, items: [] }; }
-  doctor = res;
+  if (status.host !== host) return; // another host since
+  m = { ...m, doctor: res, doctorFor: host };
   if (isOpen()) renderModal();
   finishIfClean();
 }
 
 /** A connect started here closes the dialog once the check-up has nothing to fix. */
 function finishIfClean() {
-  if (!wantClose || status.state !== 'connected' || !doctor) return;
-  const clean = !doctor.error && (doctor.items || []).every((i) => i.ok || i.optional);
+  if (!wantClose || status.state !== 'connected' || !m.doctor) return;
+  const clean = !m.doctor.error && (m.doctor.items || []).every((i) => i.ok || i.optional);
   wantClose = false;
   if (clean && !updateAvailable(status)) close();
 }
@@ -160,6 +163,9 @@ function renderModal() {
   const needs = s.state === 'needs-install' || s.state === 'needs-update';
   const installing = s.state === 'installing';
   const update = updateAvailable(s);
+  const progressLines = m.progressLines;
+  const doctor = m.doctor;
+  const busyNow = model.actionsDisabled(m, s);
   const failedInstall = s.state === 'error' && progressLines.length > 0;
   $('#sc-install').hidden = !(needs || installing || update || failedInstall);
   $('#sc-install-reason').textContent = installing
@@ -174,7 +180,7 @@ function renderModal() {
 
   const installBtn = $('#sc-install-btn');
   installBtn.hidden = !(needs || update || failedInstall) || installing;
-  installBtn.disabled = installing;
+  installBtn.disabled = busyNow;
   installBtn.textContent = s.state === 'needs-install' || (failedInstall && !(s.install && s.install.current)) ? 'Install Frame Server' : 'Update Frame Server';
 
   // Consent
@@ -182,18 +188,17 @@ function renderModal() {
   consentEl.hidden = !consent;
   if (consent) {
     const agents = consent.agents;
-    $('#sc-consent-text').textContent = agents
-      ? `${agents.length} agent${agents.length === 1 ? ' is' : 's are'} running on ${s.host}. ${consent.kind === 'rollback' ? 'Rolling back' : 'Updating'} restarts Frame Server and ends ${agents.length === 1 ? 'its terminal' : 'their terminals'}; Claude Code and Codex can resume their sessions afterwards.`
-      : `Frame cannot see which terminals run on ${s.host} (it speaks another protocol). ${consent.kind === 'rollback' ? 'Rolling back' : 'Updating'} restarts Frame Server and ends any terminals and agents running there.`;
+    $('#sc-consent-text').textContent = model.consentText({ kind: consent.kind, agents, host: s.host });
     const list = $('#sc-agents');
     list.replaceChildren(...(agents || []).map((a) => el('li', null, `${a.agent} in ${a.workspace || a.workspaceId}`)));
     list.hidden = !agents || !agents.length;
     $('#sc-confirm').textContent = consent.kind === 'rollback' ? 'Roll back now' : 'Update now';
+    $('#sc-confirm').disabled = busyNow;
   }
 
   // Check-up
   const docEl = $('#sc-doctor');
-  docEl.hidden = !(s.state === 'connected' && doctor && doctorFor === s.host);
+  docEl.hidden = !(s.state === 'connected' && doctor && m.doctorFor === s.host);
   if (!docEl.hidden) {
     const items = doctor.error ? [{ id: 'error', label: 'Check-up failed', ok: false, detail: doctor.error }] : (doctor.items || []);
     $('#sc-doctor-list').replaceChildren(...items.map((i) => {
@@ -219,6 +224,7 @@ function renderModal() {
   const rollback = $('#sc-rollback');
   const prev = s.install && s.install.previous;
   rollback.hidden = !(s.state === 'connected' && prev);
+  rollback.disabled = busyNow;
   rollback.textContent = prev ? `Roll back to ${prev}` : 'Roll back';
   $('#sc-disconnect').hidden = s.state === 'off';
   // Connected: no need for Reconnect next to the real actions (the host field + Enter still reconnects).
@@ -250,13 +256,13 @@ function close() {
 
 async function connect() {
   const host = modal.querySelector('#sc-host').value.trim();
-  progressLines = [];
-  doctor = null;
   const res = await ipcRenderer.invoke(IPC.SERVER_CONNECT, { host });
   if (res && res.error) {
     modal.querySelector('#sc-error').textContent = res.error;
     return;
   }
+  // Main accepted the connect: a fresh check-up follows it.
+  m = { ...m, doctor: null, doctorFor: null };
   wantClose = true;
   if (res && res.status) apply(res.status);
 }
@@ -264,10 +270,20 @@ async function connect() {
 /** Install, update or roll back; update and rollback first ask about running agents. */
 async function runAction(kind, confirmAgents = false) {
   const channel = kind === 'install' ? IPC.SERVER_INSTALL : kind === 'rollback' ? IPC.SERVER_ROLLBACK : IPC.SERVER_UPDATE;
-  progressLines = [];
-  doctor = null;
+  // One action at a time; nothing is cleared here — main's `installing`
+  // status clears the old progress when the install really starts (S12).
+  const start = model.startAction(m);
+  if (!start.allowed) return;
+  m = start.model;
   renderModal();
-  const res = await ipcRenderer.invoke(channel, { host: status.host || modal.querySelector('#sc-host').value.trim(), confirmAgents });
+  let res;
+  try {
+    res = await ipcRenderer.invoke(channel, { host: status.host || modal.querySelector('#sc-host').value.trim(), confirmAgents });
+  } catch (err) {
+    res = { error: err.message };
+  } finally {
+    m = model.endAction(m);
+  }
   if (res && res.needsConsent) {
     consent = { kind, agents: res.agents };
     renderModal();
@@ -281,6 +297,7 @@ async function runAction(kind, confirmAgents = false) {
   const r = res && res.result;
   notify.success(kind === 'rollback' ? `Rolled back to Frame Server ${r ? r.version : ''}` : `Frame Server ${r ? r.version : ''} is running on ${status.host}`);
   wantClose = false;
+  if (isOpen()) renderModal();
 }
 
 async function disconnect() {

@@ -274,13 +274,16 @@ async function rollback(host, { onProgress = () => {} } = {}) {
 
 /**
  * Agents running on the connected server, for the update consent:
- * `[{ terminalId, workspaceId, workspace, agent }]`.
+ * `[{ terminalId, workspaceId, workspace, agent }]`, or null when the list
+ * cannot be read (not connected, an error, a timeout) — unknown is never
+ * "none running" (server-hardening S9).
  */
 async function runningAgents() {
   const sc = require('./serverConnection');
-  if (!sc.isConnected()) return [];
-  let list = [];
-  try { list = await sc.call('terminals.list', {}); } catch (_) { list = []; }
+  if (!sc.isConnected()) return null;
+  let list;
+  try { list = await sc.call('terminals.list', {}); } catch (_) { return null; }
+  if (!Array.isArray(list)) return null;
   let names = new Map();
   try {
     names = new Map(require('./workspaceManager').serverRoots().map((r) => [r.id, r.root.split('/').pop()]));
