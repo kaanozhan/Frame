@@ -22,3 +22,11 @@ workspaceGitState.push, prDraft and prCreate first check `git remote get-url ori
 _Captured: 2026-11-11 · 2 file change(s)_
 
 ---
+
+## T04 — Open home terminals on Frame Server
+
+`terminals.create` accepts `home: true` and `homeFor`: such a terminal opens in the server user's home folder with no project or workspace on the server (whatever cwd, project or workspace was passed), and remembers the desktop project it was opened for. `terminals.list` (and attach) now report `home` and `homeFor` for every terminal — false and null for workspace terminals, which are otherwise unchanged.
+
+_Captured: 2026-11-11 · 2 file change(s)_
+
+---

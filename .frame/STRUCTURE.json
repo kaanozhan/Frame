@@ -24924,13 +24924,14 @@
       "depends": [
         "shared/ipcChannels",
         "crypto",
+        "os",
         "shared/serverRouting",
         "screenMirror",
         "main/ptyManager"
       ],
       "functions": {
         "setup": {
-          "line": 41,
+          "line": 42,
           "params": [
             "{ shim",
             "registerMethods",
@@ -24939,14 +24940,14 @@
           "purpose": "Wire terminals into the server: `shim` is the installed electron shim,"
         },
         "toLocalId": {
-          "line": 31,
+          "line": 32,
           "params": [
             "id"
           ],
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 5615,
+      "sizeBytes": 6164,
       "extraction": {
         "status": "parsed"
       },
@@ -30592,6 +30593,30 @@
         "description": "1c2fd5404ac60a75"
       }
     },
+    "test/serverTerminalsHome.test": {
+      "file": "test/serverTerminalsHome.test.js",
+      "description": "Frame Server home terminals (server-onboarding T04): a terminal in the",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "events",
+        "src/server/electronShim",
+        "src/server/terminals"
+      ],
+      "functions": {},
+      "sizeBytes": 2545,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "77c4d16534bf76d5"
+      }
+    },
     "test/sessionHookInstall.test": {
       "file": "test/sessionHookInstall.test.js",
       "description": "Session report hook install/remove (restore-ai-sessions-on-relaunch).",
@@ -34375,7 +34400,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 377,
+        "parsed": 378,
         "unsupported": 91,
         "partial": 0
       }
@@ -34422,9 +34447,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 562,
+      "visitedEntries": 563,
       "traversedDirectories": 86,
-      "eligibleFiles": 468,
+      "eligibleFiles": 469,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34441,7 +34466,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 468,
+      "indexedFiles": 469,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34449,6 +34474,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6bd45b3dd025dc7dea7cf46e553b8fa915bfb465480dc57175b02b0b6641a0a9"
+    "revision": "43fc987106eff7b79bc6746acd3188437043f89dd1fda5ea8ef368c581accdcc"
   }
 }
