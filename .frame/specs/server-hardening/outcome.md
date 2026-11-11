@@ -86,3 +86,34 @@ Frame Server now listens on `~/.frame-server/server.sock` by default (home force
 _Captured: 2026-11-11 · 11 file change(s)_
 
 ---
+
+## Findings — closing status
+
+Every finding of spec.md is fixed; none was accepted unfixed. Two are fixed in code but verified only partly until CI and the field test run (marked below).
+
+| Id | Status | Task | Note |
+|---|---|---|---|
+| S1 | fixed | T01 | SERVICE_USED without `$(…)`, json_escape |
+| S2 | fixed — CI not yet run | T05 | manylinux_2_28 build, old-distro smoke, installer libc guard (tested) |
+| S3 | fixed | T02 | quiesce, dangling links removed |
+| S4 | fixed | T04 | unreachable resets preflight; probe checks a hand-run pid |
+| S5 | fixed | T02 | previous only after success; any reinstalled copy restored |
+| S6 | fixed | T01 | uses_systemd for the default home only |
+| S7 | fixed | T01 | is_frame_pid in script and bin |
+| S8 | fixed — real ssh not yet run | T11 | Unix socket, protocol 2; harness uses the ssh stand-in |
+| S9 | fixed | T03 | unknown agents ask for consent |
+| S10 | fixed | T02, T03 | script lock (exit 16); desktop busy before the first await |
+| S11 | fixed | T04 | early lost handlers, hello timeout, close-before-hello rejection |
+| S12 | fixed | T03 | serverConnectModel |
+| T1 | fixed | T06 | requestId on create replies |
+| T2 | fixed | T08 | host-aware rows; terminals forgotten on host switch |
+| T3 | fixed | T07 | per-boot ids, adoptPlan pruning |
+| T4 | fixed | T07 | pendingDestroys; comment corrected |
+| T5 | fixed | T06 | orchestration lanes in main |
+| T6 | fixed | T08 | routeOf by workspace id |
+| T7 | fixed | T09 | tree replies with root and error; notes kept |
+| T9 | fixed | T10 | idle hook stops watcher and poller |
+| T10 | fixed | T09 | branch/worktree mutations refused; sessions note |
+| C1 | fixed — CI not yet run | T01, T05 | script scenarios run in `npm test`; real-systemd job added |
+
+Found and fixed along the way (not in the spec's list): serverInstaller's ssh crashed with an uncaught EPIPE when the remote `bash -s` exited before reading the whole script (T05); main's adopt answered "no terminals" when it could not tell, which would have closed every server lane (T07).

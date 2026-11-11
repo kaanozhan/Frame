@@ -1,7 +1,7 @@
 {
   "slug": "server-hardening",
   "title": "Frame Server hardening",
-  "phase": "implementing",
+  "phase": "done",
   "generated_task_ids": [
     "task-spec-server-hardening-T01",
     "task-spec-server-hardening-T02",
@@ -17,7 +17,7 @@
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-11-11T00:09:09.114Z",
-  "updated_at": "2026-11-11T01:28:01.694Z",
-  "last_phase_at": "2026-11-11T01:28:01.694Z",
+  "updated_at": "2026-11-11T02:24:59.518Z",
+  "last_phase_at": "2026-11-11T02:24:59.518Z",
   "implement_mode": "guided"
 }
