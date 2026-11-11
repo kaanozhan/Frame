@@ -172,18 +172,22 @@ function setupIPC(ipcMain) {
 
   ipcMain.on(IPC.LOAD_FILE_TREE, async (event, projectPath, ctx) => {
     const remote = serverPanels.resolve(projectPath, serverPanels.ctxOf(ctx));
-    let files;
+    // The reply names its root, so a late answer for another folder is
+    // dropped, and carries a server error instead of an empty tree
+    // (server-hardening T7).
+    let files = [];
+    let error = null;
     if (remote) {
       try {
-        files = await serverPanels.call(remote, 'files.tree', { root: projectPath });
+        files = (await serverPanels.call(remote, 'files.tree', { root: projectPath })) || [];
       } catch (err) {
-        files = [];
+        error = err.message;
       }
     } else {
       files = await getFileTree(projectPath);
     }
     if (!event.sender.isDestroyed()) {
-      event.sender.send(IPC.FILE_TREE_DATA, files);
+      event.sender.send(IPC.FILE_TREE_DATA, { root: projectPath, files, error });
     }
   });
 

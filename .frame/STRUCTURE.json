@@ -1822,7 +1822,7 @@
           "FILE_TREE_DATA"
         ]
       },
-      "sizeBytes": 6986,
+      "sizeBytes": 7230,
       "extraction": {
         "status": "parsed"
       },
@@ -3100,7 +3100,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 36406,
+      "sizeBytes": 37252,
       "extraction": {
         "status": "parsed"
       },
@@ -6030,7 +6030,8 @@
         "call",
         "offlineError",
         "READ_ONLY_FILES",
-        "READ_ONLY_ACTIONS"
+        "READ_ONLY_ACTIONS",
+        "READ_ONLY_GIT"
       ],
       "depends": [
         "shared/serverRouting",
@@ -6039,13 +6040,13 @@
       ],
       "functions": {
         "server": {
-          "line": 22
+          "line": 23
         },
         "roots": {
-          "line": 26
+          "line": 27
         },
         "resolve": {
-          "line": 41,
+          "line": 42,
           "params": [
             "p",
             "ctx = null"
@@ -6053,27 +6054,27 @@
           "purpose": "The server workspace a panel call belongs to: `{ root, host, id,"
         },
         "rootOf": {
-          "line": 50,
+          "line": 51,
           "params": [
             "p"
           ],
           "purpose": "Path-only routing, for calls that carry no workspace context."
         },
         "ctxOf": {
-          "line": 55,
+          "line": 56,
           "params": [
             "x"
           ],
           "purpose": "The `{ workspaceId }` context of an IPC payload or trailing argument, or null."
         },
         "offlineError": {
-          "line": 59,
+          "line": 60,
           "params": [
             "entry"
           ]
         },
         "call": {
-          "line": 64,
+          "line": 65,
           "params": [
             "entry",
             "method",
@@ -6083,7 +6084,7 @@
           "purpose": "A server call for a routed panel; rejects with the offline error while disconnected."
         }
       },
-      "sizeBytes": 2655,
+      "sizeBytes": 2797,
       "extraction": {
         "status": "parsed"
       },
@@ -10557,6 +10558,7 @@
         "setProjectPathGetter",
         "setWorkspaceIdGetter",
         "getTreeContext",
+        "showNote",
         "setOnFileClick",
         "renderFileTree",
         "clearFileTree",
@@ -10575,7 +10577,7 @@
       ],
       "functions": {
         "init": {
-          "line": 58,
+          "line": 62,
           "params": [
             "elementId",
             "getProjectPath"
@@ -10583,28 +10585,28 @@
           "purpose": "Initialize file tree UI"
         },
         "setProjectPathGetter": {
-          "line": 74,
+          "line": 78,
           "params": [
             "getter"
           ],
           "purpose": "Set project path getter"
         },
         "setWorkspaceIdGetter": {
-          "line": 79,
+          "line": 83,
           "params": [
             "getter"
           ],
           "purpose": "Where the selected workspace's id comes from when a load names none."
         },
         "setOnFileClick": {
-          "line": 86,
+          "line": 90,
           "params": [
             "callback"
           ],
           "purpose": "Set file click callback"
         },
         "renderFileTree": {
-          "line": 93,
+          "line": 97,
           "params": [
             "files",
             "parentElement",
@@ -10613,101 +10615,112 @@
           "purpose": "Render file tree recursively"
         },
         "clearFileTree": {
-          "line": 189,
+          "line": 193,
           "params": [
             "{ unwatch = false } = {}"
           ],
           "purpose": "Clear file tree"
         },
         "refreshFileTree": {
-          "line": 203,
+          "line": 207,
           "params": [
             "projectPath"
           ],
           "purpose": "Refresh file tree"
         },
+        "offlineNoteShown": {
+          "line": 218
+        },
         "loadFileTree": {
-          "line": 213,
+          "line": 225,
           "params": [
             "projectPath",
             "workspaceId = null"
           ],
           "purpose": "Load file tree for path"
         },
+        "showNote": {
+          "line": 236,
+          "params": [
+            "text",
+            "className = 'ws-server-placeholder'"
+          ],
+          "purpose": "Show a note instead of the tree (a server workspace offline, an error)."
+        },
         "getTreeContext": {
-          "line": 220,
+          "line": 247,
           "purpose": "The `{ workspaceId }` of the shown tree, for files opened from it."
         },
         "setupIPC": {
-          "line": 227,
+          "line": 254,
           "purpose": "Setup IPC listeners"
         },
         "setFolderExpanded": {
-          "line": 256,
+          "line": 296,
           "params": [
             "folderItem",
             "expanded"
           ]
         },
         "getExpandedFolderPaths": {
-          "line": 264
+          "line": 304
         },
         "restoreExpandedFolders": {
-          "line": 275,
+          "line": 315,
           "params": [
             "paths"
           ]
         },
         "focus": {
-          "line": 285,
+          "line": 325,
           "purpose": "Focus file tree for keyboard navigation"
         },
         "getVisibleItems": {
-          "line": 315,
+          "line": 355,
           "purpose": "Get all visible file items (for navigation). Uses offsetParent so it"
         },
         "handleKeydown": {
-          "line": 324,
+          "line": 364,
           "params": [
             "e"
           ],
           "purpose": "Handle keyboard navigation in file tree"
         },
         "blur": {
-          "line": 386,
+          "line": 426,
           "purpose": "Blur/unfocus file tree"
         },
         "setupSearch": {
-          "line": 396
+          "line": 436
         },
         "applyFilter": {
-          "line": 424,
+          "line": 464,
           "params": [
             "query"
           ]
         },
         "filterWrapper": {
-          "line": 437,
+          "line": 477,
           "params": [
             "wrapper",
             "query"
           ]
         },
         "setupContextMenu": {
-          "line": 473
+          "line": 513
         },
         "getProjectRoot": {
-          "line": 514
+          "line": 554
         },
         "configureMenu": {
-          "line": 523,
+          "line": 563,
           "params": [
             "target"
           ],
           "purpose": "Show only what applies to the target: the project root gets Paste alone;"
         },
         "showContextMenu": {
-          "line": 542,
+          "line": 582,
           "params": [
             "x",
             "y",
@@ -10715,63 +10728,63 @@
           ]
         },
         "hideContextMenu": {
-          "line": 560
+          "line": 600
         },
         "handleContextMenuAction": {
-          "line": 566,
+          "line": 606,
           "params": [
             "action",
             "target"
           ]
         },
         "baseName": {
-          "line": 597,
+          "line": 637,
           "params": [
             "p"
           ]
         },
         "applyCutDecoration": {
-          "line": 602,
+          "line": 642,
           "purpose": "Dim the row that is cut and waiting for a paste."
         },
         "refuseOnServer": {
-          "line": 618,
+          "line": 658,
           "params": [
             "...paths"
           ],
           "purpose": "Server workspaces are read-only in the tree for now"
         },
         "pasteInto": {
-          "line": 628,
+          "line": 668,
           "params": [
             "destDir"
           ]
         },
         "findItem": {
-          "line": 644,
+          "line": 684,
           "params": [
             "p"
           ]
         },
         "startRename": {
-          "line": 655,
+          "line": 695,
           "params": [
             "targetPath"
           ],
           "purpose": "Inline rename: the name span becomes an input. Enter or blur commits,"
         },
         "confirmDelete": {
-          "line": 708,
+          "line": 748,
           "params": [
             "target"
           ]
         },
         "applyGitStatusDecoration": {
-          "line": 734,
+          "line": 774,
           "purpose": "Walk every rendered .file-item and apply the git status class matching its"
         },
         "treeCtx": {
-          "line": 17
+          "line": 21
         }
       },
       "ipc": {
@@ -10786,7 +10799,7 @@
           "WATCH_GIT_STATUS"
         ]
       },
-      "sizeBytes": 25369,
+      "sizeBytes": 27028,
       "extraction": {
         "status": "parsed"
       },
@@ -10811,6 +10824,7 @@
           "setProjectPathGetter": "0e3ea361f9bf955b",
           "setWorkspaceIdGetter": "53d9f4f8cbcefc79",
           "setupIPC": "4c49f7443d20ad7c",
+          "showNote": "ff472f33a748cdce",
           "startRename": "65cca67936a536f7"
         }
       }
@@ -12817,34 +12831,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 388,
+          "line": 382,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 496,
+          "line": 490,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 627,
+          "line": 621,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 666,
+          "line": 660,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 692,
+          "line": 686,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1239,
+          "line": 1233,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1264,
+          "line": 1258,
           "params": [
             "err"
           ],
@@ -12865,7 +12879,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 46729,
+      "sizeBytes": 46594,
       "extraction": {
         "status": "parsed"
       },
@@ -15322,6 +15336,7 @@
         "shared/ipcChannels",
         "state",
         "htmlUtils",
+        "workspaceSection",
         "agentDispatch"
       ],
       "functions": {
@@ -15350,29 +15365,29 @@
           "purpose": "Load both lists — the tab counts need both, whichever tab is showing."
         },
         "refreshSessions": {
-          "line": 159,
+          "line": 171,
           "purpose": "Refresh sessions with spinner animation"
         },
         "renderSessions": {
-          "line": 179,
+          "line": 191,
           "purpose": "Render sessions list"
         },
         "renderSessionItem": {
-          "line": 212,
+          "line": 224,
           "params": [
             "session"
           ],
           "purpose": "Render a single session item"
         },
         "renderSessionsEmpty": {
-          "line": 241,
+          "line": 253,
           "params": [
             "message"
           ],
           "purpose": "Render sessions empty state"
         },
         "resumeSession": {
-          "line": 269,
+          "line": 281,
           "params": [
             "tool",
             "session"
@@ -15380,7 +15395,7 @@
           "purpose": "Resume a session in a terminal of its own."
         },
         "formatRelativeTime": {
-          "line": 294,
+          "line": 306,
           "params": [
             "dateString"
           ],
@@ -15393,7 +15408,7 @@
           "ANALYTICS_TRACK"
         ]
       },
-      "sizeBytes": 11137,
+      "sizeBytes": 11724,
       "extraction": {
         "status": "parsed"
       },
@@ -30203,6 +30218,38 @@
         "description": "760904a1f755fc32"
       }
     },
+    "test/serverPanelsRefuse.test": {
+      "file": "test/serverPanelsRefuse.test.js",
+      "description": "Panel handlers on server roots (server-hardening T7, T10): file-tree",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "src/shared/ipcChannels",
+        "src/main/fileTree",
+        "src/main/gitBranchesManager"
+      ],
+      "functions": {
+        "loadTree": {
+          "line": 52,
+          "params": [
+            "root",
+            "ctx"
+          ]
+        }
+      },
+      "sizeBytes": 4231,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a69c302e3b657690"
+      }
+    },
     "test/serverProtocol.test": {
       "file": "test/serverProtocol.test.js",
       "description": "serverProtocol — desktop ↔ Frame Server messages (server-workspaces spec, T01).",
@@ -34040,7 +34087,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 371,
+        "parsed": 372,
         "unsupported": 91,
         "partial": 0
       }
@@ -34087,9 +34134,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 556,
+      "visitedEntries": 557,
       "traversedDirectories": 86,
-      "eligibleFiles": 462,
+      "eligibleFiles": 463,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34106,7 +34153,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 462,
+      "indexedFiles": 463,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34114,6 +34161,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5bb455f461a6bcd5873df3199cb8bbfa764baca7bb4a2323b1002796595ac650"
+    "revision": "4cdda61199ae17f1ba980ab5d4acaf9a576a698ed27c3fac8c354399aa7bcd55"
   }
 }

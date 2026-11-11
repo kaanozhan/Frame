@@ -18,6 +18,7 @@ const { routeOf } = require('../shared/serverRouting');
 
 const READ_ONLY_FILES = 'Editing files of a server workspace comes in a later update.';
 const READ_ONLY_ACTIONS = 'File actions on server workspaces come in a later update.';
+const READ_ONLY_GIT = 'Branch and worktree changes on a server workspace come in a later update — use git in its terminal.';
 
 function server() {
   return require('./serverConnection');
@@ -66,4 +67,4 @@ function call(entry, method, params, timeoutMs) {
   return server().call(method, params, timeoutMs);
 }
 
-module.exports = { resolve, rootOf, ctxOf, call, offlineError, READ_ONLY_FILES, READ_ONLY_ACTIONS };
+module.exports = { resolve, rootOf, ctxOf, call, offlineError, READ_ONLY_FILES, READ_ONLY_ACTIONS, READ_ONLY_GIT };

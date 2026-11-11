@@ -13,6 +13,10 @@ let currentProjectPath = null;
 // The workspace the shown tree belongs to: every call about it carries this
 // id, so main routes by workspace, not by path (server-hardening T6).
 let treeWorkspaceId = null;
+// The folder the tree is waiting for: a reply for any other root (a late
+// answer after a workspace switch) is dropped; null while a note is shown
+// (server-hardening T7).
+let expectedRoot = null;
 let workspaceIdGetter = null;
 const treeCtx = () => {
   const id = treeWorkspaceId || (workspaceIdGetter && workspaceIdGetter()) || null;
@@ -203,8 +207,16 @@ function clearFileTree({ unwatch = false } = {}) {
 function refreshFileTree(projectPath) {
   const path = projectPath || (currentProjectPath && currentProjectPath());
   if (path) {
+    // A refresh never replaces the server-offline note; selecting the
+    // workspace again (loadFileTree) does.
+    if (!projectPath && offlineNoteShown()) return;
+    expectedRoot = path;
     ipcRenderer.send(IPC.LOAD_FILE_TREE, path, treeCtx());
   }
+}
+
+function offlineNoteShown() {
+  return !!(fileTreeElement && fileTreeElement.querySelector('.ws-server-placeholder.offline'));
 }
 
 /**
@@ -212,8 +224,23 @@ function refreshFileTree(projectPath) {
  */
 function loadFileTree(projectPath, workspaceId = null) {
   treeWorkspaceId = workspaceId || (workspaceIdGetter && workspaceIdGetter()) || null;
+  expectedRoot = projectPath;
   ipcRenderer.send(IPC.LOAD_FILE_TREE, projectPath, treeCtx());
   ipcRenderer.send(IPC.WATCH_GIT_STATUS, projectPath, treeCtx());
+}
+
+/**
+ * Show a note instead of the tree (a server workspace offline, an error).
+ * Replies still in flight are dropped, so they cannot wipe the note.
+ */
+function showNote(text, className = 'ws-server-placeholder') {
+  expectedRoot = null;
+  clearFileTree();
+  if (!fileTreeElement) return;
+  const note = document.createElement('div');
+  note.className = className;
+  note.textContent = text;
+  fileTreeElement.replaceChildren(note);
 }
 
 /** The `{ workspaceId }` of the shown tree, for files opened from it. */
@@ -225,7 +252,20 @@ function getTreeContext() {
  * Setup IPC listeners
  */
 function setupIPC() {
-  ipcRenderer.on(IPC.FILE_TREE_DATA, (event, files) => {
+  ipcRenderer.on(IPC.FILE_TREE_DATA, (event, payload) => {
+    // `{ root, files, error }`; the project-open path still sends a bare array.
+    const reply = Array.isArray(payload) ? { root: null, files: payload, error: null } : (payload || {});
+    if (reply.root) {
+      if (reply.root !== expectedRoot) return; // another folder's late answer, or a note is up
+    } else if (offlineNoteShown()) {
+      return; // a bare project tree must not replace the offline note either
+    }
+    if (reply.error) {
+      showNote(`Could not read this workspace's files: ${reply.error}`, 'ws-server-placeholder tree-error');
+      expectedRoot = reply.root || null;
+      return;
+    }
+    const files = reply.files || [];
     // A re-render (refresh, or after a rename/paste/delete) keeps the open
     // folders and the scroll position instead of collapsing everything.
     const expanded = getExpandedFolderPaths();
@@ -782,6 +822,7 @@ module.exports = {
   setProjectPathGetter,
   setWorkspaceIdGetter,
   getTreeContext,
+  showNote,
   setOnFileClick,
   renderFileTree,
   clearFileTree,

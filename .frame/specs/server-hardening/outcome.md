@@ -62,3 +62,11 @@ Added the pure serverRouting.routeOf(path, ctx, roots, locations) and serverPane
 _Captured: 2026-11-11 · 21 file change(s)_
 
 ---
+
+## T09 — Correlate file-tree replies and refuse unrouted mutations on server roots
+
+FILE_TREE_DATA is now `{ root, files, error }` (the project-open path's bare array is still accepted): fileTreeUI drops a reply for any root other than the one it is waiting for, shows a server error as a note instead of an empty tree, and the new showNote() (used for the server-offline note) cannot be wiped by late replies or refreshes — only selecting the workspace again reloads it. Under a server root, CREATE/DELETE_GIT_BRANCH and ADD/REMOVE_GIT_WORKTREE are refused with serverPanels.READ_ONLY_GIT, LOAD_GIT_WORKTREES returns `[]` with a note, all routed by the caller's workspace id (path as fallback); the sessions panel says sessions are not listed for server workspaces instead of listing this machine's.
+
+_Captured: 2026-11-11 · 7 file change(s)_
+
+---

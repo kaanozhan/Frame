@@ -128,6 +128,18 @@ async function loadSessions() {
   // worktree, or the project itself on main (workspaces spec).
   const projectPath = state.getWorkspaceRoot();
 
+  // A server workspace's sessions are recorded on the server, not in this
+  // machine's transcripts: say so rather than list the wrong ones
+  // (server-hardening T10).
+  const ws = state.getWorkspace();
+  const rec = ws && require('./workspaceSection').getWorkspaces().find((w) => w.id === ws.id);
+  if (rec && rec.location === 'server') {
+    lists = { claude: { sessions: [], reason: null }, codex: { sessions: [], reason: null } };
+    paintTabs();
+    renderSessionsEmpty('Sessions are not listed for server workspaces yet — they are recorded on the server.');
+    return;
+  }
+
   if (!projectPath) {
     lists = { claude: { sessions: [], reason: null }, codex: { sessions: [], reason: null } };
     paintTabs();

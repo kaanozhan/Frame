@@ -898,28 +898,42 @@ function setupIPC(ipcMain) {
     return (await remote(projectPath, { workspaceId }, 'git.switch', { root: projectPath, branchName })) || switchBranch(projectPath, branchName);
   });
 
+  // Branch and worktree changes under a server root would run on this
+  // machine's disk: refused until the server does them (server-hardening T10).
+  const onServer = (p, ctx) => !!(p && serverPanels.resolve(p, serverPanels.ctxOf(ctx)));
+  const refused = { error: serverPanels.READ_ONLY_GIT };
+
   // Create branch
-  ipcMain.handle(IPC.CREATE_GIT_BRANCH, async (event, { projectPath, branchName, checkout, baseBranch }) => {
+  ipcMain.handle(IPC.CREATE_GIT_BRANCH, async (event, payload = {}) => {
+    const { projectPath, branchName, checkout, baseBranch } = payload;
+    if (onServer(projectPath, payload)) return refused;
     return await createBranch(projectPath, branchName, checkout, baseBranch);
   });
 
   // Delete branch
-  ipcMain.handle(IPC.DELETE_GIT_BRANCH, async (event, { projectPath, branchName, force }) => {
+  ipcMain.handle(IPC.DELETE_GIT_BRANCH, async (event, payload = {}) => {
+    const { projectPath, branchName, force } = payload;
+    if (onServer(projectPath, payload)) return refused;
     return await deleteBranch(projectPath, branchName, force);
   });
 
-  // Load worktrees
-  ipcMain.handle(IPC.LOAD_GIT_WORKTREES, async (event, projectPath) => {
+  // Load worktrees: a server workspace's are not listed here.
+  ipcMain.handle(IPC.LOAD_GIT_WORKTREES, async (event, projectPath, ctx) => {
+    if (onServer(projectPath, ctx)) return { error: null, worktrees: [], note: 'Worktrees of a server workspace are not listed here.' };
     return await loadWorktrees(projectPath);
   });
 
   // Add worktree
-  ipcMain.handle(IPC.ADD_GIT_WORKTREE, async (event, { projectPath, worktreePath, branchName, createBranch }) => {
-    return await addWorktree(projectPath, worktreePath, branchName, createBranch);
+  ipcMain.handle(IPC.ADD_GIT_WORKTREE, async (event, payload = {}) => {
+    const { projectPath, worktreePath, branchName, createBranch: create } = payload;
+    if (onServer(projectPath, payload)) return refused;
+    return await addWorktree(projectPath, worktreePath, branchName, create);
   });
 
   // Remove worktree
-  ipcMain.handle(IPC.REMOVE_GIT_WORKTREE, async (event, { projectPath, worktreePath, force }) => {
+  ipcMain.handle(IPC.REMOVE_GIT_WORKTREE, async (event, payload = {}) => {
+    const { projectPath, worktreePath, force } = payload;
+    if (onServer(projectPath, payload)) return refused;
     return await removeWorktree(projectPath, worktreePath, force);
   });
 

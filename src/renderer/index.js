@@ -267,14 +267,8 @@ function init() {
   // the tree says so instead of showing stale or local files.
   const showServerOffline = (rec) => {
     ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
-    fileTreeUI.clearFileTree();
-    const tree = document.getElementById('file-tree');
-    if (tree) {
-      const note = document.createElement('div');
-      note.className = 'ws-server-placeholder';
-      note.textContent = `${rec.host || 'The server'} is offline — reconnect (File ▸ Connect to Server…) to see “${rec.name}”. Its terminals and agents keep running there.`;
-      tree.replaceChildren(note);
-    }
+    // A note the tree's late replies cannot wipe (server-hardening T7).
+    fileTreeUI.showNote(`${rec.host || 'The server'} is offline — reconnect (File ▸ Connect to Server…) to see “${rec.name}”. Its terminals and agents keep running there.`, 'ws-server-placeholder offline');
   };
   const serverRecordOf = (ws) => {
     const rec = ws && require('./workspaceSection').getWorkspaces().find((w) => w.id === ws.id);
