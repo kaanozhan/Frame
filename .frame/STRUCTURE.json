@@ -13131,6 +13131,35 @@
         }
       }
     },
+    "renderer/modalKeys": {
+      "file": "src/renderer/modalKeys.js",
+      "description": "modalKeys — what Enter means inside a dialog (workspace-hardening R1).",
+      "exports": [
+        "enterSubmits"
+      ],
+      "depends": [],
+      "functions": {
+        "enterSubmits": {
+          "line": 9,
+          "params": [
+            "target",
+            "{ metaKey = false",
+            "ctrlKey = false } = {}"
+          ],
+          "purpose": "modalKeys — what Enter means inside a dialog (workspace-hardening R1)."
+        }
+      },
+      "sizeBytes": 716,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "79e2eea82ff73f56",
+        "purposes": {
+          "enterSubmits": "79e2eea82ff73f56"
+        }
+      }
+    },
     "renderer/multiTerminalUI": {
       "file": "src/renderer/multiTerminalUI.js",
       "description": "Multi-Terminal UI Module",
@@ -13184,6 +13213,7 @@
       ],
       "depends": [
         "electron",
+        "modalKeys",
         "shared/ipcChannels",
         "state",
         "notify",
@@ -13197,48 +13227,48 @@
       ],
       "functions": {
         "init": {
-          "line": 36
+          "line": 37
         },
         "prefillBaseForBranch": {
-          "line": 61
+          "line": 63
         },
         "multiTerminalUI": {
-          "line": 71
+          "line": 73
         },
         "toolOptionsHtml": {
-          "line": 75
+          "line": 77
         },
         "syncFrom": {
-          "line": 87
+          "line": 89
         },
         "open": {
-          "line": 96
+          "line": 98
         },
         "syncLocation": {
-          "line": 137,
+          "line": 139,
           "purpose": "Location (server-workspaces): \"This Mac\", or the server Frame is"
         },
         "close": {
-          "line": 158
+          "line": 160
         },
         "setBusy": {
-          "line": 163,
+          "line": 165,
           "params": [
             "on"
           ]
         },
         "submit": {
-          "line": 169
+          "line": 171
         },
         "waitForSetupToFinish": {
-          "line": 215,
+          "line": 217,
           "params": [
             "terminalId"
           ],
           "purpose": "Resolve when `terminalId` has run something and come back to its shell prompt."
         },
         "runSetupThenAgent": {
-          "line": 242,
+          "line": 244,
           "params": [
             "{ setupScript",
             "toolId = null",
@@ -13248,14 +13278,14 @@
           "purpose": "In the selected workspace: run the setup script (if any) in a \"setup\""
         },
         "openAgent": {
-          "line": 268,
+          "line": 270,
           "params": [
             "{ toolId",
             "prompt }"
           ]
         }
       },
-      "sizeBytes": 11613,
+      "sizeBytes": 11688,
       "extraction": {
         "status": "parsed"
       },
@@ -14781,6 +14811,35 @@
       },
       "provenance": {
         "description": "c0c26ee62e7c42bc"
+      }
+    },
+    "renderer/scopeGuard": {
+      "file": "src/renderer/scopeGuard.js",
+      "description": "scopeGuard — keep dialogs and follow-ups on the request that started them",
+      "exports": [
+        "exclusive"
+      ],
+      "depends": [],
+      "functions": {
+        "exclusive": {
+          "line": 16,
+          "params": [
+            "fn",
+            "{ onBusy = null",
+            "queue = false } = {}"
+          ],
+          "purpose": "Wrap an async dialog flow so only one request runs at a time."
+        }
+      },
+      "sizeBytes": 1198,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b4af9de2a89a0845",
+        "purposes": {
+          "exclusive": "a4f36a4c8427677a"
+        }
       }
     },
     "renderer/sectionRail": {
@@ -19036,6 +19095,7 @@
       ],
       "depends": [
         "electron",
+        "scopeGuard",
         "shared/ipcChannels",
         "state",
         "notify",
@@ -19049,64 +19109,64 @@
       ],
       "functions": {
         "onChange": {
-          "line": 23,
+          "line": 24,
           "params": [
             "cb"
           ]
         },
         "emit": {
-          "line": 28
+          "line": 29
         },
         "refresh": {
-          "line": 35,
+          "line": 36,
           "purpose": "Ask main for fresh state of the current project (and make it the polled one)."
         },
         "init": {
-          "line": 49
+          "line": 50
         },
         "rowState": {
-          "line": 64,
+          "line": 65,
           "params": [
             "id"
           ],
           "purpose": "Row state of a workspace, or null before the first read."
         },
         "access": {
-          "line": 72,
+          "line": 73,
           "params": [
             "ws"
           ],
           "purpose": "GitHub access for `ws`: the desktop's `gh` for local workspaces, the"
         },
         "prBlockedReason": {
-          "line": 79,
+          "line": 80,
           "params": [
             "ws"
           ],
           "purpose": "Why PR actions are unavailable for `ws`, or null when they are. Server messages name the host."
         },
         "checksDot": {
-          "line": 89,
+          "line": 90,
           "params": [
             "pr"
           ]
         },
         "rowBadgesHtml": {
-          "line": 98,
+          "line": 99,
           "params": [
             "ws"
           ],
           "purpose": "Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR."
         },
         "menuItems": {
-          "line": 123,
+          "line": 124,
           "params": [
             "ws"
           ],
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 153,
+          "line": 154,
           "params": [
             "id",
             "ws"
@@ -19114,57 +19174,55 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 168,
+          "line": 169,
           "params": [
             "ws"
           ]
         },
-        "openCreatePr": {
-          "line": 185,
+        "openCreatePrOnce": {
+          "line": 197,
           "params": [
             "ws"
-          ],
-          "purpose": "The Create PR dialog: main composes the title/body (from the workspace's"
+          ]
         },
         "fixChecks": {
-          "line": 266,
+          "line": 278,
           "params": [
             "ws"
           ],
           "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
         },
         "merge": {
-          "line": 286,
+          "line": 298,
           "params": [
             "ws"
           ],
           "purpose": "Merge the workspace's PR with the project's method (main decides: the"
         },
         "updateFromBase": {
-          "line": 319,
+          "line": 331,
           "params": [
             "ws"
           ],
           "purpose": "Fetch the base and merge it into the workspace branch (main decides; see"
         },
         "workspaceAgentLanes": {
-          "line": 350,
+          "line": 362,
           "params": [
             "projectPath",
             "workspaceId"
           ],
           "purpose": "A workspace's terminals running an agent, most recently active first:"
         },
-        "askConflictChoice": {
-          "line": 366,
+        "askConflictChoiceOnce": {
+          "line": 383,
           "params": [
             "ws",
             "files"
-          ],
-          "purpose": "The conflict dialog. Resolves 'resolve' | 'abort' | 'later'."
+          ]
         },
         "resolveConflicts": {
-          "line": 399,
+          "line": 416,
           "params": [
             "ws",
             "files = null"
@@ -19172,7 +19230,7 @@
           "purpose": "Hand a stopped update to an agent in the workspace: the most recently"
         },
         "abortUpdate": {
-          "line": 414,
+          "line": 431,
           "params": [
             "ws",
             "{ confirmed = false } = {}"
@@ -19180,7 +19238,7 @@
           "purpose": "Abort a stopped update (`git merge --abort`): the branch goes back to where it was."
         },
         "openOnGitHub": {
-          "line": 424,
+          "line": 441,
           "params": [
             "ws"
           ],
@@ -19195,7 +19253,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 19257,
+      "sizeBytes": 19987,
       "extraction": {
         "status": "parsed"
       },
@@ -19204,11 +19262,9 @@
         "purposes": {
           "abortUpdate": "7e9e90ddfeac9c68",
           "access": "44d5c5b67147647e",
-          "askConflictChoice": "da8fe023e7e36b8f",
           "fixChecks": "04c4c6acd7c5b223",
           "menuItems": "6cf670bca1da203e",
           "merge": "69bc6adb5bacd318",
-          "openCreatePr": "6e7d7f5676838d2d",
           "openOnGitHub": "b2731eff4841fa86",
           "prBlockedReason": "c38dacd8474ad664",
           "refresh": "8faf0bd876257b8e",
@@ -19239,6 +19295,7 @@
       ],
       "depends": [
         "electron",
+        "modalKeys",
         "shared/ipcChannels",
         "state",
         "laneStatus",
@@ -19251,42 +19308,42 @@
       ],
       "functions": {
         "setActions": {
-          "line": 50,
+          "line": 51,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 54
+          "line": 55
         },
         "load": {
-          "line": 108,
+          "line": 109,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 138,
+          "line": 139,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 152
+          "line": 153
         },
         "summaries": {
-          "line": 162
+          "line": 163
         },
         "dotHtml": {
-          "line": 179,
+          "line": 180,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 184,
+          "line": 185,
           "params": [
             "ws",
             "{ selectedId",
@@ -19294,34 +19351,34 @@
           ]
         },
         "render": {
-          "line": 212
+          "line": 213
         },
         "findWs": {
-          "line": 263,
+          "line": 264,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 267,
+          "line": 268,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 296,
+          "line": 297,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 308,
+          "line": 309,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 321,
+          "line": 322,
           "params": [
             "ws",
             "x",
@@ -19329,39 +19386,39 @@
           ]
         },
         "hideMenu": {
-          "line": 346
+          "line": 347
         },
         "onMenuClick": {
-          "line": 350,
+          "line": 351,
           "params": [
             "e"
           ]
         },
         "openNew": {
-          "line": 363
+          "line": 364
         },
         "startRename": {
-          "line": 371,
+          "line": 372,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 376,
+          "line": 377,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 396,
+          "line": 397,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 437,
+          "line": 438,
           "params": [
             "ws",
             "head"
@@ -19369,7 +19426,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 443,
+          "line": 444,
           "params": [
             "ws",
             "head"
@@ -19377,7 +19434,7 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "openHeldSpec": {
-          "line": 480,
+          "line": 481,
           "params": [
             "ws",
             "slug"
@@ -19385,14 +19442,14 @@
           "purpose": "Select a workspace and open the spec it holds in the specs drawer."
         },
         "closeWorkspaceTerminals": {
-          "line": 489,
+          "line": 490,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 502,
+          "line": 503,
           "params": [
             "ws",
             "count"
@@ -19400,37 +19457,37 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 559,
+          "line": 561,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 565,
+          "line": 567,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 578,
+          "line": 580,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 587,
+          "line": 589,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 597,
+          "line": 599,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 611,
+          "line": 613,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -19441,7 +19498,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 26329,
+      "sizeBytes": 26485,
       "extraction": {
         "status": "parsed"
       },
@@ -29287,6 +29344,25 @@
         }
       }
     },
+    "test/rendererGuards.test": {
+      "file": "test/rendererGuards.test.js",
+      "description": "Renderer guards (workspace-hardening R1, R2, R7): pure helpers the dialogs use.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/modalKeys",
+        "src/renderer/scopeGuard"
+      ],
+      "functions": {},
+      "sizeBytes": 2497,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0a1913be219c2f4c"
+      }
+    },
     "test/reorder.test": {
       "file": "test/reorder.test.js",
       "description": "The pure half of drag-to-reorder (src/renderer/dnd/reorder.js): index",
@@ -32577,6 +32653,11 @@
         "description": "Migration Decision Modal"
       },
       {
+        "module": "renderer/modalKeys",
+        "file": "src/renderer/modalKeys.js",
+        "description": "modalKeys — what Enter means inside a dialog (workspace-hardening R1)."
+      },
+      {
         "module": "renderer/newWorkspaceModal",
         "file": "src/renderer/newWorkspaceModal.js",
         "description": "New Workspace Modal (workspaces spec, T08)."
@@ -33295,7 +33376,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 358,
+        "parsed": 361,
         "unsupported": 89,
         "partial": 0
       }
@@ -33342,9 +33423,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 539,
+      "visitedEntries": 542,
       "traversedDirectories": 84,
-      "eligibleFiles": 447,
+      "eligibleFiles": 450,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -33361,7 +33442,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 447,
+      "indexedFiles": 450,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -33369,6 +33450,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6666b904542a2a141eccf5ec640ba854e20e9bed13c13fd15ae2a8e105fc9ae1"
+    "revision": "41fe51180f323c8a2bce5c89b1fafe3f55f5ac5704312f50f0dde80445bdb2fa"
   }
 }

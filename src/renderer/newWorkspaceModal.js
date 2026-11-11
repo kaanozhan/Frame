@@ -18,6 +18,7 @@
  */
 
 const { ipcRenderer } = require('electron');
+const { enterSubmits } = require('./modalKeys');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const notify = require('./notify');
@@ -44,8 +45,9 @@ function init() {
   modalEl.querySelector('#nw-create').addEventListener('click', submit);
   modalEl.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.preventDefault(); close(); }
-    // Enter creates — except inside the prompt, where it is a newline unless ⌘/Ctrl is held.
-    if (e.key === 'Enter' && (e.target.id !== 'nw-prompt' || e.metaKey || e.ctrlKey)) {
+    // Enter creates from a field — a focused button (Cancel) handles Enter
+    // itself, and the prompt takes a newline unless ⌘/Ctrl is held (R1).
+    if (e.key === 'Enter' && enterSubmits(e.target, e)) {
       e.preventDefault();
       submit();
     }

@@ -46,3 +46,11 @@ L6: projectRegistry.removeProject keeps a removed project's workspace records un
 _Captured: 2026-11-11 · 13 file change(s)_
 
 ---
+
+## T07 — Make dialogs do what the focused control says
+
+New src/renderer/modalKeys.js: enterSubmits(target, keys) — Enter confirms only from a field; on a button, select or link the browser's own handling stands (Enter on Cancel cancels), and a textarea needs ⌘/Ctrl. The archive dialog and the New Workspace dialog use it. New src/renderer/scopeGuard.js with exclusive(fn, { onBusy, queue }): Create PR is exclusive from the moment it is invoked (draft loading included) — a second ⌘⌥P refocuses the open dialog instead of binding a second set of listeners; the conflict dialog is exclusive with `queue`, so two updates that stop on conflicts take turns and each click answers one.
+
+_Captured: 2026-11-11 · 6 file change(s)_
+
+---

@@ -18,6 +18,7 @@
  */
 
 const { ipcRenderer } = require('electron');
+const { enterSubmits } = require('./modalKeys');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const laneStatus = require('./laneStatus');
@@ -538,7 +539,8 @@ function askArchiveChoice(ws, count) {
     const onCancel = () => cleanup(null);
     const onKey = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
-      if (e.key === 'Enter') { e.preventDefault(); onConfirm(); }
+      // Enter on Cancel cancels: a focused button handles Enter itself (R1).
+      if (e.key === 'Enter' && enterSubmits(e.target, e)) { e.preventDefault(); onConfirm(); }
     };
     const onChange = () => {
       messageRow.hidden = action() !== 'commit';

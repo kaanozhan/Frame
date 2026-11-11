@@ -10,6 +10,7 @@
  */
 
 const { ipcRenderer } = require('electron');
+const { exclusive } = require('./scopeGuard');
 const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const notify = require('./notify');
@@ -182,7 +183,18 @@ async function push(ws) {
  * spec, else its commits), the user edits them and picks draft, and main
  * pushes and runs `gh pr create`.
  */
-async function openCreatePr(ws) {
+// One Create PR request at a time (R2): a second open — ⌘⌥P while the dialog
+// is up or its draft is loading — refocuses the dialog instead of binding a
+// second set of listeners that could create the PR for another workspace.
+const openCreatePr = exclusive(openCreatePrOnce, {
+  onBusy: () => {
+    const modal = document.getElementById('create-pr-modal');
+    const title = modal && modal.classList.contains('visible') && modal.querySelector('#cpr-title');
+    if (title) title.focus();
+  }
+});
+
+async function openCreatePrOnce(ws) {
   const blocked = prBlockedReason(ws);
   if (blocked) {
     notify.error(blocked);
@@ -362,8 +374,13 @@ function workspaceAgentLanes(projectPath, workspaceId) {
     .map((l) => ({ id: l.id, name: l.name, agentName: l.st.agentName, lastActivityAt: l.st.lastActivityAt || 0 }));
 }
 
-/** The conflict dialog. Resolves 'resolve' | 'abort' | 'later'. */
-function askConflictChoice(ws, files) {
+/**
+ * The conflict dialog. Resolves 'resolve' | 'abort' | 'later'. Two updates
+ * that both stop on conflicts take turns (R7): each click answers one.
+ */
+const askConflictChoice = exclusive(askConflictChoiceOnce, { queue: true });
+
+function askConflictChoiceOnce(ws, files) {
   const modal = document.getElementById('update-conflict-modal');
   if (!modal) return Promise.resolve('later');
   modal.querySelector('#uc-summary').textContent = `Merging origin/${ws.base || 'main'} into ${ws.branch} stopped on ${files.length} conflicted file${files.length === 1 ? '' : 's'}.`;
