@@ -70,3 +70,44 @@ reviewModel.js gains applyFileList (a failed load keeps files, ticks and merge b
 _Captured: 2026-11-11 · 8 file change(s)_
 
 ---
+
+## Findings — closing status
+
+Every finding of spec.md is fixed; none was accepted unfixed.
+
+| Id | Status | Task | Note |
+|---|---|---|---|
+| L1 | fixed | T01 | explicit `origin B:B` refspec; base refused; wrong upstream re-pointed (deviation: not refused) |
+| L2 | fixed | T01 | rename validated, `branch -m --` |
+| X1 | fixed | T01 | base/branch validated before any git in create (local and server route) |
+| L3 | fixed | T02, T03 | headState, rescue branch dialog, archive-after-merge skips |
+| L4 | fixed | T05 | base asked/prefilled; `base: null` resolved on read |
+| L5 | fixed | T02 | merge archives through `archiveQueued` |
+| L6 | fixed | T06 | records kept and restored; folders listed in the warning |
+| L7 | fixed | T06 | canonical paths in reconcile |
+| L8 | fixed | T04 | dirty-check error refuses |
+| L9 | fixed | T06 | `verbatimSymlinks` |
+| L10 | fixed | T06 | `dir/**` matches the folder; `dirsToExpand` |
+| L11 | fixed | T02 | `ARCHIVE_TIMEOUT_MS` 120 s |
+| L12 | fixed | T05 | pushed branch not renamed |
+| L13a | fixed | T04 | abort only our merge |
+| L13b | fixed | T03 | queued merge reported |
+| L13c | fixed | T06 | compare-and-swap branch delete |
+| L13d | fixed | T01 | mergeBase commit-id check, base validated |
+| L13e | fixed | T06 | specLocations invalidated for every project |
+| L14 | fixed | T04 | `isGitMissing` in three managers |
+| R1 | fixed | T07 | `enterSubmits` |
+| R2 | fixed | T07 | exclusive Create PR |
+| R3 | fixed | T08 | setup and agent created for the new workspace explicitly |
+| R4 | fixed | T09 | `applyFileList` |
+| R5 | fixed | T09 | `remainingAfterSend` |
+| R6 | fixed | T08 | captured project in create and conflict follow-ups |
+| R7 | fixed | T07 | queued conflict dialog |
+| R8 | fixed | T09 | one persistent comment box; drafts kept |
+| R9 | fixed | T09 | `reanchor`, outdated flag |
+| R10 | fixed | T08 | sticky reselect |
+| R11 | fixed | T08 | `updateWorkspaceMeta` |
+| R12 | fixed | T09 | counts coerced, status escaped |
+| R14 | fixed | T09 | viewed and session keys pruned |
+
+Open follow-up (not in this spec's findings): Frame's background git reads should use `git --no-optional-locks` — see T01.
