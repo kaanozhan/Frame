@@ -562,17 +562,23 @@ function wireServerEvents() {
 async function adoptServerTerminals(projectPath) {
   // null = cannot tell (not connected, rows offline): the renderer then keeps
   // its lanes; [] = the server has none for this project (T3).
-  if (!projectPath || !server().isConnected()) return null;
-  const wm = require('./workspaceManager');
-  const listed = await wm.list(projectPath);
-  const rows = ((listed && listed.workspaces) || []).filter((w) => w.location === 'server');
-  if (rows.some((w) => w.offline)) return null;
-  const serverIds = new Set(rows.map((w) => w.id));
-  if (!serverIds.size) return [];
-  const loc = wm.serverLocation([...serverIds][0]);
-  if (!loc) return null;
-  const onServer = (await server().call('terminals.list', { projectPath: loc.serverProjectPath })) || [];
-  const live = onServer.filter((t) => serverIds.has(t.workspaceId) && !pendingDestroys.has(t.terminalId));
+  if (!server().isConnected()) return null;
+  let serverIds = new Set();
+  if (projectPath) {
+    const wm = require('./workspaceManager');
+    const listed = await wm.list(projectPath);
+    const rows = ((listed && listed.workspaces) || []).filter((w) => w.location === 'server');
+    if (rows.some((w) => w.offline)) return null;
+    serverIds = new Set(rows.map((w) => w.id));
+  }
+  // Workspace terminals by their server workspace; home terminals
+  // (server-onboarding) by the desktop project they were opened for —
+  // null for one opened with no project selected.
+  const onServer = (await server().call('terminals.list', {})) || [];
+  const mine = (t) => (t.home ? (t.homeFor || null) === (projectPath || null) : serverIds.has(t.workspaceId));
+  const live = onServer
+    .filter((t) => mine(t) && !pendingDestroys.has(t.terminalId))
+    .map((t) => (t.home ? { ...t, workspaceId: t.homeWorkspace || 'main' } : t));
   // Forget this project's terminals the server no longer has (a restart, a
   // close elsewhere): their ids must not route anywhere (T3).
   const known = [...serverTerminals].filter(([, info]) => info.projectPath === projectPath).map(([terminalId, info]) => ({ terminalId, workspaceId: info.workspaceId }));
@@ -583,8 +589,8 @@ async function adoptServerTerminals(projectPath) {
   for (const t of live) {
     try {
       const snap = await server().call('terminals.attach', { terminalId: t.terminalId });
-      noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId });
-      out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, screen: snap.screen, cols: snap.cols, rows: snap.rows });
+      noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId, ...(t.home ? { home: true } : {}) });
+      out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, ...(t.home ? { home: true } : {}), screen: snap.screen, cols: snap.cols, rows: snap.rows });
       if (snap.process) processes.push(snap.process);
     } catch (err) {
       logger.warn('ptyManager', `could not attach ${t.terminalId}: ${err.message}`);
@@ -644,6 +650,22 @@ function setupIPC(ipcMain) {
         shellPath = data.shell;
         extraEnv = data.extraEnv || null; // orchestration worker lanes pass FRAME_ORCH_* here
         workspaceId = data.workspaceId || 'main';
+      }
+
+      // A home terminal on the server (server-onboarding): the user's home
+      // folder there, shown in this project and view. Never a local shell.
+      if (data && data.location === 'server-home') {
+        if (!server().isConnected()) {
+          reply({ success: false, error: 'Connect to a server first (File ▸ Connect to Server…).' });
+          return;
+        }
+        server().call('terminals.create', { home: true, homeFor: projectPath || null, homeWorkspace: workspaceId || 'main', shell: shellPath, cols: (data && data.cols) || 80, rows: (data && data.rows) || 24 })
+          .then((res) => {
+            serverTerminals.set(res.terminalId, { projectPath, workspaceId, home: true });
+            reply({ terminalId: res.terminalId, success: true });
+          })
+          .catch((err) => reply({ success: false, error: `Server terminal: ${err.message}` }));
+        return;
       }
 
       const loc = serverLocationOf(workspaceId);

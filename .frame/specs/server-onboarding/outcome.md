@@ -30,3 +30,11 @@ _Captured: 2026-11-11 · 2 file change(s)_
 _Captured: 2026-11-11 · 2 file change(s)_
 
 ---
+
+## T05 — Open and keep home terminals from the desktop
+
+TERMINAL_CREATE with `location: 'server-home'` makes ptyManager open a home terminal on the server (`home: true`, `homeFor` = the local project or null, `homeWorkspace` = the current view) and never a local shell; while not connected it answers "Connect to a server first". Adoption now lists all server terminals once and takes workspace terminals by server workspace id, plus home terminals whose `homeFor` is this project (null with no project), placed back in the view they were opened in; the renderer also adopts with no project selected. terminalManager.createServerHomeTerminal opens it, names the lane `Server · <host>` (also on adopt), and types the given command after the shell's first output, without Enter. Deviation: the server also stores `homeWorkspace` (a small addition to T04's terminals.js) so a restarted desktop puts the lane back in its view rather than in main.
+
+_Captured: 2026-11-11 · 5 file change(s)_
+
+---

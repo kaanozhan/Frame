@@ -165,3 +165,52 @@ test('T2: connecting to another host forgets the previous host\'s server termina
   fakeServer.emit('connected', { host: 'other-box' });
   assert.equal(pty.serverTerminalInfo('srv-x-9'), null, 'another host: forgotten');
 });
+
+// ─── server-onboarding T05: home terminals ───────────────────
+
+test('a server-home create opens a home terminal on the server for this project and view', async () => {
+  fakeServer.connected = true;
+  const before = serverCalls.length;
+  const r = await create({ requestId: 'r-home', location: 'server-home', projectPath: '/p', workspaceId: 'local-ws' });
+  assert.equal(r.payload.success, true, r.payload.error);
+  assert.equal(r.payload.requestId, 'r-home');
+  const call = serverCalls.slice(before).find((c) => c.method === 'terminals.create');
+  assert.equal(call.params.home, true);
+  assert.equal(call.params.homeFor, '/p');
+  assert.equal(call.params.homeWorkspace, 'local-ws');
+  assert.deepEqual(pty.serverTerminalInfo(r.payload.terminalId), { projectPath: '/p', workspaceId: 'local-ws', home: true });
+});
+
+test('a server-home create while not connected says to connect, and nothing is created locally', async () => {
+  fakeServer.connected = false;
+  try {
+    const r = await create({ requestId: 'r-off', location: 'server-home', projectPath: '/p', workspaceId: 'main' });
+    assert.equal(r.payload.success, false);
+    assert.match(r.payload.error, /Connect to a server/);
+    assert.equal(r.payload.requestId, 'r-off');
+  } finally { fakeServer.connected = true; }
+});
+
+test('adopt brings back this project\'s home terminals in the view they were opened in, beside workspace terminals', async () => {
+  const saved = fakeServer.call;
+  fakeServer.call = async (method, params) => {
+    serverCalls.push({ method, params });
+    if (method === 'terminals.list') {
+      return [
+        { terminalId: 'srv-b-1', workspaceId: 'remote-ws', home: false, homeFor: null },
+        { terminalId: 'srv-b-5', workspaceId: null, home: true, homeFor: '/p', homeWorkspace: 'local-ws' },
+        { terminalId: 'srv-b-6', workspaceId: null, home: true, homeFor: '/other', homeWorkspace: 'main' }
+      ];
+    }
+    if (method === 'terminals.attach') return { screen: '', cols: 80, rows: 24 };
+    return saved.call(fakeServer, method, params);
+  };
+  try {
+    const adopted = await adopt();
+    const ids = adopted.map((t) => t.terminalId).sort();
+    assert.deepEqual(ids, ['srv-b-1', 'srv-b-5'], 'another project\'s home terminal is not taken');
+    const home = adopted.find((t) => t.terminalId === 'srv-b-5');
+    assert.equal(home.workspaceId, 'local-ws');
+    assert.equal(home.home, true);
+  } finally { fakeServer.call = saved; }
+});

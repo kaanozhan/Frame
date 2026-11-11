@@ -383,9 +383,36 @@ class TerminalManager {
         projectPath,
         workspaceId,
         shell: options.shell || null,
-        extraEnv: options.extraEnv || null // orchestration worker lanes pass FRAME_ORCH_* env
+        extraEnv: options.extraEnv || null, // orchestration worker lanes pass FRAME_ORCH_* env
+        ...(options.location ? { location: options.location } : {}) // 'server-home' (server-onboarding)
       });
     });
+  }
+
+  /**
+   * A terminal on the connected server, in the user's home folder, shown in
+   * the current project and view (server-onboarding). `command`, when given,
+   * is typed once the shell has printed something — without Enter: the user
+   * runs it (sign-ins are interactive). Resolves the terminal id, or throws.
+   */
+  async createServerHomeTerminal({ command = null } = {}) {
+    const id = await this.createTerminal({ location: 'server-home' });
+    if (!id) throw new Error('Could not open a terminal on the server.');
+    const host = this.serverState.host || 'server';
+    this.renameTerminal(id, `Server · ${host}`);
+    if (command) {
+      const type = () => ipcRenderer.send(IPC.TERMINAL_INPUT_ID, { terminalId: id, data: String(command) });
+      let done = false;
+      const onOutput = (event, p) => {
+        if (done || !p || p.terminalId !== id) return;
+        done = true;
+        ipcRenderer.removeListener(IPC.TERMINAL_OUTPUT_ID, onOutput);
+        setTimeout(type, 150); // let the prompt finish drawing
+      };
+      ipcRenderer.on(IPC.TERMINAL_OUTPUT_ID, onOutput);
+      setTimeout(() => { if (!done) { done = true; ipcRenderer.removeListener(IPC.TERMINAL_OUTPUT_ID, onOutput); type(); } }, 2000);
+    }
+    return id;
   }
 
   /**
@@ -915,7 +942,8 @@ class TerminalManager {
       const prev = this.serverState.state;
       this.serverState = { state: (s && s.state) || 'off', host: (s && s.host) || this.serverState.host };
       if (this.serverState.state === 'connected') {
-        if (prev !== 'connected' && this.currentProjectPath) this.adoptServerTerminals(this.currentProjectPath);
+        // With no project selected too: home terminals opened there come back (server-onboarding).
+        if (prev !== 'connected') this.adoptServerTerminals(this.currentProjectPath || null);
       } else {
         this._setServerBanners();
       }
@@ -953,6 +981,7 @@ class TerminalManager {
         this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId });
         inst = this.terminals.get(t.terminalId);
         added = true;
+        if (inst && t.home && !inst.state.customName) inst.state.customName = `Server · ${this.serverState.host || 'server'}`;
       }
       if (!inst) continue;
       inst.terminal.reset();

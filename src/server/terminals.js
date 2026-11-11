@@ -67,6 +67,7 @@ function setup({ shim, registerMethods, broadcast }) {
     workspaceId: m.workspaceId,
     home: !!m.home,
     homeFor: m.homeFor || null,
+    homeWorkspace: m.homeWorkspace || null,
     cwd: m.cwd,
     createdAt: m.createdAt,
     ...m.mirror.size,
@@ -80,7 +81,7 @@ function setup({ shim, registerMethods, broadcast }) {
   };
 
   registerMethods({
-    'terminals.create': async ({ projectPath = null, workspaceId = 'main', cwd = null, cols = 80, rows = 24, shell = null, extraEnv = null, home = false, homeFor = null } = {}) => {
+    'terminals.create': async ({ projectPath = null, workspaceId = 'main', cwd = null, cols = 80, rows = 24, shell = null, extraEnv = null, home = false, homeFor = null, homeWorkspace = null } = {}) => {
       // A home terminal (server-onboarding): the user's home folder, no
       // project or workspace here; `homeFor` names the desktop project it was
       // opened from so a reconnecting desktop can adopt it there.
@@ -92,7 +93,7 @@ function setup({ shim, registerMethods, broadcast }) {
       const localId = ptyManager.createTerminal(cwd, projectPath, shell, extraEnv, workspaceId || 'main');
       const terminalId = toServerId(localId);
       const mirror = createMirror({ cols, rows });
-      meta.set(terminalId, { projectPath, workspaceId, home: home === true, homeFor: home === true && typeof homeFor === 'string' ? homeFor : null, cwd: (ptyManager.getTerminalInfo(localId) || {}).cwd || cwd, createdAt: Date.now(), mirror, process: null });
+      meta.set(terminalId, { projectPath, workspaceId, home: home === true, homeFor: home === true && typeof homeFor === 'string' ? homeFor : null, homeWorkspace: home === true && typeof homeWorkspace === 'string' ? homeWorkspace : null, cwd: (ptyManager.getTerminalInfo(localId) || {}).cwd || cwd, createdAt: Date.now(), mirror, process: null });
       if (cols !== 80 || rows !== 24) ptyManager.resizeTerminal(localId, cols, rows);
       return { terminalId, cols, rows };
     },

@@ -5596,7 +5596,7 @@
           "purpose": "The connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 600,
+          "line": 606,
           "params": [
             "ipcMain"
           ]
@@ -5619,7 +5619,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 25396,
+      "sizeBytes": 26634,
       "extraction": {
         "status": "parsed"
       },
@@ -19022,6 +19022,7 @@
       "ipc": {
         "listens": [
           "TERMINAL_CREATED",
+          "TERMINAL_OUTPUT_ID",
           "AVAILABLE_SHELLS_DATA",
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED",
@@ -19029,6 +19030,7 @@
         ],
         "emits": [
           "TERMINAL_CREATE",
+          "TERMINAL_INPUT_ID",
           "GET_AVAILABLE_SHELLS",
           "SESSION_RESTORE_META",
           "SESSION_RESTORE_META",
@@ -19036,7 +19038,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 37375,
+      "sizeBytes": 38946,
       "extraction": {
         "status": "parsed"
       },
@@ -24947,7 +24949,7 @@
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 6164,
+      "sizeBytes": 6320,
       "extraction": {
         "status": "parsed"
       },
@@ -30042,7 +30044,7 @@
           ]
         }
       },
-      "sizeBytes": 7142,
+      "sizeBytes": 9634,
       "extraction": {
         "status": "parsed"
       },
@@ -34474,6 +34476,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "43fc987106eff7b79bc6746acd3188437043f89dd1fda5ea8ef368c581accdcc"
+    "revision": "7a84d7f572c6ce61b02840020eb56483096112ee60aebf168be2dcb038bc0f07"
   }
 }
