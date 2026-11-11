@@ -38,3 +38,11 @@ server-package.yml now builds each package inside quay.io/pypa/manylinux_2_28 (x
 _Captured: 2026-11-11 · 6 file change(s)_
 
 ---
+
+## T06 — Correlate terminal-create replies and keep orchestration lanes local
+
+The renderer's createTerminal now sends a `requestId` with every TERMINAL_CREATE and its reply handler ignores replies with another id; ptyManager echoes the id in every TERMINAL_CREATED (local, server, success and failure) through one reply helper. Orchestration's conductor and worker lanes are created with `workspaceId: 'main'`, so they never follow a selected server workspace; the spawn chain stays serial for lane order, and its comment no longer claims replies collapse. New test/ptyTerminals.test.js runs the real TERMINAL_CREATE handler with node-pty, the server connection and routing stubbed (it will carry T07's cases too).
+
+_Captured: 2026-11-11 · 5 file change(s)_
+
+---

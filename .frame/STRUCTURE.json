@@ -5599,7 +5599,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 23498,
+      "sizeBytes": 23741,
       "extraction": {
         "status": "parsed"
       },
@@ -13543,20 +13543,20 @@
           ]
         },
         "open": {
-          "line": 92,
+          "line": 91,
           "purpose": "Open (or focus) the orchestrator section tab."
         },
         "orchEnv": {
-          "line": 104,
+          "line": 103,
           "params": [
             "projectPath"
           ]
         },
         "ensureSession": {
-          "line": 111
+          "line": 110
         },
         "spawnWorkerLane": {
-          "line": 158,
+          "line": 159,
           "params": [
             "{ projectPath",
             "slug",
@@ -13566,107 +13566,107 @@
           ]
         },
         "createViewport": {
-          "line": 187
+          "line": 188
         },
         "stopSession": {
-          "line": 253,
+          "line": 254,
           "purpose": "Stop the whole session: teardown (worktrees removed, merged branches pruned,"
         },
         "syncToolbar": {
-          "line": 265,
+          "line": 266,
           "params": [
             "root"
           ],
           "purpose": "Stop & clean up only means something once a session exists."
         },
         "renderConductorZone": {
-          "line": 272,
+          "line": 273,
           "params": [
             "root"
           ]
         },
         "renderStartPanel": {
-          "line": 297,
+          "line": 298,
           "params": [
             "zone"
           ],
           "purpose": "Idle state: the board is open but no conductor exists yet. The terminal zone"
         },
         "startFromPanel": {
-          "line": 313,
+          "line": 314,
           "params": [
             "e"
           ]
         },
         "stageOf": {
-          "line": 351,
+          "line": 352,
           "params": [
             "w"
           ]
         },
         "renderPipeline": {
-          "line": 364,
+          "line": 365,
           "params": [
             "root"
           ]
         },
         "renderWorkerZone": {
-          "line": 407,
+          "line": 408,
           "params": [
             "root"
           ]
         },
         "mergeWorkerAction": {
-          "line": 457,
+          "line": 458,
           "params": [
             "slug"
           ]
         },
         "resumeWorkerAction": {
-          "line": 477,
+          "line": 478,
           "params": [
             "slug"
           ]
         },
         "removeWorkerAction": {
-          "line": 485,
+          "line": 486,
           "params": [
             "slug"
           ]
         },
         "_shortPath": {
-          "line": 494,
+          "line": 495,
           "params": [
             "p"
           ]
         },
         "_relTime": {
-          "line": 500,
+          "line": 501,
           "params": [
             "ts"
           ]
         },
         "loadSpecs": {
-          "line": 511,
+          "line": 512,
           "params": [
             "root"
           ]
         },
         "renderSpecRail": {
-          "line": 526,
+          "line": 527,
           "params": [
             "root",
             "specs"
           ]
         },
         "assignSpec": {
-          "line": 561,
+          "line": 562,
           "params": [
             "slug"
           ]
         },
         "nudgeConductor": {
-          "line": 575,
+          "line": 576,
           "params": [
             "projectPath"
           ]
@@ -13682,7 +13682,7 @@
           "ORCH_WORKER_LANE"
         ]
       },
-      "sizeBytes": 26264,
+      "sizeBytes": 26354,
       "extraction": {
         "status": "parsed"
       },
@@ -18876,7 +18876,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 35780,
+      "sizeBytes": 36181,
       "extraction": {
         "status": "parsed"
       },
@@ -29730,6 +29730,41 @@
         }
       }
     },
+    "test/ptyTerminals.test": {
+      "file": "test/ptyTerminals.test.js",
+      "description": "ptyManager terminal create/destroy over IPC (server-hardening T06, T07).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "path",
+        "os",
+        "fs",
+        "node:module",
+        "events",
+        "src/shared/ipcChannels",
+        "src/main/ptyManager"
+      ],
+      "functions": {
+        "create": {
+          "line": 84,
+          "params": [
+            "data"
+          ],
+          "purpose": "Send TERMINAL_CREATE like the renderer; resolve every reply it gets."
+        }
+      },
+      "sizeBytes": 4427,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "694500b03efdf477",
+        "purposes": {
+          "create": "06ed8b1305ca5d37"
+        }
+      }
+    },
     "test/rendererGuards.test": {
       "file": "test/rendererGuards.test.js",
       "description": "Renderer guards (workspace-hardening R1, R2, R7): pure helpers the dialogs use.",
@@ -33856,7 +33891,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 369,
+        "parsed": 370,
         "unsupported": 91,
         "partial": 0
       }
@@ -33903,9 +33938,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 554,
+      "visitedEntries": 555,
       "traversedDirectories": 86,
-      "eligibleFiles": 460,
+      "eligibleFiles": 461,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -33922,7 +33957,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 460,
+      "indexedFiles": 461,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -33930,6 +33965,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "46517f611f07eed79a29c0eee302f7868c8456d3505679ce464ced1e5f84e56e"
+    "revision": "73281ba293261f6b1a64b3595e803e9e9bb65b9242d644f56657eae164859412"
   }
 }

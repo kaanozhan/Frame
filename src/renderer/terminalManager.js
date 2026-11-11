@@ -70,6 +70,7 @@ function terminalName(n) {
 
 class TerminalManager {
   constructor() {
+    this._createSeq = 0; // request ids for TERMINAL_CREATE
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
     this.activeTerminalId = null;
     this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'panel'
@@ -354,8 +355,13 @@ class TerminalManager {
       : projectPath;
     const workingDir = options.cwd || defaultDir || null;
 
+    // Replies are matched by request id: overlapping creates (two local, or a
+    // local one and a slower server one) each get their own terminal
+    // (server-hardening T1).
+    const requestId = `tc-${Date.now().toString(36)}-${++this._createSeq}`;
     return new Promise((resolve, reject) => {
       const handler = (event, response) => {
+        if (!response || response.requestId !== requestId) return;
         ipcRenderer.removeListener(IPC.TERMINAL_CREATED, handler);
         if (response.success) {
           this._initializeTerminal(response.terminalId, {
@@ -372,6 +378,7 @@ class TerminalManager {
 
       ipcRenderer.on(IPC.TERMINAL_CREATED, handler);
       ipcRenderer.send(IPC.TERMINAL_CREATE, {
+        requestId,
         cwd: workingDir,
         projectPath,
         workspaceId,

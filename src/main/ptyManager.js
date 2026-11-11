@@ -597,6 +597,11 @@ function setupIPC(ipcMain) {
 
   // Create new terminal
   ipcMain.on(IPC.TERMINAL_CREATE, (event, data) => {
+    // Every reply names the request it answers: a server create answers
+    // after a round trip, so replies of overlapping creates can cross
+    // (server-hardening T1).
+    const requestId = data && typeof data === 'object' ? data.requestId || null : null;
+    const reply = (payload) => event.reply(IPC.TERMINAL_CREATED, { ...payload, requestId });
     try {
       // Support both old format (string) and new format (object)
       let workingDir = null;
@@ -620,15 +625,15 @@ function setupIPC(ipcMain) {
       const loc = serverLocationOf(workspaceId);
       if (loc) {
         createServerTerminal(loc, { cwd: workingDir, projectPath, workspaceId, shell: shellPath, cols: data && data.cols, rows: data && data.rows })
-          .then((terminalId) => event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true }))
-          .catch((err) => event.reply(IPC.TERMINAL_CREATED, { success: false, error: `Server terminal: ${err.message}` }));
+          .then((terminalId) => reply({ terminalId, success: true }))
+          .catch((err) => reply({ success: false, error: `Server terminal: ${err.message}` }));
         return;
       }
       const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv, workspaceId);
-      event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true });
+      reply({ terminalId, success: true });
     } catch (error) {
       analytics.track('error_occurred', { category: 'terminal_create_failed' });
-      event.reply(IPC.TERMINAL_CREATED, { success: false, error: error.message });
+      reply({ success: false, error: error.message });
     }
   });
 
