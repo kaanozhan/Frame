@@ -571,6 +571,18 @@ async function revCount(cwd, range) {
 }
 
 /** The upstream of the checked-out branch (`origin/ws/teal`), or null. */
+/** `branch`'s upstream as seen from `cwd` (`origin/develop`, or a local name), or null. */
+async function upstreamOfBranch(cwd, branch) {
+  if (!isValidBranchName(branch)) return null;
+  try {
+    // for-each-ref names the branch by its full ref: no tag or path can shadow it.
+    const { stdout } = await execGitArgs(['for-each-ref', '--format=%(upstream:short)', `refs/heads/${branch}`], cwd);
+    return stdout.trim() || null;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function upstreamOf(cwd) {
   try {
     const { stdout } = await execGitArgs(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], cwd);
@@ -920,6 +932,7 @@ module.exports = {
   // PR flow helpers (workspace-pr-flow)
   revCount,
   upstreamOf,
+  upstreamOfBranch,
   pushBranch,
   commitSubjects,
   fastForwardIfOn,

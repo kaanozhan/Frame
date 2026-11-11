@@ -71,7 +71,7 @@ async function prFor(projectPath, branch) {
 async function rowState(projectPath, ws, access, previous) {
   const st = await git.worktreeStatus(ws.path);
   const upstream = await git.upstreamOf(ws.path);
-  const base = ws.base || 'main';
+  const base = await baseOf(projectPath, ws);
   const unpushed = upstream
     ? await git.revCount(ws.path, '@{u}..HEAD')
     : await git.revCount(ws.path, `origin/${base}..HEAD`);
@@ -236,6 +236,15 @@ function recordOf(projectPath, id) {
   return activeWorkspaces(projectPath).find((r) => r.id === id) || null;
 }
 
+/**
+ * A workspace's base: the recorded one, else (records from before
+ * workspace-hardening L4 stored `base: null`) the remote's default branch.
+ */
+async function baseOf(projectPath, ws) {
+  if (ws.base) return ws.base;
+  return (await git.defaultRemoteBranch(projectPath)).branch || 'main';
+}
+
 function settingsOf(projectPath) {
   // Lazily required: frameProject pulls in much of main.
   return require('./frameProject').getWorkspaceSettings(projectPath);
@@ -247,7 +256,7 @@ async function push(projectPath, id) {
   if (!ws) return { error: 'This workspace is not available.' };
   // A workspace opened from an existing branch may have no stored base: the
   // remote's default branch stands in, so the base can never be pushed.
-  const base = ws.base || (await git.defaultRemoteBranch(projectPath)).branch || 'main';
+  const base = await baseOf(projectPath, ws);
   const upstream = await git.upstreamOf(ws.path);
   const plan = pushArgs({ branch: ws.branch, base, upstream });
   if (plan.error) return { error: plan.error };
@@ -275,7 +284,7 @@ function heldSpec(projectPath, id) {
 async function prDraft(projectPath, id) {
   const ws = recordOf(projectPath, id);
   if (!ws) return { error: 'This workspace is not available.' };
-  const base = ws.base || 'main';
+  const base = await baseOf(projectPath, ws);
   const commits = await git.commitSubjects(ws.path, `origin/${base}..HEAD`);
   const { title, body } = composePr({ spec: heldSpec(projectPath, id), commits, branch: ws.branch });
   return { error: null, title, body, base, branch: ws.branch, commits: commits.length };
@@ -294,7 +303,7 @@ async function prCreate(projectPath, id, { title, body = '', draft = false } = {
   const pushed = await push(projectPath, id);
   if (pushed.error) return { error: `Push failed: ${pushed.error}` };
 
-  const args = ['pr', 'create', '--base', ws.base || 'main', '--head', ws.branch,
+  const args = ['pr', 'create', '--base', await baseOf(projectPath, ws), '--head', ws.branch,
     '--title', String(title).trim(), '--body-file', '-'];
   if (draft) args.push('--draft');
   const res = await github.runGh(args, ws.path, { stdin: String(body || '') });
@@ -336,7 +345,7 @@ async function merge(projectPath, id) {
     refresh(projectPath);
     return { error: null, method, number: current.number, queued: true, fastForward: null, archived: false, archiveNote: null };
   }
-  const fastForward = await git.fastForwardIfOn(projectPath, ws.base || 'main');
+  const fastForward = await git.fastForwardIfOn(projectPath, await baseOf(projectPath, ws));
   let archived = false;
   let archiveNote = null;
   if (settings.archiveOnMerge) {
@@ -362,7 +371,7 @@ async function merge(projectPath, id) {
 async function updateFromBase(projectPath, id) {
   const ws = recordOf(projectPath, id);
   if (!ws) return { error: 'This workspace is not available.' };
-  const base = ws.base || 'main';
+  const base = await baseOf(projectPath, ws);
   try {
     if (await git.mergeInProgress(ws.path)) {
       return { state: 'conflict', base, files: parseConflicts(await git.conflictedFiles(ws.path)) };
@@ -403,7 +412,7 @@ async function abortUpdate(projectPath, id) {
     if (!(await git.mergeInProgress(ws.path))) return { error: null, aborted: false };
     // Only abort the merge an update started (MERGE_HEAD is a commit of
     // origin/<base>): one the user or an agent began is theirs (L13a).
-    const base = ws.base || 'main';
+    const base = await baseOf(projectPath, ws);
     if (!(await git.mergeHeadIn(ws.path, `origin/${base}`))) {
       return { error: `The merge in progress is not an update from ${base} — Frame leaves it for you to finish or abort.`, aborted: false };
     }

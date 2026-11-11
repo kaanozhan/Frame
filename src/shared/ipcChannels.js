@@ -239,6 +239,7 @@ const IPC = {
   WORKSPACES_LIST: 'workspaces-list',                // renderer → main (invoke): projectPath → { error, isRepo, workspaces, archived }
   WORKSPACE_CREATE: 'workspace-create',              // renderer → main (invoke): { projectPath, from: 'new'|'branch', base?, branch? } → { error, workspace, copied, fetch, setupScript }
   WORKSPACE_STATUS: 'workspace-status',              // renderer → main (invoke): { projectPath, id } → { error, dirty, count }
+  WORKSPACE_BASE_FOR_BRANCH: 'workspace-base-for-branch', // renderer → main (invoke): { projectPath, branch } → { error, base } (workspace-hardening L4)
   WORKSPACE_ARCHIVE: 'workspace-archive',            // renderer → main (invoke): { projectPath, id, action?: 'commit'|'discard', message? } → { error, dirty?, workspace }
   WORKSPACE_RESTORE: 'workspace-restore',            // renderer → main (invoke): { projectPath, id } → { error, workspace, copied, setupScript }
   WORKSPACE_RENAME: 'workspace-rename',              // renderer → main (invoke): { projectPath, id, name?, branch? } → { error, workspace }

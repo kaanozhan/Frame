@@ -163,3 +163,13 @@ test('mergeLanded: only a PR that reads back as merged has landed', () => {
   assert.equal(mergeLanded({ state: 'open' }), false, 'a merge queue leaves it open');
   assert.equal(mergeLanded(null), false, 'an unreadable PR is not taken as merged');
 });
+
+test('baseForBranch: the upstream when it is another branch, else the default', () => {
+  const { baseForBranch } = require('../src/shared/prFlow');
+  assert.equal(baseForBranch({ branch: 'feat/x', upstream: 'origin/develop', defaultBranch: 'main' }), 'develop');
+  assert.equal(baseForBranch({ branch: 'feat/x', upstream: 'origin/feat/x', defaultBranch: 'main' }), 'main', 'its own upstream is not a base');
+  assert.equal(baseForBranch({ branch: 'feat/x', upstream: null, defaultBranch: 'master' }), 'master');
+  assert.equal(baseForBranch({ branch: 'feat/x', upstream: 'origin/-f', defaultBranch: 'main' }), 'main', 'never an option-like name');
+  assert.equal(baseForBranch({ branch: 'feat/x', upstream: 'develop', defaultBranch: 'main' }), 'develop', 'a local upstream counts');
+  assert.equal(baseForBranch({ branch: 'feat/x', upstream: null, defaultBranch: null }), null);
+});

@@ -51,6 +51,21 @@ function init() {
     }
   });
   modalEl.querySelectorAll('input[name="nw-from"]').forEach((r) => r.addEventListener('change', syncFrom));
+  // An existing branch gets a real base too (workspace-hardening L4): prefill
+  // it from the branch's upstream, else the default branch, until the user
+  // types their own.
+  modalEl.querySelector('#nw-branch').addEventListener('change', prefillBaseForBranch);
+  modalEl.querySelector('#nw-base').addEventListener('input', (e) => { e.target.dataset.touched = '1'; });
+}
+
+async function prefillBaseForBranch() {
+  const projectPath = state.getProjectPath();
+  const branch = modalEl.querySelector('#nw-branch').value.trim();
+  const baseInput = modalEl.querySelector('#nw-base');
+  if (!projectPath || !branch || baseInput.dataset.touched) return;
+  const res = await ipcRenderer.invoke(IPC.WORKSPACE_BASE_FOR_BRANCH, { projectPath, branch }).catch(() => null);
+  if (state.getProjectPath() !== projectPath || modalEl.querySelector('#nw-branch').value.trim() !== branch) return;
+  if (!baseInput.dataset.touched && res && res.base) baseInput.value = res.base;
 }
 
 function multiTerminalUI() {
@@ -73,7 +88,7 @@ function syncFrom() {
   const from = modalEl.querySelector('input[name="nw-from"]:checked').value;
   const baseRow = modalEl.querySelector('#nw-base-row');
   const branchRow = modalEl.querySelector('#nw-branch-row');
-  baseRow.hidden = from !== 'new';
+  baseRow.hidden = false;
   branchRow.hidden = from !== 'branch';
   (from === 'new' ? modalEl.querySelector('#nw-base') : modalEl.querySelector('#nw-branch')).focus();
 }
@@ -88,6 +103,7 @@ async function open() {
   modalEl.querySelector('#nw-tool').innerHTML = toolOptionsHtml();
   modalEl.querySelector('#nw-prompt').value = '';
   modalEl.querySelector('#nw-branch').value = '';
+  delete modalEl.querySelector('#nw-base').dataset.touched;
   modalEl.querySelector('input[name="nw-from"][value="new"]').checked = true;
   modalEl.querySelector('#nw-error').textContent = '';
   syncLocation();
@@ -172,7 +188,7 @@ async function submit() {
       projectPath,
       location: modalEl.querySelector('#nw-location').value || 'local',
       from,
-      base: from === 'new' ? (base || undefined) : undefined,
+      base: base || undefined,
       branch: from === 'branch' ? branch : undefined
     });
   } catch (err) {

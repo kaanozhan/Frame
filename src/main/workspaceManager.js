@@ -28,6 +28,7 @@ const projectRegistry = require('./projectRegistry');
 const tooling = require('./workspaceTooling');
 const git = require('./gitBranchesManager');
 const { isValidBranchName } = require('../shared/gitRefNames');
+const prFlow = require('../shared/prFlow');
 const userSettings = require('./userSettings');
 const logger = require('./logger');
 
@@ -290,9 +291,29 @@ async function listLocal(projectPath) {
   return {
     error: null,
     isRepo: true,
-    workspaces: registry.activeOf(reconciled),
+    workspaces: await withBase(projectPath, registry.activeOf(reconciled)),
     archived: registry.archivedOf(reconciled)
   };
+}
+
+/**
+ * Records stored before workspaces knew their base (`base: null`) read as the
+ * remote's default branch; nothing is migrated (workspace-hardening B2).
+ */
+async function withBase(projectPath, rows) {
+  if (!rows.some((r) => !r.base)) return rows;
+  const def = (await git.defaultRemoteBranch(projectPath)).branch || null;
+  return rows.map((r) => (r.base ? r : { ...r, base: def }));
+}
+
+/** The base to prefill for a workspace opened from `branch` (decision B2). */
+async function baseForBranch(projectPath, branch) {
+  if (!projectPath || !isValidBranchName(branch)) return { error: 'Choose a branch.', base: null };
+  const [upstream, def] = await Promise.all([
+    git.upstreamOfBranch(projectPath, branch),
+    git.defaultRemoteBranch(projectPath)
+  ]);
+  return { error: null, base: prFlow.baseForBranch({ branch, upstream, defaultBranch: def.branch }) };
 }
 
 async function status(projectPath, id) {
@@ -341,6 +362,9 @@ async function create(projectPath, { from = 'new', base, branch, location = 'loc
     if (holder) return { error: `Branch "${branch}" is already open in workspace "${holder.name}".` };
     targetBranch = branch;
     name = uniquify(toSlug(branch.split('/').pop()) || nextName(takenNames), takenNames);
+    // A real base, never an assumed `main` (workspace-hardening L4): the
+    // dialog's choice, else what the dialog would have prefilled.
+    if (!base) base = (await baseForBranch(projectPath, branch)).base;
   } else {
     const def = await git.defaultRemoteBranch(projectPath);
     const baseBranch = base || def.branch;
@@ -509,6 +533,13 @@ async function rename(projectPath, id, { name, branch } = {}) {
   if (!result.ok) return { error: result.error.message };
 
   if (nextBranch && nextBranch !== record.branch) {
+    // A pushed branch keeps its name here: renaming it locally strands its
+    // upstream and its pull request (workspace-hardening L12).
+    const upstream = await git.upstreamOfBranch(projectPath, record.branch);
+    const onOrigin = await refExists(`refs/remotes/origin/${record.branch}`, projectPath);
+    if (upstream || onOrigin) {
+      return { error: `${record.branch} has been pushed — rename it on GitHub first, then open the new branch as a workspace.` };
+    }
     try {
       // `--` ends options: a name can never be read as one (workspace-hardening L2).
       await git.execGitArgs(['branch', '-m', '--', record.branch, nextBranch], projectPath);
@@ -550,6 +581,7 @@ function setupIPC(ipcMain) {
 
   ipcMain.handle(IPC.WORKSPACES_LIST, guarded((projectPath) => list(projectPath)));
   ipcMain.handle(IPC.WORKSPACE_STATUS, guarded(({ projectPath, id }) => status(projectPath, id)));
+  ipcMain.handle(IPC.WORKSPACE_BASE_FOR_BRANCH, guarded(({ projectPath, branch }) => baseForBranch(projectPath, branch)));
   ipcMain.handle(IPC.GIT_DEFAULT_BRANCH, guarded((projectPath) => git.defaultRemoteBranch(projectPath)));
   ipcMain.handle(IPC.WORKSPACE_CREATE, guarded(({ projectPath, ...opts }) => serialize(projectPath, () => create(projectPath, opts))));
   ipcMain.handle(IPC.WORKSPACE_ARCHIVE, guarded(({ projectPath, id, ...opts }) => serialize(projectPath, () => archive(projectPath, id, opts))));
@@ -576,6 +608,7 @@ module.exports = {
   serverLocation,
   serverRoots,
   status,
+  baseForBranch,
   create,
   archive,
   archiveQueued,

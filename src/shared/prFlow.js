@@ -237,6 +237,21 @@ function mergeLanded(pr) {
   return !!pr && pr.state === 'merged';
 }
 
+/**
+ * The base a workspace opened from an existing branch should record
+ * (workspace-hardening L4, decision B2): the branch's upstream when that is
+ * another branch (`origin/develop` → `develop`), else the project's default
+ * branch. The dialog prefills it; the user can change it.
+ */
+function baseForBranch({ branch, upstream, defaultBranch }) {
+  const { isValidBranchName } = require('./gitRefNames');
+  if (upstream) {
+    const name = String(upstream).startsWith('origin/') ? String(upstream).slice('origin/'.length) : String(upstream);
+    if (name && name !== branch && isValidBranchName(name)) return name;
+  }
+  return defaultBranch && isValidBranchName(defaultBranch) ? defaultBranch : null;
+}
+
 module.exports = {
   parseConflicts,
   updateMenuState,
@@ -252,5 +267,6 @@ module.exports = {
   isPushable,
   pushArgs,
   mergeLanded,
+  baseForBranch,
   MERGE_ORDER
 };

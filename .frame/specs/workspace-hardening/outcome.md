@@ -30,3 +30,11 @@ trackedDirtyCount now returns `{ count, error }` and updateFromBase refuses with
 _Captured: 2026-11-11 · 8 file change(s)_
 
 ---
+
+## T05 — Give every workspace a real base
+
+Added prFlow.baseForBranch (the branch's upstream when it is another valid branch, else the default branch) and IPC WORKSPACE_BASE_FOR_BRANCH backed by workspaceManager.baseForBranch (upstream read with `for-each-ref --format=%(upstream:short) refs/heads/<branch>`, so no tag can shadow the branch). The New Workspace dialog shows Base in both modes, below Branch for an existing branch, and prefills it when a branch is chosen until the user types their own; create stores it (validated) and, without one, stores what the dialog would have suggested. Records already stored with `base: null` read as the remote's default branch in listLocal and in every workspaceGitState path (rowState, push, PR create, merge fast-forward, update, abort) through baseOf; nothing is migrated. Rename refuses a branch that has an upstream or an origin/<branch>, saying to rename it on GitHub first.
+
+_Captured: 2026-11-11 · 9 file change(s)_
+
+---

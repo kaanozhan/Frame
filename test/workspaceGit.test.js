@@ -80,17 +80,17 @@ function git(args, cwd) {
 
 let projectSeq = 0;
 /** A project cloned from a bare remote with one commit on main, registered with Frame. */
-function makeProject() {
+function makeProject({ defaultBranch = 'main' } = {}) {
   const dir = path.join(SANDBOX, `p${++projectSeq}`);
   fs.mkdirSync(dir, { recursive: true });
   const remote = path.join(dir, 'origin.git');
   const seed = path.join(dir, 'seed');
-  git(['init', '-q', '--bare', '-b', 'main', remote], dir);
-  git(['init', '-q', '-b', 'main', seed], dir);
+  git(['init', '-q', '--bare', '-b', defaultBranch, remote], dir);
+  git(['init', '-q', '-b', defaultBranch, seed], dir);
   fs.writeFileSync(path.join(seed, 'README.md'), 'hello\n');
   git(['add', '.'], seed);
   git(['commit', '-qm', 'init'], seed);
-  git(['push', '-q', remote, 'main'], seed);
+  git(['push', '-q', remote, defaultBranch], seed);
   const project = path.join(dir, 'project');
   git(['clone', '-q', remote, project], dir);
   projectRegistry.addProject(project, path.basename(dir), false);
@@ -340,4 +340,52 @@ test('L14: a missing workspace folder does not switch the review diff off', asyn
   const res = await gitDiff.reviewFiles(project, 'main');
   assert.equal(res.error, null, res.error);
   assert.ok(res.files.some((f) => f.path === 'new.txt'), 'git still runs after the missing folder');
+});
+
+// ─── L4 / L12: a workspace knows its base ────────────────────
+
+test('L4: a workspace opened from a branch cut from develop records develop as its base', async () => {
+  const { project } = makeProject();
+  git(['checkout', '-qb', 'develop'], project);
+  git(['push', '-q', '-u', 'origin', 'develop'], project);
+  git(['checkout', '-q', '--track', '-b', 'feat/x', 'origin/develop'], project);
+  git(['checkout', '-q', 'main'], project);
+  const suggested = await workspaceManager.baseForBranch(project, 'feat/x');
+  assert.equal(suggested.base, 'develop', 'prefilled from the upstream');
+  const created = await workspaceManager.create(project, { from: 'branch', branch: 'feat/x', base: suggested.base });
+  assert.equal(created.error, null, created.error);
+  assert.equal(created.workspace.base, 'develop');
+  const noBase = await workspaceManager.create(project, { from: 'branch', branch: 'develop' });
+  assert.equal(noBase.error, null, noBase.error);
+  assert.equal(noBase.workspace.base, 'main', 'without a base the default branch is stored, not null');
+});
+
+test('L4: a stored base of null resolves to the remote default branch in a master repository', async () => {
+  const { project } = makeProject({ defaultBranch: 'master' });
+  git(['branch', 'feat/old', 'origin/master'], project);
+  const created = await workspaceManager.create(project, { from: 'branch', branch: 'feat/old' });
+  assert.equal(created.error, null, created.error);
+  // An older record: base null.
+  const recs = projectRegistry.getWorkspaceRecords(project).map((r) => (r.id === created.workspace.id ? { ...r, base: null } : r));
+  projectRegistry.setWorkspaceRecords(project, recs);
+  const listed = await workspaceManager.list(project);
+  assert.equal(listed.workspaces.find((w) => w.id === created.workspace.id).base, 'master');
+  const res = await workspaceGitState.updateFromBase(project, created.workspace.id);
+  assert.equal(res.error, undefined, res.error);
+  assert.equal(res.base, 'master');
+  assert.equal(res.state, 'up-to-date');
+});
+
+test('L12: a pushed branch cannot be renamed; an unpushed one can', async () => {
+  const { project } = makeProject();
+  const a = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  const b = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(a.error, null, a.error);
+  git(['push', '-q', '-u', 'origin', a.workspace.branch], a.workspace.path);
+  const refused = await workspaceManager.rename(project, a.workspace.id, { branch: 'feat/renamed-a' });
+  assert.match(String(refused.error), /pushed/);
+  assert.equal(git(['rev-parse', '--verify', '-q', `refs/heads/${a.workspace.branch}`], project).length > 0, true);
+  const ok = await workspaceManager.rename(project, b.workspace.id, { branch: 'feat/renamed-b' });
+  assert.equal(ok.error, null, ok.error);
+  assert.ok(git(['rev-parse', '--verify', '-q', 'refs/heads/feat/renamed-b'], project));
 });
